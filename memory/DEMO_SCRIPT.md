@@ -6,6 +6,13 @@
 
 ---
 
+## Phase 6b polish (2026-02)
+- **Branded 404 page** at any unknown route (`NotFound.jsx`) with home CTA.
+- **Global `<ErrorBoundary>`** wraps the entire app tree — friendly "Something went wrong" with Reload button on crashes.
+- **Landing polish**: Category showcase (10 tiles), Testimonials (4 realistic quotes), City Champions widget (leverages Fast Responder leaderboard), "As featured in" press-logo row, dual CTA at bottom (Explore Listings / Start selling in 2 min).
+- **Seed enhancement**: 15 new-product listings + 15 service listings now carry demo Cloudinary reel URLs → `/api/v1/feed/reels` returns **29 items** (spec ≥15).
+- **TEST_ isolation**: Public `/listings` and `/feed` now regex-exclude titles starting with `TEST_` so test suites can't pollute the demo state.
+
 ## Personas (all use dev OTP — the send-OTP response returns `dev_otp`)
 
 | Persona     | Role(s)                     | Phone         | Notes                                                     |

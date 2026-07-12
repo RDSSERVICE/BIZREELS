@@ -156,7 +156,8 @@ async def list_listings(
 ) -> dict:
     """Paginated list. Uses created_at descending + _id tie-break for cursor pagination."""
     db = get_db()
-    q: dict[str, Any] = {"is_deleted": {"$ne": True}, "is_takendown": {"$ne": True}}
+    q: dict[str, Any] = {"is_deleted": {"$ne": True}, "is_takendown": {"$ne": True},
+                          "title": {"$not": {"$regex": "^TEST_"}}}
     for k in ("type", "category_id", "sub_category_id", "vendor_id", "status"):
         v = filters.get(k)
         if v:

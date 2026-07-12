@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles, MessageCircle, ShieldCheck, Users, Store, MapPin 
 import { Button } from "@/components/ui/button";
 import { PhoneScreen } from "@/components/app/PhoneScreen";
 import LanguageToggle from "@/components/app/LanguageToggle";
+import { CategoryShowcase, Testimonials, CityChampions, PressLogos } from "@/components/app/LandingSections";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 
@@ -121,6 +122,24 @@ export default function Landing() {
           body={t("landing.features.trust_body")}
           tone="orange"
         />
+      </div>
+
+      <CategoryShowcase />
+      <CityChampions />
+      <Testimonials />
+      <PressLogos />
+
+      <div className="px-6 py-8 flex flex-col gap-2 border-t border-white/5" data-testid="landing-bottom-cta">
+        <Link to={user ? "/feed" : "/login"} className="w-full">
+          <Button data-testid="bottom-cta-primary" className="w-full h-12 rounded-full btn-brand border-0 font-semibold text-sm">
+            Explore Listings <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
+        <Link to={user ? "/vendor/dashboard" : "/login"} className="w-full">
+          <Button data-testid="bottom-cta-secondary" variant="outline" className="w-full h-12 rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white font-semibold text-sm">
+            Start selling in 2 minutes
+          </Button>
+        </Link>
       </div>
     </PhoneScreen>
   );

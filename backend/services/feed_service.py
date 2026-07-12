@@ -67,7 +67,8 @@ async def build_feed(
     reels_only: bool = False,
 ) -> dict:
     db = get_db()
-    q: dict[str, Any] = {"is_deleted": {"$ne": True}, "status": "active", "is_takendown": {"$ne": True}}
+    q: dict[str, Any] = {"is_deleted": {"$ne": True}, "status": "active", "is_takendown": {"$ne": True},
+                          "title": {"$not": {"$regex": "^TEST_"}}}
     types = TYPE_FILTER.get(type_)
     if types:
         q["type"] = {"$in": types}

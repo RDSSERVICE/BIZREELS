@@ -147,6 +147,16 @@ REVIEW_COMMENTS = [
 ]
 
 
+DEMO_REEL_URLS = [
+    "https://res.cloudinary.com/demo/video/upload/samples/sea-turtle.mp4",
+    "https://res.cloudinary.com/demo/video/upload/samples/dance-2.mp4",
+    "https://res.cloudinary.com/demo/video/upload/samples/cld-sample-video.mp4",
+    "https://res.cloudinary.com/demo/video/upload/samples/elephants.mp4",
+    "https://res.cloudinary.com/demo/video/upload/v1689075975/dog.mp4",
+    "https://res.cloudinary.com/demo/video/upload/samples/chair-and-coffee-table.mp4",
+]
+
+
 def _rand_name() -> str:
     return f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}"
 
@@ -233,7 +243,7 @@ async def _create_user(db, name, roles, city_row, kyc="unverified",
 
 
 async def _create_listing(db, vendor, city_row, product, listing_type,
-                          backdate_days=0, boost_days=0) -> dict:
+                          backdate_days=0, boost_days=0, reel_url=None) -> dict:
     # Normalize product tuple: (name, price, offer_price, cat_name, [condition])
     # PRODUCTS_NEW / PRODUCTS_OLD are already 4/5-tuples. SERVICES are (name, price, cat_name)
     # → convert services to canonical shape here.
@@ -278,7 +288,13 @@ async def _create_listing(db, vendor, city_row, product, listing_type,
         "stock": random.randint(1, 10) if listing_type == "new_product" else None,
         "condition": condition,
         "service_charges_type": "fixed" if listing_type == "service" else None,
-        "images": images, "reel": None,
+        "images": images,
+        "reel": ({
+            "url": reel_url,
+            "public_id": f"demo-reels/{slug}",
+            "thumbnail_url": images[0],
+            "duration": random.randint(10, 25),
+        } if reel_url else None),
         "location": {"area": f"Area {random.randint(1,20)}", "city": city_row[0],
                      "state": city_row[3], "pincode": city_row[4],
                      "lat": city_row[1], "lng": city_row[2],
@@ -346,13 +362,15 @@ async def reset_and_seed(wipe: bool = True) -> dict:
 
     # Listings
     listings = []
-    # New products
-    for prod in PRODUCTS_NEW:
+    # New products (~15 get reels)
+    for idx, prod in enumerate(PRODUCTS_NEW):
         vendor = random.choice(vendors)
         city = next((c for c in CITIES if c[0] == vendor.get("city")), CITIES[0])
+        reel = random.choice(DEMO_REEL_URLS) if idx < 10 else None
         li = await _create_listing(db, vendor, city, prod, "new_product",
                                     backdate_days=random.randint(0, 50),
-                                    boost_days=random.choice([0]*6 + [3, 7, 14]))
+                                    boost_days=random.choice([0]*6 + [3, 7, 14]),
+                                    reel_url=reel)
         listings.append(li)
     # Old products
     for prod in PRODUCTS_OLD:
@@ -361,12 +379,13 @@ async def reset_and_seed(wipe: bool = True) -> dict:
         li = await _create_listing(db, vendor, city, prod, "old_product",
                                     backdate_days=random.randint(5, 90))
         listings.append(li)
-    # Services
+    # Services (all 15 get reels — highlights service demos)
     for prod in SERVICES:
         vendor = random.choice(vendors)
         city = next((c for c in CITIES if c[0] == vendor.get("city")), CITIES[0])
         li = await _create_listing(db, vendor, city, prod, "service",
-                                    backdate_days=random.randint(0, 40))
+                                    backdate_days=random.randint(0, 40),
+                                    reel_url=random.choice(DEMO_REEL_URLS))
         listings.append(li)
 
     # Reviews on vendors + a few on listings

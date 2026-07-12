@@ -38,6 +38,8 @@ import AdminUsers from "@/pages/AdminUsers";
 import AdminListings from "@/pages/AdminListings";
 import AdminReports from "@/pages/AdminReports";
 import VendorAnalytics from "@/pages/VendorAnalytics";
+import NotFound from "@/pages/NotFound";
+import ErrorBoundary from "@/components/app/ErrorBoundary";
 
 function OnboardingGate({ children }) {
   const { user, loading } = useAuth();
@@ -49,6 +51,7 @@ function OnboardingGate({ children }) {
 function App() {
   return (
     <HelmetProvider>
+      <ErrorBoundary>
       <div className="App bg-black min-h-screen">
         <AuthProvider>
           <BrowserRouter>
@@ -90,12 +93,13 @@ function App() {
               <Route path="/vendor/listing/new" element={<RequireAuth><ListingForm /></RequireAuth>} />
               <Route path="/vendor/listing/:id/edit" element={<RequireAuth><ListingForm /></RequireAuth>} />
 
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster theme="dark" position="top-center" richColors closeButton />
           </BrowserRouter>
         </AuthProvider>
       </div>
+      </ErrorBoundary>
     </HelmetProvider>
   );
 }
