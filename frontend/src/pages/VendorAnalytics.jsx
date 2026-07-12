@@ -118,7 +118,13 @@ export default function VendorAnalytics() {
             {ts.length > 0 && (
               <div className="glass rounded-2xl p-4">
                 <div className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Views (daily)</div>
-                <MiniBars items={ts} testId="analytics-timeseries" />
+                {ts.every((b) => b.value === 0) ? (
+                  <div className="h-24 flex items-center justify-center text-white/50 text-xs" data-testid="timeseries-empty">
+                    No traffic yet in the last {range === "7d" ? "7 days" : range === "30d" ? "30 days" : "90 days"}. Boost a listing to get views flowing.
+                  </div>
+                ) : (
+                  <MiniBars items={ts} testId="analytics-timeseries" />
+                )}
               </div>
             )}
 
