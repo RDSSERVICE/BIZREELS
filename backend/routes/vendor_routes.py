@@ -86,6 +86,7 @@ async def leaderboard_fast_responders(city: str | None = None, limit: int = 10):
         "roles": "vendor", "is_deleted": {"$ne": True}, "is_banned": {"$ne": True},
         "chat_response_rate": {"$gte": 0.7},
         "avg_response_time_seconds": {"$gt": 0, "$ne": None},
+        "name": {"$not": {"$regex": "^TEST_"}},
     }
     if city:
         q["city"] = {"$regex": f"^{city}$", "$options": "i"}

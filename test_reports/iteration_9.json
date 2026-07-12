@@ -1,0 +1,32 @@
+{
+  "summary": "Verified iteration_8 fix for TEST_ leak in fast-responders leaderboard. Backend + frontend both clean. No regressions.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_phase6.py",
+    "/app/backend/tests/test_phase6b.py",
+    "/app/test_reports/pytest/iter9.xml"
+  ],
+  "verification_results": {
+    "leaderboard_all_limit_20": "9 vendors returned, 0 TEST_ leaks (names: V1, Kavya Sharma, Ananya Bose, Diya Singh, Riya Mehra, Nisha Bhat, Kavya Bhat, Neha Gupta, Neha Mehra)",
+    "leaderboard_city_Bengaluru": "0 vendors returned, 0 TEST_ leaks",
+    "landing_city_champions_widget": "Section [data-testid='landing-city-champions'] rendered with 4 vendors, 0 TEST_RT_V_* leaks",
+    "reels_feed": "29 reels returned (>=15), all 29 have url set",
+    "listings_TEST_exclusion": "50 items, 0 TEST_ titles (limit capped at 50 by validator)",
+    "feed_TEST_exclusion": "50 items, 0 TEST_ titles",
+    "openapi_endpoints": "134 endpoints across 122 paths (>=134)",
+    "404_route": "returns 200 with index.html (SPA fallback)",
+    "pytest_phase6_and_6b": "16/16 passed"
+  },
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Note: /api/v1/listings/ and /api/v1/feed enforce max limit=50; test request in review said limit=100 which returns 422. Not a bug, just review-message mismatch — tests validate correctly at limit=50."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None (used existing seeded data)",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Phase 6b fully green. Leaderboard now filters name NOT ^TEST_. All 16 pytest tests pass, landing City Champions widget clean.",
+  "rca of the issue": "Previous leak: leaderboard query in /app/backend/routes/vendor_routes.py did not exclude TEST_ prefixed vendor names. Fix (verified this iteration): added {'name': {'$not': {'$regex': '^TEST_'}}} to query. Confirmed via direct API + landing UI."
+}
