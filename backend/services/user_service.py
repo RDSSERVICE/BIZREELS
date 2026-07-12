@@ -84,6 +84,13 @@ def serialize(user: User) -> dict:
         "gender": user.gender,
         "dob": user.dob,
         "is_active": user.is_active,
+        # Phase 4a additions
+        "is_subscribed_verified": bool(user.is_subscribed_verified),
+        "verified_badge": bool(user.is_subscribed_verified) and user.kyc_status == "approved",
+        "rating_avg": user.rating_avg,
+        "rating_count": user.rating_count,
+        "trust_score": user.trust_score,
+        "city": user.city,
         "created_at": user.created_at,
         "updated_at": user.updated_at,
     }

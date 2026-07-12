@@ -88,6 +88,18 @@ async def create_review(reviewer_id: str, body: dict) -> dict:
             title=f"New {doc['rating']}★ review", body=(doc.get("comment") or "")[:120],
             action_url=f"/vendor/{body['target_id']}",
         )
+    elif body["target_type"] in ("listing", "service") and ObjectId.is_valid(body["target_id"]):
+        # Notify the listing owner (vendor) for listing/service reviews
+        listing = await db.listings.find_one({"_id": ObjectId(body["target_id"])})
+        if listing and listing.get("vendor_id"):
+            vendor_id = str(listing["vendor_id"])
+            if vendor_id != reviewer_id:  # avoid self-notify (shouldn't happen — deal gates it)
+                await notification_service.create(
+                    user_id=vendor_id, type_="review",
+                    title=f"New {doc['rating']}★ review on your listing",
+                    body=(doc.get("comment") or listing.get("title") or "")[:120],
+                    action_url=f"/listing/{listing.get('slug', body['target_id'])}",
+                )
 
     # Credit for verified purchase review
     if is_verified_purchase:
@@ -256,7 +268,11 @@ async def create_sub_order(user_id: str, plan: str) -> dict:
 
 
 async def activate_subscription_from_payment(payment: dict) -> dict:
-    """Called after successful payment for a subscription purpose."""
+    """Called after successful payment for a subscription purpose.
+    If user already has an ACTIVE non-expired subscription for the same plan, extend it.
+    Otherwise create a new subscription.
+    Returns the subscription doc (serialized).
+    """
     db = get_db()
     purpose = payment.get("purpose", "")
     plan = None
@@ -268,18 +284,46 @@ async def activate_subscription_from_payment(payment: dict) -> dict:
         return {}
     user_id = str(payment["user_id"])
     now = datetime.now(timezone.utc)
-    expires = now + timedelta(days=PLAN_DAYS[plan])
-    sub_doc = {
+    add_days = PLAN_DAYS[plan]
+
+    # Look for an active same-plan sub that hasn't expired yet
+    active = await db.subscriptions.find_one({
         "user_id": user_id, "plan": plan, "status": "active",
-        "started_at": now.isoformat(), "expires_at": expires.isoformat(),
-        "auto_renew": False, "payment_id": str(payment["_id"]),
-        "created_at": _now(), "updated_at": _now(),
-    }
-    await db.subscriptions.insert_one(sub_doc)
+    })
+    extended = False
+    if active:
+        try:
+            current_expiry = datetime.fromisoformat(str(active.get("expires_at", "")).replace("Z", "+00:00"))
+        except Exception:  # noqa: BLE001
+            current_expiry = now
+        base_from = current_expiry if current_expiry > now else now
+        new_expiry = base_from + timedelta(days=add_days)
+        await db.subscriptions.update_one(
+            {"_id": active["_id"]},
+            {"$set": {
+                "expires_at": new_expiry.isoformat(),
+                "updated_at": _now(),
+                "last_payment_id": str(payment["_id"]),
+            }, "$push": {"payment_ids": str(payment["_id"])}},
+        )
+        sub_doc = await db.subscriptions.find_one({"_id": active["_id"]})
+        extended = True
+    else:
+        expires = now + timedelta(days=add_days)
+        sub_doc = {
+            "user_id": user_id, "plan": plan, "status": "active",
+            "started_at": now.isoformat(), "expires_at": expires.isoformat(),
+            "auto_renew": False, "payment_id": str(payment["_id"]),
+            "payment_ids": [str(payment["_id"])],
+            "created_at": _now(), "updated_at": _now(),
+        }
+        res = await db.subscriptions.insert_one(sub_doc)
+        sub_doc["_id"] = res.inserted_id
+
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"is_subscribed_verified": True}})
     await notification_service.create(
         user_id=user_id, type_="verification",
-        title="Verified subscription active",
+        title=("Verified subscription extended" if extended else "Verified subscription active"),
         body=f"You're subscribed to {plan}. Verified badge shows when KYC is also approved.",
         action_url="/subscriptions",
     )
@@ -350,7 +394,13 @@ async def dev_simulate_success(payment_id: str, user_id: str) -> dict:
 async def _apply_success(payment: dict, razorpay_payment_id: str, signature: str) -> dict:
     db = get_db()
     if payment.get("status") == "captured":
-        return _s(payment)  # idempotent
+        # Idempotent — attempt to reattach subscription if applicable
+        out = _s(payment)
+        if payment.get("purpose", "").startswith("verified_badge"):
+            existing = await db.subscriptions.find_one({"payment_id": str(payment["_id"])})
+            if existing:
+                out["subscription"] = _s(existing)
+        return out
     await db.payments.update_one(
         {"_id": payment["_id"]},
         {"$set": {"status": "captured", "razorpay_payment_id": razorpay_payment_id,
@@ -360,11 +410,12 @@ async def _apply_success(payment: dict, razorpay_payment_id: str, signature: str
     payment = await db.payments.find_one({"_id": payment["_id"]})
     user_id = str(payment["user_id"])
     purpose = payment["purpose"]
+    subscription_out: dict | None = None
 
     if purpose == "wallet_topup":
         await wallet_service.deposit_inr(user_id, payment["amount_paise"], "Wallet top-up", str(payment["_id"]), razorpay_payment_id)
     elif purpose in ("verified_badge_monthly", "verified_badge_yearly"):
-        await activate_subscription_from_payment(payment)
+        subscription_out = await activate_subscription_from_payment(payment)
 
     await notification_service.create(
         user_id=user_id, type_="payment",
@@ -372,7 +423,10 @@ async def _apply_success(payment: dict, razorpay_payment_id: str, signature: str
         body=f"₹{payment['amount_paise']/100:.2f} · {purpose}",
         action_url="/wallet",
     )
-    return _s(payment)
+    out = _s(payment)
+    if subscription_out:
+        out["subscription"] = subscription_out
+    return out
 
 
 async def my_payments(user_id: str) -> list[dict]:
@@ -382,6 +436,18 @@ async def my_payments(user_id: str) -> list[dict]:
 
 
 # =========== TRUST SCORE ===========
+async def _has_active_verified_sub(user_id: str) -> bool:
+    """Check DB directly for an active non-expired verified sub."""
+    db = get_db()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    sub = await db.subscriptions.find_one({
+        "user_id": user_id, "status": "active",
+        "plan": {"$in": ["verified_monthly", "verified_yearly"]},
+        "expires_at": {"$gt": now_iso},
+    })
+    return sub is not None
+
+
 async def trust_score(user_id: str) -> dict:
     db = get_db()
     u = await db.users.find_one({"_id": ObjectId(user_id)})
@@ -389,11 +455,27 @@ async def trust_score(user_id: str) -> dict:
         raise HTTPException(404, "Not found")
 
     completed = await db.deals.count_documents({"$or": [{"seller_id": user_id}, {"buyer_id": user_id}], "status": "completed"})
+
+    # Reviews aggregated across ALL surfaces owned by this user:
+    #  - target_type="vendor" with target_id=user_id
+    #  - target_type in ("listing","service") where the listing's vendor_id=user_id
+    listing_ids = [str(li["_id"]) async for li in db.listings.find({"vendor_id": user_id, "is_deleted": {"$ne": True}}, {"_id": 1})]
+    review_match = {
+        "$or": [
+            {"target_type": "vendor", "target_id": user_id},
+            {"target_type": {"$in": ["listing", "service"]}, "target_id": {"$in": listing_ids}} if listing_ids else {"_id": None},
+        ],
+        "is_deleted": {"$ne": True},
+    }
     reviews_agg = await db.reviews.aggregate([
-        {"$match": {"target_type": "vendor", "target_id": user_id, "is_deleted": {"$ne": True}}},
-        {"$group": {"_id": None, "avg": {"$avg": "$rating"}}},
+        {"$match": review_match},
+        {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "n": {"$sum": 1}}},
     ]).to_list(1)
     avg_rating = round(reviews_agg[0]["avg"], 2) if reviews_agg else 0.0
+    total_reviews = reviews_agg[0]["n"] if reviews_agg else 0
+    verified_purchase_count = await db.reviews.count_documents({
+        **review_match, "is_verified_purchase": True,
+    })
 
     # days_since_join
     try:
@@ -408,6 +490,7 @@ async def trust_score(user_id: str) -> dict:
     chat_rate = (len(my_msg_threads) / my_threads) if my_threads else 0.0
 
     is_kyc = u.get("kyc_status") == "approved"
+    is_sub = await _has_active_verified_sub(user_id)
 
     base = 30
     deals_pts = min(30, completed * 3)
@@ -415,17 +498,23 @@ async def trust_score(user_id: str) -> dict:
     chat_pts = min(10, chat_rate * 10)
     age_pts = min(10, days / 10)
     kyc_pts = 10 if is_kyc else 0
+    subs_pts = 5 if is_sub else 0
 
-    score = max(0, min(100, round(base + deals_pts + rating_pts + chat_pts + age_pts + kyc_pts)))
+    score = max(0, min(100, round(base + deals_pts + rating_pts + chat_pts + age_pts + kyc_pts + subs_pts)))
     tier = "newcomer" if score < 30 else "trusted" if score < 60 else "top-rated" if score < 85 else "elite"
+
+    # Denormalize onto user doc
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"trust_score": int(score), "is_subscribed_verified": bool(is_sub)}})
 
     return {
         "score": score, "tier": tier,
         "breakdown": {
             "base": base, "deals_completed": completed, "deals_pts": deals_pts,
-            "avg_rating": avg_rating, "rating_pts": rating_pts,
+            "avg_rating": avg_rating, "total_reviews": total_reviews,
+            "verified_purchase_count": verified_purchase_count, "rating_pts": rating_pts,
             "chat_response_rate": round(chat_rate, 2), "chat_pts": round(chat_pts, 1),
             "days_since_join": days, "age_pts": round(age_pts, 1),
             "kyc_approved": is_kyc, "kyc_pts": kyc_pts,
+            "is_subscribed_verified": is_sub, "subs_pts": subs_pts,
         },
     }

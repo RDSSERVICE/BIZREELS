@@ -39,6 +39,13 @@ def _serialize_user(user: User) -> dict:
         "gender": user.gender,
         "dob": user.dob,
         "is_active": user.is_active,
+        # Phase 4a additions
+        "is_subscribed_verified": bool(getattr(user, "is_subscribed_verified", False)),
+        "verified_badge": bool(getattr(user, "is_subscribed_verified", False)) and user.kyc_status == "approved",
+        "rating_avg": getattr(user, "rating_avg", 0.0),
+        "rating_count": getattr(user, "rating_count", 0),
+        "trust_score": getattr(user, "trust_score", None),
+        "city": getattr(user, "city", None),
         "created_at": user.created_at,
         "updated_at": user.updated_at,
     }
@@ -150,6 +157,16 @@ async def verify_otp_and_login(
         insert_doc = new_user.to_mongo()
         result = await db.users.insert_one(insert_doc)
         user_doc = await db.users.find_one({"_id": result.inserted_id})
+        # Signup bonus: +50 credits, idempotent-per-user (wallet is created fresh)
+        try:
+            from services import wallet_service
+            await wallet_service.earn_credits(
+                str(result.inserted_id),
+                wallet_service.CREDIT_RULES["signup"],
+                "Welcome bonus", "signup", str(result.inserted_id),
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("Signup bonus credit failed for user %s", result.inserted_id)
     else:
         # Existing user: optionally update name if not set and provided
         updates: dict = {"updated_at": now_iso}

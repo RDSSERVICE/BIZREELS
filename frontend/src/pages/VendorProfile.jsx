@@ -89,7 +89,7 @@ export default function VendorProfile() {
   const products = listings.filter((l) => l.type !== "service");
   const services = listings.filter((l) => l.type === "service");
   const reels = listings.filter((l) => l.reel?.url);
-  const isVerified = vendor.kyc_status === "verified" || (vendor.kyc_status === "approved");
+  const isVerified = vendor.verified_badge === true || vendor.kyc_status === "approved";
   const tierColor = {newcomer:"bg-white/10 text-white/70", trusted:"bg-blue-500/20 text-blue-300", "top-rated":"bg-green-500/20 text-green-300", elite:"bg-purple-500/20 text-purple-300"}[trust?.tier] || "bg-white/10 text-white/70";
   const waLink = vendor.phone ? `https://wa.me/91${vendor.phone}?text=${encodeURIComponent(`Hi ${vendor.name}, saw your listings on Emergent`)}` : null;
 

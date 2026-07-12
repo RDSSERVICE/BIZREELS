@@ -250,9 +250,15 @@ async def admin_approve(kid: str, user=Depends(require_auth)):
 
 
 @router.post("/admin/kyc/{kid}/reject")
-async def admin_reject(kid: str, body: KycActionBody, user=Depends(require_auth)):
+async def admin_reject(
+    kid: str,
+    body: KycActionBody | None = None,
+    reason: str | None = None,  # query param for backward compat
+    user=Depends(require_auth),
+):
     _require_admin(user)
-    return await p4.kyc_review(kid, user.id, approve=False, reason=body.reason)
+    final_reason = (body.reason if body else None) or reason
+    return await p4.kyc_review(kid, user.id, approve=False, reason=final_reason)
 
 
 # =============== Trust Score ===============
