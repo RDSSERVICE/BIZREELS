@@ -1,0 +1,101 @@
+{
+  "theme": "dark",
+  "app_type": "mobile-first web app",
+  "typography": {
+    "headings": {
+      "fontFamily": "Outfit, sans-serif",
+      "usage": "Use Outfit for all primary headings, numbers, and hero text. It provides a geometric, premium tech feel.",
+      "import_url": "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&display=swap"
+    },
+    "body": {
+      "fontFamily": "Manrope, sans-serif",
+      "usage": "Use Manrope for all body text, labels, and forms. Extremely readable on small screens.",
+      "import_url": "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+    }
+  },
+  "colors": {
+    "background": {
+      "primary": "#000000",
+      "secondary": "#0A0A0A",
+      "surface": "#121212",
+      "glass": "rgba(255, 255, 255, 0.05)"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A1A1AA",
+      "inverse": "#000000"
+    },
+    "gradients": {
+      "brand": "linear-gradient(135deg, #a855f7, #ec4899, #f97316)",
+      "usage": "Limit gradient usage to key CTAs, active tab indicators, and the borders of profile pictures/reels. DO NOT use gradients as page backgrounds."
+    },
+    "borders": {
+      "subtle": "rgba(255, 255, 255, 0.1)"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "Use backdrop-blur-xl (16px to 24px blur) with bg-white/5 and border-white/10 for sticky navs, bottom tabs, and modals.",
+    "corners": "Use rounded-2xl or rounded-3xl for cards to maintain the soft, modern social app feel.",
+    "shadows": "Avoid harsh drop shadows. Use ambient glows (brand gradient behind an element with blur-xl) for glowing active effects."
+  },
+  "components": {
+    "buttons": {
+      "primary": "Pill-shaped (rounded-full), bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500, text-white, font-semibold. Add hover:scale-105 transition-transform.",
+      "secondary": "Glass effect: bg-white/10 border border-white/10 text-white rounded-full hover:bg-white/20.",
+      "input": "Large tap targets (h-14). bg-[#121212] border-white/10 focus:border-pink-500 rounded-xl px-4 text-white."
+    },
+    "cards": {
+      "style": "bg-[#121212] border border-white/10 rounded-2xl p-4 or p-6. No heavy shadows."
+    },
+    "dev_banner": {
+      "style": "bg-blue-600/90 backdrop-blur-sm text-white text-sm py-2 px-4 rounded-lg flex items-center justify-between border border-blue-400/30 shadow-lg mb-4"
+    }
+  },
+  "spacing_and_layout": {
+    "philosophy": "Mobile-first. Wrap the main app view in a mobile-proportioned container on desktop (e.g., max-w-md mx-auto min-h-screen border-x border-white/10 bg-black) to emulate a phone screen.",
+    "paddings": "Use generous padding (p-6, p-8) for empty states and onboarding. Use tighter padding (p-4) for feed/dashboard items.",
+    "navigation": "Sticky bottom navigation for authenticated states (Dashboard)."
+  },
+  "animations": {
+    "micro": "Hover states on buttons (scale/translate), active states on tabs.",
+    "loading": "Use a subtle pulsing skeleton (animate-pulse bg-white/10) instead of basic spinners."
+  },
+  "image_urls": {
+    "hero_vendor": {
+      "url": "https://images.unsplash.com/photo-1634484675974-d3d30cdc0fc7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBzdHJlZXQlMjB2ZW5kb3IlMjBjaW5lbWF0aWMlMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODM4ODUxODN8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Cinematic shot of a street vendor. Perfect for hero overlay background."
+    },
+    "customer_role": {
+      "url": "https://images.unsplash.com/photo-1659463034333-b9f5bad5b78d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzV8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMGluZGlhbiUyMHdvbWFuJTIwbG9va2luZyUyMGF0JTIwcGhvbmUlMjBzbWlsaW5nfGVufDB8fHx8MTc4Mzg4NTE4M3ww&ixlib=rb-4.1.0&q=85",
+      "description": "Young Indian woman engaged with her phone, representing the Customer role selection."
+    },
+    "vendor_role": {
+      "url": "https://images.unsplash.com/photo-1740989804341-f54be7334e81?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHw0fHxpbmRpYW4lMjBsb2NhbCUyMHNob3AlMjBtb2Rlcm58ZW58MHx8fHwxNzgzODg1MTgzfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Indian local shop owner, representing the Vendor role selection."
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure text over gradients has sufficient contrast.",
+    "test_ids": "MUST add data-testid to all interactive and key informational elements. Examples: data-testid=\"login-submit-button\", data-testid=\"otp-input\"."
+  },
+  "instructions_to_main_agent": [
+    "This is a standard React JS project (.js files, no .tsx syntax).",
+    "Implement a dark theme UI as the base, utilizing the defined brand gradients only as accents.",
+    "Import Outfit and Manrope fonts via Google Fonts in index.css. Apply them globally in tailwind.config.js.",
+    "Implement the landing page hero emphasizing the 'Discover local. Chat direct. Deal fair.' value proposition with an overlay background image.",
+    "For Phase 0 routing, create pages for: / (Landing), /login (OTP), /verify, /onboarding, /dashboard, /profile.",
+    "Use Shadcn UI components but heavily customize them. Remove the default Vercel look: use border-white/10, dark surfaces, and add the requested purple-pink-orange pill buttons.",
+    "Never use generic Inter/Roboto fonts.",
+    "For the Dev OTP banner, it should be a distinct UI element that appears when OTP is provided directly by the auth stub API."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Do not converge toward generic 'AI slop' outputs. Use the defined gradient sparingly for high impact.",
+    "Create depth with layered elements (z-index) and glassmorphism (backdrop-blur-xl).",
+    "Never use `transition: all`. Target specific properties like `transition-transform` or `transition-opacity`.",
+    "Do not center-align body text. Keep forms and text content left-aligned.",
+    "Always use the provided image URLs. NEVER use placehold.it or dummyimage.com placeholders.",
+    "Use `sonner` for toast notifications (e.g., OTP sent successfully, Error logging in).",
+    "Include `data-testid` on all buttons, links, inputs, and form elements.",
+    "Avoid using complete transparent backgrounds for dropdowns or modals."
+  ]
+}
