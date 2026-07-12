@@ -523,10 +523,16 @@ async def trust_score(user_id: str) -> dict:
     except Exception:  # noqa: BLE001
         days = 0
 
-    # chat response rate — simplified: fraction of threads user has sent a message in
-    my_threads = await db.chat_threads.count_documents({"participants": user_id})
-    my_msg_threads = await db.messages.distinct("thread_id", {"sender_id": user_id})
-    chat_rate = (len(my_msg_threads) / my_threads) if my_threads else 0.0
+    # chat response rate — use denormalized value from response_time_service if available,
+    # else fall back to a legacy proxy metric.
+    stored_rate = float(u.get("chat_response_rate") or 0.0)
+    responded_n = int(u.get("total_conversations_responded") or 0)
+    if responded_n > 0:
+        chat_rate = stored_rate
+    else:
+        my_threads = await db.chat_threads.count_documents({"participants": user_id})
+        my_msg_threads = await db.messages.distinct("thread_id", {"sender_id": user_id})
+        chat_rate = (len(my_msg_threads) / my_threads) if my_threads else 0.0
 
     is_kyc = u.get("kyc_status") == "approved"
     is_sub = await _has_active_verified_sub(user_id)

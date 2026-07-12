@@ -37,6 +37,7 @@ import Admin from "@/pages/Admin";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminListings from "@/pages/AdminListings";
 import AdminReports from "@/pages/AdminReports";
+import VendorAnalytics from "@/pages/VendorAnalytics";
 
 function OnboardingGate({ children }) {
   const { user, loading } = useAuth();
@@ -84,6 +85,7 @@ function App() {
               <Route path="/admin/users" element={<RequireAuth><AdminUsers /></RequireAuth>} />
               <Route path="/admin/listings" element={<RequireAuth><AdminListings /></RequireAuth>} />
               <Route path="/admin/reports" element={<RequireAuth><AdminReports /></RequireAuth>} />
+              <Route path="/vendor/analytics" element={<RequireAuth><VendorAnalytics /></RequireAuth>} />
               <Route path="/vendor/dashboard" element={<RequireAuth><VendorDashboard /></RequireAuth>} />
               <Route path="/vendor/listing/new" element={<RequireAuth><ListingForm /></RequireAuth>} />
               <Route path="/vendor/listing/:id/edit" element={<RequireAuth><ListingForm /></RequireAuth>} />

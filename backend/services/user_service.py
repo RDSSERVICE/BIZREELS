@@ -18,7 +18,7 @@ async def get_user_by_id(user_id: str) -> User | None:
 
 async def update_profile(user_id: str, updates: dict) -> User:
     db = get_db()
-    allowed = {"name", "email", "profile_pic", "gender", "dob", "current_role"}
+    allowed = {"name", "email", "profile_pic", "gender", "dob", "current_role", "city"}
     clean = {k: v for k, v in updates.items() if k in allowed and v is not None}
     if not clean:
         raise HTTPException(400, "No updatable fields provided")
@@ -91,6 +91,10 @@ def serialize(user: User) -> dict:
         "rating_count": user.rating_count,
         "trust_score": user.trust_score,
         "city": user.city,
+        # Phase 5 additions
+        "referral_code": getattr(user, "referral_code", None),
+        "avg_response_time_seconds": getattr(user, "avg_response_time_seconds", None),
+        "chat_response_rate": getattr(user, "chat_response_rate", 0.0),
         "created_at": user.created_at,
         "updated_at": user.updated_at,
     }

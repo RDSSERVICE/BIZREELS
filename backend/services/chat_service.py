@@ -51,6 +51,17 @@ async def get_or_create_thread(user_a: str, user_b: str, thread_type: str, conte
     doc = t.to_mongo()
     res = await db.chat_threads.insert_one(doc)
     doc["_id"] = res.inserted_id
+    # Emit chat_start event for listing threads (analytics)
+    if thread_type == "listing" and context_id:
+        try:
+            from services import event_service
+            await event_service.emit(
+                listing_id=context_id, vendor_id=None,
+                event_type="chat_start", user_id=user_a,
+                meta={"thread_id": str(res.inserted_id)},
+            )
+        except Exception:  # noqa: BLE001
+            pass
     return _t(doc)
 
 
@@ -148,6 +159,17 @@ async def send_message(thread_id: str, sender_id: str, body: dict) -> dict:
         from services.socket_service import sio, user_room
         await sio.emit("message:new", result, room=user_room(receiver_id))
         await sio.emit("message:new", result, room=user_room(sender_id))
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Response-time tracking: if this is sender's first reply to a pending
+    # incoming from receiver, log the delta and update user stats. Fire-and-forget.
+    try:
+        import asyncio
+        from services import response_time_service
+        asyncio.create_task(response_time_service.maybe_track_response(
+            thread_id=thread_id, sender_id=sender_id, receiver_id=receiver_id,
+        ))
     except Exception:  # noqa: BLE001
         pass
 

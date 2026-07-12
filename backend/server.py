@@ -34,6 +34,9 @@ from routes.chat_routes import router as chat_router  # noqa: E402
 from routes.phase4_routes import router as phase4_router  # noqa: E402
 from routes.report_routes import router as report_router  # noqa: E402
 from routes.admin_routes import router as admin_router  # noqa: E402
+from routes.analytics_routes import router as analytics_router  # noqa: E402
+from routes.referral_routes import router as referral_router  # noqa: E402
+from routes.onboarding_routes import router as onboarding_router  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -77,6 +80,9 @@ api_router.include_router(chat_router)
 api_router.include_router(phase4_router)
 api_router.include_router(report_router)
 api_router.include_router(admin_router)
+api_router.include_router(analytics_router)
+api_router.include_router(referral_router)
+api_router.include_router(onboarding_router)
 app.include_router(api_router)
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
@@ -110,7 +116,9 @@ async def startup():
     asyncio.create_task(_deal_followup_loop())
     from services import boost_service as _bs
     asyncio.create_task(_bs.expire_boosts_loop(interval_seconds=900))
-    logger.info("Emergent backend started (Phase 0-4b)")
+    from services import nudge_service as _ns
+    asyncio.create_task(_ns.nudge_loop(interval_seconds=24 * 3600))
+    logger.info("Emergent backend started (Phase 0-5)")
 
 
 async def _deal_followup_loop():

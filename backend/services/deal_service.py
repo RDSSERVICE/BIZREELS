@@ -59,6 +59,17 @@ async def create_deal(buyer_id: str, body: dict) -> dict:
         body={"type": "quote", "text": body.get("note"),
               "quote": {"deal_id": str(res.inserted_id), "amount": float(amount), "note": body.get("note"), "status": "pending"}},
     )
+    # Analytics: deal_start event on the listing (if any)
+    if listing_id:
+        try:
+            from services import event_service
+            await event_service.emit(
+                listing_id=listing_id, vendor_id=seller_id,
+                event_type="deal_start", user_id=buyer_id,
+                meta={"deal_id": str(res.inserted_id)},
+            )
+        except Exception:  # noqa: BLE001
+            pass
     return _s(doc)
 
 
@@ -153,6 +164,24 @@ async def complete(deal_id: str, user_id: str) -> dict:
             thread_id=str(d["thread_id"]), sender_id=user_id,
             body={"type": "system", "text": "Deal completed ✅"},
         )
+        # Analytics: deal_complete event
+        if d.get("listing_id"):
+            try:
+                from services import event_service
+                await event_service.emit(
+                    listing_id=str(d["listing_id"]), vendor_id=str(d.get("seller_id")),
+                    event_type="deal_complete", user_id=user_id,
+                    meta={"deal_id": deal_id},
+                )
+            except Exception:  # noqa: BLE001
+                pass
+        # Referral trigger: award pending referral for BOTH buyer & seller (whichever's first)
+        try:
+            from services import referral_service
+            await referral_service.maybe_award_on_deal_complete(str(d.get("buyer_id")))
+            await referral_service.maybe_award_on_deal_complete(str(d.get("seller_id")))
+        except Exception:  # noqa: BLE001
+            pass
     return _s(await db.deals.find_one({"_id": ObjectId(deal_id)}))
 
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
@@ -10,8 +10,8 @@ import ListingCard from "@/components/app/ListingCard";
 import WatchListingModal from "@/components/app/WatchListingModal";
 import { ReviewsSection } from "@/components/app/Reviews";
 import { ReportButton } from "@/components/app/ReportModal";
-import { BoostButton } from "@/components/app/BoostModal";
-import { listingApi, seoApi, interactionApi, followApi, resolveMediaUrl } from "@/lib/api";
+import { BoostButton, BoostModal } from "@/components/app/BoostModal";
+import { listingApi, seoApi, interactionApi, followApi, resolveMediaUrl, trackApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 function fmtPrice(n) { return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n); }
@@ -44,6 +44,8 @@ export default function ListingDetail() {
   const [saves, setSaves] = useState(0);
   const [following, setFollowing] = useState(false);
   const [watchOpen, setWatchOpen] = useState(false);
+  const [boostOpen, setBoostOpen] = useState(false);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     setLoading(true); setError(null);
@@ -69,9 +71,20 @@ export default function ListingDetail() {
 
   const share = async () => {
     const url = window.location.href;
+    if (listing?.id) { try { trackApi.listing(listing.id, "share").catch(() => {}); } catch {} }
     if (navigator.share) { try { await navigator.share({ title: listing?.title, url }); return; } catch {} }
     try { await navigator.clipboard.writeText(url); toast.success("Link copied"); } catch {}
   };
+
+  const clickWA = () => {
+    if (listing?.id) { try { trackApi.listing(listing.id, "wa_click").catch(() => {}); } catch {} }
+  };
+
+  useEffect(() => {
+    if (listing && searchParams.get("open_boost") === "1" && user && listing.vendor && user.id === listing.vendor.id) {
+      setBoostOpen(true);
+    }
+  }, [listing, searchParams, user]);
 
   const requireAuth = () => {
     if (!user) { setWatchOpen(true); return true; }
@@ -340,6 +353,7 @@ export default function ListingDetail() {
       </div>
 
       <WatchListingModal open={watchOpen} onOpenChange={setWatchOpen} listingId={listing.id} />
+      <BoostModal open={boostOpen} onOpenChange={setBoostOpen} listing={listing} onBoosted={() => listingApi.bySlug(slug).then(({ data }) => setListing(data))} />
     </PhoneScreen>
   );
 }

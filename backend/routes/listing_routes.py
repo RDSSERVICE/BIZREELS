@@ -205,3 +205,26 @@ async def boost_listing(listing_id: str, body: BoostBody, user=Depends(require_a
 async def my_boosted(user=Depends(require_auth)):
     from services import boost_service
     return {"items": await boost_service.list_my_boosted(user.id)}
+
+
+# ============= Phase 5: Analytics events =============
+class TrackBody(BaseModel):
+    event: Literal["share", "wa_click", "save"]
+
+
+@router.post("/{listing_id}/track")
+async def track_listing_event(listing_id: str, body: TrackBody, request: Request):
+    """Lightweight anon-friendly analytics event emitter (share / wa_click / save)."""
+    from services import event_service
+    # No auth strictly required; if auth header present, attribute to user
+    user_id = None
+    try:
+        from middleware.auth_middleware import _decode_optional
+        user_id = await _decode_optional(request)
+    except Exception:  # noqa: BLE001
+        pass
+    await event_service.emit(
+        listing_id=listing_id, vendor_id=None,
+        event_type=body.event, user_id=user_id, meta={},
+    )
+    return {"ok": True}

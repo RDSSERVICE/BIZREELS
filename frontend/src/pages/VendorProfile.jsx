@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ArrowLeft, Phone as PhoneIcon, MessageCircle, BadgeCheck, Share2 } from "lucide-react";
+import { ArrowLeft, Phone as PhoneIcon, MessageCircle, BadgeCheck, Share2, Clock } from "lucide-react";
 import { PhoneScreen } from "@/components/app/PhoneScreen";
 import { Button } from "@/components/ui/button";
 import ListingCard from "@/components/app/ListingCard";
@@ -10,6 +10,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ReviewsSection, ReviewModal } from "@/components/app/Reviews";
 import { vendorApi, followApi, trustApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+
+function humanizeSeconds(seconds) {
+  if (!seconds || seconds <= 0) return null;
+  if (seconds < 60) return "responds instantly";
+  const m = Math.floor(seconds / 60);
+  if (m < 60) return `responds in ~${m}m`;
+  const h = seconds / 3600;
+  if (h < 24) return `responds in ~${Math.round(h)}h`;
+  return `responds in ~${Math.round(h / 24)}d`;
+}
 
 export default function VendorProfile() {
   const { t } = useTranslation();
@@ -121,6 +131,12 @@ export default function VendorProfile() {
             <span className={`text-[10px] px-3 py-1 rounded-full font-semibold uppercase tracking-wider ${tierColor}`}>
               {trust.tier} · {trust.score}
             </span>
+          </div>
+        )}
+        {vendor.avg_response_time_seconds && humanizeSeconds(vendor.avg_response_time_seconds) && (
+          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-white/70" data-testid="response-time-badge">
+            <Clock className="h-3 w-3" />
+            Typically {humanizeSeconds(vendor.avg_response_time_seconds)}
           </div>
         )}
 

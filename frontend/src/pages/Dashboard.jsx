@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LogOut, User as UserIcon, Sparkles, Search, Store, ArrowRight } from "lucide-react";
+import { LogOut, User as UserIcon, Sparkles, Search, Store, ArrowRight, Shield, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
 import { useAuth } from "@/context/AuthContext";
 import BecomeVendorModal from "@/components/app/BecomeVendorModal";
+import OnboardingChecklist from "@/components/app/OnboardingChecklist";
+import ReferralCard from "@/components/app/ReferralCard";
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -34,6 +36,10 @@ export default function Dashboard() {
       />
 
       <div className="px-6 space-y-4 pb-10" data-testid="dashboard-body">
+        {/* Onboarding checklist (hides itself when complete + credited) */}
+        <OnboardingChecklist />
+        {/* Refer & earn */}
+        <ReferralCard />
         {/* Role chips */}
         <div className="flex flex-wrap gap-2">
           {(user?.roles || []).map((r) => (
@@ -104,6 +110,23 @@ export default function Dashboard() {
                 </div>
               </div>
             </button>
+          )}
+
+          {isVendor && (
+            <Link to="/vendor/analytics" data-testid="dashboard-analytics-cta">
+              <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+                <div className="relative flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                    <BarChart3 className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-heading font-bold text-lg">Analytics</div>
+                    <div className="text-xs text-white/60 mt-0.5">Views, chats, deals, conversion, boost ROI</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+            </Link>
           )}
 
           {isAdmin && (

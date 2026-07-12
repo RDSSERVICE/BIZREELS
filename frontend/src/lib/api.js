@@ -312,3 +312,23 @@ export const fcmApi = {
 export const reviewHelpfulApi = {
   toggle: (reviewId) => api.post(`/v1/reviews/${reviewId}/helpful`),
 };
+
+// ---- Phase 5 ----
+export const analyticsApi = {
+  overview: (range = "30d") => api.get("/v1/vendor/analytics/overview", { params: { range } }),
+  listings: (params = {}) => api.get("/v1/vendor/analytics/listings", { params }),
+  timeseries: (range = "30d", metric = "views") => api.get("/v1/vendor/analytics/timeseries", { params: { range, metric } }),
+  boostRoi: (listing_id) => api.get("/v1/vendor/analytics/boost-roi", { params: { listing_id } }),
+};
+
+export const referralApi = {
+  mine: () => api.get("/v1/users/me/referrals/"),
+};
+
+export const onboardingApi = {
+  checklist: () => api.get("/v1/users/me/onboarding-checklist"),
+};
+
+export const trackApi = {
+  listing: (listingId, event) => api.post(`/v1/listings/${listingId}/track`, { event }),
+};

@@ -124,6 +124,15 @@ async def create_indexes() -> None:
     # TTL 7 days on watcher_notifications for auto-cleanup (created_at is ISO string; TTL indexes need Date type,
     # so we do a soft manual sweep. Skipping TTL, keeping regular index.)
 
+    # ---- Phase 5 ----
+    await db.listing_events.create_index([("vendor_id", 1), ("created_at", -1)])
+    await db.listing_events.create_index([("listing_id", 1), ("event_type", 1), ("created_at", -1)])
+    await db.response_events.create_index([("sender_id", 1)])
+    await db.response_events.create_index([("sender_id", 1), ("for_message_id", 1)], unique=True)
+    await db.referrals.create_index([("referrer_id", 1)])
+    await db.referrals.create_index([("referred_user_id", 1)], unique=True)
+    await db.users.create_index("referral_code", unique=True, sparse=True)
+
     logger.info("MongoDB indexes ensured")
 
 

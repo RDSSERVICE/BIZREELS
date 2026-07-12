@@ -41,3 +41,18 @@ def require_roles(*roles: str):
         return user
 
     return _dep
+
+
+async def _decode_optional(request: Request) -> str | None:
+    """Extract user_id from a Bearer token if present. Returns None otherwise. Never raises."""
+    auth = request.headers.get("authorization") or request.headers.get("Authorization")
+    if not auth or not auth.lower().startswith("bearer "):
+        return None
+    token = auth.split(" ", 1)[1].strip()
+    try:
+        payload = decode_access_token(token)
+        if payload.get("type") != "access":
+            return None
+        return payload.get("sub")
+    except Exception:  # noqa: BLE001
+        return None

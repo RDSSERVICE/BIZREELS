@@ -21,6 +21,7 @@ class ProfileUpdateBody(BaseModel):
     gender: str | None = None
     dob: str | None = None
     current_role: Role | None = None
+    city: str | None = None
 
 
 class RoleBody(BaseModel):

@@ -31,5 +31,11 @@ class User(BaseDocument):
     is_banned: bool = False
     has_received_first_topup_bonus: bool = False
     fcm_tokens: list[dict] = Field(default_factory=list)  # [{token, platform, added_at}]
+    # Phase 5 additions
+    referral_code: str | None = None
+    avg_response_time_seconds: int | None = None
+    chat_response_rate: float = 0.0  # 0..1 (fraction responded within 24h)
+    total_conversations_responded: int = 0
+    has_received_profile_complete_bonus: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

@@ -18,6 +18,7 @@ export default function VerifyOtp() {
 
   const phone = location.state?.phone || "";
   const initialDevOtp = location.state?.dev_otp || "";
+  const referralFromUrl = new URLSearchParams(location.search).get("ref") || location.state?.referral_code || "";
 
   const [otp, setOtp] = useState(initialDevOtp || "");
   const [devOtp, setDevOtp] = useState(initialDevOtp || "");
@@ -42,7 +43,9 @@ export default function VerifyOtp() {
     }
     setLoading(true);
     try {
-      const { data } = await authApi.verifyOtp({ phone, otp });
+      const payload = { phone, otp };
+      if (referralFromUrl) payload.referral_code = referralFromUrl.toUpperCase();
+      const { data } = await authApi.verifyOtp(payload);
       applyAuthResponse(data);
       toast.success("Signed in");
       // Route based on whether user has a name (onboarded)

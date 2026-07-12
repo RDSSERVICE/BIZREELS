@@ -32,5 +32,15 @@ async def add_watcher(listing_id: str, phone: str) -> dict:
             {"_id": ObjectId(listing_id)},
             {"$push": {"watchers": {"phone": phone, "added_at": now}}},
         )
-    doc = await db.listings.find_one({"_id": ObjectId(listing_id)}, {"watchers": 1})
+    doc = await db.listings.find_one({"_id": ObjectId(listing_id)}, {"watchers": 1, "vendor_id": 1})
+    # Emit `watch` analytics event (fire-and-forget)
+    try:
+        from services import event_service
+        await event_service.emit(
+            listing_id=listing_id,
+            vendor_id=str(doc.get("vendor_id")) if doc and doc.get("vendor_id") else None,
+            event_type="watch", user_id=None, meta={"phone_hash": phone[-4:]},
+        )
+    except Exception:  # noqa: BLE001
+        pass
     return {"ok": True, "count": len(doc.get("watchers") or [])}

@@ -21,6 +21,7 @@ class OtpVerifyBody(BaseModel):
     otp: str = Field(..., min_length=6, max_length=6)
     name: str | None = None
     roles: list[Role] | None = None
+    referral_code: str | None = Field(None, max_length=16)
 
 
 class RefreshBody(BaseModel):
@@ -50,6 +51,7 @@ async def verify_otp(body: OtpVerifyBody):
         otp=body.otp,
         name=body.name,
         roles=body.roles,
+        referral_code=body.referral_code,
     )
 
 

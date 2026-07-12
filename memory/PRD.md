@@ -98,7 +98,28 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 
 ## Prioritized backlog
 
-### P1 — Phase 5: Vendor analytics dashboard + i18n Hindi + PWA + demo polish + seed data
+### ✅ Phase 5 — Vendor Analytics + Growth Loops + Response-Time Tracking (completed 2026-02)
+- New Mongo collections: `listing_events`, `response_events`, `referrals`. All existing collections untouched.
+- **Vendor Analytics** (vendor role gated):
+  - `GET /api/v1/vendor/analytics/overview?range=7d|30d|90d|all` — views, chats, unique_chatters, watchers, leads, deals_by_status, deals_completed, conversion rates (view→chat / chat→deal / deal→done), reviews summary.
+  - `GET /api/v1/vendor/analytics/listings?range=&sort=views|chats|deals|shares&limit=` — per-listing breakdown.
+  - `GET /api/v1/vendor/analytics/timeseries?range=&metric=views|chats|deals|deals_completed` — daily buckets.
+  - `GET /api/v1/vendor/analytics/boost-roi?listing_id=` — during-boost vs baseline (same-length pre-boost window) with lift%.
+- **Event emission** (fire-and-forget, no request blocking): `view` on listing detail, `chat_start` on new chat thread for a listing, `deal_start` on new deal, `deal_complete` on both-party completion, `watch` on lead capture, `share`/`wa_click`/`save` via `POST /api/v1/listings/:id/track {event}`.
+- **Response-time tracking**: `services/response_time_service.py`. On every `send_message`, if this is sender's first reply to a pending incoming from receiver in that thread, log the delta_seconds and update `users.avg_response_time_seconds`, `users.chat_response_rate` (fraction within 24h), `users.total_conversations_responded`. `trust_score` now uses this real rate instead of the proxy fallback. Public vendor profile shows "Typically responds in ~2h".
+- **Boost & Bump nudge**: `services/nudge_service.py`. Daily background loop. Candidates: active + not-takendown + not-boosted + created >30 days ago + views last 30d < 100 + no nudge sent in last 7 days. Creates `boost_nudge` notification (type='boost_nudge') pointing to `/listing/{slug}?open_boost=1`. Frontend ListingDetail auto-opens BoostModal when `?open_boost=1` present.
+- **Onboarding checklist**: 5 steps (profile_pic, city, kyc, listing, review). `GET /api/v1/users/me/onboarding-checklist` returns progress + auto-grants +30 credits (`ref_type='profile_complete'`) when all done. Idempotent via `has_received_profile_complete_bonus` guard. Dashboard shows the card (auto-hides when done + credited). Also `city` is now an editable field on `PATCH /api/v1/users/me`.
+- **Referral system**: Every user gets a unique `referral_code` (6-char AZ0-9) generated on signup. `POST /api/v1/auth/otp/verify {referral_code}` accepted for new users → creates a pending referrals row. On qualifying event (first listing OR first completed deal for the referred user) both users are credited: referrer +200, referred +100. `GET /api/v1/users/me/referrals/` returns code + list + summary. Dashboard shows ReferralCard with code + Copy + Share (Web Share API → WhatsApp fallback).
+- **WhatsApp tracking**: `POST /api/v1/listings/:id/track {event:"wa_click"}` — anon-friendly (attribute to user if bearer token present). Increments `wa_clicks` in analytics.
+- **Frontend UI**:
+  - New route `/vendor/analytics` — full KPI grid, conversion card, daily views mini-bar chart, top-5 listings.
+  - Dashboard now shows `OnboardingChecklist`, `ReferralCard`, and vendor `Analytics` CTA for vendors.
+  - Vendor profile shows `Response time` badge (`Typically responds in ~2h`) + trust chip (existing).
+  - Sponsored badge on top listings in analytics view.
+  - `TrustBadge` small chip component available for reuse in feed cards / chat headers.
+- **Tests**: `backend/tests/test_phase5.py` — 17 passed + 1 skipped (env-only). Referral flow, view/chat/wa_click/share tracking, timeseries, response-time first-reply, onboarding partial + full, non-vendor 403, regression on /users/me new keys.
+
+### P2 — Phase 6: Seed data (fake India users/listings/reels for demo) + i18n Hindi translations + PWA + final demo polish
 ### P2 — Phase 6: Seed data + i18n Hindi/English + PWA + demo polish
 ### P3 — Phase 7: Expo mobile port (delegated to a different agent, `/app/mobile/`)
 

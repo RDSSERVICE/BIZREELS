@@ -46,6 +46,10 @@ def _serialize_user(user: User) -> dict:
         "rating_count": getattr(user, "rating_count", 0),
         "trust_score": getattr(user, "trust_score", None),
         "city": getattr(user, "city", None),
+        # Phase 5 additions
+        "referral_code": getattr(user, "referral_code", None),
+        "avg_response_time_seconds": getattr(user, "avg_response_time_seconds", None),
+        "chat_response_rate": getattr(user, "chat_response_rate", 0.0),
         "created_at": user.created_at,
         "updated_at": user.updated_at,
     }
@@ -102,7 +106,8 @@ async def request_otp(phone: str) -> dict:
 
 
 async def verify_otp_and_login(
-    phone: str, otp: str, name: str | None = None, roles: list[str] | None = None
+    phone: str, otp: str, name: str | None = None, roles: list[str] | None = None,
+    referral_code: str | None = None,
 ) -> dict:
     phone = _validate_phone(phone)
     db = get_db()
@@ -167,6 +172,15 @@ async def verify_otp_and_login(
             )
         except Exception:  # noqa: BLE001
             logger.exception("Signup bonus credit failed for user %s", result.inserted_id)
+        # Generate referral_code + claim if referral_code was passed
+        try:
+            from services import referral_service
+            await referral_service.ensure_code(str(result.inserted_id))
+            if referral_code:
+                await referral_service.claim_on_signup(str(result.inserted_id), referral_code)
+        except Exception:  # noqa: BLE001
+            logger.exception("Referral setup failed for user %s", result.inserted_id)
+        user_doc = await db.users.find_one({"_id": result.inserted_id})
     else:
         # Existing user: optionally update name if not set and provided
         updates: dict = {"updated_at": now_iso}

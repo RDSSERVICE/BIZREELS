@@ -51,6 +51,15 @@ async def get_vendor(user_id: str, request: Request):
         "followers_count": followers_count,
         "listings_count": listings_count,
         "viewer_following": following,
+        # Phase 4a/5 additions
+        "is_subscribed_verified": bool(u.get("is_subscribed_verified")),
+        "verified_badge": bool(u.get("is_subscribed_verified")) and u.get("kyc_status") == "approved",
+        "rating_avg": u.get("rating_avg", 0.0),
+        "rating_count": u.get("rating_count", 0),
+        "trust_score": u.get("trust_score"),
+        "city": u.get("city"),
+        "avg_response_time_seconds": u.get("avg_response_time_seconds"),
+        "chat_response_rate": u.get("chat_response_rate", 0.0),
     }
 
 

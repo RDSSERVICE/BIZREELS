@@ -140,6 +140,12 @@ async def create_listing(vendor_id: str, body: dict) -> dict:
     doc = listing.to_mongo()
     res = await db.listings.insert_one(doc)
     doc["_id"] = res.inserted_id
+    # Referral trigger: award pending referral if this is user's first listing
+    try:
+        from services import referral_service
+        await referral_service.maybe_award_on_listing(vendor_id)
+    except Exception:  # noqa: BLE001
+        pass
     return _serialize(doc)
 
 
@@ -215,7 +221,21 @@ async def get_by_slug(slug: str, incr_views: bool = True) -> dict:
 
 async def increment_views(slug: str) -> None:
     db = get_db()
-    await db.listings.update_one({"slug": slug}, {"$inc": {"views_count": 1}})
+    doc = await db.listings.find_one_and_update(
+        {"slug": slug}, {"$inc": {"views_count": 1}},
+    )
+    # Emit `view` analytics event
+    if doc:
+        try:
+            from services import event_service
+            await event_service.emit(
+                listing_id=str(doc["_id"]),
+                vendor_id=str(doc.get("vendor_id")) if doc.get("vendor_id") else None,
+                event_type="view", user_id=None,
+                meta={"slug": slug},
+            )
+        except Exception:  # noqa: BLE001
+            pass
 
 
 async def get_by_id_for_owner(listing_id: str, vendor_id: str, is_admin: bool = False) -> dict:
