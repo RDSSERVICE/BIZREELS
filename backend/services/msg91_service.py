@@ -18,42 +18,49 @@ logger = logging.getLogger(__name__)
 MSG91_FLOW_URL = "https://control.msg91.com/api/v5/flow/"
 
 
-def _is_dev_mode() -> bool:
-    dev_flag = os.environ.get("OTP_DEV_MODE", "true").lower() in ("1", "true", "yes")
-    auth_key = os.environ.get("MSG91_AUTH_KEY", "").strip()
-    template = os.environ.get("MSG91_TEMPLATE_ID", "").strip()
-    sender = os.environ.get("MSG91_SENDER_ID", "").strip()
-    return dev_flag or not auth_key or not template or not sender
+def is_dev_mode() -> bool:
+    """Dev mode is opt-in ONLY via explicit env flag. Never fail-open."""
+    return os.environ.get("OTP_DEV_MODE", "false").lower() in ("1", "true", "yes")
+
+
+class Msg91ConfigError(RuntimeError):
+    """Raised when MSG91 is not configured but dev mode is not enabled."""
 
 
 async def send_otp_sms(phone: str, otp: str) -> dict:
     """Send OTP SMS via MSG91 Flow API, or mock in DEV MODE.
 
-    Returns dict:
-      - {"mock": True, "dev_otp": "123456"} if in dev/mock mode
-      - {"mock": False, "provider_response": {...}} on real send
+    Behaviour:
+      - If OTP_DEV_MODE=true: returns {"mock": True} and logs the OTP. The OTP is
+        NEVER re-echoed by this function; caller decides whether to surface it.
+      - Otherwise: sends via MSG91. If MSG91 env vars are missing OR the API
+        errors, raises Msg91ConfigError / propagates the HTTP error. FAIL-CLOSED.
     """
-    if _is_dev_mode():
+    if is_dev_mode():
         logger.info("[MSG91 DEV MODE] Mock OTP for %s: %s", phone, otp)
-        return {"mock": True, "dev_otp": otp}
+        return {"mock": True}
+
+    auth_key = os.environ.get("MSG91_AUTH_KEY", "").strip()
+    template = os.environ.get("MSG91_TEMPLATE_ID", "").strip()
+    sender = os.environ.get("MSG91_SENDER_ID", "").strip()
+    if not auth_key or not template or not sender:
+        raise Msg91ConfigError(
+            "MSG91 credentials missing. Set MSG91_AUTH_KEY, MSG91_TEMPLATE_ID, "
+            "MSG91_SENDER_ID or enable OTP_DEV_MODE=true for local development."
+        )
 
     payload = {
-        "template_id": os.environ["MSG91_TEMPLATE_ID"],
+        "template_id": template,
         "short_url": "0",
-        "sender": os.environ["MSG91_SENDER_ID"],
+        "sender": sender,
         "recipients": [{"mobiles": f"91{phone}", "otp": otp}],
     }
     headers = {
-        "authkey": os.environ["MSG91_AUTH_KEY"],
+        "authkey": auth_key,
         "accept": "application/json",
         "content-type": "application/json",
     }
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            res = await client.post(MSG91_FLOW_URL, json=payload, headers=headers)
-            res.raise_for_status()
-            return {"mock": False, "provider_response": res.json()}
-    except httpx.HTTPError as exc:
-        logger.exception("MSG91 send failed: %s", exc)
-        # Don't crash the app; surface as failure so route can decide
-        return {"mock": False, "error": str(exc)}
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        res = await client.post(MSG91_FLOW_URL, json=payload, headers=headers)
+        res.raise_for_status()
+        return {"mock": False, "provider_response": res.json()}

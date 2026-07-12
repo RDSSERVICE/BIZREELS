@@ -1,6 +1,8 @@
 """Auth service: OTP flow, user creation, token issuance."""
 from __future__ import annotations
+import hmac
 import logging
+import os
 from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from fastapi import HTTPException, status
@@ -14,9 +16,8 @@ from utils.jwt_utils import (
     create_access_token,
     create_refresh_token_pair,
     hash_refresh_token,
-    decode_access_token,
 )
-from services.msg91_service import send_otp_sms
+from services.msg91_service import send_otp_sms, is_dev_mode, Msg91ConfigError
 
 logger = logging.getLogger(__name__)
 
@@ -71,14 +72,23 @@ async def request_otp(phone: str) -> dict:
     await db.otp_requests.delete_many({"phone": phone, "verified": False})
     await db.otp_requests.insert_one(doc)
 
-    provider = await send_otp_sms(phone, otp)
+    try:
+        await send_otp_sms(phone, otp)
+    except Msg91ConfigError as exc:
+        logger.exception("MSG91 not configured and dev mode disabled")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SMS service temporarily unavailable. Please try again later.",
+        ) from exc
 
     response = {
         "success": True,
         "message": "OTP sent successfully",
         "expires_in_seconds": OTP_TTL_MINUTES * 60,
     }
-    if provider.get("mock"):
+    # dev_otp is echoed ONLY when OTP_DEV_MODE is explicitly enabled.
+    # In production (OTP_DEV_MODE unset/false) the code is delivered by SMS only.
+    if is_dev_mode():
         response["dev_otp"] = otp
         response["dev_mode"] = True
     return response
@@ -107,7 +117,7 @@ async def verify_otp_and_login(
     if record.get("attempts", 0) >= MAX_OTP_ATTEMPTS:
         raise HTTPException(429, "Too many OTP attempts. Please request a new OTP.")
 
-    if hash_otp(otp) != record["otp_hash"]:
+    if not hmac.compare_digest(hash_otp(otp), record["otp_hash"]):
         await db.otp_requests.update_one(
             {"_id": record["_id"]}, {"$inc": {"attempts": 1}}
         )
@@ -177,11 +187,18 @@ async def issue_tokens(user: User) -> dict:
 
 
 async def refresh_access_token(refresh_token: str) -> dict:
+    """Rotate refresh tokens on every /refresh call.
+
+    - Presented token must exist and be non-revoked.
+    - On success: revoke the old token, mint a new access + new refresh token pair.
+    - Reuse detection: if a client presents an already-revoked (but not yet expired)
+      refresh token, treat as compromise and revoke ALL refresh tokens for that user.
+    """
     db = get_db()
     token_hash = hash_refresh_token(refresh_token)
-    rec = await db.refresh_tokens.find_one({"token_hash": token_hash, "revoked": False})
+    rec = await db.refresh_tokens.find_one({"token_hash": token_hash})
     if not rec:
-        raise HTTPException(401, "Invalid or revoked refresh token")
+        raise HTTPException(401, "Invalid refresh token")
 
     expires_at = rec.get("expires_at")
     if isinstance(expires_at, datetime):
@@ -190,13 +207,33 @@ async def refresh_access_token(refresh_token: str) -> dict:
         if expires_at < datetime.now(timezone.utc):
             raise HTTPException(401, "Refresh token expired")
 
+    if rec.get("revoked"):
+        # Reuse attack — burn the whole family
+        await db.refresh_tokens.update_many(
+            {"user_id": rec["user_id"], "revoked": False},
+            {"$set": {"revoked": True}},
+        )
+        await db.audit_logs.insert_one({
+            "user_id": rec["user_id"],
+            "action": "refresh_reuse_detected",
+            "meta": {},
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        raise HTTPException(401, "Refresh token reuse detected. Please sign in again.")
+
     user_doc = await db.users.find_one({"_id": ObjectId(rec["user_id"])})
     if not user_doc or user_doc.get("is_deleted"):
         raise HTTPException(401, "User not found")
 
+    # Rotate: revoke old, issue new pair
+    await db.refresh_tokens.update_one({"_id": rec["_id"]}, {"$set": {"revoked": True}})
     user = User.from_mongo(user_doc)
-    new_access = create_access_token(user.id, user.roles, user.current_role)
-    return {"access_token": new_access, "token_type": "bearer"}
+    new_tokens = await issue_tokens(user)
+    return {
+        "access_token": new_tokens["access_token"],
+        "refresh_token": new_tokens["refresh_token"],
+        "token_type": "bearer",
+    }
 
 
 async def revoke_refresh_token(refresh_token: str) -> None:
@@ -208,15 +245,26 @@ async def revoke_refresh_token(refresh_token: str) -> None:
 
 
 async def seed_admin_user() -> None:
+    """Seed the initial admin user only when explicitly enabled.
+
+    Controlled by env `SEED_ADMIN_ON_STARTUP=true`. In production this SHOULD be
+    disabled after the first successful seed to remove a predictable admin phone.
+    Admin phone is configurable via `ADMIN_SEED_PHONE` (defaults to 9999999999
+    for local dev only).
+    """
+    if os.environ.get("SEED_ADMIN_ON_STARTUP", "false").lower() not in ("1", "true", "yes"):
+        logger.info("SEED_ADMIN_ON_STARTUP disabled — skipping admin seed")
+        return
+    phone = os.environ.get("ADMIN_SEED_PHONE", "9999999999")
     db = get_db()
-    existing = await db.users.find_one({"phone": "9999999999"})
+    existing = await db.users.find_one({"phone": phone})
     if existing:
         return
     admin = User(
-        phone="9999999999",
+        phone=phone,
         name="Admin",
         roles=["admin", "customer"],
         current_role="admin",
     )
     await db.users.insert_one(admin.to_mongo())
-    logger.info("Seeded admin user with phone 9999999999")
+    logger.info("Seeded admin user with phone %s", phone)

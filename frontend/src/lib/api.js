@@ -58,7 +58,11 @@ api.interceptors.response.use(
         refreshPromise = axios
           .post(`${API_BASE}/v1/auth/refresh`, { refresh_token: refresh })
           .then((res) => {
-            tokenStore.set({ access_token: res.data.access_token });
+            // Refresh token rotation: server returns new access + refresh pair.
+            tokenStore.set({
+              access_token: res.data.access_token,
+              refresh_token: res.data.refresh_token,
+            });
             return res.data.access_token;
           })
           .finally(() => {
