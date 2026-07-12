@@ -76,6 +76,11 @@ async def reply_review(rid: str, body: ReplyBody, user=Depends(require_auth)):
     return await p4.reply_to_review(rid, user.id, body.text)
 
 
+@router.post("/reviews/{rid}/helpful")
+async def helpful_review(rid: str, user=Depends(require_auth)):
+    return await p4.toggle_helpful(rid, user.id)
+
+
 @router.get("/reviews/vendor/{vendor_id}/summary")
 async def vendor_review_summary(vendor_id: str):
     return await p4.summary("vendor", vendor_id)
@@ -135,7 +140,7 @@ async def wallet_topup(body: TopupBody, user=Depends(require_auth)):
 
 # =============== Payments ===============
 class PaymentOrderBody(BaseModel):
-    purpose: Literal["verified_badge_monthly", "verified_badge_yearly", "wallet_topup", "other"]
+    purpose: Literal["verified_badge_monthly", "verified_badge_yearly", "wallet_topup", "listing_boost", "other"]
     amount_paise: int | None = None
     ref_id: str | None = None
 

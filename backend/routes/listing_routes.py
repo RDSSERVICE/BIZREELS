@@ -185,3 +185,23 @@ async def watch_listing(listing_id: str, body: WatchBody, request: Request):
     if not allowed:
         raise HTTPException(429, f"Too many requests. Try again in {reset_in} seconds.")
     return await watch_service.add_watcher(listing_id, body.phone)
+
+
+# ============= Phase 4b: Boost =============
+class BoostBody(BaseModel):
+    duration_days: Literal[3, 7, 14]
+    payment_method: Literal["credits", "inr"] = "credits"
+
+
+@router.post("/{listing_id}/boost")
+async def boost_listing(listing_id: str, body: BoostBody, user=Depends(require_auth)):
+    from services import boost_service
+    if body.payment_method == "credits":
+        return await boost_service.boost_with_credits(user.id, listing_id, body.duration_days)
+    return await boost_service.boost_with_inr(user.id, listing_id, body.duration_days)
+
+
+@router.get("/vendor/me/boosted")
+async def my_boosted(user=Depends(require_auth)):
+    from services import boost_service
+    return {"items": await boost_service.list_my_boosted(user.id)}

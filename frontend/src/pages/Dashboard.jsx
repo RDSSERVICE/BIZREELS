@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [showBV, setShowBV] = useState(false);
 
   const isVendor = user?.roles?.includes("vendor");
+  const isAdmin = user?.roles?.includes("admin");
 
   const handleLogout = async () => {
     await logout();
@@ -103,6 +104,23 @@ export default function Dashboard() {
                 </div>
               </div>
             </button>
+          )}
+
+          {isAdmin && (
+            <Link to="/admin" data-testid="dashboard-admin-cta">
+              <div className="glass rounded-3xl p-5 relative overflow-hidden group border border-yellow-400/30">
+                <div className="relative flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-yellow-500/20 flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-yellow-300" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-heading font-bold text-lg">Admin panel</div>
+                    <div className="text-xs text-white/60 mt-0.5">Users · Listings · Reports · KYC</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+            </Link>
           )}
         </div>
 

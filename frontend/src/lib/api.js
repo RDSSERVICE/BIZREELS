@@ -275,3 +275,40 @@ export const notifApi = {
 export const trustApi = {
   score: (userId) => api.get(`/v1/users/${userId}/trust-score`),
 };
+
+// ---- Phase 4b ----
+export const boostApi = {
+  boost: (listingId, duration_days, payment_method = "credits") =>
+    api.post(`/v1/listings/${listingId}/boost`, { duration_days, payment_method }),
+  mine: () => api.get("/v1/listings/vendor/me/boosted"),
+};
+
+export const reportApi = {
+  create: (body) => api.post("/v1/reports", body),
+  adminList: (params = {}) => api.get("/v1/admin/reports", { params }),
+  adminResolve: (id, action, note) => api.post(`/v1/admin/reports/${id}/resolve`, { action, note }),
+  adminDismiss: (id, reason) => api.post(`/v1/admin/reports/${id}/dismiss`, { reason }),
+};
+
+export const adminApi = {
+  overview: () => api.get("/v1/admin/analytics/overview"),
+  listUsers: (params = {}) => api.get("/v1/admin/users", { params }),
+  banUser: (id) => api.post(`/v1/admin/users/${id}/ban`),
+  unbanUser: (id) => api.post(`/v1/admin/users/${id}/unban`),
+  freezeWallet: (id) => api.post(`/v1/admin/users/${id}/freeze-wallet`),
+  unfreezeWallet: (id) => api.post(`/v1/admin/users/${id}/unfreeze-wallet`),
+  addRole: (id, role) => api.post(`/v1/admin/users/${id}/add-role`, { role }),
+  removeRole: (id, role) => api.post(`/v1/admin/users/${id}/remove-role`, { role }),
+  listListings: (params = {}) => api.get("/v1/admin/listings", { params }),
+  takedownListing: (id) => api.post(`/v1/admin/listings/${id}/takedown`),
+  restoreListing: (id) => api.post(`/v1/admin/listings/${id}/restore`),
+};
+
+export const fcmApi = {
+  register: (token, platform = "web") => api.post("/v1/users/me/fcm-token", { token, platform }),
+  remove: (token) => api.delete(`/v1/users/me/fcm-token/${encodeURIComponent(token)}`),
+};
+
+export const reviewHelpfulApi = {
+  toggle: (reviewId) => api.post(`/v1/reviews/${reviewId}/helpful`),
+};

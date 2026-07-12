@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { MapPin } from "lucide-react";
+import { MapPin, Sparkles } from "lucide-react";
 import { resolveMediaUrl } from "@/lib/api";
 
 function fmtPrice(n) {
@@ -30,7 +30,12 @@ export default function ListingCard({ listing }) {
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-black/80" />
-        {listing.is_negotiable && (
+        {listing.boost_expires_at && new Date(listing.boost_expires_at) > new Date() && (
+          <span data-testid={`sponsored-${listing.slug}`} className="absolute top-2 left-2 text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full bg-yellow-400/90 text-black border border-yellow-500 flex items-center gap-1">
+            <Sparkles className="h-3 w-3" /> Sponsored
+          </span>
+        )}
+        {listing.is_negotiable && !listing.boost_expires_at && (
           <span className="absolute top-2 left-2 text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full bg-black/60 text-white border border-white/15">
             Negotiable
           </span>

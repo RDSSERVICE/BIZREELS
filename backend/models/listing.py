@@ -66,6 +66,11 @@ class Listing(BaseDocument):
     status: ListingStatus = "active"
     views_count: int = 0
     saves_count: int = 0
+    # Phase 4b additions
+    boost_expires_at: str | None = None
+    boost_duration_days: int | None = None
+    boost_activated_at: str | None = None
+    is_takendown: bool = False
     is_active: bool = True
     is_deleted: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

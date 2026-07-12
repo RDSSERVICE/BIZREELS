@@ -32,6 +32,8 @@ from routes.vendor_routes import router as vendor_router  # noqa: E402
 from routes.requirement_routes import router as requirement_router  # noqa: E402
 from routes.chat_routes import router as chat_router  # noqa: E402
 from routes.phase4_routes import router as phase4_router  # noqa: E402
+from routes.report_routes import router as report_router  # noqa: E402
+from routes.admin_routes import router as admin_router  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -73,6 +75,8 @@ api_router.include_router(vendor_router)
 api_router.include_router(requirement_router)
 api_router.include_router(chat_router)
 api_router.include_router(phase4_router)
+api_router.include_router(report_router)
+api_router.include_router(admin_router)
 app.include_router(api_router)
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
@@ -101,10 +105,12 @@ async def startup():
     # Wallet backfill
     from services import wallet_service as _ws
     await _ws.backfill_all()
-    # Background: expire deals every 5 min + 48h deal follow-up
+    # Background: expire deals every 5 min + 48h deal follow-up + boost expiry
     asyncio.create_task(expire_task_loop(interval_seconds=300))
     asyncio.create_task(_deal_followup_loop())
-    logger.info("Emergent backend started (Phase 0-4a)")
+    from services import boost_service as _bs
+    asyncio.create_task(_bs.expire_boosts_loop(interval_seconds=900))
+    logger.info("Emergent backend started (Phase 0-4b)")
 
 
 async def _deal_followup_loop():

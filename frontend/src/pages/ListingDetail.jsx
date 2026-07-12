@@ -3,12 +3,14 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { ArrowLeft, Share2, MessageCircle, MapPin, Eye, Tag, Heart, Bookmark, BellRing } from "lucide-react";
+import { ArrowLeft, Share2, MessageCircle, MapPin, Eye, Tag, Heart, Bookmark, BellRing, Sparkles } from "lucide-react";
 import { PhoneScreen } from "@/components/app/PhoneScreen";
 import { Button } from "@/components/ui/button";
 import ListingCard from "@/components/app/ListingCard";
 import WatchListingModal from "@/components/app/WatchListingModal";
 import { ReviewsSection } from "@/components/app/Reviews";
+import { ReportButton } from "@/components/app/ReportModal";
+import { BoostButton } from "@/components/app/BoostModal";
 import { listingApi, seoApi, interactionApi, followApi, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -168,6 +170,13 @@ export default function ListingDetail() {
       {/* Body */}
       <div className="px-6 mt-5 space-y-6 pb-24">
         <div>
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+            {listing.boost_expires_at && new Date(listing.boost_expires_at) > new Date() && (
+              <span data-testid="sponsored-badge" className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">
+                <Sparkles className="h-3 w-3" /> Sponsored
+              </span>
+            )}
+          </div>
           <h1 className="font-heading text-2xl font-bold leading-tight" data-testid="listing-title">{listing.title}</h1>
           <div className="mt-2 flex items-center flex-wrap gap-3">
             {hasOffer ? (
@@ -203,6 +212,28 @@ export default function ListingDetail() {
             <Share2 className="h-4 w-4 mr-1" /> Share
           </Button>
         </div>
+
+        {/* Owner-only boost bar */}
+        {user && listing.vendor && user.id === listing.vendor.id && (
+          <div className="glass rounded-2xl p-4 flex items-center justify-between gap-3" data-testid="owner-boost-bar">
+            <div>
+              <div className="text-xs text-white/60 uppercase tracking-wider font-semibold">Boost your reach</div>
+              <div className="text-sm mt-0.5">
+                {listing.boost_expires_at && new Date(listing.boost_expires_at) > new Date()
+                  ? `Active until ${new Date(listing.boost_expires_at).toLocaleDateString()}`
+                  : "Not boosted"}
+              </div>
+            </div>
+            <BoostButton listing={listing} onBoosted={() => listingApi.bySlug(slug).then(({ data }) => setListing(data))} />
+          </div>
+        )}
+
+        {/* Report anyone can report */}
+        {user && listing.vendor && user.id !== listing.vendor.id && (
+          <div className="flex justify-end -mt-2" data-testid="listing-report-row">
+            <ReportButton targetType="listing" targetId={listing.id} />
+          </div>
+        )}
 
         {/* Anon soft-gate */}
         {isAnon && (

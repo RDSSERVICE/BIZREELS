@@ -63,6 +63,29 @@ async def add_role(body: RoleBody, user=Depends(require_auth)):
     return {"user": user_service.serialize(updated)}
 
 
+# ============= Phase 4b: FCM Tokens =============
+from pydantic import BaseModel as _BM
+
+
+class FcmTokenBody(_BM):
+    token: str
+    platform: Literal["web", "android", "ios"] = "web"
+
+
+@router.post("/me/fcm-token")
+async def register_fcm_token(body: FcmTokenBody, user=Depends(require_auth)):
+    from services import fcm_service
+    if not body.token or len(body.token) < 10:
+        raise HTTPException(400, "Invalid token")
+    return await fcm_service.register_token(user.id, body.token, body.platform)
+
+
+@router.delete("/me/fcm-token/{token}")
+async def remove_fcm_token(token: str, user=Depends(require_auth)):
+    from services import fcm_service
+    return await fcm_service.remove_token(user.id, token)
+
+
 # Public read-only profile: safe fields only. NO phone/email/dob/full KYC.
 @router.get("/{user_id}")
 async def get_public_profile(user_id: str):

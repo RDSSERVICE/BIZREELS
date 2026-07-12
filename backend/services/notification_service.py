@@ -74,16 +74,11 @@ async def dismiss(nid: str, user_id: str) -> None:
     await db.notifications.update_one({"_id": ObjectId(nid), "user_id": user_id}, {"$set": {"is_deleted": True}})
 
 
-# ---- FCM stub ----
+# ---- FCM ----
 async def send_push(user_id: str, title: str, body: str, data: dict) -> None:
-    """FCM push stub. Real integration deferred to Phase 4b/5.
-
-    FCM keys required from user — currently in DEV MODE with console-only push.
-    """
-    dev = os.environ.get("FCM_DEV_MODE", "true").lower() in ("1", "true", "yes")
-    key = os.environ.get("FCM_SERVER_KEY", "").strip()
-    if dev or not key:
-        logger.info("[FCM DEV] push user=%s title=%s body=%s data=%s", user_id, title, body, data)
-        return
-    # Real FCM would go here. TODO(phase-4b): wire firebase-admin / http v1 API.
-    logger.info("[FCM] send stub — real integration deferred")
+    """Delegate to services.fcm_service. Dev mode logs; real path uses firebase-admin."""
+    try:
+        from services import fcm_service
+        await fcm_service.send_push(user_id, title, body, data)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("FCM delegate failed: %s", e)

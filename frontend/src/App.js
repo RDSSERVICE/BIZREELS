@@ -33,6 +33,10 @@ import Subscriptions from "@/pages/Subscriptions";
 import Kyc from "@/pages/Kyc";
 import Notifications from "@/pages/Notifications";
 import AdminKyc from "@/pages/AdminKyc";
+import Admin from "@/pages/Admin";
+import AdminUsers from "@/pages/AdminUsers";
+import AdminListings from "@/pages/AdminListings";
+import AdminReports from "@/pages/AdminReports";
 
 function OnboardingGate({ children }) {
   const { user, loading } = useAuth();
@@ -75,7 +79,11 @@ function App() {
               <Route path="/subscriptions" element={<RequireAuth><Subscriptions /></RequireAuth>} />
               <Route path="/kyc" element={<RequireAuth><Kyc /></RequireAuth>} />
               <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
+              <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
               <Route path="/admin/kyc" element={<RequireAuth><AdminKyc /></RequireAuth>} />
+              <Route path="/admin/users" element={<RequireAuth><AdminUsers /></RequireAuth>} />
+              <Route path="/admin/listings" element={<RequireAuth><AdminListings /></RequireAuth>} />
+              <Route path="/admin/reports" element={<RequireAuth><AdminReports /></RequireAuth>} />
               <Route path="/vendor/dashboard" element={<RequireAuth><VendorDashboard /></RequireAuth>} />
               <Route path="/vendor/listing/new" element={<RequireAuth><ListingForm /></RequireAuth>} />
               <Route path="/vendor/listing/:id/edit" element={<RequireAuth><ListingForm /></RequireAuth>} />

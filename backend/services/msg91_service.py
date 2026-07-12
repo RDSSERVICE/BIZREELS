@@ -64,3 +64,34 @@ async def send_otp_sms(phone: str, otp: str) -> dict:
         res = await client.post(MSG91_FLOW_URL, json=payload, headers=headers)
         res.raise_for_status()
         return {"mock": False, "provider_response": res.json()}
+
+
+async def send_transactional_sms(phone: str, message: str) -> dict:
+    """Send a generic transactional SMS (e.g. price drop). DEV MODE: log-only.
+
+    Real path uses MSG91 flow. Requires the same env keys — falls back to log if missing.
+    """
+    if is_dev_mode():
+        logger.info("[MSG91 DEV MODE] Mock SMS to %s: %s", phone, message)
+        return {"mock": True}
+    auth_key = os.environ.get("MSG91_AUTH_KEY", "").strip()
+    sender = os.environ.get("MSG91_SENDER_ID", "").strip()
+    template = os.environ.get("MSG91_TXN_TEMPLATE_ID", "").strip()
+    if not auth_key or not sender or not template:
+        logger.info("[MSG91] transactional SMS skipped (missing keys) to %s: %s", phone, message)
+        return {"mock": True, "reason": "missing_keys"}
+    payload = {
+        "template_id": template,
+        "short_url": "0",
+        "sender": sender,
+        "recipients": [{"mobiles": f"91{phone}", "message": message}],
+    }
+    headers = {
+        "authkey": auth_key,
+        "accept": "application/json",
+        "content-type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        res = await client.post(MSG91_FLOW_URL, json=payload, headers=headers)
+        res.raise_for_status()
+        return {"mock": False, "provider_response": res.json()}

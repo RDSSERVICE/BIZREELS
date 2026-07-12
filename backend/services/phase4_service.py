@@ -193,6 +193,39 @@ async def soft_delete_review(review_id: str, reviewer_id: str, is_admin: bool = 
     await db.reviews.update_one({"_id": ObjectId(review_id)}, {"$set": {"is_deleted": True}})
 
 
+async def toggle_helpful(review_id: str, user_id: str) -> dict:
+    """Toggle helpful flag on a review. Unique per (user, review). Updates denormalized count."""
+    db = get_db()
+    if not ObjectId.is_valid(review_id):
+        raise HTTPException(400, "Invalid id")
+    r = await db.reviews.find_one({"_id": ObjectId(review_id), "is_deleted": {"$ne": True}})
+    if not r:
+        raise HTTPException(404, "Review not found")
+    if str(r.get("reviewer_id")) == user_id:
+        raise HTTPException(403, "You can't mark your own review helpful")
+    existing = await db.interactions.find_one({
+        "user_id": user_id, "review_id": review_id, "type": "helpful",
+    })
+    if existing:
+        await db.interactions.delete_one({"_id": existing["_id"]})
+        await db.reviews.update_one({"_id": ObjectId(review_id)}, {"$inc": {"helpful_count": -1}})
+        marked = False
+    else:
+        # NB: interactions unique index is (user_id, listing_id, type). We use a distinct
+        # 'review_id' field here; no listing_id so it won't collide.
+        try:
+            await db.interactions.insert_one({
+                "user_id": user_id, "review_id": review_id, "type": "helpful",
+                "created_at": _now(),
+            })
+        except Exception:  # noqa: BLE001
+            pass
+        await db.reviews.update_one({"_id": ObjectId(review_id)}, {"$inc": {"helpful_count": 1}})
+        marked = True
+    updated = await db.reviews.find_one({"_id": ObjectId(review_id)}, {"helpful_count": 1})
+    return {"ok": True, "marked_helpful": marked, "helpful_count": int(updated.get("helpful_count", 0))}
+
+
 # =========== KYC ===========
 async def kyc_submit(user_id: str, body: dict) -> dict:
     db = get_db()
@@ -416,6 +449,12 @@ async def _apply_success(payment: dict, razorpay_payment_id: str, signature: str
         await wallet_service.deposit_inr(user_id, payment["amount_paise"], "Wallet top-up", str(payment["_id"]), razorpay_payment_id)
     elif purpose in ("verified_badge_monthly", "verified_badge_yearly"):
         subscription_out = await activate_subscription_from_payment(payment)
+    elif purpose == "listing_boost":
+        try:
+            from services import boost_service
+            await boost_service.activate_boost_from_payment(payment)
+        except Exception:  # noqa: BLE001
+            pass
 
     await notification_service.create(
         user_id=user_id, type_="payment",

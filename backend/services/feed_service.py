@@ -44,6 +44,15 @@ def _score(listing: dict, dist_km: float | None, following_set: set, now: dateti
     # Has offer
     if listing.get("offer_price") is not None:
         s += 5
+    # Phase 4b: boost
+    boost_exp = listing.get("boost_expires_at")
+    if boost_exp:
+        try:
+            bexp = datetime.fromisoformat(str(boost_exp).replace("Z", "+00:00"))
+            if bexp > now:
+                s += 25
+        except Exception:  # noqa: BLE001
+            pass
     return s
 
 
@@ -58,7 +67,7 @@ async def build_feed(
     reels_only: bool = False,
 ) -> dict:
     db = get_db()
-    q: dict[str, Any] = {"is_deleted": {"$ne": True}, "status": "active"}
+    q: dict[str, Any] = {"is_deleted": {"$ne": True}, "status": "active", "is_takendown": {"$ne": True}}
     types = TYPE_FILTER.get(type_)
     if types:
         q["type"] = {"$in": types}

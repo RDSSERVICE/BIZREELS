@@ -114,6 +114,16 @@ async def create_indexes() -> None:
     await db.kyc_documents.create_index("user_id")
     await db.kyc_documents.create_index("status")
 
+    # ---- Phase 4b ----
+    await db.listings.create_index("boost_expires_at")
+    await db.listings.create_index("is_takendown")
+    await db.reports.create_index([("status", 1), ("_id", -1)])
+    await db.reports.create_index("reporter_id")
+    await db.reports.create_index("target_id")
+    await db.watcher_notifications.create_index([("listing_id", 1), ("phone", 1), ("created_at", -1)])
+    # TTL 7 days on watcher_notifications for auto-cleanup (created_at is ISO string; TTL indexes need Date type,
+    # so we do a soft manual sweep. Skipping TTL, keeping regular index.)
+
     logger.info("MongoDB indexes ensured")
 
 

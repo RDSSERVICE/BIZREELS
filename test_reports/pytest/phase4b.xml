@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="7" failures="2" skipped="0" tests="26" time="8.244" timestamp="2026-07-12T21:57:21.616736+00:00" hostname="agent-env-06e95109-8d14-434c-9051-155dace37f8c"><testcase classname="tests.test_phase4b.TestBoost" name="test_setup" time="0.521" /><testcase classname="tests.test_phase4b.TestBoost" name="test_boost_with_inr" time="0.314" /><testcase classname="tests.test_phase4b.TestBoost" name="test_boost_owner_only" time="0.318" /><testcase classname="tests.test_phase4b.TestBoost" name="test_boost_with_credits_extends" time="0.434" /><testcase classname="tests.test_phase4b.TestPriceDrop" name="test_setup_listing_and_watchers" time="0.301"><failure message="AssertionError: {&quot;detail&quot;:&quot;Too many requests. Try again in 3233 seconds.&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">self = &lt;test_phase4b.TestPriceDrop object at 0xff6455d7b810&gt;
+vendor = {'tok': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTU0MGRjMWJkMTllNmJjZWZmMzQ3ZTUiLCJyb2xlcyI6WyJjdXN0b21lciIs...OjE3ODM4OTQzNDF9.hlxTfid_mkWEKtE9yIWB2GAmY0J28T2ESCvZu1Y5upM', 'id': '6a540dc1bd19e6bceff347e5', 'phone': '9878344159'}
+buyer = {'tok': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTU0MGRjMmJkMTllNmJjZWZmMzQ3ZWYiLCJyb2xlcyI6WyJjdXN0b21lciJd...OjE3ODM4OTQzNDJ9.Ivf6GTUBhrxJbyP-ptGVL6jBF5cUWXs6XkDVwQ-Khns', 'id': '6a540dc2bd19e6bceff347ef', 'phone': '9867344184'}
+
+    def test_setup_listing_and_watchers(self, vendor, buyer):
+        li = _create_listing(vendor["tok"], f"TEST_Watch_{_RUN}", price=1000.0)
+        TestPriceDrop.listing_id = li["id"]
+        # Registered watcher: buyer phone
+        r = requests.post(f"{API}/listings/{TestPriceDrop.listing_id}/watch",
+                          json={"phone": buyer["phone"]}, timeout=10)
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":"Too many requests. Try again in 3233 seconds."}
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_phase4b.py:152: AssertionError</failure></testcase><testcase classname="tests.test_phase4b.TestPriceDrop" name="test_price_drop_creates_notification" time="1.318"><failure message="AssertionError: buyer unread should increase: 0 -&gt; 0&#10;assert 0 &gt; 0">self = &lt;test_phase4b.TestPriceDrop object at 0xff6455d7be50&gt;
+vendor = {'tok': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTU0MGRjMWJkMTllNmJjZWZmMzQ3ZTUiLCJyb2xlcyI6WyJjdXN0b21lciIs...OjE3ODM4OTQzNDF9.hlxTfid_mkWEKtE9yIWB2GAmY0J28T2ESCvZu1Y5upM', 'id': '6a540dc1bd19e6bceff347e5', 'phone': '9878344159'}
+buyer = {'tok': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTU0MGRjMmJkMTllNmJjZWZmMzQ3ZWYiLCJyb2xlcyI6WyJjdXN0b21lciJd...OjE3ODM4OTQzNDJ9.Ivf6GTUBhrxJbyP-ptGVL6jBF5cUWXs6XkDVwQ-Khns', 'id': '6a540dc2bd19e6bceff347ef', 'phone': '9867344184'}
+
+    def test_price_drop_creates_notification(self, vendor, buyer):
+        # Snapshot buyer unread count
+        rn = requests.get(f"{API}/notifications/me/unread-count", headers=_auth(buyer["tok"]), timeout=10)
+        before = rn.json()["count"]
+        # Vendor drops price
+        r = requests.patch(f"{API}/listings/{TestPriceDrop.listing_id}",
+                           headers=_auth(vendor["tok"]),
+                           json={"price": 700.0}, timeout=10)
+        assert r.status_code == 200, r.text
+        # Give the async task a moment
+        time.sleep(1.0)
+        rn2 = requests.get(f"{API}/notifications/me/unread-count", headers=_auth(buyer["tok"]), timeout=10)
+        after = rn2.json()["count"]
+&gt;       assert after &gt; before, f"buyer unread should increase: {before} -&gt; {after}"
+E       AssertionError: buyer unread should increase: 0 -&gt; 0
+E       assert 0 &gt; 0
+
+backend/tests/test_phase4b.py:171: AssertionError</failure></testcase><testcase classname="tests.test_phase4b.TestPriceDrop" name="test_price_drop_dedup_24h" time="1.301" /><testcase classname="tests.test_phase4b.TestFcm" name="test_register_and_remove" time="0.224" /><testcase classname="tests.test_phase4b.TestAdmin" name="test_analytics_overview" time="0.096"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Too many OTP requests. Try again in 233 seconds.&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">@pytest.fixture(scope="module")
+    def admin():
+&gt;       tok, uid = _login(ADMIN_PHONE, "Admin")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_phase4b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+phone = '9999999999', name = 'Admin', roles = None
+
+    def _login(phone, name, roles=None):
+        r = requests.post(f"{API}/auth/otp/send", json={"phone": phone}, timeout=15)
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":"Too many OTP requests. Try again in 233 seconds."}
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_phase4b.py:34: AssertionError</error></testcase><testcase classname="tests.test_phase4b.TestAdmin" name="test_users_list_and_ban" time="0.000"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Too many OTP requests. Try again in 233 seconds.&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">@pytest.fixture(scope="module")
+    def admin():
+&gt;       tok, uid = _login(ADMIN_PHONE, "Admin")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_phase4b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+phone = '9999999999', name = 'Admin', roles = None
+
+    def _login(phone, name, roles=None):
+        r = requests.post(f"{API}/auth/otp/send", json={"phone": phone}, timeout=15)
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":"Too many OTP requests. Try again in 233 seconds."}
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_phase4b.py:34: AssertionError</error></testcase><testcase classname="tests.test_phase4b.TestAdmin" name="test_cannot_ban_admin" time="0.000"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Too many OTP requests. Try again in 233 seconds.&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">@pytest.fixture(scope="module")
+    def admin():
+&gt;       tok, uid = _login(ADMIN_PHONE, "Admin")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_phase4b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+phone = '9999999999', name = 'Admin', roles = None
+
+    def _login(phone, name, roles=None):
+        r = requests.post(f"{API}/auth/otp/send", json={"phone": phone}, timeout=15)
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":"Too many OTP requests. Try again in 233 seconds."}
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_phase4b.py:34: AssertionError</error></testcase><testcase classname="tests.test_phase4b.TestAdmin" name="test_add_role_never_admin" time="0.000"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Too many OTP requests. Try again in 233 seconds.&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">@pytest.fixture(scope="module")
+    def admin():
+&gt;       tok, uid = _login(ADMIN_PHONE, "Admin")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_phase4b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+phone = '9999999999', name = 'Admin', roles = None
+
+    def _login(phone, name, roles=None):
+        r = requests.post(f"{API}/auth/otp/send", json={"phone": phone}, timeout=15)
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":"Too many OTP requests. Try again in 233 seconds."}
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_phase4b.py:34: AssertionError</error></testcase><testcase classname="tests.test_phase4b.TestAdmin" name="test_listing_takedown_and_restore" time="0.000"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Too many OTP requests. Try again in 233 seconds.&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">@pytest.fixture(scope="module")
+    def admin():
+&gt;       tok, uid = _login(ADMIN_PHONE, "Admin")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_phase4b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+phone = '9999999999', name = 'Admin', roles = None
+
+    def _login(phone, name, roles=None):
+        r = requests.post(f"{API}/auth/otp/send", json={"phone": phone}, timeout=15)
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":"Too many OTP requests. Try again in 233 seconds."}
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_phase4b.py:34: AssertionError</error></testcase><testcase classname="tests.test_phase4b.TestAdmin" name="test_non_admin_blocked" time="0.245" /><testcase classname="tests.test_phase4b.TestReports" name="test_create_report" time="0.296" /><testcase classname="tests.test_phase4b.TestReports" name="test_admin_list_open" time="0.000"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Too many OTP requests. Try again in 233 seconds.&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">@pytest.fixture(scope="module")
+    def admin():
+&gt;       tok, uid = _login(ADMIN_PHONE, "Admin")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_phase4b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+phone = '9999999999', name = 'Admin', roles = None
+
+    def _login(phone, name, roles=None):
+        r = requests.post(f"{API}/auth/otp/send", json={"phone": phone}, timeout=15)
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":"Too many OTP requests. Try again in 233 seconds."}
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_phase4b.py:34: AssertionError</error></testcase><testcase classname="tests.test_phase4b.TestReports" name="test_admin_resolve_takedown" time="0.000"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Too many OTP requests. Try again in 233 seconds.&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">@pytest.fixture(scope="module")
+    def admin():
+&gt;       tok, uid = _login(ADMIN_PHONE, "Admin")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_phase4b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+phone = '9999999999', name = 'Admin', roles = None
+
+    def _login(phone, name, roles=None):
+        r = requests.post(f"{API}/auth/otp/send", json={"phone": phone}, timeout=15)
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":"Too many OTP requests. Try again in 233 seconds."}
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_phase4b.py:34: AssertionError</error></testcase><testcase classname="tests.test_phase4b.TestReports" name="test_invalid_reason_400" time="0.102" /><testcase classname="tests.test_phase4b.TestHelpful" name="test_toggle" time="0.511" /><testcase classname="tests.test_phase4b.TestHelpful" name="test_cannot_helpful_own_review" time="0.198" /><testcase classname="tests.test_phase4b.TestFirstTopupBonus" name="test_first_topup_ge_200_grants_50" time="1.015" /><testcase classname="tests.test_phase4b.TestFirstTopupBonus" name="test_topup_below_200_no_bonus" time="0.511" /><testcase classname="tests.test_phase4b.TestRegression" name="test_health" time="0.090" /><testcase classname="tests.test_phase4b.TestRegression" name="test_listings_public" time="0.095" /><testcase classname="tests.test_phase4b.TestRegression" name="test_search_suggest" time="0.097" /><testcase classname="tests.test_phase4b.TestRegression" name="test_users_me_still_has_phase4a_keys" time="0.099" /></testsuite></testsuites>

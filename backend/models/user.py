@@ -27,5 +27,9 @@ class User(BaseDocument):
     rating_count: int = 0
     trust_score: int | None = None
     city: str | None = None
+    # Phase 4b additions
+    is_banned: bool = False
+    has_received_first_topup_bonus: bool = False
+    fcm_tokens: list[dict] = Field(default_factory=list)  # [{token, platform, added_at}]
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

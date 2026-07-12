@@ -150,7 +150,7 @@ async def list_listings(
 ) -> dict:
     """Paginated list. Uses created_at descending + _id tie-break for cursor pagination."""
     db = get_db()
-    q: dict[str, Any] = {"is_deleted": {"$ne": True}}
+    q: dict[str, Any] = {"is_deleted": {"$ne": True}, "is_takendown": {"$ne": True}}
     for k in ("type", "category_id", "sub_category_id", "vendor_id", "status"):
         v = filters.get(k)
         if v:
@@ -256,8 +256,39 @@ async def update_listing(listing_id: str, vendor_id: str, body: dict, is_admin: 
     if not clean:
         raise HTTPException(400, "No updatable fields")
     clean["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Phase 4b: detect price drop / back-in-stock for watcher notifications
+    old_price = doc.get("price")
+    old_offer = doc.get("offer_price")
+    old_stock = doc.get("stock")
+
     await db.listings.update_one({"_id": ObjectId(listing_id)}, {"$set": clean})
     updated = await db.listings.find_one({"_id": ObjectId(listing_id)})
+
+    # Fire watcher notifications AFTER update commits — fire-and-forget via task
+    try:
+        new_price = updated.get("price")
+        new_offer = updated.get("offer_price")
+        new_stock = updated.get("stock")
+        price_dropped = (
+            (isinstance(new_price, (int, float)) and isinstance(old_price, (int, float)) and new_price < old_price)
+            or (new_offer is not None and (old_offer is None or new_offer < old_offer))
+        )
+        back_in_stock = (isinstance(old_stock, (int, float)) and old_stock == 0
+                         and isinstance(new_stock, (int, float)) and new_stock > 0)
+        if price_dropped or back_in_stock:
+            import asyncio
+            from services import watcher_notify_service  # local import to avoid cycles
+            asyncio.create_task(watcher_notify_service.notify_watchers(
+                listing_id=listing_id,
+                title=updated.get("title") or "",
+                slug=updated.get("slug"),
+                effective_price=(new_offer if new_offer is not None else new_price),
+                event="price_drop" if price_dropped else "back_in_stock",
+            ))
+    except Exception:  # noqa: BLE001
+        logger.exception("watcher_notify enqueue failed")
+
     return _serialize(updated)
 
 
