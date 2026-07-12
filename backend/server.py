@@ -18,6 +18,13 @@ from routes.user_routes import router as user_router  # noqa: E402
 from routes.category_routes import router as category_router  # noqa: E402
 from routes.listing_routes import router as listing_router  # noqa: E402
 from routes.media_routes import router as media_router  # noqa: E402
+from routes.feed_routes import router as feed_router  # noqa: E402
+from routes.follow_routes import router as follow_router  # noqa: E402
+from routes.interaction_routes import router as interaction_router  # noqa: E402
+from routes.search_routes import router as search_router  # noqa: E402
+from routes.location_routes import router as location_router  # noqa: E402
+from routes.seo_routes import router as seo_router  # noqa: E402
+from routes.vendor_routes import router as vendor_router  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,6 +59,13 @@ api_router.include_router(user_router)
 api_router.include_router(category_router)
 api_router.include_router(listing_router)
 api_router.include_router(media_router)
+api_router.include_router(feed_router)
+api_router.include_router(follow_router)
+api_router.include_router(interaction_router)
+api_router.include_router(search_router)
+api_router.include_router(location_router)
+api_router.include_router(seo_router)
+api_router.include_router(vendor_router)
 app.include_router(api_router)
 
 # Serve locally-uploaded files (dev-mode media fallback) at /api/uploads/*

@@ -1,0 +1,68 @@
+"""Public vendor profile + follower count routes."""
+from __future__ import annotations
+from bson import ObjectId
+from fastapi import APIRouter, HTTPException, Request
+import jwt
+
+from database import get_db
+from services import follow_service, listing_service
+from utils.jwt_utils import decode_access_token
+
+router = APIRouter(prefix="/v1/vendors", tags=["vendors"])
+
+
+async def _optional_user_id(request: Request) -> str | None:
+    auth = request.headers.get("authorization") or request.headers.get("Authorization")
+    if not auth or not auth.lower().startswith("bearer "):
+        return None
+    try:
+        payload = decode_access_token(auth.split(None, 1)[1])
+        return payload.get("sub") if payload.get("type") == "access" else None
+    except jwt.InvalidTokenError:
+        return None
+
+
+@router.get("/{user_id}")
+async def get_vendor(user_id: str, request: Request):
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(400, "Invalid user id")
+    db = get_db()
+    u = await db.users.find_one({"_id": ObjectId(user_id), "is_deleted": {"$ne": True}})
+    if not u:
+        raise HTTPException(404, "User not found")
+
+    followers_count = await follow_service.followers_count(user_id)
+    viewer_id = await _optional_user_id(request)
+    following = False
+    if viewer_id and viewer_id != user_id:
+        following = await follow_service.is_following(viewer_id, user_id)
+
+    listings_count = await db.listings.count_documents({
+        "vendor_id": user_id, "is_deleted": {"$ne": True}, "status": "active",
+    })
+
+    return {
+        "id": str(u["_id"]),
+        "name": u.get("name"),
+        "profile_pic": u.get("profile_pic"),
+        "roles": u.get("roles", []),
+        "kyc_status": u.get("kyc_status", "unverified"),
+        "phone": u.get("phone") if u.get("phone") else None,
+        "followers_count": followers_count,
+        "listings_count": listings_count,
+        "viewer_following": following,
+    }
+
+
+@router.get("/{user_id}/listings")
+async def get_vendor_listings(user_id: str):
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(400, "Invalid user id")
+    return {"items": await listing_service.list_by_vendor(user_id, include_inactive=False)}
+
+
+@router.get("/{user_id}/followers/count")
+async def get_followers_count(user_id: str):
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(400, "Invalid user id")
+    return {"count": await follow_service.followers_count(user_id)}

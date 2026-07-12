@@ -1,11 +1,12 @@
 """Listing routes."""
 from __future__ import annotations
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from typing import Literal
 
 from middleware.auth_middleware import require_auth
-from services import listing_service, user_service
+from services import listing_service, user_service, watch_service
+from utils.rate_limit import check_and_record
 
 router = APIRouter(prefix="/v1/listings", tags=["listings"])
 
@@ -167,3 +168,20 @@ async def set_status(listing_id: str, body: StatusBody, user=Depends(require_aut
 async def delete_listing(listing_id: str, user=Depends(require_auth)):
     await listing_service.soft_delete(listing_id, user.id, is_admin=_is_admin(user))
     return {"success": True}
+
+
+class WatchBody(BaseModel):
+    phone: str = Field(..., min_length=10, max_length=10)
+
+
+@router.post("/{listing_id}/watch")
+async def watch_listing(listing_id: str, body: WatchBody, request: Request):
+    """Anonymous lead capture — no auth required.
+
+    Rate limit: 5 requests per hour per IP (in-memory sliding window).
+    """
+    ip = request.client.host if request.client else "unknown"
+    allowed, reset_in = check_and_record(f"watch:{ip}", limit=5, window_seconds=3600)
+    if not allowed:
+        raise HTTPException(429, f"Too many requests. Try again in {reset_in} seconds.")
+    return await watch_service.add_watcher(listing_id, body.phone)

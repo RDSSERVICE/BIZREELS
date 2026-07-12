@@ -1,41 +1,96 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { ArrowLeft, Share2, MessageCircle, MapPin, Eye, Tag } from "lucide-react";
+import { ArrowLeft, Share2, MessageCircle, MapPin, Eye, Tag, Heart, Bookmark, BellRing } from "lucide-react";
 import { PhoneScreen } from "@/components/app/PhoneScreen";
 import { Button } from "@/components/ui/button";
-import { listingApi, resolveMediaUrl } from "@/lib/api";
+import ListingCard from "@/components/app/ListingCard";
+import WatchListingModal from "@/components/app/WatchListingModal";
+import { listingApi, seoApi, interactionApi, followApi, resolveMediaUrl } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
-function fmtPrice(n) {
-  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n);
+function fmtPrice(n) { return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n); }
+
+const RECENT_KEY = "emergent_recent_viewed";
+function pushRecent(item) {
+  try {
+    const list = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+    const filtered = list.filter((x) => x.slug !== item.slug);
+    filtered.unshift({ slug: item.slug, title: item.title, image: item.images?.[0]?.url, price: item.offer_price || item.price });
+    localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, 10)));
+  } catch {}
 }
 
 export default function ListingDetail() {
   const { t } = useTranslation();
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [listing, setListing] = useState(null);
+  const [seo, setSeo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imgIdx, setImgIdx] = useState(0);
+  const [related, setRelated] = useState([]);
+  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [saves, setSaves] = useState(0);
+  const [following, setFollowing] = useState(false);
+  const [watchOpen, setWatchOpen] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    listingApi.bySlug(slug)
-      .then(({ data }) => setListing(data))
+    setLoading(true); setError(null);
+    Promise.all([listingApi.bySlug(slug), seoApi.listing(slug).catch(() => ({ data: null }))])
+      .then(([lRes, seoRes]) => {
+        const l = lRes.data;
+        setListing(l);
+        setSeo(seoRes?.data);
+        setLikes(l.likes_count || 0);
+        setSaves(l.saves_count || 0);
+        setLiked(l.viewer_state?.liked || false);
+        setSaved(l.viewer_state?.saved || false);
+        pushRecent(l);
+        // Related (same category)
+        if (l.category_id) {
+          listingApi.list({ category_id: l.category_id, limit: 7 })
+            .then(({ data }) => setRelated((data.items || []).filter((x) => x.id !== l.id).slice(0, 6)));
+        }
+      })
       .catch((err) => setError(err?.response?.data?.detail || "Not found"))
       .finally(() => setLoading(false));
   }, [slug]);
 
   const share = async () => {
     const url = window.location.href;
-    const shareData = { title: listing?.title, text: listing?.description, url };
-    if (navigator.share) {
-      try { await navigator.share(shareData); return; } catch {}
-    }
-    try { await navigator.clipboard.writeText(url); toast.success("Link copied"); } catch { toast.error("Could not copy link"); }
+    if (navigator.share) { try { await navigator.share({ title: listing?.title, url }); return; } catch {} }
+    try { await navigator.clipboard.writeText(url); toast.success("Link copied"); } catch {}
+  };
+
+  const requireAuth = () => {
+    if (!user) { setWatchOpen(true); return true; }
+    return false;
+  };
+
+  const toggleLike = async () => {
+    if (requireAuth()) return;
+    setLiked((v) => !v); setLikes((n) => n + (liked ? -1 : 1));
+    try { const { data } = await interactionApi.toggleLike(listing.id); setLiked(data.active); setLikes(data.count); } catch { setLiked(!liked); }
+  };
+  const toggleSave = async () => {
+    if (requireAuth()) return;
+    setSaved((v) => !v); setSaves((n) => n + (saved ? -1 : 1));
+    try { const { data } = await interactionApi.toggleSave(listing.id); setSaved(data.active); setSaves(data.count); } catch { setSaved(!saved); }
+  };
+  const toggleFollow = async () => {
+    if (!user) return navigate("/login");
+    try {
+      if (following) { await followApi.unfollow(listing.vendor.id); setFollowing(false); }
+      else { await followApi.follow(listing.vendor.id); setFollowing(true); }
+    } catch { toast.error("Failed"); }
   };
 
   if (loading) {
@@ -45,21 +100,17 @@ export default function ListingDetail() {
           <div className="h-4 w-16 bg-white/10 rounded animate-pulse mb-6" />
           <div className="aspect-square rounded-2xl bg-white/5 animate-pulse" />
           <div className="mt-4 h-6 w-3/4 bg-white/10 rounded animate-pulse" />
-          <div className="mt-2 h-4 w-1/2 bg-white/10 rounded animate-pulse" />
         </div>
       </PhoneScreen>
     );
   }
-
   if (error || !listing) {
     return (
       <PhoneScreen>
         <div className="px-6 pt-16 text-center" data-testid="listing-detail-error">
           <div className="text-4xl mb-2">🕳️</div>
           <div className="text-lg font-heading font-semibold">Listing not found</div>
-          <Button onClick={() => navigate("/browse")} className="mt-4 rounded-full btn-brand border-0">
-            Browse listings
-          </Button>
+          <Button onClick={() => navigate("/browse")} className="mt-4 rounded-full btn-brand border-0">Browse listings</Button>
         </div>
       </PhoneScreen>
     );
@@ -67,60 +118,45 @@ export default function ListingDetail() {
 
   const hasOffer = listing.offer_price != null && listing.offer_price < listing.price;
   const activeImg = listing.images?.[imgIdx];
+  const isAnon = !user;
 
   return (
     <PhoneScreen>
+      {seo && (
+        <Helmet>
+          <title>{seo.title}</title>
+          <meta name="description" content={seo.description} />
+          <meta property="og:title" content={seo.title} />
+          <meta property="og:description" content={seo.description} />
+          {seo.image ? <meta property="og:image" content={resolveMediaUrl(seo.image)} /> : null}
+          <meta property="og:url" content={seo.url} />
+          <meta property="og:type" content="product" />
+          <meta name="twitter:card" content="summary_large_image" />
+        </Helmet>
+      )}
+
       <div className="px-6 pt-8 pb-4 flex items-center justify-between">
-        <button
-          onClick={() => navigate(-1)}
-          className="glass rounded-full h-10 w-10 flex items-center justify-center"
-          data-testid="listing-back-btn"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <button
-          onClick={share}
-          className="glass rounded-full h-10 w-10 flex items-center justify-center"
-          data-testid="listing-share-btn"
-        >
-          <Share2 className="h-4 w-4" />
-        </button>
+        <button onClick={() => navigate(-1)} className="glass rounded-full h-10 w-10 flex items-center justify-center" data-testid="listing-back-btn"><ArrowLeft className="h-4 w-4" /></button>
+        <button onClick={share} className="glass rounded-full h-10 w-10 flex items-center justify-center" data-testid="listing-share-btn"><Share2 className="h-4 w-4" /></button>
       </div>
 
       {/* Media */}
       <div className="px-6" data-testid="listing-media">
         {listing.reel?.url ? (
           <div className="aspect-[9/16] max-h-[560px] rounded-2xl overflow-hidden bg-white/5">
-            <video
-              data-testid="listing-reel"
-              src={resolveMediaUrl(listing.reel.url)}
-              className="w-full h-full object-cover"
-              controls
-              autoPlay
-              muted
-              playsInline
-              loop
-            />
+            <video data-testid="listing-reel" src={resolveMediaUrl(listing.reel.url)} className="w-full h-full object-cover" controls autoPlay muted playsInline loop />
           </div>
         ) : activeImg ? (
           <div className="aspect-square rounded-2xl overflow-hidden bg-white/5">
             <img src={resolveMediaUrl(activeImg.url)} alt={listing.title} className="w-full h-full object-cover" />
           </div>
         ) : (
-          <div className="aspect-square rounded-2xl bg-white/5 flex items-center justify-center text-5xl text-white/20">
-            📦
-          </div>
+          <div className="aspect-square rounded-2xl bg-white/5 flex items-center justify-center text-5xl text-white/20">📦</div>
         )}
         {listing.images?.length > 1 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto -mx-6 px-6" data-testid="listing-thumbnails">
+          <div className="mt-3 flex gap-2 overflow-x-auto -mx-6 px-6">
             {listing.images.map((im, i) => (
-              <button
-                key={im.public_id || i}
-                onClick={() => setImgIdx(i)}
-                className={`h-16 w-16 shrink-0 rounded-lg overflow-hidden border ${
-                  i === imgIdx ? "border-pink-500" : "border-white/10"
-                }`}
-              >
+              <button key={im.public_id || i} onClick={() => setImgIdx(i)} className={`h-16 w-16 shrink-0 rounded-lg overflow-hidden border ${i === imgIdx ? "border-pink-500" : "border-white/10"}`}>
                 <img src={resolveMediaUrl(im.url)} alt="" className="w-full h-full object-cover" />
               </button>
             ))}
@@ -131,9 +167,7 @@ export default function ListingDetail() {
       {/* Body */}
       <div className="px-6 mt-5 space-y-6 pb-24">
         <div>
-          <h1 className="font-heading text-2xl font-bold leading-tight" data-testid="listing-title">
-            {listing.title}
-          </h1>
+          <h1 className="font-heading text-2xl font-bold leading-tight" data-testid="listing-title">{listing.title}</h1>
           <div className="mt-2 flex items-center flex-wrap gap-3">
             {hasOffer ? (
               <>
@@ -145,95 +179,103 @@ export default function ListingDetail() {
             )}
             {listing.is_negotiable && (
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full bg-pink-500/15 text-pink-300 border border-pink-500/30">
-                {t("listing.negotiable")}
+                Negotiable
               </span>
             )}
           </div>
           <div className="mt-1 flex items-center gap-3 text-xs text-white/50">
-            <span className="inline-flex items-center gap-1">
-              <Eye className="h-3 w-3" /> {t("listing.views", { count: listing.views_count || 0 })}
-            </span>
+            <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" /> {listing.views_count || 0} views</span>
             <span>·</span>
             <span>{listing.category?.name}{listing.sub_category?.name ? ` · ${listing.sub_category.name}` : ""}</span>
           </div>
         </div>
 
+        {/* Action bar */}
+        <div className="flex items-center gap-2" data-testid="listing-action-bar">
+          <Button onClick={toggleLike} data-testid="listing-like-btn" variant="outline" className={`rounded-full h-11 flex-1 border-white/10 hover:bg-white/10 ${liked ? "bg-pink-500/15 text-pink-300" : "bg-white/5 text-white"}`}>
+            <Heart className={`h-4 w-4 mr-1 ${liked ? "fill-pink-500" : ""}`} /> {likes}
+          </Button>
+          <Button onClick={toggleSave} data-testid="listing-save-btn" variant="outline" className={`rounded-full h-11 flex-1 border-white/10 hover:bg-white/10 ${saved ? "bg-white/15" : "bg-white/5"} text-white`}>
+            <Bookmark className={`h-4 w-4 mr-1 ${saved ? "fill-white" : ""}`} /> {saves}
+          </Button>
+          <Button onClick={share} data-testid="listing-share-inline-btn" variant="outline" className="rounded-full h-11 flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">
+            <Share2 className="h-4 w-4 mr-1" /> Share
+          </Button>
+        </div>
+
+        {/* Anon soft-gate */}
+        {isAnon && (
+          <button
+            type="button"
+            onClick={() => setWatchOpen(true)}
+            data-testid="watch-listing-btn"
+            className="w-full glass rounded-2xl p-4 flex items-center gap-3 text-left hover:bg-white/10"
+          >
+            <div className="h-11 w-11 rounded-xl bg-gradient-brand flex items-center justify-center">
+              <BellRing className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <div className="font-heading font-semibold">Watch this listing</div>
+              <div className="text-xs text-white/60">Get an SMS on price drop or when the vendor updates.</div>
+            </div>
+          </button>
+        )}
+
         {/* Vendor */}
         {listing.vendor && (
           <div className="glass rounded-2xl p-4 flex items-center gap-3" data-testid="vendor-card">
-            <div className="h-12 w-12 rounded-full bg-gradient-brand flex items-center justify-center font-heading font-bold text-lg">
+            <Link to={`/vendor/${listing.vendor.id}`} className="h-12 w-12 rounded-full bg-gradient-brand flex items-center justify-center font-heading font-bold text-lg">
               {(listing.vendor.name || "?").charAt(0).toUpperCase()}
-            </div>
+            </Link>
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-white/50">{t("listing.posted_by")}</div>
-              <div className="font-semibold truncate">{listing.vendor.name || "Vendor"}</div>
+              <div className="text-xs text-white/50">Posted by</div>
+              <Link to={`/vendor/${listing.vendor.id}`} className="font-semibold truncate hover:underline">{listing.vendor.name || "Vendor"}</Link>
             </div>
-            <Button
-              data-testid="chat-vendor-btn"
-              onClick={() => toast.info(t("listing.chat_coming_soon"))}
-              className="rounded-full btn-brand border-0"
-              size="sm"
-            >
-              <MessageCircle className="h-4 w-4 mr-1" />
-              {t("listing.chat_vendor")}
+            {user && user.id !== listing.vendor.id && (
+              <Button onClick={toggleFollow} data-testid="follow-vendor-btn" size="sm" className={`rounded-full border-0 ${following ? "bg-white/10 hover:bg-white/15" : "btn-brand"}`}>
+                {following ? "Following" : "Follow"}
+              </Button>
+            )}
+            <Button onClick={() => toast.info("Chat is coming in Phase 3.")} data-testid="chat-vendor-btn" size="sm" className="rounded-full btn-brand border-0">
+              <MessageCircle className="h-4 w-4 mr-1" />Chat
             </Button>
           </div>
         )}
 
-        {/* Description */}
         {listing.description && (
           <section>
-            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">
-              {t("listing.description")}
-            </h3>
-            <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed" data-testid="listing-description">
-              {listing.description}
-            </p>
+            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Description</h3>
+            <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed" data-testid="listing-description">{listing.description}</p>
           </section>
         )}
 
-        {/* Specs */}
         <section>
-          <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">
-            {t("listing.specs")}
-          </h3>
+          <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Details</h3>
           <dl className="grid grid-cols-2 gap-3 text-sm" data-testid="listing-specs">
-            <Spec label={t("listing.condition")} value={listing.condition} />
-            <Spec label={t("listing.warranty")} value={listing.warranty} />
-            <Spec label={t("listing.stock")} value={listing.stock != null ? String(listing.stock) : null} />
-            <Spec label={t("listing.service_charges_type")} value={listing.service_charges_type} />
-            <Spec label={t("listing.experience_years")} value={listing.experience_years ? `${listing.experience_years} yrs` : null} />
-            <Spec label={t("listing.service_area_km")} value={listing.service_area_km ? `${listing.service_area_km} km` : null} />
+            <Spec label="Condition" value={listing.condition} />
+            <Spec label="Warranty" value={listing.warranty} />
+            <Spec label="Stock" value={listing.stock != null ? String(listing.stock) : null} />
+            <Spec label="Charges type" value={listing.service_charges_type} />
+            <Spec label="Experience" value={listing.experience_years ? `${listing.experience_years} yrs` : null} />
+            <Spec label="Service area" value={listing.service_area_km ? `${listing.service_area_km} km` : null} />
           </dl>
         </section>
 
-        {/* Location */}
         <section>
-          <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">
-            {t("listing.location")}
-          </h3>
-          <div className="glass rounded-2xl p-4 flex items-start gap-3" data-testid="listing-location">
+          <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Location</h3>
+          <div className="glass rounded-2xl p-4 flex items-start gap-3">
             <MapPin className="h-4 w-4 mt-1 text-pink-300" />
             <div className="text-sm">
               <div>{listing.location.area}, {listing.location.city}</div>
-              <div className="text-white/50 text-xs mt-0.5">
-                {listing.location.state ? `${listing.location.state} · ` : ""}
-                {listing.location.pincode}
-              </div>
-              {listing.location.address && (
-                <div className="text-white/60 text-xs mt-1">{listing.location.address}</div>
-              )}
+              <div className="text-white/50 text-xs mt-0.5">{listing.location.state ? `${listing.location.state} · ` : ""}{listing.location.pincode}</div>
             </div>
           </div>
         </section>
 
-        {/* Tags */}
         {listing.tags?.length > 0 && (
           <section>
-            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">
-              {t("listing.tags")}
-            </h3>
-            <div className="flex flex-wrap gap-2" data-testid="listing-tags">
+            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Tags</h3>
+            <div className="flex flex-wrap gap-2">
               {listing.tags.map((tag) => (
                 <span key={tag} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/80">
                   <Tag className="h-3 w-3" /> {tag}
@@ -243,12 +285,17 @@ export default function ListingDetail() {
           </section>
         )}
 
-        <div className="pt-2">
-          <Link to="/browse" className="text-sm text-pink-300 hover:text-pink-200">
-            ← Back to browse
-          </Link>
-        </div>
+        {related.length > 0 && (
+          <section data-testid="related-section">
+            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">You may also like</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {related.map((l) => <ListingCard key={l.id} listing={l} />)}
+            </div>
+          </section>
+        )}
       </div>
+
+      <WatchListingModal open={watchOpen} onOpenChange={setWatchOpen} listingId={listing.id} />
     </PhoneScreen>
   );
 }

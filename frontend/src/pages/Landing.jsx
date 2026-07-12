@@ -42,7 +42,7 @@ export default function Landing() {
           </p>
 
           <div className="mt-8 flex flex-col gap-3">
-            <Link to={user ? "/dashboard" : "/login"} className="w-full">
+            <Link to={user ? "/feed" : "/login"} className="w-full">
               <Button
                 data-testid="landing-get-started-btn"
                 className="w-full h-14 rounded-full btn-brand text-base font-semibold border-0"

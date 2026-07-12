@@ -63,6 +63,16 @@ async def create_indexes() -> None:
     except Exception as e:  # noqa: BLE001
         logger.warning("text index create warning: %s", e)
 
+    # ---- Phase 2 ----
+    await db.follows.create_index([("follower_id", 1), ("following_id", 1)], unique=True)
+    await db.follows.create_index("following_id")
+    await db.interactions.create_index(
+        [("user_id", 1), ("listing_id", 1), ("type", 1)], unique=True,
+    )
+    await db.interactions.create_index("listing_id")
+    await db.search_history.create_index("created_at")
+    await db.search_history.create_index("user_id")
+
     logger.info("MongoDB indexes ensured")
 
 

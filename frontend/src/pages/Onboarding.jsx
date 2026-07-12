@@ -59,7 +59,7 @@ export default function Onboarding() {
 
       updateLocalUser(currentUser);
       toast.success("Profile ready");
-      navigate("/dashboard", { replace: true });
+      navigate("/feed", { replace: true });
     } catch (err) {
       const msg = err?.response?.data?.detail || "Failed to save";
       toast.error(typeof msg === "string" ? msg : "Failed to save");

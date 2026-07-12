@@ -46,13 +46,21 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 - New frontend routes: `/browse`, `/browse/:categorySlug`, `/listing/:slug`, `/vendor/dashboard`, `/vendor/listing/new`, `/vendor/listing/:id/edit`. Dashboard updated with "Become a Vendor" confirmation modal.
 - Multi-step wizard (6 steps: type → category → details → media → location → review) with progress bar, localStorage draft auto-save (debounced), geolocation button.
 
+### ✅ Phase 2 — Feed + Search + Geolocation + SEO (completed 2026-02)
+- New Mongo collections: `follows`, `interactions`, `search_history`, `pincode_cache`. `listings` extended with `likes_count`, `saves_count`, `watchers[]` (all backward-compat).
+- **Mixed-algorithm feed** at `GET /api/v1/feed/` and `GET /api/v1/feed/reels`. Scoring: proximity (30→0 linear within radius), freshness <24h (+20), followed vendor (+15), has reel (+10), has offer (+5). Anonymous & authed both supported.
+- **Follow system** — `POST/DELETE /api/v1/follows/:user_id`, `GET /api/v1/follows/me/following`. Unique index on (follower_id, following_id).
+- **Like / Save** — `POST /api/v1/listings/:id/like|save` toggle, counts denormalized on listing doc. Saved & liked lists at `/api/v1/interactions/me/saved|liked`.
+- **Search & suggestions** — `GET /api/v1/search/` with text+filters (`q, category_id, sub_category_id, type, condition, price_min/max, is_negotiable, has_offer, lat/lng/radius, sort`), cursor pagination, geospatial via `$geoNear`. `GET /api/v1/search/suggest?q=…` returns 5 title + 3 category quick-picks. Searches logged to `search_history`.
+- **Anonymous watchers (lead capture)** — `POST /api/v1/listings/:id/watch` accepting `{phone}`, no auth required. Rate-limit 5/hour per IP (in-memory sliding window). Dedup by phone. Frontend soft-gate on listing detail for anon viewers.
+- **Location utils** — `POST /api/v1/utils/pincode-lookup` uses real free api.postalpincode.in (cached to `pincode_cache`). `POST /api/v1/utils/reverse-geocode` is a coarse mock (TODO for Google Geocoding). Frontend `useUserLocation()` hook manages permission + local persistence.
+- **Public vendor profile** — `GET /api/v1/vendors/:user_id` (with follower/listings counts + viewer follow state), `/:user_id/listings`, `/:user_id/followers/count`. Frontend `/vendor/:vendorId` with All/Products/Services/Reels tabs, follow button, WhatsApp deep-link, share button.
+- **SEO** — `GET /api/v1/seo/listing/:slug` returns OG-ready meta, `sitemap.xml` (dynamic) + `robots.txt`. Frontend uses `react-helmet-async` to inject tags into `<head>` on listing detail.
+- **Frontend routes added:** `/feed` (Instagram-style vertical reels + injected grid rows every 5 reels), `/explore` (grid + search entry), `/search` (autocomplete + filter sheet with sort/price/radius/condition/negotiable/offer), `/vendor/:vendorId`, `/saved`. Bottom tab bar (Feed / Explore / Sell-for-vendors OR Saved / Me). Listing detail extended with like/save/share buttons, follow-vendor button, related listings, recently-viewed localStorage. Login/onboarding redirect target changed from `/dashboard` → `/feed`.
+
 ## Prioritized backlog
 
-### P0 — Phase 2: Feed + Search + Geolocation + SEO tags
-- Reels/photo feed with mixed content types.
-- Nearby search by geo + text search on tags/titles.
-
-### P1 — Phase 3: Requirements + Chat (Socket.IO) + Negotiation + WhatsApp deep-links
+### P0 — Phase 3: Requirements + Chat (Socket.IO) + Negotiation + WhatsApp deep-links
 ### P2 — Phase 4: Reviews + Notifications + Wallet + Razorpay + Verified badge + Trust score
 ### P2 — Phase 5: Admin panel + Report/Block queue + Vendor analytics
 ### P2 — Phase 6: Seed data + i18n Hindi/English + PWA + demo polish

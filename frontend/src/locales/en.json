@@ -147,5 +147,67 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "retry": "Retry"
+  },
+  "feed": {
+    "title": "For you",
+    "location_prompt_title": "Turn on location for near-you feed",
+    "location_prompt_body": "See listings and reels near you first. You can change this anytime.",
+    "allow": "Allow location",
+    "later": "Not now",
+    "watch": "Watch",
+    "watching": "Watching",
+    "follow": "Follow",
+    "following": "Following",
+    "reels_empty": "No reels yet in your area. Widen the radius or check back soon.",
+    "feed_empty": "No listings match your filters."
+  },
+  "nav": {
+    "feed": "Feed",
+    "explore": "Explore",
+    "add": "Sell",
+    "saved": "Saved",
+    "profile": "Profile"
+  },
+  "search": {
+    "placeholder": "Search Emergent…",
+    "no_results": "No listings match. Try a different phrase.",
+    "suggestions": "Quick picks",
+    "filters": "Filters",
+    "clear": "Clear",
+    "apply": "Apply",
+    "sort_recent": "Newest",
+    "sort_price_asc": "Price ↑",
+    "sort_price_desc": "Price ↓",
+    "price_min": "Min ₹",
+    "price_max": "Max ₹",
+    "only_negotiable": "Only negotiable",
+    "only_with_offer": "Only with offer",
+    "radius": "Distance"
+  },
+  "vendor_profile": {
+    "follow": "Follow",
+    "following": "Following",
+    "followers": "{{count}} followers",
+    "listings": "{{count}} listings",
+    "all": "All",
+    "products": "Products",
+    "services": "Services",
+    "reels": "Reels",
+    "no_listings": "This vendor hasn't posted yet.",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "chat": "Chat"
+  },
+  "watch_modal": {
+    "title": "Watch this listing",
+    "body": "Get an SMS on price drop or when the vendor updates. No login needed.",
+    "phone_label": "Your mobile number",
+    "cta": "Notify me",
+    "success": "You're on the watch list."
+  },
+  "saved_page": {
+    "title": "Saved",
+    "subtitle": "Listings you've bookmarked.",
+    "empty": "Nothing saved yet. Tap the bookmark on any listing to save it."
   }
 }

@@ -47,7 +47,7 @@ export default function VerifyOtp() {
       toast.success("Signed in");
       // Route based on whether user has a name (onboarded)
       if (!data.user?.name) navigate("/onboarding", { replace: true });
-      else navigate("/dashboard", { replace: true });
+      else navigate("/feed", { replace: true });
     } catch (err) {
       const msg = err?.response?.data?.detail || "Invalid or expired OTP";
       toast.error(typeof msg === "string" ? msg : "Verification failed");

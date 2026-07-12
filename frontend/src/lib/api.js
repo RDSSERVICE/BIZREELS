@@ -144,3 +144,46 @@ export function resolveMediaUrl(url) {
   if (/^https?:\/\//i.test(url)) return url;
   return `${BACKEND_URL}${url}`;
 }
+
+// ---- Phase 2 ----
+export const feedApi = {
+  main: (params = {}) => api.get("/v1/feed/", { params }),
+  reels: (params = {}) => api.get("/v1/feed/reels", { params }),
+};
+
+export const followApi = {
+  follow: (userId) => api.post(`/v1/follows/${userId}`),
+  unfollow: (userId) => api.delete(`/v1/follows/${userId}`),
+  myFollowing: () => api.get("/v1/follows/me/following"),
+};
+
+export const interactionApi = {
+  toggleLike: (id) => api.post(`/v1/listings/${id}/like`),
+  toggleSave: (id) => api.post(`/v1/listings/${id}/save`),
+  mySaved: () => api.get("/v1/interactions/me/saved"),
+  myLiked: () => api.get("/v1/interactions/me/liked"),
+};
+
+export const searchApi = {
+  search: (params) => api.get("/v1/search/", { params }),
+  suggest: (q) => api.get("/v1/search/suggest", { params: { q } }),
+};
+
+export const locationApi = {
+  reverseGeocode: (lat, lng) => api.post("/v1/utils/reverse-geocode", { lat, lng }),
+  pincode: (pincode) => api.post("/v1/utils/pincode-lookup", { pincode }),
+};
+
+export const vendorApi = {
+  get: (id) => api.get(`/v1/vendors/${id}`),
+  listings: (id) => api.get(`/v1/vendors/${id}/listings`),
+};
+
+export const watchApi = {
+  watch: (listingId, phone) =>
+    api.post(`/v1/listings/${listingId}/watch`, { phone }),
+};
+
+export const seoApi = {
+  listing: (slug) => api.get(`/v1/seo/listing/${slug}`),
+};
