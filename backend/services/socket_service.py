@@ -17,6 +17,8 @@ sio = socketio.AsyncServer(
 )
 
 # ASGI app to mount at /socket.io
+# ASGI app mounted at /api/socket.io (matches server.py mount + frontend path).
+# This is required because our K8s ingress only routes /api/* to backend.
 socket_asgi = socketio.ASGIApp(sio, socketio_path="/api/socket.io")
 
 # In-memory presence
