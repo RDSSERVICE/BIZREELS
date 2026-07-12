@@ -1,0 +1,76 @@
+{
+  "landing": {
+    "brand": "Emergent",
+    "tagline_line1": "Discover local.",
+    "tagline_line2": "Chat direct.",
+    "tagline_line3": "Deal fair.",
+    "hero_subtitle": "Reels-first commerce for India. Find vendors and creators near you, negotiate over chat, no middlemen — just fair local deals.",
+    "cta_primary": "Get Started",
+    "cta_secondary": "I already have an account",
+    "features": {
+      "reels_title": "Reels-first discovery",
+      "reels_body": "Scroll through short videos of vendors, shops and creators around you.",
+      "chat_title": "Chat direct with vendors",
+      "chat_body": "No agents, no forwards. Negotiate the price yourself.",
+      "trust_title": "India-first, trust-first",
+      "trust_body": "Verified badges, reviews and a trust score for every seller."
+    }
+  },
+  "auth": {
+    "login_title": "Welcome to Emergent",
+    "login_subtitle": "Enter your mobile number to continue.",
+    "phone_label": "Mobile number",
+    "phone_placeholder": "10-digit mobile number",
+    "send_otp": "Send OTP",
+    "sending_otp": "Sending OTP…",
+    "verify_title": "Verify your number",
+    "verify_subtitle": "Enter the 6-digit code we sent to +91 {{phone}}",
+    "verify_cta": "Verify & Continue",
+    "verifying": "Verifying…",
+    "resend": "Resend OTP",
+    "resend_in": "Resend in {{seconds}}s",
+    "dev_banner": "DEV MODE OTP: {{otp}} — auto-filled for you.",
+    "change_number": "Change number"
+  },
+  "onboarding": {
+    "title": "Tell us about you",
+    "subtitle": "Pick a name and how you'll use Emergent. You can add more roles later.",
+    "name_label": "Your name",
+    "name_placeholder": "e.g. Priya Sharma",
+    "roles_label": "I want to use Emergent as",
+    "role_customer": "Customer",
+    "role_customer_desc": "Discover and hire local vendors, shops & creators.",
+    "role_vendor": "Vendor",
+    "role_vendor_desc": "List my shop or service and get customers.",
+    "role_creator": "Creator",
+    "role_creator_desc": "Get hired for shoots, content & collaborations.",
+    "continue": "Continue"
+  },
+  "profile": {
+    "title": "Your profile",
+    "edit": "Edit profile",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "name": "Name",
+    "email": "Email",
+    "gender": "Gender",
+    "dob": "Date of birth",
+    "profile_pic": "Profile picture URL",
+    "current_role": "Active role",
+    "roles_owned": "Your roles",
+    "switch_role": "Switch active role",
+    "add_role": "Add another role",
+    "logout": "Log out"
+  },
+  "dashboard": {
+    "greeting": "Welcome, {{name}}",
+    "role_line": "You're active as {{role}}.",
+    "stub_title": "Feed, listings & reels coming next",
+    "stub_body": "Phase 0 delivers the auth foundation. Reels-first discovery, chat, requirements and vendor listings arrive in upcoming phases."
+  },
+  "common": {
+    "loading": "Loading…",
+    "error_generic": "Something went wrong. Please try again.",
+    "back": "Back"
+  }
+}
