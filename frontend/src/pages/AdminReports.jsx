@@ -73,7 +73,19 @@ export default function AdminReports() {
                   {r.reason.toUpperCase()} · {r.target_type}
                   <span className="ml-2 px-1.5 py-0.5 rounded-full bg-white/10 text-[10px]">{STATUS_LABEL[r.status]}</span>
                 </div>
-                <div className="text-xs text-white/60 truncate mt-0.5">Target: {r.target_id}</div>
+                {r.target_label ? (
+                  <a
+                    href={r.target_link || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm mt-1 block text-white/90 truncate hover:underline"
+                    data-testid={`admin-report-target-${r.id}`}
+                  >
+                    {r.target_label}
+                  </a>
+                ) : (
+                  <div className="text-xs text-white/60 truncate mt-0.5">Target: {r.target_id}</div>
+                )}
                 {r.description && <p className="mt-1.5 text-sm text-white/80 whitespace-pre-wrap">{r.description}</p>}
                 {r.resolution_action && <div className="mt-1 text-xs text-white/50">Action: {r.resolution_action} {r.resolution_note ? `· ${r.resolution_note}` : ""}</div>}
               </div>

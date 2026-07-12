@@ -50,6 +50,52 @@ async def create_report(reporter_id: str, body: dict) -> dict:
     return _s(doc)
 
 
+async def _hydrate_targets(db, items: list[dict]) -> list[dict]:
+    """Attach a human-friendly 'target_label' + link to each report by resolving target_id."""
+    # Group by target_type
+    listing_ids, user_ids, review_ids = [], [], []
+    for r in items:
+        tid = r.get("target_id")
+        if not tid or not ObjectId.is_valid(tid):
+            continue
+        if r["target_type"] == "listing":
+            listing_ids.append(ObjectId(tid))
+        elif r["target_type"] == "user":
+            user_ids.append(ObjectId(tid))
+        elif r["target_type"] == "review":
+            review_ids.append(ObjectId(tid))
+    listings_map = {}
+    if listing_ids:
+        async for li in db.listings.find({"_id": {"$in": listing_ids}}, {"title": 1, "slug": 1, "is_takendown": 1}):
+            listings_map[str(li["_id"])] = li
+    users_map = {}
+    if user_ids:
+        async for u in db.users.find({"_id": {"$in": user_ids}}, {"name": 1, "phone": 1, "is_banned": 1}):
+            users_map[str(u["_id"])] = u
+    reviews_map = {}
+    if review_ids:
+        async for rv in db.reviews.find({"_id": {"$in": review_ids}}, {"rating": 1, "comment": 1}):
+            reviews_map[str(rv["_id"])] = rv
+    for r in items:
+        tid = r.get("target_id")
+        r["target_label"] = None
+        r["target_link"] = None
+        if r["target_type"] == "listing" and tid in listings_map:
+            li = listings_map[tid]
+            r["target_label"] = li.get("title") or "(untitled listing)"
+            r["target_link"] = f"/listing/{li.get('slug') or tid}"
+            r["target_status"] = "taken_down" if li.get("is_takendown") else "active"
+        elif r["target_type"] == "user" and tid in users_map:
+            u = users_map[tid]
+            r["target_label"] = u.get("name") or u.get("phone") or "(unnamed user)"
+            r["target_link"] = f"/vendor/{tid}"
+            r["target_status"] = "banned" if u.get("is_banned") else "active"
+        elif r["target_type"] == "review" and tid in reviews_map:
+            rv = reviews_map[tid]
+            r["target_label"] = f"{rv.get('rating', '?')}★ · {(rv.get('comment') or '')[:60]}"
+    return items
+
+
 async def list_reports(status: str | None, target_type: str | None, cursor: str | None, limit: int) -> dict:
     db = get_db()
     q: dict = {}
@@ -62,8 +108,10 @@ async def list_reports(status: str | None, target_type: str | None, cursor: str 
     docs = await db.reports.find(q).sort([("_id", -1)]).limit(limit + 1).to_list(limit + 1)
     has_more = len(docs) > limit
     docs = docs[:limit]
+    items = [_s(d) for d in docs]
+    items = await _hydrate_targets(db, items)
     return {
-        "items": [_s(d) for d in docs],
+        "items": items,
         "next_cursor": str(docs[-1]["_id"]) if has_more and docs else None,
         "has_more": has_more,
     }
