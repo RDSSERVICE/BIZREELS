@@ -28,6 +28,11 @@ import RequirementDetail from "@/pages/RequirementDetail";
 import ChatList from "@/pages/ChatList";
 import ChatThread from "@/pages/ChatThread";
 import Deals from "@/pages/Deals";
+import Wallet from "@/pages/Wallet";
+import Subscriptions from "@/pages/Subscriptions";
+import Kyc from "@/pages/Kyc";
+import Notifications from "@/pages/Notifications";
+import AdminKyc from "@/pages/AdminKyc";
 
 function OnboardingGate({ children }) {
   const { user, loading } = useAuth();
@@ -66,6 +71,11 @@ function App() {
               <Route path="/chat" element={<RequireAuth><ChatList /></RequireAuth>} />
               <Route path="/chat/:threadId" element={<RequireAuth><ChatThread /></RequireAuth>} />
               <Route path="/deals" element={<RequireAuth><Deals /></RequireAuth>} />
+              <Route path="/wallet" element={<RequireAuth><Wallet /></RequireAuth>} />
+              <Route path="/subscriptions" element={<RequireAuth><Subscriptions /></RequireAuth>} />
+              <Route path="/kyc" element={<RequireAuth><Kyc /></RequireAuth>} />
+              <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
+              <Route path="/admin/kyc" element={<RequireAuth><AdminKyc /></RequireAuth>} />
               <Route path="/vendor/dashboard" element={<RequireAuth><VendorDashboard /></RequireAuth>} />
               <Route path="/vendor/listing/new" element={<RequireAuth><ListingForm /></RequireAuth>} />
               <Route path="/vendor/listing/:id/edit" element={<RequireAuth><ListingForm /></RequireAuth>} />

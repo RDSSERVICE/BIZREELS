@@ -100,6 +100,20 @@ async def create_indexes() -> None:
     await db.deals.create_index("seller_id")
     await db.deals.create_index("status")
 
+    # ---- Phase 4a ----
+    await db.reviews.create_index([("target_type", 1), ("target_id", 1), ("_id", -1)])
+    await db.reviews.create_index("reviewer_id")
+    await db.reviews.create_index([("reviewer_id", 1), ("target_type", 1), ("target_id", 1)])
+    await db.notifications.create_index([("user_id", 1), ("_id", -1)])
+    await db.notifications.create_index([("user_id", 1), ("is_read", 1)])
+    await db.wallets.create_index("user_id", unique=True)
+    await db.wallet_transactions.create_index([("user_id", 1), ("_id", -1)])
+    await db.payments.create_index("user_id")
+    await db.payments.create_index("razorpay_order_id", unique=True)
+    await db.subscriptions.create_index("user_id")
+    await db.kyc_documents.create_index("user_id")
+    await db.kyc_documents.create_index("status")
+
     logger.info("MongoDB indexes ensured")
 
 

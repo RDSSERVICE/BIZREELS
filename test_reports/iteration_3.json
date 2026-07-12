@@ -1,0 +1,48 @@
+{
+  "summary": "Phase 4a full E2E: 22/22 backend pytest cases PASSED after fixing one HIGH-severity schema bug in User.kyc_status Literal. Deal-gated review flow validated end-to-end (403 without deal_id, 403 with non-completed deal, 200 + is_verified_purchase=true + wallet +10 credits after both parties complete the deal, 409 duplicate). Vendor-level reviews without deal_id succeed. KYC submit/admin approve/user shows approved + notification created. Wallet topup + dev simulate-success credits balance and lists transaction. Subscriptions subscribe → simulate-success → active → cancel. Notifications unread-count decrements on mark-read. Trust score returns valid shape with kyc_pts=10 for approved user; higher than unverified control. Regression (categories, listings, search) green. Frontend E2E on preview URL: OTP dev-mode login → onboarding → /feed works. /wallet topup ₹100 confirmed (₹0 → ₹100, txn listed). /kyc, /subscriptions, /notifications pages all load and render correctly. /admin/kyc correctly blocked for non-admin (redirect to /).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/v1/admin/kyc/{kid}/approve", "issue": "BUG (fixed by testing agent): kyc_review() writes users.kyc_status='approved' but User pydantic model Literal only accepted ('unverified','pending','verified','rejected'). Once approved, every subsequent authenticated request for that user throws 500 in require_auth because User.from_mongo fails validation. Also trust_score uses u.get('kyc_status') == 'approved' — was consistent with the write value but inconsistent with the model. Fix applied: added 'approved' to KycStatus Literal in /app/backend/models/user.py.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/v1/listings/", "issue": "Validation quirk: for type='new_product', backend rejects payload if condition is supplied (400: 'condition must be omitted'). Stock is required. Frontend/API doc consumers should be aware."},
+      {"endpoint": "GET /api/v1/users/me", "issue": "Response is wrapped in {\"user\": {...}} unlike /auth/otp/verify which returns user at top-level under `user`. Client code must handle both shapes."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/kyc", "issues": ["Document Type dropdown uses browser-native <select> rendered unstyled (white default) against dark theme — inconsistent with shadcn design system used elsewhere. Also Document Number input has no visible placeholder."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase4a.py",
+    "/app/test_reports/pytest/phase4a.xml"
+  ],
+  "action_items": [
+    "Decide canonical value for users.kyc_status ('approved' vs 'verified'). Currently Literal accepts both after my patch, but only 'approved' is ever written and only 'approved' is checked by trust_score. Recommend removing 'verified' from the Literal for clarity, OR renaming to 'verified' both in kyc_review write and in trust_score check.",
+    "Consider aligning User Pydantic model & DB write in a single enum module to prevent this class of drift.",
+    "Polish /kyc DocumentType select to use shadcn Select component (design consistency)."
+  ],
+  "critical_code_review_comments": [
+    "phase4_service.kyc_review writes 'approved' onto User.kyc_status which mismatched the model Literal — high-severity latent bug that broke ALL subsequent authenticated requests for approved users (fixed).",
+    "trust_score.is_kyc uses raw dict compare u.get('kyc_status') == 'approved' — brittle; should reuse a shared constant.",
+    "phase4_service._s pops 'is_deleted' but leaves fields like 'is_active' and 'reviewed_by' — inconsistent serialization.",
+    "phase4_routes.simulate_success accepts payment_id as query param (not body) — inconsistent with other POST endpoints.",
+    "phase4_service.PLAN_PAISE mapping via `purpose.split('_')[-1]` in routes/phase4_routes.py:153 is fragile — would break if plan slug ever contained an underscore in the middle.",
+    "chat_service.get_or_create_thread returns a 'user_a/user_b' style thread — no defensive check that peer_user_id != user.id (self-thread).",
+    "The subscribe → cancel endpoint sets auto_renew=False but leaves status='active' — no state transition to 'cancelled' meaning the subscription still shows active until expiry. Confirm this is intended behaviour (cancel = no-renew, keep active till period end)."
+  ],
+  "updated_files": [
+    "/app/backend/models/user.py (added 'approved' to KycStatus Literal to unbreak auth for KYC-approved users)",
+    "/app/backend/tests/test_phase4a.py (new)"
+  ],
+  "success_rate": {"backend": "100% (22/22)", "frontend": "100% smoke (login+onboarding+wallet topup+kyc/subs/notifs load+admin gate)"},
+  "test_credentials": "Buyer/seller phones are generated per-run (9877XXXX / 9812XXXX using last 4 digits of unix time). Admin phone 9999999999 (seeded, OTP dev mode).",
+  "seed_data_creation": "Fresh TEST_Buyer/TEST_Seller/TEST_Unverified users created via OTP dev flow. One TEST_Item_XXXX listing (new_product) by seller in first seeded category. One chat thread + one deal completed by both parties. Two reviews (one vendor-level, one listing-level verified purchase). One approved KYC record. One active-then-cancelled subscription. Wallet topup 50000 paise. Data uses TEST_ prefix for identification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run: cd /app && python -m pytest backend/tests/test_phase4a.py -v -o 'addopts=' --junitxml=/app/test_reports/pytest/phase4a.xml. Uses fresh phones each run so no OTP rate-limit collisions. Requires SEED_ADMIN_ON_STARTUP=true + at least one seeded category. Deal-completion requires BOTH parties to POST /deals/:id/complete once (first request records completion_pending_from; second flips status→completed).",
+  "rca of the issue": "Root cause: models/user.py had KycStatus Literal=['unverified','pending','verified','rejected'] but services/phase4_service.py kyc_review() writes 'approved' or 'rejected' to users.kyc_status. On next authenticated request, middleware calls User.from_mongo → pydantic.model_validate → literal_error → 500. This poisoned the user account permanently. Reproduction: (1) submit KYC, (2) admin approves via POST /admin/kyc/:kid/approve (writes 'approved'), (3) ANY subsequent request with the user's token returns 500. Mitigation applied: extended Literal to include 'approved'. Better long-term fix: unify the enum (choose 'approved' OR 'verified' and use it consistently in write, model, and trust_score)."
+}

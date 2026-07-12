@@ -7,7 +7,8 @@ import { PhoneScreen } from "@/components/app/PhoneScreen";
 import { Button } from "@/components/ui/button";
 import ListingCard from "@/components/app/ListingCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { vendorApi, followApi } from "@/lib/api";
+import { ReviewsSection, ReviewModal } from "@/components/app/Reviews";
+import { vendorApi, followApi, trustApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 export default function VendorProfile() {
@@ -20,6 +21,12 @@ export default function VendorProfile() {
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
+  const [trust, setTrust] = useState(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  useEffect(() => {
+    trustApi.score(vendorId).then(({ data }) => setTrust(data)).catch(() => {});
+  }, [vendorId]);
 
   useEffect(() => {
     let alive = true;
@@ -82,7 +89,8 @@ export default function VendorProfile() {
   const products = listings.filter((l) => l.type !== "service");
   const services = listings.filter((l) => l.type === "service");
   const reels = listings.filter((l) => l.reel?.url);
-  const isVerified = vendor.kyc_status === "verified";
+  const isVerified = vendor.kyc_status === "verified" || (vendor.kyc_status === "approved");
+  const tierColor = {newcomer:"bg-white/10 text-white/70", trusted:"bg-blue-500/20 text-blue-300", "top-rated":"bg-green-500/20 text-green-300", elite:"bg-purple-500/20 text-purple-300"}[trust?.tier] || "bg-white/10 text-white/70";
   const waLink = vendor.phone ? `https://wa.me/91${vendor.phone}?text=${encodeURIComponent(`Hi ${vendor.name}, saw your listings on Emergent`)}` : null;
 
   return (
@@ -108,6 +116,13 @@ export default function VendorProfile() {
         <div className="mt-1 text-xs text-white/60">
           {t("vendor_profile.followers", { count: followerCount })} · {t("vendor_profile.listings", { count: vendor.listings_count })}
         </div>
+        {trust && (
+          <div className="mt-2 inline-flex items-center gap-2" data-testid="trust-chip">
+            <span className={`text-[10px] px-3 py-1 rounded-full font-semibold uppercase tracking-wider ${tierColor}`}>
+              {trust.tier} · {trust.score}
+            </span>
+          </div>
+        )}
 
         <div className="mt-5 flex gap-2 justify-center">
           {user?.id !== vendor.id && (
@@ -151,7 +166,17 @@ export default function VendorProfile() {
           <TabsContent value="services" className="mt-4"><Grid items={services} /></TabsContent>
           <TabsContent value="reels" className="mt-4"><Grid items={reels} /></TabsContent>
         </Tabs>
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-white/60 uppercase tracking-wider font-semibold">Ratings & Reviews</div>
+            {user && user.id !== vendor.id && (
+              <button onClick={() => setReviewOpen(true)} data-testid="write-review-btn" className="text-xs text-pink-300 hover:text-pink-200">Write a review</button>
+            )}
+          </div>
+          <ReviewsSection targetType="vendor" targetId={vendor.id} />
+        </div>
       </div>
+      <ReviewModal open={reviewOpen} onOpenChange={setReviewOpen} targetType="vendor" targetId={vendor.id} />
     </PhoneScreen>
   );
 }

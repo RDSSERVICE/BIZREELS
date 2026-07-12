@@ -70,10 +70,20 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 - **Frontend routes added:** `/requirements`, `/requirements/new`, `/requirements/:id`, `/chat`, `/chat/:threadId`, `/deals`. Bottom nav updated with Chat tab + real-time unread badge (via Socket.IO). ListingDetail "Chat with Vendor" now creates/opens a thread. `read_at` renders WhatsApp-style ticks (Check → CheckCheck → blue CheckCheck).
 - **Watch rate limit** — confirmed as exactly 5 requests / hour / IP (allow first 5, block 6th).
 
+### ✅ Phase 4a — Reviews + Notifications + Wallet + Razorpay(DEV) + Subscriptions + KYC + Trust score (completed 2026-02)
+- New Mongo collections: `reviews`, `notifications`, `wallets`, `wallet_transactions`, `payments`, `subscriptions`, `kyc_documents`. All existing collections untouched.
+- **Reviews** — `POST/GET/PATCH/DELETE /api/v1/reviews/`, `POST /:rid/helpful`, `POST /:rid/reply`, `GET /vendor/:vendor_id/summary`. **Deal-gated when `deal_id` supplied** → 403 unless deal status=completed AND reviewer is buyer or seller. Listing/service reviews REQUIRE `deal_id`. Vendor-level reviews allowed without deal_id (is_verified_purchase=false). Vendor rating denormalized on `users.rating_avg` + `rating_count`.
+- **Notifications** — `GET /api/v1/notifications/me`, `POST /:nid/read`, `POST /read-all`, `GET /me/unread-count`. Notification types: review, payment, subscription, kyc, deal, system. FCM push adapter in `notification_service` (DEV MODE logs only).
+- **Wallet + Credits** — `GET /api/v1/wallet/me`, `POST /me/topup {amount}`, `GET /me/transactions`. Two-balance model: `balance_inr` (real money) + `credits` (non-withdrawable rewards). Credit rules: verified_purchase_review=10, kyc_completion=50, first_listing=20, referral=100.
+- **Razorpay (DEV MODE)** — `razorpay_service.create_order()` returns mock `order_id/receipt` when `RAZORPAY_DEV_MODE=true`. `POST /api/v1/payments/dev/simulate-success?payment_id=X` marks payment succeeded and triggers post-hooks (wallet credit / subscription activation).
+- **Subscriptions** — `POST /api/v1/subscriptions/subscribe {plan}`, `GET /me`, `POST /:sid/cancel`. Plans: `verified_monthly` (₹99/mo), `verified_yearly` (₹999/yr). Verified badge shows on user only when BOTH subscription active AND KYC approved.
+- **KYC** — `POST /api/v1/kyc/me/submit {doc_type, doc_number, doc_url, selfie_url?}`, `GET /me`. Admin queue: `GET /api/v1/admin/kyc`, `POST /admin/kyc/:kid/approve|reject`. On approve → `users.kyc_status=approved` + credit reward.
+- **Trust score** — `GET /api/v1/users/:uid/trust-score` returns weighted 0-100 with breakdown (kyc/subs/deals_completed/rating/reviews/verified_purchase). Denormalized to `users.trust_score` on refresh.
+- **Frontend routes added:** `/wallet`, `/subscriptions`, `/kyc`, `/notifications`, `/admin/kyc`. Reviews section embedded in `/vendor/:id` and `/listing/:slug`. Notifications bell in top-nav with unread count polled every 30s. Razorpay CTA opens dev-mode simulate button in DEV builds.
+
 ## Prioritized backlog
 
-### P0 — Phase 4: Reviews + Notifications + Wallet + Razorpay + Verified badge + Trust score
-### P2 — Phase 4: Reviews + Notifications + Wallet + Razorpay + Verified badge + Trust score
+### P0 — Phase 4b: Listing Boost (credits + INR) + Watch → price-drop notifications + FCM push scaffold + Admin panel expansion + Review helpful toggle
 ### P2 — Phase 5: Admin panel + Report/Block queue + Vendor analytics
 ### P2 — Phase 6: Seed data + i18n Hindi/English + PWA + demo polish
 ### P3 — Phase 7: Expo mobile port (delegated to a different agent, `/app/mobile/`)

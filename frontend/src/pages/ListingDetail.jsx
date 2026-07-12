@@ -8,6 +8,7 @@ import { PhoneScreen } from "@/components/app/PhoneScreen";
 import { Button } from "@/components/ui/button";
 import ListingCard from "@/components/app/ListingCard";
 import WatchListingModal from "@/components/app/WatchListingModal";
+import { ReviewsSection } from "@/components/app/Reviews";
 import { listingApi, seoApi, interactionApi, followApi, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -303,6 +304,8 @@ export default function ListingDetail() {
             </div>
           </section>
         )}
+
+        {listing.vendor && <ReviewsSection targetType="vendor" targetId={listing.vendor.id} />}
       </div>
 
       <WatchListingModal open={watchOpen} onOpenChange={setWatchOpen} listingId={listing.id} />

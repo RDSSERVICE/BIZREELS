@@ -6,7 +6,7 @@ from pydantic import Field
 from .base import BaseDocument
 
 Role = Literal["customer", "vendor", "creator", "admin"]
-KycStatus = Literal["unverified", "pending", "verified", "rejected"]
+KycStatus = Literal["unverified", "pending", "approved", "verified", "rejected"]
 
 
 class User(BaseDocument):

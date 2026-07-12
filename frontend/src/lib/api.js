@@ -232,3 +232,46 @@ export const whatsappApi = {
   linkFor: (vendorId, listingId) =>
     api.get(`/v1/utils/whatsapp-link`, { params: { vendor_id: vendorId, listing_id: listingId } }),
 };
+
+// ---- Phase 4a ----
+export const walletApi = {
+  me: () => api.get("/v1/wallet/me"),
+  transactions: (params = {}) => api.get("/v1/wallet/me/transactions", { params }),
+  topup: (amount_paise) => api.post("/v1/wallet/me/topup", { amount_paise }),
+};
+export const paymentApi = {
+  order: (body) => api.post("/v1/payments/order", body),
+  verify: (body) => api.post("/v1/payments/verify", body),
+  simulate: (payment_id) => api.post(`/v1/payments/dev/simulate-success?payment_id=${payment_id}`),
+  mine: () => api.get("/v1/payments/me"),
+};
+export const subApi = {
+  subscribe: (plan) => api.post("/v1/subscriptions/subscribe", { plan }),
+  mine: () => api.get("/v1/subscriptions/me"),
+  cancel: (id) => api.post(`/v1/subscriptions/${id}/cancel`),
+};
+export const kycApi = {
+  submit: (body) => api.post("/v1/kyc/me/submit", body),
+  me: () => api.get("/v1/kyc/me"),
+  queue: () => api.get("/v1/admin/kyc"),
+  approve: (id) => api.post(`/v1/admin/kyc/${id}/approve`),
+  reject: (id, reason) => api.post(`/v1/admin/kyc/${id}/reject`, { reason }),
+};
+export const reviewApi = {
+  create: (body) => api.post("/v1/reviews/", body),
+  list: (params) => api.get("/v1/reviews/", { params }),
+  update: (id, body) => api.patch(`/v1/reviews/${id}`, body),
+  remove: (id) => api.delete(`/v1/reviews/${id}`),
+  reply: (id, text) => api.post(`/v1/reviews/${id}/reply`, { text }),
+  vendorSummary: (id) => api.get(`/v1/reviews/vendor/${id}/summary`),
+};
+export const notifApi = {
+  list: (params = {}) => api.get("/v1/notifications/me", { params }),
+  unreadCount: () => api.get("/v1/notifications/me/unread-count"),
+  read: (id) => api.post(`/v1/notifications/${id}/read`),
+  readAll: () => api.post("/v1/notifications/me/read-all"),
+  dismiss: (id) => api.delete(`/v1/notifications/${id}`),
+};
+export const trustApi = {
+  score: (userId) => api.get(`/v1/users/${userId}/trust-score`),
+};

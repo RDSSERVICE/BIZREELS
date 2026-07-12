@@ -31,6 +31,7 @@ from routes.seo_routes import router as seo_router  # noqa: E402
 from routes.vendor_routes import router as vendor_router  # noqa: E402
 from routes.requirement_routes import router as requirement_router  # noqa: E402
 from routes.chat_routes import router as chat_router  # noqa: E402
+from routes.phase4_routes import router as phase4_router  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ api_router.include_router(seo_router)
 api_router.include_router(vendor_router)
 api_router.include_router(requirement_router)
 api_router.include_router(chat_router)
+api_router.include_router(phase4_router)
 app.include_router(api_router)
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
@@ -96,9 +98,48 @@ async def startup():
     await seed_admin_user()
     await seed_categories()
     await seed_reels()
-    # Background: expire deals every 5 min
+    # Wallet backfill
+    from services import wallet_service as _ws
+    await _ws.backfill_all()
+    # Background: expire deals every 5 min + 48h deal follow-up
     asyncio.create_task(expire_task_loop(interval_seconds=300))
-    logger.info("Emergent backend started (Phase 0-3)")
+    asyncio.create_task(_deal_followup_loop())
+    logger.info("Emergent backend started (Phase 0-4a)")
+
+
+async def _deal_followup_loop():
+    """Every 15 min: for deals accepted >=48h ago and not yet followed up, post system nudge."""
+    import asyncio as _a
+    from datetime import datetime, timezone, timedelta
+    from database import get_db
+    from services import chat_service, notification_service
+    while True:
+        try:
+            db = get_db()
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
+            cursor = db.deals.find({
+                "status": "accepted",
+                "updated_at": {"$lt": cutoff},
+                "followup_sent": {"$ne": True},
+            })
+            async for d in cursor:
+                try:
+                    await chat_service.send_message(
+                        thread_id=str(d["thread_id"]), sender_id=str(d["buyer_id"]),
+                        body={"type": "system", "text": "Did your deal complete? Tap Complete to earn trust points."},
+                    )
+                    for uid in (d.get("buyer_id"), d.get("seller_id")):
+                        await notification_service.create(
+                            user_id=str(uid), type_="deal_update",
+                            title="Confirm your deal", body="48h passed since acceptance. Confirm completion to earn trust.",
+                            action_url=f"/chat/{d['thread_id']}",
+                        )
+                    await db.deals.update_one({"_id": d["_id"]}, {"$set": {"followup_sent": True}})
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("followup err: %s", e)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("followup loop err: %s", e)
+        await _a.sleep(900)
 
 
 @app.on_event("shutdown")
