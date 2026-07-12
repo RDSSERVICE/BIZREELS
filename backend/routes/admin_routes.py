@@ -105,19 +105,30 @@ async def analytics_overview(user=Depends(require_auth)):
 # ============= Phase 5 wrap-up: Nudge scan + dev backdate =============
 @router.post("/nudge/scan")
 async def admin_nudge_scan(user=Depends(require_auth)):
-    """Admin-triggered manual run of the Boost & Bump nudge scan. Same idempotency
-    as the daily loop (respects cooldown, current-boost, takedown, min-age).
-    """
+    """Admin-triggered manual run of the Boost & Bump nudge scan."""
     _require_admin(user)
     from services import nudge_service
     nudged = await nudge_service.nudge_once()
     return {
-        "ok": True,
-        "nudged_count": int(nudged),
+        "ok": True, "nudged_count": int(nudged),
         "min_age_days": nudge_service.NUDGE_MIN_AGE_DAYS,
         "max_views_30d_threshold": nudge_service.NUDGE_MAX_VIEWS_30D,
         "cooldown_days": nudge_service.NUDGE_COOLDOWN_DAYS,
     }
+
+
+@router.post("/seed/reset-demo")
+async def admin_seed_reset_demo(wipe: bool = True, user=Depends(require_auth)):
+    """Wipe DEMO_* docs and re-seed a full India-based marketplace state.
+    Admin-only, dev-mode gated (any *_DEV_MODE flag must be truthy).
+    """
+    _require_admin(user)
+    import os as _os
+    if not any(_os.environ.get(k, "").lower() in ("1", "true", "yes")
+               for k in ("OTP_DEV_MODE", "CLOUDINARY_DEV_MODE", "RAZORPAY_DEV_MODE", "FCM_DEV_MODE")):
+        raise HTTPException(403, "Dev-only endpoint. Enable a *_DEV_MODE flag.")
+    from services import demo_seed_service
+    return await demo_seed_service.reset_and_seed(wipe=wipe)
 
 
 @router.post("/listings/{listing_id}/dev-backdate")

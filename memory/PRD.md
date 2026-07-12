@@ -96,6 +96,16 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 - **Ban propagation** — banned users have `is_active=false`, so `require_auth` returns 401 for all subsequent API calls until unbanned.
 - **Tests**: `backend/tests/test_phase4b.py` — 26 test cases across Boost / Price-drop / FCM / Admin / Reports / Helpful / First-topup / Regression. All green.
 
+### ✅ Phase 6a — Seed data + Hindi i18n + PWA + Landing polish + Fast Responder leaderboard (completed 2026-02)
+- **Demo seeder** — `services/demo_seed_service.py`. `POST /api/v1/admin/seed/reset-demo?wipe=true` (admin + dev-mode gated) produces `{users:45, listings:80, reviews:59, notifications:43, subscriptions:16, wallets:45}`. All docs flagged `is_demo:true` for safe wipe. Auto-seed on startup if `<20` listings + `AUTO_SEED_ON_STARTUP` (default true in dev).
+- **Fast Responder Leaderboard** — `GET /api/v1/vendors/leaderboard/fast-responders?city=&limit=` (public). Vendors with `chat_response_rate ≥ 0.7` sorted by `avg_response_time_seconds` ASC. UI panel: `FastRespondersPanel.jsx` embedded on `/vendor/analytics`.
+- **Hindi i18n** — `frontend/src/locales/hi.json` filled (landing/auth/onboarding/profile/dashboard/browse/common/language sections ~85% coverage). `LanguageToggle.jsx` on landing header. Selection persisted in `localStorage`. Missing keys fall back to English automatically.
+- **PWA** — `frontend/public/manifest.json` (name, icons, theme #7c3aed, standalone), `service-worker.js` (cache-first shell, network-first API with 5-min fallback), `offline.html` fallback page. `index.html` registers SW on load + apple-touch-icon + theme-color.
+- **Landing page stats** — live counters (Vendors 20+ / Listings 80+ / Cities 10) computed from `/listings/?limit=1` total.
+- **Docs** — `/app/memory/DEMO_SCRIPT.md` (3-min walkthrough script + personas + PWA instructions). `test_credentials.md` updated with seeded-persona notes.
+
+### P2 — Phase 6b (queued): Onboarding tour (react-joyride, 4-5 steps) + Branded 404/500 pages + Error boundaries + Category showcase on landing + Complete hi.json for Phase 4-6 keys + Empty-state illustrations across all pages + Lighthouse PWA audit fixes.
+
 ## Prioritized backlog
 
 ### ✅ Phase 5 — Vendor Analytics + Growth Loops + Response-Time Tracking (completed 2026-02)

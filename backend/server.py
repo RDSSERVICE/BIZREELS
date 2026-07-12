@@ -118,7 +118,13 @@ async def startup():
     asyncio.create_task(_bs.expire_boosts_loop(interval_seconds=900))
     from services import nudge_service as _ns
     asyncio.create_task(_ns.nudge_loop(interval_seconds=24 * 3600))
-    logger.info("Emergent backend started (Phase 0-5)")
+    # Phase 6: auto-seed demo data if collections are empty
+    try:
+        from services import demo_seed_service
+        asyncio.create_task(demo_seed_service.maybe_auto_seed_on_startup())
+    except Exception as e:  # noqa: BLE001
+        logger.warning("auto-seed skipped: %s", e)
+    logger.info("Emergent backend started (Phase 0-6)")
 
 
 async def _deal_followup_loop():

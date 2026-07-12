@@ -75,3 +75,35 @@ async def get_followers_count(user_id: str):
     if not ObjectId.is_valid(user_id):
         raise HTTPException(400, "Invalid user id")
     return {"count": await follow_service.followers_count(user_id)}
+
+
+@router.get("/leaderboard/fast-responders")
+async def leaderboard_fast_responders(city: str | None = None, limit: int = 10):
+    """Public leaderboard — vendors with fastest response times who reply >70% within 24h."""
+    limit = max(1, min(50, limit))
+    db = get_db()
+    q: dict = {
+        "roles": "vendor", "is_deleted": {"$ne": True}, "is_banned": {"$ne": True},
+        "chat_response_rate": {"$gte": 0.7},
+        "avg_response_time_seconds": {"$gt": 0, "$ne": None},
+    }
+    if city:
+        q["city"] = {"$regex": f"^{city}$", "$options": "i"}
+    docs = await db.users.find(q).sort([
+        ("avg_response_time_seconds", 1), ("chat_response_rate", -1),
+    ]).limit(limit).to_list(limit)
+    items = []
+    for u in docs:
+        ts = u.get("trust_score") or 0
+        tier = "newcomer" if ts < 30 else "trusted" if ts < 60 else "top-rated" if ts < 85 else "elite"
+        items.append({
+            "id": str(u["_id"]),
+            "name": u.get("name"),
+            "profile_pic": u.get("profile_pic"),
+            "city": u.get("city"),
+            "avg_response_time_seconds": u.get("avg_response_time_seconds"),
+            "chat_response_rate": u.get("chat_response_rate", 0.0),
+            "trust_score": ts,
+            "trust_score_tier": tier,
+        })
+    return {"city": city, "items": items}

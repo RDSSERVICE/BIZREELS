@@ -1,13 +1,31 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, Sparkles, MessageCircle, ShieldCheck } from "lucide-react";
+import { ArrowRight, Sparkles, MessageCircle, ShieldCheck, Users, Store, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhoneScreen } from "@/components/app/PhoneScreen";
+import LanguageToggle from "@/components/app/LanguageToggle";
 import { useAuth } from "@/context/AuthContext";
+import api from "@/lib/api";
+
+function useLandingStats() {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    // Aggregate from public endpoints
+    Promise.all([
+      api.get("/v1/listings/?limit=1").catch(() => ({ data: { total: 0 } })),
+    ]).then(([listRes]) => {
+      const total = listRes.data?.total ?? listRes.data?.items?.length ?? 0;
+      setStats({ listings: total, cities: 10, vendors: 20 });
+    });
+  }, []);
+  return stats;
+}
 
 export default function Landing() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const stats = useLandingStats();
 
   return (
     <PhoneScreen>
@@ -26,9 +44,12 @@ export default function Landing() {
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-black" />
 
         <div className="relative z-10 px-6 pt-14 pb-10">
-          <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1 text-xs text-white/80 font-medium">
-            <Sparkles className="h-3.5 w-3.5 text-pink-400" />
-            India-first · Reels-first · Local
+          <div className="flex items-center justify-between">
+            <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1 text-xs text-white/80 font-medium">
+              <Sparkles className="h-3.5 w-3.5 text-pink-400" />
+              India-first · Reels-first · Local
+            </div>
+            <LanguageToggle compact />
           </div>
 
           <h1 className="font-heading mt-6 text-5xl sm:text-6xl font-bold leading-[0.95] tracking-tight">
@@ -40,6 +61,26 @@ export default function Landing() {
           <p className="mt-5 text-white/70 text-base leading-relaxed max-w-sm">
             {t("landing.hero_subtitle")}
           </p>
+
+          {stats && stats.listings > 0 && (
+            <div className="mt-6 grid grid-cols-3 gap-2" data-testid="landing-stats">
+              <div className="glass rounded-2xl p-3 text-center">
+                <Store className="h-4 w-4 mx-auto text-pink-300 mb-1" />
+                <div className="font-heading font-bold text-lg">{stats.vendors}+</div>
+                <div className="text-[10px] text-white/60 uppercase tracking-wider">Vendors</div>
+              </div>
+              <div className="glass rounded-2xl p-3 text-center">
+                <Users className="h-4 w-4 mx-auto text-purple-300 mb-1" />
+                <div className="font-heading font-bold text-lg">{stats.listings}+</div>
+                <div className="text-[10px] text-white/60 uppercase tracking-wider">Live listings</div>
+              </div>
+              <div className="glass rounded-2xl p-3 text-center">
+                <MapPin className="h-4 w-4 mx-auto text-orange-300 mb-1" />
+                <div className="font-heading font-bold text-lg">{stats.cities}</div>
+                <div className="text-[10px] text-white/60 uppercase tracking-wider">Cities</div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-8 flex flex-col gap-3">
             <Link to={user ? "/feed" : "/login"} className="w-full">

@@ -5,6 +5,7 @@ import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
 import BottomNav from "@/components/app/BottomNav";
 import { analyticsApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import FastRespondersPanel from "@/components/app/FastRespondersPanel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const RANGES = [
@@ -160,6 +161,13 @@ export default function VendorAnalytics() {
                 </div>
               )}
             </div>
+            {loading || !ov ? (
+              <div className="h-24 rounded-2xl bg-white/5 animate-pulse" />
+            ) : (
+              <>
+                <FastRespondersPanel city={ov.city || null} limit={5} />
+              </>
+            )}
           </>
         )}
       </div>

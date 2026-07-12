@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Emergent — Offline</title>
+    <style>
+      body { background:#0a0a0a; color:#fff; font-family: system-ui, sans-serif; margin:0; height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; padding: 24px; }
+      .card { max-width: 420px; }
+      h1 { font-size: 28px; margin: 0 0 8px; }
+      p { color: rgba(255,255,255,0.6); margin: 0 0 24px; font-size: 14px; }
+      button { background: linear-gradient(90deg,#7c3aed,#ec4899,#f97316); border:0; padding:12px 24px; color:#fff; border-radius: 999px; font-weight:600; cursor:pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>You're offline</h1>
+      <p>Some features need a connection. Check your network and try again.</p>
+      <button onclick="location.reload()">Retry</button>
+    </div>
+  </body>
+</html>
