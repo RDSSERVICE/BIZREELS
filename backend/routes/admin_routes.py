@@ -100,3 +100,52 @@ async def restore_listing(listing_id: str, user=Depends(require_auth)):
 async def analytics_overview(user=Depends(require_auth)):
     _require_admin(user)
     return await admin_service.analytics_overview()
+
+
+# ============= Phase 5 wrap-up: Nudge scan + dev backdate =============
+@router.post("/nudge/scan")
+async def admin_nudge_scan(user=Depends(require_auth)):
+    """Admin-triggered manual run of the Boost & Bump nudge scan. Same idempotency
+    as the daily loop (respects cooldown, current-boost, takedown, min-age).
+    """
+    _require_admin(user)
+    from services import nudge_service
+    nudged = await nudge_service.nudge_once()
+    return {
+        "ok": True,
+        "nudged_count": int(nudged),
+        "min_age_days": nudge_service.NUDGE_MIN_AGE_DAYS,
+        "max_views_30d_threshold": nudge_service.NUDGE_MAX_VIEWS_30D,
+        "cooldown_days": nudge_service.NUDGE_COOLDOWN_DAYS,
+    }
+
+
+@router.post("/listings/{listing_id}/dev-backdate")
+async def admin_dev_backdate_listing(listing_id: str, days: int = 35, user=Depends(require_auth)):
+    """Dev-only helper — backdates a listing's `created_at` for demoing time-gated
+    features (nudge, tenure, boost-ROI baselines). Enabled only when any *_DEV_MODE flag
+    is true. Admin-only.
+    """
+    _require_admin(user)
+    import os as _os
+    dev = any(_os.environ.get(k, "").lower() in ("1", "true", "yes")
+              for k in ("OTP_DEV_MODE", "CLOUDINARY_DEV_MODE", "RAZORPAY_DEV_MODE", "FCM_DEV_MODE"))
+    if not dev:
+        raise HTTPException(403, "Dev-only endpoint. Enable a *_DEV_MODE flag.")
+    from datetime import datetime, timezone, timedelta
+    from bson import ObjectId
+    from database import get_db
+    if not ObjectId.is_valid(listing_id):
+        raise HTTPException(400, "Invalid listing id")
+    days = max(1, min(365, int(days)))
+    new_created = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    db = get_db()
+    res = await db.listings.update_one(
+        {"_id": ObjectId(listing_id), "is_deleted": {"$ne": True}},
+        {"$set": {"created_at": new_created,
+                  "last_boost_nudge_at": None,
+                  "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if not res.matched_count:
+        raise HTTPException(404, "Listing not found")
+    return {"ok": True, "listing_id": listing_id, "created_at": new_created, "backdated_days": days}
