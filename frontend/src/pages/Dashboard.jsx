@@ -1,14 +1,19 @@
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LogOut, User as UserIcon, Sparkles } from "lucide-react";
+import { LogOut, User as UserIcon, Sparkles, Search, Store, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
 import { useAuth } from "@/context/AuthContext";
+import BecomeVendorModal from "@/components/app/BecomeVendorModal";
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showBV, setShowBV] = useState(false);
+
+  const isVendor = user?.roles?.includes("vendor");
 
   const handleLogout = async () => {
     await logout();
@@ -45,28 +50,74 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Stub card */}
-        <div className="glass rounded-3xl p-6 relative overflow-hidden">
-          <div className="glow-brand absolute inset-0 opacity-40" />
-          <div className="relative">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-white/80 font-medium">
-              <Sparkles className="h-3.5 w-3.5 text-pink-300" />
-              Phase 0 · Auth foundation
+        {/* Primary CTAs */}
+        <div className="grid gap-3">
+          <Link to="/browse" data-testid="dashboard-browse-cta">
+            <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+              <div className="glow-brand absolute inset-0 opacity-40" />
+              <div className="relative flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-gradient-brand flex items-center justify-center">
+                  <Search className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-heading font-bold text-lg">{t("dashboard.browse_cta")}</div>
+                  <div className="text-xs text-white/60 mt-0.5">Vendors, products & services near you</div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white transition-colors" />
+              </div>
             </div>
-            <h3 className="font-heading text-2xl font-bold mt-4 leading-tight">
-              {t("dashboard.stub_title")}
-            </h3>
-            <p className="text-sm text-white/70 mt-2 leading-relaxed">
-              {t("dashboard.stub_body")}
-            </p>
-          </div>
+          </Link>
+
+          {isVendor ? (
+            <Link to="/vendor/dashboard" data-testid="dashboard-vendor-cta">
+              <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+                <div className="relative flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                    <Store className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-heading font-bold text-lg">{t("dashboard.vendor_cta")}</div>
+                    <div className="text-xs text-white/60 mt-0.5">Manage your listings, add new ones</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowBV(true)}
+              data-testid="dashboard-become-vendor-cta"
+              className="text-left"
+            >
+              <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+                <div className="relative flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                    <Store className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-heading font-bold text-lg">{t("dashboard.become_vendor_cta")}</div>
+                    <div className="text-xs text-white/60 mt-0.5">Start selling your products or services</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+            </button>
+          )}
         </div>
 
-        {/* Placeholder feed grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="aspect-[3/4] rounded-2xl bg-white/5 border border-white/5 animate-pulse" data-testid={`feed-skeleton-${i}`} />
-          ))}
+        {/* Phase-1 hint */}
+        <div className="glass rounded-3xl p-6 relative overflow-hidden">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-white/80 font-medium">
+            <Sparkles className="h-3.5 w-3.5 text-pink-300" />
+            Phase 1 · Listings & Media
+          </div>
+          <h3 className="font-heading text-2xl font-bold mt-4 leading-tight">
+            Browse local, sell local
+          </h3>
+          <p className="text-sm text-white/70 mt-2 leading-relaxed">
+            Reels-first feed, live chat, negotiation and requirements are coming in upcoming phases.
+          </p>
         </div>
 
         <Button
@@ -78,6 +129,12 @@ export default function Dashboard() {
           <LogOut className="h-4 w-4 mr-1" /> {t("profile.logout")}
         </Button>
       </div>
+
+      <BecomeVendorModal
+        open={showBV}
+        onOpenChange={setShowBV}
+        onDone={() => navigate("/vendor/dashboard")}
+      />
     </PhoneScreen>
   );
 }

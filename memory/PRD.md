@@ -29,22 +29,26 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 - MSG91 SMS OTP integration with clean DEV_MODE fallback (`OTP_DEV_MODE=true` returns `dev_otp` in response, logs to console, does NOT throw).
 - 6-digit OTP, sha256 hashed, 5-min TTL (Mongo TTL index on `otp_requests.expires_at`).
 - Rate limit: 3 OTP requests / phone / 10 minutes (in-memory sliding window).
-- JWT access token (15 min) + opaque refresh token (30 days, sha256 hashed, TTL index).
-- Multi-role users, seed admin `9999999999` on startup.
+- JWT access token (15 min) + opaque refresh token (30 days, sha256 hashed, TTL index). Rotation + reuse detection + family burn on `/refresh`.
+- Multi-role users, seed admin `9999999999` on startup (gated by `SEED_ADMIN_ON_STARTUP`).
 - REST endpoints: `/api/v1/auth/otp/send|verify|refresh|logout`, `/api/v1/users/me` (GET, PATCH), `/api/v1/users/me/switch-role`, `/api/v1/users/me/add-role`.
 - Frontend routes: `/`, `/login`, `/verify-otp`, `/onboarding`, `/dashboard`, `/profile`.
 - i18n skeleton: `en.json` populated, `hi.json` scaffold ready.
-- `/app/memory/test_credentials.md` and `/app/memory/auth_testing.md` written.
-- Design: dark theme, purple→pink→orange brand gradient used sparingly on CTAs and accents; Outfit (heading) + Manrope (body) fonts; glassmorphism + ambient glows.
+- Security audit completed and all findings addressed (dev_otp gating, `.env` gitignored, refresh rotation + reuse detection, constant-time OTP compare).
+
+### ✅ Phase 1 — Categories + Listings + Cloudinary media (completed 2026-02)
+- New Mongo collections: `categories` (hierarchical parent/child), `listings` (multi-type: new_product / old_product / service). All previous collections untouched.
+- Category tree seeded on first startup: 10 top-level with 4–6 sub-categories each. Endpoints under `/api/v1/categories/`.
+- Listing endpoints under `/api/v1/listings/`: create (with auto-vendor-role via `?become_vendor=true`), paginated list with filters + text search + cursor, detail by slug, PATCH, status transitions (active/paused/sold/expired), soft delete, `/vendor/me`.
+- Type-specific validation: `new_product` requires `stock`; `old_product` requires `condition`; `service` requires `service_charges_type` and forbids stock/condition/warranty.
+- 10-image + 1-reel (≤30s soft client-side + duration recorded) media caps. Slug generation + collision suffixing. GeoJSON Point stored for future geo queries; 2dsphere + text indexes created.
+- Cloudinary integration under `/api/v1/media/{sign,upload}` with clean DEV_MODE fallback (`CLOUDINARY_DEV_MODE=true`): files written to `/app/backend/uploads/` and served via `/api/uploads/<file>` static mount. Response shape mirrors real Cloudinary.
+- New frontend routes: `/browse`, `/browse/:categorySlug`, `/listing/:slug`, `/vendor/dashboard`, `/vendor/listing/new`, `/vendor/listing/:id/edit`. Dashboard updated with "Become a Vendor" confirmation modal.
+- Multi-step wizard (6 steps: type → category → details → media → location → review) with progress bar, localStorage draft auto-save (debounced), geolocation button.
 
 ## Prioritized backlog
 
-### P0 — Phase 1: Categories + Listings + Cloudinary media
-- Category taxonomy (vendor / service / creator).
-- Listing CRUD (title, media, price/negotiable, geolocation, tags, SEO fields).
-- Cloudinary image + video upload (or object storage playbook).
-
-### P1 — Phase 2: Feed + Search + Geolocation + SEO tags
+### P0 — Phase 2: Feed + Search + Geolocation + SEO tags
 - Reels/photo feed with mixed content types.
 - Nearby search by geo + text search on tags/titles.
 

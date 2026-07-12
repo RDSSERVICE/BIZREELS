@@ -12,6 +12,10 @@ import VerifyOtp from "@/pages/VerifyOtp";
 import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
 import Profile from "@/pages/Profile";
+import Browse from "@/pages/Browse";
+import ListingDetail from "@/pages/ListingDetail";
+import VendorDashboard from "@/pages/VendorDashboard";
+import ListingForm from "@/pages/ListingForm";
 
 function OnboardingGate({ children }) {
   const { user, loading } = useAuth();
@@ -26,33 +30,25 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            {/* Public */}
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/verify-otp" element={<VerifyOtp />} />
+            <Route path="/browse" element={<Browse />} />
+            <Route path="/browse/:categorySlug" element={<Browse />} />
+            <Route path="/listing/:slug" element={<ListingDetail />} />
+
+            {/* Auth-gated */}
             <Route
               path="/onboarding"
-              element={
-                <OnboardingGate>
-                  <Onboarding />
-                </OnboardingGate>
-              }
+              element={<OnboardingGate><Onboarding /></OnboardingGate>}
             />
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAuth>
-                  <Dashboard />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <RequireAuth>
-                  <Profile />
-                </RequireAuth>
-              }
-            />
+            <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+            <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+            <Route path="/vendor/dashboard" element={<RequireAuth><VendorDashboard /></RequireAuth>} />
+            <Route path="/vendor/listing/new" element={<RequireAuth><ListingForm /></RequireAuth>} />
+            <Route path="/vendor/listing/:id/edit" element={<RequireAuth><ListingForm /></RequireAuth>} />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Toaster

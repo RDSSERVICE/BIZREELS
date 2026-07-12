@@ -1,9 +1,10 @@
-"""Emergent — Local Social Commerce Platform (Phase 0)."""
+"""Emergent — Local Social Commerce Platform (Phase 0 + Phase 1)."""
 import os
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, APIRouter
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 
 ROOT_DIR = Path(__file__).parent
@@ -11,8 +12,12 @@ load_dotenv(ROOT_DIR / ".env")
 
 from database import create_indexes, close_client  # noqa: E402
 from services.auth_service import seed_admin_user  # noqa: E402
+from services.category_service import seed_categories  # noqa: E402
 from routes.auth_routes import router as auth_router  # noqa: E402
 from routes.user_routes import router as user_router  # noqa: E402
+from routes.category_routes import router as category_router  # noqa: E402
+from routes.listing_routes import router as listing_router  # noqa: E402
+from routes.media_routes import router as media_router  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Emergent — Local Social Commerce API",
-    description="Phase 0: Auth foundation (MSG91 OTP + JWT + multi-role users)",
-    version="0.1.0",
+    description="Auth + Categories + Listings + Media (Phase 0 & 1)",
+    version="0.2.0",
     openapi_url="/api/openapi.json",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -37,13 +42,22 @@ async def health():
     return {
         "status": "ok",
         "service": "emergent-backend",
-        "otp_dev_mode": os.environ.get("OTP_DEV_MODE", "true").lower() in ("1", "true", "yes"),
+        "otp_dev_mode": os.environ.get("OTP_DEV_MODE", "false").lower() in ("1", "true", "yes"),
+        "cloudinary_dev_mode": os.environ.get("CLOUDINARY_DEV_MODE", "false").lower() in ("1", "true", "yes"),
     }
 
 
 api_router.include_router(auth_router)
 api_router.include_router(user_router)
+api_router.include_router(category_router)
+api_router.include_router(listing_router)
+api_router.include_router(media_router)
 app.include_router(api_router)
+
+# Serve locally-uploaded files (dev-mode media fallback) at /api/uploads/*
+UPLOADS_DIR = ROOT_DIR / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
@@ -58,7 +72,8 @@ app.add_middleware(
 async def startup():
     await create_indexes()
     await seed_admin_user()
-    logger.info("Emergent backend started (Phase 0)")
+    await seed_categories()
+    logger.info("Emergent backend started (Phase 0 + 1)")
 
 
 @app.on_event("shutdown")

@@ -98,3 +98,49 @@ export const userApi = {
   switchRole: (role) => api.post("/v1/users/me/switch-role", { role }),
   addRole: (role) => api.post("/v1/users/me/add-role", { role }),
 };
+
+// ---- Categories ----
+export const categoryApi = {
+  list: (params = {}) => api.get("/v1/categories/", { params }),
+  bySlug: (slug) => api.get(`/v1/categories/${slug}`),
+};
+
+// ---- Listings ----
+export const listingApi = {
+  list: (params = {}) => api.get("/v1/listings/", { params }),
+  bySlug: (slug) => api.get(`/v1/listings/${slug}`),
+  create: (body, becomeVendor = false) =>
+    api.post(`/v1/listings/${becomeVendor ? "?become_vendor=true" : ""}`, body),
+  update: (id, body) => api.patch(`/v1/listings/${id}`, body),
+  setStatus: (id, status) => api.post(`/v1/listings/${id}/status`, { status }),
+  remove: (id) => api.delete(`/v1/listings/${id}`),
+  mine: () => api.get("/v1/listings/vendor/me"),
+};
+
+// ---- Media ----
+export const mediaApi = {
+  sign: (folder, resource_type) => api.post("/v1/media/sign", { folder, resource_type }),
+  upload: (file, folder = "listings/misc", resource_type = "image", onProgress) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("folder", folder);
+    form.append("resource_type", resource_type);
+    return api.post("/v1/media/upload", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (evt) => {
+        if (onProgress && evt.total) onProgress(Math.round((evt.loaded / evt.total) * 100));
+      },
+    });
+  },
+};
+
+/**
+ * Resolve a media URL that may be:
+ *  - an absolute URL (Cloudinary etc.) — returned as-is
+ *  - a relative dev-mode path like "/api/uploads/xxx.jpg" — prefixed with BACKEND_URL
+ */
+export function resolveMediaUrl(url) {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${BACKEND_URL}${url}`;
+}
