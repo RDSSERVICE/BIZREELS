@@ -77,7 +77,9 @@ Then sort by score DESC, `_id` DESC as tiebreaker. Cursor pagination uses `_id`.
 ## Phase 3 test paths
 
 ### Chat (Socket.IO)
-- Verify `/socket.io/?EIO=4&transport=polling` returns 200. Handshake requires `auth: { token: <access_jwt> }` (or `?token=` query fallback). Invalid → disconnect.
+- Public URL: `${REACT_APP_BACKEND_URL}/api/socket.io/` (mounted UNDER `/api` so K8s ingress proxies to backend).
+- Verify `GET /api/socket.io/?EIO=4&transport=polling` returns a `0{"sid":...}` handshake (JSON), not the SPA HTML.
+- Handshake requires `auth: { token: <access_jwt> }` (or `?token=` query fallback). Invalid → disconnect.
 - Server-emitted events: `message:new`, `message:read`, `thread:typing`, `deal:updated`, `connected`.
 - Testing agent tip: use two `socketio.AsyncClient` instances (or two browser tabs with different users), have user A join thread, user B send REST `POST /chat/threads/:id/messages`, expect user A's socket receive `message:new` within 1s.
 

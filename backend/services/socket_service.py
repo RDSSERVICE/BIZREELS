@@ -17,7 +17,7 @@ sio = socketio.AsyncServer(
 )
 
 # ASGI app to mount at /socket.io
-socket_asgi = socketio.ASGIApp(sio, socketio_path="/socket.io")
+socket_asgi = socketio.ASGIApp(sio, socketio_path="/api/socket.io")
 
 # In-memory presence
 _sid_to_user: dict[str, str] = {}

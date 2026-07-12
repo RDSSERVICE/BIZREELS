@@ -77,8 +77,9 @@ UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
-# Socket.IO — mount BEFORE CORS so it can respond to preflight
-app.mount("/socket.io", socket_asgi)
+# Socket.IO — mounted UNDER /api so K8s ingress proxies it to the backend.
+# (The ingress only routes /api/* to port 8001; /socket.io/* would hit the SPA.)
+app.mount("/api/socket.io", socket_asgi)
 
 app.add_middleware(
     CORSMiddleware,

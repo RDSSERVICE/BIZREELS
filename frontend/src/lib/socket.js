@@ -11,7 +11,7 @@ export function getSocket() {
   if (socket && socket.connected) return socket;
   if (socket) { try { socket.disconnect(); } catch {} }
   socket = io(BACKEND_URL, {
-    path: "/socket.io",
+    path: "/api/socket.io",
     transports: ["websocket", "polling"],
     auth: { token },
     reconnection: true,
