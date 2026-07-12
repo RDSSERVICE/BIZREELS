@@ -1,5 +1,6 @@
-"""Emergent — Local Social Commerce Platform (Phase 0 + Phase 1)."""
+"""Emergent — Local Social Commerce Platform (Phase 0 + 1 + 2 + 3)."""
 import os
+import asyncio
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
@@ -13,6 +14,9 @@ load_dotenv(ROOT_DIR / ".env")
 from database import create_indexes, close_client  # noqa: E402
 from services.auth_service import seed_admin_user  # noqa: E402
 from services.category_service import seed_categories  # noqa: E402
+from services.seed_service import seed_reels  # noqa: E402
+from services.deal_service import expire_task_loop  # noqa: E402
+from services.socket_service import socket_asgi  # noqa: E402
 from routes.auth_routes import router as auth_router  # noqa: E402
 from routes.user_routes import router as user_router  # noqa: E402
 from routes.category_routes import router as category_router  # noqa: E402
@@ -25,17 +29,16 @@ from routes.search_routes import router as search_router  # noqa: E402
 from routes.location_routes import router as location_router  # noqa: E402
 from routes.seo_routes import router as seo_router  # noqa: E402
 from routes.vendor_routes import router as vendor_router  # noqa: E402
+from routes.requirement_routes import router as requirement_router  # noqa: E402
+from routes.chat_routes import router as chat_router  # noqa: E402
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Emergent — Local Social Commerce API",
-    description="Auth + Categories + Listings + Media (Phase 0 & 1)",
-    version="0.2.0",
+    description="Auth + Categories + Listings + Media + Feed + Chat + Deals",
+    version="0.3.0",
     openapi_url="/api/openapi.json",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -66,12 +69,16 @@ api_router.include_router(search_router)
 api_router.include_router(location_router)
 api_router.include_router(seo_router)
 api_router.include_router(vendor_router)
+api_router.include_router(requirement_router)
+api_router.include_router(chat_router)
 app.include_router(api_router)
 
-# Serve locally-uploaded files (dev-mode media fallback) at /api/uploads/*
 UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+
+# Socket.IO — mount BEFORE CORS so it can respond to preflight
+app.mount("/socket.io", socket_asgi)
 
 app.add_middleware(
     CORSMiddleware,
@@ -87,7 +94,10 @@ async def startup():
     await create_indexes()
     await seed_admin_user()
     await seed_categories()
-    logger.info("Emergent backend started (Phase 0 + 1)")
+    await seed_reels()
+    # Background: expire deals every 5 min
+    asyncio.create_task(expire_task_loop(interval_seconds=300))
+    logger.info("Emergent backend started (Phase 0-3)")
 
 
 @app.on_event("shutdown")

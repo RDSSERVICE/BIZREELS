@@ -236,7 +236,17 @@ export default function ListingDetail() {
                 {following ? "Following" : "Follow"}
               </Button>
             )}
-            <Button onClick={() => toast.info("Chat is coming in Phase 3.")} data-testid="chat-vendor-btn" size="sm" className="rounded-full btn-brand border-0">
+            <Button onClick={async () => {
+              if (!user) return navigate("/login");
+              try {
+                const { data } = await import("@/lib/api").then(m => m.chatApi.createThread({
+                  peer_user_id: listing.vendor.id,
+                  context_type: "listing",
+                  context_id: listing.id,
+                }));
+                navigate(`/chat/${data.id}`);
+              } catch { toast.error("Could not open chat"); }
+            }} data-testid="chat-vendor-btn" size="sm" className="rounded-full btn-brand border-0">
               <MessageCircle className="h-4 w-4 mr-1" />Chat
             </Button>
           </div>

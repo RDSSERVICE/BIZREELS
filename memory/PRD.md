@@ -58,9 +58,21 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 - **SEO** — `GET /api/v1/seo/listing/:slug` returns OG-ready meta, `sitemap.xml` (dynamic) + `robots.txt`. Frontend uses `react-helmet-async` to inject tags into `<head>` on listing detail.
 - **Frontend routes added:** `/feed` (Instagram-style vertical reels + injected grid rows every 5 reels), `/explore` (grid + search entry), `/search` (autocomplete + filter sheet with sort/price/radius/condition/negotiable/offer), `/vendor/:vendorId`, `/saved`. Bottom tab bar (Feed / Explore / Sell-for-vendors OR Saved / Me). Listing detail extended with like/save/share buttons, follow-vendor button, related listings, recently-viewed localStorage. Login/onboarding redirect target changed from `/dashboard` → `/feed`.
 
+### ✅ Phase 3 — Requirements + Chat (Socket.IO) + Negotiation + WhatsApp (completed 2026-02)
+- New Mongo collections: `requirements`, `proposals`, `chat_threads`, `messages`, `deals`. Indexes: 2dsphere + text on requirements, unique (participants, context_id, thread_type) on chat_threads, (thread_id, _id desc) on messages, buyer/seller/status on deals.
+- **Requirements** — `POST/GET/PATCH/DELETE /api/v1/requirements/`, `POST /:id/close`, `GET /:id/proposals`. Filters: category, city, urgency, budget_max, q. Views_count via BackgroundTasks. Auto-expire at +30 days.
+- **Proposals** — `POST /api/v1/proposals/`, `GET /me/sent`, `POST /:id/shortlist|reject|accept`. Accept auto-creates a chat thread and posts a system message.
+- **Chat** — `POST /api/v1/chat/threads` (dedup by participants+context), `GET /me`, `GET /:id`, `GET /:id/messages` (cursor paginated), `POST /:id/messages`, `POST /:id/read`, `POST /:id/archive`, `GET /unread-total`, `GET /presence/:userId`. Message types: text | image | video | listing_card | location | quote | system.
+- **Socket.IO** — mounted at `/socket.io` with JWT-on-handshake auth (rejects invalid/expired tokens). Server events: `message:new`, `message:read`, `thread:typing`, `deal:updated`, `connected`. Client events: `thread:join`, `thread:leave`, `typing`. In-memory presence tracking.
+- **Deals / Negotiation** — `POST /api/v1/deals/` (creates deal + posts `quote` message), `POST /:id/counter|accept|reject|cancel|complete`, `GET /me`, `GET /:id`. State machine: negotiating → accepted | rejected | expired | completed | cancelled. Background `expire_task_loop()` marks past-expiry deals every 5 min.
+- **WhatsApp helper** — `GET /api/v1/utils/whatsapp-link?vendor_id=&listing_id=` returns preformatted wa.me URL. Frontend uses it on vendor profile.
+- **Reel seed data** — 4 sample reels (Kolhapuri Chappals, Bridal Mehendi, Retro Vespa, Home-cooked Tiffin) added on first startup so `/feed/reels` is populated for demo. Uses public Cloudinary demo sample video URLs.
+- **Frontend routes added:** `/requirements`, `/requirements/new`, `/requirements/:id`, `/chat`, `/chat/:threadId`, `/deals`. Bottom nav updated with Chat tab + real-time unread badge (via Socket.IO). ListingDetail "Chat with Vendor" now creates/opens a thread. `read_at` renders WhatsApp-style ticks (Check → CheckCheck → blue CheckCheck).
+- **Watch rate limit** — confirmed as exactly 5 requests / hour / IP (allow first 5, block 6th).
+
 ## Prioritized backlog
 
-### P0 — Phase 3: Requirements + Chat (Socket.IO) + Negotiation + WhatsApp deep-links
+### P0 — Phase 4: Reviews + Notifications + Wallet + Razorpay + Verified badge + Trust score
 ### P2 — Phase 4: Reviews + Notifications + Wallet + Razorpay + Verified badge + Trust score
 ### P2 — Phase 5: Admin panel + Report/Block queue + Vendor analytics
 ### P2 — Phase 6: Seed data + i18n Hindi/English + PWA + demo polish

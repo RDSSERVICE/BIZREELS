@@ -74,5 +74,35 @@ Pool: last N=100 active listings (with geo `$geoNear` if lat/lng). Score each:
 - `+5`  has offer_price
 Then sort by score DESC, `_id` DESC as tiebreaker. Cursor pagination uses `_id`.
 
-## Anonymous watchers rate limit
-`POST /listings/:id/watch` — 5 req / hour / IP (in-memory sliding window in `utils/rate_limit.py`, key = `watch:<ip>`). Response 429 on excess.
+## Phase 3 test paths
+
+### Chat (Socket.IO)
+- Verify `/socket.io/?EIO=4&transport=polling` returns 200. Handshake requires `auth: { token: <access_jwt> }` (or `?token=` query fallback). Invalid → disconnect.
+- Server-emitted events: `message:new`, `message:read`, `thread:typing`, `deal:updated`, `connected`.
+- Testing agent tip: use two `socketio.AsyncClient` instances (or two browser tabs with different users), have user A join thread, user B send REST `POST /chat/threads/:id/messages`, expect user A's socket receive `message:new` within 1s.
+
+### Requirements + Proposals
+- Customer `POST /requirements/`, then vendor `POST /proposals/` referencing `requirement_id`, then customer `POST /proposals/:id/accept` → response includes `thread_id`. Following that GET on `/chat/threads/me` should include the new thread.
+
+### Deals state machine
+- `POST /deals/` creates a deal AND a `quote` message in the thread.
+- `POST /deals/:id/counter` allowed only while `status=negotiating`; updates `current_offer`, appends `offers_history`.
+- `accept/reject/cancel` set status; `complete` requires both parties to call it (first sets `completion_pending_from`, second flips status to `completed`).
+- Background loop expires deals with `expires_at < now` every 5 min.
+
+### WhatsApp deep-link
+- `GET /api/v1/utils/whatsapp-link?vendor_id=<uid>&listing_id=<lid>` → `{wa_url: "https://wa.me/91<phone>?text=…"}`. Vendor must have a phone.
+
+### Reel seed
+- On startup, `seed_reels()` inserts 4 listings with `reel.url` pointing at Cloudinary sample videos (idempotent — only if fewer than 3 reels exist).
+
+## Frontend new routes (Phase 3)
+- Public: nothing new public (browsing requirement lists is public via `/requirements`).
+- Auth: `/requirements/new`, `/requirements/:id` (public GET but proposal actions gated), `/chat`, `/chat/:threadId`, `/deals`.
+
+## Data-testids (Phase 3)
+- Chat: `chat-loading`, `chat-empty`, `chat-threads`, `thread-<id>`, `unread-<id>`, `chat-header`, `chat-back-btn`, `chat-messages`, `msg-<id>`, `read-tick-<id>`, `typing-indicator`, `message-input`, `send-btn`, `send-offer-btn`, `offer-amount-input`, `offer-submit-btn`.
+- Requirements: `new-requirement-btn`, `req-list`, `req-<id>`, `req-empty`, `req-loading`, `propose-btn-<id>`, `proposal-message`, `proposal-price`, `proposal-submit`, `req-title-input`, `req-desc-input`, `req-cat-trigger`, `req-min-input`, `req-max-input`, `req-urgency-trigger`, `req-area-input`, `req-city-input`, `req-pin-input`, `req-submit-btn`, `proposals-section`, `prop-<id>`, `shortlist-<id>`, `reject-<id>`, `accept-<id>`, `req-send-proposal-btn`.
+- Deals: `deals-list`, `deals-empty`, `deal-<id>`, `tab-buyer`, `tab-seller`.
+- Nav: `nav-chat`, `nav-chat-badge`, `nav-post` (customer center CTA).
+

@@ -73,6 +73,33 @@ async def create_indexes() -> None:
     await db.search_history.create_index("created_at")
     await db.search_history.create_index("user_id")
 
+    # ---- Phase 3 ----
+    await db.requirements.create_index("customer_id")
+    await db.requirements.create_index("status")
+    await db.requirements.create_index("is_deleted")
+    await db.requirements.create_index([("location.geo", "2dsphere")])
+    try:
+        await db.requirements.create_index(
+            [("title", "text"), ("description", "text")], name="req_text",
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning("req text index warning: %s", e)
+
+    await db.proposals.create_index("requirement_id")
+    await db.proposals.create_index("vendor_id")
+
+    await db.chat_threads.create_index("participants")
+    await db.chat_threads.create_index([("participants", 1), ("context_id", 1), ("thread_type", 1)])
+    await db.chat_threads.create_index([("updated_at", -1)])
+
+    await db.messages.create_index([("thread_id", 1), ("_id", -1)])
+    await db.messages.create_index("receiver_id")
+
+    await db.deals.create_index("thread_id")
+    await db.deals.create_index("buyer_id")
+    await db.deals.create_index("seller_id")
+    await db.deals.create_index("status")
+
     logger.info("MongoDB indexes ensured")
 
 

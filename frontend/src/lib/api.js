@@ -187,3 +187,48 @@ export const watchApi = {
 export const seoApi = {
   listing: (slug) => api.get(`/v1/seo/listing/${slug}`),
 };
+
+// ---- Phase 3 ----
+export const requirementApi = {
+  create: (body) => api.post("/v1/requirements/", body),
+  list: (params = {}) => api.get("/v1/requirements/", { params }),
+  get: (id) => api.get(`/v1/requirements/${id}`),
+  mine: () => api.get("/v1/requirements/me/posted"),
+  proposals: (id) => api.get(`/v1/requirements/${id}/proposals`),
+  close: (id) => api.post(`/v1/requirements/${id}/close`),
+};
+
+export const proposalApi = {
+  create: (body) => api.post("/v1/proposals/", body),
+  mySent: () => api.get("/v1/proposals/me/sent"),
+  shortlist: (id) => api.post(`/v1/proposals/${id}/shortlist`),
+  reject: (id) => api.post(`/v1/proposals/${id}/reject`),
+  accept: (id) => api.post(`/v1/proposals/${id}/accept`),
+};
+
+export const chatApi = {
+  createThread: (body) => api.post("/v1/chat/threads", body),
+  myThreads: () => api.get("/v1/chat/threads/me"),
+  getThread: (id) => api.get(`/v1/chat/threads/${id}`),
+  messages: (id, params = {}) => api.get(`/v1/chat/threads/${id}/messages`, { params }),
+  send: (id, body) => api.post(`/v1/chat/threads/${id}/messages`, body),
+  read: (id) => api.post(`/v1/chat/threads/${id}/read`),
+  archive: (id) => api.post(`/v1/chat/threads/${id}/archive`),
+  unreadTotal: () => api.get("/v1/chat/unread-total"),
+};
+
+export const dealApi = {
+  create: (body) => api.post("/v1/deals/", body),
+  mine: (params = {}) => api.get("/v1/deals/me", { params }),
+  get: (id) => api.get(`/v1/deals/${id}`),
+  counter: (id, body) => api.post(`/v1/deals/${id}/counter`, body),
+  accept: (id) => api.post(`/v1/deals/${id}/accept`),
+  reject: (id) => api.post(`/v1/deals/${id}/reject`),
+  cancel: (id) => api.post(`/v1/deals/${id}/cancel`),
+  complete: (id) => api.post(`/v1/deals/${id}/complete`),
+};
+
+export const whatsappApi = {
+  linkFor: (vendorId, listingId) =>
+    api.get(`/v1/utils/whatsapp-link`, { params: { vendor_id: vendorId, listing_id: listingId } }),
+};

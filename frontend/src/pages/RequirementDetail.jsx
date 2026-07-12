@@ -1,0 +1,134 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { toast } from "sonner";
+import { ArrowLeft, MapPin } from "lucide-react";
+import { PhoneScreen } from "@/components/app/PhoneScreen";
+import { Button } from "@/components/ui/button";
+import { requirementApi, proposalApi, chatApi } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+
+export default function RequirementDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [req, setReq] = useState(null);
+  const [proposals, setProposals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    requirementApi.get(id).then(({ data }) => { if (!alive) return; setReq(data); })
+      .catch(() => setReq(null))
+      .finally(() => setLoading(false));
+    return () => { alive = false; };
+  }, [id]);
+
+  useEffect(() => {
+    if (req && user?.id === req.customer_id) {
+      requirementApi.proposals(id).then(({ data }) => setProposals(data.items || [])).catch(() => {});
+    }
+  }, [req, id, user?.id]);
+
+  const acceptProposal = async (pid) => {
+    try {
+      const { data } = await proposalApi.accept(pid);
+      toast.success("Proposal accepted, chat opened");
+      if (data.thread_id) navigate(`/chat/${data.thread_id}`);
+    } catch { toast.error("Failed"); }
+  };
+  const shortlist = async (pid) => { try { await proposalApi.shortlist(pid); toast.success("Shortlisted"); const { data } = await requirementApi.proposals(id); setProposals(data.items || []); } catch { toast.error("Failed"); } };
+  const rejectP = async (pid) => { try { await proposalApi.reject(pid); toast.success("Rejected"); const { data } = await requirementApi.proposals(id); setProposals(data.items || []); } catch { toast.error("Failed"); } };
+
+  if (loading) return <PhoneScreen><div className="p-6 text-white/60">Loading…</div></PhoneScreen>;
+  if (!req) return <PhoneScreen><div className="p-6 text-white/60">Not found</div></PhoneScreen>;
+
+  const isOwner = user?.id === req.customer_id;
+
+  return (
+    <PhoneScreen>
+      <div className="px-6 pt-8">
+        <button onClick={() => navigate(-1)} data-testid="req-back" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+      </div>
+
+      <div className="px-6 mt-4 space-y-4 pb-24">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="font-heading text-2xl font-bold" data-testid="req-title">{req.title}</h1>
+            <div className="mt-1 text-xs text-white/60 flex items-center gap-2">
+              <MapPin className="h-3 w-3" /> {req.location?.area}, {req.location?.city}
+              <span>·</span>
+              <span className="capitalize">{(req.urgency || "flexible").replace("_", " ")}</span>
+            </div>
+          </div>
+          <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 capitalize">{req.status}</span>
+        </div>
+
+        {req.description && <p className="text-sm text-white/80 whitespace-pre-wrap">{req.description}</p>}
+
+        <div className="glass rounded-2xl p-4">
+          <div className="text-xs text-white/60">Budget</div>
+          <div className="text-lg font-heading font-bold">
+            {req.budget_min || req.budget_max
+              ? `₹${(req.budget_min || 0).toLocaleString("en-IN")} – ₹${(req.budget_max || 0).toLocaleString("en-IN")}`
+              : "Flexible"}
+          </div>
+        </div>
+
+        {isOwner ? (
+          <section data-testid="proposals-section">
+            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Proposals ({proposals.length})</h3>
+            {proposals.length === 0 ? (
+              <div className="glass rounded-2xl p-6 text-center text-white/60 text-sm">No proposals yet.</div>
+            ) : (
+              <div className="space-y-3">
+                {proposals.map((p) => (
+                  <div key={p.id} className="glass rounded-2xl p-4" data-testid={`prop-${p.id}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-brand flex items-center justify-center font-heading font-bold">
+                        {(p.vendor?.name || "?").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold truncate">{p.vendor?.name || "Vendor"}</div>
+                        {p.quoted_price != null && <div className="text-xs text-white/60">Quoted: ₹{p.quoted_price.toLocaleString("en-IN")}</div>}
+                      </div>
+                      <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 capitalize">{p.status}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-white/80 whitespace-pre-wrap">{p.message}</p>
+                    {p.status === "sent" && (
+                      <div className="mt-3 flex gap-2">
+                        <Button onClick={() => shortlist(p.id)} data-testid={`shortlist-${p.id}`} size="sm" variant="outline" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white">Shortlist</Button>
+                        <Button onClick={() => rejectP(p.id)} data-testid={`reject-${p.id}`} size="sm" variant="outline" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white">Reject</Button>
+                        <Button onClick={() => acceptProposal(p.id)} data-testid={`accept-${p.id}`} size="sm" className="rounded-full btn-brand border-0">Accept</Button>
+                      </div>
+                    )}
+                    {p.status === "shortlisted" && (
+                      <div className="mt-3">
+                        <Button onClick={() => acceptProposal(p.id)} data-testid={`accept-${p.id}`} size="sm" className="rounded-full btn-brand border-0">Accept & open chat</Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : user?.roles?.includes("vendor") && req.status === "open" ? (
+          <Button
+            data-testid="req-send-proposal-btn"
+            onClick={async () => {
+              try {
+                const msg = window.prompt("Your message to the customer:");
+                if (!msg) return;
+                await proposalApi.create({ requirement_id: id, message: msg });
+                toast.success("Proposal sent");
+              } catch { toast.error("Failed"); }
+            }}
+            className="w-full h-12 rounded-full btn-brand border-0 font-semibold"
+          >Send Proposal</Button>
+        ) : null}
+      </div>
+    </PhoneScreen>
+  );
+}
