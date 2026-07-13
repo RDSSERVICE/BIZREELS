@@ -9,6 +9,7 @@ import RequireAuth from "@/components/app/RequireAuth";
 
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
+import AuthCallback from "@/pages/AuthCallback";
 import VerifyOtp from "@/pages/VerifyOtp";
 import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
@@ -60,6 +61,7 @@ function App() {
               {/* Public */}
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/verify-otp" element={<VerifyOtp />} />
               <Route path="/browse" element={<Browse />} />
               <Route path="/browse/:categorySlug" element={<Browse />} />

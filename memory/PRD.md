@@ -158,6 +158,15 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 - **Tests**: 35/36 phase7b tests pass + 15/15 regression pass. SEC-003 also confirmed via direct curl (cap=100 + used=50 → 429).
 - OpenAPI = **142 operations** (was 140; +2 for reveal-contact + rotate-admin-phone).
 
+### ✅ Phase 7c — Google Sign-in + Razorpay live keys (completed 2026-02)
+- **Google Sign-in via Emergent-managed OAuth**: new endpoint `POST /api/v1/auth/google/session-exchange` calls the Emergent /session-data API server-side, upserts user by email, and returns our own JWT + refresh tokens (matches OTP flow — no cookie-based sessions parallel to JWT).
+- **User model**: `phone` is now `str | None` (sparse-unique index) + new `auth_providers: list[dict]` field tracks linked identities. Merging by email — same email across phone-OTP + Google = single user with both providers linked.
+- **Frontend**: `Login.jsx` gets a big white "Continue with Google" button above the phone flow with the multi-colour G-logo, "OR CONTINUE WITH PHONE" divider. New `/auth/callback` route (`AuthCallback.jsx`) processes `#session_id=` via `useRef`-guarded one-shot exchange, then routes new users to `/onboarding` and existing to `/feed`. Includes the mandatory "DO NOT HARDCODE" reminder comment.
+- **Signup bonus** (+50 credits) auto-granted to new Google users, same as OTP flow.
+- **Razorpay LIVE (test mode)**: real user-provided test keys injected via `/admin/settings` UI + verified with a real order (`order_TD137RZhnQKP5q`) via the actual Razorpay API. Admin dashboard shows LIVE badge.
+- Endpoints: **143 operations** (+1 for google-session-exchange).
+- Tests: 35/36 phase7b + 15/15 regression pass.
+
 ### P3 — Phase 7: Expo mobile port (delegated to a different agent, `/app/mobile/`)
 
 ## Non-negotiable rules (project-wide)

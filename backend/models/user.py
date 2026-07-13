@@ -10,9 +10,14 @@ KycStatus = Literal["unverified", "pending", "approved", "rejected"]
 
 
 class User(BaseDocument):
-    phone: str
+    # Phase 7c: phone becomes optional to support Google-signup users who
+    # haven't linked a phone yet. Sparse-unique in Mongo (see database.py).
+    phone: str | None = None
     name: str | None = None
     email: str | None = None
+    # Phase 7c: which providers this user has linked
+    # [{provider:"phone"|"google", identifier:phone_or_email, linked_at:iso}]
+    auth_providers: list[dict] = Field(default_factory=list)
     roles: list[Role] = Field(default_factory=lambda: ["customer"])
     current_role: Role = "customer"
     kyc_status: KycStatus = "unverified"

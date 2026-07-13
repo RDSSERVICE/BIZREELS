@@ -55,6 +55,20 @@ async def verify_otp(body: OtpVerifyBody):
     )
 
 
+class GoogleSessionExchangeBody(BaseModel):
+    session_id: str = Field(..., min_length=8, max_length=256)
+
+
+@router.post("/google/session-exchange")
+async def google_session_exchange(body: GoogleSessionExchangeBody):
+    """SEC-hardened Google signup/login. Body:{session_id} from the Emergent
+    OAuth callback URL fragment. Returns our own JWT + refresh tokens so all
+    existing endpoints work unchanged. Merges by email if user already exists.
+    """
+    from services import google_auth_service
+    return await google_auth_service.exchange_session_and_login(body.session_id.strip())
+
+
 @router.post("/refresh")
 async def refresh(body: RefreshBody):
     return await auth_service.refresh_access_token(body.refresh_token)

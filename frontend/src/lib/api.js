@@ -90,6 +90,8 @@ export const authApi = {
     api.post("/v1/auth/otp/verify", { phone, otp, name, roles }),
   refresh: (refresh_token) => api.post("/v1/auth/refresh", { refresh_token }),
   logout: (refresh_token) => api.post("/v1/auth/logout", { refresh_token }),
+  googleSessionExchange: (session_id) =>
+    api.post("/v1/auth/google/session-exchange", { session_id }),
 };
 
 export const userApi = {

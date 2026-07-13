@@ -28,7 +28,15 @@ async def create_indexes() -> None:
     db = get_db()
 
     # ---- Phase 0 ----
-    await db.users.create_index("phone", unique=True)
+    # Phase 7c: phone is now sparse-unique so Google-signup users can exist
+    # without a phone until they link one. Drop the old strict-unique index if
+    # present (idempotent — will fail silently on a fresh DB).
+    try:
+        await db.users.drop_index("phone_1")
+    except Exception:
+        pass
+    await db.users.create_index("phone", unique=True, sparse=True)
+    await db.users.create_index("email", unique=True, sparse=True)
     await db.users.create_index("is_deleted")
 
     await db.otp_requests.create_index("expires_at", expireAfterSeconds=0)
