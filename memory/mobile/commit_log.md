@@ -1,0 +1,41 @@
+## Iteration 1 — Initial Mobile App Build (Full Feature Parity)
+- **Commit**: 90f25204176c4288f04eb9320ff249fe196e5e06
+- **Date**: 2026-07-13
+- **Changes**:
+  - Built complete Expo Router mobile app with file-based routing
+  - Created full API client replicating all web frontend endpoints (auth, listings, feed, chat, wallet, deals, etc.)
+  - Implemented Auth context with token management (SecureStore/AsyncStorage)
+  - Built all core screens: Landing, Login, VerifyOTP, Onboarding, Feed, Explore, Chat, Profile, ListingDetail, Search, Browse, Saved, Wallet, Notifications, Deals, Dashboard, VendorProfile, ChatThread
+  - Tab navigation with Feed, Explore, Chat, Me tabs
+  - Installed: axios
+- **Files modified**:
+  - `app/_layout.tsx` - Root layout with AuthProvider, Stack navigator
+  - `app/index.tsx` - Landing page with hero, features, stats
+  - `app/login.tsx` - Phone input with +91 country code
+  - `app/verify-otp.tsx` - OTP verification with dev OTP display
+  - `app/onboarding.tsx` - Name + role selection (Customer/Vendor/Creator)
+  - `app/(tabs)/_layout.tsx` - Bottom tab navigator
+  - `app/(tabs)/feed.tsx` - Feed with reels + grid layout
+  - `app/(tabs)/explore.tsx` - Explore with categories + trending
+  - `app/(tabs)/chat.tsx` - Chat threads list
+  - `app/(tabs)/profile.tsx` - Profile with edit form + actions
+  - `app/listing/[slug].tsx` - Listing detail with like/save/share/follow/chat
+  - `app/search.tsx` - Search with suggestions + results
+  - `app/browse/index.tsx` - Browse all with categories
+  - `app/browse/[categorySlug].tsx` - Browse by category with sub-category chips
+  - `app/chat-thread/[threadId].tsx` - Chat thread with messaging
+  - `app/saved.tsx` - Saved listings
+  - `app/wallet.tsx` - Wallet with balance + topup modal
+  - `app/notifications.tsx` - Notifications list
+  - `app/deals.tsx` - Deals list with status colors
+  - `app/dashboard.tsx` - Dashboard with role-based CTAs
+  - `app/vendor/[vendorId].tsx` - Vendor profile with listings
+  - `src/lib/api.ts` - Full API client
+  - `src/lib/theme.ts` - Design tokens
+  - `src/context/AuthContext.tsx` - Auth state management
+  - `src/components/ListingCard.tsx` - Listing card component
+  - `src/components/ScreenHeader.tsx` - Screen header component
+  - `src/components/LoadingSkeleton.tsx` - Skeleton loader
+  - `src/components/GradientButton.tsx` - Gradient CTA button
+  - `src/components/GlassCard.tsx` - Glass card component
+- **Web files referenced**: App.js, Landing.jsx, Login.jsx, VerifyOtp.jsx, Onboarding.jsx, Feed.jsx, Explore.jsx, Browse.jsx, Profile.jsx, ListingDetail.jsx, Search.jsx, ChatList.jsx, ChatThread.jsx, Wallet.jsx, Notifications.jsx, BottomNav.jsx, ListingCard.jsx, api.js, AuthContext.js, Dashboard.jsx

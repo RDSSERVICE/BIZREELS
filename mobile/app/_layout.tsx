@@ -1,19 +1,11 @@
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
-import { LogBox } from "react-native";
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
+import { LogBox, StatusBar } from 'react-native';
+import { useIconFonts } from '@/src/hooks/use-icon-fonts';
+import { AuthProvider } from '@/src/context/AuthContext';
 
-import { useIconFonts } from "@/src/hooks/use-icon-fonts";
-
-
-// Disable logbox errors etc so that users can see the app
-// and agent works as expected.
-LogBox.ignoreAllLogs(true)
-
-// Keep the native splash visible from cold start until icon fonts register.
-// Required because @expo/vector-icons' componentDidMount fallback fires
-// Font.loadAsync against a broken vendor path if any <Icon> mounts before
-// the family is registered — which throws on Android Expo Go.
+LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -25,9 +17,29 @@ export default function RootLayout() {
     }
   }, [loaded, error]);
 
-  // If the CDN is unreachable we fall through on error rather than wedging
-  // the app — icons will tofu, but the app still boots.
   if (!loaded && !error) return null;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <AuthProvider>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#000' }, animation: 'slide_from_right' }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="verify-otp" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="listing/[slug]" />
+        <Stack.Screen name="browse/index" />
+        <Stack.Screen name="browse/[categorySlug]" />
+        <Stack.Screen name="search" />
+        <Stack.Screen name="saved" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="wallet" />
+        <Stack.Screen name="deals" />
+        <Stack.Screen name="dashboard" />
+        <Stack.Screen name="chat-thread/[threadId]" />
+        <Stack.Screen name="vendor/[vendorId]" />
+      </Stack>
+    </AuthProvider>
+  );
 }
