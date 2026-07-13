@@ -129,8 +129,14 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
   - `TrustBadge` small chip component available for reuse in feed cards / chat headers.
 - **Tests**: `backend/tests/test_phase5.py` — 17 passed + 1 skipped (env-only). Referral flow, view/chat/wa_click/share tracking, timeseries, response-time first-reply, onboarding partial + full, non-vendor 403, regression on /users/me new keys.
 
-### P2 — Phase 6: Seed data (fake India users/listings/reels for demo) + i18n Hindi translations + PWA + final demo polish
-### P2 — Phase 6: Seed data + i18n Hindi/English + PWA + demo polish
+### ✅ Phase 6c mini — Test-data cleanup (completed 2026-02)
+- Added `is_test_data: bool = False` to `User` + `Listing` models.
+- New utility `/app/backend/utils/test_data.py`: `TEST_DATA_REGEX = r"^(test\b|test_|[uv]\d+ |[uv]\d+$)"` + `not_test_filter(field)` mongo-query helper.
+- Public queries (feed, listings list, vendor fast-responders leaderboard) now filter `is_test_data: {$ne: true}` AND `<name_field>: {$not: {$regex: TEST_DATA_REGEX, $options: 'i'}}` — belt-and-suspenders.
+- New endpoint `POST /api/v1/admin/dev/purge-test-data?dry_run=<bool>` (admin + dev-mode gated). Cascade soft-deletes across 19 collections: listings, deals, reviews, messages, chat_threads, proposals, requirements, listing_events, interactions, follows, notifications, wallets, wallet_transactions, subscriptions, payments, kyc_documents, referrals, response_events, search_history, watcher_notifications. Returns per-collection counts + samples.
+- Hardened `auth_service.verify_otp_and_login`: previously soft-deleted users (e.g., after purge) are now revived in-place on re-signup instead of colliding with the unique-phone index.
+- **Verified state**: 148 legacy pytest users + 76 listings purged. Feed top-25 & fast-responders top-10 pristine (regex-checked). `openapi.json` = **135 operations** (was 134). Tests: `test_phase6c_purge.py` = 11/11 pass, `test_phase6b.py` regression = 4/4 pass.
+
 ### P3 — Phase 7: Expo mobile port (delegated to a different agent, `/app/mobile/`)
 
 ## Non-negotiable rules (project-wide)

@@ -149,8 +149,11 @@ async def verify_otp_and_login(
     if not clean_roles:
         clean_roles = ["customer"]
 
-    # Upsert user
-    user_doc = await db.users.find_one({"phone": phone, "is_deleted": {"$ne": True}})
+    # Upsert user. Look up BY PHONE without the is_deleted filter so that a
+    # previously soft-deleted user (e.g., purged test/demo account whose phone
+    # is now being re-signed-up) is revived in place instead of colliding with
+    # the unique-phone index.
+    user_doc = await db.users.find_one({"phone": phone})
     now_iso = datetime.now(timezone.utc).isoformat()
     if user_doc is None:
         new_user = User(
@@ -182,8 +185,13 @@ async def verify_otp_and_login(
             logger.exception("Referral setup failed for user %s", result.inserted_id)
         user_doc = await db.users.find_one({"_id": result.inserted_id})
     else:
-        # Existing user: optionally update name if not set and provided
+        # Existing user: revive if previously soft-deleted (purge or self-delete)
+        # and optionally set name if not set and provided.
         updates: dict = {"updated_at": now_iso}
+        if user_doc.get("is_deleted"):
+            updates["is_deleted"] = False
+            updates["is_active"] = True
+            updates["is_test_data"] = False
         if name and not user_doc.get("name"):
             updates["name"] = name
         if updates:
