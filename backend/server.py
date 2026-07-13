@@ -55,11 +55,12 @@ api_router = APIRouter(prefix="/api")
 
 @api_router.get("/health")
 async def health():
+    from services import msg91_service, cloudinary_service
     return {
         "status": "ok",
         "service": "emergent-backend",
-        "otp_dev_mode": os.environ.get("OTP_DEV_MODE", "false").lower() in ("1", "true", "yes"),
-        "cloudinary_dev_mode": os.environ.get("CLOUDINARY_DEV_MODE", "false").lower() in ("1", "true", "yes"),
+        "otp_dev_mode": msg91_service.is_dev_mode(),
+        "cloudinary_dev_mode": cloudinary_service.is_dev_mode(),
     }
 
 
@@ -105,6 +106,9 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup():
     await create_indexes()
+    # Phase 6c: initialise platform_settings singleton BEFORE any dev-mode check fires.
+    from services import settings_service
+    await settings_service.initialize_defaults_on_startup()
     await seed_admin_user()
     await seed_categories()
     await seed_reels()

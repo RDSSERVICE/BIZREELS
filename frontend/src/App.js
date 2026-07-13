@@ -37,6 +37,7 @@ import Admin from "@/pages/Admin";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminListings from "@/pages/AdminListings";
 import AdminReports from "@/pages/AdminReports";
+import AdminSettings from "@/pages/AdminSettings";
 import VendorAnalytics from "@/pages/VendorAnalytics";
 import NotFound from "@/pages/NotFound";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
@@ -88,6 +89,7 @@ function App() {
               <Route path="/admin/users" element={<RequireAuth><AdminUsers /></RequireAuth>} />
               <Route path="/admin/listings" element={<RequireAuth><AdminListings /></RequireAuth>} />
               <Route path="/admin/reports" element={<RequireAuth><AdminReports /></RequireAuth>} />
+              <Route path="/admin/settings" element={<RequireAuth><AdminSettings /></RequireAuth>} />
               <Route path="/vendor/analytics" element={<RequireAuth><VendorAnalytics /></RequireAuth>} />
               <Route path="/vendor/dashboard" element={<RequireAuth><VendorDashboard /></RequireAuth>} />
               <Route path="/vendor/listing/new" element={<RequireAuth><ListingForm /></RequireAuth>} />

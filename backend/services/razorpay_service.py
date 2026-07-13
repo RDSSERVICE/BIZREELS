@@ -11,11 +11,21 @@ logger = logging.getLogger(__name__)
 
 
 def is_dev_mode() -> bool:
-    return os.environ.get("RAZORPAY_DEV_MODE", "false").lower() in ("1", "true", "yes")
+    from services import settings_service
+    return settings_service.get_bool("razorpay", "dev_mode", "RAZORPAY_DEV_MODE", default=False)
+
+
+def _creds() -> tuple[str, str]:
+    from services import settings_service
+    return (
+        settings_service.get_value("razorpay", "key_id", "RAZORPAY_KEY_ID"),
+        settings_service.get_value("razorpay", "key_secret", "RAZORPAY_KEY_SECRET"),
+    )
 
 
 def _has_creds() -> bool:
-    return bool(os.environ.get("RAZORPAY_KEY_ID") and os.environ.get("RAZORPAY_KEY_SECRET"))
+    kid, ks = _creds()
+    return bool(kid and ks)
 
 
 def create_order(amount_paise: int, receipt: str, notes: dict | None = None) -> dict:
@@ -26,7 +36,8 @@ def create_order(amount_paise: int, receipt: str, notes: dict | None = None) -> 
             "receipt": receipt, "status": "created", "mock": True,
         }
     import razorpay
-    client = razorpay.Client(auth=(os.environ["RAZORPAY_KEY_ID"], os.environ["RAZORPAY_KEY_SECRET"]))
+    kid, ks = _creds()
+    client = razorpay.Client(auth=(kid, ks))
     order = client.order.create({"amount": amount_paise, "currency": "INR", "receipt": receipt, "notes": notes or {}})
     return order
 
@@ -34,19 +45,23 @@ def create_order(amount_paise: int, receipt: str, notes: dict | None = None) -> 
 def verify_signature(order_id: str, payment_id: str, signature: str) -> bool:
     if is_dev_mode() or not _has_creds():
         return True  # dev-mode: always succeed
-    secret = os.environ["RAZORPAY_KEY_SECRET"].encode()
+    _, ks = _creds()
+    secret = ks.encode()
     payload = f"{order_id}|{payment_id}".encode()
     expected = hmac.new(secret, payload, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
 
 
 def verify_webhook_signature(body: bytes, signature: str) -> bool:
-    if is_dev_mode() or not os.environ.get("RAZORPAY_WEBHOOK_SECRET"):
+    from services import settings_service
+    wh = settings_service.get_value("razorpay", "webhook_secret", "RAZORPAY_WEBHOOK_SECRET")
+    if is_dev_mode() or not wh:
         return True
-    secret = os.environ["RAZORPAY_WEBHOOK_SECRET"].encode()
+    secret = wh.encode()
     expected = hmac.new(secret, body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
 
 
 def public_key_id() -> str:
-    return os.environ.get("RAZORPAY_KEY_ID", "rzp_test_dev_mock")
+    kid, _ = _creds()
+    return kid or "rzp_test_dev_mock"

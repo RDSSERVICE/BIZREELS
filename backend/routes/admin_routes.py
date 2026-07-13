@@ -183,3 +183,94 @@ async def admin_dev_backdate_listing(listing_id: str, days: int = 35, user=Depen
     if not res.matched_count:
         raise HTTPException(404, "Listing not found")
     return {"ok": True, "listing_id": listing_id, "created_at": new_created, "backdated_days": days}
+
+
+# ============ Phase 6c: Integration Settings (admin panel) ============
+class IntegrationsPatch(BaseModel):
+    msg91: dict | None = None
+    cloudinary: dict | None = None
+    razorpay: dict | None = None
+    fcm: dict | None = None
+
+
+@router.get("/settings/integrations")
+async def get_integration_settings(user=Depends(require_auth)):
+    """Admin-only. Returns current integration config with secrets MASKED."""
+    _require_admin(user)
+    from services import settings_service
+    return await settings_service.get_masked()
+
+
+@router.patch("/settings/integrations")
+async def patch_integration_settings(body: IntegrationsPatch, user=Depends(require_auth)):
+    """Admin-only. Partial update. Fields whose value equals `"****"` or `""`
+    are left unchanged (used to preserve secrets that the UI can't display).
+    """
+    _require_admin(user)
+    from services import settings_service
+    patch = {k: v for k, v in body.model_dump(exclude_none=True).items()
+             if k in settings_service.INTEGRATIONS}
+    return await settings_service.update_settings(patch, updated_by=str(user.id))
+
+
+@router.post("/settings/integrations/test")
+async def test_integration(integration: str = Query(...), user=Depends(require_auth)):
+    """Admin-only. Live-tests the current creds for the chosen integration.
+
+    - msg91: sends an OTP SMS to the admin's own phone (or a dev-log if dev mode).
+    - cloudinary: calls the SDK ping endpoint (only in real mode).
+    - razorpay: creates a ₹1 test order.
+    - fcm: initialises firebase-admin and returns app project id.
+    """
+    _require_admin(user)
+    integration = (integration or "").strip().lower()
+    if integration not in ("msg91", "cloudinary", "razorpay", "fcm"):
+        raise HTTPException(400, "Unknown integration")
+
+    try:
+        if integration == "msg91":
+            from services import msg91_service
+            import secrets
+            otp = f"{secrets.randbelow(10**6):06d}"
+            res = await msg91_service.send_otp_sms(user.phone, otp)
+            return {"ok": True, "integration": "msg91",
+                    "dev_mode": msg91_service.is_dev_mode(),
+                    "sent_to": user.phone, "provider_response": res}
+
+        if integration == "cloudinary":
+            from services import cloudinary_service
+            if cloudinary_service.is_dev_mode():
+                return {"ok": True, "integration": "cloudinary", "dev_mode": True,
+                        "note": "Dev mode active — uploads go to local disk. Toggle dev_mode off to test real keys."}
+            if not cloudinary_service._has_credentials():
+                raise HTTPException(400, "Cloudinary keys missing")
+            cloudinary_service._configure_sdk()
+            import cloudinary.api  # type: ignore
+            info = cloudinary.api.ping()
+            return {"ok": True, "integration": "cloudinary", "dev_mode": False,
+                    "provider_response": info}
+
+        if integration == "razorpay":
+            from services import razorpay_service
+            order = razorpay_service.create_order(100, receipt=f"admin-test-{user.id[:6]}",
+                                                   notes={"purpose": "admin_test"})
+            return {"ok": True, "integration": "razorpay",
+                    "dev_mode": razorpay_service.is_dev_mode(),
+                    "order": {"id": order.get("id"), "amount": order.get("amount"),
+                              "status": order.get("status"), "mock": order.get("mock", False)}}
+
+        # fcm
+        from services import fcm_service
+        if fcm_service._dev_mode():
+            return {"ok": True, "integration": "fcm", "dev_mode": True,
+                    "note": "Dev mode active — pushes are log-only. Toggle dev_mode off to init firebase-admin."}
+        app_obj = fcm_service._get_firebase_app()
+        if not app_obj:
+            raise HTTPException(400, "firebase-admin init failed (check service_account_json)")
+        return {"ok": True, "integration": "fcm", "dev_mode": False,
+                "project_id": getattr(app_obj, "project_id", None) or "initialized"}
+
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "integration": integration, "error": str(exc)[:400]}

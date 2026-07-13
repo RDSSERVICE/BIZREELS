@@ -29,19 +29,18 @@ class CloudinaryConfigError(RuntimeError):
 
 
 def is_dev_mode() -> bool:
-    """Dev mode is opt-in via CLOUDINARY_DEV_MODE=true.
-
-    If explicitly enabled we mock. Otherwise, if all creds are present we use
-    Cloudinary; if creds missing we FAIL-CLOSED (raise).
-    """
-    return os.environ.get("CLOUDINARY_DEV_MODE", "false").lower() in ("1", "true", "yes")
+    """Reads from platform_settings first, .env as fallback."""
+    from services import settings_service
+    return settings_service.get_bool("cloudinary", "dev_mode", "CLOUDINARY_DEV_MODE", default=False)
 
 
 def _has_credentials() -> bool:
-    return all(
-        os.environ.get(k, "").strip()
-        for k in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")
-    )
+    from services import settings_service
+    return all([
+        settings_service.get_value("cloudinary", "cloud_name", "CLOUDINARY_CLOUD_NAME"),
+        settings_service.get_value("cloudinary", "api_key", "CLOUDINARY_API_KEY"),
+        settings_service.get_value("cloudinary", "api_secret", "CLOUDINARY_API_SECRET"),
+    ])
 
 
 def _configure_sdk():
@@ -51,11 +50,12 @@ def _configure_sdk():
             "Cloudinary keys missing. Set CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET "
             "or enable CLOUDINARY_DEV_MODE=true for local development."
         )
+    from services import settings_service
     import cloudinary
     cloudinary.config(
-        cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
-        api_key=os.environ["CLOUDINARY_API_KEY"],
-        api_secret=os.environ["CLOUDINARY_API_SECRET"],
+        cloud_name=settings_service.get_value("cloudinary", "cloud_name", "CLOUDINARY_CLOUD_NAME"),
+        api_key=settings_service.get_value("cloudinary", "api_key", "CLOUDINARY_API_KEY"),
+        api_secret=settings_service.get_value("cloudinary", "api_secret", "CLOUDINARY_API_SECRET"),
         secure=True,
     )
 
@@ -87,17 +87,26 @@ def sign_upload(folder: str, resource_type: str = "image") -> dict:
     import cloudinary.utils
     timestamp = int(time.time())
     params = {"timestamp": timestamp, "folder": folder}
-    signature = cloudinary.utils.api_sign_request(params, os.environ["CLOUDINARY_API_SECRET"])
+    signature = cloudinary.utils.api_sign_request(params, settings_service_secret())
     return {
         "mode": "signed",
         "mock": False,
         "signature": signature,
         "timestamp": timestamp,
-        "api_key": os.environ["CLOUDINARY_API_KEY"],
-        "cloud_name": os.environ["CLOUDINARY_CLOUD_NAME"],
+        "api_key": _s("api_key", "CLOUDINARY_API_KEY"),
+        "cloud_name": _s("cloud_name", "CLOUDINARY_CLOUD_NAME"),
         "folder": folder,
         "resource_type": resource_type,
     }
+
+
+def _s(key: str, env: str) -> str:
+    from services import settings_service
+    return settings_service.get_value("cloudinary", key, env)
+
+
+def settings_service_secret() -> str:
+    return _s("api_secret", "CLOUDINARY_API_SECRET")
 
 
 async def upload_file(

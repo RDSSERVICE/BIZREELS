@@ -131,3 +131,14 @@ curl -s -X POST "$BASE/api/v1/admin/seed/reset-demo?wipe=true" -H "Authorization
 - **Socket**: `socket.io-client` with auto-reconnect, app-state-aware (disconnect on background, reconnect on foreground)
 - **Auth**: JWT with refresh token rotation, SecureStore for tokens
 - **Design**: Dark theme, gradient accents (purple → pink → orange), glass cards, 8pt grid
+
+---
+
+## Preview / Testing URL
+
+- **Testing domain** = the same preview URL: `https://emergent-india-2.preview.emergentagent.com`
+- This IS the testing environment — no separate domain is provisioned.
+- If the URL shows a "Frontend Preview Only — wake servers" banner or OTP send returns network-error,
+  the pod is asleep. To wake it, ping the API once:
+  `curl https://emergent-india-2.preview.emergentagent.com/api/health` — pod auto-wakes within ~30s.
+- Once `/api/health` returns 200, refresh the browser and the full app is functional.

@@ -18,7 +18,13 @@ _fb_app = None
 
 
 def _dev_mode() -> bool:
-    return os.environ.get("FCM_DEV_MODE", "true").lower() in ("1", "true", "yes")
+    from services import settings_service
+    return settings_service.get_bool("fcm", "dev_mode", "FCM_DEV_MODE", default=True)
+
+
+def _service_account_json() -> str:
+    from services import settings_service
+    return settings_service.get_value("fcm", "service_account_json", "FIREBASE_SERVICE_ACCOUNT_JSON")
 
 
 def _get_firebase_app():
@@ -28,7 +34,7 @@ def _get_firebase_app():
         return _fb_app
     if _dev_mode():
         return None
-    cfg = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
+    cfg = _service_account_json()
     if not cfg:
         return None
     try:

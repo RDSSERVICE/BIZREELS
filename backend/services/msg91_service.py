@@ -19,8 +19,13 @@ MSG91_FLOW_URL = "https://control.msg91.com/api/v5/flow/"
 
 
 def is_dev_mode() -> bool:
-    """Dev mode is opt-in ONLY via explicit env flag. Never fail-open."""
-    return os.environ.get("OTP_DEV_MODE", "false").lower() in ("1", "true", "yes")
+    """Dev mode is opt-in ONLY via explicit config. Never fail-open.
+
+    Reads from `platform_settings` first (admin-panel controlled), falls back
+    to the OTP_DEV_MODE env var for backwards compatibility.
+    """
+    from services import settings_service
+    return settings_service.get_bool("msg91", "dev_mode", "OTP_DEV_MODE", default=False)
 
 
 class Msg91ConfigError(RuntimeError):
@@ -40,9 +45,10 @@ async def send_otp_sms(phone: str, otp: str) -> dict:
         logger.info("[MSG91 DEV MODE] Mock OTP for %s: %s", phone, otp)
         return {"mock": True}
 
-    auth_key = os.environ.get("MSG91_AUTH_KEY", "").strip()
-    template = os.environ.get("MSG91_TEMPLATE_ID", "").strip()
-    sender = os.environ.get("MSG91_SENDER_ID", "").strip()
+    from services import settings_service
+    auth_key = settings_service.get_value("msg91", "auth_key", "MSG91_AUTH_KEY")
+    template = settings_service.get_value("msg91", "template_id", "MSG91_TEMPLATE_ID")
+    sender = settings_service.get_value("msg91", "sender_id", "MSG91_SENDER_ID")
     if not auth_key or not template or not sender:
         raise Msg91ConfigError(
             "MSG91 credentials missing. Set MSG91_AUTH_KEY, MSG91_TEMPLATE_ID, "
@@ -74,9 +80,10 @@ async def send_transactional_sms(phone: str, message: str) -> dict:
     if is_dev_mode():
         logger.info("[MSG91 DEV MODE] Mock SMS to %s: %s", phone, message)
         return {"mock": True}
-    auth_key = os.environ.get("MSG91_AUTH_KEY", "").strip()
-    sender = os.environ.get("MSG91_SENDER_ID", "").strip()
-    template = os.environ.get("MSG91_TXN_TEMPLATE_ID", "").strip()
+    from services import settings_service
+    auth_key = settings_service.get_value("msg91", "auth_key", "MSG91_AUTH_KEY")
+    sender = settings_service.get_value("msg91", "sender_id", "MSG91_SENDER_ID")
+    template = settings_service.get_value("msg91", "txn_template_id", "MSG91_TXN_TEMPLATE_ID")
     if not auth_key or not sender or not template:
         logger.info("[MSG91] transactional SMS skipped (missing keys) to %s: %s", phone, message)
         return {"mock": True, "reason": "missing_keys"}

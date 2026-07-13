@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Users, ListChecks, Flag, ShieldCheck, TrendingUp, IndianRupee } from "lucide-react";
+import { Users, ListChecks, Flag, ShieldCheck, TrendingUp, IndianRupee, KeyRound } from "lucide-react";
 import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
 import BottomNav from "@/components/app/BottomNav";
 import { adminApi } from "@/lib/api";
@@ -72,6 +72,11 @@ export default function Admin() {
                 <ShieldCheck className="h-5 w-5 mb-2" />
                 <div className="font-heading font-semibold">KYC</div>
                 <div className="text-xs text-white/60 mt-0.5">{ov.pending_kyc_count} pending</div>
+              </Link>
+              <Link to="/admin/settings" data-testid="link-admin-settings" className="glass rounded-2xl p-4 hover:bg-white/10 transition-colors">
+                <KeyRound className="h-5 w-5 mb-2" />
+                <div className="font-heading font-semibold">Integrations</div>
+                <div className="text-xs text-white/60 mt-0.5">Keys · dev mode</div>
               </Link>
             </div>
           </>

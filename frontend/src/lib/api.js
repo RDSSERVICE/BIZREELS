@@ -325,6 +325,12 @@ export const referralApi = {
   mine: () => api.get("/v1/users/me/referrals/"),
 };
 
+export const integrationsApi = {
+  get: () => api.get("/v1/admin/settings/integrations"),
+  patch: (patch) => api.patch("/v1/admin/settings/integrations", patch),
+  test: (integration) => api.post(`/v1/admin/settings/integrations/test?integration=${encodeURIComponent(integration)}`),
+};
+
 export const onboardingApi = {
   checklist: () => api.get("/v1/users/me/onboarding-checklist"),
 };
