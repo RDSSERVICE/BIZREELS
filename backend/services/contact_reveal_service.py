@@ -87,7 +87,8 @@ async def reveal_contact(requester_id: str, vendor_id: str) -> dict:
         # Charge wallet
         try:
             from services import wallet_service
-            balance = await wallet_service.get_balance(requester_id)
+            wallet = await wallet_service.get_or_create(requester_id)
+            balance = int(wallet.get("credits", 0))
             if balance < REVEAL_CREDIT_COST:
                 raise HTTPException(
                     402,

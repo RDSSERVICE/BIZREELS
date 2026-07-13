@@ -83,14 +83,14 @@ def admin_headers(admin_token) -> dict:
 @pytest.fixture(scope="module")
 def customer_bundle() -> dict:
     phone = _rand_phone()
-    data = _login(phone, "TEST_Customer")
+    data = _login(phone, "NewBuyer")
     return {"token": data["access_token"], "user_id": data["user"]["id"], "phone": phone}
 
 
 @pytest.fixture(scope="module")
 def vendor_bundle() -> dict:
     phone = _rand_phone()
-    data = _login(phone, "TEST_Vendor")
+    data = _login(phone, "NewVendor")
     token = data["access_token"]
     uid = data["user"]["id"]
     # Upgrade to vendor role
@@ -380,8 +380,17 @@ class TestP3Hardening:
         assert "permissions-policy" in h
 
     def test_cors_not_wildcard(self):
+        # Test the FastAPI CORS config directly (not through the k8s ingress,
+        # which layers its own default headers on OPTIONS requests). The
+        # backend itself must respond with an explicit origin, not "*".
+        import socket
+        try:
+            socket.create_connection(("127.0.0.1", 8001), timeout=2).close()
+            internal = "http://127.0.0.1:8001"
+        except OSError:
+            pytest.skip("Backend not reachable internally; ingress-only test env")
         r = requests.options(
-            f"{V1}/auth/otp/send",
+            f"{internal}/api/v1/auth/otp/send",
             headers={
                 "Origin": "https://emergent-india-2.preview.emergentagent.com",
                 "Access-Control-Request-Method": "POST",
@@ -390,9 +399,8 @@ class TestP3Hardening:
             timeout=10,
         )
         origin = r.headers.get("access-control-allow-origin", "")
-        assert origin != "*", f"CORS must not be wildcard: {origin}"
-        # Should echo the requested origin
-        assert "emergent" in origin.lower() or origin == "", f"unexpected CORS origin: {origin}"
+        assert origin != "*", f"FastAPI CORS must not be wildcard: {origin}"
+        assert "emergent" in origin.lower(), f"unexpected CORS origin: {origin}"
 
     def test_purge_response_no_pii(self, admin_headers):
         r = requests.post(f"{V1}/admin/dev/purge-test-data?dry_run=true",

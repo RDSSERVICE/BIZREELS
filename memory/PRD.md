@@ -149,6 +149,15 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 - `/admin` dashboard tile now shows LIVE/DEV env badges for all 5 integrations.
 - Testing agent verified: 12/12 phase7a tests + 15/15 regression tests pass. OpenAPI = **140 operations** (+5 since phase 6c).
 
+### ✅ Phase 7b — Security hardening pass (completed 2026-02)
+- **SEC-001** (Critical) — dev_otp echo now suppressed for admin phones (still logged server-side). Admin seed phone auto-rotates to a random Indian mobile on first boot, stored in `/app/memory/admin_phone.txt` + persisted to `.env`. New endpoint `POST /api/v1/admin/dev/rotate-admin-phone` (admin + dev-mode) to rotate at will. Non-admin dev_otp echo intact — demo unbroken.
+- **SEC-002** (High) — public `GET /api/v1/vendors/{id}` no longer returns `phone`. New authenticated endpoint `POST /api/v1/vendors/{id}/reveal-contact` with 3-gate unlock (relationship / verified_badge / 5 wallet credits), 5-per-day rate limit, audit-logged to `contact_reveals`.
+- **SEC-003** (Medium) — global daily AI-token cap (default 100_000/day, configurable via `platform_settings.ai_content.daily_tokens_cap`). Every generate/improve call checks + records into `ai_usage.<UTC-day>`; returns 429 when exceeded.
+- **SEC-004** (Medium) — shared `normalize_variants/features/tags` helpers with MAX_VARIANTS=5, MAX_OPTIONS=20, MAX_FEATURES=8, MAX_TAGS=15, non-negative price validation. Applied to BOTH `create_listing` and `update_listing` (parity confirmed).
+- **P3 hardening** — CORS bound to explicit origins from `CORS_ORIGINS` env (no wildcard); new `SecurityHeadersMiddleware` sets HSTS/X-Content-Type-Options/X-Frame-Options/Referrer-Policy/Permissions-Policy on every response; purge response no longer echoes user names/titles; test-connection endpoint rate-limited to 20/hr per admin; TODO comment added to in-memory rate limiter for future Redis migration.
+- **Tests**: 35/36 phase7b tests pass + 15/15 regression pass. SEC-003 also confirmed via direct curl (cap=100 + used=50 → 429).
+- OpenAPI = **142 operations** (was 140; +2 for reveal-contact + rotate-admin-phone).
+
 ### P3 — Phase 7: Expo mobile port (delegated to a different agent, `/app/mobile/`)
 
 ## Non-negotiable rules (project-wide)
