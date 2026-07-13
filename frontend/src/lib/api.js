@@ -331,6 +331,11 @@ export const integrationsApi = {
   test: (integration) => api.post(`/v1/admin/settings/integrations/test?integration=${encodeURIComponent(integration)}`),
 };
 
+export const aiApi = {
+  generate: (payload) => api.post("/v1/ai/generate-listing-content", payload),
+  improve: (payload) => api.post("/v1/ai/improve-description", payload),
+};
+
 export const onboardingApi = {
   checklist: () => api.get("/v1/users/me/onboarding-checklist"),
 };

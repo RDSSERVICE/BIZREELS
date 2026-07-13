@@ -191,6 +191,7 @@ class IntegrationsPatch(BaseModel):
     cloudinary: dict | None = None
     razorpay: dict | None = None
     fcm: dict | None = None
+    ai_content: dict | None = None
 
 
 @router.get("/settings/integrations")
@@ -224,7 +225,7 @@ async def test_integration(integration: str = Query(...), user=Depends(require_a
     """
     _require_admin(user)
     integration = (integration or "").strip().lower()
-    if integration not in ("msg91", "cloudinary", "razorpay", "fcm"):
+    if integration not in ("msg91", "cloudinary", "razorpay", "fcm", "ai_content"):
         raise HTTPException(400, "Unknown integration")
 
     try:
@@ -261,16 +262,25 @@ async def test_integration(integration: str = Query(...), user=Depends(require_a
 
         # fcm
         from services import fcm_service
-        if fcm_service._dev_mode():
-            return {"ok": True, "integration": "fcm", "dev_mode": True,
-                    "note": "Dev mode active — pushes are log-only. Toggle dev_mode off to init firebase-admin."}
-        app_obj = fcm_service._get_firebase_app()
-        if not app_obj:
-            raise HTTPException(400, "firebase-admin init failed (check service_account_json)")
-        return {"ok": True, "integration": "fcm", "dev_mode": False,
-                "project_id": getattr(app_obj, "project_id", None) or "initialized"}
+        if integration == "fcm":
+            if fcm_service._dev_mode():
+                return {"ok": True, "integration": "fcm", "dev_mode": True,
+                        "note": "Dev mode active — pushes are log-only. Toggle dev_mode off to init firebase-admin."}
+            app_obj = fcm_service._get_firebase_app()
+            if not app_obj:
+                raise HTTPException(400, "firebase-admin init failed (check service_account_json)")
+            return {"ok": True, "integration": "fcm", "dev_mode": False,
+                    "project_id": getattr(app_obj, "project_id", None) or "initialized"}
+
+        # ai_content
+        from services import ai_content_service
+        res = await ai_content_service.ping()
+        return {"integration": "ai_content", **res}
 
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "integration": integration, "error": str(exc)[:400]}
+
+
+# (marker removed)

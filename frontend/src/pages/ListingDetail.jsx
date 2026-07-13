@@ -300,7 +300,52 @@ export default function ListingDetail() {
         {listing.description && (
           <section>
             <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Description</h3>
+            {listing.short_description && (
+              <p className="text-sm text-pink-200 font-medium mb-2" data-testid="listing-short-description">{listing.short_description}</p>
+            )}
             <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed" data-testid="listing-description">{listing.description}</p>
+          </section>
+        )}
+
+        {listing.features?.length > 0 && (
+          <section>
+            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Features</h3>
+            <ul className="glass rounded-2xl p-4 space-y-2" data-testid="listing-features">
+              {listing.features.map((f, i) => (
+                <li key={i} className="text-sm text-white/80 flex gap-2">
+                  <span className="text-emerald-300">✓</span>
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {listing.variants?.length > 0 && (
+          <section>
+            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Variants</h3>
+            <div className="space-y-3" data-testid="listing-variants">
+              {listing.variants.map((v, i) => (
+                <div key={i} className="glass rounded-xl p-3" data-testid={`listing-variant-${i}`}>
+                  <div className="text-sm font-heading font-semibold mb-1.5">{v.name}</div>
+                  {v.options?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {v.options.map((o, k) => (
+                        <span key={k} className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/80 border border-white/10">{o}</span>
+                      ))}
+                    </div>
+                  )}
+                  {v.features?.length > 0 && (
+                    <ul className="text-xs text-white/60 mt-2 list-disc list-inside space-y-0.5">
+                      {v.features.map((f, k) => <li key={k}>{f}</li>)}
+                    </ul>
+                  )}
+                  {v.price_hint_inr ? (
+                    <div className="text-xs text-emerald-300/90 mt-1.5">₹{Number(v.price_hint_inr).toLocaleString()}</div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
           </section>
         )}
 

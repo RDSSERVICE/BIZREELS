@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Check, MapPin, Package, ShoppingBag, Wrench } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, MapPin, Package, ShoppingBag, Wrench, Sparkles, Loader2 } from "lucide-react";
 import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import MediaUploader from "@/components/app/MediaUploader";
-import { categoryApi, listingApi } from "@/lib/api";
+import { categoryApi, listingApi, aiApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import BecomeVendorModal from "@/components/app/BecomeVendorModal";
 
@@ -61,6 +61,9 @@ export default function ListingForm() {
   const [subCats, setSubCats] = useState([]);
   const [publishing, setPublishing] = useState(false);
   const [showBecomeVendor, setShowBecomeVendor] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiImproving, setAiImproving] = useState(false);
+  const [aiPriceHint, setAiPriceHint] = useState(null);
   const draftTimer = useRef(null);
 
   // Load categories
@@ -152,6 +155,79 @@ export default function ListingForm() {
     );
   };
 
+  // ---- AI autofill ----
+  const runAiAutofill = async () => {
+    if (!form.title || form.title.trim().length < 3) {
+      toast.error("Enter a title first (≥3 chars)");
+      return;
+    }
+    if (!form.category_id) {
+      toast.error("Pick a category first");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const { data } = await aiApi.generate({
+        title: form.title.trim(),
+        type: form.type,
+        category_id: form.category_id,
+        sub_category_id: form.sub_category_id || undefined,
+        hints: form.description?.trim() || undefined,
+      });
+      const g = data?.generated || {};
+      const overwriteDesc = !form.description || form.description.length < 40;
+      patch({
+        description: overwriteDesc ? (g.description || form.description) : form.description,
+        short_description: g.short_description || form.short_description,
+        tags: (g.tags && g.tags.length) ? g.tags.join(", ") : form.tags,
+        features: (g.features && g.features.length) ? g.features : form.features,
+        variants: (g.variants && g.variants.length) ? g.variants : form.variants,
+        warranty: form.type === "new_product" && !form.warranty ? (g.warranty_suggestion || "") : form.warranty,
+      });
+      setAiPriceHint(g.suggested_price_range_inr || null);
+      if (data?.ok === false) {
+        toast.error(`AI unavailable: ${data.error?.slice(0, 80) || "unknown error"}`);
+      } else {
+        toast.success(`AI filled ${[
+          overwriteDesc && g.description ? "description" : null,
+          g.short_description ? "short desc" : null,
+          g.tags?.length ? "tags" : null,
+          g.features?.length ? "features" : null,
+          g.variants?.length ? "variants" : null,
+        ].filter(Boolean).length} fields`);
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "AI generation failed");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const runAiImprove = async (tone = "friendly") => {
+    if (!form.description || form.description.trim().length < 20) {
+      toast.error("Write something to improve first");
+      return;
+    }
+    setAiImproving(true);
+    try {
+      const { data } = await aiApi.improve({
+        title: form.title || "Listing",
+        current_description: form.description,
+        tone,
+      });
+      if (data?.ok && data.description) {
+        patch({ description: data.description });
+        toast.success(`Rewritten in ${tone} tone`);
+      } else {
+        toast.error(`Improve failed: ${data?.error?.slice(0, 80) || "unknown"}`);
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "AI improve failed");
+    } finally {
+      setAiImproving(false);
+    }
+  };
+
   const publish = async () => {
     setPublishing(true);
     try {
@@ -175,6 +251,9 @@ export default function ListingForm() {
         reel: form.reel || undefined,
         location: { ...form.location },
         tags: (typeof form.tags === "string" ? form.tags.split(",") : form.tags).map((t) => t.trim()).filter(Boolean),
+        short_description: (form.short_description || "").trim() || undefined,
+        features: (form.features || []).filter(Boolean),
+        variants: (form.variants || []).filter((v) => v && v.name),
       };
 
       let res;
@@ -340,9 +419,112 @@ export default function ListingForm() {
             <Field label="Title">
               <Input data-testid="title-input" value={form.title} onChange={(e) => patch({ title: e.target.value })} maxLength={120} className="h-12 rounded-xl bg-white/5 border-white/10" placeholder="e.g. OnePlus 12, 128GB, Green" />
             </Field>
+
+            {/* AI Autofill CTA */}
+            <button
+              type="button"
+              onClick={runAiAutofill}
+              disabled={aiLoading || !form.title || !form.category_id}
+              data-testid="ai-autofill-btn"
+              className="w-full rounded-xl px-4 py-3 flex items-center justify-center gap-2 text-sm font-semibold bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+            >
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {aiLoading ? "AI is writing your listing…" : "Auto-fill with AI"}
+            </button>
+            {aiPriceHint && (
+              <div className="text-xs text-emerald-300/90 -mt-2 pl-1" data-testid="ai-price-hint">
+                💡 AI suggests a price range of ₹{aiPriceHint.min?.toLocaleString()} – ₹{aiPriceHint.max?.toLocaleString()}
+              </div>
+            )}
+
             <Field label="Description">
-              <Textarea data-testid="description-input" value={form.description} onChange={(e) => patch({ description: e.target.value })} className="min-h-24 rounded-xl bg-white/5 border-white/10" placeholder="Tell buyers about condition, features, why you're selling…" />
+              <div className="relative">
+                <Textarea data-testid="description-input" value={form.description} onChange={(e) => patch({ description: e.target.value })} className="min-h-24 rounded-xl bg-white/5 border-white/10 pr-24" placeholder="Tell buyers about condition, features, why you're selling…" />
+                <button
+                  type="button"
+                  onClick={() => runAiImprove("friendly")}
+                  disabled={aiImproving || !form.description}
+                  data-testid="ai-improve-btn"
+                  className="absolute bottom-2 right-2 text-[11px] font-semibold px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 flex items-center gap-1 disabled:opacity-40"
+                >
+                  {aiImproving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                  Improve
+                </button>
+              </div>
             </Field>
+
+            {form.short_description && (
+              <Field label="Short tagline">
+                <Input data-testid="short-description-input" value={form.short_description} onChange={(e) => patch({ short_description: e.target.value })} maxLength={140} className="h-11 rounded-xl bg-white/5 border-white/10" />
+              </Field>
+            )}
+
+            {form.features?.length > 0 && (
+              <Field label="Key features">
+                <div className="space-y-2" data-testid="features-list">
+                  {form.features.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        value={f}
+                        onChange={(e) => {
+                          const next = [...form.features];
+                          next[i] = e.target.value;
+                          patch({ features: next });
+                        }}
+                        className="h-10 rounded-lg bg-white/5 border-white/10 text-sm"
+                        data-testid={`feature-input-${i}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => patch({ features: form.features.filter((_, j) => j !== i) })}
+                        className="text-white/50 hover:text-red-400 text-xs px-2"
+                        data-testid={`feature-remove-${i}`}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </Field>
+            )}
+
+            {form.variants?.length > 0 && (
+              <Field label={`Variants (${form.variants.length})`}>
+                <div className="space-y-2" data-testid="variants-list">
+                  {form.variants.map((v, i) => (
+                    <div key={i} className="rounded-xl bg-white/5 border border-white/10 p-3" data-testid={`variant-${i}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-sm font-semibold">{v.name}</div>
+                        <button
+                          type="button"
+                          onClick={() => patch({ variants: form.variants.filter((_, j) => j !== i) })}
+                          className="text-xs text-white/50 hover:text-red-400"
+                          data-testid={`variant-remove-${i}`}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      {v.options?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {v.options.map((o, k) => (
+                            <span key={k} className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/80">{o}</span>
+                          ))}
+                        </div>
+                      )}
+                      {v.features?.length > 0 && (
+                        <ul className="text-xs text-white/60 mt-1.5 list-disc list-inside space-y-0.5">
+                          {v.features.map((f, k) => <li key={k}>{f}</li>)}
+                        </ul>
+                      )}
+                      {v.price_hint_inr ? (
+                        <div className="text-xs text-emerald-300/80 mt-1">~₹{v.price_hint_inr.toLocaleString()}</div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </Field>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <Field label="Price (₹)">
                 <Input data-testid="price-input" type="number" min="0" value={form.price} onChange={(e) => patch({ price: e.target.value })} className="h-12 rounded-xl bg-white/5 border-white/10" />

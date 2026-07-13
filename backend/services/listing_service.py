@@ -137,6 +137,9 @@ async def create_listing(vendor_id: str, body: dict) -> dict:
         reel=body.get("reel"),
         location=location,
         tags=[t.strip() for t in (body.get("tags") or []) if t.strip()],
+        short_description=(body.get("short_description") or None),
+        features=[str(x).strip() for x in (body.get("features") or []) if str(x).strip()][:8],
+        variants=body.get("variants") or [],
     )
     doc = listing.to_mongo()
     res = await db.listings.insert_one(doc)

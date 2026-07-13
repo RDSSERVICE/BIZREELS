@@ -29,7 +29,7 @@ CACHE_TTL_SECONDS = 60.0
 _cache: dict[str, dict[str, Any]] = {}
 _cache_loaded_at: float = 0.0
 
-INTEGRATIONS = ("msg91", "cloudinary", "razorpay", "fcm")
+INTEGRATIONS = ("msg91", "cloudinary", "razorpay", "fcm", "ai_content")
 
 # Secret fields that must NEVER be sent to the client verbatim.
 SECRET_FIELDS: dict[str, tuple[str, ...]] = {
@@ -37,6 +37,7 @@ SECRET_FIELDS: dict[str, tuple[str, ...]] = {
     "cloudinary": ("api_secret",),
     "razorpay": ("key_secret", "webhook_secret"),
     "fcm": ("service_account_json",),
+    "ai_content": ("api_key",),
 }
 
 
@@ -74,6 +75,12 @@ def _env_defaults() -> dict[str, dict[str, Any]]:
             "service_account_json": os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip(),
             "dev_mode": _env_bool("FCM_DEV_MODE", True),
         },
+        "ai_content": {
+            "provider": os.environ.get("AI_PROVIDER", "openai").strip(),
+            "model": os.environ.get("AI_MODEL", "gpt-5.4").strip(),
+            "api_key": "",  # fall back to EMERGENT_LLM_KEY env if empty
+            "enabled": os.environ.get("AI_DEV_MODE", "false").lower() not in ("1", "true", "yes"),
+        },
     }
 
 
@@ -87,7 +94,11 @@ def _apply_to_cache(doc: dict) -> None:
 
 
 async def initialize_defaults_on_startup() -> None:
-    """Create the singleton doc if missing (seed from env). Warms the cache."""
+    """Create the singleton doc if missing (seed from env). Warms the cache.
+
+    Also backfills any INTEGRATIONS blocks that are missing from an older doc
+    (e.g., `ai_content` added post-seed) so `get_masked()` returns the full set.
+    """
     db = get_db()
     doc = await db.platform_settings.find_one({"_id": SINGLETON_ID})
     if not doc:
@@ -99,6 +110,18 @@ async def initialize_defaults_on_startup() -> None:
             logger.info("platform_settings: seeded singleton from env defaults")
         except Exception:  # duplicate key on race — read the winner
             doc = await db.platform_settings.find_one({"_id": SINGLETON_ID})
+    else:
+        # Backfill any missing integration blocks (schema evolution over time)
+        defaults = _env_defaults()
+        missing = {name: defaults[name] for name in INTEGRATIONS if not doc.get(name)}
+        if missing:
+            await db.platform_settings.update_one(
+                {"_id": SINGLETON_ID},
+                {"$set": {**missing,
+                          "updated_at": datetime.now(timezone.utc).isoformat()}},
+            )
+            doc = await db.platform_settings.find_one({"_id": SINGLETON_ID})
+            logger.info("platform_settings: backfilled missing blocks: %s", list(missing.keys()))
     _apply_to_cache(doc)
 
 

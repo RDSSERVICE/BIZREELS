@@ -37,6 +37,12 @@ const TABS = [
     fields: [
       ["service_account_json", "Service Account JSON (paste full JSON)", "textarea"],
     ] },
+  { key: "ai_content", label: "AI Content · Listings", secrets: ["api_key"],
+    fields: [
+      ["provider", "Provider (openai / anthropic / gemini)", "text"],
+      ["model", "Model (e.g., gpt-5.4, claude-sonnet-4-6, gemini-3.1-pro-preview)", "text"],
+      ["api_key", "API Key (leave empty to use EMERGENT_LLM_KEY from env)", "text"],
+    ] },
 ];
 
 function IntegrationForm({ config, values, onChange, onSave, onTest, saving, testing }) {
@@ -78,18 +84,37 @@ function IntegrationForm({ config, values, onChange, onSave, onTest, saving, tes
         ))}
 
         <div className="flex items-center justify-between pt-2 border-t border-white/10">
-          <div>
-            <Label htmlFor={`sw-${config.key}`} className="text-sm">Dev mode</Label>
-            <p className="text-xs text-white/50 mt-0.5">
-              {values.dev_mode ? "Mocked — no real API calls" : "LIVE — real provider will be hit"}
-            </p>
-          </div>
-          <Switch
-            id={`sw-${config.key}`}
-            data-testid={`switch-${config.key}-dev-mode`}
-            checked={!!values.dev_mode}
-            onCheckedChange={(v) => onChange("dev_mode", v)}
-          />
+          {config.key === "ai_content" ? (
+            <>
+              <div>
+                <Label htmlFor={`sw-${config.key}`} className="text-sm">Enabled</Label>
+                <p className="text-xs text-white/50 mt-0.5">
+                  {values.enabled ? "AI autofill live in listing wizard" : "AI features disabled for vendors"}
+                </p>
+              </div>
+              <Switch
+                id={`sw-${config.key}`}
+                data-testid={`switch-${config.key}-enabled`}
+                checked={!!values.enabled}
+                onCheckedChange={(v) => onChange("enabled", v)}
+              />
+            </>
+          ) : (
+            <>
+              <div>
+                <Label htmlFor={`sw-${config.key}`} className="text-sm">Dev mode</Label>
+                <p className="text-xs text-white/50 mt-0.5">
+                  {values.dev_mode ? "Mocked — no real API calls" : "LIVE — real provider will be hit"}
+                </p>
+              </div>
+              <Switch
+                id={`sw-${config.key}`}
+                data-testid={`switch-${config.key}-dev-mode`}
+                checked={!!values.dev_mode}
+                onCheckedChange={(v) => onChange("dev_mode", v)}
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -199,7 +224,7 @@ export default function AdminSettings() {
           <div className="h-64 rounded-2xl bg-white/5 animate-pulse" />
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-4 bg-white/5" data-testid="settings-tabs">
+            <TabsList className="w-full grid grid-cols-5 bg-white/5" data-testid="settings-tabs">
               {TABS.map((t) => (
                 <TabsTrigger key={t.key} value={t.key} className="text-xs" data-testid={`tab-${t.key}`}>
                   {t.key.toUpperCase()}

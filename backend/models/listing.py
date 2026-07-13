@@ -30,6 +30,19 @@ class GeoPoint(BaseModel):
     coordinates: list[float]  # [lng, lat]
 
 
+VariantType = Literal["size", "color", "material", "tier", "custom"]
+
+
+class ListingVariant(BaseModel):
+    name: str
+    type: VariantType = "custom"
+    options: list[str] = Field(default_factory=list)
+    prices: dict[str, float] | None = None  # optional per-option price in INR
+    # For service tiers (used when type is 'tier')
+    price_hint_inr: float | None = None
+    features: list[str] = Field(default_factory=list)
+
+
 class ListingLocation(BaseModel):
     lat: float | None = None
     lng: float | None = None
@@ -63,6 +76,10 @@ class Listing(BaseDocument):
     reel: ListingReel | None = None
     location: ListingLocation
     tags: list[str] = Field(default_factory=list)
+    # Phase 7a: AI-assisted content extras (all optional, backwards-compatible)
+    short_description: str | None = None
+    features: list[str] = Field(default_factory=list)
+    variants: list[ListingVariant] = Field(default_factory=list)
     status: ListingStatus = "active"
     views_count: int = 0
     saves_count: int = 0

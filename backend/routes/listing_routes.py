@@ -40,6 +40,15 @@ class LocationIn(BaseModel):
     pincode: str
 
 
+class ListingVariantIn(BaseModel):
+    name: str = Field(min_length=1, max_length=32)
+    type: Literal["size", "color", "material", "tier", "custom"] = "custom"
+    options: list[str] = Field(default_factory=list)
+    prices: dict[str, float] | None = None
+    price_hint_inr: float | None = None
+    features: list[str] = Field(default_factory=list)
+
+
 class ListingCreateBody(BaseModel):
     type: ListingType
     title: str = Field(..., min_length=3, max_length=120)
@@ -60,6 +69,10 @@ class ListingCreateBody(BaseModel):
     reel: ListingReelIn | None = None
     location: LocationIn
     tags: list[str] = Field(default_factory=list)
+    # Phase 7a — AI content extras
+    short_description: str | None = Field(default=None, max_length=200)
+    features: list[str] = Field(default_factory=list)
+    variants: list[ListingVariantIn] = Field(default_factory=list)
 
 
 class ListingUpdateBody(BaseModel):
@@ -80,6 +93,9 @@ class ListingUpdateBody(BaseModel):
     location: LocationIn | None = None
     tags: list[str] | None = None
     status: ListingStatus | None = None
+    short_description: str | None = None
+    features: list[str] | None = None
+    variants: list[ListingVariantIn] | None = None
 
 
 class StatusBody(BaseModel):

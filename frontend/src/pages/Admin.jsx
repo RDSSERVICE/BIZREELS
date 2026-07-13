@@ -3,7 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { Users, ListChecks, Flag, ShieldCheck, TrendingUp, IndianRupee, KeyRound } from "lucide-react";
 import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
 import BottomNav from "@/components/app/BottomNav";
-import { adminApi } from "@/lib/api";
+import { adminApi, integrationsApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 function StatCard({ label, value, icon: Icon, testId }) {
@@ -21,14 +21,33 @@ function StatCard({ label, value, icon: Icon, testId }) {
 export default function Admin() {
   const { user } = useAuth();
   const [ov, setOv] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user?.roles?.includes("admin")) return;
     adminApi.overview().then(({ data }) => setOv(data)).finally(() => setLoading(false));
+    integrationsApi.get().then(({ data }) => setSettings(data)).catch(() => {});
   }, [user?.id]);
 
   if (user && !user.roles?.includes("admin")) return <Navigate to="/" replace />;
+
+  // Helper: compute LIVE/DEV state per integration.
+  // LIVE = dev_mode=false AND primary credential present.
+  const envState = (name) => {
+    if (!settings) return null;
+    const b = settings[name] || {};
+    const secretPresent = (
+      (name === "msg91" && b.auth_key) ||
+      (name === "cloudinary" && b.api_secret) ||
+      (name === "razorpay" && b.key_secret) ||
+      (name === "fcm" && b.service_account_json) ||
+      (name === "ai_content" && (b.api_key || true))  // AI falls back to EMERGENT_LLM_KEY
+    );
+    const isLive = name === "ai_content" ? !!b.enabled : (b.dev_mode === false && !!secretPresent);
+    return isLive ? "live" : "dev";
+  };
+  const badges = ["msg91", "cloudinary", "razorpay", "fcm", "ai_content"];
 
   return (
     <PhoneScreen className="flex flex-col">
@@ -77,6 +96,28 @@ export default function Admin() {
                 <KeyRound className="h-5 w-5 mb-2" />
                 <div className="font-heading font-semibold">Integrations</div>
                 <div className="text-xs text-white/60 mt-0.5">Keys · dev mode</div>
+                {settings && (
+                  <div className="flex flex-wrap gap-1 mt-2" data-testid="env-badges">
+                    {badges.map((n) => {
+                      const s = envState(n);
+                      if (!s) return null;
+                      const live = s === "live";
+                      return (
+                        <span
+                          key={n}
+                          data-testid={`env-badge-${n}`}
+                          className={
+                            "text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full " +
+                            (live ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                  : "bg-amber-500/15 text-amber-300 border border-amber-500/25")
+                          }
+                        >
+                          {n === "ai_content" ? "AI" : n.slice(0, 4)}·{live ? "LIVE" : "DEV"}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </Link>
             </div>
           </>
