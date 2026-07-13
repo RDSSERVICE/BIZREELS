@@ -7,6 +7,7 @@ import jwt
 from database import get_db
 from services import follow_service, listing_service
 from utils.jwt_utils import decode_access_token
+from utils.test_data import not_test_filter
 
 router = APIRouter(prefix="/v1/vendors", tags=["vendors"])
 
@@ -86,7 +87,7 @@ async def leaderboard_fast_responders(city: str | None = None, limit: int = 10):
         "roles": "vendor", "is_deleted": {"$ne": True}, "is_banned": {"$ne": True},
         "chat_response_rate": {"$gte": 0.7},
         "avg_response_time_seconds": {"$gt": 0, "$ne": None},
-        "name": {"$not": {"$regex": "^TEST_"}},
+        **not_test_filter("name"),
     }
     if city:
         q["city"] = {"$regex": f"^{city}$", "$options": "i"}

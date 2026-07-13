@@ -1,0 +1,31 @@
+{
+  "summary": "Phase 6c backend verification complete. Created /app/backend/tests/test_phase6c_purge.py with 11 tests covering: health, fresh-user OTP flow, OpenAPI (has purge endpoint, exactly 135 ops), purge dry_run idempotency, purge real run, admin-only 403, unauth 401/403, reset-demo, and pristine feed/listings/fast-responders (regex-checked). All 11 phase6c tests + all 4 phase6b regression tests PASS.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/v1/auth/otp/verify", "issue": "If a user was previously soft-deleted (is_deleted=true) with the same phone, verify_otp tries to insert a NEW user and hits E11000 duplicate-key on unique phone index (500 error). Reproduce: purge a user, then attempt OTP verify with same phone. Recommendation: either restore the soft-deleted user on re-verify, or drop is_deleted filter in the find_one lookup at services/auth_service.py:153, or use partial unique index on phone (is_deleted != true)."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_phase6c_purge.py",
+    "/app/test_reports/pytest/phase6c_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Fix E11000 duplicate-phone crash in auth_service.verify_otp_and_login when a soft-deleted user with the same phone exists. Not blocking phase 6c; affects re-signup after purge."
+  ],
+  "critical_code_review_comments": [
+    "utils/test_data.py + services/admin_service.purge_test_data — clean implementation, uses `is_test_data:{$ne:true}` + regex on name/title. Cascade list looks comprehensive (19 collections).",
+    "admin_routes.py purge endpoint is properly admin+dev-mode gated (matches reset-demo gating pattern).",
+    "Verified: OpenAPI shows exactly 135 operations and includes /api/v1/admin/dev/purge-test-data.",
+    "Verified: /v1/feed, /v1/listings, /v1/vendors/leaderboard/fast-responders return zero items matching the test-data regex."
+  ],
+  "updated_files": ["/app/backend/tests/test_phase6c_purge.py"],
+  "success_rate": {"backend": "100%", "frontend": "N/A (backend-only run)"},
+  "test_credentials": "Admin phone 9999999999 via OTP dev-mode. Fresh user uses random 98765xxxxx phone.",
+  "seed_data_creation": "test_reset_demo_realistic_counts triggers POST /v1/admin/seed/reset-demo?wipe=true which re-seeds ~45 users / ~80 listings.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 6c purge + pristine-feed guarantees are verified. Test file at /app/backend/tests/test_phase6c_purge.py can be re-run anytime; it auto-picks random fresh phone. Existing phase6b regression suite still passes. Only side-observation is auth re-signup after soft-delete throws 500 due to duplicate phone key — not part of 6c scope but worth fixing before next auth-heavy phase.",
+  "rca of the issue": "N/A — no critical failures. Minor observation on auth flow duplicate-phone after purge documented above."
+}

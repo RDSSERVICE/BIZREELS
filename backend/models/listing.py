@@ -73,5 +73,7 @@ class Listing(BaseDocument):
     is_takendown: bool = False
     is_active: bool = True
     is_deleted: bool = False
+    # Phase 6c: excludes automated-test / seed-harness listings from public output.
+    is_test_data: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

@@ -131,6 +131,29 @@ async def admin_seed_reset_demo(wipe: bool = True, user=Depends(require_auth)):
     return await demo_seed_service.reset_and_seed(wipe=wipe)
 
 
+@router.post("/dev/purge-test-data")
+async def admin_dev_purge_test_data(dry_run: bool = False, user=Depends(require_auth)):
+    """Purge test/pytest-fixture data from the DB. Admin + dev-mode gated.
+
+    Detects docs where `is_test_data == true` OR whose name/title matches the
+    regex `^(test\\b|test_|[uv]\\d+ |[uv]\\d+$)` (case-insensitive). For matching
+    users it also cascades a soft-delete across every collection with a
+    user/vendor/reviewer FK — deals, reviews, messages, chat_threads,
+    proposals, requirements, listing_events, interactions, follows, listings,
+    notifications, wallets, subscriptions, wallet_transactions.
+
+    Set `dry_run=true` to see what WOULD be purged without modifying data.
+    Returns per-collection counts.
+    """
+    _require_admin(user)
+    import os as _os
+    if not any(_os.environ.get(k, "").lower() in ("1", "true", "yes")
+               for k in ("OTP_DEV_MODE", "CLOUDINARY_DEV_MODE", "RAZORPAY_DEV_MODE", "FCM_DEV_MODE")):
+        raise HTTPException(403, "Dev-only endpoint. Enable a *_DEV_MODE flag.")
+    from services import admin_service as _svc
+    return await _svc.purge_test_data(dry_run=dry_run)
+
+
 @router.post("/listings/{listing_id}/dev-backdate")
 async def admin_dev_backdate_listing(listing_id: str, days: int = 35, user=Depends(require_auth)):
     """Dev-only helper — backdates a listing's `created_at` for demoing time-gated

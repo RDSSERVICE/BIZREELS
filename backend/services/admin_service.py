@@ -225,3 +225,124 @@ async def analytics_overview() -> dict:
         "pending_kyc_count": pending_kyc_count,
         "open_reports_count": open_reports_count,
     }
+
+
+# ============ PHASE 6c: TEST-DATA PURGE (dev-only) ============
+from utils.test_data import TEST_DATA_REGEX  # noqa: E402
+
+
+# Collections whose docs reference a user via a FK — cascade soft-delete when
+# the referenced user is purged. Value = FK field name on that collection.
+_USER_FK_COLLECTIONS = [
+    ("listings", "vendor_id"),
+    ("reviews", "reviewer_id"),
+    ("chat_threads", "customer_id"),
+    ("chat_threads", "vendor_id"),
+    ("messages", "sender_id"),
+    ("deals", "buyer_id"),
+    ("deals", "vendor_id"),
+    ("proposals", "creator_id"),
+    ("proposals", "customer_id"),
+    ("requirements", "customer_id"),
+    ("listing_events", "vendor_id"),
+    ("listing_events", "user_id"),
+    ("interactions", "user_id"),
+    ("follows", "follower_id"),
+    ("follows", "following_id"),
+    ("notifications", "user_id"),
+    ("wallets", "user_id"),
+    ("wallet_transactions", "user_id"),
+    ("subscriptions", "user_id"),
+    ("payments", "user_id"),
+    ("kyc_documents", "user_id"),
+    ("referrals", "referrer_id"),
+    ("referrals", "referred_user_id"),
+    ("response_events", "vendor_id"),
+    ("search_history", "user_id"),
+    ("watcher_notifications", "user_id"),
+]
+
+
+async def purge_test_data(dry_run: bool = False) -> dict:
+    """Detect + (optionally) soft-delete all test-data across the DB.
+
+    Detection = `is_test_data: true` OR name/title matches the test-data regex.
+    Cascade   = every user matched → all their FK'd docs get soft-deleted too.
+    Returns per-collection counts + a `dry_run` flag.
+    """
+    db = get_db()
+    regex_clause = {"$regex": TEST_DATA_REGEX, "$options": "i"}
+    user_match = {"$or": [{"is_test_data": True}, {"name": regex_clause}]}
+    listing_match = {"$or": [{"is_test_data": True}, {"title": regex_clause}]}
+
+    # Collect matching user ids (as string, matching how our FKs are stored).
+    user_docs = await db.users.find(user_match, {"_id": 1, "name": 1}).to_list(length=10000)
+    user_ids_str = [str(u["_id"]) for u in user_docs]
+    user_ids_obj = [u["_id"] for u in user_docs]
+    sample_user_names = [u.get("name") for u in user_docs[:20]]
+
+    listing_docs = await db.listings.find(listing_match, {"_id": 1, "title": 1}).to_list(length=10000)
+    listing_ids_str = [str(l["_id"]) for l in listing_docs]
+    sample_listing_titles = [l.get("title") for l in listing_docs[:20]]
+
+    counts: dict[str, int] = {
+        "users_matched": len(user_docs),
+        "listings_matched_by_name": len(listing_docs),
+    }
+
+    now = _now()
+
+    # ---- Users soft-delete ----
+    if not dry_run and user_ids_obj:
+        r = await db.users.update_many(
+            {"_id": {"$in": user_ids_obj}},
+            {"$set": {"is_deleted": True, "is_active": False, "is_test_data": True,
+                      "updated_at": now}},
+        )
+        counts["users_soft_deleted"] = r.modified_count
+    else:
+        counts["users_soft_deleted"] = 0
+
+    # ---- Listings soft-delete (regex-matched OR owned by purged user) ----
+    listing_or = []
+    if listing_ids_str:
+        from bson import ObjectId as _OID
+        listing_or.append({"_id": {"$in": [_OID(x) for x in listing_ids_str]}})
+    if user_ids_str:
+        listing_or.append({"vendor_id": {"$in": user_ids_str}})
+    if listing_or:
+        listing_cascade_q = listing_or[0] if len(listing_or) == 1 else {"$or": listing_or}
+        cascaded_count = await db.listings.count_documents(listing_cascade_q)
+        counts["listings_total_purged"] = cascaded_count
+        if not dry_run:
+            await db.listings.update_many(
+                listing_cascade_q,
+                {"$set": {"is_deleted": True, "is_active": False, "is_test_data": True,
+                          "updated_at": now}},
+            )
+    else:
+        counts["listings_total_purged"] = 0
+
+    # ---- Cascade across every collection that FKs users ----
+    per_coll: dict[str, int] = {}
+    if user_ids_str:
+        for coll_name, fk in _USER_FK_COLLECTIONS:
+            q = {fk: {"$in": user_ids_str}}
+            n = await db[coll_name].count_documents(q)
+            if not n:
+                continue
+            per_coll[f"{coll_name}.{fk}"] = per_coll.get(f"{coll_name}.{fk}", 0) + n
+            if not dry_run:
+                await db[coll_name].update_many(
+                    q,
+                    {"$set": {"is_deleted": True, "is_test_data": True, "updated_at": now}},
+                )
+
+    return {
+        "ok": True,
+        "dry_run": dry_run,
+        "counts": counts,
+        "cascade": per_coll,
+        "sample_user_names": sample_user_names,
+        "sample_listing_titles": sample_listing_titles,
+    }

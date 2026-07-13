@@ -9,6 +9,7 @@ from slugify import slugify
 
 from database import get_db
 from models.listing import Listing
+from utils.test_data import not_test_filter
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,7 @@ async def list_listings(
     """Paginated list. Uses created_at descending + _id tie-break for cursor pagination."""
     db = get_db()
     q: dict[str, Any] = {"is_deleted": {"$ne": True}, "is_takendown": {"$ne": True},
-                          "title": {"$not": {"$regex": "^TEST_"}}}
+                          **not_test_filter("title")}
     for k in ("type", "category_id", "sub_category_id", "vendor_id", "status"):
         v = filters.get(k)
         if v:

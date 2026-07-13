@@ -21,6 +21,9 @@ class User(BaseDocument):
     dob: str | None = None  # ISO date string
     is_active: bool = True
     is_deleted: bool = False
+    # Phase 6c: flags data created by automated tests / seed harnesses so that
+    # public queries (feed, leaderboard, search) can trivially exclude it.
+    is_test_data: bool = False
     # Phase 4a additions (all safe defaults for pre-existing docs)
     is_subscribed_verified: bool = False
     rating_avg: float = 0.0
