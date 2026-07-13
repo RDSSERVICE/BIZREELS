@@ -89,3 +89,7 @@ android-sdk/
 mobile/.expo/
 mobile/.metro-cache/
 frontend/node_modules/.cache/default-development/0.pack
+*.env
+credentials.json
+*.key
+.credentials
