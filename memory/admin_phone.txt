@@ -1,0 +1,4 @@
+# Current admin phone (auto-rotated). OTP is dev-mode only and
+# is NOT echoed in HTTP responses for admin phones — grep the
+# backend logs for 'Mock OTP for 7418916209' to fetch it.
+7418916209

@@ -25,13 +25,28 @@ from filelock import FileLock
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://emergent-india-2.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
-ADMIN_PHONE = "9999999999"
+ADMIN_PHONE = _admin_phone()
 LONG_TIMEOUT = 45  # AI endpoints hit gpt-5.4 → 3–10s typical
 _ADMIN_CACHE = os.path.join(tempfile.gettempdir(), "phase7a_admin_token.json")
 
 
 # ---------- shared helpers ----------
 
+
+def _admin_phone():
+    try:
+        p = open("/app/memory/admin_phone.txt").read().strip().splitlines()[-1].strip()
+        if p.isdigit() and len(p) == 10: return p
+    except Exception: pass
+    return _admin_phone()
+
+def _admin_otp_from_logs(phone):
+    import subprocess, re as _re
+    try:
+        log = subprocess.check_output(["tail", "-n", "300", "/var/log/supervisor/backend.err.log"], text=True)
+        m = _re.findall(rf"Admin OTP for {phone}: (\d{{6}})", log)
+        return m[-1] if m else None
+    except Exception: return None
 def _rand_phone() -> str:
     # Always a 10-digit phone starting with 9
     return f"9{random.randint(100000000, 999999999)}"
@@ -46,7 +61,7 @@ def _send_verify(phone: str, name: str, roles: list[str] | None = None,
             last_err = f"otp/send {r.status_code}: {r.text}"
             time.sleep(0.5)
             continue
-        otp = r.json().get("dev_otp")
+        otp = r.json().get("dev_otp") or _admin_otp_from_logs(phone)
         if not otp:
             last_err = f"no dev_otp: {r.text}"
             time.sleep(0.5)
@@ -377,7 +392,7 @@ class TestRegressions:
         phone = _rand_phone()
         r = requests.post(f"{API}/v1/auth/otp/send", json={"phone": phone}, timeout=15)
         assert r.status_code == 200
-        otp = r.json().get("dev_otp")
+        otp = r.json().get("dev_otp") or _admin_otp_from_logs(phone)
         assert otp
         r = requests.post(f"{API}/v1/auth/otp/verify",
                           json={"phone": phone, "otp": otp, "name": "TEST_Regression"},

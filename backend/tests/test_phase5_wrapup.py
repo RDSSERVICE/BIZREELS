@@ -12,10 +12,25 @@ if not BASE:
                 BASE = line.split("=", 1)[1].strip().rstrip("/")
                 break
 API = f"{BASE}/api/v1"
-ADMIN_PHONE = "9999999999"
+ADMIN_PHONE = _admin_phone()
 _RUN = str(int(time.time()))[-4:]
 
 
+
+def _admin_phone():
+    try:
+        p = open("/app/memory/admin_phone.txt").read().strip().splitlines()[-1].strip()
+        if p.isdigit() and len(p) == 10: return p
+    except Exception: pass
+    return _admin_phone()
+
+def _admin_otp_from_logs(phone):
+    import subprocess, re as _re
+    try:
+        log = subprocess.check_output(["tail", "-n", "300", "/var/log/supervisor/backend.err.log"], text=True)
+        m = _re.findall(rf"Admin OTP for {phone}: (\d{{6}})", log)
+        return m[-1] if m else None
+    except Exception: return None
 def _auth(tok):
     return {"Authorization": f"Bearer {tok}"}
 
@@ -27,7 +42,7 @@ def _fresh_phone(prefix: str) -> str:
 def _login(phone, name, roles=None):
     r = requests.post(f"{API}/auth/otp/send", json={"phone": phone}, timeout=15)
     assert r.status_code == 200, r.text
-    otp = r.json().get("dev_otp")
+    otp = r.json().get("dev_otp") or _admin_otp_from_logs(phone)
     payload = {"phone": phone, "otp": otp, "name": name}
     if roles: payload["roles"] = roles
     r2 = requests.post(f"{API}/auth/otp/verify", json=payload, timeout=15)

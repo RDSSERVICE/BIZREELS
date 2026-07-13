@@ -99,10 +99,36 @@ app.mount("/api/socket.io", socket_asgi)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
-    allow_methods=["*"],
+    # P3 hardening: default to explicit dev origins; production must override
+    # via CORS_ORIGINS env (comma-separated).
+    allow_origins=[o.strip() for o in os.environ.get(
+        "CORS_ORIGINS",
+        "https://emergent-india-2.preview.emergentagent.com,http://localhost:3000",
+    ).split(",") if o.strip()],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+# P3 hardening — security headers on every response.
+from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=(self), interest-cohort=()",
+        )
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.on_event("startup")

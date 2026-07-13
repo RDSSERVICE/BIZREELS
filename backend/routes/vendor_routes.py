@@ -1,10 +1,11 @@
 """Public vendor profile + follower count routes."""
 from __future__ import annotations
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 import jwt
 
 from database import get_db
+from middleware.auth_middleware import require_auth
 from services import follow_service, listing_service
 from utils.jwt_utils import decode_access_token
 from utils.test_data import not_test_filter
@@ -48,7 +49,8 @@ async def get_vendor(user_id: str, request: Request):
         "profile_pic": u.get("profile_pic"),
         "roles": u.get("roles", []),
         "kyc_status": u.get("kyc_status", "unverified"),
-        "phone": u.get("phone") if u.get("phone") else None,
+        # SEC-002: `phone` intentionally removed. Use POST /vendors/{id}/reveal-contact
+        # to unlock a vendor's phone (rate-limited, gated by relationship/verified/credits).
         "followers_count": followers_count,
         "listings_count": listings_count,
         "viewer_following": following,
@@ -109,3 +111,18 @@ async def leaderboard_fast_responders(city: str | None = None, limit: int = 10):
             "trust_score_tier": tier,
         })
     return {"city": city, "items": items}
+
+
+@router.post("/{user_id}/reveal-contact")
+async def reveal_vendor_contact(user_id: str, user=Depends(require_auth)):
+    """SEC-002: authenticated + rate-limited + gated contact reveal.
+
+    Unlock conditions (any one):
+      1. Requester has an active chat/deal with the vendor
+      2. Requester has verified_badge
+      3. Requester spends 5 wallet credits
+
+    Daily rate limit: 5 reveals per requester. Every reveal is audit-logged.
+    """
+    from services import contact_reveal_service
+    return await contact_reveal_service.reveal_contact(str(user.id), user_id)

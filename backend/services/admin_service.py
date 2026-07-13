@@ -343,6 +343,6 @@ async def purge_test_data(dry_run: bool = False) -> dict:
         "dry_run": dry_run,
         "counts": counts,
         "cascade": per_coll,
-        "sample_user_names": sample_user_names,
-        "sample_listing_titles": sample_listing_titles,
+        # SEC/P3: sample_user_names and sample_listing_titles removed —
+        # even admin+dev responses should not echo real PII into HTTP responses.
     }

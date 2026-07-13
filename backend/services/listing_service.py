@@ -16,6 +16,108 @@ logger = logging.getLogger(__name__)
 MAX_IMAGES = 10
 MAX_REEL_DURATION = 30.0  # seconds
 
+# SEC-004: shared normalization for AI-fillable fields on both CREATE and UPDATE
+MAX_VARIANTS = 5
+MAX_VARIANT_OPTIONS = 20
+MAX_FEATURES = 8
+MAX_TAGS = 15
+MAX_FEATURE_LEN = 200
+MAX_TAG_LEN = 40
+MAX_VARIANT_NAME_LEN = 32
+MAX_OPTION_LEN = 40
+
+
+def normalize_variants(variants: list, listing_type: str | None = None) -> list:
+    """Validate + shape user-supplied variants array. Raises HTTP 422 on overflow.
+
+    Contract:
+      - ≤ 5 variants; each option list ≤ 20; strings capped in length.
+      - `prices` values must be non-negative numbers.
+      - service tiers may carry `price_hint_inr` (also non-negative).
+    """
+    if variants is None:
+        return []
+    if not isinstance(variants, list):
+        raise HTTPException(422, "variants must be a list")
+    if len(variants) > MAX_VARIANTS:
+        raise HTTPException(422, f"Too many variants ({len(variants)} > {MAX_VARIANTS})")
+    allowed_types = {"size", "color", "material", "tier", "custom"}
+    out: list[dict] = []
+    for v in variants:
+        if not isinstance(v, dict):
+            continue
+        name = str(v.get("name") or "").strip()[:MAX_VARIANT_NAME_LEN]
+        if not name:
+            continue
+        vtype = str(v.get("type") or "custom").lower().strip()
+        if vtype not in allowed_types:
+            vtype = "custom"
+        opts_raw = v.get("options") or []
+        if not isinstance(opts_raw, list):
+            raise HTTPException(422, "variant.options must be a list")
+        if len(opts_raw) > MAX_VARIANT_OPTIONS:
+            raise HTTPException(422, f"Too many options ({len(opts_raw)} > {MAX_VARIANT_OPTIONS})")
+        opts = [str(o).strip()[:MAX_OPTION_LEN] for o in opts_raw if str(o).strip()]
+
+        prices_in = v.get("prices") or None
+        prices_out: dict[str, float] | None = None
+        if isinstance(prices_in, dict):
+            prices_out = {}
+            for k, val in list(prices_in.items())[:MAX_VARIANT_OPTIONS]:
+                try:
+                    price_val = float(val)
+                except (TypeError, ValueError):
+                    raise HTTPException(422, f"variant.prices[{k}] must be numeric")
+                if price_val < 0:
+                    raise HTTPException(422, "variant prices must be non-negative")
+                prices_out[str(k)[:MAX_OPTION_LEN]] = price_val
+
+        price_hint = v.get("price_hint_inr")
+        if price_hint is not None:
+            try:
+                price_hint = float(price_hint)
+            except (TypeError, ValueError):
+                price_hint = None
+            if price_hint is not None and price_hint < 0:
+                raise HTTPException(422, "price_hint_inr must be non-negative")
+
+        features_raw = v.get("features") or []
+        if not isinstance(features_raw, list):
+            features_raw = []
+        var_features = [str(f).strip()[:MAX_FEATURE_LEN] for f in features_raw[:5] if str(f).strip()]
+
+        out.append({
+            "name": name,
+            "type": vtype,
+            "options": opts,
+            **({"prices": prices_out} if prices_out else {}),
+            **({"price_hint_inr": price_hint} if price_hint is not None else {}),
+            **({"features": var_features} if var_features else {}),
+        })
+    return out
+
+
+def normalize_features(features) -> list[str]:
+    if features is None:
+        return []
+    if not isinstance(features, list):
+        raise HTTPException(422, "features must be a list")
+    if len(features) > MAX_FEATURES * 3:
+        raise HTTPException(422, f"Too many features ({len(features)} > {MAX_FEATURES * 3})")
+    return [str(f).strip()[:MAX_FEATURE_LEN] for f in features if str(f).strip()][:MAX_FEATURES]
+
+
+def normalize_tags(tags) -> list[str]:
+    if tags is None:
+        return []
+    if isinstance(tags, str):
+        tags = [t.strip() for t in tags.split(",") if t.strip()]
+    if not isinstance(tags, list):
+        raise HTTPException(422, "tags must be a list")
+    if len(tags) > MAX_TAGS * 3:
+        raise HTTPException(422, f"Too many tags ({len(tags)} > {MAX_TAGS * 3})")
+    return [str(t).strip()[:MAX_TAG_LEN] for t in tags if str(t).strip()][:MAX_TAGS]
+
 
 def _serialize(doc: dict) -> dict:
     """Convert Mongo doc to API response shape."""
@@ -136,10 +238,10 @@ async def create_listing(vendor_id: str, body: dict) -> dict:
         images=body.get("images") or [],
         reel=body.get("reel"),
         location=location,
-        tags=[t.strip() for t in (body.get("tags") or []) if t.strip()],
+        tags=normalize_tags(body.get("tags")),
         short_description=(body.get("short_description") or None),
-        features=[str(x).strip() for x in (body.get("features") or []) if str(x).strip()][:8],
-        variants=body.get("variants") or [],
+        features=normalize_features(body.get("features")),
+        variants=normalize_variants(body.get("variants"), type_),
     )
     doc = listing.to_mongo()
     res = await db.listings.insert_one(doc)
@@ -211,7 +313,7 @@ async def get_by_slug(slug: str, incr_views: bool = True) -> dict:
             "id": str(vendor["_id"]),
             "name": vendor.get("name"),
             "profile_pic": vendor.get("profile_pic"),
-            "phone": vendor.get("phone"),
+            # SEC-002: phone stripped — clients must call reveal-contact endpoint.
         }
     # Attach category names
     cat = await db.categories.find_one({"_id": ObjectId(result["category_id"])})
@@ -265,6 +367,13 @@ async def update_listing(listing_id: str, vendor_id: str, body: dict, is_admin: 
         "short_description", "features", "variants",
     }
     clean = {k: v for k, v in body.items() if k in allowed}
+    # SEC-004: apply the same normalization on UPDATE that CREATE uses.
+    if "variants" in clean:
+        clean["variants"] = normalize_variants(clean["variants"], doc.get("type"))
+    if "features" in clean:
+        clean["features"] = normalize_features(clean["features"])
+    if "tags" in clean:
+        clean["tags"] = normalize_tags(clean["tags"])
     # Re-validate when relevant
     if "price" in clean or "offer_price" in clean:
         price = clean.get("price", doc.get("price"))

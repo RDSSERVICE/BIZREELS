@@ -7,7 +7,6 @@ import { PhoneScreen } from "@/components/app/PhoneScreen";
 import BottomNav from "@/components/app/BottomNav";
 import LocationChip, { useUserLocation } from "@/components/app/LocationChip";
 import ReelItem from "@/components/app/ReelItem";
-import ListingCard from "@/components/app/ListingCard";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
@@ -54,8 +53,9 @@ export default function Feed() {
     await requestLoc();
   };
 
-  // Split items into reels + grid rows (every 5 reels inject a 3-item grid row)
-  const layout = buildLayout(items);
+  // Reels-only vertical stream (Instagram Reels behaviour). Non-reel listings
+  // (image-only) still render full-viewport via ReelItem's image fallback.
+  const stream = items;
 
   return (
     <PhoneScreen className="flex flex-col">
@@ -78,7 +78,11 @@ export default function Feed() {
       </div>
 
       {/* Feed body */}
-      <div className="flex-1 overflow-y-auto snap-y snap-mandatory h-[calc(100vh-56px-64px)]" data-testid="feed-scroll">
+      <div
+        className="flex-1 overflow-y-auto snap-y snap-mandatory h-[calc(100vh-56px-64px)] scrollbar-none"
+        style={{ scrollbarWidth: "none" }}
+        data-testid="feed-scroll"
+      >
         {loading && items.length === 0 ? (
           <div className="p-6 space-y-3" data-testid="feed-loading">
             {[1, 2].map((i) => <div key={i} className="aspect-[9/16] rounded-2xl bg-white/5 animate-pulse" />)}
@@ -87,24 +91,16 @@ export default function Feed() {
           <div className="p-10 text-center text-white/60" data-testid="feed-empty">{t("feed.feed_empty")}</div>
         ) : (
           <>
-            {layout.map((block, i) => (
-              block.kind === "reel" ? (
-                <ReelItem
-                  key={`r-${block.item.id}`}
-                  listing={block.item}
-                  onOpenLogin={() => navigate("/login")}
-                />
-              ) : (
-                <div key={`g-${i}`} className="snap-start px-4 py-4 bg-black">
-                  <div className="text-xs text-white/50 uppercase tracking-wider mb-2 font-semibold">Popular around you</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {block.items.map((l) => <ListingCard key={l.id} listing={l} />)}
-                  </div>
-                </div>
-              )
+            {stream.map((listing, i) => (
+              <ReelItem
+                key={listing.id}
+                listing={listing}
+                index={i}
+                onOpenLogin={() => navigate("/login")}
+              />
             ))}
             {hasMore && (
-              <div className="snap-start px-4 py-6 bg-black flex justify-center">
+              <div className="snap-start px-4 py-6 bg-black flex justify-center h-24">
                 <Button
                   data-testid="feed-load-more"
                   variant="outline"
@@ -138,28 +134,4 @@ export default function Feed() {
       </Dialog>
     </PhoneScreen>
   );
-}
-
-function buildLayout(items) {
-  const out = [];
-  let reelCount = 0;
-  let buffer = [];
-  for (const it of items) {
-    if (it.reel?.url) {
-      out.push({ kind: "reel", item: it });
-      reelCount += 1;
-      if (reelCount % 5 === 0 && buffer.length > 0) {
-        out.push({ kind: "grid", items: buffer.slice(0, 3) });
-        buffer = buffer.slice(3);
-      }
-    } else {
-      buffer.push(it);
-      if (buffer.length >= 3) {
-        out.push({ kind: "grid", items: buffer.slice(0, 3) });
-        buffer = buffer.slice(3);
-      }
-    }
-  }
-  if (buffer.length > 0) out.push({ kind: "grid", items: buffer });
-  return out;
 }

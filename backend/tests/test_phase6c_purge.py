@@ -36,11 +36,37 @@ V1 = f"{API}/v1"
 TEST_DATA_RE = re.compile(r"^(test\b|test_|[uv]\d+ |[uv]\d+$)", re.IGNORECASE)
 
 
+def _admin_phone() -> str:
+    """Fetch the current admin phone from the artifact written by
+    admin_phone_service.ensure_admin_seed / rotate_admin_phone.
+    """
+    try:
+        p = open("/app/memory/admin_phone.txt").read().strip().splitlines()[-1].strip()
+        if p.isdigit() and len(p) == 10:
+            return p
+    except Exception:
+        pass
+    return "9999999999"
+
+
+def _admin_otp_from_logs(phone: str) -> str | None:
+    """SEC-001: admin OTPs are not echoed in HTTP responses; grep the
+    backend supervisor log for the current OTP.
+    """
+    import subprocess as _sp
+    try:
+        log = _sp.check_output(["tail", "-n", "300", "/var/log/supervisor/backend.err.log"], text=True)
+    except Exception:
+        return None
+    matches = re.findall(rf"Admin OTP for {re.escape(phone)}: (\d{{6}})", log)
+    return matches[-1] if matches else None
+
+
 def _login(phone: str, name: str = "Tester", roles=None) -> str:
     r = requests.post(f"{V1}/auth/otp/send", json={"phone": phone}, timeout=15)
     assert r.status_code == 200, f"otp/send failed: {r.status_code} {r.text}"
-    otp = r.json().get("dev_otp")
-    assert otp, f"no dev_otp in response: {r.text}"
+    otp = r.json().get("dev_otp") or _admin_otp_from_logs(phone)
+    assert otp, f"no dev_otp in response and no admin OTP in logs for {phone}: {r.text}"
     payload = {"phone": phone, "otp": otp, "name": name}
     if roles is not None:
         payload["roles"] = roles
@@ -53,7 +79,7 @@ def _login(phone: str, name: str = "Tester", roles=None) -> str:
 
 @pytest.fixture(scope="module")
 def admin_token() -> str:
-    return _login("9999999999", name="Admin")
+    return _login(_admin_phone(), name="Admin")
 
 
 @pytest.fixture(scope="module")

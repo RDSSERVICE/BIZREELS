@@ -8,6 +8,10 @@ Config precedence (highest → lowest):
   1. platform_settings.ai_content (admin panel)
   2. environment variables (AI_PROVIDER, AI_MODEL, EMERGENT_LLM_KEY)
   3. hard-coded defaults ("openai" / "gpt-5.4")
+
+SEC-003: a global daily-token cap prevents multi-account abuse from draining
+the shared LLM budget. Cap defaults to 100_000 tokens/day, configurable via
+platform_settings.ai_content.daily_tokens_cap.
 """
 from __future__ import annotations
 
@@ -17,12 +21,18 @@ import os
 import re
 import time
 import uuid
+from datetime import datetime, timezone
 from typing import Any
+
+from fastapi import HTTPException
+
+from database import get_db
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_PROVIDER = "openai"
 DEFAULT_MODEL = "gpt-5.4"
+DEFAULT_DAILY_CAP = 100_000  # tokens/day platform-wide
 
 # ------------------------------------------------------------------ config
 def _cfg() -> dict[str, Any]:
@@ -39,6 +49,55 @@ def _cfg() -> dict[str, Any]:
 
 def is_configured() -> bool:
     return bool(_cfg().get("api_key"))
+
+
+# ------------------------------------------------------------------ SEC-003 daily budget
+def _today_key() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+async def _get_daily_cap() -> int:
+    from services import settings_service
+    snap = settings_service.get_integration_sync("ai_content")
+    try:
+        cap = int(snap.get("daily_tokens_cap") or DEFAULT_DAILY_CAP)
+        return max(1000, cap)
+    except (TypeError, ValueError):
+        return DEFAULT_DAILY_CAP
+
+
+async def get_usage_today() -> dict:
+    """Return {used, cap, day} — used across all users for the current UTC day."""
+    db = get_db()
+    day = _today_key()
+    doc = await db.ai_usage.find_one({"_id": day})
+    used = int((doc or {}).get("tokens_used", 0))
+    cap = await _get_daily_cap()
+    return {"day": day, "tokens_used": used, "tokens_cap": cap,
+            "tokens_remaining": max(0, cap - used)}
+
+
+async def _ensure_budget_or_raise(estimate_tokens: int = 1200) -> None:
+    """Enforce the global daily cap before an LLM call. Raises 429 when hit."""
+    u = await get_usage_today()
+    if u["tokens_used"] + estimate_tokens > u["tokens_cap"]:
+        raise HTTPException(
+            429,
+            f"Global AI budget for today reached ({u['tokens_used']}/{u['tokens_cap']} "
+            "tokens). Try again after UTC midnight.",
+        )
+
+
+async def _record_tokens(tokens: int) -> None:
+    if tokens <= 0:
+        return
+    db = get_db()
+    await db.ai_usage.update_one(
+        {"_id": _today_key()},
+        {"$inc": {"tokens_used": int(tokens)},
+         "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
 
 
 # ------------------------------------------------------------------ chat
@@ -120,6 +179,7 @@ async def generate_listing_content(
 ) -> dict:
     """One-shot structured generation. Returns dict with ok/generated/meta."""
     from emergentintegrations.llm.chat import UserMessage
+    await _ensure_budget_or_raise(estimate_tokens=1500)
     started = time.time()
     cfg = _cfg()
     prompt = (
@@ -145,16 +205,21 @@ async def generate_listing_content(
             "meta": {"latency_ms": int((time.time() - started) * 1000),
                      "model_used": cfg["model"], "provider": cfg["provider"]},
         }
+    # Estimate tokens ≈ 4 chars each; cap to a reasonable ceiling
+    approx_tokens = max(400, min(3000, (len(prompt) + len(raw)) // 4))
+    await _record_tokens(approx_tokens)
     return {
         "ok": True,
         "generated": _normalize(data, listing_type),
         "meta": {"latency_ms": int((time.time() - started) * 1000),
-                 "model_used": cfg["model"], "provider": cfg["provider"]},
+                 "model_used": cfg["model"], "provider": cfg["provider"],
+                 "tokens_used": approx_tokens},
     }
 
 
 async def improve_description(current_description: str, title: str, tone: str) -> dict:
     from emergentintegrations.llm.chat import UserMessage
+    await _ensure_budget_or_raise(estimate_tokens=800)
     started = time.time()
     cfg = _cfg()
     if tone not in ("professional", "friendly", "hindi_mix"):
@@ -176,9 +241,12 @@ async def improve_description(current_description: str, title: str, tone: str) -
                 "description": current_description,
                 "meta": {"latency_ms": int((time.time() - started) * 1000),
                          "model_used": cfg["model"], "provider": cfg["provider"]}}
+    approx_tokens = max(200, min(1500, (len(prompt) + len(raw)) // 4))
+    await _record_tokens(approx_tokens)
     return {"ok": True, "description": str(data.get("description", "") or "").strip(),
             "meta": {"latency_ms": int((time.time() - started) * 1000),
-                     "model_used": cfg["model"], "provider": cfg["provider"]}}
+                     "model_used": cfg["model"], "provider": cfg["provider"],
+                     "tokens_used": approx_tokens}}
 
 
 async def ping() -> dict:

@@ -97,11 +97,18 @@ async def request_otp(phone: str) -> dict:
         "message": "OTP sent successfully",
         "expires_in_seconds": OTP_TTL_MINUTES * 60,
     }
-    # dev_otp is echoed ONLY when OTP_DEV_MODE is explicitly enabled.
-    # In production (OTP_DEV_MODE unset/false) the code is delivered by SMS only.
+    # SEC-001: dev_otp is echoed ONLY when dev mode is on AND the phone is NOT
+    # an admin phone. Admin logins always require reading the OTP from server
+    # logs (or a real SMS in prod). This closes the "hard-coded admin phone +
+    # public dev_otp = account takeover" vector.
     if is_dev_mode():
-        response["dev_otp"] = otp
         response["dev_mode"] = True
+        from services import admin_phone_service
+        if not admin_phone_service.is_admin_phone_sync(phone):
+            response["dev_otp"] = otp
+        else:
+            response["dev_otp_hidden"] = True  # tell the client to check logs
+            logger.info("[MSG91 DEV MODE] Admin OTP for %s: %s (not echoed to HTTP client)", phone, otp)
     return response
 
 
@@ -284,26 +291,6 @@ async def revoke_refresh_token(refresh_token: str) -> None:
 
 
 async def seed_admin_user() -> None:
-    """Seed the initial admin user only when explicitly enabled.
-
-    Controlled by env `SEED_ADMIN_ON_STARTUP=true`. In production this SHOULD be
-    disabled after the first successful seed to remove a predictable admin phone.
-    Admin phone is configurable via `ADMIN_SEED_PHONE` (defaults to 9999999999
-    for local dev only).
-    """
-    if os.environ.get("SEED_ADMIN_ON_STARTUP", "false").lower() not in ("1", "true", "yes"):
-        logger.info("SEED_ADMIN_ON_STARTUP disabled — skipping admin seed")
-        return
-    phone = os.environ.get("ADMIN_SEED_PHONE", "9999999999")
-    db = get_db()
-    existing = await db.users.find_one({"phone": phone})
-    if existing:
-        return
-    admin = User(
-        phone=phone,
-        name="Admin",
-        roles=["admin", "customer"],
-        current_role="admin",
-    )
-    await db.users.insert_one(admin.to_mongo())
-    logger.info("Seeded admin user with phone %s", phone)
+    """Backwards-compat wrapper — delegated to admin_phone_service.ensure_admin_seed."""
+    from services import admin_phone_service
+    await admin_phone_service.ensure_admin_seed()

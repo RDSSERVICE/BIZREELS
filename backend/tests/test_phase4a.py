@@ -16,13 +16,28 @@ if not BASE:
 
 API = f"{BASE}/api/v1"
 
-ADMIN_PHONE = "9999999999"
+ADMIN_PHONE = _admin_phone()
 # Use unique phones per run to avoid rate-limits / stale state
 _RUN = str(int(time.time()))[-4:]
 BUYER_PHONE = f"98776{_RUN}"[:10].ljust(10, "0")
 SELLER_PHONE = f"98123{_RUN}"[:10].ljust(10, "0")
 
 
+
+def _admin_phone():
+    try:
+        p = open("/app/memory/admin_phone.txt").read().strip().splitlines()[-1].strip()
+        if p.isdigit() and len(p) == 10: return p
+    except Exception: pass
+    return _admin_phone()
+
+def _admin_otp_from_logs(phone):
+    import subprocess, re as _re
+    try:
+        log = subprocess.check_output(["tail", "-n", "300", "/var/log/supervisor/backend.err.log"], text=True)
+        m = _re.findall(rf"Admin OTP for {phone}: (\d{{6}})", log)
+        return m[-1] if m else None
+    except Exception: return None
 def _login(phone: str, name: str, roles=None):
     r = requests.post(f"{API}/auth/otp/send", json={"phone": phone}, timeout=15)
     assert r.status_code == 200, f"otp/send failed: {r.status_code} {r.text}"

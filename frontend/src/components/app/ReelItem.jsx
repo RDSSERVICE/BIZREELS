@@ -1,17 +1,43 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Heart, Bookmark, Share2, Volume2, VolumeX, MessageCircle, User } from "lucide-react";
+import { Heart, Bookmark, Share2, Volume2, VolumeX, MessageCircle, Play } from "lucide-react";
 import { toast } from "sonner";
 import { interactionApi, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 /**
- * A single vertical reel item. Autoplays muted, taps to mute/unmute.
- * Right-hand action rail: like, save, share, chat.
+ * Instagram-style vertical reel:
+ * - Autoplays via IntersectionObserver (only when ≥50% visible)
+ * - Pauses + rewinds when out of view (saves bandwidth)
+ * - Global mute state (single tap on ANY reel unmutes the whole stream)
+ * - Preloads eagerly for the first 2 reels, metadata-only for the rest
+ * - Falls back to a full-viewport image when the listing has no reel
+ * - Snap-align + full-height so the browser handles the physical snapping
  */
-export default function ReelItem({ listing, videoRef, onOpenLogin }) {
+
+// Module-level global mute state — persisted so scrolling never re-mutes.
+let _globalMuted = true;
+const _muteListeners = new Set();
+function setGlobalMuted(v) {
+  _globalMuted = v;
+  _muteListeners.forEach((fn) => fn(v));
+}
+function useGlobalMute() {
+  const [muted, setMuted] = useState(_globalMuted);
+  useEffect(() => {
+    _muteListeners.add(setMuted);
+    return () => _muteListeners.delete(setMuted);
+  }, []);
+  return [muted, setGlobalMuted];
+}
+
+export default function ReelItem({ listing, index = 0, onOpenLogin }) {
   const { user } = useAuth();
-  const [muted, setMuted] = useState(true);
+  const videoRef = useRef(null);
+  const rootRef = useRef(null);
+  const [muted, setMutedGlobal] = useGlobalMute();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [needsTapToPlay, setNeedsTapToPlay] = useState(false);
   const [liked, setLiked] = useState(listing.viewer_state?.liked || false);
   const [saved, setSaved] = useState(listing.viewer_state?.saved || false);
   const [likes, setLikes] = useState(listing.likes_count || 0);
@@ -24,6 +50,50 @@ export default function ReelItem({ listing, videoRef, onOpenLogin }) {
     setSaves(listing.saves_count || 0);
   }, [listing.id, listing.viewer_state?.liked, listing.viewer_state?.saved, listing.likes_count, listing.saves_count]);
 
+  // Keep <video>.muted in sync with the global mute state.
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = muted;
+  }, [muted]);
+
+  // IntersectionObserver → autoplay when in view, pause + rewind when out.
+  useEffect(() => {
+    const el = rootRef.current;
+    const v = videoRef.current;
+    if (!el || !v) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            // Enter view → try to play
+            const p = v.play();
+            if (p && typeof p.then === "function") {
+              p.then(() => {
+                setIsPlaying(true);
+                setNeedsTapToPlay(false);
+              }).catch(() => {
+                // Autoplay blocked (usually because non-muted OR user hasn't gestured yet).
+                // Fall back to muted playback which browsers universally allow.
+                v.muted = true;
+                setMutedGlobal(true);
+                v.play()
+                  .then(() => setIsPlaying(true))
+                  .catch(() => setNeedsTapToPlay(true));
+              });
+            }
+          } else {
+            v.pause();
+            v.currentTime = 0;
+            setIsPlaying(false);
+          }
+        }
+      },
+      { threshold: [0, 0.5, 1] },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [setMutedGlobal]);
+
   const needAuth = () => {
     if (!user) {
       toast.info("Sign in to like, save & follow");
@@ -32,6 +102,21 @@ export default function ReelItem({ listing, videoRef, onOpenLogin }) {
     }
     return false;
   };
+
+  const toggleMute = useCallback(() => setMutedGlobal(!muted), [muted, setMutedGlobal]);
+
+  const handleVideoTap = useCallback(() => {
+    // First tap: if paused (autoplay blocked), start playing. Otherwise toggle mute.
+    const v = videoRef.current;
+    if (v && v.paused) {
+      v.play().then(() => {
+        setIsPlaying(true);
+        setNeedsTapToPlay(false);
+      }).catch(() => {});
+      return;
+    }
+    toggleMute();
+  }, [toggleMute]);
 
   const like = async () => {
     if (needAuth()) return;
@@ -55,36 +140,72 @@ export default function ReelItem({ listing, videoRef, onOpenLogin }) {
     try { await navigator.clipboard.writeText(url); toast.success("Link copied"); } catch {}
   };
 
+  const hasVideo = !!listing.reel?.url;
+  const hasImage = !!listing.images?.[0]?.url;
+
   return (
-    <div className="snap-start h-[calc(100vh-64px)] w-full relative bg-black" data-testid={`reel-${listing.slug}`}>
-      {listing.reel?.url ? (
+    <div
+      ref={rootRef}
+      className="snap-start snap-always h-[calc(100vh-64px)] w-full relative bg-black overflow-hidden"
+      data-testid={`reel-${listing.slug}`}
+    >
+      {hasVideo ? (
         <video
           ref={videoRef}
           src={resolveMediaUrl(listing.reel.url)}
-          className="absolute inset-0 w-full h-full object-cover"
-          autoPlay
+          poster={listing.reel.thumbnail_url ? resolveMediaUrl(listing.reel.thumbnail_url) : undefined}
+          className="absolute inset-0 w-full h-full object-cover cursor-pointer"
           loop
           muted={muted}
           playsInline
-          onClick={() => setMuted((m) => !m)}
+          preload={index < 2 ? "auto" : "metadata"}
+          onClick={handleVideoTap}
+          onPlaying={() => { setIsPlaying(true); setNeedsTapToPlay(false); }}
+          onPause={() => setIsPlaying(false)}
           data-testid={`reel-video-${listing.slug}`}
         />
-      ) : listing.images?.[0]?.url ? (
-        <img src={resolveMediaUrl(listing.images[0].url)} alt={listing.title} className="absolute inset-0 w-full h-full object-cover" />
-      ) : null}
+      ) : hasImage ? (
+        <img
+          src={resolveMediaUrl(listing.images[0].url)}
+          alt={listing.title}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading={index < 2 ? "eager" : "lazy"}
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-white/40 text-sm">
+          No media
+        </div>
+      )}
 
       {/* Overlay gradients */}
-      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/85 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/85 to-transparent pointer-events-none" />
+
+      {/* Play overlay when autoplay was blocked */}
+      {hasVideo && needsTapToPlay && !isPlaying && (
+        <button
+          onClick={handleVideoTap}
+          className="absolute inset-0 z-10 flex items-center justify-center"
+          aria-label="Tap to play"
+          data-testid={`reel-tap-play-${listing.slug}`}
+        >
+          <span className="h-20 w-20 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/20">
+            <Play className="h-8 w-8 fill-white text-white" />
+          </span>
+        </button>
+      )}
 
       {/* Mute indicator */}
-      <button
-        onClick={() => setMuted((m) => !m)}
-        className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center border border-white/10"
-        aria-label={muted ? "Unmute" : "Mute"}
-      >
-        {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-      </button>
+      {hasVideo && (
+        <button
+          onClick={toggleMute}
+          className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center border border-white/10 z-10"
+          aria-label={muted ? "Unmute" : "Mute"}
+          data-testid={`reel-mute-${listing.slug}`}
+        >
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        </button>
+      )}
 
       {/* Bottom info */}
       <div className="absolute inset-x-0 bottom-4 px-5 z-10 flex items-end gap-4">

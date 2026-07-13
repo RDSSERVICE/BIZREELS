@@ -1,0 +1,41 @@
+{
+  "summary": "Phase 7b security hardening tests — 19/22 passed. All SEC-001 (admin OTP hiding + rotate), SEC-003 (global AI token cap), SEC-004 (variant normalizer create+update parity) and most P3 items verified. THREE CRITICAL BUGS FOUND: (1) `reveal-contact` credit path is completely broken — `contact_reveal_service.py:90` calls non-existent `wallet_service.get_balance()` → every reveal without relationship/verified_badge returns 500 'Payment failed' instead of 200/402. (2) CORS is wildcard `*` in production because `/app/backend/.env` contains `CORS_ORIGINS=\"*\"` — combined with `allow_credentials=True` this is a security misconfiguration. (3) Consequence: SEC-002 gated reveal flow cannot succeed via credits — undermines the whole SEC-002 threat model.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/v1/vendors/{id}/reveal-contact", "issue": "AttributeError: module 'services.wallet_service' has no attribute 'get_balance'. contact_reveal_service.py line 90 calls `wallet_service.get_balance(requester_id)` which does not exist. Result: reveal ALWAYS returns 500 for credits-path users. Fix: either add `get_balance(user_id)` helper to wallet_service OR read `wallet.credits` from `wallet_service.get_or_create(user_id)` and translate the existing `spend_credits` `HTTPException(400,'Insufficient credits')` into a 402. Currently SEC-002e (reveal success) and SEC-002f (6th → 429) can NEVER be exercised end-to-end.", "priority": "CRITICAL"},
+      {"endpoint": "CORS middleware (server.py:99-110)", "issue": "`/app/backend/.env` contains `CORS_ORIGINS=\"*\"` (verified via grep). Preflight response returns `Access-Control-Allow-Origin: *`. Combined with `allow_credentials=True` this is (a) a browser-spec violation (browsers will actually reject credentialed requests) AND (b) a P3-hardening regression — the whole point of P3b was to move OFF wildcard. Fix: set CORS_ORIGINS in .env to the actual explicit origin list (`https://emergent-india-2.preview.emergentagent.com,http://localhost:3000`).", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/v1/admin/dev/rotate-admin-phone", "issue": "Works, but rotate happens INSIDE the running process — subsequent admin logins in the same test session naturally use the new phone. Fine for tests, but note that the pre-existing admin JWT stays valid (as it should — it's stateless). No fix required, just documenting for future testers."},
+      {"endpoint": "test_phase7a_ai_content.py:28", "issue": "Pre-existing test file has `ADMIN_PHONE = _admin_phone()` at module-scope line 28, but the function `_admin_phone` is defined at line 36. Python resolves this at call time only if inside a function, but this is module-level execution → `NameError` at import. Also the fallback branch at line 41 is `return _admin_phone()` which is infinite recursion. Left as-is (not phase 7b scope). Would need `p = open(...).read().strip(); return p if p.isdigit() and len(p)==10 else '9999999999'`."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_phase7b_security.py",
+    "/app/test_reports/pytest/phase7b_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix `contact_reveal_service.py:90` — replace `wallet_service.get_balance(requester_id)` with a valid balance read (e.g., `w = await wallet_service.get_or_create(requester_id); balance = w.get('credits', 0)`). Also consider returning 402 (not 400) when balance <5.",
+    "CRITICAL: Update `/app/backend/.env` — change `CORS_ORIGINS=\"*\"` to the explicit origin list. Restart backend for it to take effect.",
+    "(Nice-to-have) Add a minimal `wallet_service.get_balance(user_id) -> int` helper so callers don't need to know the wallet doc shape.",
+    "(Nice-to-have) Fix the pre-existing broken `_admin_phone()` recursion + call-before-def in `test_phase7a_ai_content.py` (see minor issue #2)."
+  ],
+  "critical_code_review_comments": [
+    "SecurityHeadersMiddleware and CORSMiddleware are added in the right order (CORS first, then security headers) — headers correctly present on all responses ✅.",
+    "SEC-001 admin OTP hiding is elegant — non-admin phones remain UX-unbroken while admin phone forces a log-scrape login ✅.",
+    "SEC-004 variant normalizer is now shared between create and update paths (`normalize_variants` called in both `create_listing` and `update_listing`). PATCH parity confirmed ✅.",
+    "SEC-003 global-cap is enforced BEFORE the LLM call (`_ensure_budget_or_raise`) — even a tiny 1000-token cap returns 429 immediately since estimate=1200 ✅. Cap floor of 1000 is sensible.",
+    "SEC-002 phone strip in GET /vendors/{id} verified — response no longer contains `phone` key ✅. However the reveal-contact endpoint itself is BROKEN (see critical #1)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase7b_security.py (new)"
+  ],
+  "success_rate": {"backend": "19/22 (86%)", "frontend": "N/A"},
+  "test_credentials": "Admin phone read from /app/memory/admin_phone.txt (rotated dynamically). Admin OTP fetched via `tail /var/log/supervisor/backend.err.log | grep 'Admin OTP for <phone>'`. Non-admin phones use random `9xxxxxxxxx` with `dev_otp` echoed in response.",
+  "seed_data_creation": "Tests create TEST_-prefixed customers/vendors + a handful of TEST_ listings. Cleanup via existing purge endpoint.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "After main agent fixes contact_reveal_service.py (get_balance) and .env (CORS_ORIGINS), re-run `pytest /app/backend/tests/test_phase7b_security.py -o addopts='' -v`. Rotate-admin-phone test is the LAST test (Z-prefixed class); it mutates the admin phone artifact. All fixtures are module-scoped so admin login only runs once per module.",
+  "rca of the issue": "Bug 1 (reveal 500): contact_reveal_service was written against a wallet_service API that doesn't exist. wallet_service.py exposes {get_or_create, earn_credits, spend_credits, deposit_inr, purchase_inr, list_transactions, backfill_all} — no `get_balance`. This is a typo/refactor miss during Phase 7b implementation. Bug 2 (CORS wildcard): server.py correctly reads CORS_ORIGINS from env, but /app/backend/.env explicitly sets it to `*`, overriding the safe hard-coded default. Simple .env edit needed."
+}

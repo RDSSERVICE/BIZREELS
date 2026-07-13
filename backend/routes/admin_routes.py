@@ -154,6 +154,26 @@ async def admin_dev_purge_test_data(dry_run: bool = False, user=Depends(require_
     return await _svc.purge_test_data(dry_run=dry_run)
 
 
+@router.post("/dev/rotate-admin-phone")
+async def rotate_admin_phone_route(new_phone: str | None = None, user=Depends(require_auth)):
+    """SEC-001: rotate the admin user's phone. Admin-only + dev-mode gated.
+
+    Body-less endpoint — pass `?new_phone=<10digits>` to set a specific number,
+    or omit to auto-generate a random Indian phone. Returns the new phone.
+    """
+    _require_admin(user)
+    import os as _os
+    if _os.environ.get("OTP_DEV_MODE", "").lower() not in ("1", "true", "yes"):
+        raise HTTPException(403, "Dev-only endpoint. Enable OTP_DEV_MODE=true.")
+    from services import admin_phone_service
+    try:
+        return await admin_phone_service.rotate_admin_phone(str(user.id), new_phone)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, f"Rotate failed: {e}")
+
+
 @router.post("/listings/{listing_id}/dev-backdate")
 async def admin_dev_backdate_listing(listing_id: str, days: int = 35, user=Depends(require_auth)):
     """Dev-only helper — backdates a listing's `created_at` for demoing time-gated
@@ -216,14 +236,13 @@ async def patch_integration_settings(body: IntegrationsPatch, user=Depends(requi
 
 @router.post("/settings/integrations/test")
 async def test_integration(integration: str = Query(...), user=Depends(require_auth)):
-    """Admin-only. Live-tests the current creds for the chosen integration.
-
-    - msg91: sends an OTP SMS to the admin's own phone (or a dev-log if dev mode).
-    - cloudinary: calls the SDK ping endpoint (only in real mode).
-    - razorpay: creates a ₹1 test order.
-    - fcm: initialises firebase-admin and returns app project id.
-    """
+    """Admin-only. Live-tests the current creds for the chosen integration."""
     _require_admin(user)
+    # P3 hardening: throttle 20/hr per admin to prevent credential brute-force
+    from utils.rate_limit import check_and_record
+    ok, retry_in = check_and_record(f"admin_test:{user.id}", 20, 3600)
+    if not ok:
+        raise HTTPException(429, f"Too many test calls. Retry in {retry_in}s.")
     integration = (integration or "").strip().lower()
     if integration not in ("msg91", "cloudinary", "razorpay", "fcm", "ai_content"):
         raise HTTPException(400, "Unknown integration")

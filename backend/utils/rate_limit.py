@@ -1,4 +1,9 @@
-"""In-memory sliding-window rate limiter for OTP send endpoint."""
+"""In-memory sliding-window rate limiter.
+
+TODO: migrate to Redis (or another shared store) for multi-worker safety.
+The current per-process implementation is fine for a single uvicorn worker
+but limits reset independently across workers under horizontal scaling.
+"""
 import time
 from collections import defaultdict, deque
 from threading import Lock
