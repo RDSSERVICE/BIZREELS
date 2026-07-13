@@ -262,6 +262,7 @@ async def update_listing(listing_id: str, vendor_id: str, body: dict, is_admin: 
         "title", "description", "price", "offer_price", "is_negotiable", "bulk_price",
         "stock", "condition", "warranty", "service_charges_type", "experience_years",
         "service_area_km", "images", "reel", "location", "tags", "status",
+        "short_description", "features", "variants",
     }
     clean = {k: v for k, v in body.items() if k in allowed}
     # Re-validate when relevant

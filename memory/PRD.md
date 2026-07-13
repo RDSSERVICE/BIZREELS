@@ -137,6 +137,18 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 - Hardened `auth_service.verify_otp_and_login`: previously soft-deleted users (e.g., after purge) are now revived in-place on re-signup instead of colliding with the unique-phone index.
 - **Verified state**: 148 legacy pytest users + 76 listings purged. Feed top-25 & fast-responders top-10 pristine (regex-checked). `openapi.json` = **135 operations** (was 134). Tests: `test_phase6c_purge.py` = 11/11 pass, `test_phase6b.py` regression = 4/4 pass.
 
+### ✅ Phase 7a — AI content generation (completed 2026-02)
+- New service `/app/backend/services/ai_content_service.py` — provider-agnostic wrapper over `emergentintegrations.llm.chat.LlmChat`. Default provider/model: `openai / gpt-5.4`. Reads config from `platform_settings.ai_content` (admin panel) with `EMERGENT_LLM_KEY` env fallback.
+- New endpoints (rate limited 10/hr/vendor):
+  - `POST /api/v1/ai/generate-listing-content` — `{title, type, category_id?, sub_category_id?, hints?}` → structured JSON `{description, short_description, tags[], features[], variants[], suggested_price_range_inr, warranty_suggestion}`. Falls back to `{ok: false, error, generated: <empty>}` on LLM failure.
+  - `POST /api/v1/ai/improve-description` — rewrites in `professional | friendly | hindi_mix` tone.
+- Listing model + create/update body extended with `short_description`, `features[]`, `variants[]` (variant types: size/color/material/tier/custom). Backwards-compatible.
+- Listing detail page renders new short_description, features (bullet list), variants (chip groups).
+- Listing wizard step 3 (details) got the gradient "✨ Auto-fill with AI" button + inline "Improve" button on the description textarea + price hint banner + editable features/variants preview.
+- `/admin/settings` gained a 5th tab **AI Content** (provider/model/api_key/enabled fields, Test Connection button).
+- `/admin` dashboard tile now shows LIVE/DEV env badges for all 5 integrations.
+- Testing agent verified: 12/12 phase7a tests + 15/15 regression tests pass. OpenAPI = **140 operations** (+5 since phase 6c).
+
 ### P3 — Phase 7: Expo mobile port (delegated to a different agent, `/app/mobile/`)
 
 ## Non-negotiable rules (project-wide)
