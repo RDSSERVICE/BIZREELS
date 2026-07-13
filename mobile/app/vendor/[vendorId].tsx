@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import GlassCard from '@/src/components/GlassCard';
 import GradientButton from '@/src/components/GradientButton';
 import ListingCard from '@/src/components/ListingCard';
+import TrustBadge from '@/src/components/TrustBadge';
 import { vendorApi, followApi, reviewApi } from '@/src/lib/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { colors, borderRadius } from '@/src/lib/theme';
@@ -79,6 +80,10 @@ export default function VendorProfile() {
             <Text style={styles.avatarText}>{(vendor.name || '?').charAt(0).toUpperCase()}</Text>
           </LinearGradient>
           <Text style={styles.vendorName}>{vendor.name}</Text>
+          <View style={styles.verifiedRow}>
+            {vendor.is_verified && <Ionicons name="checkmark-circle" size={16} color="#3b82f6" testID="verified-badge" />}
+            {vendor.trust_score != null && <TrustBadge score={vendor.trust_score} tier={vendor.trust_tier} testID="trust-score-badge" />}
+          </View>
           {vendor.city && (
             <View style={styles.cityRow}>
               <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.5)" />
@@ -160,6 +165,7 @@ const styles = StyleSheet.create({
   avatar: { height: 80, width: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 32, fontWeight: '700', color: '#fff' },
   vendorName: { fontSize: 24, fontWeight: '700', color: '#fff', marginTop: 12 },
+  verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   cityRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   cityText: { fontSize: 13, color: 'rgba(255,255,255,0.5)' },
   statsRow: { flexDirection: 'row', gap: 32, marginTop: 20 },

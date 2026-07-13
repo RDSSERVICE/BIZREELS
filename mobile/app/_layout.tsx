@@ -39,6 +39,7 @@ export default function RootLayout() {
         <Stack.Screen name="dashboard" />
         <Stack.Screen name="chat-thread/[threadId]" />
         <Stack.Screen name="vendor/[vendorId]" />
+        <Stack.Screen name="create-listing" options={{ animation: 'slide_from_bottom' }} />
       </Stack>
     </AuthProvider>
   );

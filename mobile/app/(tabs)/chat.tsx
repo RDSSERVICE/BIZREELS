@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/src/components/ScreenHeader';
+import TrustBadge from '@/src/components/TrustBadge';
 import { chatApi } from '@/src/lib/api';
+import { getSocket } from '@/src/lib/socket';
 import { useAuth } from '@/src/context/AuthContext';
 import { colors, borderRadius } from '@/src/lib/theme';
 
@@ -36,8 +38,18 @@ export default function ChatList() {
   };
 
   useEffect(() => {
-    if (user) load();
-    else setLoading(false);
+    if (!user) { setLoading(false); return; }
+    load();
+    // Socket: live updates
+    let cleanup: (() => void) | null = null;
+    (async () => {
+      const s = await getSocket();
+      if (!s) return;
+      const onNewMsg = () => load();
+      s.on('message:new', onNewMsg);
+      cleanup = () => { s.off('message:new', onNewMsg); };
+    })();
+    return () => { cleanup?.(); };
   }, [user?.id]);
 
   if (!user) {
@@ -68,6 +80,8 @@ export default function ChatList() {
       <View style={styles.threadInfo}>
         <View style={styles.threadRow}>
           <Text style={styles.threadName} numberOfLines={1}>{t.peer?.name || 'Unknown'}</Text>
+          {t.peer?.is_verified && <Ionicons name="checkmark-circle" size={12} color="#3b82f6" />}
+          {t.peer?.trust_score != null && <TrustBadge score={t.peer.trust_score} tier={t.peer.trust_tier} size="xs" />}
           <Text style={styles.threadTime}>{relTime(t.last_message?.created_at || t.updated_at)}</Text>
         </View>
         <View style={styles.threadRow}>

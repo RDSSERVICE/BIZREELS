@@ -10,7 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.emergentindia.iket4i"
+      "bundleIdentifier": "com.emergent.emergentindia.iket4i",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Upload product photos for listings",
+        "NSPhotoLibraryUsageDescription": "Select photos for your listings",
+        "NSLocationWhenInUseUsageDescription": "Show nearby listings and set location"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +23,8 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.emergent.emergentindia.iket4i"
+      "package": "com.emergent.emergentindia.iket4i",
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "web": {
       "bundler": "metro",

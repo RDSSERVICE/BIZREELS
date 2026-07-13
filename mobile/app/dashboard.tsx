@@ -66,6 +66,20 @@ export default function Dashboard() {
         </View>
 
         <View style={styles.ctas}>
+          {/* New Listing — vendors only */}
+          {isVendor && (
+            <TouchableOpacity testID="dashboard-new-listing-cta" onPress={() => router.push('/create-listing')} activeOpacity={0.8}>
+              <LinearGradient colors={['#a855f7', '#ec4899', '#f97316']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradCtaCard}>
+                <Ionicons name="add-circle-outline" size={24} color="#fff" />
+                <View style={styles.ctaInfo}>
+                  <Text style={styles.ctaTitle}>New Listing</Text>
+                  <Text style={[styles.ctaDesc, { color: 'rgba(255,255,255,0.8)' }]}>Post a product or service</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.6)" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           {/* Browse */}
           <TouchableOpacity testID="dashboard-browse-cta" onPress={() => router.push('/(tabs)/explore')} activeOpacity={0.8}>
             <GlassCard style={styles.ctaCard}>
@@ -156,6 +170,10 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)', paddingHorizontal: 14, paddingVertical: 6 },
   chipTextActive: { fontSize: 12, fontWeight: '600', color: '#fff' },
   ctas: { paddingHorizontal: 24, marginTop: 24, gap: 12 },
+  gradCtaCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16, padding: 20,
+    borderRadius: borderRadius.xl,
+  },
   ctaCard: { padding: 20 },
   ctaRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   ctaIcon: { height: 48, width: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },

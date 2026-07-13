@@ -39,3 +39,36 @@
   - `src/components/GradientButton.tsx` - Gradient CTA button
   - `src/components/GlassCard.tsx` - Glass card component
 - **Web files referenced**: App.js, Landing.jsx, Login.jsx, VerifyOtp.jsx, Onboarding.jsx, Feed.jsx, Explore.jsx, Browse.jsx, Profile.jsx, ListingDetail.jsx, Search.jsx, ChatList.jsx, ChatThread.jsx, Wallet.jsx, Notifications.jsx, BottomNav.jsx, ListingCard.jsx, api.js, AuthContext.js, Dashboard.jsx
+
+## Iteration 2 — Socket.IO, Create Listing, Polish
+- **Commit**: e0ae14803df427da40ded62a8a3f9fca3980509b
+- **Date**: 2026-07-13
+- **Changes**:
+  - **Socket.IO real-time chat**: Created `src/lib/socket.ts` with socket.io-client. ChatThread now uses socket events (`message:new`, `message:read`, `thread:typing`) instead of 5s polling. Emits `thread:join`, `thread:leave`, `typing` (debounced). App-state-aware (reconnect on foreground, disconnect on background).
+  - **Real-time unread badges**: Tab layout listens to `message:new` and `notification:new` socket events. Chat tab shows unread count badge. Profile tab shows notification count dot.
+  - **Create Listing form** (`app/create-listing.tsx`): 6-step wizard (Type → Category → Details → Media → Location → Review+Publish). Dynamic fields per type. Image upload via expo-image-picker (lazy-imported). GPS location via expo-location (lazy-imported). Draft auto-save to AsyncStorage. Become-vendor modal for non-vendors.
+  - **Offer modal in Chat**: ₹ button opens modal to create a deal/offer from within the chat thread.
+  - **TrustBadge component** (`src/components/TrustBadge.tsx`): Color-coded tier badges (elite/top-rated/trusted).
+  - **Verified badge (blue tick)**: Shows next to vendor names in ListingCard, ChatThread header, VendorProfile.
+  - **ReferralCard component** (`src/components/ReferralCard.tsx`): Shows referral code, stats, Copy + Share buttons (native share).
+  - **Language toggle**: English / हिन्दी chips on Profile screen.
+  - **New Listing CTA**: Gradient "New Listing" card on Dashboard (vendor-only).
+  - **Device permissions**: Added camera, photos, location permissions to app.json (iOS + Android).
+  - **DEMO_SCRIPT.md**: Added full mobile demo walkthrough section.
+- **Files created**:
+  - `src/lib/socket.ts` — Socket.IO client
+  - `src/components/TrustBadge.tsx` — Trust score badge
+  - `src/components/ReferralCard.tsx` — Referral card
+  - `app/create-listing.tsx` — Multi-step listing wizard
+- **Files modified**:
+  - `app/chat-thread/[threadId].tsx` — Full rewrite with Socket.IO
+  - `app/(tabs)/_layout.tsx` — Socket init + unread badges
+  - `app/(tabs)/chat.tsx` — Socket real-time thread updates + TrustBadge
+  - `app/(tabs)/profile.tsx` — Referral card + language toggle
+  - `app/dashboard.tsx` — New Listing CTA
+  - `app/_layout.tsx` — Added create-listing route
+  - `src/components/ListingCard.tsx` — Trust badge + verified badge
+  - `app/vendor/[vendorId].tsx` — Trust badge + verified badge
+  - `app.json` — Device permissions
+  - `memory/DEMO_SCRIPT.md` — Mobile demo section
+- **Dependencies installed**: socket.io-client, expo-image-picker, expo-location, expo-clipboard

@@ -80,3 +80,54 @@ curl -s -X POST "$BASE/api/v1/admin/seed/reset-demo?wipe=true" -H "Authorization
 - Real MSG91 / Cloudinary / Razorpay / FCM keys: flip DEV_MODE flags in `.env` when you provide them.
 - Onboarding tour (react-joyride): deferred to Phase 6b (not blocking demo).
 - Error boundaries + 404/500 branded pages: deferred to Phase 6b.
+
+
+---
+
+## 📱 Mobile App (Expo / React Native)
+
+**Mobile Preview URL:** https://emergent-india-2.expo.preview.emergentagent.com
+**Expo Go QR:** Scan the QR code from `http://localhost:3001` in Expo Go app.
+
+### Mobile Demo Flow (2-minute walkthrough)
+
+#### 00:00 — Landing & Auth (30s)
+1. Open mobile app → dark hero with "Discover local. Deal fair." headline.
+2. Stats row shows live listings/vendors/cities counts.
+3. Tap **Get Started** → phone input with +91 prefix.
+4. Enter any 10-digit number → dev OTP banner shows code → tap **Verify & Continue**.
+5. Onboarding: enter name, select roles (Customer + Vendor) → **Continue** → lands on Feed tab.
+
+#### 00:30 — Buyer Flow (30s)
+1. **Feed tab** — scrollable reels + "Popular around you" grid. SPONSORED badges visible on boosted items.
+2. Tap a listing → full detail: image gallery, price, like/save/share bar, vendor card with trust badge + blue verified tick.
+3. Tap **Chat with Vendor** → real-time chat via Socket.IO. Typing indicator appears. Send a message. Tap ₹ button → send an offer.
+4. Back. Tap **Explore** tab → category chips + trending listings. Tap a category → filtered view with sub-category chips.
+5. Tap search icon → live search with auto-suggestions.
+
+#### 01:00 — Vendor Flow (45s)
+1. Tap **Me** tab → Profile shows: roles (gradient active chip), Wallet/Saved/Notifications/Deals shortcuts.
+2. **Referral card** with code + Copy/Share buttons (opens native share sheet for WhatsApp).
+3. **Language toggle**: English / हिन्दी.
+4. Tap **Vendor Dashboard** → greeting + role chips + **New Listing** gradient CTA.
+5. Tap **New Listing** → 6-step wizard:
+   - Step 1: Type picker (New Product / Used / Service)
+   - Step 2: Category + sub-category chips
+   - Step 3: Details form (title, price, offer price, negotiable toggle, condition/charges)
+   - Step 4: Media upload (expo-image-picker, up to 10 images)
+   - Step 5: Location (Use my location GPS or manual entry)
+   - Step 6: Review + Publish
+6. Draft auto-saves to AsyncStorage.
+
+#### 01:45 — Real-time Features (15s)
+1. Chat tab shows unread badge count (Socket.IO real-time).
+2. Notifications bell on Me tab updates live via `notification:new` socket event.
+3. Chat thread: blue read ticks update in real-time via `message:read` event.
+4. Typing indicator shows "typing..." when peer types.
+
+### Mobile Architecture
+- **Navigation**: expo-router file-based routing, bottom tabs (Feed/Explore/Chat/Me) + stack screens
+- **API**: Same backend endpoints as web (`/api/v1/*`), full API client in `src/lib/api.ts`
+- **Socket**: `socket.io-client` with auto-reconnect, app-state-aware (disconnect on background, reconnect on foreground)
+- **Auth**: JWT with refresh token rotation, SecureStore for tokens
+- **Design**: Dark theme, gradient accents (purple → pink → orange), glass cards, 8pt grid

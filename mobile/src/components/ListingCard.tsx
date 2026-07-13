@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { resolveMediaUrl } from '@/src/lib/api';
+import TrustBadge from '@/src/components/TrustBadge';
 import { colors, borderRadius } from '@/src/lib/theme';
 
 function fmtPrice(n: number | null | undefined) {
@@ -65,6 +66,15 @@ export default function ListingCard({ listing }: { listing: any }) {
             </Text>
           </View>
         )}
+        {listing.vendor && (
+          <View style={styles.vendorRow}>
+            <Text style={styles.vendorName} numberOfLines={1}>{listing.vendor.name}</Text>
+            {listing.vendor.is_verified && <Ionicons name="checkmark-circle" size={10} color="#3b82f6" />}
+            {listing.vendor.trust_score != null && (
+              <TrustBadge score={listing.vendor.trust_score} tier={listing.vendor.trust_tier} size="xs" />
+            )}
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -105,4 +115,6 @@ const styles = StyleSheet.create({
   oldPrice: { fontSize: 11, color: 'rgba(255,255,255,0.4)', textDecorationLine: 'line-through' },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
   locationText: { fontSize: 10, color: 'rgba(255,255,255,0.5)', flex: 1 },
+  vendorRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  vendorName: { fontSize: 10, color: 'rgba(255,255,255,0.6)', flexShrink: 1 },
 });

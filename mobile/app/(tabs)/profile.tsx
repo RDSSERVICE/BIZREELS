@@ -6,11 +6,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientButton from '@/src/components/GradientButton';
 import GlassCard from '@/src/components/GlassCard';
+import ReferralCard from '@/src/components/ReferralCard';
 import { useAuth } from '@/src/context/AuthContext';
 import { userApi } from '@/src/lib/api';
 import { colors, borderRadius } from '@/src/lib/theme';
 
 const GENDERS = ['female', 'male', 'other', 'prefer_not_to_say'];
+const LANGS = [
+  { key: 'en', label: 'English' },
+  { key: 'hi', label: 'हिन्दी' },
+];
 
 export default function Profile() {
   const router = useRouter();
@@ -22,6 +27,7 @@ export default function Profile() {
     city: user?.city || '',
   });
   const [saving, setSaving] = useState(false);
+  const [lang, setLang] = useState('en');
 
   if (!user) {
     return (
@@ -119,6 +125,28 @@ export default function Profile() {
           />
         </GlassCard>
 
+        {/* Referral Card */}
+        <View style={styles.referralWrap}>
+          <ReferralCard />
+        </View>
+
+        {/* Language Toggle */}
+        <View style={styles.langSection}>
+          <Text style={styles.sectionLabel}>LANGUAGE</Text>
+          <View style={styles.langRow}>
+            {LANGS.map(l => (
+              <TouchableOpacity
+                key={l.key}
+                testID={`lang-${l.key}`}
+                onPress={() => setLang(l.key)}
+                style={[styles.langChip, lang === l.key && styles.langChipActive]}
+              >
+                <Text style={[styles.langText, lang === l.key && styles.langTextActive]}>{l.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         <TouchableOpacity testID="profile-logout-btn" onPress={handleLogout} style={styles.logoutBtn}>
           <Ionicons name="log-out-outline" size={18} color="#fff" />
           <Text style={styles.logoutText}>Sign Out</Text>
@@ -204,4 +232,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   logoutText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  referralWrap: { paddingHorizontal: 24, marginTop: 24 },
+  langSection: { paddingHorizontal: 24, marginTop: 24 },
+  sectionLabel: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '700', letterSpacing: 1, marginBottom: 8 },
+  langRow: { flexDirection: 'row', gap: 8 },
+  langChip: {
+    paddingHorizontal: 20, paddingVertical: 10, borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  langChipActive: { backgroundColor: '#ec4899', borderColor: '#ec4899' },
+  langText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
+  langTextActive: { color: '#fff', fontWeight: '600' },
 });
