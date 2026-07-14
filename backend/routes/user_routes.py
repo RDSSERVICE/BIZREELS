@@ -117,9 +117,17 @@ async def get_role_activity(user=Depends(require_auth)):
             }),
         }
     if "creator" in (user.roles or []):
+        # Scope to requirements the creator has expressed interest in (proposed on) —
+        # avoids false-positive "everyone sees every open requirement".
         out["creator"] = {
             "open_requirements": await db.requirements.count_documents({
-                "status": "open", "is_deleted": {"$ne": True},
+                "status": "open",
+                "is_deleted": {"$ne": True},
+                "$or": [
+                    {"interested_creator_ids": uid},
+                    {"proposals.creator_id": uid},
+                    {"assigned_to_user_id": uid},
+                ],
             }),
         }
     return out

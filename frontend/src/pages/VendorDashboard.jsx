@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Pause, Play, Check, Pencil, Trash2 } from "lucide-react";
 import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
+import BottomNav from "@/components/app/BottomNav";
 import { Button } from "@/components/ui/button";
 import { listingApi, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -163,6 +164,7 @@ export default function VendorDashboard() {
         }}
         onDone={() => fetchListings()}
       />
+      <BottomNav />
     </PhoneScreen>
   );
 }

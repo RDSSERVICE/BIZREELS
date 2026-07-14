@@ -50,7 +50,7 @@ export default function RoleSwitcherChip() {
       if (r === current) continue;
       const b = activity[r];
       if (!b) continue;
-      n += (b.chat_unread || 0) + (b.pending_deals || 0);
+      n += (b.chat_unread || 0) + (b.pending_deals || 0) + (b.open_requirements || 0);
     }
     return n;
   })();

@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 15 retest of iter14 P0 fixes + 5 E2E flows + regression. Both P0 fixes VERIFIED: (1) VendorDashboard.jsx now renders <BottomNav data-testid=bottom-nav>; (2) Backend get_role_activity now scopes creator.open_requirements to interested/proposed/assigned requirements + RoleSwitcherChip.jsx line 53 sums all 3 keys (chat_unread + pending_deals + open_requirements). Backend: 15/15 pytest PASS. Frontend E2E: 5/5 flows PASS with 2 minor deviations noted (magic link needs 1 click, chip absent on /feed reels page).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminLogin.jsx", "issue": "Magic link at /admin/login?token=... does NOT auto-authenticate — it only pre-fills the input; user must click 'Login as Admin' button. The review request specified 'should auto-authenticate → land on /dashboard or /admin without OTP'. Fix: in useEffect, if params.get('token') is present, call login() automatically.", "selector": "[data-testid='admin-login-submit']", "priority": "MEDIUM"},
+      {"component": "Feed.jsx (or the fullscreen reels view)", "issue": "role-switcher-chip is NOT rendered on /feed because Feed uses a custom fullscreen layout, not PhoneScreen+ScreenHeader (where RoleSwitcherChip lives). Review request explicitly requires chip on /feed. Fix: mount RoleSwitcherChip in the Feed's floating top-bar (next to Set-location / search icons).", "selector": "[data-testid='role-switcher-chip']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration15.py",
+    "/app/backend/tests/test_iteration14.py",
+    "/app/test_reports/pytest/iteration15.xml"
+  ],
+  "action_items": [
+    "AdminLogin.jsx: auto-submit when ?token= query param is present so magic link truly is one-click.",
+    "Feed.jsx: mount <RoleSwitcherChip /> in the floating top overlay so the chip is visible on /feed too (currently only visible on PhoneScreen+ScreenHeader pages).",
+    "Optional: expose 'Cart' route (/cart currently 404s — cart is only accessible via cart-fab drawer). Add a /cart page or ensure /cart route works via drawer redirect."
+  ],
+  "critical_code_review_comments": [
+    "PhoneScreen.jsx only mounts RoleSwitcherChip inside <ScreenHeader />, meaning any page that does NOT use ScreenHeader (Feed.jsx fullscreen reels, listing/:slug detail, etc.) loses the chip. Consider hoisting chip to PhoneScreen itself, positioned absolute top-right so it renders on every phone-screen route.",
+    "AdminLogin.jsx line 22-26: useEffect focuses input but does NOT auto-submit on token query param. Result: /admin/login?token=... is a UX regression vs 'magic link auto-login'. Trivial 2-line fix to auto-invoke login() when token param present.",
+    "cart_routes.checkout still swallows chat_service exceptions silently (per iter14 review). Confirmed unchanged. Retain suggestion: replace `pass` with logger.exception(...) so silent chat failures surface.",
+    "user_routes.get_role_activity now correctly scopes creator counter — verified line 119-131. Good fix."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration15.py (new)"],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100% (5/5 core flows + both P0 fixes verified; 2 minor UX deviations noted)"},
+  "test_credentials": "Admin: phone 7418916209. DEV_ADMIN_OVERRIDE_TOKEN hit 3/10min rate-limit during test — used OTP fallback (POST /api/v1/auth/otp/send, grep 'Admin OTP for 7418916209' in /var/log/supervisor/backend.err.log, then POST /api/v1/auth/otp/verify). Admin user has roles=[admin,customer,vendor,creator] so role-switcher flows fully testable.",
+  "seed_data_creation": "Created 1 deal + 1 chat message via cart checkout flow. Cart cleared afterwards. No persistent test data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Both P0 iter14 bugs are FIXED and verified. Two new medium bugs surfaced: (1) AdminLogin.jsx magic-link does not auto-submit — token prefilled in input but explicit click required. (2) /feed does not render role-switcher-chip (Feed skips ScreenHeader). Rate-limit workaround for dev-admin-login: use OTP flow (7418916209 → grep 'Admin OTP for' in backend.err.log → verify). Admin user has all 4 roles ready. Cart flow works via cart-fab (any page) → data-testid=cart-drawer → cart-checkout button. /cart URL is 404 (no dedicated cart page route). Profile wizard 5 steps uses skip-step / save-continue testids and lands at /dashboard on finish.",
+  "rca_of_the_issue": "Iter14 P0 fixes both landed cleanly: VendorDashboard.jsx line 7 imports BottomNav, line 167 renders <BottomNav />. Backend user_routes.py lines 119-131 scope creator.open_requirements to $or:[interested_creator_ids,proposals.creator_id,assigned_to_user_id]. RoleSwitcherChip.jsx line 53 already sums all 3 keys. New AdminLogin magic-link issue RCA: AdminLogin.jsx useEffect only focuses input; the login() call needs `if (params.get('token')) login()` on mount to be a true auto-magic-link. Feed chip RCA: RoleSwitcherChip lives in ScreenHeader (PhoneScreen.jsx line 30) which Feed doesn't render — Feed uses a bespoke fullscreen layout for reels."
+}
