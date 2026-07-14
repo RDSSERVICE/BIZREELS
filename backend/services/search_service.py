@@ -118,11 +118,13 @@ async def search_listings(
 
 async def suggest(q: str, limit: int = 5) -> dict:
     """Autocomplete suggestions — titles + categories matching prefix/substring."""
+    import re as _re
     db = get_db()
-    q_clean = (q or "").strip()
+    q_clean = (q or "").strip()[:80]  # SEC-002: cap length to bound regex work
     if len(q_clean) < 2:
         return {"listings": [], "categories": []}
-    rx = {"$regex": q_clean, "$options": "i"}
+    # SEC-002: escape user input before feeding to MongoDB $regex (ReDoS + NoSQL-inj)
+    rx = {"$regex": _re.escape(q_clean), "$options": "i"}
     listing_docs = await db.listings.find(
         {"title": rx, "is_deleted": {"$ne": True}, "status": "active"},
         {"title": 1, "slug": 1, "images": 1, "price": 1, "offer_price": 1},

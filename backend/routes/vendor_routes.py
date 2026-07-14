@@ -92,7 +92,10 @@ async def leaderboard_fast_responders(city: str | None = None, limit: int = 10):
         **not_test_filter("name"),
     }
     if city:
-        q["city"] = {"$regex": f"^{city}$", "$options": "i"}
+        # SEC-002: escape + length-cap user input before feeding to $regex.
+        import re as _re
+        _city = _re.escape(str(city).strip())[:80]
+        q["city"] = {"$regex": f"^{_city}$", "$options": "i"}
     docs = await db.users.find(q).sort([
         ("avg_response_time_seconds", 1), ("chat_response_rate", -1),
     ]).limit(limit).to_list(limit)

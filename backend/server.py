@@ -1,11 +1,12 @@
 """Emergent — Local Social Commerce Platform (Phase 0 + 1 + 2 + 3)."""
 import os
+import re as _re_uploads
 import asyncio
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
-from fastapi import FastAPI, APIRouter
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse
 from starlette.middleware.cors import CORSMiddleware
 
 ROOT_DIR = Path(__file__).parent
@@ -94,7 +95,62 @@ app.include_router(api_router)
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+
+
+# SEC-003 fix (2026-07-14): the previous unauthenticated
+# `app.mount("/api/uploads", StaticFiles(...))` was replaced with an authorized
+# FastAPI handler. Public listing/reel media stays accessible without auth
+# (files whose name starts with `listings__`), but sensitive files
+# (`users__kyc__*`, `users__profile__*` etc.) require a valid JWT and either
+# owner or admin-role access.
+_UPLOAD_FILENAME_RE = _re_uploads.compile(r"^[A-Za-z0-9._-]+$")
+
+
+@app.get("/api/uploads/{filename}", tags=["uploads"])
+async def serve_upload(filename: str, request: Request):
+    # 1. Sanitize — reject traversal, slashes, and anything not a-zA-Z0-9._-
+    if not _UPLOAD_FILENAME_RE.match(filename) or ".." in filename:
+        raise HTTPException(400, "Invalid filename")
+    file_path = UPLOADS_DIR / filename
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(404, "File not found")
+
+    # 2. Public media — listing/reel content is intentionally reachable so the
+    #    marketplace works without auth headers for anonymous browsing.
+    if filename.startswith("listings__") or filename.startswith("reels__") \
+       or filename.startswith("categories__"):
+        return FileResponse(str(file_path))
+
+    # 3. Sensitive media — KYC docs, profile pics, chat attachments. Require
+    #    JWT + owner-or-admin.
+    from middleware.auth_middleware import _get_user_from_bearer  # noqa: PLC0415
+    user = await _get_user_from_bearer(request)
+    if not user:
+        raise HTTPException(401, "Authentication required")
+
+    roles = user.roles or []
+    if "admin" in roles:
+        return FileResponse(str(file_path))
+
+    # KYC files: verify caller is the KYC owner
+    if filename.startswith("users__kyc__"):
+        from database import get_db  # noqa: PLC0415
+        db = get_db()
+        # Match on either doc_url or selfie_url containing the filename
+        needle = {"$regex": _re_uploads.escape(filename)}
+        owner = await db.kyc_documents.find_one({
+            "user_id": str(user.id),
+            "is_deleted": {"$ne": True},
+            "$or": [{"doc_url": needle}, {"selfie_url": needle}],
+        })
+        if not owner:
+            raise HTTPException(403, "Forbidden")
+        return FileResponse(str(file_path))
+
+    # For any other users__*/messages__*/etc. that we haven't explicitly
+    # allow-listed, fail closed. Serving new sensitive folders will require
+    # adding an explicit ownership branch above.
+    raise HTTPException(403, "Forbidden")
 
 # Socket.IO — mounted UNDER /api so K8s ingress proxies it to the backend.
 # (The ingress only routes /api/* to port 8001; /socket.io/* would hit the SPA.)

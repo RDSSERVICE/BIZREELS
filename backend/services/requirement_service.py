@@ -1,5 +1,6 @@
 """Requirement service: CRUD + proposals count management."""
 from __future__ import annotations
+import re
 from datetime import datetime, timezone
 from typing import Any
 from bson import ObjectId
@@ -62,7 +63,9 @@ async def list_requirements(filters: dict, limit: int = 20, cursor: str | None =
     if filters.get("category_id"):
         q["category_id"] = filters["category_id"]
     if filters.get("city"):
-        q["location.city"] = {"$regex": f"^{filters['city']}$", "$options": "i"}
+        # SEC-002: escape + length-cap user input before feeding to $regex.
+        _city = re.escape(str(filters["city"]).strip())[:80]
+        q["location.city"] = {"$regex": f"^{_city}$", "$options": "i"}
     if filters.get("urgency"):
         q["urgency"] = filters["urgency"]
     if filters.get("budget_max"):

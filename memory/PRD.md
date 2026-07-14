@@ -200,6 +200,17 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 
 **Non-negotiables kept:** all under `/api/v1/*`, per-user rate limits, global daily cap enforced, graceful fallbacks (never 500 the UI), no API keys in responses, participant-only ACL on chat/deal reads.
 
+### ✅ Phase 7d-sec — Security hardening pass (completed 2026-07-14)
+
+Closed all 3 findings from the Phase 7d security audit:
+
+- **SEC-001 (CRITICAL)** — Removed hard-coded `DEV_TOKEN_HINT` from `AdminLogin.jsx`; gated `/api/v1/auth/dev/admin-login` behind `ALLOW_DEV_ADMIN_LOGIN=true` env; rotated the override token; added `history.replaceState` URL scrub on magic-link consume.
+- **SEC-002 (MEDIUM)** — `re.escape` + 80-char cap on all 4 user-input `$regex` sites (search suggest, requirement city, vendor list city, admin user list `q`).
+- **SEC-003 (MEDIUM)** — Replaced `/api/uploads` `StaticFiles` mount with an authorized FastAPI route: sanitized filename, public for `listings__/reels__/categories__`, owner-or-admin required for `users__kyc__*`, fail-closed for anything else.
+- **P3 quick wins** — Added per-(phone,IP) throttle on `/auth/otp/verify` (10/hr). Deferred: Redis rate limiter, localStorage → httpOnly migration, `_apply_success` atomic race fix.
+
+Verification: all 5 cases green — user OTP login for 9039791530 still works, new dev token 200/old 401, KYC file unauth 401 / non-owner 403 / admin 200 / listing 200 / traversal 404. Endpoint count 158 ops.
+
 ## Non-negotiable rules (project-wide)
 - Never rename collections or endpoints.
 - Soft delete only.

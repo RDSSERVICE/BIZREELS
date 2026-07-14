@@ -56,3 +56,18 @@ async def _decode_optional(request: Request) -> str | None:
         return payload.get("sub")
     except Exception:  # noqa: BLE001
         return None
+
+
+async def _get_user_from_bearer(request: Request):
+    """Full user lookup from Bearer header. Returns User instance or None.
+    Used by non-Depends contexts (e.g. the authorized /api/uploads handler)."""
+    user_id = await _decode_optional(request)
+    if not user_id:
+        return None
+    try:
+        user = await get_user_by_id(user_id)
+    except Exception:  # noqa: BLE001
+        return None
+    if not user or not user.is_active:
+        return None
+    return user

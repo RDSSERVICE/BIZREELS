@@ -7,10 +7,12 @@ import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
-// Dev-mode token as a helpful placeholder so the user can 1-click login on demo.
-// ⚠️ REMOVE FOR PRODUCTION — dev-only convenience.
-const DEV_TOKEN_HINT =
-  "bpb7GbNwdH924677L_QfV0nzAxXfNxpQYscX453c35sXhUvgV_Zr8hchw-Mm-nQ8";
+// SEC-001 fix (2026-07-14): DEV_TOKEN_HINT (a hard-coded copy of the real
+// override token) has been REMOVED from the bundle. The dev-admin login is
+// now: (a) gated behind ALLOW_DEV_ADMIN_LOGIN=true env, (b) requires the
+// caller to paste the token they retrieve from a private channel
+// (`/app/memory/admin_phone.txt` on the box). Never publish this file
+// contents in any web UI, doc, or bundle.
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -20,9 +22,6 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const autoFiredRef = useRef(false);
 
-  // Shared submit helper with one automatic retry on 429 (rate-limit).
-  // k8s ingress can collapse all demo users behind one IP, so a light retry
-  // masks transient rate-limiter blips without weakening real protection.
   const submitToken = async (t) => {
     const doPost = () => api.post("/v1/auth/dev/admin-login", { token: t });
     try {
@@ -46,6 +45,10 @@ export default function AdminLogin() {
           return false;
         }
       }
+      if (err?.response?.status === 404) {
+        toast.error("Dev-admin login is disabled on this server. Log in with your phone instead.");
+        return false;
+      }
       toast.error(err?.response?.data?.detail || "Invalid admin token");
       return false;
     }
@@ -53,8 +56,8 @@ export default function AdminLogin() {
 
   const login = async (e) => {
     e?.preventDefault?.();
-    const t = (token || DEV_TOKEN_HINT).trim();
-    if (!t) return toast.error("Enter admin token");
+    const t = (token || "").trim();
+    if (!t) return toast.error("Paste your dev admin token");
     setLoading(true);
     try {
       await submitToken(t);
@@ -63,12 +66,19 @@ export default function AdminLogin() {
     }
   };
 
-  // Magic-link: if ?token=... is present, auto-submit once on mount.
+  // Magic-link: if ?token=... is present, auto-submit once on mount and
+  // immediately scrub it from the URL so it never lands in browser history
+  // or a Referer header on the next outbound navigation.
   useEffect(() => {
     const urlToken = params.get("token");
     if (urlToken && urlToken.trim()) {
       if (autoFiredRef.current) return; // StrictMode double-effect guard
       autoFiredRef.current = true;
+      // P3 hardening: scrub the token from the URL immediately.
+      try {
+        const clean = window.location.pathname; // drop query
+        window.history.replaceState({}, "", clean);
+      } catch (_e) { /* no-op */ }
       (async () => {
         setLoading(true);
         try {
@@ -91,9 +101,9 @@ export default function AdminLogin() {
         <div className="glass rounded-2xl p-4 flex items-start gap-3 border border-amber-400/20 bg-amber-400/5">
           <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="text-xs text-white/80">
-            <div className="font-heading font-semibold text-sm text-amber-200">Dev mode only</div>
-            This one-click admin login MUST be disabled before production. Token is stored in{" "}
-            <code className="text-[10px] bg-white/10 px-1 py-0.5 rounded">/app/memory/admin_phone.txt</code>.
+            <div className="font-heading font-semibold text-sm text-amber-200">Dev-mode override</div>
+            This screen is disabled in production. If you have admin role on your account,
+            just <Link to="/login" className="underline">log in with your phone</Link> instead.
           </div>
         </div>
 
@@ -106,17 +116,17 @@ export default function AdminLogin() {
             <input
               id="admin-token-input"
               data-testid="admin-token-input"
-              type="text"
+              type="password"
               spellCheck={false}
               autoComplete="off"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder={DEV_TOKEN_HINT}
+              placeholder="Paste your dev admin token"
               className="flex-1 h-14 rounded-xl bg-white/5 border border-white/10 px-3 text-sm font-mono text-white outline-none focus:border-emerald-500"
             />
           </div>
           <p className="mt-2 text-[11px] text-white/40">
-            Leave blank to use the placeholder (dev-mode only).
+            Token lives in <code className="text-[10px] bg-white/10 px-1 py-0.5 rounded">/app/memory/admin_phone.txt</code> on the server.
           </p>
         </label>
 

@@ -1,5 +1,6 @@
 """Admin panel: user/listing management + analytics overview."""
 from __future__ import annotations
+import re
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 from fastapi import HTTPException
@@ -28,8 +29,9 @@ async def list_users(q: str | None, role: str | None, is_active: bool | None,
     db = get_db()
     query: dict = {"is_deleted": {"$ne": True}}
     if q:
-        # search phone OR name (case-insensitive)
-        query["$or"] = [{"phone": {"$regex": q}}, {"name": {"$regex": q, "$options": "i"}}]
+        # search phone OR name (case-insensitive). SEC-002: escape + cap.
+        _q = re.escape(q.strip())[:80]
+        query["$or"] = [{"phone": {"$regex": _q}}, {"name": {"$regex": _q, "$options": "i"}}]
     if role:
         query["roles"] = role
     if is_active is not None:

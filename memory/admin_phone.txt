@@ -4,4 +4,4 @@
 7418916209
 
 # Dev-mode admin override (POST /api/v1/auth/dev/admin-login with {token})
-DEV_ADMIN_OVERRIDE_TOKEN=bpb7GbNwdH924677L_QfV0nzAxXfNxpQYscX453c35sXhUvgV_Zr8hchw-Mm-nQ8
+DEV_ADMIN_OVERRIDE_TOKEN=j0XOw7fmnW8-WDX59eZP4dkIQyxmGS5g7yroYUGKRRnXt-_3qQZtiQ8AyK2otlqN
