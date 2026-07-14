@@ -167,6 +167,13 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 - Endpoints: **143 operations** (+1 for google-session-exchange).
 - Tests: 35/36 phase7b + 15/15 regression pass.
 
+### ✅ Phase 7c-final — UX polish + iter14→iter16 bug fixes (completed 2026-07-14)
+- **Iter14 P0 fix #1** — `VendorDashboard.jsx` now imports and renders `<BottomNav />`, restoring role-scoped nav on the vendor home page.
+- **Iter14 P0 fix #2** — `RoleSwitcherChip.jsx` activity-dot correctly sums `chat_unread + pending_deals + open_requirements` across all non-current roles; backend `GET /api/v1/users/me/role-activity` creator counter now scoped to `interested_creator_ids | proposals.creator_id | assigned_to_user_id` (no more false-positive "dot for everyone").
+- **Iter15 medium fix #1** — `/admin/login?token=<...>` is now a **true one-click magic link**: `AdminLogin.jsx` `useEffect` auto-invokes the dev-admin-login POST on mount when `?token=` param is present, guarded by a `useRef` sentinel to avoid StrictMode double-fire and rate-limit burn.
+- **Iter15 medium fix #2** — `RoleSwitcherChip` is now rendered on `/feed` too (Feed uses a custom fullscreen sticky header, not `ScreenHeader`) — chip mounted in the right-hand cluster next to `LocationChip` and search.
+- **Testing**: iter16 delta re-verify PASSED both fixes (100% frontend); regression sanity still green.
+
 ### P3 — Phase 7: Expo mobile port (delegated to a different agent, `/app/mobile/`)
 
 ## Non-negotiable rules (project-wide)

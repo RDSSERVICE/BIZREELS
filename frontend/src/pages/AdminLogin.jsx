@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ShieldCheck, Loader2, KeyRound, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ export default function AdminLogin() {
   const { applyAuthResponse } = useAuth();
   const [token, setToken] = useState(params.get("token") || "");
   const [loading, setLoading] = useState(false);
+  const autoFiredRef = useRef(false);
 
   const login = async (e) => {
     e?.preventDefault?.();
@@ -40,7 +41,8 @@ export default function AdminLogin() {
   useEffect(() => {
     const urlToken = params.get("token");
     if (urlToken && urlToken.trim()) {
-      // Fire and forget — errors surface via toast in login()
+      if (autoFiredRef.current) return; // StrictMode double-effect guard
+      autoFiredRef.current = true;
       (async () => {
         setLoading(true);
         try {
