@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ShoppingBag, Store, Palette, ShieldCheck, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,12 +28,32 @@ export default function RoleSwitcherChip() {
   const { user, updateLocalUser } = useAuth();
   const navigate = useNavigate();
   const [switching, setSwitching] = useState(false);
+  const [activity, setActivity] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    userApi.roleActivity().then(({ data }) => setActivity(data)).catch(() => {});
+  }, [user?.id, user?.current_role]);
+
   if (!user) return null;
 
   const current = user.current_role || (user.roles || [])[0] || "customer";
   const meta = ROLE_META[current] || ROLE_META.customer;
   const Icon = meta.icon;
   const roles = user.roles || [];
+
+  // Any OTHER role has pending activity? show a dot
+  const otherActivity = (() => {
+    if (!activity) return 0;
+    let n = 0;
+    for (const r of roles) {
+      if (r === current) continue;
+      const b = activity[r];
+      if (!b) continue;
+      n += (b.chat_unread || 0) + (b.pending_deals || 0);
+    }
+    return n;
+  })();
 
   const doSwitch = async (role) => {
     if (role === current || switching) return;
@@ -58,11 +78,18 @@ export default function RoleSwitcherChip() {
         <button
           type="button"
           data-testid="role-switcher-chip"
-          className={`h-9 px-3 rounded-full bg-gradient-to-r ${meta.gradient} text-white text-xs font-semibold flex items-center gap-1.5 shadow-md hover:shadow-lg transition-shadow`}
+          className={`relative h-9 px-3 rounded-full bg-gradient-to-r ${meta.gradient} text-white text-xs font-semibold flex items-center gap-1.5 shadow-md hover:shadow-lg transition-shadow`}
         >
           {switching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
           <span>{meta.label}</span>
           <ChevronDown className="h-3 w-3 opacity-80" />
+          {otherActivity > 0 && (
+            <span
+              data-testid="role-activity-dot"
+              className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-black"
+              aria-label={`${otherActivity} pending in other panels`}
+            />
+          )}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64" data-testid="role-switcher-menu">

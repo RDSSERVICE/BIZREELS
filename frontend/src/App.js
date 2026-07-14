@@ -39,6 +39,10 @@ import AdminUsers from "@/pages/AdminUsers";
 import AdminListings from "@/pages/AdminListings";
 import AdminReports from "@/pages/AdminReports";
 import AdminSettings from "@/pages/AdminSettings";
+import AdminLogin from "@/pages/AdminLogin";
+import CreatorDashboard from "@/pages/CreatorDashboard";
+import ProfileComplete from "@/pages/ProfileComplete";
+import CartDrawer from "@/components/app/CartDrawer";
 import VendorAnalytics from "@/pages/VendorAnalytics";
 import NotFound from "@/pages/NotFound";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
@@ -61,6 +65,7 @@ function App() {
               {/* Public */}
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/verify-otp" element={<VerifyOtp />} />
               <Route path="/browse" element={<Browse />} />
@@ -92,6 +97,8 @@ function App() {
               <Route path="/admin/listings" element={<RequireAuth><AdminListings /></RequireAuth>} />
               <Route path="/admin/reports" element={<RequireAuth><AdminReports /></RequireAuth>} />
               <Route path="/admin/settings" element={<RequireAuth><AdminSettings /></RequireAuth>} />
+              <Route path="/creator/dashboard" element={<RequireAuth><CreatorDashboard /></RequireAuth>} />
+              <Route path="/profile/complete" element={<RequireAuth><ProfileComplete /></RequireAuth>} />
               <Route path="/vendor/analytics" element={<RequireAuth><VendorAnalytics /></RequireAuth>} />
               <Route path="/vendor/dashboard" element={<RequireAuth><VendorDashboard /></RequireAuth>} />
               <Route path="/vendor/listing/new" element={<RequireAuth><ListingForm /></RequireAuth>} />
@@ -99,6 +106,7 @@ function App() {
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <CartDrawer />
             <Toaster theme="dark" position="top-center" richColors closeButton />
           </BrowserRouter>
         </AuthProvider>

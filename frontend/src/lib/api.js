@@ -28,6 +28,7 @@ export const tokenStore = {
 };
 
 const api = axios.create({ baseURL: API_BASE });
+export { api };
 
 api.interceptors.request.use((config) => {
   const access = tokenStore.getAccess();
@@ -99,7 +100,19 @@ export const userApi = {
   update: (payload) => api.patch("/v1/users/me", payload),
   switchRole: (role) => api.post("/v1/users/me/switch-role", { role }),
   addRole: (role) => api.post("/v1/users/me/add-role", { role }),
+  roleActivity: () => api.get("/v1/users/me/role-activity"),
 };
+
+export const cartApi = {
+  mine: () => api.get("/v1/cart/me"),
+  add: (payload) => api.post("/v1/cart/me/add", payload),
+  update: (listing_id, quantity) => api.patch(`/v1/cart/me/items/${listing_id}`, { quantity }),
+  remove: (listing_id) => api.delete(`/v1/cart/me/items/${listing_id}`),
+  checkout: () => api.post("/v1/cart/me/checkout"),
+};
+
+export const moreFromVendor = (vendor_id, exclude_listing_id, limit = 12) =>
+  api.get(`/v1/listings/vendor/${vendor_id}/related`, { params: { exclude_listing_id, limit } });
 
 // ---- Categories ----
 export const categoryApi = {

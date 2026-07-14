@@ -87,6 +87,46 @@ async def remove_fcm_token(token: str, user=Depends(require_auth)):
     return await fcm_service.remove_token(user.id, token)
 
 
+@router.get("/me/role-activity")
+async def get_role_activity(user=Depends(require_auth)):
+    """Return unread counters per role so RoleSwitcherChip can show a dot
+    when the OTHER role has pending activity."""
+    db = get_db()
+    uid = str(user.id)
+    out: dict = {"current_role": user.current_role, "roles": user.roles or []}
+    # Vendor-side unread: chat threads where user is vendor
+    if "vendor" in (user.roles or []):
+        out["vendor"] = {
+            "chat_unread": await db.messages.count_documents({
+                "thread_id": {"$in": [str(t["_id"]) async for t in db.chat_threads.find(
+                    {"vendor_id": uid, "is_deleted": {"$ne": True}}, {"_id": 1})]},
+                "sender_id": {"$ne": uid},
+                "read_by": {"$ne": uid},
+            }),
+            "pending_deals": await db.deals.count_documents({
+                "vendor_id": uid, "status": "negotiating", "is_deleted": {"$ne": True},
+            }),
+        }
+    if "customer" in (user.roles or []):
+        out["customer"] = {
+            "chat_unread": await db.messages.count_documents({
+                "thread_id": {"$in": [str(t["_id"]) async for t in db.chat_threads.find(
+                    {"customer_id": uid, "is_deleted": {"$ne": True}}, {"_id": 1})]},
+                "sender_id": {"$ne": uid},
+                "read_by": {"$ne": uid},
+            }),
+        }
+    if "creator" in (user.roles or []):
+        out["creator"] = {
+            "open_requirements": await db.requirements.count_documents({
+                "status": "open", "is_deleted": {"$ne": True},
+            }),
+        }
+    return out
+
+
+
+
 # Public read-only profile: safe fields only. NO phone/email/dob/full KYC.
 @router.get("/{user_id}")
 async def get_public_profile(user_id: str):

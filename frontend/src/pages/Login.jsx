@@ -125,6 +125,12 @@ export default function Login() {
             <p className="text-[11px] text-white/40 leading-relaxed">
               By continuing you agree to Emergent's Terms & Privacy. We'll only use your info to secure your account and connect you with vendors.
             </p>
+
+            <div className="text-center pt-2">
+              <Link to="/admin/login" className="text-[11px] text-white/40 hover:text-white/70" data-testid="admin-login-link">
+                🔑 Admin? <span className="underline underline-offset-2">Login here</span>
+              </Link>
+            </div>
           </form>
         </div>
       </div>

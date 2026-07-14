@@ -11,6 +11,7 @@ import WatchListingModal from "@/components/app/WatchListingModal";
 import { ReviewsSection } from "@/components/app/Reviews";
 import { ReportButton } from "@/components/app/ReportModal";
 import { BoostButton, BoostModal } from "@/components/app/BoostModal";
+import MoreFromVendor from "@/components/app/MoreFromVendor";
 import { listingApi, seoApi, interactionApi, followApi, resolveMediaUrl, trackApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -248,6 +249,31 @@ export default function ListingDetail() {
           </div>
         )}
 
+        {/* Add to Order Cart (customer only, not own listing) */}
+        {user && (user.current_role === "customer") && listing.vendor && user.id !== listing.vendor.id && (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const { cartApi } = await import("@/lib/api");
+                const { notifyCartChanged } = await import("@/components/app/CartDrawer");
+                await cartApi.add({ listing_id: listing.id, quantity: 1 });
+                notifyCartChanged();
+                const { toast } = await import("sonner");
+                toast.success("Added to order cart");
+              } catch (e) {
+                const { toast } = await import("sonner");
+                toast.error(e?.response?.data?.detail || "Add failed");
+              }
+            }}
+            data-testid="add-to-cart-btn"
+            className="w-full h-12 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center gap-2 text-sm font-semibold"
+          >
+            + Add to Order Cart
+          </button>
+        )}
+
+
         {/* Anon soft-gate */}
         {isAnon && (
           <button
@@ -384,6 +410,9 @@ export default function ListingDetail() {
             </div>
           </section>
         )}
+
+        <MoreFromVendor listing={listing} />
+
 
         {related.length > 0 && (
           <section data-testid="related-section">
