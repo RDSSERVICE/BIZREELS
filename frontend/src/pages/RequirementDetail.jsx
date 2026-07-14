@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, Sparkles, Loader2, BadgeCheck } from "lucide-react";
 import { PhoneScreen } from "@/components/app/PhoneScreen";
 import { Button } from "@/components/ui/button";
-import { requirementApi, proposalApi, chatApi } from "@/lib/api";
+import { requirementApi, proposalApi, chatApi, aiApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 export default function RequirementDetail() {
@@ -14,6 +14,8 @@ export default function RequirementDetail() {
   const [req, setReq] = useState(null);
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [aiMatches, setAiMatches] = useState([]);
+  const [aiMatching, setAiMatching] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -39,6 +41,20 @@ export default function RequirementDetail() {
   };
   const shortlist = async (pid) => { try { await proposalApi.shortlist(pid); toast.success("Shortlisted"); const { data } = await requirementApi.proposals(id); setProposals(data.items || []); } catch { toast.error("Failed"); } };
   const rejectP = async (pid) => { try { await proposalApi.reject(pid); toast.success("Rejected"); const { data } = await requirementApi.proposals(id); setProposals(data.items || []); } catch { toast.error("Failed"); } };
+
+  const runAiMatch = async () => {
+    if (aiMatching) return;
+    setAiMatching(true);
+    try {
+      const { data } = await aiApi.matchVendors({ requirement_id: id, limit: 8 });
+      setAiMatches(data?.matches || []);
+      if (!data?.matches?.length) toast.message("AI found no strong matches yet");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "AI matcher failed");
+    } finally {
+      setAiMatching(false);
+    }
+  };
 
   if (loading) return <PhoneScreen><div className="p-6 text-white/60">Loading…</div></PhoneScreen>;
   if (!req) return <PhoneScreen><div className="p-6 text-white/60">Not found</div></PhoneScreen>;
@@ -78,8 +94,49 @@ export default function RequirementDetail() {
         </div>
 
         {isOwner ? (
-          <section data-testid="proposals-section">
-            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Proposals ({proposals.length})</h3>
+          <>
+            <section data-testid="ai-matches-section">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold">🎯 AI-Recommended Vendors</h3>
+                <button
+                  onClick={runAiMatch}
+                  disabled={aiMatching}
+                  data-testid="ai-match-btn"
+                  className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 flex items-center gap-1 disabled:opacity-40"
+                >
+                  {aiMatching ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 text-pink-400" />}
+                  {aiMatching ? "Matching…" : aiMatches.length ? "Re-run" : "Find with AI"}
+                </button>
+              </div>
+              {aiMatches.length > 0 ? (
+                <div className="space-y-2" data-testid="ai-matches-list">
+                  {aiMatches.map((m) => (
+                    <Link to={`/vendor/${m.vendor_id}`} key={m.vendor_id + m.top_listing_id} className="block glass rounded-2xl p-3 hover:bg-white/5" data-testid={`ai-match-${m.vendor_id}`}>
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-brand flex items-center justify-center font-heading font-bold text-sm shrink-0">
+                          {m.score}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold truncate flex items-center gap-1">
+                            {m.vendor_name}
+                            <BadgeCheck className="h-3 w-3 text-emerald-400 shrink-0" />
+                          </div>
+                          <div className="text-xs text-white/60 truncate">{m.top_listing_title}</div>
+                          {m.reasons?.length > 0 && (
+                            <div className="text-[10px] text-white/50 mt-1 truncate">{m.reasons.slice(0, 2).join(" · ")}</div>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="glass rounded-2xl p-4 text-center text-white/50 text-xs">Tap "Find with AI" to see the best-matching vendors from the platform.</div>
+              )}
+            </section>
+
+            <section data-testid="proposals-section">
+              <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Proposals ({proposals.length})</h3>
             {proposals.length === 0 ? (
               <div className="glass rounded-2xl p-6 text-center text-white/60 text-sm">No proposals yet.</div>
             ) : (
@@ -114,6 +171,7 @@ export default function RequirementDetail() {
               </div>
             )}
           </section>
+          </>
         ) : user?.roles?.includes("vendor") && req.status === "open" ? (
           <Button
             data-testid="req-send-proposal-btn"

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Send, IndianRupee, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Send, IndianRupee, Check, CheckCheck, Sparkles, Loader2 } from "lucide-react";
 import { PhoneScreen } from "@/components/app/PhoneScreen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { chatApi, dealApi } from "@/lib/api";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { chatApi, dealApi, aiApi } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 import { useAuth } from "@/context/AuthContext";
 
@@ -20,6 +21,8 @@ export default function ChatThread() {
   const [offerOpen, setOfferOpen] = useState(false);
   const [offer, setOffer] = useState("");
   const [typing, setTyping] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiInsight, setAiInsight] = useState(null);
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -99,6 +102,43 @@ export default function ChatThread() {
     if (s) s.emit("typing", { thread_id: threadId, is_typing: true });
   };
 
+  // Phase 7d: Gemini negotiation helper (Feature 6)
+  const runAiNegotiate = async (ask) => {
+    if (!thread) return;
+    setAiBusy(true);
+    setAiInsight(null);
+    try {
+      const direction = user?.id === thread.vendor_id ? "seller" : "buyer";
+      const { data } = await aiApi.negotiate({
+        thread_id: threadId,
+        deal_id: thread.deal_id || undefined,
+        direction,
+        ask,
+      });
+      if (!data?.ok) {
+        toast.error(data?.error?.slice(0, 100) || "AI negotiation failed");
+        return;
+      }
+      const r = data.result || {};
+      if (ask === "write_message" || ask === "suggest_counter") {
+        if (r.suggested_message) {
+          setText(r.suggested_message);
+          toast.success("AI draft added — edit or send");
+        }
+        if (ask === "suggest_counter" && r.suggested_offer_inr) {
+          setOffer(String(r.suggested_offer_inr));
+          setOfferOpen(true);
+        }
+      } else if (ask === "analyze_situation") {
+        setAiInsight(r);
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "AI failed");
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   return (
     <PhoneScreen className="flex flex-col">
       <div className="sticky top-0 z-10 bg-black/85 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3" data-testid="chat-header">
@@ -112,6 +152,20 @@ export default function ChatThread() {
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2" data-testid="chat-messages">
+        {aiInsight && (
+          <div className="glass rounded-2xl p-3 border border-pink-500/30 space-y-1.5" data-testid="ai-insight-card">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-pink-400" />
+              <div className="text-xs font-heading font-semibold">AI negotiation insight</div>
+              <button onClick={() => setAiInsight(null)} className="ml-auto text-[10px] text-white/40 hover:text-white/80" data-testid="ai-insight-close">Dismiss</button>
+            </div>
+            {aiInsight.analysis && <div className="text-xs text-white/80 leading-relaxed">{aiInsight.analysis}</div>}
+            {aiInsight.next_best_move && <div className="text-xs text-emerald-300/90"><span className="font-semibold">Next best move: </span>{aiInsight.next_best_move}</div>}
+            {aiInsight.likely_acceptance_price_inr ? (
+              <div className="text-[11px] text-white/60">Likely acceptance: ₹{Number(aiInsight.likely_acceptance_price_inr).toLocaleString("en-IN")} · confidence: {aiInsight.confidence || "medium"}</div>
+            ) : null}
+          </div>
+        )}
         {msgs.map((m) => {
           const mine = m.sender_id === user?.id;
           const isSystem = m.type === "system";
@@ -154,6 +208,30 @@ export default function ChatThread() {
         <button onClick={() => setOfferOpen(true)} data-testid="send-offer-btn" className="h-11 w-11 rounded-full glass flex items-center justify-center">
           <IndianRupee className="h-4 w-4" />
         </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              data-testid="ai-negotiate-trigger"
+              disabled={aiBusy}
+              className="h-11 w-11 rounded-full glass flex items-center justify-center disabled:opacity-40"
+              aria-label="AI negotiation helper"
+            >
+              {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-pink-400" />}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56" data-testid="ai-negotiate-menu">
+            <DropdownMenuItem onClick={() => runAiNegotiate("write_message")} data-testid="ai-negotiate-reply">
+              <Sparkles className="h-3.5 w-3.5 mr-2 text-pink-400" /> Draft a reply
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => runAiNegotiate("suggest_counter")} data-testid="ai-negotiate-counter">
+              <IndianRupee className="h-3.5 w-3.5 mr-2 text-emerald-400" /> Suggest counter offer
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => runAiNegotiate("analyze_situation")} data-testid="ai-negotiate-analyze">
+              🤖 Analyze this deal
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Input
           data-testid="message-input"
           value={text}

@@ -349,6 +349,13 @@ export const integrationsApi = {
 export const aiApi = {
   generate: (payload) => api.post("/v1/ai/generate-listing-content", payload),
   improve: (payload) => api.post("/v1/ai/improve-description", payload),
+  // Phase 7d — Gemini-powered smart features
+  title: (payload) => api.post("/v1/ai/generate-title", payload),
+  detectCategory: (payload) => api.post("/v1/ai/detect-category", payload),
+  parseDemand: (text) => api.post("/v1/ai/parse-demand", { text }),
+  matchVendors: (payload) => api.post("/v1/ai/match-vendors", payload),
+  suggestPrice: (payload) => api.post("/v1/ai/suggest-price", payload),
+  negotiate: (payload) => api.post("/v1/ai/negotiate", payload),
 };
 
 export const onboardingApi = {

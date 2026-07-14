@@ -64,6 +64,12 @@ export default function ListingForm() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiImproving, setAiImproving] = useState(false);
   const [aiPriceHint, setAiPriceHint] = useState(null);
+  // Phase 7d — Gemini smart features
+  const [aiTitleLoading, setAiTitleLoading] = useState(false);
+  const [aiTitleOptions, setAiTitleOptions] = useState([]);
+  const [aiCatLoading, setAiCatLoading] = useState(false);
+  const [aiPriceLoading, setAiPriceLoading] = useState(false);
+  const [aiPriceSuggestion, setAiPriceSuggestion] = useState(null);
   const draftTimer = useRef(null);
 
   // Load categories
@@ -228,6 +234,93 @@ export default function ListingForm() {
     }
   };
 
+  // ---- Phase 7d: Gemini smart features ----
+  const runAiTitle = async () => {
+    if (!form.description && (form.images?.length || 0) === 0) {
+      toast.error("Add some description or images first");
+      return;
+    }
+    setAiTitleLoading(true);
+    try {
+      const { data } = await aiApi.title({
+        listing_type: form.type,
+        description: form.description || undefined,
+        category_hint: (topCats.find((c) => c.id === form.category_id)?.name) || undefined,
+        image_urls: (form.images || []).map((i) => i.url).slice(0, 6),
+      });
+      if (data?.ok && data.titles?.length) {
+        setAiTitleOptions(data.titles);
+        patch({ title: data.titles[data.recommended_index ?? 0] });
+        toast.success(`AI suggested ${data.titles.length} titles`);
+      } else {
+        toast.error(`Title AI failed: ${data?.error?.slice(0, 80) || "unknown"}`);
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "AI title failed");
+    } finally {
+      setAiTitleLoading(false);
+    }
+  };
+
+  const runAiDetectCategory = async () => {
+    if (!form.title && !form.description) {
+      toast.error("Enter a title or description first");
+      return;
+    }
+    setAiCatLoading(true);
+    try {
+      const { data } = await aiApi.detectCategory({
+        title: form.title || undefined,
+        description: form.description || undefined,
+        image_urls: (form.images || []).map((i) => i.url).slice(0, 6),
+      });
+      if (data?.ok && data.category_id) {
+        patch({ category_id: data.category_id, sub_category_id: data.sub_category_id || "" });
+        toast.success(`AI picked ${data.category_name}${data.sub_category_name ? ` › ${data.sub_category_name}` : ""}`);
+      } else {
+        toast.error(`Category AI failed: ${data?.error?.slice(0, 80) || "unknown"}`);
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "AI category failed");
+    } finally {
+      setAiCatLoading(false);
+    }
+  };
+
+  const runAiSuggestPrice = async () => {
+    if (!form.title || !form.category_id) {
+      toast.error("Enter a title and pick a category first");
+      return;
+    }
+    setAiPriceLoading(true);
+    try {
+      const { data } = await aiApi.suggestPrice({
+        title: form.title.trim(),
+        description: form.description || "",
+        category_id: form.category_id,
+        sub_category_id: form.sub_category_id || undefined,
+        condition: form.condition || undefined,
+        city: form.location?.city || undefined,
+        listing_type: form.type,
+      });
+      if (data?.suggested_price_inr) {
+        setAiPriceSuggestion(data);
+        // Pre-fill only if empty
+        patch({
+          price: form.price || String(data.suggested_price_inr),
+          offer_price: form.offer_price || (data.suggested_offer_price_inr ? String(data.suggested_offer_price_inr) : ""),
+        });
+        toast.success(`Suggested ₹${data.suggested_price_inr.toLocaleString("en-IN")}${data.similar_listings_count ? ` (based on ${data.similar_listings_count} similar)` : ""}`);
+      } else {
+        toast.error("Price AI could not suggest — try adding more details");
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "AI price failed");
+    } finally {
+      setAiPriceLoading(false);
+    }
+  };
+
   const publish = async () => {
     setPublishing(true);
     try {
@@ -379,6 +472,16 @@ export default function ListingForm() {
         {/* STEP 1: Category */}
         {step === 1 && (
           <div className="space-y-4" data-testid="step-category">
+            <button
+              type="button"
+              onClick={runAiDetectCategory}
+              disabled={aiCatLoading || (!form.title && !form.description)}
+              data-testid="ai-detect-category-btn"
+              className="w-full rounded-xl px-4 py-3 flex items-center justify-center gap-2 text-sm font-semibold bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {aiCatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-pink-400" />}
+              {aiCatLoading ? "AI is detecting…" : "🎯 Auto-detect category with AI"}
+            </button>
             <div>
               <div className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Category</div>
               <Select value={form.category_id} onValueChange={(v) => patch({ category_id: v, sub_category_id: "" })}>
@@ -417,8 +520,36 @@ export default function ListingForm() {
         {step === 2 && (
           <div className="space-y-4" data-testid="step-details">
             <Field label="Title">
-              <Input data-testid="title-input" value={form.title} onChange={(e) => patch({ title: e.target.value })} maxLength={120} className="h-12 rounded-xl bg-white/5 border-white/10" placeholder="e.g. OnePlus 12, 128GB, Green" />
+              <div className="relative">
+                <Input data-testid="title-input" value={form.title} onChange={(e) => patch({ title: e.target.value })} maxLength={120} className="h-12 rounded-xl bg-white/5 border-white/10 pr-24" placeholder="e.g. OnePlus 12, 128GB, Green" />
+                <button
+                  type="button"
+                  onClick={runAiTitle}
+                  disabled={aiTitleLoading}
+                  data-testid="ai-title-btn"
+                  className="absolute top-1/2 -translate-y-1/2 right-2 text-[11px] font-semibold px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 flex items-center gap-1 disabled:opacity-40"
+                >
+                  {aiTitleLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 text-pink-400" />}
+                  Suggest
+                </button>
+              </div>
             </Field>
+            {aiTitleOptions.length > 0 && (
+              <div className="glass rounded-xl p-3 space-y-1.5" data-testid="ai-title-options">
+                <div className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">AI title options — tap to use</div>
+                {aiTitleOptions.map((t, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => { patch({ title: t }); toast.success("Title applied"); }}
+                    data-testid={`ai-title-option-${i}`}
+                    className={`w-full text-left text-xs px-3 py-2 rounded-lg border ${form.title === t ? "bg-pink-500/20 border-pink-500/50" : "bg-white/5 border-white/10 hover:bg-white/10"}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* AI Autofill CTA */}
             <button
@@ -527,12 +658,33 @@ export default function ListingForm() {
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Price (₹)">
-                <Input data-testid="price-input" type="number" min="0" value={form.price} onChange={(e) => patch({ price: e.target.value })} className="h-12 rounded-xl bg-white/5 border-white/10" />
+                <div className="relative">
+                  <Input data-testid="price-input" type="number" min="0" value={form.price} onChange={(e) => patch({ price: e.target.value })} className="h-12 rounded-xl bg-white/5 border-white/10 pr-24" />
+                  <button
+                    type="button"
+                    onClick={runAiSuggestPrice}
+                    disabled={aiPriceLoading || !form.title || !form.category_id}
+                    data-testid="ai-suggest-price-btn"
+                    className="absolute top-1/2 -translate-y-1/2 right-2 text-[11px] font-semibold px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 flex items-center gap-1 disabled:opacity-40"
+                  >
+                    {aiPriceLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 text-emerald-400" />}
+                    Suggest
+                  </button>
+                </div>
               </Field>
               <Field label="Offer price (₹, optional)">
                 <Input data-testid="offer-price-input" type="number" min="0" value={form.offer_price} onChange={(e) => patch({ offer_price: e.target.value })} className="h-12 rounded-xl bg-white/5 border-white/10" />
               </Field>
             </div>
+            {aiPriceSuggestion && (
+              <div className="glass rounded-xl px-3 py-2 text-xs text-emerald-300/90" data-testid="ai-price-suggestion">
+                <div className="font-semibold mb-0.5">💡 AI price analysis · {aiPriceSuggestion.confidence} confidence</div>
+                <div className="text-white/70 leading-snug">{aiPriceSuggestion.reasoning}</div>
+                {aiPriceSuggestion.similar_listings_count > 0 && (
+                  <div className="text-[10px] text-white/40 mt-1">Based on {aiPriceSuggestion.similar_listings_count} similar listings · range ₹{aiPriceSuggestion.min_inr?.toLocaleString("en-IN")}–₹{aiPriceSuggestion.max_inr?.toLocaleString("en-IN")}</div>
+                )}
+              </div>
+            )}
             <div className="glass rounded-xl p-3 flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium">Negotiable</div>

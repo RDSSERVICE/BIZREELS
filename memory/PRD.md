@@ -176,6 +176,28 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 
 ### P3 — Phase 7: Expo mobile port (delegated to a different agent, `/app/mobile/`)
 
+### ✅ Phase 7d — Gemini smart AI features (completed 2026-07-14)
+
+6 new AI endpoints under `/api/v1/ai/*`, all powered by Gemini via `emergentintegrations` (EMERGENT_LLM_KEY). Default provider flipped from `openai/gpt-5.4` to `gemini/gemini-2.5-flash`. Per-feature model routing implemented (`gemini-2.5-flash` for light tasks, `gemini-2.5-pro` for reasoning-heavy tasks). Admin can override globally in `/admin/settings` or per-feature via `platform_settings.ai_content.feature_models`.
+
+**New endpoints (all rate limited, feature-flag gated, global daily token cap enforced):**
+- `POST /api/v1/ai/generate-title` — 3 title suggestions from description + images (flash, 20/hr)
+- `POST /api/v1/ai/detect-category` — matches to platform category tree (flash, 20/hr)
+- `POST /api/v1/ai/parse-demand` — casual buyer text → structured requirement + clarifying qs (pro, 10/hr)
+- `POST /api/v1/ai/match-vendors` — AI-ranked top-N vendor list for a requirement (flash, 10/hr) with graceful trust-score fallback
+- `POST /api/v1/ai/suggest-price` — market-aware price recommendation with reasoning (pro, 20/hr)
+- `POST /api/v1/ai/negotiate` — negotiation helper (draft reply / suggest counter / analyze deal) (pro, 10/hr) with participant-only ACL
+
+**Frontend wire-ups:**
+- Listing wizard (`/vendor/listing/new`): Step 1 gained "🎯 Auto-detect category" button; Step 2 gained inline "Suggest" pill on title + a card of 3 AI-title options + inline "Suggest" pill on price + a price-analysis banner with reasoning + comparable count.
+- Requirement wizard (`/requirements/new`): new "Tell AI what you need" NL block at top — auto-fills title, description, category, budget, urgency, city + shows AI-understood intent + up to 3 clarifying questions.
+- Requirement detail (owner view): new "🎯 AI-Recommended Vendors" section with score chips, top-listing preview and 1-tap navigation to vendor profile.
+- Chat composer (`/chat/:threadId`): sparkle icon → dropdown with "Draft a reply / Suggest counter offer / Analyze this deal". Analyze shows a dismissable insight card above messages. Draft & counter pre-fill the composer / offer dialog.
+
+**Endpoints total: 157 ops** (from 143 in Phase 7c → +6 new AI ops, includes -0/+7 for the ai-smart tag additions; total also incl earlier routes).
+
+**Non-negotiables kept:** all under `/api/v1/*`, per-user rate limits, global daily cap enforced, graceful fallbacks (never 500 the UI), no API keys in responses, participant-only ACL on chat/deal reads.
+
 ## Non-negotiable rules (project-wide)
 - Never rename collections or endpoints.
 - Soft delete only.
