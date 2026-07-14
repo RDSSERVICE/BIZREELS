@@ -2,3 +2,6 @@
 # is NOT echoed in HTTP responses for admin phones — grep the
 # backend logs for 'Mock OTP for 7418916209' to fetch it.
 7418916209
+
+# Dev-mode admin override (POST /api/v1/auth/dev/admin-login with {token})
+DEV_ADMIN_OVERRIDE_TOKEN=bpb7GbNwdH924677L_QfV0nzAxXfNxpQYscX453c35sXhUvgV_Zr8hchw-Mm-nQ8

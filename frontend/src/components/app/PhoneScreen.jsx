@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import RoleSwitcherChip from "@/components/app/RoleSwitcherChip";
 
 export function PhoneScreen({ children, className }) {
   return (
@@ -18,14 +19,17 @@ export function PhoneScreen({ children, className }) {
 
 export function ScreenHeader({ title, subtitle, right }) {
   return (
-    <div className="px-6 pt-8 pb-4 flex items-start justify-between">
-      <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight">{title}</h1>
+    <div className="px-6 pt-8 pb-4 flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <h1 className="font-heading text-3xl font-bold tracking-tight truncate">{title}</h1>
         {subtitle && (
           <p className="text-sm text-white/60 mt-1 leading-relaxed max-w-xs">{subtitle}</p>
         )}
       </div>
-      {right}
+      <div className="flex items-center gap-2 shrink-0">
+        <RoleSwitcherChip />
+        {right}
+      </div>
     </div>
   );
 }

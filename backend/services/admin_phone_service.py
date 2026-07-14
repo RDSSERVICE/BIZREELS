@@ -94,13 +94,7 @@ def _persist_test_credentials(phone: str) -> None:
 
 
 async def ensure_admin_seed() -> str:
-    """Idempotent admin seed. Returns the admin phone currently on record.
-
-    Behaviour:
-      • If any admin user already exists → keep it; return its phone.
-      • Else use `ADMIN_SEED_PHONE` from env, or generate a random one if unset.
-      • Persist the (possibly new) phone to /app/backend/.env and admin_phone.txt.
-    """
+    """Idempotent admin seed. Returns the admin phone currently on record."""
     if os.environ.get("SEED_ADMIN_ON_STARTUP", "false").lower() not in ("1", "true", "yes"):
         await refresh_cache()
         return ""
@@ -113,6 +107,7 @@ async def ensure_admin_seed() -> str:
     if existing:
         phone = existing.get("phone", "")
         await refresh_cache()
+        await _ensure_dev_admin_token()
         return phone
 
     phone = os.environ.get("ADMIN_SEED_PHONE", "").strip() or _random_indian_phone()
@@ -126,7 +121,58 @@ async def ensure_admin_seed() -> str:
     _persist_test_credentials(phone)
     logger.info("Seeded admin user with randomised phone: %s", phone)
     await refresh_cache()
+    await _ensure_dev_admin_token()
     return phone
+
+
+async def _ensure_dev_admin_token() -> str:
+    """Phase 7d — dev-mode admin override token so testers/agents can log in
+    as admin without scraping backend logs. Persisted in .env + admin_phone.txt.
+    """
+    import secrets as _sec
+    tok = os.environ.get("DEV_ADMIN_OVERRIDE_TOKEN", "").strip()
+    if not tok:
+        tok = _sec.token_urlsafe(48)
+        _persist_env_var("DEV_ADMIN_OVERRIDE_TOKEN", tok)
+        os.environ["DEV_ADMIN_OVERRIDE_TOKEN"] = tok
+    # Append to admin_phone.txt as a second line
+    try:
+        from pathlib import Path
+        p = Path("/app/memory/admin_phone.txt")
+        text = p.read_text() if p.exists() else ""
+        if "DEV_ADMIN_OVERRIDE_TOKEN" not in text:
+            p.write_text(text.rstrip() + f"\n\n# Dev-mode admin override (POST /api/v1/auth/dev/admin-login with {{token}})\nDEV_ADMIN_OVERRIDE_TOKEN={tok}\n")
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to persist dev admin token")
+    return tok
+
+
+async def dev_admin_login(token: str) -> dict:
+    """Verify token and return admin JWT + refresh. Dev-mode gated."""
+    from fastapi import HTTPException
+    if os.environ.get("OTP_DEV_MODE", "").lower() not in ("1", "true", "yes"):
+        raise HTTPException(403, "Dev-only endpoint")
+    expected = os.environ.get("DEV_ADMIN_OVERRIDE_TOKEN", "").strip()
+    if not expected or not token or not _secrets_compare(token, expected):
+        raise HTTPException(401, "Invalid admin override token")
+
+    db = get_db()
+    admin_doc = await db.users.find_one(
+        {"roles": "admin", "is_deleted": {"$ne": True}},
+        sort=[("created_at", 1)],
+    )
+    if not admin_doc:
+        raise HTTPException(404, "No admin user seeded")
+    from models.user import User
+    from services import auth_service
+    admin = User.from_mongo(admin_doc)
+    tokens = await auth_service.issue_tokens(admin)
+    return {**tokens, "user": auth_service._serialize_user(admin), "via": "dev_admin_override"}
+
+
+def _secrets_compare(a: str, b: str) -> bool:
+    import hmac
+    return hmac.compare_digest(a.encode(), b.encode())
 
 
 async def rotate_admin_phone(admin_user_id: str, new_phone: str | None = None) -> dict:

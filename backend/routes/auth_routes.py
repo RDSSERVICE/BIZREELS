@@ -55,6 +55,21 @@ async def verify_otp(body: OtpVerifyBody):
     )
 
 
+class DevAdminLoginBody(BaseModel):
+    token: str = Field(..., min_length=8, max_length=256)
+
+
+@router.post("/dev/admin-login")
+async def dev_admin_login(body: DevAdminLoginBody, request: Request):
+    """Dev-mode admin login using DEV_ADMIN_OVERRIDE_TOKEN (from /app/memory/admin_phone.txt)."""
+    ip = (request.client.host if request.client else "unknown")
+    allowed, retry = check_and_record(f"devadmin:{ip}", limit=3, window_seconds=600)
+    if not allowed:
+        raise HTTPException(429, f"Too many attempts. Retry in {retry}s.")
+    from services import admin_phone_service
+    return await admin_phone_service.dev_admin_login(body.token.strip())
+
+
 class GoogleSessionExchangeBody(BaseModel):
     session_id: str = Field(..., min_length=8, max_length=256)
 
