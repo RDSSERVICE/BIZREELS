@@ -1,0 +1,25 @@
+{
+  "summary": "Verified Profile-Complete wizard fixes end-to-end (FIX A/B/C/D + E2E + regression). All 5 fixes work as intended. City step now has free-text input, geolocation button, search box, and 53-city grid. Deep-link ?step= param jumps to correct step for all 5 keys. Custom typed city ('Custom XYZ Testville') persisted to backend via PATCH /users/me and reflected in GET /users/me AND in localStorage after the response-shape unwrap (data?.user||data). Onboarding checklist correctly deep-links profile_pic->?step=photo and kyc->?step=kyc; done items resolve to '#'; review and listing use their own routes. Full 5-step wizard: photo->city->kyc(nav /kyc)->listing(nav /vendor/listing/new)->review(Finish->toast+/dashboard). All required data-testids present.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ProfileComplete.jsx:44-49 — initialStep uses Math.max(0, findIndex()) which coerces -1 (unknown key) to 0 BUT then re-checks `initialStep === -1 ? 0 : initialStep` in useState — the second check is dead code because Math.max already floored to 0. Minor cleanup, not a bug.",
+    "OnboardingChecklist.jsx:17-26 — stepLink map uses key 'profile_pic' to match backend checklist keys, while wizard STEPS use 'photo'. Cross-mapping is correct (profile_pic -> ?step=photo). Consider a comment above stepLink noting this key-name mismatch to prevent future confusion.",
+    "ProfileComplete.jsx:293-299 — 'Save & continue' handler for kyc/listing/review passes null payload => commitAndNext(null) still triggers the 'Profile complete! +30 credits added' toast on the last step even if no server change happened. This matches the request (optimistic toast) but backend must have auto-awarded via checklist for it to be truthful. Verified: /onboarding-checklist auto-awards when all_done, so this is fine.",
+    "OTP /auth/otp/send has aggressive rate-limit (10min lockout) — main agent's dev/admin-login token workaround is essential for iterative testing."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (per request)", "frontend": "100% (all 5 wizard fixes verified)"},
+  "test_credentials": "Used dev/admin-login token j0XOw7fmnW8-... for seed admin uid 6a53ee7259c14202916da875 (all 4 roles: admin, customer, vendor, creator). Personal admin phone 9039791530 could not be used directly due to OTP rate-limit at test time — but seed admin has identical roles so wizard behavior (esp. vendorOnly steps 4/5) is faithfully exercised.",
+  "seed_data_creation": "None — mutations were limited to setting the admin user's city field. City was set to 'Custom XYZ Testville' via wizard save.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All wizard/checklist fixes verified. Verified elements: city-input (free-text), use-my-location, city-search (filters grid to 1 result for 'Bhop'), city-grid (53 buttons — INDIA_CITIES has 53 entries), city-preview shows selected value, city-clear button. Deep-link URLs verified: ?step=photo->Step 1, ?step=city->Step 2, ?step=kyc->Step 3, ?step=listing->Step 4, ?step=review->Step 5. Navigation buttons verified: go-to-kyc->/kyc, go-to-listing->/vendor/listing/new, Finish (save-continue on last step)->toast+/dashboard. Skip advances steps and reaches /dashboard from last step. Checklist hrefs verified: profile_pic (not done)->/profile/complete?step=photo, kyc (not done)->/profile/complete?step=kyc, city/listing (done)->'#' (resolves to /dashboard), review->/dashboard. FIX D verified via localStorage: after PATCH /users/me returning {user:{...}}, localStorage.emergent_user.city equals the string 'Custom XYZ Testville' (not a nested object). Backend PATCH /users/me returns 200 with {user:{...}} payload; sending {city: null} returns 400 (must be non-null string) — expected behaviour.",
+  "rca_of_the_issue": "Original bug (city step grid-only) fully mitigated. Reproduction of fix: navigate /profile/complete?step=city -> data-testid=city-input is a real <input> with maxLength=80, typing 'Custom XYZ Testville' populates state.city -> save-continue fires PATCH /api/v1/users/me {city:'Custom XYZ Testville'} -> 200 {user:{...,city:'Custom XYZ Testville'}} -> updateLocalUser(data.user) -> localStorage user.city == string. Users can now enter any city not in the pre-defined list."
+}

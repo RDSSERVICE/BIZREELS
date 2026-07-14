@@ -15,12 +15,15 @@ export default function OnboardingChecklist() {
 
   const pct = Math.round((state.completed / state.total) * 100);
   const stepLink = (k) => ({
-    profile_pic: "/profile",
-    city: "/profile",
-    kyc: "/kyc",
-    listing: "/vendor/new",
+    // Deep-link into the profile-complete wizard on the correct step.
+    // The wizard reads ?step=<key> and jumps to it. Falls back to /profile for
+    // steps that require their own dedicated page.
+    profile_pic: "/profile/complete?step=photo",
+    city: "/profile/complete?step=city",
+    kyc: "/profile/complete?step=kyc",
+    listing: "/vendor/listing/new",
     review: "/dashboard",
-  }[k] || "/dashboard");
+  }[k] || "/profile/complete");
 
   return (
     <div className="glass rounded-3xl p-5" data-testid="onboarding-checklist">
