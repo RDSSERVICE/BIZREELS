@@ -1,0 +1,28 @@
+{
+  "summary": "Iteration 16 delta re-verify of the 2 medium bugs from iter15. BOTH FIXES VERIFIED. (A) Magic-link auto-login: navigating to /admin/login?token=<DEV_ADMIN_OVERRIDE_TOKEN> auto-fires POST /api/v1/auth/dev/admin-login on mount (useEffect line 40-58 of AdminLogin.jsx) WITHOUT any click — backend logs show 200 OK followed by authed GET /admin/analytics/overview 200 and GET /admin/settings/integrations 200, and the browser URL auto-redirected to /admin. (B) RoleSwitcherChip on /feed: after logging in, chip [data-testid='role-switcher-chip'] renders in the sticky top header of /feed (box=x:861,y:18,w:119,h:36) with current-role text 'Customer', sitting next to LocationChip and search icon. Light regression: bottom-nav still present on /feed, feed-search-btn still present, admin panel accessible after auth.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_15.json",
+    "/app/backend/tests/test_iteration15.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "AdminLogin.jsx: the auto-invoke useEffect duplicates the entire login() body inline (lines 44-56 vs 28-31). Could DRY-refactor by extracting a shared submitToken(t) helper and calling it from both the form onSubmit and the mount effect.",
+    "AdminLogin.jsx line 40-58 useEffect has empty dependency array with eslint-disable comment; because it reads params.get('token'), if the user were to navigate between /admin/login?token=A → /admin/login?token=B via SPA push (rare), the second token would not auto-fire. Acceptable for magic-link entry-only use case, worth noting.",
+    "React 18 StrictMode double-invokes effects in dev; the auto-login POST may fire twice on first mount and hit the 3/10-min rate-limit faster in local dev testing. Consider guarding with a useRef sentinel (const fired = useRef(false); if (fired.current) return; fired.current = true;) — matters for iterative testing, harmless in production build.",
+    "Feed.jsx line 68 correctly mounts <RoleSwitcherChip /> inside the header right cluster. Component returns null when !user so the chip is only visible for signed-in users — good behavior. No further changes needed."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (2/2 fixes verified + regression sanity pass)"},
+  "test_credentials": "Admin phone 7418916209, DEV_ADMIN_OVERRIDE_TOKEN=bpb7GbNwdH924677L_QfV0nzAxXfNxpQYscX453c35sXhUvgV_Zr8hchw-Mm-nQ8. Rate limit 3/10min on /auth/dev/admin-login — during testing had to fall back to OTP flow for Fix B (grep 'Admin OTP for 7418916209' in backend.err.log then POST /auth/otp/verify, inject access_token+refresh_token+user JSON into localStorage under emergent_access_token / emergent_refresh_token / emergent_user).",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Both iter15 medium bugs (magic-link auto-login + RoleSwitcherChip on /feed) are FIXED. Verification method for Fix A: hit /admin/login?token=<TOKEN> and confirm backend log shows POST /api/v1/auth/dev/admin-login 200 followed by authed /api/v1/admin/* 200s — do NOT click any button. Watch out for React StrictMode double-effect + 3/10min rate-limit exhausting quickly during iterative testing; when rate-limited, fall back to OTP flow (7418916209 → grep 'Admin OTP' in /var/log/supervisor/backend.err.log → POST /auth/otp/verify → inject tokens into localStorage). Fix B: RoleSwitcherChip is now in Feed.jsx line 68 header cluster; chip returns null if !user, so verify while authenticated. All iter15 flows (VendorDashboard bottom-nav, creator.open_requirements scoping in role-activity, cart lifecycle, profile-complete wizard, /admin/login manual entry) remain unchanged.",
+  "rca_of_the_issue": "Fix A RCA verified: AdminLogin.jsx now has useEffect (lines 40-58) that reads params.get('token') and, when present, immediately POSTs to /v1/auth/dev/admin-login, calls applyAuthResponse(data) on success, and navigate('/admin'). Confirmed via backend supervisor.out.log 200 OK entries and the browser URL settling on /admin without any button click. Fix B RCA verified: Feed.jsx line 9 imports RoleSwitcherChip and line 68 renders it inside the sticky header's right-side flex cluster, before LocationChip and the search icon. DOM query on [data-testid='role-switcher-chip'] returns the visible chip element (bounding box confirmed) with the current-role label 'Customer'."
+}

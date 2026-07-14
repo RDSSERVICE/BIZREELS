@@ -6,6 +6,7 @@ import { feedApi } from "@/lib/api";
 import { PhoneScreen } from "@/components/app/PhoneScreen";
 import BottomNav from "@/components/app/BottomNav";
 import LocationChip, { useUserLocation } from "@/components/app/LocationChip";
+import RoleSwitcherChip from "@/components/app/RoleSwitcherChip";
 import ReelItem from "@/components/app/ReelItem";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -64,6 +65,7 @@ export default function Feed() {
         <div className="px-4 pt-4 pb-3 flex items-center justify-between gap-2">
           <h1 className="font-heading text-xl font-bold">{t("feed.title")}</h1>
           <div className="flex items-center gap-2">
+            <RoleSwitcherChip />
             <LocationChip />
             <button
               onClick={() => navigate("/search")}

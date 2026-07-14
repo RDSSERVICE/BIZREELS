@@ -19,12 +19,6 @@ export default function AdminLogin() {
   const [token, setToken] = useState(params.get("token") || "");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Auto-focus once mounted
-    const el = document.getElementById("admin-token-input");
-    if (el) el.focus();
-  }, []);
-
   const login = async (e) => {
     e?.preventDefault?.();
     const t = (token || DEV_TOKEN_HINT).trim();
@@ -41,6 +35,31 @@ export default function AdminLogin() {
       setLoading(false);
     }
   };
+
+  // Magic-link: if ?token=... is present, auto-submit once on mount.
+  useEffect(() => {
+    const urlToken = params.get("token");
+    if (urlToken && urlToken.trim()) {
+      // Fire and forget — errors surface via toast in login()
+      (async () => {
+        setLoading(true);
+        try {
+          const { data } = await api.post("/v1/auth/dev/admin-login", { token: urlToken.trim() });
+          applyAuthResponse(data);
+          toast.success("Signed in as Admin");
+          navigate("/admin", { replace: true });
+        } catch (err) {
+          toast.error(err?.response?.data?.detail || "Invalid admin token");
+        } finally {
+          setLoading(false);
+        }
+      })();
+      return;
+    }
+    const el = document.getElementById("admin-token-input");
+    if (el) el.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <PhoneScreen>
