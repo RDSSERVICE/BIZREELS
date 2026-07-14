@@ -108,10 +108,14 @@ export default function ChatThread() {
     setAiBusy(true);
     setAiInsight(null);
     try {
-      const direction = user?.id === thread.vendor_id ? "seller" : "buyer";
+      // Direction inference: if the peer of this thread is a listing owner,
+      // the current user is the buyer; else seller. When ambiguous, default buyer.
+      const peerId = (thread.participants || []).find((p) => String(p) !== String(user?.id));
+      const iAmSeller = String(thread.context_owner_id || thread.listing_owner_id || "") === String(user?.id);
+      const direction = iAmSeller ? "seller" : "buyer";
       const { data } = await aiApi.negotiate({
         thread_id: threadId,
-        deal_id: thread.deal_id || undefined,
+        // deal_id auto-resolved server-side from thread if any
         direction,
         ask,
       });

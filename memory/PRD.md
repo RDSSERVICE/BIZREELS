@@ -196,6 +196,8 @@ A single user may hold multiple roles simultaneously (`roles[]`) with a single `
 
 **Endpoints total: 157 ops** (from 143 in Phase 7c → +6 new AI ops, includes -0/+7 for the ai-smart tag additions; total also incl earlier routes).
 
+**Post-iter17 fixes**: negotiate ACL schema fix — chat_threads use `participants[]` (not customer_id/vendor_id); deals use `seller_id` + `offers_history` (not vendor_id + offers). Added auto-load of linked deal by thread_id so the frontend can pass just a thread_id and still get full deal context. All 3 asks (write_message/suggest_counter/analyze_situation) verified working end-to-end, plus non-participant denial.
+
 **Non-negotiables kept:** all under `/api/v1/*`, per-user rate limits, global daily cap enforced, graceful fallbacks (never 500 the UI), no API keys in responses, participant-only ACL on chat/deal reads.
 
 ## Non-negotiable rules (project-wide)

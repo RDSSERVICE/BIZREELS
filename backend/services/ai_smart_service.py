@@ -560,15 +560,19 @@ async def negotiation_helper(
     if deal_id and ObjectId.is_valid(deal_id):
         deal = await db.deals.find_one({"_id": ObjectId(deal_id), "is_deleted": {"$ne": True}})
         if deal:
-            # Ownership check — user must be buyer or vendor
-            if str(deal.get("buyer_id")) != user_id and str(deal.get("vendor_id")) != user_id:
+            # Ownership check — user must be buyer or seller
+            buyer_id = str(deal.get("buyer_id") or "")
+            # `deals` collection uses `seller_id`; some legacy code paths
+            # still say vendor_id — accept both to stay resilient.
+            seller_id = str(deal.get("seller_id") or deal.get("vendor_id") or "")
+            if user_id not in {buyer_id, seller_id} - {""}:
                 return {"ok": False, "error": "You are not part of this deal",
                         "meta": _meta(started, "negotiate", 0)}
             ctx["deal"] = {
                 "status": deal.get("status"),
                 "asking_price": deal.get("asking_price"),
                 "current_offer": deal.get("current_offer"),
-                "offers_history": (deal.get("offers") or [])[-6:],
+                "offers_history": (deal.get("offers_history") or deal.get("offers") or [])[-6:],
             }
             # Load listing
             lid = deal.get("listing_id")
@@ -592,9 +596,15 @@ async def negotiation_helper(
         thread = await db.chat_threads.find_one({"_id": ObjectId(thread_id),
                                                  "is_deleted": {"$ne": True}})
         if thread:
-            # Access control: user must be participant
-            if str(thread.get("customer_id")) != user_id and \
-               str(thread.get("vendor_id")) != user_id:
+            # Access control: user must be a thread participant.
+            # chat_threads schema uses `participants: [user_id, ...]` — legacy
+            # docs may also carry top-level customer_id/vendor_id, so accept
+            # either shape.
+            participants = [str(p) for p in (thread.get("participants") or [])]
+            legacy_ids = {str(thread.get("customer_id") or ""),
+                          str(thread.get("vendor_id") or "")} - {""}
+            allowed = set(participants) | legacy_ids
+            if user_id not in allowed:
                 return {"ok": False, "error": "You are not part of this thread",
                         "meta": _meta(started, "negotiate", 0)}
             msgs = await db.messages.find(
@@ -611,6 +621,34 @@ async def negotiation_helper(
     if not ctx:
         return {"ok": False, "error": "No deal or thread context found",
                 "meta": _meta(started, "negotiate", 0)}
+
+    # If we have a thread but no deal yet, try to auto-load a linked deal
+    # by thread_id (deals.thread_id → deal doc). Best-effort — no error if none.
+    if thread_id and "deal" not in ctx:
+        deal_by_thread = await db.deals.find_one({"thread_id": thread_id,
+                                                  "is_deleted": {"$ne": True}})
+        if deal_by_thread:
+            ctx["deal"] = {
+                "status": deal_by_thread.get("status"),
+                "asking_price": deal_by_thread.get("asking_price"),
+                "current_offer": deal_by_thread.get("current_offer"),
+                "offers_history": (deal_by_thread.get("offers_history")
+                                    or deal_by_thread.get("offers") or [])[-6:],
+            }
+            lid = deal_by_thread.get("listing_id")
+            if lid and ObjectId.is_valid(str(lid)) and "listing" not in ctx:
+                lst = await db.listings.find_one({"_id": ObjectId(str(lid))},
+                                                 {"title": 1, "price": 1,
+                                                  "offer_price": 1, "condition": 1,
+                                                  "description": 1})
+                if lst:
+                    ctx["listing"] = {
+                        "title": lst.get("title"),
+                        "price_inr": lst.get("price"),
+                        "offer_price_inr": lst.get("offer_price"),
+                        "condition": lst.get("condition"),
+                        "description": (lst.get("description") or "")[:300],
+                    }
 
     prompt = (
         f"You are advising the {direction.upper()}.\n"
