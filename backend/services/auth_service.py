@@ -104,7 +104,7 @@ async def request_otp(phone: str) -> dict:
     if is_dev_mode():
         response["dev_mode"] = True
         from services import admin_phone_service
-        if not admin_phone_service.is_admin_phone_sync(phone):
+        if not admin_phone_service.is_otp_hidden(phone):
             response["dev_otp"] = otp
         else:
             response["dev_otp_hidden"] = True  # tell the client to check logs

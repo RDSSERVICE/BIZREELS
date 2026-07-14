@@ -57,6 +57,27 @@ def is_admin_phone_sync(phone: str) -> bool:
     return phone in _cache["phones"]
 
 
+def is_otp_hidden(phone: str) -> bool:
+    """Whether the dev-mode OTP echo must be suppressed for this phone.
+
+    Gate is INDEPENDENT of admin-role membership so that adding admin role to
+    a regular user (e.g. a demo tester's own phone) does NOT accidentally
+    lock them out of the dev-OTP-echo convenience.
+
+    Source of truth: env var `HIDDEN_OTP_PHONES` (comma-separated). Defaults
+    to the seeded admin phone from `admin_phone.txt`. Keep this list short —
+    only phones whose OTPs must never be reflected back to HTTP clients
+    (typically only the auto-rotated seeded admin phone).
+    """
+    raw = os.environ.get("HIDDEN_OTP_PHONES", "").strip()
+    if not raw:
+        # Backwards-compatible fallback: hide only the seeded admin phone
+        seed = os.environ.get("ADMIN_SEED_PHONE", "").strip()
+        return bool(seed) and phone == seed
+    hidden = {p.strip() for p in raw.split(",") if p.strip()}
+    return phone in hidden
+
+
 def _persist_env_var(key: str, value: str) -> None:
     """Idempotently write / update KEY=VALUE in /app/backend/.env."""
     try:
