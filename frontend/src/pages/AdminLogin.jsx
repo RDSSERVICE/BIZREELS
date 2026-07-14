@@ -20,18 +20,44 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const autoFiredRef = useRef(false);
 
+  // Shared submit helper with one automatic retry on 429 (rate-limit).
+  // k8s ingress can collapse all demo users behind one IP, so a light retry
+  // masks transient rate-limiter blips without weakening real protection.
+  const submitToken = async (t) => {
+    const doPost = () => api.post("/v1/auth/dev/admin-login", { token: t });
+    try {
+      const { data } = await doPost();
+      applyAuthResponse(data);
+      toast.success("Signed in as Admin");
+      navigate("/admin", { replace: true });
+      return true;
+    } catch (err) {
+      if (err?.response?.status === 429) {
+        toast.message("Rate limited, retrying...");
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          const { data } = await doPost();
+          applyAuthResponse(data);
+          toast.success("Signed in as Admin");
+          navigate("/admin", { replace: true });
+          return true;
+        } catch (err2) {
+          toast.error(err2?.response?.data?.detail || "Invalid admin token");
+          return false;
+        }
+      }
+      toast.error(err?.response?.data?.detail || "Invalid admin token");
+      return false;
+    }
+  };
+
   const login = async (e) => {
     e?.preventDefault?.();
     const t = (token || DEV_TOKEN_HINT).trim();
     if (!t) return toast.error("Enter admin token");
     setLoading(true);
     try {
-      const { data } = await api.post("/v1/auth/dev/admin-login", { token: t });
-      applyAuthResponse(data);
-      toast.success("Signed in as Admin");
-      navigate("/admin", { replace: true });
-    } catch (e) {
-      toast.error(e?.response?.data?.detail || "Invalid admin token");
+      await submitToken(t);
     } finally {
       setLoading(false);
     }
@@ -46,12 +72,7 @@ export default function AdminLogin() {
       (async () => {
         setLoading(true);
         try {
-          const { data } = await api.post("/v1/auth/dev/admin-login", { token: urlToken.trim() });
-          applyAuthResponse(data);
-          toast.success("Signed in as Admin");
-          navigate("/admin", { replace: true });
-        } catch (err) {
-          toast.error(err?.response?.data?.detail || "Invalid admin token");
+          await submitToken(urlToken.trim());
         } finally {
           setLoading(false);
         }

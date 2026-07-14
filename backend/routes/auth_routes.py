@@ -64,7 +64,10 @@ async def dev_admin_login(body: DevAdminLoginBody, request: Request):
     """Dev-mode admin login using DEV_ADMIN_OVERRIDE_TOKEN (from /app/memory/admin_phone.txt)."""
     ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() \
          or (request.client.host if request.client else "unknown")
-    allowed, retry = check_and_record(f"devadmin:{ip}", limit=3, window_seconds=600)
+    # Dev-mode gate — permissive limit (30/min/IP) because k8s ingress can
+    # collapse many demo users behind a single source IP. Still limited to
+    # prevent brute-force of the override token.
+    allowed, retry = check_and_record(f"devadmin:{ip}", limit=30, window_seconds=60)
     if not allowed:
         raise HTTPException(429, f"Too many attempts. Retry in {retry}s.")
     from services import admin_phone_service
