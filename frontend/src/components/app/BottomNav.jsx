@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Home, Compass, Plus, MessageCircle, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { chatApi } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
+import { navForRole } from "@/lib/roleNav";
 
 export default function BottomNav() {
   const { user } = useAuth();
-  const isVendor = user?.roles?.includes("vendor");
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
@@ -22,17 +21,12 @@ export default function BottomNav() {
     }
   }, [user?.id]);
 
-  const centerItem = isVendor
-    ? { to: "/vendor/listing/new", label: "Sell", icon: Plus, testId: "nav-add", isCta: true }
-    : { to: "/requirements/new", label: "Post", icon: Plus, testId: "nav-post", isCta: true };
-
-  const items = [
-    { to: "/feed", label: "Feed", icon: Home, testId: "nav-feed" },
-    { to: "/explore", label: "Explore", icon: Compass, testId: "nav-explore" },
-    centerItem,
-    { to: user ? "/chat" : "/login", label: "Chat", icon: MessageCircle, testId: "nav-chat", badge: unread },
-    { to: user ? "/profile" : "/login", label: "Me", icon: UserIcon, testId: "nav-profile" },
-  ];
+  const role = user?.current_role || (user?.roles || [])[0] || "customer";
+  const items = navForRole(role).map((it) => ({
+    ...it,
+    to: (!user && (it.testId === "nav-chat" || it.testId === "nav-profile")) ? "/login" : it.to,
+    badge: it.showUnread ? unread : 0,
+  }));
 
   return (
     <nav className="sticky bottom-0 left-0 right-0 z-30 bg-black/85 backdrop-blur-lg border-t border-white/10" data-testid="bottom-nav">
@@ -48,12 +42,12 @@ export default function BottomNav() {
                       <Icon className="h-5 w-5" />
                     </div>
                     {it.badge > 0 && (
-                      <span className="absolute -top-1 -right-1 text-[9px] bg-pink-500 text-white h-4 min-w-4 px-1 rounded-full flex items-center justify-center font-semibold" data-testid="nav-chat-badge">
-                        {it.badge}
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-pink-500 text-[9px] font-bold text-white flex items-center justify-center">
+                        {it.badge > 99 ? "99+" : it.badge}
                       </span>
                     )}
                   </div>
-                  <span>{it.label}</span>
+                  <span className={isActive ? "font-semibold" : ""}>{it.label}</span>
                 </>
               )}
             </NavLink>

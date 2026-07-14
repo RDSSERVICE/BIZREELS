@@ -62,7 +62,8 @@ class DevAdminLoginBody(BaseModel):
 @router.post("/dev/admin-login")
 async def dev_admin_login(body: DevAdminLoginBody, request: Request):
     """Dev-mode admin login using DEV_ADMIN_OVERRIDE_TOKEN (from /app/memory/admin_phone.txt)."""
-    ip = (request.client.host if request.client else "unknown")
+    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() \
+         or (request.client.host if request.client else "unknown")
     allowed, retry = check_and_record(f"devadmin:{ip}", limit=3, window_seconds=600)
     if not allowed:
         raise HTTPException(429, f"Too many attempts. Retry in {retry}s.")

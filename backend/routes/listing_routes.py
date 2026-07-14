@@ -244,3 +244,26 @@ async def track_listing_event(listing_id: str, body: TrackBody, request: Request
         event_type=body.event, user_id=user_id, meta={},
     )
     return {"ok": True}
+
+
+@router.get("/vendor/{vendor_id}/related")
+async def more_from_vendor(vendor_id: str, exclude_listing_id: str | None = None, limit: int = 12):
+    """Public: return this vendor's other active listings (More-from-vendor rail)."""
+    from bson import ObjectId
+    from database import get_db
+    from utils.test_data import not_test_filter
+    db = get_db()
+    if not ObjectId.is_valid(vendor_id):
+        raise HTTPException(400, "Invalid vendor id")
+    q: dict = {
+        "vendor_id": vendor_id, "is_deleted": {"$ne": True},
+        "status": "active", "is_takendown": {"$ne": True},
+        **not_test_filter("title"),
+    }
+    if exclude_listing_id and ObjectId.is_valid(exclude_listing_id):
+        q["_id"] = {"$ne": ObjectId(exclude_listing_id)}
+    limit = max(1, min(24, int(limit)))
+    from services.listing_service import _serialize
+    docs = await db.listings.find(q).sort([("views_count", -1), ("_id", -1)]).limit(limit).to_list(length=limit)
+    return {"items": [_serialize(d) for d in docs], "vendor_id": vendor_id}
+
