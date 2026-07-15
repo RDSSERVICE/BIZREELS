@@ -139,3 +139,39 @@ body {
         @apply bg-background text-foreground;
     }
 }
+
+/* Page transition animation */
+@keyframes pageEnter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-page-enter {
+    animation: pageEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Premium hover effects for lists */
+.hover-card-premium {
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+                background-color 200ms ease,
+                border-color 200ms ease,
+                box-shadow 200ms ease;
+}
+
+.hover-card-premium:hover {
+    transform: translateY(-2px) scale(1.01);
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.hover-card-premium:active {
+    transform: translateY(0) scale(1);
+}
+

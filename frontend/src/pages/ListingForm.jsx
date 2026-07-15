@@ -824,7 +824,7 @@ export default function ListingForm() {
                 <div className="mt-3 grid grid-cols-4 gap-1">
                   {form.images.slice(0, 4).map((im, i) => (
                     <div key={i} className="aspect-square rounded-md overflow-hidden bg-white/5">
-                      <img src={/^https?:/i.test(im.url) ? im.url : `${process.env.REACT_APP_BACKEND_URL}${im.url}`} alt="" className="w-full h-full object-cover" />
+                      <img src={/^https?:/i.test(im.url) ? im.url : `${import.meta.env.VITE_BACKEND_URL || ''}${im.url}`} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
                 </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { walletApi, paymentApi } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 
 export default function Wallet() {
   const [wallet, setWallet] = useState(null);
@@ -15,7 +16,20 @@ export default function Wallet() {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("500");
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const s = getSocket();
+    if (s) {
+      const handler = (updatedWallet) => {
+        setWallet(updatedWallet);
+        walletApi.me().then(({ data }) => setTxns(data.transactions || [])).catch(() => {});
+      };
+      s.on("wallet:updated", handler);
+      return () => {
+        s.off("wallet:updated", handler);
+      };
+    }
+  }, []);
   async function load() {
     setLoading(true);
     try {

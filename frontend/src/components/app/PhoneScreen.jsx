@@ -6,7 +6,7 @@ export function PhoneScreen({ children, className }) {
     <div className="min-h-screen bg-black text-white flex justify-center">
       <div
         className={cn(
-          "w-full max-w-md min-h-screen relative border-x border-white/5 bg-black",
+          "w-full max-w-md min-h-screen relative border-x border-white/5 bg-black animate-page-enter",
           className
         )}
         data-testid="phone-screen"

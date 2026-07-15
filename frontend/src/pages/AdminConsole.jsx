@@ -75,7 +75,8 @@ export default function AdminConsole() {
   };
 
   const downloadCsv = () => {
-    const url = `${process.env.REACT_APP_BACKEND_URL}/api/v1/admin/transactions.csv`;
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+    const url = `${backendUrl}/api/v1/admin/transactions.csv`;
     const win = window.open(url, "_blank"); if (!win) toast.error("Popup blocked");
   };
 

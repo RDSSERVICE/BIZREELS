@@ -97,3 +97,4 @@ credentials.json
 # Test/live keys — never commit
 /tmp/rzp-keys.csv
 *.rzp-keys.csv
+backend/admin_phone.txt
