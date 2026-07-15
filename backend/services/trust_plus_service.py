@@ -50,13 +50,19 @@ async def maybe_award_bonus(user_id: str) -> dict:
     u = await db.users.find_one({"_id": ObjectId(user_id)})
     if not u or u.get("has_received_trusted_plus_bonus"):
         return {"awarded": False, "reason": "already awarded"}
-    # Credit wallet
+    # Credit wallet — earn_credits is idempotent-by-ref_id in wallet_service.
     try:
         from services import wallet_service
-        await wallet_service.credit(user_id, BONUS_CREDITS, source="trust_plus_bonus",
-                                    ref_id=f"trust_plus:{user_id}")
+        await wallet_service.earn_credits(
+            user_id, BONUS_CREDITS,
+            reason="trust_plus_bonus", ref_type="kyc",
+            ref_id=f"trust_plus:{user_id}",
+        )
     except Exception as _e:  # noqa: BLE001
         logger.warning("wallet credit failed: %s", _e)
+        # Do NOT flip the flag if credit actually failed — otherwise we mint
+        # a phantom-awarded state that blocks retry.
+        return {"awarded": False, "reason": f"credit error: {_e!s}"}
     await db.users.update_one(
         {"_id": ObjectId(user_id)},
         {"$set": {"has_received_trusted_plus_bonus": True,

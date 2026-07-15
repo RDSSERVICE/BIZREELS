@@ -39,22 +39,20 @@ def _parse_dt(s: str | None) -> datetime | None:
         return None
 
 
-# ========================================================== TRANSACTIONS
-@router.get("/transactions")
-async def list_transactions(
-    _admin=Depends(require_roles("admin")),
-    type: str | None = Query(default=None, pattern="^(payment|wallet|all)$"),
-    status: str | None = Query(default=None, max_length=32),
-    user_id: str | None = Query(default=None, max_length=32),
-    from_date: str | None = Query(default=None, alias="from", max_length=40),
-    to_date: str | None = Query(default=None, alias="to", max_length=40),
-    limit: int = Query(default=50, ge=1, le=200),
-):
-    """Unified list: payments + wallet transactions. Returns items sorted by created_at desc."""
+async def _fetch_transactions(
+    type_: str | None = None,
+    status: str | None = None,
+    user_id: str | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    limit: int = 50,
+) -> dict:
+    """Plain helper (no Depends/Query defaults) — safe to call from both the
+    JSON list endpoint AND the CSV export endpoint."""
     db = get_db()
     dt_from = _parse_dt(from_date)
     dt_to = _parse_dt(to_date)
-    common = {"is_deleted": {"$ne": True}}
+    common: dict = {"is_deleted": {"$ne": True}}
     if status:
         common["status"] = status
     if user_id:
@@ -66,7 +64,7 @@ async def list_transactions(
         common["created_at"] = rng
 
     items: list[dict] = []
-    if type in (None, "all", "payment"):
+    if type_ in (None, "all", "payment"):
         pays = await db.payment_transactions.find(common).sort([("_id", -1)]).limit(limit).to_list(limit)
         for p in pays:
             items.append({
@@ -79,16 +77,19 @@ async def list_transactions(
                 "reference": p.get("razorpay_order_id") or p.get("reference"),
                 "created_at": _iso(p.get("created_at")),
             })
-    if type in (None, "all", "wallet"):
+    if type_ in (None, "all", "wallet"):
         wt = await db.wallet_transactions.find(common).sort([("_id", -1)]).limit(limit).to_list(limit)
         for w in wt:
+            # wallet_transactions schema uses `amount` (int credits). Legacy
+            # docs may still say `amount_credits` — accept either.
+            credits = int(w.get("amount") or w.get("amount_credits") or 0)
             items.append({
                 "id": str(w["_id"]), "kind": "wallet",
                 "user_id": w.get("user_id"),
-                "amount_paise": (w.get("amount_credits") or 0) * 100,
+                "amount_paise": credits * 100,
                 "currency": "CREDITS",
                 "status": w.get("status", "posted"),
-                "provider": w.get("source"),
+                "provider": w.get("source") or w.get("bucket"),
                 "reference": w.get("ref_id"),
                 "created_at": _iso(w.get("created_at")),
             })
@@ -96,15 +97,32 @@ async def list_transactions(
     return {"items": items[:limit], "count": min(len(items), limit)}
 
 
+# ========================================================== TRANSACTIONS
+@router.get("/transactions")
+async def list_transactions(
+    _admin=Depends(require_roles("admin")),
+    type: str | None = Query(default=None, pattern="^(payment|wallet|all)$"),
+    status: str | None = Query(default=None, max_length=32),
+    user_id: str | None = Query(default=None, max_length=32),
+    from_date: str | None = Query(default=None, alias="from", max_length=40),
+    to_date: str | None = Query(default=None, alias="to", max_length=40),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    return await _fetch_transactions(type, status, user_id, from_date, to_date, limit)
+
+
 @router.get("/transactions.csv")
 async def export_transactions_csv(_admin=Depends(require_roles("admin"))):
-    data = await list_transactions(_admin=_admin)  # type: ignore[arg-type]
+    data = await _fetch_transactions(limit=200)
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["id", "kind", "user_id", "amount_paise", "currency", "status", "provider", "reference", "created_at"])
+    # CSV-injection defence: single-quote-prefix any leading =/+/-/@ chars.
+    def _safe(v):
+        s = "" if v is None else str(v)
+        return "'" + s if s and s[0] in "=+-@" else s
     for r in data["items"]:
-        w.writerow([r["id"], r["kind"], r["user_id"], r["amount_paise"], r["currency"],
-                    r["status"], r["provider"], r["reference"], r["created_at"]])
+        w.writerow([_safe(r[k]) for k in ["id","kind","user_id","amount_paise","currency","status","provider","reference","created_at"]])
     return Response(content=buf.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=transactions.csv"})
 

@@ -260,3 +260,22 @@ Verification: all 5 cases green — user OTP login for 9039791530 still works, n
 
 ## Deployment
 Hosted in Emergent Kubernetes preview. Frontend: `REACT_APP_BACKEND_URL` env only. Backend: `MONGO_URL`, `DB_NAME`, `JWT_SECRET`, `OTP_DEV_MODE`, `MSG91_*` env only. Switching from dev mode to real MSG91 is a 1-line `.env` change.
+
+### ✅ Phase 7f — Admin console + Trust+ badge + commissions + cart guard + multimodal AI (completed 2026-07-15)
+
+**Backend delta (+11 endpoints → 176 total):**
+- `services/commission_service.py` — accrue on deal complete, per-category rate overrides, mark_paid, summary. Global default 5%.
+- `services/trust_plus_service.py` — vendors with ≥2 approved KYC docs get one-time +100 credits (idempotent via `has_received_trusted_plus_bonus`).
+- `routes/admin_plus_routes.py` — 9 endpoints: `GET /transactions` + `/transactions.csv`, `GET /orders`, `GET /commissions` + `/summary` + `POST /rate/global` + `/rate/category` + `/{id}/mark-paid`, `GET /audit-log`.
+- `routes/identity_routes.py` — new `GET /kyc/trust-plus/me` + `_maybe_award_trust_plus()` after each doc verify.
+- `routes/cart_routes.py` — `POST /cart/me/checkout` now blocks with HTTP 403 `{code:"vendor_unverified", vendor_ids, vendor_names}` if any vendor is unverified.
+- `routes/ai_routes.py` — extended `POST /ai/generate-listing-content` to accept `video_url + audio_url + image_urls`; new `POST /ai/transcribe-audio`.
+- `services/deal_service.py` — commission auto-accrual on deal-complete confirm.
+
+**Frontend delta:** New `pages/AdminConsole.jsx` at `/admin/console` (+ 4 alias routes) — tabbed transactions / orders / commissions / audit-log with rate-config UI + mark-paid + CSV export. `pages/Admin.jsx` gains an "Admin Console" tile.
+
+**iter20 bugs closed in-session:** (1) CSV export 500 → extracted `_fetch_transactions()` helper + CSV-injection defence. (2) Trust+ bonus phantom-awarded → replaced non-existent `wallet_service.credit` with `earn_credits`, added early-return on credit failure so the flag doesn't flip unless credit landed; backfill reset 1 previously-flipped user. (3) wallet_transactions field mismatch → read `amount || amount_credits`.
+
+**Live proof:** fresh user submits 2 KYC docs → wallet.credits = 150 (50 Welcome + 100 Trust+), `is_trusted_plus:true`, transaction row `reason:trust_plus_bonus balance_after:150`.
+
+**Deferred to next iteration:** Real KYC provider APIs (DigiLocker / Karza / Signzy — env vars scaffolded), MediaRecorder voice UI on listing wizard, categories CRUD UI, N+1 aggregate on cart guard.
