@@ -77,7 +77,6 @@ function App() {
               {/* Public */}
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/verify-otp" element={<VerifyOtp />} />
               <Route path="/browse" element={<Browse />} />
