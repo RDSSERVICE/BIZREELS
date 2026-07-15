@@ -145,6 +145,37 @@ export default function Dashboard() {
               </div>
             </Link>
           )}
+
+          {/* Always-visible entry points to profile edit + identity verification */}
+          <Link to="/profile" data-testid="dashboard-profile-cta">
+            <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+              <div className="relative flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                  <UserIcon className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-heading font-bold text-lg">Profile &amp; settings</div>
+                  <div className="text-xs text-white/60 mt-0.5">Update name, city, photo &amp; roles</div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white transition-colors" />
+              </div>
+            </div>
+          </Link>
+
+          <Link to="/kyc/verify" data-testid="dashboard-kyc-cta">
+            <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+              <div className="relative flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-emerald-300" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-heading font-bold text-lg">Identity verification</div>
+                  <div className="text-xs text-white/60 mt-0.5">Aadhaar · PAN · GST · Bank</div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white transition-colors" />
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Phase-1 hint */}

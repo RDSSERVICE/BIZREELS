@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, LogOut } from "lucide-react";
+import { ArrowLeft, Plus, LogOut, MapPin, ShieldCheck, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
-import { userApi } from "@/lib/api";
+import { userApi, api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 const ADDABLE_ROLES = ["customer", "vendor", "creator"];
@@ -29,10 +29,16 @@ export default function Profile() {
     gender: user?.gender || "",
     dob: user?.dob || "",
     profile_pic: user?.profile_pic || "",
+    city: user?.city || "",
   });
   const [saving, setSaving] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [addingRole, setAddingRole] = useState("");
+  const [kyc, setKyc] = useState(null);
+
+  useEffect(() => {
+    api.get("/v1/kyc/me/status").then(({ data }) => setKyc(data)).catch(() => {});
+  }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -208,6 +214,25 @@ export default function Profile() {
             <Input data-testid="profile-pic-input" value={form.profile_pic} onChange={set("profile_pic")} placeholder="https://…" className="h-12 rounded-xl bg-white/5 border-white/10" />
           </Field>
 
+          <Field label="City">
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
+              <Input
+                data-testid="profile-city-input"
+                value={form.city}
+                onChange={set("city")}
+                placeholder="e.g. Indore, Bhopal, Jaipur"
+                className="h-12 rounded-xl bg-white/5 border-white/10 pl-9"
+                maxLength={80}
+              />
+            </div>
+            <div className="mt-1.5">
+              <Link to="/profile/complete?step=city" className="text-[11px] text-white/50 hover:text-white/80" data-testid="profile-open-city-wizard">
+                Open city picker (with search & popular cities) →
+              </Link>
+            </div>
+          </Field>
+
           <Button
             type="submit"
             data-testid="profile-save-btn"
@@ -217,6 +242,34 @@ export default function Profile() {
             {saving ? t("profile.saving") : t("profile.save")}
           </Button>
         </form>
+
+        {/* Identity verification quick-link */}
+        <section className="glass rounded-2xl p-5" data-testid="profile-kyc-card">
+          <div className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-3">
+            Identity verification
+          </div>
+          <Link
+            to="/kyc/verify"
+            className="flex items-center gap-3 -m-2 p-2 rounded-xl hover:bg-white/5 transition-colors"
+            data-testid="profile-verify-link"
+          >
+            <div className="h-11 w-11 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+              <ShieldCheck className={`h-5 w-5 ${kyc?.has_verified_identity ? "text-emerald-300" : "text-white/60"}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-heading font-semibold flex items-center gap-2">
+                {kyc?.has_verified_identity ? "Identity verified" : "Verify your identity"}
+                {kyc?.has_verified_identity && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />}
+              </div>
+              <div className="text-[11px] text-white/50 truncate">
+                {kyc
+                  ? `${["aadhaar","pan","gst","bank"].filter((t) => kyc?.docs?.[t]?.status === "approved").length}/4 documents verified`
+                  : "Aadhaar · PAN · GST · Bank"}
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-white/40" />
+          </Link>
+        </section>
 
         <Button
           type="button"
