@@ -211,6 +211,45 @@ Closed all 3 findings from the Phase 7d security audit:
 
 Verification: all 5 cases green — user OTP login for 9039791530 still works, new dev token 200/old 401, KYC file unauth 401 / non-owner 403 / admin 200 / listing 200 / traversal 404. Endpoint count 158 ops.
 
+### ✅ Phase 7e — Admin route separation + 3-step wizard + 4-doc identity verification (completed 2026-07-14)
+
+**CHANGE 1 — Admin panel separated (`/admin` is now a phone-OTP login page):**
+- New `AdminOtpLogin.jsx` at `/admin` (emerald/gold themed) — MSG91 phone OTP flow, on verify checks `'admin' in roles[]` else "This mobile is not an admin account".
+- Admin dashboard moved: `/admin` → `/admin/dashboard` (and all `/admin/*` sub-routes now sit behind a new `RequireAdmin` guard that bounces non-admins to `/admin`, NOT `/login`).
+- Legacy `/admin/login` (dev-token magic link) retained as fallback only (still SEC-001-gated by `ALLOW_DEV_ADMIN_LOGIN`).
+- `RoleSwitcherChip` no longer surfaces the admin role — the dropdown shows only Customer / Vendor / Creator. Admins must use `/admin` to enter the panel.
+
+**CHANGE 2 — Profile-complete wizard cut from 5 → 3 steps:**
+- Steps: Photo → City → Identity Verification. Removed listing + review steps.
+- `services/onboarding_service.py::compute_state` returns 3 items; `all_done` now depends on `profile_pic + city + ≥1 approved KYC doc`.
+- +30 credits still awarded on completing all 3.
+- `OnboardingChecklist` deep-links: `verification` → `/kyc/verify` (dedicated page).
+
+**CHANGE 3 partial — 4-type Identity Verification (Aadhaar / PAN / GST / Bank):**
+- New service `services/identity_service.py` + routes `routes/identity_routes.py`:
+  - `POST /api/v1/kyc/aadhaar/verify` (12-digit UIDAI)
+  - `POST /api/v1/kyc/pan/verify` (`^[A-Z]{5}\d{4}[A-Z]$`)
+  - `POST /api/v1/kyc/gst/verify` (15-char GSTIN)
+  - `POST /api/v1/kyc/bank/verify` (account + IFSC + holder — penny-drop-ready)
+  - `GET /api/v1/kyc/me/status` (compact summary + `has_verified_identity` bool)
+  - `GET /api/v1/kyc/me/docs` (list)
+  - `DELETE /api/v1/kyc/docs/{id}` (only if not approved)
+- Rate limit: 5 submissions per doc-type per user per day.
+- Schema: `kyc_documents.doc_type ∈ {aadhaar,pan,gst,bank}`, one doc per (user_id, doc_type). Sensitive fields hashed (`doc_number_hash`, `account_number_hash`) — API responses only ever return masked last-4 + `ifsc_last4`.
+- Dev-mode (`KYC_DEV_MODE=true`) auto-approves. Production mode waits for admin manual review (existing `/admin/kyc/*` endpoints work with the new schema).
+- Guard: `POST /api/v1/proposals/` now calls `identity_service.require_verified_identity` — vendors with zero approved docs get 403 + a clear message pointing to `/profile/complete?step=verification`.
+- New frontend page `/kyc/verify` (`pages/KycVerify.jsx`) — 4 status-badge cards with per-doc-type modals (Aadhaar / PAN / GST / Bank), delete-pending-doc button, dev-mode success banner.
+
+**Endpoints total: 165 ops** (+7 new KYC routes vs Phase 7d-sec).
+
+**Deferred to next iteration (P2 per user's split guidance):**
+- Real KYC provider API integrations (DigiLocker / Karza / Signzy) — service stub scaffolded via env vars `KYC_PROVIDER`, `KYC_API_KEY`, `KYC_API_URL`.
+- Audio/video AI input for listing generation (CHANGE 4).
+- Admin panel expansions (CHANGE 5): `/admin/transactions`, `/admin/orders`, `/admin/commissions`, `/admin/audit-log`, category CRUD UI.
+- Cart checkout guard (`POST /cart/me/checkout` on unverified vendor) — proposal guard is live; deal-time guard is the follow-up.
+
+**Verification:** all 4 KYC endpoints return 200 with `status:approved`, `doc_number_masked`, sensitive fields absent. `/kyc/me/status` returns `has_verified_identity:true` once any doc is approved. Onboarding checklist recomputed to 3/3 done. Fresh unverified user hitting `POST /proposals/` receives HTTP 403 with the friendly message. Frontend compiles clean.
+
 ## Non-negotiable rules (project-wide)
 - Never rename collections or endpoints.
 - Soft delete only.

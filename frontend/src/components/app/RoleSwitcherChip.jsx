@@ -16,8 +16,8 @@ const ROLE_META = {
               desc: "Sell products & services", home: "/vendor/dashboard" },
   creator:  { label: "Creator",  icon: Palette,      gradient: "from-orange-500 to-orange-700",
               desc: "Portfolio & hire", home: "/creator/dashboard" },
-  admin:    { label: "Admin",    icon: ShieldCheck,  gradient: "from-emerald-500 to-emerald-700",
-              desc: "Platform ops",            home: "/admin" },
+  // Phase 7e (CHANGE 1): admin panel is now a completely separate route (/admin).
+  // Admins log in there via phone OTP; the role-switcher chip does NOT expose it.
 };
 
 export function homeForRole(role) {
@@ -95,7 +95,7 @@ export default function RoleSwitcherChip() {
       <DropdownMenuContent align="end" className="w-64" data-testid="role-switcher-menu">
         <DropdownMenuLabel className="text-xs text-white/60 uppercase tracking-wider">Switch panel</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {roles.filter((r) => r !== "admin" || current === "admin").map((role) => {
+        {roles.filter((r) => r !== "admin" && ROLE_META[r]).map((role) => {
           const m = ROLE_META[role]; if (!m) return null;
           const I = m.icon;
           const active = role === current;

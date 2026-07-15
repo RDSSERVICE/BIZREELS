@@ -40,6 +40,8 @@ import AdminListings from "@/pages/AdminListings";
 import AdminReports from "@/pages/AdminReports";
 import AdminSettings from "@/pages/AdminSettings";
 import AdminLogin from "@/pages/AdminLogin";
+import AdminOtpLogin from "@/pages/AdminOtpLogin";
+import KycVerify from "@/pages/KycVerify";
 import CreatorDashboard from "@/pages/CreatorDashboard";
 import ProfileComplete from "@/pages/ProfileComplete";
 import CartDrawer from "@/components/app/CartDrawer";
@@ -51,6 +53,16 @@ function OnboardingGate({ children }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+// Phase 7e (CHANGE 1): admin routes are guarded here. Non-admins get bounced
+// to the phone-OTP admin login at `/admin`, NOT to the regular `/login`.
+function RequireAdmin({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/admin" replace />;
+  if (!(user.roles || []).includes("admin")) return <Navigate to="/admin" replace />;
   return children;
 }
 
@@ -91,12 +103,15 @@ function App() {
               <Route path="/subscriptions" element={<RequireAuth><Subscriptions /></RequireAuth>} />
               <Route path="/kyc" element={<RequireAuth><Kyc /></RequireAuth>} />
               <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
-              <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
-              <Route path="/admin/kyc" element={<RequireAuth><AdminKyc /></RequireAuth>} />
-              <Route path="/admin/users" element={<RequireAuth><AdminUsers /></RequireAuth>} />
-              <Route path="/admin/listings" element={<RequireAuth><AdminListings /></RequireAuth>} />
-              <Route path="/admin/reports" element={<RequireAuth><AdminReports /></RequireAuth>} />
-              <Route path="/admin/settings" element={<RequireAuth><AdminSettings /></RequireAuth>} />
+              <Route path="/admin" element={<AdminOtpLogin />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<RequireAdmin><Admin /></RequireAdmin>} />
+              <Route path="/admin/kyc" element={<RequireAdmin><AdminKyc /></RequireAdmin>} />
+              <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
+              <Route path="/admin/listings" element={<RequireAdmin><AdminListings /></RequireAdmin>} />
+              <Route path="/admin/reports" element={<RequireAdmin><AdminReports /></RequireAdmin>} />
+              <Route path="/admin/settings" element={<RequireAdmin><AdminSettings /></RequireAdmin>} />
+              <Route path="/kyc/verify" element={<RequireAuth><KycVerify /></RequireAuth>} />
               <Route path="/creator/dashboard" element={<RequireAuth><CreatorDashboard /></RequireAuth>} />
               <Route path="/profile/complete" element={<RequireAuth><ProfileComplete /></RequireAuth>} />
               <Route path="/vendor/analytics" element={<RequireAuth><VendorAnalytics /></RequireAuth>} />

@@ -111,6 +111,9 @@ async def list_proposals(req_id: str, user=Depends(require_auth)):
 async def create_proposal(body: ProposalCreate, user=Depends(require_auth)):
     if "vendor" not in (user.roles or []):
         raise HTTPException(403, "Vendor role required")
+    # Phase 7e (CHANGE 3): vendor must have ≥1 verified identity doc to send offers.
+    from services import identity_service
+    await identity_service.require_verified_identity(str(user.id))
     return await proposal_service.create(user.id, body.model_dump(exclude_none=True))
 
 

@@ -20,7 +20,8 @@ export default function OnboardingChecklist() {
     // steps that require their own dedicated page.
     profile_pic: "/profile/complete?step=photo",
     city: "/profile/complete?step=city",
-    kyc: "/profile/complete?step=kyc",
+    verification: "/kyc/verify",
+    kyc: "/kyc/verify",  // legacy alias
     listing: "/vendor/listing/new",
     review: "/dashboard",
   }[k] || "/profile/complete");

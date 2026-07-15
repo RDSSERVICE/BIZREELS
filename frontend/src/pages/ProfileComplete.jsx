@@ -24,9 +24,7 @@ const INDIA_CITIES = [
 const STEPS = [
   { key: "photo", title: "Profile Photo", icon: Camera },
   { key: "city", title: "Your City", icon: MapPin },
-  { key: "kyc", title: "Verify Identity", icon: ShieldCheck },
-  { key: "listing", title: "Post First Listing", icon: Plus, vendorOnly: true },
-  { key: "review", title: "Ask for Review", icon: Star, vendorOnly: true },
+  { key: "verification", title: "Identity Verification", icon: ShieldCheck },
 ];
 
 export default function ProfileComplete() {
@@ -246,12 +244,28 @@ export default function ProfileComplete() {
           </div>
         )}
 
+        {s.key === "verification" && (
+          <div className="space-y-3">
+            <p className="text-sm text-white/70">
+              Verify at least one identity document (Aadhaar / PAN / GST / Bank) to unlock offers &
+              order requests. You can submit any one — verification unlocks selling and receiving offers.
+            </p>
+            <Button
+              onClick={() => navigate("/kyc/verify")}
+              className="w-full h-12 btn-brand"
+              data-testid="go-to-verify"
+            >
+              Go to verification
+            </Button>
+          </div>
+        )}
+
         {s.key === "kyc" && (
           <div className="space-y-3">
             <p className="text-sm text-white/70">
               Verify your identity to unlock trusted-seller badge, higher chat limits, and priority in search.
             </p>
-            <Button onClick={() => navigate("/kyc")} className="w-full h-12 btn-brand" data-testid="go-to-kyc">
+            <Button onClick={() => navigate("/kyc/verify")} className="w-full h-12 btn-brand" data-testid="go-to-kyc">
               Upload documents
             </Button>
           </div>

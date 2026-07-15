@@ -19,24 +19,22 @@ async def compute_state(user_id: str) -> dict:
     db = get_db()
     u = await db.users.find_one({"_id": ObjectId(user_id)})
     if not u:
-        return {"steps": [], "completed": 0, "total": 5, "reward_granted": False}
+        return {"steps": [], "completed": 0, "total": 3, "reward_granted": False}
 
     has_pic = bool(u.get("profile_pic"))
     has_city = bool(u.get("city"))
-    kyc_ok = u.get("kyc_status") == "approved"
-    listing_count = await db.listings.count_documents({"vendor_id": user_id, "is_deleted": {"$ne": True}})
-    has_listing = listing_count > 0
-    review_count = int(u.get("rating_count") or 0)
-    has_review = review_count > 0
-    all_done = has_pic and has_city and kyc_ok and has_listing and has_review
+    # verification is done if ANY kyc_document is approved (multi-type support).
+    verified_count = await db.kyc_documents.count_documents({
+        "user_id": user_id, "status": "approved", "is_deleted": {"$ne": True},
+    })
+    kyc_ok = verified_count > 0 or u.get("kyc_status") == "approved"
+    all_done = has_pic and has_city and kyc_ok
     reward_granted = bool(u.get("has_received_profile_complete_bonus"))
 
     steps = [
         {"key": "profile_pic", "label": "Add a profile picture", "done": has_pic},
         {"key": "city", "label": "Add your city", "done": has_city},
-        {"key": "kyc", "label": "Complete KYC verification", "done": kyc_ok},
-        {"key": "listing", "label": "Post your first listing", "done": has_listing},
-        {"key": "review", "label": "Receive your first review", "done": has_review},
+        {"key": "verification", "label": "Verify at least one ID", "done": kyc_ok},
     ]
     completed = sum(1 for s in steps if s["done"])
     return {
@@ -50,7 +48,7 @@ async def compute_state(user_id: str) -> dict:
 
 
 async def maybe_grant_bonus(user_id: str) -> dict:
-    """Awards +30 credits if all 5 steps done and not previously granted. Idempotent."""
+    """Awards +30 credits if all 3 steps done and not previously granted. Idempotent."""
     state = await compute_state(user_id)
     if not state["all_done"] or state["reward_granted"]:
         return state
