@@ -41,6 +41,7 @@ import AdminReports from "@/pages/AdminReports";
 import AdminSettings from "@/pages/AdminSettings";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminOtpLogin from "@/pages/AdminOtpLogin";
+import AdminConsole from "@/pages/AdminConsole";
 import KycVerify from "@/pages/KycVerify";
 import CreatorDashboard from "@/pages/CreatorDashboard";
 import ProfileComplete from "@/pages/ProfileComplete";
@@ -105,6 +106,11 @@ function App() {
               <Route path="/admin" element={<AdminOtpLogin />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<RequireAdmin><Admin /></RequireAdmin>} />
+              <Route path="/admin/console" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
+              <Route path="/admin/transactions" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
+              <Route path="/admin/orders" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
+              <Route path="/admin/commissions" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
+              <Route path="/admin/audit-log" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
               <Route path="/admin/kyc" element={<RequireAdmin><AdminKyc /></RequireAdmin>} />
               <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
               <Route path="/admin/listings" element={<RequireAdmin><AdminListings /></RequireAdmin>} />

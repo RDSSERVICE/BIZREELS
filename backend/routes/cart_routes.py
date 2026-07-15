@@ -157,6 +157,30 @@ async def checkout_cart(user=Depends(require_auth)):
     if not hydrated["groups"]:
         raise HTTPException(400, "Cart is empty")
 
+    # Phase 7f (CHANGE 4): block checkout if ANY vendor in cart is unverified.
+    # Vendor must have ≥1 approved KYC doc to accept order requests.
+    from services import identity_service
+    unverified_vendor_ids: list[str] = []
+    unverified_vendor_names: list[str] = []
+    for group in hydrated["groups"]:
+        vid = group["vendor_id"]
+        if not await identity_service.has_verified_identity(vid):
+            unverified_vendor_ids.append(vid)
+            unverified_vendor_names.append(group.get("vendor_name") or f"Vendor {vid[-4:]}")
+    if unverified_vendor_ids:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "vendor_unverified",
+                "message": (
+                    f"Cannot place this order — {len(unverified_vendor_ids)} vendor(s) "
+                    "haven't verified their identity yet. Please ask them to verify to accept orders."
+                ),
+                "vendor_ids": unverified_vendor_ids,
+                "vendor_names": unverified_vendor_names,
+            },
+        )
+
     from services import chat_service
     now = datetime.now(timezone.utc).isoformat()
     created = []

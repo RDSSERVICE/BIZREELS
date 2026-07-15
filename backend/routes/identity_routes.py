@@ -54,10 +54,12 @@ async def verify_aadhaar(body: AadhaarBody, user=Depends(require_auth)):
     if not _AADHAAR_RE.match(body.aadhaar_number):
         raise HTTPException(400, "Invalid Aadhaar format (12 digits)")
     _rate(str(user.id), "aadhaar")
-    return await identity_service.submit_document(
+    doc = await identity_service.submit_document(
         user_id=str(user.id), doc_type="aadhaar",
         doc_number=body.aadhaar_number, doc_url=body.doc_url,
     )
+    await _maybe_award_trust_plus(str(user.id))
+    return doc
 
 
 @router.post("/pan/verify")
@@ -65,10 +67,12 @@ async def verify_pan(body: PanBody, user=Depends(require_auth)):
     if not _PAN_RE.match(body.pan_number.upper()):
         raise HTTPException(400, "Invalid PAN format (e.g. ABCDE1234F)")
     _rate(str(user.id), "pan")
-    return await identity_service.submit_document(
+    doc = await identity_service.submit_document(
         user_id=str(user.id), doc_type="pan",
         doc_number=body.pan_number.upper(), doc_url=body.doc_url,
     )
+    await _maybe_award_trust_plus(str(user.id))
+    return doc
 
 
 @router.post("/gst/verify")
@@ -76,10 +80,12 @@ async def verify_gst(body: GstBody, user=Depends(require_auth)):
     if not _GST_RE.match(body.gst_number.upper()):
         raise HTTPException(400, "Invalid GST format (15 chars)")
     _rate(str(user.id), "gst")
-    return await identity_service.submit_document(
+    doc = await identity_service.submit_document(
         user_id=str(user.id), doc_type="gst",
         doc_number=body.gst_number.upper(), doc_url=body.doc_url,
     )
+    await _maybe_award_trust_plus(str(user.id))
+    return doc
 
 
 @router.post("/bank/verify")
@@ -87,7 +93,7 @@ async def verify_bank(body: BankBody, user=Depends(require_auth)):
     if not _IFSC_RE.match(body.ifsc.upper()):
         raise HTTPException(400, "Invalid IFSC format")
     _rate(str(user.id), "bank")
-    return await identity_service.submit_document(
+    doc = await identity_service.submit_document(
         user_id=str(user.id), doc_type="bank",
         doc_number=body.account_number, doc_url=body.doc_url,
         additional_data={
@@ -97,6 +103,24 @@ async def verify_bank(body: BankBody, user=Depends(require_auth)):
             "bank_name": (body.bank_name or "").strip() or None,
         },
     )
+    await _maybe_award_trust_plus(str(user.id))
+    return doc
+
+
+async def _maybe_award_trust_plus(user_id: str) -> None:
+    """Phase 7f: award +100 credits & flip is_trusted_plus flag when a vendor
+    reaches ≥2 approved KYC docs (one-time, idempotent)."""
+    from services import trust_plus_service
+    try:
+        await trust_plus_service.maybe_award_bonus(user_id)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+@router.get("/trust-plus/me")
+async def my_trust_plus(user=Depends(require_auth)):
+    from services import trust_plus_service
+    return await trust_plus_service.compute_status(str(user.id))
 
 
 @router.get("/me/status")

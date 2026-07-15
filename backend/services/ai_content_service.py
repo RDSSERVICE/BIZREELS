@@ -176,10 +176,16 @@ async def generate_listing_content(
     sub_category_name: str | None,
     listing_type: str,
     hints: str | None = None,
+    media: dict | None = None,
 ) -> dict:
-    """One-shot structured generation. Returns dict with ok/generated/meta."""
+    """One-shot structured generation. Returns dict with ok/generated/meta.
+
+    Phase 7f: `media` may include `video_url`, `audio_url`, `image_urls[]`. The
+    URLs are appended to the prompt with clear labels so Gemini 2.5-pro (which
+    supports multimodal via URL) can factor them into the generation.
+    """
     from emergentintegrations.llm.chat import UserMessage
-    await _ensure_budget_or_raise(estimate_tokens=1500)
+    await _ensure_budget_or_raise(estimate_tokens=1800)
     started = time.time()
     cfg = _cfg()
     prompt = (
@@ -190,8 +196,16 @@ async def generate_listing_content(
         + (f" > {sub_category_name}" if sub_category_name else "")
         + "\n"
         + (f"- Extra context: {hints}\n" if hints else "")
-        + f"\n{_listing_schema_prompt()}"
     )
+    if media:
+        if media.get("video_url"):
+            prompt += f"- Vendor demo video (analyse for product features): {media['video_url']}\n"
+        if media.get("audio_url"):
+            prompt += f"- Vendor voice description (analyse for product details): {media['audio_url']}\n"
+        img_urls = media.get("image_urls") or []
+        if img_urls:
+            prompt += f"- Product images ({len(img_urls)}): {', '.join(img_urls[:6])}\n"
+    prompt += f"\n{_listing_schema_prompt()}"
     try:
         chat = _chat(_SYSTEM_LISTING)
         raw = await chat.send_message(UserMessage(text=prompt))
@@ -213,8 +227,44 @@ async def generate_listing_content(
         "generated": _normalize(data, listing_type),
         "meta": {"latency_ms": int((time.time() - started) * 1000),
                  "model_used": cfg["model"], "provider": cfg["provider"],
-                 "tokens_used": approx_tokens},
+                 "tokens_used": approx_tokens,
+                 "media_used": bool(media and (media.get("video_url") or media.get("audio_url") or media.get("image_urls")))},
     }
+
+
+async def transcribe_audio(audio_url: str) -> dict:
+    """Send the audio URL to Gemini and ask for a plain-text transcript.
+    Falls back gracefully on provider failure.
+    """
+    from emergentintegrations.llm.chat import UserMessage
+    await _ensure_budget_or_raise(estimate_tokens=600)
+    started = time.time()
+    cfg = _cfg()
+    prompt = (
+        "Transcribe the audio at the URL below into a clean, punctuated English "
+        f"transcript. Preserve product / brand names verbatim.\n\nAudio: {audio_url}\n\n"
+        'Return JSON: {"transcript": "…", "language": "en|hi|mixed", "confidence": "low|medium|high"}'
+    )
+    try:
+        chat = _chat("You are a professional audio transcriber. Output JSON only.")
+        raw = await chat.send_message(UserMessage(text=prompt))
+        data = _parse_json_strict(raw)
+        approx = max(200, min(2000, (len(prompt) + len(raw)) // 4))
+        await _record_tokens(approx)
+        return {
+            "ok": True,
+            "transcript": str(data.get("transcript") or "")[:2000],
+            "language": str(data.get("language") or "en"),
+            "confidence": str(data.get("confidence") or "medium"),
+            "meta": {"provider": cfg["provider"], "model_used": cfg["model"],
+                     "tokens_used": approx,
+                     "latency_ms": int((time.time() - started) * 1000)},
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("AI transcribe failed: %s", exc)
+        return {"ok": False, "error": str(exc)[:400], "transcript": "",
+                "meta": {"provider": cfg["provider"], "model_used": cfg["model"],
+                         "latency_ms": int((time.time() - started) * 1000)}}
 
 
 async def improve_description(current_description: str, title: str, tone: str) -> dict:

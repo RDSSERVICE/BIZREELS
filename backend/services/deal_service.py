@@ -182,6 +182,13 @@ async def complete(deal_id: str, user_id: str) -> dict:
             await referral_service.maybe_award_on_deal_complete(str(d.get("seller_id")))
         except Exception:  # noqa: BLE001
             pass
+        # Phase 7f (CHANGE 5): accrue platform commission on the completed deal.
+        try:
+            from services import commission_service
+            deal_doc = await db.deals.find_one({"_id": ObjectId(deal_id)})
+            await commission_service.accrue_on_deal_complete(deal_doc)
+        except Exception as _e:  # noqa: BLE001
+            logger.debug("commission accrue failed: %s", _e)
     return _s(await db.deals.find_one({"_id": ObjectId(deal_id)}))
 
 

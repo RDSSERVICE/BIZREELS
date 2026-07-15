@@ -25,6 +25,15 @@ class GenerateBody(BaseModel):
     sub_category_id: str | None = None
     type: str = Field(pattern="^(new_product|old_product|service)$")
     hints: str | None = Field(default=None, max_length=500)
+    # Phase 7f (CHANGE 4): multimodal inputs — vendor can attach a demo video
+    # OR a voice recording that describes the item. Gemini 2.5-pro reads them.
+    video_url: str | None = Field(default=None, max_length=800)
+    audio_url: str | None = Field(default=None, max_length=800)
+    image_urls: list[str] | None = Field(default=None, max_length=6)
+
+
+class TranscribeBody(BaseModel):
+    audio_url: str = Field(..., max_length=800)
 
 
 class ImproveBody(BaseModel):
@@ -68,7 +77,21 @@ async def generate_listing_content(body: GenerateBody, user=Depends(require_auth
         sub_category_name=sub_name,
         listing_type=body.type,
         hints=(body.hints or "").strip() or None,
+        media={
+            "video_url": body.video_url or None,
+            "audio_url": body.audio_url or None,
+            "image_urls": body.image_urls or [],
+        } if (body.video_url or body.audio_url or body.image_urls) else None,
     )
+
+
+@router.post("/transcribe-audio")
+async def transcribe_audio(body: TranscribeBody, user=Depends(require_auth)):
+    """Dedicated audio → text endpoint. Gemini 2.5-pro can ingest audio via URL.
+    Used by the voice-based listing flow to preview what AI heard before generating.
+    """
+    _rate_limit(str(user.id))
+    return await ai_content_service.transcribe_audio(audio_url=body.audio_url)
 
 
 @router.post("/improve-description")

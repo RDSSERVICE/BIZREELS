@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Users, ListChecks, Flag, ShieldCheck, TrendingUp, IndianRupee, KeyRound } from "lucide-react";
+import { Users, ListChecks, Flag, ShieldCheck, TrendingUp, IndianRupee, KeyRound, Wallet } from "lucide-react";
 import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
 import BottomNav from "@/components/app/BottomNav";
 import { adminApi, integrationsApi } from "@/lib/api";
@@ -91,6 +91,11 @@ export default function Admin() {
                 <ShieldCheck className="h-5 w-5 mb-2" />
                 <div className="font-heading font-semibold">KYC</div>
                 <div className="text-xs text-white/60 mt-0.5">{ov.pending_kyc_count} pending</div>
+              </Link>
+              <Link to="/admin/console" data-testid="link-admin-console" className="glass rounded-2xl p-4 hover:bg-white/10 transition-colors border border-emerald-500/20 bg-emerald-500/5">
+                <Wallet className="h-5 w-5 mb-2 text-emerald-300" />
+                <div className="font-heading font-semibold text-emerald-200">Admin Console</div>
+                <div className="text-xs text-white/60 mt-0.5">Transactions · orders · commissions · audit</div>
               </Link>
               <Link to="/admin/settings" data-testid="link-admin-settings" className="glass rounded-2xl p-4 hover:bg-white/10 transition-colors">
                 <KeyRound className="h-5 w-5 mb-2" />

@@ -41,6 +41,7 @@ from routes.onboarding_routes import router as onboarding_router  # noqa: E402
 from routes.ai_routes import router as ai_router  # noqa: E402
 from routes.ai_smart_routes import router as ai_smart_router  # noqa: E402
 from routes.identity_routes import router as identity_router  # noqa: E402
+from routes.admin_plus_routes import router as admin_plus_router  # noqa: E402
 from routes.cart_routes import router as cart_router  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -92,6 +93,7 @@ api_router.include_router(onboarding_router)
 api_router.include_router(ai_router)
 api_router.include_router(ai_smart_router)
 api_router.include_router(identity_router)
+api_router.include_router(admin_plus_router)
 api_router.include_router(cart_router)
 app.include_router(api_router)
 
