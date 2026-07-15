@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { PhoneScreen, ScreenHeader } from "@/components/app/PhoneScreen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { userApi, locationApi } from "@/lib/api";
+import { userApi, locationApi, api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 // Expanded list per user request (~40 cities). The `city` step is a free-text
@@ -50,6 +50,25 @@ export default function ProfileComplete() {
   const [city, setCity] = useState(user?.city || "");
   const [citySearch, setCitySearch] = useState("");
   const [geoLoading, setGeoLoading] = useState(false);
+  // Verification step live status (any-approved => step done, enable Finish)
+  const [kycStatus, setKycStatus] = useState(null);
+  const [kycLoading, setKycLoading] = useState(false);
+
+  const refreshKycStatus = async () => {
+    setKycLoading(true);
+    try {
+      const { data } = await api.get("/v1/kyc/me/status");
+      setKycStatus(data);
+    } catch (_e) { /* silent */ }
+    finally { setKycLoading(false); }
+  };
+  useEffect(() => { refreshKycStatus(); }, []);
+  // Also refresh when user returns to the wizard from /kyc/verify
+  useEffect(() => {
+    const onFocus = () => refreshKycStatus();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
 
   useEffect(() => {
     if (initialStep >= 0 && initialStep !== step) setStep(initialStep);
@@ -245,18 +264,69 @@ export default function ProfileComplete() {
         )}
 
         {s.key === "verification" && (
-          <div className="space-y-3">
+          <div className="space-y-3" data-testid="verification-step-content">
             <p className="text-sm text-white/70">
-              Verify at least one identity document (Aadhaar / PAN / GST / Bank) to unlock offers &
-              order requests. You can submit any one — verification unlocks selling and receiving offers.
+              Verify at least ONE identity document (Aadhaar / PAN / GST / Bank). This unlocks
+              order requests + offers. You can pick any one — you don't need all four.
             </p>
+
+            {kycStatus?.has_verified_identity ? (
+              <div className="glass rounded-2xl p-4 border border-emerald-500/40 bg-emerald-500/10" data-testid="verification-done-banner">
+                <div className="flex items-center gap-2 text-emerald-200 font-heading font-semibold">
+                  <Check className="h-5 w-5" /> Identity verified — tap Finish below to complete your profile.
+                </div>
+              </div>
+            ) : (
+              <div className="glass rounded-2xl p-3 border border-amber-500/30 bg-amber-500/10 text-xs text-amber-200" data-testid="verification-pending-banner">
+                No verified document yet. Submit any one below → step auto-completes.
+              </div>
+            )}
+
+            {/* Live per-type status */}
+            <div className="space-y-2" data-testid="verification-status-list">
+              {["aadhaar", "pan", "gst", "bank"].map((t) => {
+                const doc = kycStatus?.docs?.[t];
+                const status = doc?.status;
+                const label = { aadhaar: "Aadhaar", pan: "PAN", gst: "GST", bank: "Bank" }[t];
+                return (
+                  <div
+                    key={t}
+                    className={`glass rounded-xl px-3 py-2 flex items-center justify-between text-xs ${
+                      status === "approved" ? "border border-emerald-500/40" : "border border-white/5"
+                    }`}
+                    data-testid={`verify-row-${t}`}
+                  >
+                    <span className="font-heading font-semibold">{label}</span>
+                    {status === "approved" ? (
+                      <span className="text-emerald-300 font-semibold">✓ Verified</span>
+                    ) : status === "pending" ? (
+                      <span className="text-amber-300">Pending</span>
+                    ) : status === "rejected" ? (
+                      <span className="text-red-300">Rejected</span>
+                    ) : (
+                      <span className="text-white/40">Not submitted</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
             <Button
               onClick={() => navigate("/kyc/verify")}
               className="w-full h-12 btn-brand"
               data-testid="go-to-verify"
             >
-              Go to verification
+              {kycStatus?.has_verified_identity ? "Add another document" : "Submit a document"}
             </Button>
+            <button
+              type="button"
+              onClick={refreshKycStatus}
+              disabled={kycLoading}
+              className="w-full text-xs text-white/50 hover:text-white/80 disabled:opacity-40 pt-1"
+              data-testid="refresh-verify-status"
+            >
+              {kycLoading ? "Refreshing…" : "Refresh status"}
+            </button>
           </div>
         )}
 
@@ -309,6 +379,14 @@ export default function ProfileComplete() {
               const c = (city || "").trim();
               if (!c) { toast.error("Please pick or type a city, or tap Skip"); return; }
               return commitAndNext({ city: c });
+            }
+            if (s.key === "verification") {
+              // On last step we only finish if identity is actually verified.
+              if (!kycStatus?.has_verified_identity) {
+                toast.error("Please verify at least one document (or tap Skip).");
+                return;
+              }
+              return commitAndNext(null);
             }
             return commitAndNext(null);
           }}
