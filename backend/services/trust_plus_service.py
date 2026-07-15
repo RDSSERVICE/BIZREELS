@@ -40,17 +40,34 @@ async def compute_status(user_id: str) -> dict:
 
 
 async def maybe_award_bonus(user_id: str) -> dict:
-    """Idempotent: if user has ≥2 approved docs and no prior bonus, credit +100."""
+    """Idempotent: if user has ≥2 approved docs and no prior bonus, credit +100.
+
+    SEC-101 fix (2026-07-15): the flag-check → credit → flag-set path was
+    non-atomic, so two near-concurrent KYC verifies could each pass the check
+    and each award +100 credits. Now we use a conditional `find_one_and_update`
+    to atomically CLAIM the flag first; only the winning writer proceeds to
+    credit. If the wallet credit throws afterwards, we roll back the claim so
+    the user can retry on the next verify.
+    """
     db = get_db()
     approved = await db.kyc_documents.count_documents({
         "user_id": user_id, "status": "approved", "is_deleted": {"$ne": True},
     })
     if approved < MIN_DOCS_FOR_TRUST_PLUS:
         return {"awarded": False, "reason": f"needs {MIN_DOCS_FOR_TRUST_PLUS} verified docs"}
-    u = await db.users.find_one({"_id": ObjectId(user_id)})
-    if not u or u.get("has_received_trusted_plus_bonus"):
+
+    # Atomic CLAIM — only fires when the flag isn't already true.
+    claim = await db.users.find_one_and_update(
+        {"_id": ObjectId(user_id),
+         "$or": [{"has_received_trusted_plus_bonus": {"$exists": False}},
+                 {"has_received_trusted_plus_bonus": False}]},
+        {"$set": {"has_received_trusted_plus_bonus": True,
+                  "is_trusted_plus": True}},
+    )
+    if not claim:
         return {"awarded": False, "reason": "already awarded"}
-    # Credit wallet — earn_credits is idempotent-by-ref_id in wallet_service.
+
+    # Credit wallet — earn_credits creates a wallet_transaction row.
     try:
         from services import wallet_service
         await wallet_service.earn_credits(
@@ -59,13 +76,12 @@ async def maybe_award_bonus(user_id: str) -> dict:
             ref_id=f"trust_plus:{user_id}",
         )
     except Exception as _e:  # noqa: BLE001
-        logger.warning("wallet credit failed: %s", _e)
-        # Do NOT flip the flag if credit actually failed — otherwise we mint
-        # a phantom-awarded state that blocks retry.
+        # Roll back the atomic claim so the user can retry.
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"has_received_trusted_plus_bonus": False}},
+        )
+        logger.warning("wallet credit failed, rolled back trust_plus flag: %s", _e)
         return {"awarded": False, "reason": f"credit error: {_e!s}"}
-    await db.users.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": {"has_received_trusted_plus_bonus": True,
-                  "is_trusted_plus": True}},
-    )
+
     return {"awarded": True, "credits": BONUS_CREDITS}
