@@ -415,6 +415,23 @@ class AuthService {
     return this._sanitizeUser(updatedUser);
   }
 
+  async updateProfile(userId, { name, avatarUrl, phone }, req) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw ApiError.notFound('User not found.');
+    }
+
+    const updateFields = {};
+    if (name) updateFields.name = name;
+    if (avatarUrl !== undefined) updateFields.avatarUrl = avatarUrl;
+    if (phone) updateFields.phone = phone;
+
+    const updatedUser = await authRepository.updateUser(userId, updateFields);
+    await this._logAction(userId, 'PROFILE_UPDATE', 'User', userId, 'Updated profile details', req);
+
+    return this._sanitizeUser(updatedUser);
+  }
+
   async addRole(userId, newRole, profileData, req) {
     const user = await authRepository.findUserById(userId);
     if (!user) {

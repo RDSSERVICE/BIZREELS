@@ -26,6 +26,7 @@ import Notifications from '../pages/Notifications';
 import CreatorMarketplace from '../pages/CreatorMarketplace';
 import LiveStream from '../pages/LiveStream';
 import AdminDashboard from '../pages/AdminDashboard';
+import Settings from '../pages/Settings';
 
 const AppRoutes = () => {
   return (
@@ -76,6 +77,7 @@ const AppRoutes = () => {
         <Route path="creator/marketplace" element={<CreatorMarketplace />} />
         <Route path="live" element={<LiveStream />} />
         <Route path="profile/:id" element={<Profile />} />
+        <Route path="settings" element={<Settings />} />
 
         {/* Vendor Protected Area */}
         <Route

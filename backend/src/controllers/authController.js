@@ -144,6 +144,14 @@ class AuthController {
     return ApiResponse.ok(res, 'User profile fetched.', { user });
   });
 
+  // ── Update Profile ─────────────────────────────────────
+  updateProfile = asyncHandler(async (req, res) => {
+    const { name, avatarUrl, phone } = req.body;
+    const user = await authService.updateProfile(req.user._id, { name, avatarUrl, phone }, req);
+
+    return ApiResponse.ok(res, 'Profile updated successfully.', { user });
+  });
+
   // ── Private: Set Refresh Token Cookie ───────────────────
   _setRefreshTokenCookie(res, refreshToken) {
     res.cookie('refreshToken', refreshToken, {

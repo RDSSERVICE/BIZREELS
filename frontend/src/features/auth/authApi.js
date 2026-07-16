@@ -97,10 +97,21 @@ const authApi = apiSlice.injectEndpoints({
     }),
 
     // ── Add Role ────────────────────────────────────────
+    // ── Add Role ────────────────────────────────────────
     addRole: builder.mutation({
       query: (data) => ({
         url: '/auth/add-role',
         method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['User'],
+    }),
+
+    // ── Update Profile ──────────────────────────────────
+    updateProfile: builder.mutation({
+      query: (data) => ({
+        url: '/auth/profile',
+        method: 'PATCH',
         body: data,
       }),
       invalidatesTags: ['User'],
@@ -120,6 +131,7 @@ export const {
   useLogoutAllMutation,
   useSwitchRoleMutation,
   useAddRoleMutation,
+  useUpdateProfileMutation,
 } = authApi;
 
 export default authApi;

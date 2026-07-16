@@ -216,6 +216,15 @@ const AppLayout = () => {
                       </div>
                     </div>
 
+                    <Link
+                      to="/settings"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-text-secondary hover:bg-surface-tertiary transition-all"
+                    >
+                      <FiSettings className="w-4 h-4" />
+                      Account Settings
+                    </Link>
+
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-error hover:bg-error-light/40 transition-all text-left"

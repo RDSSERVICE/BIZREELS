@@ -54,6 +54,7 @@ router.get(
 
 // ── Protected Routes ──────────────────────────────────────
 router.get('/me', authenticate, authController.getMe);
+router.patch('/profile', authenticate, authController.updateProfile);
 router.post('/logout', authenticate, authController.logout);
 router.post('/logout-all', authenticate, authController.logoutAll);
 router.patch('/switch-role', authenticate, authValidation.switchRole, validate, authController.switchRole);
