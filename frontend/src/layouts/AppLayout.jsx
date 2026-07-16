@@ -17,7 +17,9 @@ import {
   FiGrid,
   FiLayers,
   FiMenu,
-  FiX
+  FiX,
+  FiTv,
+  FiUserCheck
 } from 'react-icons/fi';
 import {
   selectCurrentUser,
@@ -86,6 +88,8 @@ const AppLayout = () => {
       { name: 'Feed', path: '/feed', icon: FiHome },
       { name: 'Discover', path: '/search', icon: FiSearch },
       { name: 'Reels', path: '/reels', icon: FiVideo },
+      { name: 'Live Broadcasts', path: '/live', icon: FiTv },
+      { name: 'Creator Marketplace', path: '/creator/marketplace', icon: FiUserCheck },
       { name: 'Post Requirement', path: '/requirements/new', icon: FiPlusSquare },
       { name: 'My Quotes', path: '/requirements/new', icon: FiLayers },
       { name: 'Chats', path: '/chats', icon: FiMessageSquare },
@@ -96,6 +100,8 @@ const AppLayout = () => {
       { name: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid },
       { name: 'Catalog', path: '/vendor/dashboard', icon: FiBriefcase },
       { name: 'Reels Upload', path: '/reels/upload', icon: FiVideo },
+      { name: 'Live Broadcasts', path: '/live', icon: FiTv },
+      { name: 'Creator Marketplace', path: '/creator/marketplace', icon: FiUserCheck },
       { name: 'Leads & Bids', path: '/vendor/dashboard', icon: FiLayers },
       { name: 'Chats', path: '/chats', icon: FiMessageSquare },
       { name: 'Store Profile', path: `/profile/${user._id}`, icon: FiSettings },
@@ -105,13 +111,23 @@ const AppLayout = () => {
       { name: 'Dashboard', path: '/creator/dashboard', icon: FiGrid },
       { name: 'Portfolio', path: '/creator/dashboard', icon: FiBriefcase },
       { name: 'Sample Reels', path: '/reels', icon: FiVideo },
+      { name: 'Live Broadcasts', path: '/live', icon: FiTv },
       { name: 'Work Requests', path: '/creator/dashboard', icon: FiLayers },
       { name: 'Chats', path: '/chats', icon: FiMessageSquare },
       { name: 'Availability', path: '/creator/dashboard', icon: FiSettings },
     ];
 
+    const adminItems = [
+      { name: 'Admin Panel', path: '/admin/dashboard', icon: FiGrid },
+      { name: 'Feed', path: '/feed', icon: FiHome },
+      { name: 'Discover', path: '/search', icon: FiSearch },
+      { name: 'Reels', path: '/reels', icon: FiVideo },
+      { name: 'Chats', path: '/chats', icon: FiMessageSquare },
+    ];
+
     if (activeRole === 'vendor') return vendorItems;
     if (activeRole === 'creator') return creatorItems;
+    if (activeRole === 'admin') return adminItems;
     return customerItems;
   };
 

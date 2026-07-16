@@ -22,6 +22,10 @@ import Profile from '../pages/Profile';
 import ReelsFeed from '../pages/ReelsFeed';
 import ReelsUpload from '../pages/ReelsUpload';
 import Chats from '../pages/Chats';
+import Notifications from '../pages/Notifications';
+import CreatorMarketplace from '../pages/CreatorMarketplace';
+import LiveStream from '../pages/LiveStream';
+import AdminDashboard from '../pages/AdminDashboard';
 
 const AppRoutes = () => {
   return (
@@ -68,6 +72,9 @@ const AppRoutes = () => {
         />
         <Route path="requirements/new" element={<RequirementsNew />} />
         <Route path="chats" element={<Chats />} />
+        <Route path="notifications" element={<Notifications />} />
+        <Route path="creator/marketplace" element={<CreatorMarketplace />} />
+        <Route path="live" element={<LiveStream />} />
         <Route path="profile/:id" element={<Profile />} />
 
         {/* Vendor Protected Area */}
@@ -86,6 +93,16 @@ const AppRoutes = () => {
           element={
             <RoleRoute allowedRoles={['creator', 'admin']}>
               <CreatorDashboard />
+            </RoleRoute>
+          }
+        />
+
+        {/* Admin Protected Area */}
+        <Route
+          path="admin/dashboard"
+          element={
+            <RoleRoute allowedRoles={['admin']}>
+              <AdminDashboard />
             </RoleRoute>
           }
         />

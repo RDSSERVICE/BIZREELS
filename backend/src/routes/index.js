@@ -5,6 +5,9 @@ const listingRoutes = require('./listingRoutes');
 const requirementRoutes = require('./requirementRoutes');
 const chatRoutes = require('./chatRoutes');
 const walletRoutes = require('./walletRoutes');
+const hireRoutes = require('./hireRoutes');
+const liveRoutes = require('./liveRoutes');
+const notificationRoutes = require('./notificationRoutes');
 
 const router = express.Router();
 
@@ -30,5 +33,8 @@ router.use('/listings', listingRoutes);
 router.use('/requirements', requirementRoutes);
 router.use('/chat', chatRoutes);
 router.use('/wallet', walletRoutes);
+router.use('/hires', hireRoutes);
+router.use('/live', liveRoutes);
+router.use('/notifications', notificationRoutes);
 
 module.exports = router;

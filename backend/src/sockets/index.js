@@ -95,6 +95,18 @@ const initSockets = (server) => {
       });
     });
 
+    // Join specific Live Stream room
+    socket.on('join_stream', (streamId) => {
+      socket.join(`conversation:${streamId}`); // Reuses conversation channel constructs for simple layout broadcasts
+      logger.info(`Socket User ${userId} joined stream room: ${streamId}`, { service: 'sockets' });
+    });
+
+    // Leave specific Live Stream room
+    socket.on('leave_stream', (streamId) => {
+      socket.leave(`conversation:${streamId}`);
+      logger.info(`Socket User ${userId} left stream room: ${streamId}`, { service: 'sockets' });
+    });
+
     // Disconnect event
     socket.on('disconnect', () => {
       logger.info(`Socket client disconnected: User ID ${userId}`, { service: 'sockets' });
