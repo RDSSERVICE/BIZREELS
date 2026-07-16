@@ -52,12 +52,12 @@ export default function Admin() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Admin" subtitle="Emergent HQ" />
-      <div className="px-6 pb-24 flex-1 space-y-4">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-4">
         {loading ? (
           <div className="h-24 rounded-2xl bg-white/5 animate-pulse" />
         ) : ov ? (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <StatCard label="Total users" value={ov.total_users.toLocaleString()} icon={Users} testId="stat-users" />
               <StatCard label="Vendors" value={ov.total_vendors.toLocaleString()} icon={ShieldCheck} testId="stat-vendors" />
               <StatCard label="Active listings" value={ov.active_listings.toLocaleString()} icon={ListChecks} testId="stat-listings" />
@@ -66,12 +66,12 @@ export default function Admin() {
               <StatCard label="Active 7d" value={ov.active_users_last_7d.toLocaleString()} icon={Users} testId="stat-active-7d" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <StatCard label="Pending KYC" value={ov.pending_kyc_count.toLocaleString()} icon={ShieldCheck} testId="stat-pending-kyc" />
               <StatCard label="Open reports" value={ov.open_reports_count.toLocaleString()} icon={Flag} testId="stat-open-reports" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               <Link to="/admin/users" data-testid="link-admin-users" className="glass rounded-2xl p-4 hover:bg-white/10 transition-colors">
                 <Users className="h-5 w-5 mb-2" />
                 <div className="font-heading font-semibold">Users</div>

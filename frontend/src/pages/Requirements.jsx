@@ -62,7 +62,7 @@ export default function Requirements() {
         }
       />
 
-      <div className="px-6 pb-24 flex-1">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1">
         {loading ? (
           <div className="space-y-3" data-testid="req-loading">
             {[1,2,3].map((i) => <div key={i} className="h-24 rounded-2xl bg-white/5 animate-pulse" />)}

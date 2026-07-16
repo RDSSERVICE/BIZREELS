@@ -113,10 +113,15 @@ export default function ListingDetail() {
   if (loading) {
     return (
       <PhoneScreen>
-        <div className="px-6 pt-8" data-testid="listing-detail-loading">
+        <div className="px-4 sm:px-6 lg:px-8 pt-8" data-testid="listing-detail-loading">
           <div className="h-4 w-16 bg-white/10 rounded animate-pulse mb-6" />
-          <div className="aspect-square rounded-2xl bg-white/5 animate-pulse" />
-          <div className="mt-4 h-6 w-3/4 bg-white/10 rounded animate-pulse" />
+          <div className="lg:grid lg:grid-cols-2 lg:gap-8">
+            <div className="aspect-square rounded-2xl bg-white/5 animate-pulse" />
+            <div className="mt-4 lg:mt-0 space-y-4">
+              <div className="h-6 w-3/4 bg-white/10 rounded animate-pulse" />
+              <div className="h-4 w-1/2 bg-white/10 rounded animate-pulse" />
+            </div>
+          </div>
         </div>
       </PhoneScreen>
     );
@@ -124,7 +129,7 @@ export default function ListingDetail() {
   if (error || !listing) {
     return (
       <PhoneScreen>
-        <div className="px-6 pt-16 text-center" data-testid="listing-detail-error">
+        <div className="px-4 sm:px-6 lg:px-8 pt-16 text-center" data-testid="listing-detail-error">
           <div className="text-4xl mb-2">🕳️</div>
           <div className="text-lg font-heading font-semibold">Listing not found</div>
           <Button onClick={() => navigate("/browse")} className="mt-4 rounded-full btn-brand border-0">Browse listings</Button>
@@ -152,279 +157,282 @@ export default function ListingDetail() {
         </Helmet>
       )}
 
-      <div className="px-6 pt-8 pb-4 flex items-center justify-between">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-4 flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="glass rounded-full h-10 w-10 flex items-center justify-center" data-testid="listing-back-btn"><ArrowLeft className="h-4 w-4" /></button>
         <button onClick={share} className="glass rounded-full h-10 w-10 flex items-center justify-center" data-testid="listing-share-btn"><Share2 className="h-4 w-4" /></button>
       </div>
 
-      {/* Media */}
-      <div className="px-6" data-testid="listing-media">
-        {listing.reel?.url ? (
-          <div className="aspect-[9/16] max-h-[560px] rounded-2xl overflow-hidden bg-white/5">
-            <video data-testid="listing-reel" src={resolveMediaUrl(listing.reel.url)} className="w-full h-full object-cover" controls autoPlay muted playsInline loop />
-          </div>
-        ) : activeImg ? (
-          <div className="aspect-square rounded-2xl overflow-hidden bg-white/5">
-            <img src={resolveMediaUrl(activeImg.url)} alt={listing.title} className="w-full h-full object-cover" />
-          </div>
-        ) : (
-          <div className="aspect-square rounded-2xl bg-white/5 flex items-center justify-center text-5xl text-white/20">📦</div>
-        )}
-        {listing.images?.length > 1 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto -mx-6 px-6">
-            {listing.images.map((im, i) => (
-              <button key={im.public_id || i} onClick={() => setImgIdx(i)} className={`h-16 w-16 shrink-0 rounded-lg overflow-hidden border ${i === imgIdx ? "border-pink-500" : "border-white/10"}`}>
-                <img src={resolveMediaUrl(im.url)} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Body */}
-      <div className="px-6 mt-5 space-y-6 pb-24">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap mb-1.5">
-            {listing.boost_expires_at && new Date(listing.boost_expires_at) > new Date() && (
-              <span data-testid="sponsored-badge" className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">
-                <Sparkles className="h-3 w-3" /> Sponsored
-              </span>
-            )}
-          </div>
-          <h1 className="font-heading text-2xl font-bold leading-tight" data-testid="listing-title">{listing.title}</h1>
-          <div className="mt-2 flex items-center flex-wrap gap-3">
-            {hasOffer ? (
-              <>
-                <span className="text-2xl font-bold" data-testid="listing-price">₹{fmtPrice(listing.offer_price)}</span>
-                <span className="text-sm text-white/50 line-through">₹{fmtPrice(listing.price)}</span>
-              </>
-            ) : (
-              <span className="text-2xl font-bold" data-testid="listing-price">₹{fmtPrice(listing.price)}</span>
-            )}
-            {listing.is_negotiable && (
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full bg-pink-500/15 text-pink-300 border border-pink-500/30">
-                Negotiable
-              </span>
-            )}
-          </div>
-          <div className="mt-1 flex items-center gap-3 text-xs text-white/50">
-            <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" /> {listing.views_count || 0} views</span>
-            <span>·</span>
-            <span>{listing.category?.name}{listing.sub_category?.name ? ` · ${listing.sub_category.name}` : ""}</span>
-          </div>
+      {/* Desktop: side-by-side media + details. Mobile: stacked */}
+      <div className="px-4 sm:px-6 lg:px-8 lg:grid lg:grid-cols-2 lg:gap-8 xl:gap-12">
+        {/* Media column */}
+        <div data-testid="listing-media" className="lg:sticky lg:top-8 lg:self-start">
+          {listing.reel?.url ? (
+            <div className="aspect-[9/16] max-h-[560px] lg:max-h-[640px] rounded-2xl overflow-hidden bg-white/5">
+              <video data-testid="listing-reel" src={resolveMediaUrl(listing.reel.url)} className="w-full h-full object-cover" controls autoPlay muted playsInline loop />
+            </div>
+          ) : activeImg ? (
+            <div className="aspect-square rounded-2xl overflow-hidden bg-white/5">
+              <img src={resolveMediaUrl(activeImg.url)} alt={listing.title} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="aspect-square rounded-2xl bg-white/5 flex items-center justify-center text-5xl text-white/20">📦</div>
+          )}
+          {listing.images?.length > 1 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto">
+              {listing.images.map((im, i) => (
+                <button key={im.public_id || i} onClick={() => setImgIdx(i)} className={`h-16 w-16 shrink-0 rounded-lg overflow-hidden border ${i === imgIdx ? "border-pink-500" : "border-white/10"}`}>
+                  <img src={resolveMediaUrl(im.url)} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Action bar */}
-        <div className="flex items-center gap-2" data-testid="listing-action-bar">
-          <Button onClick={toggleLike} data-testid="listing-like-btn" variant="outline" className={`rounded-full h-11 flex-1 border-white/10 hover:bg-white/10 ${liked ? "bg-pink-500/15 text-pink-300" : "bg-white/5 text-white"}`}>
-            <Heart className={`h-4 w-4 mr-1 ${liked ? "fill-pink-500" : ""}`} /> {likes}
-          </Button>
-          <Button onClick={toggleSave} data-testid="listing-save-btn" variant="outline" className={`rounded-full h-11 flex-1 border-white/10 hover:bg-white/10 ${saved ? "bg-white/15" : "bg-white/5"} text-white`}>
-            <Bookmark className={`h-4 w-4 mr-1 ${saved ? "fill-white" : ""}`} /> {saves}
-          </Button>
-          <Button onClick={share} data-testid="listing-share-inline-btn" variant="outline" className="rounded-full h-11 flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">
-            <Share2 className="h-4 w-4 mr-1" /> Share
-          </Button>
-        </div>
-
-        {/* Owner-only boost bar */}
-        {user && listing.vendor && user.id === listing.vendor.id && (
-          <div className="glass rounded-2xl p-4 flex items-center justify-between gap-3" data-testid="owner-boost-bar">
-            <div>
-              <div className="text-xs text-white/60 uppercase tracking-wider font-semibold">Boost your reach</div>
-              <div className="text-sm mt-0.5">
-                {listing.boost_expires_at && new Date(listing.boost_expires_at) > new Date()
-                  ? `Active until ${new Date(listing.boost_expires_at).toLocaleDateString()}`
-                  : "Not boosted"}
-              </div>
+        {/* Details column */}
+        <div className="mt-5 lg:mt-0 space-y-6 pb-24 lg:pb-10">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+              {listing.boost_expires_at && new Date(listing.boost_expires_at) > new Date() && (
+                <span data-testid="sponsored-badge" className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">
+                  <Sparkles className="h-3 w-3" /> Sponsored
+                </span>
+              )}
             </div>
-            <BoostButton listing={listing} onBoosted={() => listingApi.bySlug(slug).then(({ data }) => setListing(data))} />
+            <h1 className="font-heading text-2xl lg:text-3xl font-bold leading-tight" data-testid="listing-title">{listing.title}</h1>
+            <div className="mt-2 flex items-center flex-wrap gap-3">
+              {hasOffer ? (
+                <>
+                  <span className="text-2xl lg:text-3xl font-bold" data-testid="listing-price">₹{fmtPrice(listing.offer_price)}</span>
+                  <span className="text-sm text-white/50 line-through">₹{fmtPrice(listing.price)}</span>
+                </>
+              ) : (
+                <span className="text-2xl lg:text-3xl font-bold" data-testid="listing-price">₹{fmtPrice(listing.price)}</span>
+              )}
+              {listing.is_negotiable && (
+                <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full bg-pink-500/15 text-pink-300 border border-pink-500/30">
+                  Negotiable
+                </span>
+              )}
+            </div>
+            <div className="mt-1 flex items-center gap-3 text-xs text-white/50">
+              <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" /> {listing.views_count || 0} views</span>
+              <span>·</span>
+              <span>{listing.category?.name}{listing.sub_category?.name ? ` · ${listing.sub_category.name}` : ""}</span>
+            </div>
           </div>
-        )}
 
-        {/* Report anyone can report */}
-        {user && listing.vendor && user.id !== listing.vendor.id && (
-          <div className="flex justify-end -mt-2" data-testid="listing-report-row">
-            <ReportButton targetType="listing" targetId={listing.id} />
-          </div>
-        )}
-
-        {/* Add to Order Cart (customer only, not own listing) */}
-        {user && (user.current_role === "customer") && listing.vendor && user.id !== listing.vendor.id && (
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                const { cartApi } = await import("@/lib/api");
-                const { notifyCartChanged } = await import("@/components/app/CartDrawer");
-                await cartApi.add({ listing_id: listing.id, quantity: 1 });
-                notifyCartChanged();
-                const { toast } = await import("sonner");
-                toast.success("Added to order cart");
-              } catch (e) {
-                const { toast } = await import("sonner");
-                toast.error(e?.response?.data?.detail || "Add failed");
-              }
-            }}
-            data-testid="add-to-cart-btn"
-            className="w-full h-12 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center gap-2 text-sm font-semibold"
-          >
-            + Add to Order Cart
-          </button>
-        )}
-
-
-        {/* Anon soft-gate */}
-        {isAnon && (
-          <button
-            type="button"
-            onClick={() => setWatchOpen(true)}
-            data-testid="watch-listing-btn"
-            className="w-full glass rounded-2xl p-4 flex items-center gap-3 text-left hover:bg-white/10"
-          >
-            <div className="h-11 w-11 rounded-xl bg-gradient-brand flex items-center justify-center">
-              <BellRing className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <div className="font-heading font-semibold">Watch this listing</div>
-              <div className="text-xs text-white/60">Get an SMS on price drop or when the vendor updates.</div>
-            </div>
-          </button>
-        )}
-
-        {/* Vendor */}
-        {listing.vendor && (
-          <div className="glass rounded-2xl p-4 flex items-center gap-3" data-testid="vendor-card">
-            <Link to={`/vendor/${listing.vendor.id}`} className="h-12 w-12 rounded-full bg-gradient-brand flex items-center justify-center font-heading font-bold text-lg">
-              {(listing.vendor.name || "?").charAt(0).toUpperCase()}
-            </Link>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs text-white/50">Posted by</div>
-              <Link to={`/vendor/${listing.vendor.id}`} className="font-semibold truncate hover:underline">{listing.vendor.name || "Vendor"}</Link>
-            </div>
-            {user && user.id !== listing.vendor.id && (
-              <Button onClick={toggleFollow} data-testid="follow-vendor-btn" size="sm" className={`rounded-full border-0 ${following ? "bg-white/10 hover:bg-white/15" : "btn-brand"}`}>
-                {following ? "Following" : "Follow"}
-              </Button>
-            )}
-            <Button onClick={async () => {
-              if (!user) return navigate("/login");
-              try {
-                const { data } = await import("@/lib/api").then(m => m.chatApi.createThread({
-                  peer_user_id: listing.vendor.id,
-                  context_type: "listing",
-                  context_id: listing.id,
-                }));
-                navigate(`/chat/${data.id}`);
-              } catch { toast.error("Could not open chat"); }
-            }} data-testid="chat-vendor-btn" size="sm" className="rounded-full btn-brand border-0">
-              <MessageCircle className="h-4 w-4 mr-1" />Chat
+          {/* Action bar */}
+          <div className="flex items-center gap-2" data-testid="listing-action-bar">
+            <Button onClick={toggleLike} data-testid="listing-like-btn" variant="outline" className={`rounded-full h-11 flex-1 border-white/10 hover:bg-white/10 ${liked ? "bg-pink-500/15 text-pink-300" : "bg-white/5 text-white"}`}>
+              <Heart className={`h-4 w-4 mr-1 ${liked ? "fill-pink-500" : ""}`} /> {likes}
+            </Button>
+            <Button onClick={toggleSave} data-testid="listing-save-btn" variant="outline" className={`rounded-full h-11 flex-1 border-white/10 hover:bg-white/10 ${saved ? "bg-white/15" : "bg-white/5"} text-white`}>
+              <Bookmark className={`h-4 w-4 mr-1 ${saved ? "fill-white" : ""}`} /> {saves}
+            </Button>
+            <Button onClick={share} data-testid="listing-share-inline-btn" variant="outline" className="rounded-full h-11 flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">
+              <Share2 className="h-4 w-4 mr-1" /> Share
             </Button>
           </div>
-        )}
 
-        {listing.description && (
-          <section>
-            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Description</h3>
-            {listing.short_description && (
-              <p className="text-sm text-pink-200 font-medium mb-2" data-testid="listing-short-description">{listing.short_description}</p>
-            )}
-            <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed" data-testid="listing-description">{listing.description}</p>
-          </section>
-        )}
-
-        {listing.features?.length > 0 && (
-          <section>
-            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Features</h3>
-            <ul className="glass rounded-2xl p-4 space-y-2" data-testid="listing-features">
-              {listing.features.map((f, i) => (
-                <li key={i} className="text-sm text-white/80 flex gap-2">
-                  <span className="text-emerald-300">✓</span>
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {listing.variants?.length > 0 && (
-          <section>
-            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Variants</h3>
-            <div className="space-y-3" data-testid="listing-variants">
-              {listing.variants.map((v, i) => (
-                <div key={i} className="glass rounded-xl p-3" data-testid={`listing-variant-${i}`}>
-                  <div className="text-sm font-heading font-semibold mb-1.5">{v.name}</div>
-                  {v.options?.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {v.options.map((o, k) => (
-                        <span key={k} className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/80 border border-white/10">{o}</span>
-                      ))}
-                    </div>
-                  )}
-                  {v.features?.length > 0 && (
-                    <ul className="text-xs text-white/60 mt-2 list-disc list-inside space-y-0.5">
-                      {v.features.map((f, k) => <li key={k}>{f}</li>)}
-                    </ul>
-                  )}
-                  {v.price_hint_inr ? (
-                    <div className="text-xs text-emerald-300/90 mt-1.5">₹{Number(v.price_hint_inr).toLocaleString()}</div>
-                  ) : null}
+          {/* Owner-only boost bar */}
+          {user && listing.vendor && user.id === listing.vendor.id && (
+            <div className="glass rounded-2xl p-4 flex items-center justify-between gap-3" data-testid="owner-boost-bar">
+              <div>
+                <div className="text-xs text-white/60 uppercase tracking-wider font-semibold">Boost your reach</div>
+                <div className="text-sm mt-0.5">
+                  {listing.boost_expires_at && new Date(listing.boost_expires_at) > new Date()
+                    ? `Active until ${new Date(listing.boost_expires_at).toLocaleDateString()}`
+                    : "Not boosted"}
                 </div>
-              ))}
+              </div>
+              <BoostButton listing={listing} onBoosted={() => listingApi.bySlug(slug).then(({ data }) => setListing(data))} />
+            </div>
+          )}
+
+          {/* Report anyone can report */}
+          {user && listing.vendor && user.id !== listing.vendor.id && (
+            <div className="flex justify-end -mt-2" data-testid="listing-report-row">
+              <ReportButton targetType="listing" targetId={listing.id} />
+            </div>
+          )}
+
+          {/* Add to Order Cart (customer only, not own listing) */}
+          {user && (user.current_role === "customer") && listing.vendor && user.id !== listing.vendor.id && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const { cartApi } = await import("@/lib/api");
+                  const { notifyCartChanged } = await import("@/components/app/CartDrawer");
+                  await cartApi.add({ listing_id: listing.id, quantity: 1 });
+                  notifyCartChanged();
+                  const { toast } = await import("sonner");
+                  toast.success("Added to order cart");
+                } catch (e) {
+                  const { toast } = await import("sonner");
+                  toast.error(e?.response?.data?.detail || "Add failed");
+                }
+              }}
+              data-testid="add-to-cart-btn"
+              className="w-full h-12 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center gap-2 text-sm font-semibold"
+            >
+              + Add to Order Cart
+            </button>
+          )}
+
+
+          {/* Anon soft-gate */}
+          {isAnon && (
+            <button
+              type="button"
+              onClick={() => setWatchOpen(true)}
+              data-testid="watch-listing-btn"
+              className="w-full glass rounded-2xl p-4 flex items-center gap-3 text-left hover:bg-white/10"
+            >
+              <div className="h-11 w-11 rounded-xl bg-gradient-brand flex items-center justify-center">
+                <BellRing className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <div className="font-heading font-semibold">Watch this listing</div>
+                <div className="text-xs text-white/60">Get an SMS on price drop or when the vendor updates.</div>
+              </div>
+            </button>
+          )}
+
+          {/* Vendor */}
+          {listing.vendor && (
+            <div className="glass rounded-2xl p-4 flex items-center gap-3" data-testid="vendor-card">
+              <Link to={`/vendor/${listing.vendor.id}`} className="h-12 w-12 rounded-full bg-gradient-brand flex items-center justify-center font-heading font-bold text-lg">
+                {(listing.vendor.name || "?").charAt(0).toUpperCase()}
+              </Link>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-white/50">Posted by</div>
+                <Link to={`/vendor/${listing.vendor.id}`} className="font-semibold truncate hover:underline">{listing.vendor.name || "Vendor"}</Link>
+              </div>
+              {user && user.id !== listing.vendor.id && (
+                <Button onClick={toggleFollow} data-testid="follow-vendor-btn" size="sm" className={`rounded-full border-0 ${following ? "bg-white/10 hover:bg-white/15" : "btn-brand"}`}>
+                  {following ? "Following" : "Follow"}
+                </Button>
+              )}
+              <Button onClick={async () => {
+                if (!user) return navigate("/login");
+                try {
+                  const { data } = await import("@/lib/api").then(m => m.chatApi.createThread({
+                    peer_user_id: listing.vendor.id,
+                    context_type: "listing",
+                    context_id: listing.id,
+                  }));
+                  navigate(`/chat/${data.id}`);
+                } catch { toast.error("Could not open chat"); }
+              }} data-testid="chat-vendor-btn" size="sm" className="rounded-full btn-brand border-0">
+                <MessageCircle className="h-4 w-4 mr-1" />Chat
+              </Button>
+            </div>
+          )}
+
+          {listing.description && (
+            <section>
+              <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Description</h3>
+              {listing.short_description && (
+                <p className="text-sm text-pink-200 font-medium mb-2" data-testid="listing-short-description">{listing.short_description}</p>
+              )}
+              <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed" data-testid="listing-description">{listing.description}</p>
+            </section>
+          )}
+
+          {listing.features?.length > 0 && (
+            <section>
+              <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Features</h3>
+              <ul className="glass rounded-2xl p-4 space-y-2" data-testid="listing-features">
+                {listing.features.map((f, i) => (
+                  <li key={i} className="text-sm text-white/80 flex gap-2">
+                    <span className="text-emerald-300">✓</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {listing.variants?.length > 0 && (
+            <section>
+              <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Variants</h3>
+              <div className="space-y-3" data-testid="listing-variants">
+                {listing.variants.map((v, i) => (
+                  <div key={i} className="glass rounded-xl p-3" data-testid={`listing-variant-${i}`}>
+                    <div className="text-sm font-heading font-semibold mb-1.5">{v.name}</div>
+                    {v.options?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {v.options.map((o, k) => (
+                          <span key={k} className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/80 border border-white/10">{o}</span>
+                        ))}
+                      </div>
+                    )}
+                    {v.features?.length > 0 && (
+                      <ul className="text-xs text-white/60 mt-2 list-disc list-inside space-y-0.5">
+                        {v.features.map((f, k) => <li key={k}>{f}</li>)}
+                      </ul>
+                    )}
+                    {v.price_hint_inr ? (
+                      <div className="text-xs text-emerald-300/90 mt-1.5">₹{Number(v.price_hint_inr).toLocaleString()}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section>
+            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Details</h3>
+            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm" data-testid="listing-specs">
+              <Spec label="Condition" value={listing.condition} />
+              <Spec label="Warranty" value={listing.warranty} />
+              <Spec label="Stock" value={listing.stock != null ? String(listing.stock) : null} />
+              <Spec label="Charges type" value={listing.service_charges_type} />
+              <Spec label="Experience" value={listing.experience_years ? `${listing.experience_years} yrs` : null} />
+              <Spec label="Service area" value={listing.service_area_km ? `${listing.service_area_km} km` : null} />
+            </dl>
+          </section>
+
+          <section>
+            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Location</h3>
+            <div className="glass rounded-2xl p-4 flex items-start gap-3">
+              <MapPin className="h-4 w-4 mt-1 text-pink-300" />
+              <div className="text-sm">
+                <div>{listing.location.area}, {listing.location.city}</div>
+                <div className="text-white/50 text-xs mt-0.5">{listing.location.state ? `${listing.location.state} · ` : ""}{listing.location.pincode}</div>
+              </div>
             </div>
           </section>
-        )}
 
-        <section>
-          <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Details</h3>
-          <dl className="grid grid-cols-2 gap-3 text-sm" data-testid="listing-specs">
-            <Spec label="Condition" value={listing.condition} />
-            <Spec label="Warranty" value={listing.warranty} />
-            <Spec label="Stock" value={listing.stock != null ? String(listing.stock) : null} />
-            <Spec label="Charges type" value={listing.service_charges_type} />
-            <Spec label="Experience" value={listing.experience_years ? `${listing.experience_years} yrs` : null} />
-            <Spec label="Service area" value={listing.service_area_km ? `${listing.service_area_km} km` : null} />
-          </dl>
-        </section>
+          {listing.tags?.length > 0 && (
+            <section>
+              <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {listing.tags.map((tag) => (
+                  <span key={tag} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/80">
+                    <Tag className="h-3 w-3" /> {tag}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
 
-        <section>
-          <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Location</h3>
-          <div className="glass rounded-2xl p-4 flex items-start gap-3">
-            <MapPin className="h-4 w-4 mt-1 text-pink-300" />
-            <div className="text-sm">
-              <div>{listing.location.area}, {listing.location.city}</div>
-              <div className="text-white/50 text-xs mt-0.5">{listing.location.state ? `${listing.location.state} · ` : ""}{listing.location.pincode}</div>
-            </div>
+          <MoreFromVendor listing={listing} />
+
+          {listing.vendor && <ReviewsSection targetType="vendor" targetId={listing.vendor.id} />}
+        </div>
+      </div>
+
+      {/* Related — full width below */}
+      {related.length > 0 && (
+        <section className="px-4 sm:px-6 lg:px-8 pb-24 lg:pb-10 mt-6" data-testid="related-section">
+          <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">You may also like</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
+            {related.map((l) => <ListingCard key={l.id} listing={l} />)}
           </div>
         </section>
-
-        {listing.tags?.length > 0 && (
-          <section>
-            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">Tags</h3>
-            <div className="flex flex-wrap gap-2">
-              {listing.tags.map((tag) => (
-                <span key={tag} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/80">
-                  <Tag className="h-3 w-3" /> {tag}
-                </span>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <MoreFromVendor listing={listing} />
-
-
-        {related.length > 0 && (
-          <section data-testid="related-section">
-            <h3 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">You may also like</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {related.map((l) => <ListingCard key={l.id} listing={l} />)}
-            </div>
-          </section>
-        )}
-
-        {listing.vendor && <ReviewsSection targetType="vendor" targetId={listing.vendor.id} />}
-      </div>
+      )}
 
       <WatchListingModal open={watchOpen} onOpenChange={setWatchOpen} listingId={listing.id} />
       <BoostModal open={boostOpen} onOpenChange={setBoostOpen} listing={listing} onBoosted={() => listingApi.bySlug(slug).then(({ data }) => setListing(data))} />

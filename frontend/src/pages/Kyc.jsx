@@ -42,7 +42,7 @@ export default function Kyc() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="KYC Verification" subtitle="One-time identity check for the verified badge." />
-      <div className="px-6 pb-24 flex-1 space-y-4">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-4">
         {current?.status && current.status !== "unverified" && (
           <div className={`glass rounded-2xl p-4 ${current.status === "approved" ? "border-green-500/30" : current.status === "rejected" ? "border-red-500/30" : "border-yellow-500/30"}`} data-testid="kyc-status">
             <div className="flex items-center gap-2 font-semibold capitalize">

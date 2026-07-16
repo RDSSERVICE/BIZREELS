@@ -211,7 +211,7 @@ export default function AdminSettings() {
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Integrations" subtitle="Live keys · dev mode toggles" />
 
-      <div className="px-6 pb-24 flex-1 space-y-4">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-4">
         <div className="glass rounded-2xl p-4 flex items-start gap-3 border border-amber-400/20 bg-amber-400/5" data-testid="settings-warning">
           <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="text-xs text-white/80">

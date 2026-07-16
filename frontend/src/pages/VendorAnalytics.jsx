@@ -73,7 +73,7 @@ export default function VendorAnalytics() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Analytics" subtitle="Your vendor insights" />
-      <div className="px-6 pb-2">
+      <div className="px-4 sm:px-6 lg:px-8 pb-2">
         <Select value={range} onValueChange={setRange}>
           <SelectTrigger data-testid="analytics-range" className="h-10 rounded-full bg-white/5 border-white/10 text-white w-40">
             <SelectValue />
@@ -84,7 +84,7 @@ export default function VendorAnalytics() {
         </Select>
       </div>
 
-      <div className="px-6 pb-24 flex-1 space-y-4 mt-2">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-4 mt-2">
         {loading || !ov ? (
           <div className="h-24 rounded-2xl bg-white/5 animate-pulse" />
         ) : (

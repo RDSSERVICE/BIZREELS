@@ -82,7 +82,7 @@ export default function AdminConsole() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8">
         <button onClick={() => navigate("/admin/dashboard")} data-testid="console-back" className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm">
           <ArrowLeft className="h-4 w-4" /> Back to Dashboard
         </button>
@@ -90,7 +90,7 @@ export default function AdminConsole() {
       <ScreenHeader title="Admin Console" subtitle="Transactions · orders · commissions · audit log" />
 
       {/* Tabs */}
-      <div className="px-6 sticky top-0 bg-neutral-950/90 backdrop-blur z-10 pt-1 pb-2 border-b border-white/5">
+      <div className="px-4 sm:px-6 lg:px-8 sticky top-0 bg-neutral-950/90 backdrop-blur z-10 pt-1 pb-2 border-b border-white/5">
         <div className="flex gap-1 overflow-x-auto pb-1" data-testid="console-tabs">
           {TABS.map((t) => {
             const Icon = t.icon;
@@ -113,7 +113,7 @@ export default function AdminConsole() {
         </div>
       </div>
 
-      <div className="px-6 py-4 pb-24 space-y-2" data-testid={`console-content-${tab}`}>
+      <div className="px-4 sm:px-6 lg:px-8 py-4 pb-24 space-y-2" data-testid={`console-content-${tab}`}>
         {tab === "commissions" && (
           <div className="glass rounded-2xl p-4 mb-3 border border-emerald-500/20" data-testid="commission-summary">
             <div className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Last 30 days</div>

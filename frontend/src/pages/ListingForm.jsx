@@ -419,7 +419,7 @@ export default function ListingForm() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8">
         <Link to="/vendor/dashboard" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm" data-testid="form-back-link">
           <ArrowLeft className="h-4 w-4" /> {t("common.back")}
         </Link>
@@ -430,7 +430,7 @@ export default function ListingForm() {
       />
 
       {/* Progress bar */}
-      <div className="px-6 mb-6">
+      <div className="px-4 sm:px-6 lg:px-8 mb-6">
         <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
           <div className="h-full bg-gradient-brand transition-all" style={{ width: `${progress}%` }} data-testid="form-progress" />
         </div>
@@ -439,7 +439,7 @@ export default function ListingForm() {
         </div>
       </div>
 
-      <div className="px-6 pb-32">
+      <div className="px-4 sm:px-6 lg:px-8 pb-32">
         {/* STEP 0: Type */}
         {step === 0 && (
           <div className="space-y-2" data-testid="step-type">

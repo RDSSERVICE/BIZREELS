@@ -51,7 +51,7 @@ export default function KycVerify() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8">
         <button onClick={() => navigate(-1)} data-testid="kyc-back" className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
@@ -65,7 +65,7 @@ export default function KycVerify() {
         </div>
       )}
 
-      <div className="px-6 pb-24 space-y-3" data-testid="kyc-cards">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 space-y-3" data-testid="kyc-cards">
         {loading && <div className="text-center text-white/50 text-sm py-6"><Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Loading…</div>}
         {Object.keys(DOC_META).map((t) => {
           const meta = DOC_META[t];

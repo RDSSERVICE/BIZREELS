@@ -35,7 +35,7 @@ export default function Dashboard() {
         }
       />
 
-      <div className="px-6 space-y-4 pb-10" data-testid="dashboard-body">
+      <div className="px-4 sm:px-6 lg:px-8 space-y-4 pb-10" data-testid="dashboard-body">
         {/* Onboarding checklist (hides itself when complete + credited) */}
         <OnboardingChecklist />
         {/* Refer & earn */}
@@ -57,10 +57,10 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Primary CTAs */}
-        <div className="grid gap-3">
+        {/* Primary CTAs — 2-column on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Link to="/browse" data-testid="dashboard-browse-cta">
-            <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+            <div className="glass rounded-3xl p-5 relative overflow-hidden group h-full">
               <div className="glow-brand absolute inset-0 opacity-40" />
               <div className="relative flex items-center gap-4">
                 <div className="h-12 w-12 rounded-2xl bg-gradient-brand flex items-center justify-center">
@@ -77,7 +77,7 @@ export default function Dashboard() {
 
           {isVendor ? (
             <Link to="/vendor/dashboard" data-testid="dashboard-vendor-cta">
-              <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+              <div className="glass rounded-3xl p-5 relative overflow-hidden group h-full">
                 <div className="relative flex items-center gap-4">
                   <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
                     <Store className="h-5 w-5 text-white" />
@@ -97,7 +97,7 @@ export default function Dashboard() {
               data-testid="dashboard-become-vendor-cta"
               className="text-left"
             >
-              <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+              <div className="glass rounded-3xl p-5 relative overflow-hidden group h-full">
                 <div className="relative flex items-center gap-4">
                   <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
                     <Store className="h-5 w-5 text-white" />
@@ -114,7 +114,7 @@ export default function Dashboard() {
 
           {isVendor && (
             <Link to="/vendor/analytics" data-testid="dashboard-analytics-cta">
-              <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+              <div className="glass rounded-3xl p-5 relative overflow-hidden group h-full">
                 <div className="relative flex items-center gap-4">
                   <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
                     <BarChart3 className="h-5 w-5 text-white" />
@@ -131,7 +131,7 @@ export default function Dashboard() {
 
           {isAdmin && (
             <Link to="/admin" data-testid="dashboard-admin-cta">
-              <div className="glass rounded-3xl p-5 relative overflow-hidden group border border-yellow-400/30">
+              <div className="glass rounded-3xl p-5 relative overflow-hidden group border border-yellow-400/30 h-full">
                 <div className="relative flex items-center gap-4">
                   <div className="h-12 w-12 rounded-2xl bg-yellow-500/20 flex items-center justify-center">
                     <Shield className="h-5 w-5 text-yellow-300" />
@@ -148,7 +148,7 @@ export default function Dashboard() {
 
           {/* Always-visible entry points to profile edit + identity verification */}
           <Link to="/profile" data-testid="dashboard-profile-cta">
-            <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+            <div className="glass rounded-3xl p-5 relative overflow-hidden group h-full">
               <div className="relative flex items-center gap-4">
                 <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
                   <UserIcon className="h-5 w-5 text-white" />
@@ -163,7 +163,7 @@ export default function Dashboard() {
           </Link>
 
           <Link to="/kyc/verify" data-testid="dashboard-kyc-cta">
-            <div className="glass rounded-3xl p-5 relative overflow-hidden group">
+            <div className="glass rounded-3xl p-5 relative overflow-hidden group h-full">
               <div className="relative flex items-center gap-4">
                 <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
                   <Shield className="h-5 w-5 text-emerald-300" />
@@ -187,7 +187,7 @@ export default function Dashboard() {
           <h3 className="font-heading text-2xl font-bold mt-4 leading-tight">
             Browse local, sell local
           </h3>
-          <p className="text-sm text-white/70 mt-2 leading-relaxed">
+          <p className="text-sm text-white/70 mt-2 leading-relaxed max-w-xl">
             Reels-first feed, live chat, negotiation and requirements are coming in upcoming phases.
           </p>
         </div>
@@ -196,7 +196,7 @@ export default function Dashboard() {
           data-testid="logout-btn"
           onClick={handleLogout}
           variant="outline"
-          className="w-full h-12 rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white"
+          className="w-full sm:w-auto sm:min-w-[200px] h-12 rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white"
         >
           <LogOut className="h-4 w-4 mr-1" /> {t("profile.logout")}
         </Button>

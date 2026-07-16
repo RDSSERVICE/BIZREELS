@@ -33,11 +33,11 @@ export default function AdminListings() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Admin · Listings" subtitle={flagged ? "Taken down" : "All active"} />
-      <div className="px-6 flex gap-2 pb-2">
+      <div className="px-4 sm:px-6 lg:px-8 flex gap-2 pb-2">
         <Button size="sm" onClick={() => setFlagged(false)} className={`rounded-full h-9 ${!flagged ? "btn-brand border-0" : "bg-white/5 border-white/10 text-white hover:bg-white/10"}`} data-testid="admin-listings-tab-all">All</Button>
         <Button size="sm" onClick={() => setFlagged(true)} className={`rounded-full h-9 ${flagged ? "btn-brand border-0" : "bg-white/5 border-white/10 text-white hover:bg-white/10"}`} data-testid="admin-listings-tab-taken">Taken down</Button>
       </div>
-      <div className="px-6 pb-24 flex-1 space-y-2 mt-1">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-2 mt-1">
         {loading ? <div className="h-24 rounded-2xl bg-white/5 animate-pulse" /> : items.length === 0 ? (
           <div className="glass rounded-2xl p-8 text-center text-white/60 text-sm" data-testid="admin-listings-empty">Nothing here.</div>
         ) : items.map((li) => (

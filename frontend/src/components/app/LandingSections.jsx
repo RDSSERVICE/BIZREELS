@@ -25,13 +25,13 @@ const PRESS_LOGOS = ["TechCrunch India", "YourStory", "Inc42", "ET Panache"];
 
 export function CategoryShowcase() {
   return (
-    <section className="px-6 py-6" data-testid="landing-categories">
+    <section className="px-4 sm:px-6 lg:px-8 py-6" data-testid="landing-categories">
       <h2 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-3">Explore categories</h2>
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
         {CATEGORIES.map((c) => (
-          <div key={c.name} className="glass rounded-2xl p-3 text-center hover:bg-white/10 transition-colors">
+          <div key={c.name} className="glass rounded-2xl p-3 text-center hover:bg-white/10 transition-colors cursor-pointer">
             <div className="text-2xl mb-1">{c.emoji}</div>
-            <div className="text-[10px] text-white/70">{c.name}</div>
+            <div className="text-[10px] md:text-xs text-white/70">{c.name}</div>
           </div>
         ))}
       </div>
@@ -41,11 +41,11 @@ export function CategoryShowcase() {
 
 export function Testimonials() {
   return (
-    <section className="px-6 py-6" data-testid="landing-testimonials">
+    <section className="px-4 sm:px-6 lg:px-8 py-6" data-testid="landing-testimonials">
       <h2 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
         <Award className="h-3.5 w-3.5 text-yellow-300" /> Real stories from real users
       </h2>
-      <div className="space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 lg:gap-3">
         {TESTIMONIALS.map((t, i) => (
           <div key={i} className="glass rounded-2xl p-4" data-testid={`testimonial-${i}`}>
             <div className="flex items-center gap-2 mb-1">
@@ -71,7 +71,7 @@ export function Testimonials() {
 
 export function CityChampions() {
   return (
-    <section className="px-6 py-6" data-testid="landing-city-champions">
+    <section className="px-4 sm:px-6 lg:px-8 py-6" data-testid="landing-city-champions">
       <h2 className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-3">City champions this week</h2>
       <FastRespondersPanel city={null} limit={4} />
     </section>
@@ -80,7 +80,7 @@ export function CityChampions() {
 
 export function PressLogos() {
   return (
-    <section className="px-6 py-4" data-testid="landing-press-logos">
+    <section className="px-4 sm:px-6 lg:px-8 py-4" data-testid="landing-press-logos">
       <div className="text-[10px] text-white/40 uppercase tracking-widest text-center mb-2">As featured in</div>
       <div className="flex items-center justify-around gap-2 opacity-60">
         {PRESS_LOGOS.map((p) => (

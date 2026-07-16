@@ -78,7 +78,7 @@ export default function Browse() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8 pb-4 flex items-start justify-between">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-4 flex items-start justify-between">
         <div>
           <button
             onClick={() => navigate(-1)}
@@ -87,7 +87,7 @@ export default function Browse() {
           >
             <ArrowLeft className="h-4 w-4" /> {t("common.back")}
           </button>
-          <h1 className="font-heading text-3xl font-bold tracking-tight">
+          <h1 className="font-heading text-3xl lg:text-4xl font-bold tracking-tight">
             {activeCat ? activeCat.name : t("browse.title")}
           </h1>
           <p className="text-sm text-white/60 mt-1">{t("browse.subtitle")}</p>
@@ -98,8 +98,8 @@ export default function Browse() {
       </div>
 
       {/* Search */}
-      <div className="px-6 pb-4">
-        <div className="relative">
+      <div className="px-4 sm:px-6 lg:px-8 pb-4">
+        <div className="relative max-w-xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
           <Input
             data-testid="browse-search-input"
@@ -112,14 +112,14 @@ export default function Browse() {
       </div>
 
       {/* Category grid or sub-cat chips */}
-      <div className="px-6 pb-6">
+      <div className="px-4 sm:px-6 lg:px-8 pb-6">
         {activeCat ? (
           subCats.length > 0 && (
             <>
               <div className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">
                 {t("browse.sub_categories")}
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-6 px-6" data-testid="sub-category-chips">
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8" data-testid="sub-category-chips">
                 <button
                   onClick={() => setActiveSubId(null)}
                   data-testid="sub-chip-all"
@@ -157,24 +157,24 @@ export default function Browse() {
       </div>
 
       {/* Listings */}
-      <div className="px-6 pb-24">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24">
         <div className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-3">
           {t("browse.listings")}
         </div>
         {loading ? (
-          <div className="grid grid-cols-2 gap-3" data-testid="listings-loading">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" data-testid="listings-loading">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div key={i} className="aspect-[3/4] rounded-2xl bg-white/5 animate-pulse" />
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="glass rounded-2xl p-8 text-center" data-testid="listings-empty">
+          <div className="glass rounded-2xl p-8 text-center max-w-md mx-auto" data-testid="listings-empty">
             <div className="text-3xl mb-2">🌱</div>
             <div className="text-sm text-white/70">{t("browse.empty")}</div>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3" data-testid="listings-grid">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4" data-testid="listings-grid">
               {items.map((l) => <ListingCard key={l.id} listing={l} />)}
             </div>
             {hasMore && (

@@ -97,14 +97,15 @@ export default function Profile() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8">
+      <div className="max-w-2xl mx-auto">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8">
         <Link to="/dashboard" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm" data-testid="profile-back-link">
           <ArrowLeft className="h-4 w-4" /> {t("common.back")}
         </Link>
       </div>
       <ScreenHeader title={t("profile.title")} subtitle={`+91 ${user?.phone}`} />
 
-      <div className="px-6 pb-10 space-y-8">
+      <div className="px-4 sm:px-6 lg:px-8 pb-10 space-y-8">
         {/* Roles panel */}
         <section className="glass rounded-2xl p-5">
           <div className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-3">
@@ -280,6 +281,7 @@ export default function Profile() {
         >
           <LogOut className="h-4 w-4 mr-1" /> {t("profile.logout")}
         </Button>
+      </div>
       </div>
     </PhoneScreen>
   );

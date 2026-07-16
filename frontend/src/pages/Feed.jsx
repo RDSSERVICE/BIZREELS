@@ -62,7 +62,7 @@ export default function Feed() {
     <PhoneScreen className="flex flex-col">
       {/* Sticky header */}
       <div className="sticky top-0 z-20 bg-black/85 backdrop-blur-lg border-b border-white/10">
-        <div className="px-4 pt-4 pb-3 flex items-center justify-between gap-2">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between gap-2">
           <h1 className="font-heading text-xl font-bold">{t("feed.title")}</h1>
           <div className="flex items-center gap-2">
             <RoleSwitcherChip />
@@ -79,40 +79,42 @@ export default function Feed() {
         </div>
       </div>
 
-      {/* Feed body */}
+      {/* Feed body — centered column for reels */}
       <div
         className="flex-1 overflow-y-auto snap-y snap-mandatory h-[calc(100vh-56px-64px)] scrollbar-none"
         style={{ scrollbarWidth: "none" }}
         data-testid="feed-scroll"
       >
-        {loading && items.length === 0 ? (
-          <div className="p-6 space-y-3" data-testid="feed-loading">
-            {[1, 2].map((i) => <div key={i} className="aspect-[9/16] rounded-2xl bg-white/5 animate-pulse" />)}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="p-10 text-center text-white/60" data-testid="feed-empty">{t("feed.feed_empty")}</div>
-        ) : (
-          <>
-            {stream.map((listing, i) => (
-              <ReelItem
-                key={listing.id}
-                listing={listing}
-                index={i}
-                onOpenLogin={() => navigate("/login")}
-              />
-            ))}
-            {hasMore && (
-              <div className="snap-start px-4 py-6 bg-black flex justify-center h-24">
-                <Button
-                  data-testid="feed-load-more"
-                  variant="outline"
-                  onClick={() => load(false)}
-                  className="rounded-full bg-white/5 border-white/10 hover:bg-white/10"
-                >Load more</Button>
-              </div>
-            )}
-          </>
-        )}
+        <div className="max-w-2xl mx-auto">
+          {loading && items.length === 0 ? (
+            <div className="p-4 sm:p-6 space-y-3" data-testid="feed-loading">
+              {[1, 2].map((i) => <div key={i} className="aspect-[9/16] rounded-2xl bg-white/5 animate-pulse" />)}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="p-10 text-center text-white/60" data-testid="feed-empty">{t("feed.feed_empty")}</div>
+          ) : (
+            <>
+              {stream.map((listing, i) => (
+                <ReelItem
+                  key={listing.id}
+                  listing={listing}
+                  index={i}
+                  onOpenLogin={() => navigate("/login")}
+                />
+              ))}
+              {hasMore && (
+                <div className="snap-start px-4 py-6 bg-black flex justify-center h-24">
+                  <Button
+                    data-testid="feed-load-more"
+                    variant="outline"
+                    onClick={() => load(false)}
+                    className="rounded-full bg-white/5 border-white/10 hover:bg-white/10"
+                  >Load more</Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <BottomNav />

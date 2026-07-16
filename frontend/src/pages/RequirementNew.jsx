@@ -83,14 +83,14 @@ export default function RequirementNew() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8">
         <button onClick={() => navigate(-1)} data-testid="req-form-back" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
       </div>
       <ScreenHeader title="Post a Requirement" subtitle="Tell vendors what you need — proposals come to you." />
 
-      <div className="px-6 pb-24 space-y-4">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 space-y-4">
         {/* AI natural-language input (Feature 3) */}
         <div className="glass rounded-2xl p-4 border border-pink-500/20 space-y-3" data-testid="ai-demand-block">
           <div className="flex items-center gap-2">

@@ -97,7 +97,7 @@ export default function AdminLogin() {
   return (
     <PhoneScreen>
       <ScreenHeader title="Admin Login" subtitle="Dev-mode override" />
-      <form onSubmit={login} className="px-6 pt-4 pb-10 space-y-5" data-testid="admin-login-form">
+      <form onSubmit={login} className="px-4 sm:px-6 lg:px-8 pt-4 pb-10 space-y-5" data-testid="admin-login-form">
         <div className="glass rounded-2xl p-4 flex items-start gap-3 border border-amber-400/20 bg-amber-400/5">
           <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="text-xs text-white/80">

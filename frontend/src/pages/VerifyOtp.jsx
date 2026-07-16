@@ -75,7 +75,8 @@ export default function VerifyOtp() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8">
+      <div className="max-w-md mx-auto">
+      <div className="px-4 sm:px-6 pt-8">
         <Link to="/login" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm" data-testid="verify-back-link">
           <ArrowLeft className="h-4 w-4" /> {t("auth.change_number")}
         </Link>
@@ -87,7 +88,7 @@ export default function VerifyOtp() {
 
       <DevOtpBanner otp={devOtp} />
 
-      <form onSubmit={handleVerify} className="px-6 pt-2 pb-10 space-y-6">
+      <form onSubmit={handleVerify} className="px-4 sm:px-6 pt-2 pb-10 space-y-6">
         <div className="flex justify-center">
           <InputOTP
             data-testid="otp-input"
@@ -134,6 +135,7 @@ export default function VerifyOtp() {
           )}
         </div>
       </form>
+      </div>
     </PhoneScreen>
   );
 }

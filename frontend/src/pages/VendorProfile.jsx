@@ -105,7 +105,7 @@ export default function VendorProfile() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8 pb-4 flex items-center justify-between">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-4 flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="glass rounded-full h-10 w-10 flex items-center justify-center" data-testid="vendor-back-btn">
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -115,7 +115,7 @@ export default function VendorProfile() {
       </div>
 
       {/* Header */}
-      <div className="px-6 text-center" data-testid="vendor-header">
+      <div className="px-4 sm:px-6 lg:px-8 text-center" data-testid="vendor-header">
         <div className="mx-auto h-24 w-24 rounded-full bg-gradient-brand flex items-center justify-center font-heading font-bold text-4xl">
           {(vendor.name || "?").charAt(0).toUpperCase()}
         </div>
@@ -202,7 +202,7 @@ function Grid({ items }) {
     return <div className="glass rounded-2xl p-8 text-center text-white/60 text-sm">No listings yet.</div>;
   }
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4">
       {items.map((l) => <ListingCard key={l.id} listing={l} />)}
     </div>
   );

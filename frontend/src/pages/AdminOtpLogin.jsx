@@ -93,7 +93,7 @@ export default function AdminOtpLogin() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8 pb-4">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-4">
         <button
           type="button"
           onClick={() => navigate("/")}
@@ -105,7 +105,7 @@ export default function AdminOtpLogin() {
       </div>
 
       {/* Emerald/gold themed admin header */}
-      <div className="px-6 pt-4">
+      <div className="px-4 sm:px-6 lg:px-8 pt-4">
         <div className="glass rounded-2xl p-5 border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 to-amber-500/5">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">

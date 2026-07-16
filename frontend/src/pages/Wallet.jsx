@@ -56,7 +56,7 @@ export default function Wallet() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Wallet" subtitle="Credits + INR balance." />
-      <div className="px-6 pb-24 flex-1 space-y-4">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-4">
         {loading ? (
           <div className="h-32 rounded-2xl bg-white/5 animate-pulse" data-testid="wallet-loading" />
         ) : (

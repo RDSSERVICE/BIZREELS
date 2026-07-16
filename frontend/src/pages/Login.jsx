@@ -55,10 +55,10 @@ export default function Login() {
 
   return (
     <PhoneScreen>
-      <div className="relative">
+      <div className="relative min-h-screen flex items-start justify-center">
         <div className="glow-brand absolute inset-0 opacity-60" />
-        <div className="relative">
-          <div className="px-6 pt-8">
+        <div className="relative w-full max-w-md mx-auto">
+          <div className="px-4 sm:px-6 pt-8">
             <Link to="/" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm" data-testid="login-back-link">
               <ArrowLeft className="h-4 w-4" /> {t("common.back")}
             </Link>
@@ -68,7 +68,7 @@ export default function Login() {
             subtitle={t("auth.login_subtitle")}
           />
 
-          <div className="px-6 pt-4 pb-2">
+          <div className="px-4 sm:px-6 pt-4 pb-2">
             <button
               type="button"
               onClick={handleGoogle}
@@ -88,7 +88,7 @@ export default function Login() {
             </div>
           </div>
 
-          <form onSubmit={handleSend} className="px-6 pt-4 pb-10 space-y-5">
+          <form onSubmit={handleSend} className="px-4 sm:px-6 pt-4 pb-10 space-y-5">
             <label className="block">
               <span className="text-xs text-white/60 uppercase tracking-wider font-semibold">
                 {t("auth.phone_label")}

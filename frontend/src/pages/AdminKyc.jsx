@@ -22,7 +22,7 @@ export default function AdminKyc() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Admin · KYC Queue" subtitle={`${items.length} pending`} />
-      <div className="px-6 pb-24 flex-1">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1">
         {loading ? <div className="h-24 rounded-2xl bg-white/5 animate-pulse" /> : items.length === 0 ? (
           <div className="glass rounded-2xl p-8 text-center text-white/60 text-sm" data-testid="admin-kyc-empty">Queue empty ✓</div>
         ) : (

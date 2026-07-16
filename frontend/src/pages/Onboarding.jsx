@@ -70,11 +70,12 @@ export default function Onboarding() {
 
   return (
     <PhoneScreen>
+      <div className="max-w-md mx-auto">
       <ScreenHeader
         title={t("onboarding.title")}
         subtitle={t("onboarding.subtitle")}
       />
-      <form onSubmit={submit} className="px-6 pt-2 pb-10 space-y-6">
+      <form onSubmit={submit} className="px-4 sm:px-6 pt-2 pb-10 space-y-6">
         <label className="block">
           <span className="text-xs text-white/60 uppercase tracking-wider font-semibold">
             {t("onboarding.name_label")}
@@ -146,6 +147,7 @@ export default function Onboarding() {
           {loading ? t("common.loading") : t("onboarding.continue")}
         </Button>
       </form>
+      </div>
     </PhoneScreen>
   );
 }

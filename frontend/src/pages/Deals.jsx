@@ -39,7 +39,7 @@ export default function Deals() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Deals" subtitle="Your negotiations." />
-      <div className="px-6 pb-24 flex-1">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1">
         <Tabs defaultValue="buyer">
           <TabsList className="grid grid-cols-2 gap-1 bg-white/5 p-1 rounded-full h-11">
             <TabsTrigger data-testid="tab-buyer" value="buyer" className="rounded-full data-[state=active]:bg-gradient-brand data-[state=active]:text-white">As buyer ({asBuyer.length})</TabsTrigger>

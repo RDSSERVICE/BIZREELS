@@ -63,7 +63,7 @@ export default function VendorDashboard() {
 
   return (
     <PhoneScreen>
-      <div className="px-6 pt-8">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8">
         <Link to="/dashboard" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm" data-testid="vendor-back-link">
           <ArrowLeft className="h-4 w-4" /> {t("common.back")}
         </Link>
@@ -82,7 +82,7 @@ export default function VendorDashboard() {
         }
       />
 
-      <div className="px-6 pb-24">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24">
         <div className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-3">
           {t("vendor.my_listings")}
         </div>

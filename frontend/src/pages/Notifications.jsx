@@ -23,7 +23,7 @@ export default function Notifications() {
         title="Notifications"
         right={<Button data-testid="read-all-btn" onClick={readAll} variant="outline" size="sm" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white"><CheckCheck className="h-4 w-4 mr-1" />Read all</Button>}
       />
-      <div className="px-6 pb-24 flex-1">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1">
         {loading ? (
           <div className="space-y-2">{[1,2,3].map((i) => <div key={i} className="h-16 rounded-2xl bg-white/5 animate-pulse" />)}</div>
         ) : items.length === 0 ? (

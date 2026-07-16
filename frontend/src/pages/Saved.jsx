@@ -17,9 +17,9 @@ export default function Saved() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title={t("saved_page.title")} subtitle={t("saved_page.subtitle")} />
-      <div className="px-6 pb-24 flex-1">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1">
         {loading ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4">
             {[1,2,3,4].map((i) => <div key={i} className="aspect-[3/4] rounded-2xl bg-white/5 animate-pulse" />)}
           </div>
         ) : items.length === 0 ? (
@@ -28,7 +28,7 @@ export default function Saved() {
             <div className="text-sm text-white/70">{t("saved_page.empty")}</div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3" data-testid="saved-listings">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4" data-testid="saved-listings">
             {items.map((l) => <ListingCard key={l.id} listing={l} />)}
           </div>
         )}

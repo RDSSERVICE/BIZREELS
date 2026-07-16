@@ -142,7 +142,7 @@ export default function ProfileComplete() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Complete Profile" subtitle={`Step ${step + 1} of ${activeSteps.length}`} />
-      <div className="px-6">
+      <div className="px-4 sm:px-6 lg:px-8">
         <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-brand transition-all"

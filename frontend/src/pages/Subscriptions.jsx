@@ -41,7 +41,7 @@ export default function Subscriptions() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Verified Badge" subtitle="Stand out with a blue tick." />
-      <div className="px-6 pb-24 flex-1 space-y-4">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-4">
         {active && (
           <div className="glass rounded-2xl p-4 flex items-center gap-3 border-blue-400/30" data-testid="active-sub">
             <BadgeCheck className="h-6 w-6 text-blue-400" />

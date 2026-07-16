@@ -30,15 +30,15 @@ export default function BottomNav() {
 
   return (
     <nav className="sticky bottom-0 left-0 right-0 z-30 bg-black/85 backdrop-blur-lg border-t border-white/10" data-testid="bottom-nav">
-      <div className="flex items-center justify-around py-2">
+      <div className="max-w-3xl mx-auto flex items-center justify-around py-2">
         {items.map((it) => {
           const Icon = it.icon;
           return (
-            <NavLink key={it.testId} to={it.to} data-testid={it.testId} className={({ isActive }) => `flex-1 flex flex-col items-center gap-0.5 py-1.5 text-[10px] transition-colors ${isActive ? "text-white" : "text-white/50"}`}>
+            <NavLink key={it.testId} to={it.to} data-testid={it.testId} className={({ isActive }) => `flex-1 flex flex-col items-center gap-0.5 py-1.5 text-[10px] sm:text-xs transition-colors ${isActive ? "text-white" : "text-white/50"}`}>
               {({ isActive }) => (
                 <>
                   <div className="relative">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${it.isCta ? "bg-gradient-brand text-white" : isActive ? "text-white" : "text-white/60"}`}>
+                    <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center ${it.isCta ? "bg-gradient-brand text-white" : isActive ? "text-white" : "text-white/60"}`}>
                       <Icon className="h-5 w-5" />
                     </div>
                     {it.badge > 0 && (

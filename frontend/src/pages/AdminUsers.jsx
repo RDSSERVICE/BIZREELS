@@ -35,7 +35,7 @@ export default function AdminUsers() {
   return (
     <PhoneScreen className="flex flex-col">
       <ScreenHeader title="Admin · Users" subtitle={`${items.length} shown`} />
-      <div className="px-6 pb-2 flex items-center gap-2">
+      <div className="px-4 sm:px-6 lg:px-8 pb-2 flex items-center gap-2">
         <Input
           data-testid="admin-users-search"
           value={q}
@@ -48,7 +48,7 @@ export default function AdminUsers() {
           <Search className="h-4 w-4" />
         </Button>
       </div>
-      <div className="px-6 pb-24 flex-1 space-y-2 mt-2">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-2 mt-2">
         {loading ? <div className="h-24 rounded-2xl bg-white/5 animate-pulse" /> : items.length === 0 ? (
           <div className="glass rounded-2xl p-8 text-center text-white/60 text-sm" data-testid="admin-users-empty">No users</div>
         ) : items.map((u) => (

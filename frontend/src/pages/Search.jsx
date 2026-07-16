@@ -76,7 +76,7 @@ export default function SearchPage() {
 
   return (
     <PhoneScreen className="flex flex-col">
-      <div className="px-4 pt-6 pb-3 flex items-center gap-2">
+      <div className="px-4 sm:px-6 lg:px-8 pt-6 pb-3 flex items-center gap-2">
         <button onClick={() => navigate(-1)} data-testid="search-back-btn" className="h-10 w-10 rounded-full glass flex items-center justify-center">
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -161,7 +161,7 @@ export default function SearchPage() {
 
       {/* Suggestions */}
       {debouncedQ.trim().length >= 2 && (suggestions.listings.length > 0 || suggestions.categories.length > 0) && (
-        <div className="px-4 mb-2" data-testid="search-suggestions">
+        <div className="px-4 sm:px-6 lg:px-8 mb-2" data-testid="search-suggestions">
           <div className="text-[10px] uppercase tracking-wider text-white/50 mb-2">{t("search.suggestions")}</div>
           <div className="glass rounded-2xl overflow-hidden divide-y divide-white/5">
             {suggestions.listings.map((s) => (
@@ -186,17 +186,17 @@ export default function SearchPage() {
       )}
 
       {/* Results grid */}
-      <div className="px-4 pb-24 flex-1">
+      <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1">
         {loading ? (
-          <div className="grid grid-cols-2 gap-3">
-            {[1,2,3,4].map((i) => <div key={i} className="aspect-[3/4] rounded-2xl bg-white/5 animate-pulse" />)}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[1,2,3,4,5,6,7,8].map((i) => <div key={i} className="aspect-[3/4] rounded-2xl bg-white/5 animate-pulse" />)}
           </div>
         ) : results.length === 0 ? (
-          <div className="glass rounded-2xl p-8 text-center text-white/60 text-sm mt-2" data-testid="search-empty">
+          <div className="glass rounded-2xl p-8 text-center text-white/60 text-sm mt-2 max-w-md mx-auto" data-testid="search-empty">
             {debouncedQ ? t("search.no_results") : "Start typing to search…"}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3" data-testid="search-results">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4" data-testid="search-results">
             {results.map((l) => <ListingCard key={l.id} listing={l} />)}
           </div>
         )}
