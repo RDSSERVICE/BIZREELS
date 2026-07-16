@@ -1,6 +1,6 @@
 # Features Catalog
 
-Emergent includes the following production features:
+BizReels includes the following production features:
 
 ## 1. Authentication & Onboarding
 * **OTP Phone Authentication**: Mobile-first registration and login using SMS OTP verification (powered by MSG91 in production; supports dev mode bypass settings).

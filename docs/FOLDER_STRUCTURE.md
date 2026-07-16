@@ -1,6 +1,6 @@
 # Folder Structure
 
-This document details the folder structure and file organization of the Emergent project.
+This document details the folder structure and file organization of the BizReels project.
 
 ```
 ecommerce-app/

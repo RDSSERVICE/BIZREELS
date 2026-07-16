@@ -143,7 +143,7 @@ router.get('/utils/whatsapp-link', catchAsync(async (req, res) => {
   if (listing) {
     text += ` listing "${listing.title}"`;
   }
-  text += ' on Emergent.';
+  text += ' on BizReels.';
 
   if (listing) {
     const protocol = req.protocol;

@@ -6,7 +6,7 @@ const listingSeo = async (slug, baseUrl) => {
   const doc = await Listing.findOne({ slug, isDeleted: { $ne: true }, status: 'active' });
   if (!doc) {
     return {
-      title: "Emergent · India's local social commerce",
+      title: "BizReels · India's local social commerce",
       description: 'Discover local. Chat direct. Deal fair.',
       image: null,
       url: `${baseUrl}/listing/${slug}`,
@@ -22,7 +22,7 @@ const listingSeo = async (slug, baseUrl) => {
     descBits.push(l.description.slice(0, 140));
   } else {
     const typeLabel = l.type.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
-    descBits.push(`${typeLabel} · ₹${parseInt(price).toLocaleString('en-IN')} on Emergent`);
+    descBits.push(`${typeLabel} · ₹${parseInt(price).toLocaleString('en-IN')} on BizReels`);
   }
 
   if (l.location) {
@@ -33,7 +33,7 @@ const listingSeo = async (slug, baseUrl) => {
   const cover = l.images && l.images.length > 0 ? l.images[0].url : null;
 
   return {
-    title: `${l.title} · ₹${parseInt(price).toLocaleString('en-IN')} · Emergent`,
+    title: `${l.title} · ₹${parseInt(price).toLocaleString('en-IN')} · BizReels`,
     description: descBits.filter(Boolean).join(' · '),
     image: cover,
     url: `${baseUrl}/listing/${slug}`,

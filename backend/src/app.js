@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const config = require('./config');
+const uploadRoutes = require('./routes/upload.routes');
 const { optionalAuth } = require('./middleware/auth.middleware');
 const { errorHandler } = require('./middleware/error.middleware');
 const routes = require('./routes');
@@ -12,7 +14,7 @@ const { KycDocument } = require('./models/Phase4');
 const app = express();
 
 // Configure CORS
-const allowedOrigins = (process.env.CORS_ORIGINS || 'https://emergent-india-2.preview.emergentagent.com,http://localhost:3000')
+const allowedOrigins = (process.env.CORS_ORIGINS || 'https://bizreels-india-2.preview.bizreelsagent.com,http://localhost:3000')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
@@ -52,6 +54,15 @@ const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+
+// Serve processed WebP images statically
+const processedDir = path.isAbsolute(config.uploadProcessedDir)
+  ? config.uploadProcessedDir
+  : path.resolve(__dirname, '../', config.uploadProcessedDir);
+if (!fs.existsSync(processedDir)) {
+  fs.mkdirSync(processedDir, { recursive: true });
+}
+app.use('/api/uploads/processed', express.static(processedDir));
 
 app.get('/api/uploads/:filename', optionalAuth, async (req, res, next) => {
   try {
@@ -117,11 +128,14 @@ app.get('/api/health', (req, res) => {
   const cloudinaryService = require('./services/cloudinary.service');
   res.json({
     status: 'ok',
-    service: 'emergent-backend',
+    service: 'bizreels-backend',
     otp_dev_mode: msg91Service.isDevMode(),
     cloudinary_dev_mode: cloudinaryService.isDevMode(),
   });
 });
+
+// API Upload Routes
+app.use('/api/upload', uploadRoutes);
 
 // API Routes
 app.use('/api/v1', routes);

@@ -10,7 +10,7 @@ export default function LanguageToggle({ compact = false }) {
   const change = (val) => {
     setLang(val);
     i18n.changeLanguage(val);
-    try { localStorage.setItem("emergent_lang", val); } catch {}
+    try { localStorage.setItem("bizreels_lang", val); } catch {}
   };
   return (
     <Select value={lang} onValueChange={change}>

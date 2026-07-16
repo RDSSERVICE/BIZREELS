@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
 import { locationApi } from "@/lib/api";
 
-const LS_KEY = "emergent_geo";
+const LS_KEY = "bizreels_geo";
 
 export function useUserLocation() {
   const [loc, setLoc] = useState(() => {

@@ -1,6 +1,6 @@
-# Emergent — Local Social Commerce Platform (MERN Stack Refactor)
+# BizReels — Local Social Commerce Platform (MERN Stack Refactor)
 
-Emergent is a production-ready, highly secure local social commerce platform tailored for the Indian marketplace. Discover local vendors, chat directly, make fair deals, submit and view requirements, and browse localized content reels.
+BizReels is a production-ready, highly secure local social commerce platform tailored for the Indian marketplace. Discover local vendors, chat directly, make fair deals, submit and view requirements, and browse localized content reels.
 
 This project has been fully refactored from its legacy Python (FastAPI) and Create React App (Webpack) architecture into a modern, unified MERN Stack application.
 
@@ -138,4 +138,4 @@ To avoid duplicate collections, all Mongoose models in `backend/src/models/` enf
 ### ⚙️ 4. Build Configurations & Path Resolution
 - **Frontend Path Aliasing**: Vite handles paths starting with `@/` matching `frontend/src/` folder.
 - **JSX compilation in `.js` files**: Enforced inside `frontend/vite.config.js` via the `esbuild.loader` options. Do not rename files to `.jsx` unless they are new.
-- **Visual Edits (`@emergentbase/visual-edits`)**: Condition loaded in development mode only inside `vite.config.js` to avoid runtime dependencies in production.
+- **Visual Edits (`@bizreelsbase/visual-edits`)**: Condition loaded in development mode only inside `vite.config.js` to avoid runtime dependencies in production.

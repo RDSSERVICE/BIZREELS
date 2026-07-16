@@ -16,7 +16,7 @@ const CATEGORIES = [
 
 const TESTIMONIALS = [
   { name: "Rahul S.", city: "Delhi", text: "Sold my old MacBook in 2 hours flat. Buyer was 3km away, dealt on chat, done.", rating: 5 },
-  { name: "Priya P.", city: "Mumbai", text: "As a wedding photographer, Emergent brings me 3-4 leads a week. Way better than referrals.", rating: 5 },
+  { name: "Priya P.", city: "Mumbai", text: "As a wedding photographer, BizReels brings me 3-4 leads a week. Way better than referrals.", rating: 5 },
   { name: "Anjali M.", city: "Bengaluru", text: "Verified badge + trust score made me trust the vendor immediately. Bought a used Royal Enfield.", rating: 5 },
   { name: "Vikram R.", city: "Hyderabad", text: "Reel discovery is 🔥 — found my AC repair vendor by watching a 15-sec video.", rating: 4 },
 ];

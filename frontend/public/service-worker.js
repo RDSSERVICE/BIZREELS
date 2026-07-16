@@ -1,6 +1,6 @@
-/* Emergent — minimal service worker: cache-first for app shell, network-first for API. */
-const APP_SHELL = "emergent-shell-v1";
-const API_CACHE = "emergent-api-v1";
+/* BizReels — minimal service worker: cache-first for app shell, network-first for API. */
+const APP_SHELL = "bizreels-shell-v1";
+const API_CACHE = "bizreels-api-v1";
 const OFFLINE_PATH = "/offline.html";
 
 const SHELL_ASSETS = ["/", "/index.html", "/manifest.json", OFFLINE_PATH];

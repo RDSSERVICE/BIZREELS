@@ -230,6 +230,321 @@ const revokeRefreshToken = async (refreshToken) => {
   await RefreshToken.updateOne({ token_hash: tokenHash }, { $set: { revoked: true } });
 };
 
+/**
+ * Register a user using Email + Password
+ */
+const registerWithEmail = async (email, password, name = null, phone = null, roles = null, referralCode = null) => {
+  const cleanEmail = String(email).trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw ApiError.badRequest('Invalid email address');
+  }
+  if (!password || password.length < 6) {
+    throw ApiError.badRequest('Password must be at least 6 characters long');
+  }
+
+  // Check if email already exists
+  const existingEmail = await User.findOne({ email: cleanEmail });
+  if (existingEmail) {
+    throw ApiError.badRequest('Email is already registered.');
+  }
+
+  // Check phone if provided
+  let cleanPhone = null;
+  if (phone) {
+    cleanPhone = validatePhone(phone);
+    const existingPhone = await User.findOne({ phone: cleanPhone });
+    if (existingPhone) {
+      throw ApiError.badRequest('Phone number is already registered.');
+    }
+  }
+
+  // Hash password using bcryptjs
+  const bcrypt = require('bcryptjs');
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Sanitize roles
+  let cleanRoles = [];
+  if (roles && Array.isArray(roles)) {
+    cleanRoles = roles.filter(r => VALID_ROLES.has(r));
+  }
+  if (cleanRoles.length === 0) cleanRoles = ['customer'];
+
+  // Create user
+  let user = await User.create({
+    email: cleanEmail,
+    password: hashedPassword,
+    name: name ? String(name).trim() : null,
+    phone: cleanPhone,
+    roles: cleanRoles,
+    current_role: cleanRoles[0],
+  });
+
+  // Welcome credit bonus
+  try {
+    const walletService = require('./wallet.service');
+    await walletService.earnCredits(user._id.toString(), 50, 'Welcome bonus', 'signup', user._id.toString());
+  } catch (err) {
+    logger.error('Signup bonus failed:', err.message);
+  }
+
+  // Referral handling
+  try {
+    const referralService = require('./referral.service');
+    await referralService.ensureCode(user._id.toString());
+    if (referralCode) {
+      await referralService.claimOnSignup(user._id.toString(), referralCode);
+    }
+  } catch (err) {
+    logger.error('Referral setup failed:', err.message);
+  }
+
+  user = await User.findById(user._id);
+  const tokens = await issueTokens(user);
+
+  await AuditLog.create({
+    user_id: user._id.toString(),
+    action: 'register_email',
+    meta: { email: cleanEmail },
+  });
+
+  return {
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    token_type: 'bearer',
+    user: serializeUser(user),
+  };
+};
+
+/**
+ * Log in a user using Email + Password
+ */
+const loginWithEmail = async (email, password) => {
+  const cleanEmail = String(email).trim().toLowerCase();
+  if (!cleanEmail) {
+    throw ApiError.badRequest('Email is required');
+  }
+  if (!password) {
+    throw ApiError.badRequest('Password is required');
+  }
+
+  const user = await User.findOne({ email: cleanEmail });
+  if (!user || user.is_deleted) {
+    throw ApiError.badRequest('Invalid email or password');
+  }
+
+  if (!user.password) {
+    throw ApiError.badRequest('This account does not have a password set. Try logging in with Google or OTP.');
+  }
+
+  const bcrypt = require('bcryptjs');
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    throw ApiError.badRequest('Invalid email or password');
+  }
+
+  const tokens = await issueTokens(user);
+
+  await AuditLog.create({
+    user_id: user._id.toString(),
+    action: 'login_email',
+    meta: { email: cleanEmail },
+  });
+
+  return {
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    token_type: 'bearer',
+    user: serializeUser(user),
+  };
+};
+
+/**
+ * Generate an Email OTP for password reset
+ */
+const forgotPassword = async (email) => {
+  const cleanEmail = String(email).trim().toLowerCase();
+  const user = await User.findOne({ email: cleanEmail, is_deleted: { $ne: true } });
+  if (!user) {
+    throw ApiError.badRequest('User with this email does not exist.');
+  }
+
+  if (!user.password) {
+    throw ApiError.badRequest('This account does not support password resets. (OTP-only or Google-linked account).');
+  }
+
+  // Generate 6-digit OTP
+  const otp = generateOtp();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes TTL
+
+  user.resetPasswordOtpHash = hashOtp(otp);
+  user.resetPasswordExpires = expiresAt;
+  await user.save();
+
+  const response = {
+    success: true,
+    message: 'Password reset OTP has been sent to your email.',
+  };
+
+  if (process.env.NODE_ENV === 'development' || msg91Service.isDevMode()) {
+    response.dev_mode = true;
+    response.dev_otp = otp;
+  }
+
+  logger.info(`Password reset Email OTP for ${cleanEmail}: ${otp}`);
+
+  return response;
+};
+
+/**
+ * Verify Email OTP and reset password
+ */
+const resetPassword = async (email, otp, newPassword) => {
+  const cleanEmail = String(email).trim().toLowerCase();
+  if (!otp || otp.length !== 6) {
+    throw ApiError.badRequest('OTP must be 6 digits.');
+  }
+  if (!newPassword || newPassword.length < 6) {
+    throw ApiError.badRequest('Password must be at least 6 characters long.');
+  }
+
+  const user = await User.findOne({ email: cleanEmail, is_deleted: { $ne: true } });
+  if (!user || !user.password) {
+    throw ApiError.badRequest('Invalid request.');
+  }
+
+  if (!user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
+    throw ApiError.badRequest('OTP expired. Please request a new one.');
+  }
+
+  if (!user.resetPasswordOtpHash) {
+    throw ApiError.badRequest('OTP verification not initiated.');
+  }
+
+  const otpHash = hashOtp(otp);
+  if (!crypto.timingSafeEqual(
+    Buffer.from(otpHash),
+    Buffer.from(user.resetPasswordOtpHash)
+  )) {
+    throw ApiError.badRequest('Invalid OTP.');
+  }
+
+  // Update password
+  const bcrypt = require('bcryptjs');
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.resetPasswordOtpHash = null;
+  user.resetPasswordExpires = null;
+  await user.save();
+
+  await AuditLog.create({
+    user_id: user._id.toString(),
+    action: 'reset_password',
+    meta: { email: cleanEmail },
+  });
+
+  return {
+    success: true,
+    message: 'Password has been reset successfully.'
+  };
+};
+
+/**
+ * Generate OTP for binding phone number
+ */
+const requestPhoneBindOtp = async (userId, phone) => {
+  const cleanPhone = validatePhone(phone);
+
+  const existing = await User.findOne({ phone: cleanPhone, _id: { $ne: userId }, is_deleted: { $ne: true } });
+  if (existing) {
+    throw ApiError.badRequest('Phone number is already linked to another account.');
+  }
+
+  const otp = generateOtp();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  await OtpRequest.deleteMany({ phone: cleanPhone, verified: false });
+
+  await OtpRequest.create({
+    phone: cleanPhone,
+    otp_hash: hashOtp(otp),
+    purpose: 'bind-phone',
+    expires_at: expiresAt,
+  });
+
+  try {
+    await msg91Service.sendOtpSms(cleanPhone, otp);
+  } catch (err) {
+    logger.error('SMS OTP send failed for phone bind:', err.message);
+    throw new ApiError(503, 'SMS service temporarily unavailable. Please try again later.');
+  }
+
+  const response = {
+    success: true,
+    message: 'Verification OTP sent to mobile number successfully.',
+    expires_in_seconds: 300,
+  };
+
+  if (msg91Service.isDevMode()) {
+    response.dev_mode = true;
+    response.dev_otp = otp;
+  }
+
+  return response;
+};
+
+/**
+ * Verify phone bind OTP and link to account
+ */
+const verifyPhoneBindOtp = async (userId, phone, otp) => {
+  const cleanPhone = validatePhone(phone);
+  if (!otp || otp.length !== 6) {
+    throw ApiError.badRequest('OTP must be 6 digits.');
+  }
+
+  const record = await OtpRequest.findOne({ phone: cleanPhone, verified: false }).sort({ created_at: -1 });
+  if (!record) {
+    throw ApiError.badRequest('OTP not requested or already used.');
+  }
+
+  if (record.expires_at < new Date()) {
+    throw ApiError.badRequest('OTP expired.');
+  }
+
+  const hash = hashOtp(otp);
+  if (!crypto.timingSafeEqual(
+    Buffer.from(hash),
+    Buffer.from(record.otp_hash)
+  )) {
+    throw ApiError.badRequest('Invalid OTP.');
+  }
+
+  await OtpRequest.updateOne({ _id: record._id }, { $set: { verified: true } });
+
+  const user = await User.findById(userId);
+  if (!user || user.is_deleted) {
+    throw ApiError.notFound('User not found.');
+  }
+
+  const duplicate = await User.findOne({ phone: cleanPhone, _id: { $ne: userId }, is_deleted: { $ne: true } });
+  if (duplicate) {
+    throw ApiError.badRequest('Phone number is already linked to another account.');
+  }
+
+  user.phone = cleanPhone;
+  await user.save();
+
+  await AuditLog.create({
+    user_id: userId,
+    action: 'bind_phone',
+    meta: { phone: cleanPhone },
+  });
+
+  return {
+    success: true,
+    message: 'Phone number verified and linked successfully.',
+    user: serializeUser(user),
+  };
+};
+
 module.exports = {
   serializeUser,
   validatePhone,
@@ -238,4 +553,10 @@ module.exports = {
   issueTokens,
   refreshAccessToken,
   revokeRefreshToken,
+  registerWithEmail,
+  loginWithEmail,
+  forgotPassword,
+  resetPassword,
+  requestPhoneBindOtp,
+  verifyPhoneBindOtp,
 };

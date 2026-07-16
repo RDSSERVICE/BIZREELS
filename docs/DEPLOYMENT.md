@@ -1,6 +1,6 @@
 # Setup & Deployment Guide
 
-This guide details instructions to run, build, and test the Emergent application in both development and production environments.
+This guide details instructions to run, build, and test the BizReels application in both development and production environments.
 
 ---
 
@@ -41,7 +41,7 @@ mongod
    ```bash
    npm run dev
    ```
-   *The server runs on port `8001` and connects to the `emergent` database.*
+   *The server runs on port `8001` and connects to the `bizreels` database.*
 
 ### Step 3: Configure and Run the Frontend Client
 1. Navigate to the frontend directory:
@@ -84,7 +84,7 @@ npm start
 ```
 *Note: In production environments, use process managers like `pm2` to monitor and manage backend process lifecycles:*
 ```bash
-pm2 start server.js --name "emergent-backend"
+pm2 start server.js --name "bizreels-backend"
 ```
 
 ---

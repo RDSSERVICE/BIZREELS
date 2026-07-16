@@ -1,6 +1,6 @@
 # System Architecture
 
-Emergent is built on a modern, unified MERN (MongoDB, Express, React, Node.js) stack. The architecture is split into a client-side single-page application (SPA) and a RESTful backend API server that communicates over HTTP and WebSockets.
+BizReels is built on a modern, unified MERN (MongoDB, Express, React, Node.js) stack. The architecture is split into a client-side single-page application (SPA) and a RESTful backend API server that communicates over HTTP and WebSockets.
 
 ## Architectural Blueprint
 

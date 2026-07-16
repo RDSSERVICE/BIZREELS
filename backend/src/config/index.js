@@ -8,8 +8,8 @@ const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
 
   // MongoDB
-  mongoUri: process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/emergent',
-  dbName: process.env.DB_NAME || 'emergent',
+  mongoUri: process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/bizreels',
+  dbName: process.env.DB_NAME || 'bizreels',
 
   // JWT
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
@@ -53,6 +53,14 @@ const config = {
   // Dev overrides
   allowDevAdminLogin: process.env.ALLOW_DEV_ADMIN_LOGIN === 'true',
   devAdminOverrideToken: process.env.DEV_ADMIN_OVERRIDE_TOKEN,
+
+  // Upload and compression configurations
+  uploadTempDir: process.env.UPLOAD_TEMP_DIR || 'uploads/temp',
+  uploadProcessedDir: process.env.UPLOAD_PROCESSED_DIR || 'uploads/processed',
+  maxUploadSize: parseInt(process.env.MAX_UPLOAD_SIZE, 10) || 10 * 1024 * 1024,
+  maxImageWidth: parseInt(process.env.MAX_IMAGE_WIDTH, 10) || 1920,
+  webpQuality: parseInt(process.env.WEBP_QUALITY, 10) || 80,
+  storageProvider: process.env.STORAGE_PROVIDER || 'local',
 };
 
 module.exports = config;

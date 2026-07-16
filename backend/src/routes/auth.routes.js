@@ -2,6 +2,7 @@ const express = require('express');
 const authService = require('../services/auth.service');
 const adminPhoneService = require('../services/admin-phone.service');
 const googleAuthService = require('../services/google-auth.service');
+const { requireAuth } = require('../middleware/auth.middleware');
 const { checkAndRecord } = require('../utils/rateLimit');
 const { catchAsync } = require('../utils/helpers');
 const ApiError = require('../utils/ApiError');
@@ -98,6 +99,90 @@ router.post('/logout', catchAsync(async (req, res) => {
 
   await authService.revokeRefreshToken(refresh_token);
   res.json({ success: true, message: 'Logged out' });
+}));
+
+// Email Registration
+router.post('/email/register', catchAsync(async (req, res) => {
+  const { email, password, name, phone, roles, referral_code } = req.body;
+  const result = await authService.registerWithEmail(
+    email,
+    password,
+    name,
+    phone,
+    roles,
+    referral_code
+  );
+  res.status(201).json(result);
+}));
+
+// Email Login
+router.post('/email/login', catchAsync(async (req, res) => {
+  const { email, password } = req.body;
+  const result = await authService.loginWithEmail(email, password);
+  res.json(result);
+}));
+
+// Forgot Password (Email OTP generation)
+router.post('/forgot-password', catchAsync(async (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.includes('@')) {
+    throw ApiError.badRequest('Valid email is required');
+  }
+
+  const { allowed, remaining } = checkAndRecord(`forgot:${email}`, 3, 600);
+  if (!allowed) {
+    throw new ApiError(429, `Too many requests. Retry in ${remaining}s.`);
+  }
+
+  const result = await authService.forgotPassword(email);
+  res.json(result);
+}));
+
+// Reset Password (Verify Email OTP and reset)
+router.post('/reset-password', catchAsync(async (req, res) => {
+  const { email, otp, new_password } = req.body;
+  if (!email) {
+    throw ApiError.badRequest('Email is required');
+  }
+  if (!otp) {
+    throw ApiError.badRequest('OTP is required');
+  }
+  if (!new_password) {
+    throw ApiError.badRequest('New password is required');
+  }
+
+  const result = await authService.resetPassword(email, otp, new_password);
+  res.json(result);
+}));
+
+// Bind Phone: Send OTP (Requires user to be authenticated)
+router.post('/bind-phone/send-otp', requireAuth, catchAsync(async (req, res) => {
+  const { phone } = req.body;
+  if (!phone || phone.length !== 10) {
+    throw ApiError.badRequest('Phone must be 10 digits');
+  }
+
+  const { allowed, remaining } = checkAndRecord(`bind:${phone}`, 3, 600);
+  if (!allowed) {
+    throw new ApiError(429, `Too many requests. Retry in ${remaining}s.`);
+  }
+
+  const result = await authService.requestPhoneBindOtp(req.user._id.toString(), phone);
+  res.json(result);
+}));
+
+// Bind Phone: Verify OTP and link (Requires user to be authenticated)
+router.post('/bind-phone/verify', requireAuth, catchAsync(async (req, res) => {
+  const { phone, otp } = req.body;
+  if (!phone || phone.length !== 10) {
+    throw ApiError.badRequest('Phone must be 10 digits');
+  }
+  if (!otp || otp.length !== 6) {
+    throw ApiError.badRequest('OTP must be 6 digits');
+  }
+
+  const result = await authService.verifyPhoneBindOtp(req.user._id.toString(), phone, otp);
+  res.json(result);
 }));
 
 module.exports = router;

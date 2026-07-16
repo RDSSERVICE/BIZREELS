@@ -1,6 +1,6 @@
-# Emergent — Project Overview
+# BizReels — Project Overview
 
-Emergent is a production-ready, highly secure local social commerce platform tailored specifically for the Indian marketplace. The application connects local vendors, content creators, and customers directly, enabling local discovery, seamless communication, direct bargaining, requirement matchmaking, and credit-based interactions.
+BizReels is a production-ready, highly secure local social commerce platform tailored specifically for the Indian marketplace. The application connects local vendors, content creators, and customers directly, enabling local discovery, seamless communication, direct bargaining, requirement matchmaking, and credit-based interactions.
 
 ## Core Value Proposition
 
@@ -11,7 +11,7 @@ The platform's core values are:
 
 ## User Roles & Capabilities
 
-Emergent operates on a multi-role architecture:
+BizReels operates on a multi-role architecture:
 
 | Role | Primary Activities | Access Rights |
 | :--- | :--- | :--- |

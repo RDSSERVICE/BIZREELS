@@ -1,6 +1,6 @@
 # Third-Party Services & Integrations
 
-Emergent integrates with external systems to provide AI, payment, messaging, notification, and media storage capabilities.
+BizReels integrates with external systems to provide AI, payment, messaging, notification, and media storage capabilities.
 
 ---
 

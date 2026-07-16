@@ -7,7 +7,7 @@ export default class ErrorBoundary extends Component {
     this.state = { hasError: false, error: null };
   }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  componentDidCatch(error, info) { console.error("Emergent ErrorBoundary", error, info); }
+  componentDidCatch(error, info) { console.error("BizReels ErrorBoundary", error, info); }
   reload = () => { this.setState({ hasError: false, error: null }); window.location.reload(); };
 
   render() {

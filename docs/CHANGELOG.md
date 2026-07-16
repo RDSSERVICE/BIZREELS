@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the Emergent local social commerce platform will be documented in this file.
+All notable changes to the BizReels local social commerce platform will be documented in this file.
 
 ---
 

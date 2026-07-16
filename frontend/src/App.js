@@ -7,47 +7,54 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import RequireAuth from "@/components/app/RequireAuth";
 
-import Landing from "@/pages/Landing";
-import Login from "@/pages/Login";
-import AuthCallback from "@/pages/AuthCallback";
-import VerifyOtp from "@/pages/VerifyOtp";
-import Onboarding from "@/pages/Onboarding";
-import Dashboard from "@/pages/Dashboard";
-import Profile from "@/pages/Profile";
-import Browse from "@/pages/Browse";
-import ListingDetail from "@/pages/ListingDetail";
-import VendorDashboard from "@/pages/VendorDashboard";
-import ListingForm from "@/pages/ListingForm";
-import Feed from "@/pages/Feed";
-import Explore from "@/pages/Explore";
-import Search from "@/pages/Search";
-import VendorProfile from "@/pages/VendorProfile";
-import Saved from "@/pages/Saved";
-import Requirements from "@/pages/Requirements";
-import RequirementNew from "@/pages/RequirementNew";
-import RequirementDetail from "@/pages/RequirementDetail";
-import ChatList from "@/pages/ChatList";
-import ChatThread from "@/pages/ChatThread";
-import Deals from "@/pages/Deals";
-import Wallet from "@/pages/Wallet";
-import Subscriptions from "@/pages/Subscriptions";
-import Kyc from "@/pages/Kyc";
-import Notifications from "@/pages/Notifications";
-import AdminKyc from "@/pages/AdminKyc";
-import Admin from "@/pages/Admin";
-import AdminUsers from "@/pages/AdminUsers";
-import AdminListings from "@/pages/AdminListings";
-import AdminReports from "@/pages/AdminReports";
-import AdminSettings from "@/pages/AdminSettings";
-import AdminLogin from "@/pages/AdminLogin";
-import AdminOtpLogin from "@/pages/AdminOtpLogin";
-import AdminConsole from "@/pages/AdminConsole";
-import KycVerify from "@/pages/KycVerify";
-import CreatorDashboard from "@/pages/CreatorDashboard";
-import ProfileComplete from "@/pages/ProfileComplete";
+// User / Shared Pages
+import Landing from "@/pages/user/Landing";
+import Login from "@/pages/user/Login";
+import AuthCallback from "@/pages/user/AuthCallback";
+import VerifyOtp from "@/pages/user/VerifyOtp";
+import Onboarding from "@/pages/user/Onboarding";
+import Dashboard from "@/pages/user/Dashboard";
+import Profile from "@/pages/user/Profile";
+import Browse from "@/pages/user/Browse";
+import ListingDetail from "@/pages/user/ListingDetail";
+import Feed from "@/pages/user/Feed";
+import Explore from "@/pages/user/Explore";
+import Search from "@/pages/user/Search";
+import Saved from "@/pages/user/Saved";
+import Requirements from "@/pages/user/Requirements";
+import RequirementNew from "@/pages/user/RequirementNew";
+import RequirementDetail from "@/pages/user/RequirementDetail";
+import ChatList from "@/pages/user/ChatList";
+import ChatThread from "@/pages/user/ChatThread";
+import Deals from "@/pages/user/Deals";
+import Wallet from "@/pages/user/Wallet";
+import Subscriptions from "@/pages/user/Subscriptions";
+import Kyc from "@/pages/user/Kyc";
+import Notifications from "@/pages/user/Notifications";
+import KycVerify from "@/pages/user/KycVerify";
+import CreatorDashboard from "@/pages/user/CreatorDashboard";
+import ProfileComplete from "@/pages/user/ProfileComplete";
+import NotFound from "@/pages/user/NotFound";
+
+// Vendor Pages
+import VendorDashboard from "@/pages/vendor/VendorDashboard";
+import VendorProfile from "@/pages/vendor/VendorProfile";
+import ListingForm from "@/pages/vendor/ListingForm";
+import VendorAnalytics from "@/pages/vendor/VendorAnalytics";
+
+// Admin Pages
+import Admin from "@/pages/admin/Admin";
+import AdminConsole from "@/pages/admin/AdminConsole";
+import AdminKyc from "@/pages/admin/AdminKyc";
+import AdminListings from "@/pages/admin/AdminListings";
+import AdminLogin from "@/pages/admin/AdminLogin";
+import AdminOtpLogin from "@/pages/admin/AdminOtpLogin";
+import AdminReports from "@/pages/admin/AdminReports";
+import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminUsers from "@/pages/admin/AdminUsers";
+
+// Shared Layout Elements
 import CartDrawer from "@/components/app/CartDrawer";
-import VendorAnalytics from "@/pages/VendorAnalytics";
-import NotFound from "@/pages/NotFound";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
 
 function OnboardingGate({ children }) {

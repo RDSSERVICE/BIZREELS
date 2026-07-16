@@ -1,6 +1,6 @@
 # State Management
 
-Emergent utilizes React 19's Context API to manage global session states, combined with localStorage caches for tokens and Socket.IO event registrations to keep client states synchronized with the server in real-time.
+BizReels utilizes React 19's Context API to manage global session states, combined with localStorage caches for tokens and Socket.IO event registrations to keep client states synchronized with the server in real-time.
 
 ---
 
@@ -31,9 +31,9 @@ The application is wrapped in `<AuthProvider>` at the root index level. Componen
 A utility layer implemented in `frontend/src/lib/api.js` to manage browser-side persistence:
 
 * **Keys Managed**:
-  * `emergent_access_token` (Short-lived session access token)
-  * `emergent_refresh_token` (Long-lived session refresh token)
-  * `emergent_user` (JSON string representation of the active profile)
+  * `bizreels_access_token` (Short-lived session access token)
+  * `bizreels_refresh_token` (Long-lived session refresh token)
+  * `bizreels_user` (JSON string representation of the active profile)
 * **API Interface**:
   * `getAccess()` / `getRefresh()` / `getUser()`: Fetch cached parameters.
   * `set({ access_token, refresh_token, user })`: Batch caches variables.

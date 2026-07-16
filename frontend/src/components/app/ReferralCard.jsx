@@ -13,7 +13,7 @@ export default function ReferralCard() {
 
   if (!data) return null;
   const code = data.referral_code;
-  const shareText = `Join Emergent using code ${code} and get ₹100 in credits! Discover trusted local vendors, chat & negotiate deals right in India. https://emergent.app`;
+  const shareText = `Join BizReels using code ${code} and get ₹100 in credits! Discover trusted local vendors, chat & negotiate deals right in India. https://bizreels.app`;
 
   const copy = async () => {
     try {
@@ -25,7 +25,7 @@ export default function ReferralCard() {
   const share = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Join Emergent", text: shareText });
+        await navigator.share({ title: "Join BizReels", text: shareText });
       } catch { /* user cancelled */ }
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank");

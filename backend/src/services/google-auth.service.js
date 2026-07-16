@@ -5,11 +5,11 @@ const walletService = require('./wallet.service');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
-const EMERGENT_SESSION_DATA_URL = 'https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data';
+const BIZREELS_SESSION_DATA_URL = 'https://demobackend.bizreelsagent.com/auth/v1/env/oauth/session-data';
 
 const fetchGoogleIdentity = async (sessionId) => {
   try {
-    const res = await axios.get(EMERGENT_SESSION_DATA_URL, {
+    const res = await axios.get(BIZREELS_SESSION_DATA_URL, {
       headers: { 'X-Session-ID': sessionId },
       timeout: 15000,
     });

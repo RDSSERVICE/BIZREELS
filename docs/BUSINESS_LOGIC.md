@@ -1,6 +1,6 @@
 # Business Logic & Rules
 
-Emergent incorporates strict rules governing contact reveals, KYC trust incentives, deal negotiations, and transaction ledgers.
+BizReels incorporates strict rules governing contact reveals, KYC trust incentives, deal negotiations, and transaction ledgers.
 
 ---
 

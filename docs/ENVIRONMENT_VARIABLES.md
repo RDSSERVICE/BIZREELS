@@ -10,8 +10,8 @@ The application requires specific configurations configured in `.env` files.
 | :--- | :--- | :--- | :--- |
 | **`PORT`** | Yes | `8001` | The network port the Express application server listens on. |
 | **`NODE_ENV`** | Yes | `development` | The runtime environment (`development`, `production`). |
-| **`MONGO_URL`** | Yes | `mongodb://localhost:27017/emergent` | Connection URL pointing to the MongoDB cluster. |
-| **`DB_NAME`** | Yes | `emergent` | Target database name inside MongoDB. |
+| **`MONGO_URL`** | Yes | `mongodb://localhost:27017/bizreels` | Connection URL pointing to the MongoDB cluster. |
+| **`DB_NAME`** | Yes | `bizreels` | Target database name inside MongoDB. |
 | **`JWT_SECRET`** | Yes | `dev-secret-change-in-production` | Secret token used to sign authentication access and refresh keys. |
 | **`ACCESS_TOKEN_MINUTES`**| Yes | `15` | Expiry duration for signed access tokens (in minutes). |
 | **`REFRESH_TOKEN_DAYS`** | Yes | `30` | Expiry duration for signed refresh tokens (in days). |

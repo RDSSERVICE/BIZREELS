@@ -1,6 +1,6 @@
 {
   "landing": {
-    "brand": "Emergent",
+    "brand": "BizReels",
     "tagline_line1": "Discover local.",
     "tagline_line2": "Chat direct.",
     "tagline_line3": "Deal fair.",
@@ -17,7 +17,7 @@
     }
   },
   "auth": {
-    "login_title": "Welcome to Emergent",
+    "login_title": "Welcome to BizReels",
     "login_subtitle": "Enter your mobile number to continue.",
     "phone_label": "Mobile number",
     "phone_placeholder": "10-digit mobile number",
@@ -34,10 +34,10 @@
   },
   "onboarding": {
     "title": "Tell us about you",
-    "subtitle": "Pick a name and how you'll use Emergent. You can add more roles later.",
+    "subtitle": "Pick a name and how you'll use BizReels. You can add more roles later.",
     "name_label": "Your name",
     "name_placeholder": "e.g. Priya Sharma",
-    "roles_label": "I want to use Emergent as",
+    "roles_label": "I want to use BizReels as",
     "role_customer": "Customer",
     "role_customer_desc": "Discover and hire local vendors, shops & creators.",
     "role_vendor": "Vendor",
@@ -169,7 +169,7 @@
     "profile": "Profile"
   },
   "search": {
-    "placeholder": "Search Emergent…",
+    "placeholder": "Search BizReels…",
     "no_results": "No listings match. Try a different phrase.",
     "suggestions": "Quick picks",
     "filters": "Filters",

@@ -5,10 +5,10 @@ import path from 'path';
 export default defineConfig(async () => {
   let visualEditsPlugin = null;
   try {
-    const visualEdits = await import('@emergentbase/visual-edits/vite');
+    const visualEdits = await import('@bizreelsbase/visual-edits/vite');
     visualEditsPlugin = visualEdits.default || visualEdits.visualEdits;
   } catch (err) {
-    console.warn('[visual-edits] @emergentbase/visual-edits not loaded — visual editing disabled.');
+    console.warn('[visual-edits] @bizreelsbase/visual-edits not loaded — visual editing disabled.');
   }
 
   return {

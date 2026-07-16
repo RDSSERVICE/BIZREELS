@@ -1,6 +1,6 @@
 # UI Components & Design System
 
-Emergent follows a strict mobile-first design system optimized for modern social interactions, utilizing a dark theme with vibrant brand gradient highlights.
+BizReels follows a strict mobile-first design system optimized for modern social interactions, utilizing a dark theme with vibrant brand gradient highlights.
 
 ---
 

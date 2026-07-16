@@ -27,8 +27,8 @@ module.exports = {
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         brand: {
-          purple: "#a855f7",
-          pink: "#ec4899",
+          purple: "#7c3aed",
+          indigo: "#6366f1",
           orange: "#f97316",
         },
       },

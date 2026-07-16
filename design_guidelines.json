@@ -26,7 +26,7 @@
       "inverse": "#000000"
     },
     "gradients": {
-      "brand": "linear-gradient(135deg, #a855f7, #ec4899, #f97316)",
+      "brand": "linear-gradient(135deg, #7c3aed, #6366f1, #f97316)",
       "usage": "Limit gradient usage to key CTAs, active tab indicators, and the borders of profile pictures/reels. DO NOT use gradients as page backgrounds."
     },
     "borders": {
@@ -40,7 +40,7 @@
   },
   "components": {
     "buttons": {
-      "primary": "Pill-shaped (rounded-full), bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500, text-white, font-semibold. Add hover:scale-105 transition-transform.",
+      "primary": "Pill-shaped (rounded-full), bg-gradient-to-r from-violet-600 via-indigo-500 to-orange-500, text-white, font-semibold. Add hover:scale-105 transition-transform.",
       "secondary": "Glass effect: bg-white/10 border border-white/10 text-white rounded-full hover:bg-white/20.",
       "input": "Large tap targets (h-14). bg-[#121212] border-white/10 focus:border-pink-500 rounded-xl px-4 text-white."
     },
@@ -84,7 +84,7 @@
     "Import Outfit and Manrope fonts via Google Fonts in index.css. Apply them globally in tailwind.config.js.",
     "Implement the landing page hero emphasizing the 'Discover local. Chat direct. Deal fair.' value proposition with an overlay background image.",
     "For Phase 0 routing, create pages for: / (Landing), /login (OTP), /verify, /onboarding, /dashboard, /profile.",
-    "Use Shadcn UI components but heavily customize them. Remove the default Vercel look: use border-white/10, dark surfaces, and add the requested purple-pink-orange pill buttons.",
+    "Use Shadcn UI components but heavily customize them. Remove the default Vercel look: use border-white/10, dark surfaces, and add the requested violet-indigo-orange pill buttons.",
     "Never use generic Inter/Roboto fonts.",
     "For the Dev OTP banner, it should be a distinct UI element that appears when OTP is provided directly by the auth stub API."
   ],

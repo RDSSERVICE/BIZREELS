@@ -30,7 +30,7 @@ const startServer = async () => {
 
     // 3. Start Listening
     server.listen(PORT, () => {
-      logger.info(`Emergent backend server listening on port ${PORT} (Phase 0-6)`);
+      logger.info(`BizReels backend server listening on port ${PORT} (Phase 0-6)`);
     });
 
     // 4. Run Startup Seeding and initialization tasks (non-blocking)

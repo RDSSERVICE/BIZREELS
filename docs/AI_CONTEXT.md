@@ -6,7 +6,7 @@ This document is the primary entry point for AI agents. It summarizes the reposi
 
 ## 1. Project Core & Technology Stack
 
-* **Purpose**: Emergent is a local social commerce application tailored for the Indian marketplace. It connects buyers with nearby shops/creators, supporting video reels discovery, requirement posting, direct real-time chat, bargaining negotiations, KYC Trust badges, and wallets.
+* **Purpose**: BizReels is a local social commerce application tailored for the Indian marketplace. It connects buyers with nearby shops/creators, supporting video reels discovery, requirement posting, direct real-time chat, bargaining negotiations, KYC Trust badges, and wallets.
 * **Architecture**: Unified Monolithic MERN Stack.
   * **Frontend**: React 19 SPA compiled with Vite, styled with Tailwind CSS and customized Shadcn UI wrappers. Outfit (headings) and Manrope (body) typography.
   * **Backend**: Node.js & Express API, running Socket.IO for real-time bidirectional communication, and `node-cron` schedules.

@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema({
   chat_response_rate: { type: Number, default: 0 },
   total_conversations_responded: { type: Number, default: 0 },
   has_received_profile_complete_bonus: { type: Boolean, default: false },
+  // Email + Password & Reset password OTP
+  password: { type: String, default: null },
+  resetPasswordOtpHash: { type: String, default: null },
+  resetPasswordExpires: { type: Date, default: null },
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   toJSON: { virtuals: true },

@@ -1,6 +1,6 @@
 # Authentication & Security
 
-Emergent implements a mobile-first, secure OTP-based authentication system alongside Google OAuth and development bypass options.
+BizReels implements a mobile-first, secure OTP-based authentication system alongside Google OAuth and development bypass options.
 
 ---
 
@@ -41,7 +41,7 @@ All authenticated client API calls must supply the header: `Authorization: Beare
 
 ### Token Expiration Parameters
 * **Access Token**: Short-lived JWT (15-minute expiry). Stored in React application memory.
-* **Refresh Token**: Long-lived JWT (30-day expiry). Stored in client `localStorage` under key `emergent_refresh_token` and saved in the database `refresh_tokens` collection with a MongoDB TTL auto-delete index.
+* **Refresh Token**: Long-lived JWT (30-day expiry). Stored in client `localStorage` under key `bizreels_refresh_token` and saved in the database `refresh_tokens` collection with a MongoDB TTL auto-delete index.
 
 ### Token Rotation Interceptor (401 Handler)
 The frontend implements a single-flight refresh lock within `frontend/src/lib/api.js`:

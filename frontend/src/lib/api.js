@@ -3,9 +3,9 @@ import axios from "axios";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 export const API_BASE = `${BACKEND_URL}/api`;
 
-const ACCESS_KEY = "emergent_access_token";
-const REFRESH_KEY = "emergent_refresh_token";
-const USER_KEY = "emergent_user";
+const ACCESS_KEY = "bizreels_access_token";
+const REFRESH_KEY = "bizreels_refresh_token";
+const USER_KEY = "bizreels_user";
 
 export const tokenStore = {
   getAccess: () => localStorage.getItem(ACCESS_KEY),
