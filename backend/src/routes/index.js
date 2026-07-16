@@ -8,6 +8,8 @@ const walletRoutes = require('./walletRoutes');
 const hireRoutes = require('./hireRoutes');
 const liveRoutes = require('./liveRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const reviewRoutes = require('./reviewRoutes');
+const analyticsRoutes = require('./analyticsRoutes');
 
 const router = express.Router();
 
@@ -36,5 +38,7 @@ router.use('/wallet', walletRoutes);
 router.use('/hires', hireRoutes);
 router.use('/live', liveRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/reviews', reviewRoutes);
+router.use('/analytics', analyticsRoutes);
 
 module.exports = router;

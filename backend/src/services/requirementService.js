@@ -1,6 +1,7 @@
 const requirementRepository = require('../repositories/requirementRepository');
 const walletRepository = require('../repositories/walletRepository');
 const Notification = require('../models/Notification');
+const Requirement = require('../models/Requirement');
 const { emitToUser } = require('../sockets');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');

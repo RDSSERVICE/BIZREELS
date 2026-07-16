@@ -61,9 +61,12 @@ quoteSchema.index({ requirement: 1, vendor: 1 }, { unique: true });
 
 // Query middleware to exclude soft deleted entries
 quoteSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeSoftDeleted) return next();
+  if (this.getOptions().includeSoftDeleted) {
+    if (typeof next === 'function') return next();
+    return;
+  }
   this.where({ isDeleted: { $ne: true } });
-  next();
+  if (typeof next === 'function') next();
 });
 
 module.exports = mongoose.model('Quote', quoteSchema);

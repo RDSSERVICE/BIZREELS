@@ -180,7 +180,7 @@ class ListingService {
   /**
    * AI-powered description and tags synthesis generator.
    */
-  async generateAICopy({ title, category, type }) {
+  async generateAICopy({ userId, title, category, type }) {
     if (!title || !category) {
       throw ApiError.badRequest('Title and category are required to generate AI content.');
     }
@@ -203,7 +203,7 @@ class ListingService {
     const seoDescription = `Buy or hire ${title} in the ${category} category. Compare pricing, reviews, and book directly with premium local businesses on BizReels.`;
     const hashtags = tags.map(tag => `#${tag}`);
 
-    return {
+    const result = {
       description,
       tags: [...new Set(tags)],
       seoTitle,
@@ -213,6 +213,23 @@ class ListingService {
       reelScript: `[Scene: Bright storefront display showing the ${title}]
 [Host (smiling)]: "If you are looking for the absolute best in ${category}, your search ends here! Check out the details of this amazing ${title} and DM us to book yours today!"`,
     };
+
+    // Audit log AI usage to database
+    try {
+      const AILog = require('../models/AILog');
+      await AILog.create({
+        userId,
+        type: 'listing_description',
+        prompt: `title: "${title}", category: "${category}", type: "${type}"`,
+        response: JSON.stringify(result),
+        tokensUsed: Math.floor(Math.random() * 200) + 120, // simulate token calculation
+        status: 'success',
+      });
+    } catch (err) {
+      logger.error('Failed to create AILog database log:', err);
+    }
+
+    return result;
   }
 }
 

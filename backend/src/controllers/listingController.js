@@ -117,7 +117,7 @@ class ListingController {
   // ── AI Generator Copy ───────────────────────────────────
   generateAICopy = asyncHandler(async (req, res) => {
     const { title, category, type } = req.body;
-    const copy = await listingService.generateAICopy({ title, category, type });
+    const copy = await listingService.generateAICopy({ userId: req.user._id, title, category, type });
     return ApiResponse.ok(res, 'AI content synthesized.', copy);
   });
 }
