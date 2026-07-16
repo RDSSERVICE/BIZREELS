@@ -21,6 +21,7 @@ import CreatorDashboard from '../pages/CreatorDashboard';
 import Profile from '../pages/Profile';
 import ReelsFeed from '../pages/ReelsFeed';
 import ReelsUpload from '../pages/ReelsUpload';
+import Chats from '../pages/Chats';
 
 const AppRoutes = () => {
   return (
@@ -66,6 +67,7 @@ const AppRoutes = () => {
           }
         />
         <Route path="requirements/new" element={<RequirementsNew />} />
+        <Route path="chats" element={<Chats />} />
         <Route path="profile/:id" element={<Profile />} />
 
         {/* Vendor Protected Area */}

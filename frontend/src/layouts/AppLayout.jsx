@@ -87,27 +87,27 @@ const AppLayout = () => {
       { name: 'Discover', path: '/search', icon: FiSearch },
       { name: 'Reels', path: '/reels', icon: FiVideo },
       { name: 'Post Requirement', path: '/requirements/new', icon: FiPlusSquare },
-      { name: 'My Quotes', path: '/customer/quotes', icon: FiLayers },
+      { name: 'My Quotes', path: '/requirements/new', icon: FiLayers },
       { name: 'Chats', path: '/chats', icon: FiMessageSquare },
       { name: 'Profile', path: `/profile/${user._id}`, icon: FiUser },
     ];
 
     const vendorItems = [
       { name: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid },
-      { name: 'Catalog', path: '/vendor/products', icon: FiBriefcase },
+      { name: 'Catalog', path: '/vendor/dashboard', icon: FiBriefcase },
       { name: 'Reels Upload', path: '/reels/upload', icon: FiVideo },
-      { name: 'Leads & Bids', path: '/vendor/leads', icon: FiLayers },
+      { name: 'Leads & Bids', path: '/vendor/dashboard', icon: FiLayers },
       { name: 'Chats', path: '/chats', icon: FiMessageSquare },
-      { name: 'Store Profile', path: '/vendor/profile', icon: FiSettings },
+      { name: 'Store Profile', path: `/profile/${user._id}`, icon: FiSettings },
     ];
 
     const creatorItems = [
       { name: 'Dashboard', path: '/creator/dashboard', icon: FiGrid },
-      { name: 'Portfolio', path: '/creator/portfolio', icon: FiBriefcase },
-      { name: 'Sample Reels', path: '/creator/reels', icon: FiVideo },
-      { name: 'Work Requests', path: '/creator/requests', icon: FiLayers },
+      { name: 'Portfolio', path: '/creator/dashboard', icon: FiBriefcase },
+      { name: 'Sample Reels', path: '/reels', icon: FiVideo },
+      { name: 'Work Requests', path: '/creator/dashboard', icon: FiLayers },
       { name: 'Chats', path: '/chats', icon: FiMessageSquare },
-      { name: 'Availability', path: '/creator/settings', icon: FiSettings },
+      { name: 'Availability', path: '/creator/dashboard', icon: FiSettings },
     ];
 
     if (activeRole === 'vendor') return vendorItems;

@@ -3,19 +3,24 @@ const app = require('./app');
 const config = require('./config');
 const { connectDB, disconnectDB } = require('./database/connection');
 const logger = require('./utils/logger');
+const { initSockets } = require('./sockets');
 
 const server = http.createServer(app);
 
 /**
  * Bootstrap the application:
  * 1. Connect to MongoDB
- * 2. Start HTTP server
- * 3. Register graceful shutdown handlers
+ * 2. Initialize Sockets
+ * 3. Start HTTP server
+ * 4. Register graceful shutdown handlers
  */
 const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDB();
+
+    // Init Socket.io connections
+    initSockets(server);
 
     // Start listening
     server.listen(config.port, () => {

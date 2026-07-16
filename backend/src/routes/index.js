@@ -1,6 +1,10 @@
 const express = require('express');
 const authRoutes = require('./authRoutes');
 const reelRoutes = require('./reelRoutes');
+const listingRoutes = require('./listingRoutes');
+const requirementRoutes = require('./requirementRoutes');
+const chatRoutes = require('./chatRoutes');
+const walletRoutes = require('./walletRoutes');
 
 const router = express.Router();
 
@@ -19,20 +23,12 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Auth routes
+// Auth & Core Module routes
 router.use('/auth', authRoutes);
 router.use('/reels', reelRoutes);
-
-// Future route modules will be added here:
-// router.use('/users', userRoutes);
-// router.use('/reels', reelRoutes);
-// router.use('/products', productRoutes);
-// router.use('/services', serviceRoutes);
-// router.use('/requirements', requirementRoutes);
-// router.use('/chat', chatRoutes);
-// router.use('/wallet', walletRoutes);
-// router.use('/subscriptions', subscriptionRoutes);
-// router.use('/search', searchRoutes);
-// router.use('/admin', adminRoutes);
+router.use('/listings', listingRoutes);
+router.use('/requirements', requirementRoutes);
+router.use('/chat', chatRoutes);
+router.use('/wallet', walletRoutes);
 
 module.exports = router;
