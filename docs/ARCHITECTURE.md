@@ -1,55 +1,68 @@
-# System Architecture
+# BizReels System Architecture
 
-BizReels is built on a modern, unified MERN (MongoDB, Express, React, Node.js) stack. The architecture is split into a client-side single-page application (SPA) and a RESTful backend API server that communicates over HTTP and WebSockets.
+This document describes the high-level system architecture of the **BizReels** platform, outlining module partitions, execution threads, and data synchronization triggers.
 
-## Architectural Blueprint
+---
+
+## 1. Modular Layout Overview
+
+The platform uses a decoupled MERN architecture:
 
 ```mermaid
 graph TD
-    Client[React 19 Frontend Web App]
-    Server[Node.js / Express Backend Server]
-    DB[(MongoDB Database)]
-    SocketIO[Socket.IO Server]
-    Gemini[Google Gemini AI Service]
-    Razorpay[Razorpay Payment Gateway]
-    MSG91[MSG91 SMS Gateway]
-    Cloudinary[Cloudinary Media Storage]
-
-    %% Interactions
-    Client -->|REST HTTP Requests| Server
-    Client <-->|WebSocket Events| SocketIO
-    SocketIO <-->|Internal Integration| Server
-    Server -->|Mongoose Queries| DB
-    Server -->|HTTP API calls| Gemini
-    Server -->|Signature & Order APIs| Razorpay
-    Server -->|Send OTP & fallbacks| MSG91
-    Server -->|Signed Uploads| Cloudinary
+  User((Client Browser)) -->|React Viewport| Frontend[Vite + React 19 Client]
+  Frontend -->|RTK Query / HTTP REST| Express[Express Server API]
+  Frontend -->|Socket.io Engine| SocketServer[Socket.io Server]
+  Express -->|Mongoose ODM| MongoDB[(MongoDB Atlas)]
+  Express -->|BullMQ Queue| Redis[(Redis Caching)]
+  Express -->|Media CDN Stream| Cloudinary[Cloudinary Media Storage]
 ```
 
-## System Components
+### Components Description
+- **Vite + React 19 Frontend**: Handles glassmorphic responsive rendering and local state management using Redux Toolkit.
+- **Node.js + Express Backend**: Directs endpoint routing, parses security validations (Helmet, Rate Limiter), and initiates database mutations.
+- **MongoDB Atlas**: Serves as the primary transaction records database. Leverages 2dsphere geo-indexing for location proximity queries.
+- **Redis Cache & BullMQ**: Directs background task dispatching (sponsor boosts expirations, notify schedules).
+- **Socket.io**: Broadcaster relaying direct messaging, typing events, read receipts, and live stream chat scrolls.
 
-### 1. Frontend SPA (React 19)
-* **Framework**: React 19 bootstrapped with Vite.
-* **Styling**: Tailwind CSS for responsive components, customized Shadcn UI wrappers, Outfit (headings) and Manrope (body) typography.
-* **State & Authentication**: Global context providers (e.g. `AuthContext.js`) manage active session variables and register global Socket.IO hooks.
-* **Routing**: Declarative layout routes using React Router DOM.
-* **Build Tooling**: Vite config compiles standard JSX within `.js` extension files using an esbuild loader.
+---
 
-### 2. Backend Server (Node.js & Express)
-* **Framework**: Express API server structured with controllers, routers, services, and middlewares.
-* **Real-time Server**: Integrated Socket.IO server running alongside the Node HTTP engine.
-* **Task Scheduling**: Standard `node-cron` intervals manage deal expirations, requirement terminations, and vendor response rate calculations.
-* **Security & Moderation**: Rate limits mapped using client IPs and resource signatures, gated routes checking JWT scopes, and sanitizing payloads with Joi.
+## 2. Layered Coding Standards (MVC & Repository)
 
-### 3. Database Layer (MongoDB & Mongoose)
-* **ORM**: Mongoose schemas map documents directly into MongoDB collections.
-* **Legacy Compatibility**: Lowercase collection names (e.g. `users`, `listings`, `deals`) map directly to pre-existing schemas.
-* **Spatial Indexing**: 2dsphere indexes applied to location coordinates (`location.geo`) support high-performance geospatial queries (finding listings near a user's location).
+To optimize code reuse, maintain clean boundaries, and support test coverage:
 
-### 4. Real-time Communication (Socket.IO)
-* **Authentication**: Handshakes utilize JWT payload parameters matching access token parameters.
-* **Real-time Event Channels**:
-  * `message:new` - Sends chat text, media, location, and system cards to active participants.
-  * `deal:updated` - Dispatches deal state modifications, counter-offer adjustments, and acceptances.
-  * `notification:new` - Delivers real-time push-like popups when listings are liked, comments are added, or listings are boosted.
-  * `wallet:updated` - Synchronizes balance and credit modifications without manual page refreshes.
+```
+Request Stream
+  │
+  ▼
+[Routes Layer]        --> Mounts url paths & validates bodies (express-validator)
+  │
+  ▼
+[Controller Layer]    --> Unwraps parameters, invokes matching services
+  │
+  ▼
+[Service Layer]       --> Checks business validation rules, balance holds, triggers sockets
+  │
+  ▼
+[Repository Layer]    --> Performs aggregation pipelines, transaction sessions, and DB reads
+  │
+  ▼
+[Mongoose Schemas]    --> Assert database constraints, validations, and indexes
+```
+
+---
+
+## 3. Real-Time WebSockets Sync
+
+Sockets bindings mapping ensures real-time updates without polling:
+- **`user:<userId>` room**: Active connection logs that receive quotes bidding updates, collaboration requests, and system alerts.
+- **`conversation:<conversationId>` room**: Binds participants. Triggers message deliveries, active typing states, and seen updates.
+- **Live Stream room**: Broadcasts comments text scrolling tickers, viewer tally updates, and liked float icons.
+
+---
+
+## 4. Double-Entry Wallet Ledger Escrow Design
+
+To guarantee consistent balance calculations:
+- Wallet changes use **Database Sessions Transactions** (`session.withTransaction`).
+- Operations require matching opposite ledger entries (e.g. debiting buyer, crediting vendor, and writing transaction logs) to prevent budget leaks.
