@@ -8,6 +8,7 @@ import { useAddRoleMutation } from '../features/auth/authApi';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Modal from '../components/common/Modal';
+import LocationPicker from '../components/common/LocationPicker';
 
 /**
  * Premium User Profile page.
@@ -30,6 +31,8 @@ const Profile = () => {
     defaultValues: { bio: '', skills: '', pricingTiers: [{ label: 'Standard Reel', price: 5000, deliverables: '1 Reel Video' }] }
   });
 
+  const [vendorLocation, setVendorLocation] = useState({ address: '', lat: 12.9716, lng: 77.5946 });
+
   const handleActivateRoleSubmit = async (data) => {
     let payload = {};
     
@@ -41,8 +44,8 @@ const Profile = () => {
           category: data.category,
           location: {
             type: 'Point',
-            coordinates: [77.5946, 12.9716], // default fallback coordinates (Bengaluru)
-            address: data.address
+            coordinates: [vendorLocation.lng, vendorLocation.lat],
+            address: vendorLocation.address || data.address
           },
           description: data.description
         }
@@ -211,12 +214,21 @@ const Profile = () => {
               error={vendorForm.formState.errors.category}
               {...vendorForm.register('category', { required: 'Category is required' })}
             />
-            <Input
-              label="Store / Business Address"
-              placeholder="e.g. 123 Main St, Bengaluru"
-              error={vendorForm.formState.errors.address}
-              {...vendorForm.register('address', { required: 'Address is required' })}
-            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-brand-navy uppercase">Store / Business Location & Address *</label>
+              <LocationPicker
+                initialAddress={vendorForm.getValues('address') || ''}
+                initialLat={vendorLocation.lat}
+                initialLng={vendorLocation.lng}
+                onChange={(loc) => {
+                  setVendorLocation(loc);
+                  vendorForm.setValue('address', loc.address, { shouldValidate: true });
+                }}
+              />
+              {vendorForm.formState.errors.address && (
+                <span className="text-[10px] font-bold text-error">{vendorForm.formState.errors.address.message}</span>
+              )}
+            </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-brand-navy uppercase">Business Description</label>
               <textarea

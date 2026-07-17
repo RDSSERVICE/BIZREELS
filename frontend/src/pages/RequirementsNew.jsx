@@ -23,6 +23,7 @@ import {
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import { toast } from 'react-hot-toast';
+import LocationPicker from '../components/common/LocationPicker';
 
 const CATEGORIES = [
   'Electronics',
@@ -328,7 +329,7 @@ const RequirementsNew = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-brand-navy">Fulfillment Deadline *</label>
                     <input
@@ -339,17 +340,20 @@ const RequirementsNew = () => {
                       className="p-2.5 bg-surface-secondary border border-border focus:border-brand-purple rounded-premium text-xs focus:outline-none"
                     />
                   </div>
+                </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-brand-navy">Location Address *</label>
-                    <input
-                      type="text"
-                      required
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      className="p-2.5 bg-surface-secondary border border-border focus:border-brand-purple rounded-premium text-xs focus:outline-none"
-                    />
-                  </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-brand-navy">Location Details & Coordinates *</label>
+                  <LocationPicker
+                    initialAddress={address}
+                    initialLat={lat}
+                    initialLng={lng}
+                    onChange={(loc) => {
+                      setAddress(loc.address);
+                      setLat(loc.lat.toString());
+                      setLng(loc.lng.toString());
+                    }}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">

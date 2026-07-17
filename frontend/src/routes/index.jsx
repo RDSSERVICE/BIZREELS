@@ -4,11 +4,14 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 // Layouts
 import AuthLayout from '../layouts/AuthLayout';
 import AppLayout from '../layouts/AppLayout';
+import PublicLayout from '../layouts/PublicLayout';
 
 // Guards
 import { PrivateRoute, RoleRoute, PublicRoute } from './guards';
 
 // Pages
+import Home from '../pages/Home';
+import About from '../pages/About';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 import ForgotPassword from '../pages/ForgotPassword';
@@ -31,6 +34,12 @@ import Settings from '../pages/Settings';
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* ── Public Website Routes ─────────────────────────────── */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+      </Route>
+
       {/* ── Public Auth Routes ────────────────────────────────── */}
       <Route
         path="/auth"
@@ -49,16 +58,12 @@ const AppRoutes = () => {
 
       {/* ── Protected Core Application Routes ─────────────────── */}
       <Route
-        path="/"
         element={
           <PrivateRoute>
             <AppLayout />
           </PrivateRoute>
         }
       >
-        {/* Redirect base path to feed */}
-        <Route index element={<Navigate to="/feed" replace />} />
-        
         {/* Customer / Main Viewport */}
         <Route path="feed" element={<Feed />} />
         <Route path="search" element={<Search />} />
