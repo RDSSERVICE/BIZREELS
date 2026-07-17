@@ -1,66 +1,63 @@
 const dotenv = require('dotenv');
 const path = require('path');
 
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+// Load .env from backend root
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const config = {
-  port: parseInt(process.env.PORT, 10) || 8001,
-  nodeEnv: process.env.NODE_ENV || 'development',
+  // ── Server ──────────────────────────────────────────────
+  env: process.env.NODE_ENV || 'development',
+  port: parseInt(process.env.PORT, 10) || 5000,
+  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
 
-  // MongoDB
-  mongoUri: process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/bizreels',
-  dbName: process.env.DB_NAME || 'bizreels',
+  // ── MongoDB ─────────────────────────────────────────────
+  mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/bizreels',
 
-  // JWT
-  jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
-  jwtAlgorithm: process.env.JWT_ALGORITHM || 'HS256',
-  accessTokenMinutes: parseInt(process.env.ACCESS_TOKEN_MINUTES, 10) || 15,
-  refreshTokenDays: parseInt(process.env.REFRESH_TOKEN_DAYS, 10) || 30,
+  // ── Redis ───────────────────────────────────────────────
+  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
 
-  // CORS
-  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000')
-    .split(',')
-    .map(o => o.trim())
-    .filter(Boolean),
+  // ── JWT ─────────────────────────────────────────────────
+  jwt: {
+    accessSecret: process.env.JWT_ACCESS_SECRET || 'dev-access-secret-change-me',
+    refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-me',
+    accessExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
+    refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
+  },
 
-  // MSG91 (OTP)
-  msg91AuthKey: process.env.MSG91_AUTH_KEY,
-  msg91TemplateId: process.env.MSG91_TEMPLATE_ID,
-  msg91SenderId: process.env.MSG91_SENDER_ID,
-  msg91DevMode: process.env.MSG91_DEV_MODE === 'true',
+  // ── Google OAuth ────────────────────────────────────────
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/v1/auth/google/callback',
+  },
 
-  // Cloudinary
-  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
-  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
-  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
-  cloudinaryDevMode: process.env.CLOUDINARY_DEV_MODE === 'true',
+  // ── Cloudinary ──────────────────────────────────────────
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  },
 
-  // Razorpay
-  razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET,
-  razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
-  razorpayDevMode: process.env.RAZORPAY_DEV_MODE === 'true',
+  // ── OTP ─────────────────────────────────────────────────
+  otp: {
+    expiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 5,
+    maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS, 10) || 5,
+  },
 
-  // Google
-  googleClientId: process.env.GOOGLE_CLIENT_ID,
-  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  googleAiApiKey: process.env.GOOGLE_AI_API_KEY,
-
-  // Admin
-  adminPhone: process.env.ADMIN_PHONE || '9999999999',
-  adminName: process.env.ADMIN_NAME || 'Admin',
-
-  // Dev overrides
-  allowDevAdminLogin: process.env.ALLOW_DEV_ADMIN_LOGIN === 'true',
-  devAdminOverrideToken: process.env.DEV_ADMIN_OVERRIDE_TOKEN,
-
-  // Upload and compression configurations
-  uploadTempDir: process.env.UPLOAD_TEMP_DIR || 'uploads/temp',
-  uploadProcessedDir: process.env.UPLOAD_PROCESSED_DIR || 'uploads/processed',
-  maxUploadSize: parseInt(process.env.MAX_UPLOAD_SIZE, 10) || 10 * 1024 * 1024,
-  maxImageWidth: parseInt(process.env.MAX_IMAGE_WIDTH, 10) || 1920,
-  webpQuality: parseInt(process.env.WEBP_QUALITY, 10) || 80,
-  storageProvider: process.env.STORAGE_PROVIDER || 'local',
+  // ── Rate Limiting ───────────────────────────────────────
+  rateLimit: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // requests per window
+  },
 };
+
+// Validate critical environment variables in production
+if (config.env === 'production') {
+  const required = ['MONGODB_URI', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+}
 
 module.exports = config;
