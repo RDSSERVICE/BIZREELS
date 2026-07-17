@@ -97,16 +97,8 @@ const AppRoutes = () => {
         {/* Redirect Legacy Dashboard Routes */}
         <Route path="vendor/dashboard" element={<Navigate to="/dashboard" replace />} />
         <Route path="creator/dashboard" element={<Navigate to="/dashboard" replace />} />
-
-        {/* Admin Protected Area */}
-        <Route
-          path="admin/dashboard"
-          element={
-            <RoleRoute allowedRoles={['admin']}>
-              <AdminDashboard />
-            </RoleRoute>
-          }
-        />
+        <Route path="admin" element={<Navigate to="/dashboard" replace />} />
+        <Route path="admin/dashboard" element={<Navigate to="/dashboard" replace />} />
 
         {/* Fallback for authenticated users */}
         <Route path="*" element={<Navigate to="/feed" replace />} />

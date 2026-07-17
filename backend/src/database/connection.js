@@ -23,6 +23,8 @@ const connectDB = async () => {
       dbName: conn.connection.name,
     });
 
+
+
     // Connection event listeners
     mongoose.connection.on('error', (err) => {
       logger.error('MongoDB connection error:', { error: err.message, service: 'database' });
