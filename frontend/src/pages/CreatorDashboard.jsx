@@ -11,18 +11,21 @@ import {
   FiCalendar,
   FiCreditCard,
   FiMenu,
-  FiX
+  FiX,
+  FiSliders
 } from 'react-icons/fi';
 
 // Component Tab Imports
 import CreatorDashboardTab from '../features/creator/CreatorDashboardTab';
-import CreatorProfileTab from '../features/creator/CreatorProfileTab';
 import CreatorPortfolioTab from '../features/creator/CreatorPortfolioTab';
-import CreatorCategoriesTab from '../features/creator/CreatorCategoriesTab';
-import CreatorPricingTab from '../features/creator/CreatorPricingTab';
+import CreatorProjectsTab from '../features/creator/CreatorProjectsTab';
+import CreatorOrdersTab from '../features/creator/CreatorOrdersTab';
+import CreatorEarningsTab from '../features/creator/CreatorEarningsTab';
 import CreatorAvailabilityTab from '../features/creator/CreatorAvailabilityTab';
+import AnalyticsTab from '../features/analytics/AnalyticsTab';
 import SubscriptionTab from '../features/subscription/SubscriptionTab';
 import WalletTab from '../features/wallet/WalletTab';
+import CreatorSettingsTab from '../features/creator/CreatorSettingsTab';
 
 const CreatorDashboard = () => {
   const user = useSelector(selectCurrentUser);
@@ -33,33 +36,39 @@ const CreatorDashboard = () => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: FiGrid },
-    { id: 'profile', label: 'Creator Profile', icon: FiUser },
-    { id: 'portfolio', label: 'Media Portfolio', icon: FiFileText },
-    { id: 'categories', label: 'Content Niches', icon: FiTag },
-    { id: 'pricing', label: 'Pricing Packages', icon: FiDollarSign },
+    { id: 'portfolio', label: 'Portfolio Studio', icon: FiFileText },
+    { id: 'projects', label: 'My Projects', icon: FiGrid },
+    { id: 'orders', label: 'Gig Orders', icon: FiFileText },
+    { id: 'earnings', label: 'Earnings Summary', icon: FiDollarSign },
     { id: 'availability', label: 'Availability Status', icon: FiCalendar },
-    { id: 'subscription', label: 'Subscription', icon: FiCreditCard },
+    { id: 'analytics', label: 'Analytics Insights', icon: FiGrid },
     { id: 'wallet', label: 'Wallet', icon: FiDollarSign },
+    { id: 'subscription', label: 'Subscription', icon: FiCreditCard },
+    { id: 'settings', label: 'Settings', icon: FiSliders },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
         return <CreatorDashboardTab user={user} />;
-      case 'profile':
-        return <CreatorProfileTab user={user} />;
       case 'portfolio':
         return <CreatorPortfolioTab user={user} />;
-      case 'categories':
-        return <CreatorCategoriesTab user={user} />;
-      case 'pricing':
-        return <CreatorPricingTab user={user} />;
+      case 'projects':
+        return <CreatorProjectsTab user={user} />;
+      case 'orders':
+        return <CreatorOrdersTab user={user} />;
+      case 'earnings':
+        return <CreatorEarningsTab user={user} />;
       case 'availability':
         return <CreatorAvailabilityTab user={user} />;
+      case 'analytics':
+        return <AnalyticsTab user={user} />;
       case 'subscription':
         return <SubscriptionTab user={user} refetchUser={refetchUser} />;
       case 'wallet':
         return <WalletTab user={user} refetchUser={refetchUser} />;
+      case 'settings':
+        return <CreatorSettingsTab user={user} />;
       default:
         return <CreatorDashboardTab user={user} />;
     }

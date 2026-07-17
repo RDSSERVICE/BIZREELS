@@ -4,6 +4,7 @@ const authController = require('../controllers/authController');
 const authValidation = require('../validations/authValidation');
 const validate = require('../middleware/validate');
 const { authenticate } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -30,14 +31,14 @@ const router = express.Router();
  */
 
 // ── Public Routes ─────────────────────────────────────────
-router.post('/register', authValidation.register, validate, authController.register);
-router.post('/login', authValidation.loginEmail, validate, authController.loginWithEmail);
+router.post('/register', authLimiter, authValidation.register, validate, authController.register);
+router.post('/login', authLimiter, authValidation.loginEmail, validate, authController.loginWithEmail);
 
-router.post('/otp/request', authValidation.requestOtp, validate, authController.requestOtp);
-router.post('/otp/verify', authValidation.verifyOtp, validate, authController.verifyOtp);
+router.post('/otp/request', authLimiter, authValidation.requestOtp, validate, authController.requestOtp);
+router.post('/otp/verify', authLimiter, authValidation.verifyOtp, validate, authController.verifyOtp);
 
-router.post('/forgot-password', authValidation.forgotPassword, validate, authController.forgotPassword);
-router.post('/reset-password', authValidation.resetPassword, validate, authController.resetPassword);
+router.post('/forgot-password', authLimiter, authValidation.forgotPassword, validate, authController.forgotPassword);
+router.post('/reset-password', authLimiter, authValidation.resetPassword, validate, authController.resetPassword);
 
 router.post('/refresh-token', authController.refreshToken);
 

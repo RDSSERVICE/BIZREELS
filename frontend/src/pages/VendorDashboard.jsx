@@ -16,7 +16,8 @@ import {
   FiStar,
   FiSliders,
   FiMenu,
-  FiX
+  FiX,
+  FiUsers
 } from 'react-icons/fi';
 
 // Modular Component Tab Imports
@@ -32,6 +33,7 @@ import SubscriptionTab from '../features/subscription/SubscriptionTab';
 import WalletTab from '../features/wallet/WalletTab';
 import ReviewsTab from '../features/vendor/ReviewsTab';
 import VendorSettingsTab from '../features/vendor/VendorSettingsTab';
+import VendorSideHireCreator from '../features/creator/VendorSideHireCreator';
 
 const VendorDashboard = () => {
   const user = useSelector(selectCurrentUser);
@@ -49,9 +51,10 @@ const VendorDashboard = () => {
     { id: 'leads', label: 'Leads & Enquiries', icon: FiLayers },
     { id: 'orders', label: 'Order Requests', icon: FiShoppingCart },
     { id: 'analytics', label: 'Analytics', icon: FiTrendingUp },
+    { id: 'reviews', label: 'Customer Reviews', icon: FiStar },
+    { id: 'creator-hire', label: 'Hire Creator', icon: FiUsers },
     { id: 'subscription', label: 'Subscription', icon: FiCreditCard },
     { id: 'wallet', label: 'Wallet', icon: FiDollarSign },
-    { id: 'reviews', label: 'Customer Reviews', icon: FiStar },
     { id: 'settings', label: 'Settings', icon: FiSliders },
   ];
 
@@ -79,6 +82,8 @@ const VendorDashboard = () => {
         return <WalletTab user={user} refetchUser={refetchUser} />;
       case 'reviews':
         return <ReviewsTab user={user} />;
+      case 'creator-hire':
+        return <VendorSideHireCreator user={user} />;
       case 'settings':
         return <VendorSettingsTab user={user} />;
       default:

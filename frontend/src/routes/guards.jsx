@@ -45,9 +45,10 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (!allowedRoles.includes(activeRole)) {
-    // Redirect customer to feed, vendors to vendor dashboard, creators to creator dashboard
-    if (activeRole === 'vendor') return <Navigate to="/vendor/dashboard" replace />;
-    if (activeRole === 'creator') return <Navigate to="/creator/dashboard" replace />;
+    // Redirect vendors/creators to unified dashboard, customers to feed
+    if (activeRole === 'vendor' || activeRole === 'creator') {
+      return <Navigate to="/dashboard" replace />;
+    }
     return <Navigate to="/feed" replace />;
   }
 
@@ -67,8 +68,9 @@ export const PublicRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    if (activeRole === 'vendor') return <Navigate to="/vendor/dashboard" replace />;
-    if (activeRole === 'creator') return <Navigate to="/creator/dashboard" replace />;
+    if (activeRole === 'vendor' || activeRole === 'creator') {
+      return <Navigate to="/dashboard" replace />;
+    }
     return <Navigate to="/feed" replace />;
   }
 

@@ -21,6 +21,7 @@ import Search from '../pages/Search';
 import RequirementsNew from '../pages/RequirementsNew';
 import VendorDashboard from '../pages/VendorDashboard';
 import CreatorDashboard from '../pages/CreatorDashboard';
+import DashboardRouter from '../pages/DashboardRouter';
 import Profile from '../pages/Profile';
 import ReelsFeed from '../pages/ReelsFeed';
 import ReelsUpload from '../pages/ReelsUpload';
@@ -90,25 +91,12 @@ const AppRoutes = () => {
         <Route path="wallet" element={<Wallet />} />
         <Route path="subscription" element={<Subscription />} />
 
-        {/* Vendor Protected Area */}
-        <Route
-          path="vendor/dashboard"
-          element={
-            <RoleRoute allowedRoles={['vendor', 'admin']}>
-              <VendorDashboard />
-            </RoleRoute>
-          }
-        />
+        {/* Unified Dashboard Router */}
+        <Route path="dashboard" element={<DashboardRouter />} />
 
-        {/* Creator Protected Area */}
-        <Route
-          path="creator/dashboard"
-          element={
-            <RoleRoute allowedRoles={['creator', 'admin']}>
-              <CreatorDashboard />
-            </RoleRoute>
-          }
-        />
+        {/* Redirect Legacy Dashboard Routes */}
+        <Route path="vendor/dashboard" element={<Navigate to="/dashboard" replace />} />
+        <Route path="creator/dashboard" element={<Navigate to="/dashboard" replace />} />
 
         {/* Admin Protected Area */}
         <Route

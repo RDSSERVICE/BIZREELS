@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
+const { apiLimiter } = require('./middleware/rateLimiter');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const passport = require('passport');
@@ -33,28 +33,7 @@ app.use(
 );
 
 // Rate Limiting — prevent brute force & DDoS
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.max,
-  message: {
-    success: false,
-    message: 'Too many requests from this IP. Please try again later.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api', limiter);
-
-// Stricter rate limit for auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: {
-    success: false,
-    message: 'Too many authentication attempts. Please try again later.',
-  },
-});
-app.use('/api/v1/auth', authLimiter);
+app.use('/api', apiLimiter);
 
 // ══════════════════════════════════════════════════════════════
 // BODY PARSING & COMPRESSION

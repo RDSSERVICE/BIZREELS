@@ -99,40 +99,19 @@ const AppLayout = () => {
     }
   };
 
-  // Sidebar Menu Items based on Active Role
+  // Sidebar Menu Items — Consistent for all roles
   const getNavItems = () => {
-    const items = [
+    return [
       { name: 'Home', path: '/feed', icon: FiHome },
       { name: 'Discover', path: '/search', icon: FiSearch },
-    ];
-
-    if (activeRole === 'vendor') {
-      items.push({ name: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid });
-    } else if (activeRole === 'creator') {
-      items.push({ name: 'Dashboard', path: '/creator/dashboard', icon: FiGrid });
-    } else if (activeRole === 'customer') {
-      items.push({ name: 'Post Requirement', path: '/requirements/new', icon: FiPlusSquare });
-      items.push({ name: 'Activities', path: '/activities', icon: FiLayers });
-      if (!user?.roles.includes('vendor')) {
-        items.push({ name: 'Become a Vendor', action: handleBecomeVendor, icon: FiBriefcase });
-      }
-      if (!user?.roles.includes('creator')) {
-        items.push({ name: 'Become a Creator', action: handleBecomeCreator, icon: FiVideo });
-      }
-    } else if (activeRole === 'admin') {
-      items.push({ name: 'Admin Panel', path: '/admin/dashboard', icon: FiGrid });
-    }
-
-    items.push(
+      { name: 'Dashboard', path: '/dashboard', icon: FiGrid },
       { name: 'Notifications', path: '/notifications', icon: FiBell },
       { name: 'Chats', path: '/chats', icon: FiMessageSquare },
       { name: 'Wallet', path: '/wallet', icon: FiBriefcase },
       { name: 'Subscription', path: '/subscription', icon: FiSettings },
       { name: 'Settings', path: '/settings', icon: FiSettings },
       { name: 'My Profile', path: `/profile/${user._id}`, icon: FiUser }
-    );
-
-    return items;
+    ];
   };
 
   const navItems = getNavItems();
