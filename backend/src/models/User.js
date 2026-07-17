@@ -180,20 +180,17 @@ const userSchema = new Schema(
 );
 
 // ── Indexes ───────────────────────────────────────────────
-userSchema.index({ email: 1 });
-userSchema.index({ phone: 1 });
 userSchema.index({ 'vendorProfile.location': '2dsphere' });
 userSchema.index({ roles: 1, isDeleted: 1 });
 userSchema.index({ createdAt: -1 });
 
 // ── Pre-save: Hash password ───────────────────────────────
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password') || !this.password) return next();
+userSchema.pre('save', async function () {
+  if (!this.isModified('password') || !this.password) return;
 
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
   this.passwordChangedAt = Date.now() - 1000; // Ensure token issued after password change
-  next();
 });
 
 // ── Instance Methods ──────────────────────────────────────
@@ -234,10 +231,9 @@ userSchema.methods.softDelete = function () {
 };
 
 // ── Query middleware: exclude soft-deleted by default ──────
-userSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeSoftDeleted) return next();
+userSchema.pre(/^find/, function () {
+  if (this.getOptions()?.includeSoftDeleted) return;
   this.where({ isDeleted: { $ne: true } });
-  next();
 });
 
 module.exports = mongoose.model('User', userSchema);

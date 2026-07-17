@@ -137,10 +137,9 @@ listingSchema.index({ price: 1 });
 listingSchema.index({ rating: -1 });
 
 // Query middleware to exclude soft deleted entries
-listingSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeSoftDeleted) return next();
+listingSchema.pre(/^find/, function () {
+  if (this.getOptions()?.includeSoftDeleted) return;
   this.where({ isDeleted: { $ne: true } });
-  next();
 });
 
 module.exports = mongoose.model('Listing', listingSchema);

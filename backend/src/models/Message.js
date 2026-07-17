@@ -52,10 +52,9 @@ const messageSchema = new Schema(
 messageSchema.index({ conversation: 1, createdAt: 1 });
 
 // Query middleware to exclude soft deleted entries
-messageSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeSoftDeleted) return next();
+messageSchema.pre(/^find/, function () {
+  if (this.getOptions()?.includeSoftDeleted) return;
   this.where({ isDeleted: { $ne: true } });
-  next();
 });
 
 module.exports = mongoose.model('Message', messageSchema);

@@ -84,10 +84,9 @@ requirementSchema.index({ location: '2dsphere' });
 requirementSchema.index({ createdAt: -1 });
 
 // Query middleware to exclude soft deleted entries
-requirementSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeSoftDeleted) return next();
+requirementSchema.pre(/^find/, function () {
+  if (this.getOptions()?.includeSoftDeleted) return;
   this.where({ isDeleted: { $ne: true } });
-  next();
 });
 
 module.exports = mongoose.model('Requirement', requirementSchema);

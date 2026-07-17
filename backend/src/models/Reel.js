@@ -88,10 +88,9 @@ reelSchema.index({ hashtags: 1, createdAt: -1 });
 reelSchema.index({ isDeleted: 1, isDraft: 1, createdAt: -1 });
 
 // Query middleware to exclude soft-deleted reels by default
-reelSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeSoftDeleted) return next();
+reelSchema.pre(/^find/, function () {
+  if (this.getOptions()?.includeSoftDeleted) return;
   this.where({ isDeleted: { $ne: true } });
-  next();
 });
 
 module.exports = mongoose.model('Reel', reelSchema);

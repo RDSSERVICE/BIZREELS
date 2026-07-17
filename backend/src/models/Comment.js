@@ -40,10 +40,9 @@ const commentSchema = new Schema(
 commentSchema.index({ reelId: 1, isDeleted: 1, createdAt: -1 });
 
 // Query middleware to exclude soft-deleted comments
-commentSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeSoftDeleted) return next();
+commentSchema.pre(/^find/, function () {
+  if (this.getOptions()?.includeSoftDeleted) return;
   this.where({ isDeleted: { $ne: true } });
-  next();
 });
 
 module.exports = mongoose.model('Comment', commentSchema);

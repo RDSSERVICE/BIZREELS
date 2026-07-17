@@ -56,10 +56,9 @@ reviewSchema.index({ targetListing: 1, isDeleted: 1, createdAt: -1 });
 reviewSchema.index({ author: 1, targetListing: 1 }, { unique: true, sparse: true });
 
 // Query middleware to exclude soft-deleted reviews by default
-reviewSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeSoftDeleted) return next();
+reviewSchema.pre(/^find/, function () {
+  if (this.getOptions()?.includeSoftDeleted) return;
   this.where({ isDeleted: { $ne: true } });
-  next();
 });
 
 // Post-save hook to dynamically recalculate average rating for vendors/listings
