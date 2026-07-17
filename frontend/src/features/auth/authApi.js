@@ -116,6 +116,15 @@ const authApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['User'],
     }),
+
+    // ── Delete Account ──────────────────────────────────
+    deleteAccount: builder.mutation({
+      query: () => ({
+        url: '/auth/profile',
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['User'],
+    }),
   }),
 });
 
@@ -132,6 +141,7 @@ export const {
   useSwitchRoleMutation,
   useAddRoleMutation,
   useUpdateProfileMutation,
+  useDeleteAccountMutation,
 } = authApi;
 
 export default authApi;

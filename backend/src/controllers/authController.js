@@ -41,6 +41,7 @@ class AuthController {
 
     return ApiResponse.ok(res, result.message, {
       expiresInMinutes: result.expiresInMinutes,
+      otp: result.otp,
     });
   });
 
@@ -146,10 +147,32 @@ class AuthController {
 
   // ── Update Profile ─────────────────────────────────────
   updateProfile = asyncHandler(async (req, res) => {
-    const { name, avatarUrl, phone } = req.body;
-    const user = await authService.updateProfile(req.user._id, { name, avatarUrl, phone }, req);
+    const { name, avatarUrl, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile } = req.body;
+    const user = await authService.updateProfile(req.user._id, { name, avatarUrl, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile }, req);
 
     return ApiResponse.ok(res, 'Profile updated successfully.', { user });
+  });
+
+  // ── Delete Account ─────────────────────────────────────
+  deleteAccount = asyncHandler(async (req, res) => {
+    const result = await authService.deleteAccount(req.user._id, req);
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+    return ApiResponse.ok(res, 'Account deleted successfully.', result);
+  });
+
+  // ── Follow User ────────────────────────────────────────
+  follow = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const user = await authService.followUser(req.user._id, id, req);
+    return ApiResponse.ok(res, 'Followed user successfully.', { user });
+  });
+
+  // ── Unfollow User ──────────────────────────────────────
+  unfollow = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const user = await authService.unfollowUser(req.user._id, id, req);
+    return ApiResponse.ok(res, 'Unfollowed user successfully.', { user });
   });
 
   // ── Private: Set Refresh Token Cookie ───────────────────

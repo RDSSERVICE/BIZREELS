@@ -174,7 +174,11 @@ class AuthService {
     // TODO: Send OTP via SMS/Email service
     logger.info(`OTP generated for ${identifier}: ${otp}`, { service: 'auth' });
 
-    return { message: `OTP sent to ${identifier}`, expiresInMinutes: config.otp.expiryMinutes };
+    const result = { message: `OTP sent to ${identifier}`, expiresInMinutes: config.otp.expiryMinutes };
+    if (process.env.NODE_ENV !== 'production') {
+      result.otp = otp;
+    }
+    return result;
   }
 
   async verifyOtpAndLogin(identifier, identifierType, otp, req) {
@@ -415,7 +419,7 @@ class AuthService {
     return this._sanitizeUser(updatedUser);
   }
 
-  async updateProfile(userId, { name, avatarUrl, phone }, req) {
+  async updateProfile(userId, { name, avatarUrl, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile }, req) {
     const user = await authRepository.findUserById(userId);
     if (!user) {
       throw ApiError.notFound('User not found.');
@@ -425,11 +429,92 @@ class AuthService {
     if (name) updateFields.name = name;
     if (avatarUrl !== undefined) updateFields.avatarUrl = avatarUrl;
     if (phone) updateFields.phone = phone;
+    if (gender) updateFields.gender = gender;
+    if (occupation) updateFields.occupation = occupation;
+    if (dob) updateFields.dob = dob;
+    if (language) updateFields.language = language;
+    if (location) {
+      updateFields.location = {
+        type: 'Point',
+        coordinates: location.coordinates || [0, 0],
+        address: location.address,
+        city: location.city,
+        district: location.district,
+        state: location.state,
+        pincode: location.pincode
+      };
+    }
+    if (vendorProfile) {
+      const currentProfile = user.vendorProfile ? (user.vendorProfile.toObject ? user.vendorProfile.toObject() : user.vendorProfile) : {};
+      updateFields.vendorProfile = {
+        ...currentProfile,
+        ...vendorProfile
+      };
+    }
+    if (creatorProfile) {
+      const currentProfile = user.creatorProfile ? (user.creatorProfile.toObject ? user.creatorProfile.toObject() : user.creatorProfile) : {};
+      updateFields.creatorProfile = {
+        ...currentProfile,
+        ...creatorProfile
+      };
+    }
 
     const updatedUser = await authRepository.updateUser(userId, updateFields);
     await this._logAction(userId, 'PROFILE_UPDATE', 'User', userId, 'Updated profile details', req);
 
     return this._sanitizeUser(updatedUser);
+  }
+
+  async followUser(userId, followId, req) {
+    if (userId.toString() === followId.toString()) {
+      throw ApiError.badRequest('You cannot follow yourself.');
+    }
+
+    const userToFollow = await authRepository.findUserById(followId);
+    if (!userToFollow) {
+      throw ApiError.notFound('User to follow not found.');
+    }
+
+    await require('../models/User').findByIdAndUpdate(userId, {
+      $addToSet: { following: followId }
+    });
+
+    await require('../models/User').findByIdAndUpdate(followId, {
+      $addToSet: { followers: userId },
+      $inc: { followersCount: 1 }
+    });
+
+    await require('../models/User').findByIdAndUpdate(userId, {
+      $inc: { followingCount: 1 }
+    });
+
+    await this._logAction(userId, 'USER_FOLLOW', 'User', followId, `Followed user ${userToFollow.name}`, req);
+
+    return this.getCurrentUser(userId);
+  }
+
+  async unfollowUser(userId, unfollowId, req) {
+    const userToUnfollow = await authRepository.findUserById(unfollowId);
+    if (!userToUnfollow) {
+      throw ApiError.notFound('User to unfollow not found.');
+    }
+
+    await require('../models/User').findByIdAndUpdate(userId, {
+      $pull: { following: unfollowId }
+    });
+
+    await require('../models/User').findByIdAndUpdate(unfollowId, {
+      $pull: { followers: userId },
+      $inc: { followersCount: -1 }
+    });
+
+    await require('../models/User').findByIdAndUpdate(userId, {
+      $inc: { followingCount: -1 }
+    });
+
+    await this._logAction(userId, 'USER_UNFOLLOW', 'User', unfollowId, `Unfollowed user ${userToUnfollow.name}`, req);
+
+    return this.getCurrentUser(userId);
   }
 
   async addRole(userId, newRole, profileData, req) {
@@ -460,6 +545,26 @@ class AuthService {
     await this._logAction(userId, actionType, 'User', userId, `Added ${newRole} role`, req);
 
     return this._sanitizeUser(updatedUser);
+  }
+
+  async deleteAccount(userId, req) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw ApiError.notFound('User not found.');
+    }
+
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const updateData = {
+      isDeleted: true,
+      deletedAt: new Date(),
+      isActive: false,
+      email: user.email ? `deleted_${user.email}_${randomSuffix}` : undefined,
+      phone: user.phone ? `deleted_${user.phone}_${randomSuffix}` : undefined,
+    };
+
+    await authRepository.updateUser(userId, updateData);
+    await this._logAction(userId, 'USER_DELETE', 'User', userId, 'Deleted account', req);
+    return { success: true, message: 'Account deleted successfully.' };
   }
 
   // ══════════════════════════════════════════════════════════

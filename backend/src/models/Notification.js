@@ -20,7 +20,7 @@ const notificationSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ['like', 'comment', 'message', 'quote', 'lead', 'hire', 'payment', 'wallet'],
+      enum: ['like', 'comment', 'message', 'quote', 'lead', 'hire', 'payment', 'wallet', 'admin_message', 'vendor_reply', 'price_drop', 'offer'],
       required: true,
       index: true,
     },

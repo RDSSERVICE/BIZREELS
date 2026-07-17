@@ -49,6 +49,7 @@ const AppLayout = () => {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
 
   // Fallback: If not logged in, redirect to login page
   if (!isAuthenticated || !user) {
@@ -82,53 +83,56 @@ const AppLayout = () => {
     }
   };
 
+  const handleBecomeVendor = () => {
+    if (user?.roles.includes('vendor')) {
+      handleRoleChange('vendor');
+    } else {
+      navigate(`/profile/${user._id}?activate=vendor`);
+    }
+  };
+
+  const handleBecomeCreator = () => {
+    if (user?.roles.includes('creator')) {
+      handleRoleChange('creator');
+    } else {
+      navigate(`/profile/${user._id}?activate=creator`);
+    }
+  };
+
   // Sidebar Menu Items based on Active Role
   const getNavItems = () => {
-    const customerItems = [
-      { name: 'Feed', path: '/feed', icon: FiHome },
+    const items = [
+      { name: 'Home', path: '/feed', icon: FiHome },
       { name: 'Discover', path: '/search', icon: FiSearch },
-      { name: 'Reels', path: '/reels', icon: FiVideo },
-      { name: 'Live Broadcasts', path: '/live', icon: FiTv },
-      { name: 'Creator Marketplace', path: '/creator/marketplace', icon: FiUserCheck },
-      { name: 'Post Requirement', path: '/requirements/new', icon: FiPlusSquare },
-      { name: 'My Quotes', path: '/requirements/new', icon: FiLayers },
-      { name: 'Chats', path: '/chats', icon: FiMessageSquare },
-      { name: 'Profile', path: `/profile/${user._id}`, icon: FiUser },
     ];
 
-    const vendorItems = [
-      { name: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid },
-      { name: 'Catalog', path: '/vendor/dashboard', icon: FiBriefcase },
-      { name: 'Reels Upload', path: '/reels/upload', icon: FiVideo },
-      { name: 'Live Broadcasts', path: '/live', icon: FiTv },
-      { name: 'Creator Marketplace', path: '/creator/marketplace', icon: FiUserCheck },
-      { name: 'Leads & Bids', path: '/vendor/dashboard', icon: FiLayers },
-      { name: 'Chats', path: '/chats', icon: FiMessageSquare },
-      { name: 'Store Profile', path: `/profile/${user._id}`, icon: FiSettings },
-    ];
+    if (activeRole === 'vendor') {
+      items.push({ name: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid });
+    } else if (activeRole === 'creator') {
+      items.push({ name: 'Dashboard', path: '/creator/dashboard', icon: FiGrid });
+    } else if (activeRole === 'customer') {
+      items.push({ name: 'Post Requirement', path: '/requirements/new', icon: FiPlusSquare });
+      items.push({ name: 'Activities', path: '/activities', icon: FiLayers });
+      if (!user?.roles.includes('vendor')) {
+        items.push({ name: 'Become a Vendor', action: handleBecomeVendor, icon: FiBriefcase });
+      }
+      if (!user?.roles.includes('creator')) {
+        items.push({ name: 'Become a Creator', action: handleBecomeCreator, icon: FiVideo });
+      }
+    } else if (activeRole === 'admin') {
+      items.push({ name: 'Admin Panel', path: '/admin/dashboard', icon: FiGrid });
+    }
 
-    const creatorItems = [
-      { name: 'Dashboard', path: '/creator/dashboard', icon: FiGrid },
-      { name: 'Portfolio', path: '/creator/dashboard', icon: FiBriefcase },
-      { name: 'Sample Reels', path: '/reels', icon: FiVideo },
-      { name: 'Live Broadcasts', path: '/live', icon: FiTv },
-      { name: 'Work Requests', path: '/creator/dashboard', icon: FiLayers },
+    items.push(
+      { name: 'Notifications', path: '/notifications', icon: FiBell },
       { name: 'Chats', path: '/chats', icon: FiMessageSquare },
-      { name: 'Availability', path: '/creator/dashboard', icon: FiSettings },
-    ];
+      { name: 'Wallet', path: '/wallet', icon: FiBriefcase },
+      { name: 'Subscription', path: '/subscription', icon: FiSettings },
+      { name: 'Settings', path: '/settings', icon: FiSettings },
+      { name: 'My Profile', path: `/profile/${user._id}`, icon: FiUser }
+    );
 
-    const adminItems = [
-      { name: 'Admin Panel', path: '/admin/dashboard', icon: FiGrid },
-      { name: 'Feed', path: '/feed', icon: FiHome },
-      { name: 'Discover', path: '/search', icon: FiSearch },
-      { name: 'Reels', path: '/reels', icon: FiVideo },
-      { name: 'Chats', path: '/chats', icon: FiMessageSquare },
-    ];
-
-    if (activeRole === 'vendor') return vendorItems;
-    if (activeRole === 'creator') return creatorItems;
-    if (activeRole === 'admin') return adminItems;
-    return customerItems;
+    return items;
   };
 
   const navItems = getNavItems();
@@ -243,10 +247,22 @@ const AppLayout = () => {
       {/* ── Desktop Sidebar & Main Workspace ────────────────── */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar for Desktop */}
-        <aside className="hidden lg:flex w-64 glass border-r border-border flex-col p-4 gap-2">
+        <aside className="hidden lg:flex w-64 glass border-r border-border flex-col p-4 gap-2 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || (item.path && location.pathname + location.search === item.path);
             const Icon = item.icon;
+            if (item.action) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={item.action}
+                  className="flex items-center gap-3 px-4 py-3 rounded-premium text-sm font-semibold transition-all duration-300 text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple text-left w-full cursor-pointer"
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span>{item.name}</span>
+                </button>
+              );
+            }
             return (
               <Link
                 key={item.path}
@@ -287,8 +303,20 @@ const AppLayout = () => {
                   </button>
                 </div>
                 {navItems.map((item) => {
-                  const isActive = location.pathname === item.path;
+                  const isActive = location.pathname === item.path || (item.path && location.pathname + location.search === item.path);
                   const Icon = item.icon;
+                  if (item.action) {
+                    return (
+                      <button
+                        key={item.name}
+                        onClick={() => { item.action(); setIsSidebarOpen(false); }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-premium text-sm font-semibold transition-all text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple text-left w-full cursor-pointer"
+                      >
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        <span>{item.name}</span>
+                      </button>
+                    );
+                  }
                   return (
                     <Link
                       key={item.path}
@@ -318,29 +346,146 @@ const AppLayout = () => {
       </div>
 
       {/* ── Bottom Mobile Bar (Tablets/Phones) ───────────────── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 glass border-t border-border z-30 flex justify-around py-3 px-2 shadow-modal">
-        {navItems.slice(0, 5).map((item) => {
-          const isActive = location.pathname === item.path;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex flex-col items-center justify-center p-1.5 rounded-full relative transition-all duration-300
-                ${isActive ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
-              `}
-            >
-              <Icon className="w-5.5 h-5.5" />
-              {isActive && (
-                <motion.span
-                  layoutId="bottomBubble"
-                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                  className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-brand-purple"
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 glass border-t border-border z-30 flex justify-around items-center py-2.5 px-2 shadow-modal">
+        {/* Home */}
+        <Link
+          to="/feed"
+          className={`flex flex-col items-center justify-center p-1.5 rounded-full transition-all duration-300
+            ${location.pathname === '/feed' ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
+          `}
+        >
+          <FiHome className="w-5.5 h-5.5" />
+          <span className="text-[9px] font-bold mt-0.5">Home</span>
+        </Link>
+
+        {/* Search */}
+        <Link
+          to="/search"
+          className={`flex flex-col items-center justify-center p-1.5 rounded-full transition-all duration-300
+            ${location.pathname === '/search' ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
+          `}
+        >
+          <FiSearch className="w-5.5 h-5.5" />
+          <span className="text-[9px] font-bold mt-0.5">Search</span>
+        </Link>
+
+        {/* Dynamic Plus Center Button */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
+            className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-brand-purple text-white shadow-premium hover:bg-brand-purple-800 transition-all cursor-pointer border border-brand-purple/20"
+          >
+            <FiPlusSquare className={`w-6 h-6 transition-transform duration-300 ${isPlusMenuOpen ? 'rotate-45' : ''}`} />
+          </button>
+
+          <AnimatePresence>
+            {isPlusMenuOpen && (
+              <>
+                {/* Backdrop overlay */}
+                <div
+                  className="fixed inset-0 z-40 bg-black/5"
+                  onClick={() => setIsPlusMenuOpen(false)}
                 />
-              )}
-            </Link>
-          );
-        })}
+                
+                {/* Plus Popup Options */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 15 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 15 }}
+                  className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-48 bg-white/95 backdrop-blur-md border border-slate-200/50 shadow-modal rounded-2xl py-2 z-50 flex flex-col gap-0.5"
+                >
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center py-1 border-b border-slate-100">
+                    {activeRole} actions
+                  </p>
+                  
+                  {activeRole === 'customer' && (
+                    <button
+                      onClick={() => { navigate('/requirements/new'); setIsPlusMenuOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
+                    >
+                      + Post Requirement
+                    </button>
+                  )}
+
+                  {activeRole === 'vendor' && (
+                    <>
+                      <button
+                        onClick={() => { navigate('/vendor/dashboard?tab=listings&action=add-product'); setIsPlusMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
+                      >
+                        + Upload Product
+                      </button>
+                      <button
+                        onClick={() => { navigate('/vendor/dashboard?tab=listings&action=add-service'); setIsPlusMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
+                      >
+                        + Upload Service
+                      </button>
+                      <button
+                        onClick={() => { navigate('/reels/upload'); setIsPlusMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
+                      >
+                        + Upload Reel
+                      </button>
+                      <button
+                        onClick={() => { navigate('/live'); setIsPlusMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
+                      >
+                        + Live Broadcast
+                      </button>
+                    </>
+                  )}
+
+                  {activeRole === 'creator' && (
+                    <>
+                      <button
+                        onClick={() => { navigate('/creator/dashboard?tab=portfolio&action=upload'); setIsPlusMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
+                      >
+                        + Upload Portfolio
+                      </button>
+                      <button
+                        onClick={() => { navigate('/creator/marketplace'); setIsPlusMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
+                      >
+                        + Apply Project
+                      </button>
+                      <button
+                        onClick={() => { navigate('/reels/upload'); setIsPlusMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
+                      >
+                        + Upload Reel Sample
+                      </button>
+                    </>
+                  )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Chat */}
+        <Link
+          to="/chats"
+          className={`flex flex-col items-center justify-center p-1.5 rounded-full transition-all duration-300
+            ${location.pathname === '/chats' ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
+          `}
+        >
+          <FiMessageSquare className="w-5.5 h-5.5" />
+          <span className="text-[9px] font-bold mt-0.5">Chat</span>
+        </Link>
+
+        {/* Account Profile */}
+        <Link
+          to={`/profile/${user._id}`}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-full transition-all duration-300
+            ${location.pathname.startsWith('/profile') ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
+          `}
+        >
+          <FiUser className="w-5.5 h-5.5" />
+          <span className="text-[9px] font-bold mt-0.5">Account</span>
+        </Link>
       </nav>
     </div>
   );

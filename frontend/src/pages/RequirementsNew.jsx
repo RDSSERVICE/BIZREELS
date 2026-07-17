@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import {
   FiPlusSquare,
   FiClock,
@@ -39,11 +40,15 @@ const RequirementsNew = () => {
   const user = useSelector(selectCurrentUser);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedReqId, setSelectedReqId] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const filterType = searchParams.get('type') || 'all'; // all | product | service
   
   // Create Form States
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
+  const [requirementType, setRequirementType] = useState('product'); // product | service
   const [budget, setBudget] = useState('');
   const [deadline, setDeadline] = useState('');
   const [address, setAddress] = useState('New Delhi, India');
@@ -65,6 +70,11 @@ const RequirementsNew = () => {
   const myRequirements = reqsRes?.data || [];
   const quotesList = quotesRes?.quotes || [];
 
+  // Filter requirements by type from query param
+  const filteredRequirements = myRequirements.filter(
+    (r) => filterType === 'all' || r.requirementType === filterType
+  );
+
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!title || !budget || !deadline || !description) {
@@ -76,6 +86,7 @@ const RequirementsNew = () => {
         title,
         description,
         category,
+        requirementType,
         budget: parseFloat(budget),
         deadline,
         address,
@@ -153,14 +164,14 @@ const RequirementsNew = () => {
           
           {isLoading ? (
             <div className="py-12 flex justify-center"><Loader /></div>
-          ) : myRequirements.length === 0 ? (
+          ) : filteredRequirements.length === 0 ? (
             <div className="glass p-8 text-center rounded-premium text-text-secondary">
               <p className="font-bold text-brand-navy">No active posts</p>
-              <p className="text-xs mt-1">Get custom quotes by posting a requirement above.</p>
+              <p className="text-xs mt-1">Get custom quotes by posting a requirement brief.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {myRequirements.map((req) => (
+              {filteredRequirements.map((req) => (
                 <div
                   key={req._id}
                   onClick={() => setSelectedReqId(req._id)}
@@ -305,6 +316,30 @@ const RequirementsNew = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5 col-span-2">
+                    <label className="text-xs font-bold text-brand-navy">Requirement Type *</label>
+                    <div className="flex bg-surface-secondary p-1 rounded-premium gap-1 border border-border">
+                      <button
+                        type="button"
+                        onClick={() => setRequirementType('product')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-premium transition-all cursor-pointer
+                          ${requirementType === 'product' ? 'bg-brand-purple text-white shadow-premium' : 'text-text-secondary'}
+                        `}
+                      >
+                        Product
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRequirementType('service')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-premium transition-all cursor-pointer
+                          ${requirementType === 'service' ? 'bg-brand-purple text-white shadow-premium' : 'text-text-secondary'}
+                        `}
+                      >
+                        Service
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-brand-navy">Category *</label>
                     <select

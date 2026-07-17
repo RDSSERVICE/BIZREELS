@@ -120,6 +120,44 @@ class ListingController {
     const copy = await listingService.generateAICopy({ userId: req.user._id, title, category, type });
     return ApiResponse.ok(res, 'AI content synthesized.', copy);
   });
+
+  // ── Save Listing ────────────────────────────────────────
+  save = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userModel = require('../models/User');
+    
+    const user = await userModel.findByIdAndUpdate(
+      req.user._id,
+      { $addToSet: { 'customerProfile.savedListings': id } },
+      { new: true }
+    ).select('-password -__v')
+    .populate({
+      path: 'customerProfile.savedListings',
+      populate: { path: 'vendor', select: 'name businessName activeRole avatarUrl' }
+    })
+    .populate('following', 'name avatarUrl activeRole roles vendorProfile creatorProfile');
+
+    return ApiResponse.ok(res, 'Listing saved successfully.', { user });
+  });
+
+  // ── Unsave Listing ──────────────────────────────────────
+  unsave = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userModel = require('../models/User');
+
+    const user = await userModel.findByIdAndUpdate(
+      req.user._id,
+      { $pull: { 'customerProfile.savedListings': id } },
+      { new: true }
+    ).select('-password -__v')
+    .populate({
+      path: 'customerProfile.savedListings',
+      populate: { path: 'vendor', select: 'name businessName activeRole avatarUrl' }
+    })
+    .populate('following', 'name avatarUrl activeRole roles vendorProfile creatorProfile');
+
+    return ApiResponse.ok(res, 'Listing unsaved successfully.', { user });
+  });
 }
 
 module.exports = new ListingController();

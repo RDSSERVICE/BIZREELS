@@ -10,6 +10,8 @@ const liveRoutes = require('./liveRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const reviewRoutes = require('./reviewRoutes');
 const analyticsRoutes = require('./analyticsRoutes');
+const orderRoutes = require('./orderRoutes');
+const inquiryRoutes = require('./inquiryRoutes');
 
 const router = express.Router();
 
@@ -40,5 +42,7 @@ router.use('/live', liveRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/analytics', analyticsRoutes);
+router.use('/orders', orderRoutes);
+router.use('/inquiries', inquiryRoutes);
 
 module.exports = router;

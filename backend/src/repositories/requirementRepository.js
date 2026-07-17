@@ -39,6 +39,7 @@ class RequirementRepository {
   async queryRequirements({
     customerId,
     category,
+    requirementType,
     status,
     coordinates,
     distanceKm = 15,
@@ -50,6 +51,7 @@ class RequirementRepository {
 
     if (customerId) match.customer = new mongoose.Types.ObjectId(customerId);
     if (category) match.category = category;
+    if (requirementType) match.requirementType = requirementType;
     if (status) match.status = status;
 
     const pipeline = [];
@@ -90,6 +92,7 @@ class RequirementRepository {
         title: 1,
         description: 1,
         category: 1,
+        requirementType: 1,
         budget: 1,
         deadline: 1,
         location: 1,

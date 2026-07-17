@@ -29,7 +29,7 @@ class WalletController {
 
   // ── Purchase Plan ───────────────────────────────────────
   purchaseSubscription = asyncHandler(async (req, res) => {
-    const { plan } = req.body;
+    const plan = req.body.plan || req.body.planId;
     const result = await walletService.purchasePlan({
       userId: req.user._id,
       plan,

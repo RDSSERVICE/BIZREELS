@@ -21,6 +21,7 @@ const Chats = () => {
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
+  const [chatFilter, setChatFilter] = useState('all'); // all | vendor | creator
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -39,6 +40,12 @@ const Chats = () => {
   const [sendMessageApi] = useSendMessageMutation();
 
   const conversations = convsRes?.conversations || [];
+  
+  const filteredConversations = conversations.filter((c) => {
+    if (chatFilter === 'all') return true;
+    const peer = c.participants.find((p) => p._id !== user?._id);
+    return peer?.activeRole === chatFilter;
+  });
 
   // ── Initialize Socket connection ────────────────────────
   useEffect(() => {
@@ -178,23 +185,49 @@ const Chats = () => {
     <div className="glass h-[calc(100vh-140px)] rounded-premium border-white/50 shadow-glass overflow-hidden grid grid-cols-1 md:grid-cols-3">
       {/* ── Left side: Conversations thread list ────────────────── */}
       <div className="border-r border-border flex flex-col h-full bg-surface-secondary/20">
-        <div className="p-4 border-b border-border">
+        <div className="p-4 border-b border-border flex flex-col gap-2">
           <h3 className="text-sm font-bold text-brand-navy uppercase tracking-wider font-display">
             Inbox Messages
           </h3>
+          <div className="flex bg-surface-tertiary p-0.5 rounded-premium text-[10px] font-bold">
+            <button
+              onClick={() => setChatFilter('all')}
+              className={`flex-grow py-1 rounded-premium text-center cursor-pointer transition-all
+                ${chatFilter === 'all' ? 'bg-white text-brand-purple shadow-sm' : 'text-text-secondary'}
+              `}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setChatFilter('vendor')}
+              className={`flex-grow py-1 rounded-premium text-center cursor-pointer transition-all
+                ${chatFilter === 'vendor' ? 'bg-white text-brand-purple shadow-sm' : 'text-text-secondary'}
+              `}
+            >
+              Vendors Chat
+            </button>
+            <button
+              onClick={() => setChatFilter('creator')}
+              className={`flex-grow py-1 rounded-premium text-center cursor-pointer transition-all
+                ${chatFilter === 'creator' ? 'bg-white text-brand-purple shadow-sm' : 'text-text-secondary'}
+              `}
+            >
+              Service Provider Chat
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
           {isConvsLoading ? (
             <div className="flex justify-center py-8"><Loader /></div>
-          ) : conversations.length === 0 ? (
+          ) : filteredConversations.length === 0 ? (
             <div className="text-center py-12 text-xs text-text-tertiary">
-              No messaging channels active. Discover local businesses to initiate chat!
+              No matching conversation channels active.
             </div>
           ) : (
-            conversations.map((c) => {
-              const peer = c.participants.find((p) => p._id !== user._id);
-              const unread = c.unreadCount?.[user._id] || 0;
+            filteredConversations.map((c) => {
+              const peer = c.participants.find((p) => p._id !== user?._id);
+              const unread = c.unreadCount?.[user?._id] || 0;
               const isSelected = activeConversationId === c._id;
               return (
                 <div
@@ -215,7 +248,7 @@ const Chats = () => {
                         {peer?.name}
                         {peer?.activeRole && peer?.activeRole !== 'customer' && (
                           <span className="px-1 text-[8px] font-black uppercase tracking-wider text-white bg-brand-pink rounded">
-                            {peer.activeRole}
+                            {peer.activeRole === 'creator' ? 'creator' : peer.activeRole}
                           </span>
                         )}
                       </span>

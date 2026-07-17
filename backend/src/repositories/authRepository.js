@@ -26,7 +26,13 @@ class AuthRepository {
   }
 
   async findUserById(id) {
-    return User.findById(id).select('-password -__v');
+    return User.findById(id)
+      .populate({
+        path: 'customerProfile.savedListings',
+        populate: { path: 'vendor', select: 'name businessName activeRole avatarUrl' }
+      })
+      .populate('following', 'name avatarUrl activeRole roles vendorProfile creatorProfile')
+      .select('-password -__v');
   }
 
   async createUser(userData) {

@@ -30,6 +30,9 @@ import CreatorMarketplace from '../pages/CreatorMarketplace';
 import LiveStream from '../pages/LiveStream';
 import AdminDashboard from '../pages/AdminDashboard';
 import Settings from '../pages/Settings';
+import Activities from '../pages/Activities';
+import Wallet from '../pages/Wallet';
+import Subscription from '../pages/Subscription';
 
 const AppRoutes = () => {
   return (
@@ -83,6 +86,9 @@ const AppRoutes = () => {
         <Route path="live" element={<LiveStream />} />
         <Route path="profile/:id" element={<Profile />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="activities" element={<Activities />} />
+        <Route path="wallet" element={<Wallet />} />
+        <Route path="subscription" element={<Subscription />} />
 
         {/* Vendor Protected Area */}
         <Route

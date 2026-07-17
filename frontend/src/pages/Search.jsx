@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSearch, FiSliders, FiMapPin, FiStar, FiFilter, FiBriefcase, FiUser, FiChevronRight } from 'react-icons/fi';
+import { useSelector, useDispatch } from 'react-redux';
+import { FiSearch, FiSliders, FiMapPin, FiStar, FiFilter, FiBriefcase, FiUser, FiChevronRight, FiHeart } from 'react-icons/fi';
 import { useGetListingsQuery } from '../features/listings/listingsApi';
+import { useSaveListingMutation, useUnsaveListingMutation } from '../features/customer/activitiesApi';
+import { selectCurrentUser, updateUser } from '../features/auth/authSlice';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import { toast } from 'react-hot-toast';
@@ -18,6 +21,12 @@ const CATEGORIES = [
 ];
 
 const Search = () => {
+  const dispatch = useDispatch();
+  const user = useSelector(selectCurrentUser);
+  
+  const [saveListing] = useSaveListingMutation();
+  const [unsaveListing] = useUnsaveListingMutation();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [distance, setDistance] = useState(10); // 10km
@@ -27,6 +36,22 @@ const Search = () => {
   const [rating, setRating] = useState(0);
   const [coords, setCoords] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  const handleSaveToggle = async (listingId, isSaved) => {
+    try {
+      if (isSaved) {
+        const res = await unsaveListing(listingId).unwrap();
+        dispatch(updateUser(res.data.user));
+        toast.success('Removed listing from bookmarks.');
+      } else {
+        const res = await saveListing(listingId).unwrap();
+        dispatch(updateUser(res.data.user));
+        toast.success('Saved listing to bookmarks!');
+      }
+    } catch (e) {
+      toast.error('Failed to toggle bookmark.');
+    }
+  };
 
   // Auto-detect geolocation coordinates for search context
   useEffect(() => {
@@ -236,31 +261,42 @@ const Search = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {listings.map((item) => (
-                <motion.div
-                  key={item._id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="glass p-4 rounded-premium border-white/50 shadow-glass hover:shadow-premium transition-all flex flex-col gap-3 group relative overflow-hidden"
-                >
-                  {/* Image banner */}
-                  <div className="h-40 w-full rounded-premium overflow-hidden relative bg-surface-tertiary">
-                    <img
-                      src={item.images[0] || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
-                    />
-                    <span className={`absolute top-3 left-3 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white rounded shadow-sm
-                      ${item.type === 'product' ? 'bg-brand-purple' : 'bg-brand-pink'}
-                    `}>
-                      {item.type}
-                    </span>
-                    {item.isBoosted && (
-                      <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-black uppercase text-white bg-brand-orange rounded shadow-sm">
-                        Boosted
+              {listings.map((item) => {
+                const isSaved = user?.customerProfile?.savedListings?.some(l => l._id === item._id || l === item._id) || false;
+                return (
+                  <motion.div
+                    key={item._id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass p-4 rounded-premium border-white/50 shadow-glass hover:shadow-premium transition-all flex flex-col gap-3 group relative overflow-hidden"
+                  >
+                    {/* Image banner */}
+                    <div className="h-40 w-full rounded-premium overflow-hidden relative bg-surface-tertiary">
+                      <img
+                        src={item.images[0] || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
+                      />
+                      <span className={`absolute top-3 left-3 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white rounded shadow-sm
+                        ${item.type === 'product' ? 'bg-brand-purple' : 'bg-brand-pink'}
+                      `}>
+                        {item.type}
                       </span>
-                    )}
-                  </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSaveToggle(item._id, isSaved);
+                        }}
+                        className="absolute top-3 right-3 p-1.5 rounded-full bg-white/80 backdrop-blur-md text-brand-pink hover:bg-white hover:scale-110 transition-all cursor-pointer shadow-premium z-10"
+                      >
+                        <FiHeart className={`w-4 h-4 ${isSaved ? 'fill-brand-pink text-brand-pink' : 'text-text-secondary'}`} />
+                      </button>
+                      {item.isBoosted && !isSaved && (
+                        <span className="absolute top-3 right-12 px-2 py-0.5 text-[9px] font-black uppercase text-white bg-brand-orange rounded shadow-sm">
+                          Boosted
+                        </span>
+                      )}
+                    </div>
 
                   {/* Title & Info */}
                   <div className="flex flex-col">
@@ -309,8 +345,9 @@ const Search = () => {
                     )}
                   </div>
                 </motion.div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
           )}
         </div>
 

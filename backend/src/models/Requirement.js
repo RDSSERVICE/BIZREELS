@@ -32,6 +32,13 @@ const requirementSchema = new Schema(
       required: true,
       index: true,
     },
+    requirementType: {
+      type: String,
+      enum: ['product', 'service'],
+      default: 'product',
+      required: true,
+      index: true,
+    },
     budget: {
       type: Number,
       required: [true, 'Estimated budget is required.'],

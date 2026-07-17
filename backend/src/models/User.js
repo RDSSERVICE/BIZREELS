@@ -39,6 +39,20 @@ const vendorProfileSchema = new Schema(
     totalProducts: { type: Number, default: 0 },
     totalServices: { type: Number, default: 0 },
     documents: [{ name: String, url: String, verified: Boolean }],
+    gst: { type: String, trim: true, default: '' },
+    pan: { type: String, trim: true, default: '' },
+    aadhaar: { type: String, trim: true, default: '' },
+    shopName: { type: String, trim: true, default: '' },
+    upi: { type: String, trim: true, default: '' },
+    website: { type: String, trim: true, default: '' },
+    whatsapp: { type: String, trim: true, default: '' },
+    logoUrl: { type: String, default: '' },
+    socialLinks: {
+      facebook: { type: String, default: '' },
+      instagram: { type: String, default: '' },
+      twitter: { type: String, default: '' },
+      youtube: { type: String, default: '' }
+    }
   },
   { _id: false }
 );
@@ -57,13 +71,19 @@ const creatorProfileSchema = new Schema(
         deliveryDays: Number,
       },
     ],
-    experience: { type: Number, default: 0 }, // years
-    availability: { type: String, enum: ['available', 'busy', 'unavailable'], default: 'available' },
+    experience: { type: String, default: '' },
+    availability: { type: String, enum: ['available', 'busy', 'leave', 'unavailable'], default: 'available' },
     rating: { type: Number, default: 0, min: 0, max: 5 },
     totalReviews: { type: Number, default: 0 },
     totalProjects: { type: Number, default: 0 },
-    sampleReels: [{ type: Schema.Types.ObjectId, ref: 'Reel' }],
-    sampleImages: [String],
+    sampleReels: [{ title: String, url: String }],
+    sampleImages: [{ title: String, url: String }],
+    previousWork: [{ brand: String, result: String }],
+    languages: [{ type: String }],
+    city: { type: String, default: '' },
+    travelAvailable: { type: Boolean, default: false },
+    hourlyRate: { type: Number, default: 0 },
+    dayRate: { type: Number, default: 0 }
   },
   { _id: false }
 );
@@ -119,6 +139,29 @@ const userSchema = new Schema(
       select: false, // Never returned in queries by default
     },
     avatarUrl: { type: String, default: '' },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other', 'prefer_not_to_say'],
+    },
+    occupation: {
+      type: String,
+    },
+    dob: {
+      type: Date,
+    },
+    language: {
+      type: String,
+      default: 'English',
+    },
+    location: {
+      type: { type: String, enum: ['Point'], default: 'Point' },
+      coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]
+      address: String,
+      city: String,
+      district: String,
+      state: String,
+      pincode: String,
+    },
 
     // ── OAuth ───────────────────────────────────────────────
     googleId: { type: String, unique: true, sparse: true },
@@ -180,6 +223,7 @@ const userSchema = new Schema(
 );
 
 // ── Indexes ───────────────────────────────────────────────
+userSchema.index({ location: '2dsphere' });
 userSchema.index({ 'vendorProfile.location': '2dsphere' });
 userSchema.index({ roles: 1, isDeleted: 1 });
 userSchema.index({ createdAt: -1 });

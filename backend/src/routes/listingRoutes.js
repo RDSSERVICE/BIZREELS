@@ -13,6 +13,8 @@ const router = express.Router();
 // ── Public Search & Details ──────────────────────────────
 router.get('/', listingValidation.queryListings, validate, listingController.getListings);
 router.get('/:id', listingValidation.idParam, validate, listingController.getListingDetails);
+router.post('/:id/save', authenticate, listingController.save);
+router.post('/:id/unsave', authenticate, listingController.unsave);
 
 // ── Protected Vendor Operations ──────────────────────────
 router.post(

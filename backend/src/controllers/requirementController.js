@@ -9,13 +9,14 @@ const asyncHandler = require('../utils/asyncHandler');
 class RequirementController {
   // ── Create Requirement ──────────────────────────────────
   create = asyncHandler(async (req, res) => {
-    const { title, description, category, budget, deadline, lat, lng, address } = req.body;
+    const { title, description, category, requirementType, budget, deadline, lat, lng, address } = req.body;
     
     const requirement = await requirementService.createRequirement({
       customerId: req.user._id,
       title,
       description,
       category,
+      requirementType,
       budget,
       deadline,
       lat,
@@ -42,11 +43,12 @@ class RequirementController {
 
   // ── Query Requirements (Leads lists) ────────────────────
   getRequirements = asyncHandler(async (req, res) => {
-    const { customerId, category, status, lat, lng, distance, page = 1, limit = 10 } = req.query;
+    const { customerId, category, requirementType, status, lat, lng, distance, page = 1, limit = 10 } = req.query;
 
     const result = await requirementService.queryRequirements({
       customerId,
       category,
+      requirementType,
       status,
       lat,
       lng,

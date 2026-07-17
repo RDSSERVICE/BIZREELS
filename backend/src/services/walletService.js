@@ -3,6 +3,9 @@ const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
 const PLANS = {
+  free: { cost: 0, durationDays: 9999, boostCredits: 0 },
+  growth: { cost: 1500, durationDays: 30, boostCredits: 1 },
+  ultimate: { cost: 3500, durationDays: 30, boostCredits: 3 },
   premium: { cost: 499, durationDays: 30, boostCredits: 10 },
   business: { cost: 999, durationDays: 30, boostCredits: 25 },
   creator: { cost: 299, durationDays: 30, boostCredits: 5 },

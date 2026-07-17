@@ -12,7 +12,7 @@ const logger = require('../utils/logger');
  */
 class RequirementService {
   async createRequirement(
-    { customerId, title, description, category, budget, deadline, lat, lng, address },
+    { customerId, title, description, category, requirementType, budget, deadline, lat, lng, address },
     req
   ) {
     const location = {
@@ -29,6 +29,7 @@ class RequirementService {
       title,
       description,
       category,
+      requirementType: requirementType || 'product',
       budget: parseFloat(budget),
       deadline: new Date(deadline),
       location,
@@ -97,11 +98,12 @@ class RequirementService {
     return { message: 'Requirement deleted successfully.' };
   }
 
-  async queryRequirements({ customerId, category, status, lat, lng, distance, page, limit }) {
+  async queryRequirements({ customerId, category, requirementType, status, lat, lng, distance, page, limit }) {
     const coordinates = lat && lng ? [parseFloat(lng), parseFloat(lat)] : null;
     return requirementRepository.queryRequirements({
       customerId,
       category,
+      requirementType,
       status,
       coordinates,
       distanceKm: distance ? parseFloat(distance) : undefined,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiBell,
@@ -24,11 +24,22 @@ const Notifications = () => {
     refetchOnMountOrArgChange: true,
   });
 
+  const [activeFilter, setActiveFilter] = useState('all'); // all | messages | replies | price_drops | offers
+
   const [markAllRead] = useMarkAllReadMutation();
   const [markRead] = useMarkReadMutation();
   const [deleteAlert] = useDeleteAlertMutation();
 
   const notifications = notifyRes?.data?.notifications || [];
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'messages') return n.type === 'admin_message' || n.type === 'message';
+    if (activeFilter === 'replies') return n.type === 'vendor_reply';
+    if (activeFilter === 'price_drops') return n.type === 'price_drop';
+    if (activeFilter === 'offers') return n.type === 'offer';
+    return true;
+  });
 
   const handleMarkAll = async () => {
     try {
@@ -101,18 +112,42 @@ const Notifications = () => {
         )}
       </div>
 
+      {/* Filters tab */}
+      <div className="flex bg-surface-tertiary/75 p-1 rounded-premium gap-1 overflow-x-auto scrollbar-none">
+        {[
+          { id: 'all', label: 'All Alerts' },
+          { id: 'messages', label: 'Messages' },
+          { id: 'replies', label: 'Vendor Replies' },
+          { id: 'price_drops', label: 'Price Drops' },
+          { id: 'offers', label: 'Offers' },
+        ].map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setActiveFilter(f.id)}
+            className={`px-4 py-2 text-[10px] font-bold rounded-premium whitespace-nowrap transition-all cursor-pointer flex-grow text-center
+              ${activeFilter === f.id
+                ? 'bg-brand-purple text-white shadow-premium'
+                : 'text-text-secondary hover:text-brand-purple hover:bg-surface-secondary/40'
+              }
+            `}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {/* ── Alerts Logs Viewports ────────────────────────────────── */}
       <div className="flex flex-col gap-3">
         {isLoading ? (
           <div className="py-12 flex justify-center"><Loader /></div>
-        ) : notifications.length === 0 ? (
+        ) : filteredNotifications.length === 0 ? (
           <div className="glass p-12 text-center rounded-premium text-text-secondary">
             <p className="font-bold text-brand-navy">Inbox details clean</p>
-            <p className="text-xs mt-1">No notification alerts records log are currently active.</p>
+            <p className="text-xs mt-1">No matching notification alert records found.</p>
           </div>
         ) : (
           <AnimatePresence>
-            {notifications.map((n) => {
+            {filteredNotifications.map((n) => {
               const alert = getAlertIcon(n.type);
               const Icon = alert.icon;
               return (
