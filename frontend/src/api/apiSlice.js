@@ -1,11 +1,12 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import API_CONFIG from '../config';
 import { tokenStore } from '../lib/api';
+import { tokenRefreshed, logout } from '../features/auth/authSlice';
 
 /**
  * RTK Query Base API
  * Central API slice with automatic auth header injection,
- * token refresh on 401, and tag-based cache invalidation.
+ * token refresh on 401, and tag-based cache invalidation for real-time polling.
  */
 const baseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.BASE_URL,
@@ -26,29 +27,59 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
 
   if (result?.error?.status === 401) {
-    // Attempt token refresh (refresh token travels via httpOnly cookie or
-    // localStorage, matching the auth/refresh-token endpoint's contract).
-    const refreshResult = await baseQuery(
-      { url: '/auth/refresh-token', method: 'POST', body: { refreshToken: tokenStore.getRefresh() } },
+    const refreshToken = tokenStore.getRefresh();
+
+    // Attempt refresh via /auth/refresh-token or /auth/refresh
+    let refreshResult = await baseQuery(
+      {
+        url: '/auth/refresh-token',
+        method: 'POST',
+        body: { refreshToken: refreshToken || undefined, refresh_token: refreshToken || undefined },
+      },
       api,
       extraOptions
     );
 
-    if (refreshResult?.data?.success) {
-      const newAccessToken = refreshResult.data.data.accessToken;
-      // Keep localStorage (used by the axios client / AuthContext) in sync.
-      tokenStore.set({ access_token: newAccessToken });
-      api.dispatch({
-        type: 'auth/tokenRefreshed',
-        payload: newAccessToken,
+    if (refreshResult?.error) {
+      // Fallback try legacy route
+      refreshResult = await baseQuery(
+        {
+          url: '/auth/refresh',
+          method: 'POST',
+          body: { refresh_token: refreshToken || undefined },
+        },
+        api,
+        extraOptions
+      );
+    }
+
+    const resBody = refreshResult?.data;
+    const newAccessToken =
+      resBody?.data?.accessToken ||
+      resBody?.data?.access_token ||
+      resBody?.accessToken ||
+      resBody?.access_token;
+
+    if (newAccessToken) {
+      const newRefreshToken =
+        resBody?.data?.refreshToken ||
+        resBody?.data?.refresh_token ||
+        resBody?.refreshToken ||
+        resBody?.refresh_token;
+
+      tokenStore.set({
+        access_token: newAccessToken,
+        refresh_token: newRefreshToken || refreshToken,
       });
 
-      // Retry original request
+      api.dispatch(tokenRefreshed(newAccessToken));
+
+      // Retry original request with new token
       result = await baseQuery(args, api, extraOptions);
     } else {
       // Refresh failed — force logout
       tokenStore.clear();
-      api.dispatch({ type: 'auth/logout' });
+      api.dispatch(logout());
     }
   }
 
@@ -84,6 +115,12 @@ const apiSlice = createApi({
     'AdminOrders',
     'AdminCommissions',
     'AdminAuditLog',
+    'BoostPlans',
+    'Locations',
+    'Coupons',
+    'Cms',
+    'AppSettings',
+    'Reviews',
   ],
   endpoints: () => ({}), // Injected per feature
 });

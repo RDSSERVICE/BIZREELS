@@ -4,21 +4,16 @@ const ApiError = require('../utils/ApiError');
 const User = require('../models/User');
 
 /**
- * Authenticate incoming requests via JWT Bearer token.
- * Attaches the decoded user to req.user.
+ * Authenticate incoming requests via JWT Bearer token or cookie.
+ * Supports both token signing secrets and payload formats.
  */
 const authenticate = async (req, res, next) => {
   try {
     let token;
-
-    // Extract token from Authorization header
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
-    }
-
-    // Fallback: extract from httpOnly cookie
-    if (!token && req.cookies?.accessToken) {
+    } else if (req.cookies?.accessToken) {
       token = req.cookies.accessToken;
     }
 
@@ -26,11 +21,19 @@ const authenticate = async (req, res, next) => {
       throw ApiError.unauthorized('Access denied. No token provided.');
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, config.jwt.accessSecret);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, config.jwt.accessSecret);
+    } catch {
+      try {
+        decoded = jwt.verify(token, config.jwtSecret);
+      } catch {
+        throw ApiError.unauthorized('Invalid or expired token.');
+      }
+    }
 
-    // Fetch user from DB (exclude password, include only needed fields)
-    const user = await User.findById(decoded.userId)
+    const userId = decoded.userId || decoded.sub;
+    const user = await User.findById(userId)
       .select('-password -__v')
       .lean();
 
@@ -38,11 +41,10 @@ const authenticate = async (req, res, next) => {
       throw ApiError.unauthorized('User associated with this token no longer exists.');
     }
 
-    if (user.isDeleted) {
+    if (user.is_active === false || user.isDeleted) {
       throw ApiError.unauthorized('This account has been deactivated.');
     }
 
-    // Attach user to request
     req.user = user;
     next();
   } catch (error) {
@@ -55,12 +57,6 @@ const authenticate = async (req, res, next) => {
 
 /**
  * Role-based access control middleware.
- * Checks if the user's activeRole is among allowed roles.
- *
- * Usage: authorize('vendor', 'admin')
- *
- * @param  {...string} allowedRoles
- * @returns {Function} Express middleware
  */
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
@@ -68,12 +64,17 @@ const authorize = (...allowedRoles) => {
       return next(ApiError.unauthorized('Authentication required.'));
     }
 
-    const userRole = req.user.activeRole;
+    const userRoles = req.user.roles || [];
+    const activeRole = req.user.activeRole || req.user.current_role;
 
-    if (!allowedRoles.includes(userRole)) {
+    const hasPermission = allowedRoles.some(
+      (role) => userRoles.includes(role) || activeRole === role
+    );
+
+    if (!hasPermission) {
       return next(
         ApiError.forbidden(
-          `Role "${userRole}" is not authorized to access this resource. Required: ${allowedRoles.join(', ')}`
+          `Role "${activeRole}" is not authorized to access this resource. Required: ${allowedRoles.join(', ')}`
         )
       );
     }
