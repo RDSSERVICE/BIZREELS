@@ -63,6 +63,13 @@ const AppLayout = () => {
     return null;
   }
 
+  // If activeRole is admin, redirect directly to the dedicated Admin Control Panel
+  if (activeRole === 'admin') {
+    navigate('/admin/dashboard', { replace: true });
+    return null;
+  }
+
+
   const handleRoleChange = async (newRole) => {
     try {
       const hasRole = user.roles.includes(newRole);

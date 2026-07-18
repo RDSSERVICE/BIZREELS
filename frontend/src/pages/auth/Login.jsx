@@ -43,7 +43,12 @@ const Login = () => {
       }).unwrap();
       dispatch(setCredentials(res.data));
       toast.success('Welcome back to BizReels!');
-      navigate(from, { replace: true });
+      const roles = res.data?.user?.roles || [];
+      if (roles.includes('admin') || res.data?.activeRole === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       toast.error(err?.data?.message || 'Login failed. Please check credentials.');
     }
@@ -85,11 +90,17 @@ const Login = () => {
 
       dispatch(setCredentials(res.data));
       toast.success('Welcome back to BizReels!');
-      navigate(from, { replace: true });
+      const roles = res.data?.user?.roles || [];
+      if (roles.includes('admin') || res.data?.activeRole === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       toast.error(err?.data?.message || 'Invalid or expired OTP.');
     }
   };
+
 
   const handleGoogleLogin = () => {
     window.location.href = `${API_CONFIG.BASE_URL}/auth/google`;

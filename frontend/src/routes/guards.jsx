@@ -69,11 +69,15 @@ export const PublicRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
+    if (activeRole === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
     if (activeRole === 'vendor' || activeRole === 'creator') {
       return <Navigate to="/dashboard" replace />;
     }
     return <Navigate to="/feed" replace />;
   }
+
 
   return children;
 };

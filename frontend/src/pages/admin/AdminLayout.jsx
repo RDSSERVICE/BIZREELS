@@ -121,18 +121,17 @@ const AdminLayout = () => {
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
       <div className="px-4 py-4 border-b border-border flex items-center gap-3">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center shadow-premium group-hover:scale-105 transition-transform">
-            <FiShield className="w-5 h-5 text-white" />
-          </div>
+        <Link to="/admin/dashboard" className="flex items-center gap-2 group">
+          <img src="/logo.png" alt="BizReels Logo" className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" />
           <div>
             <span className="text-sm font-black text-text-primary font-display block leading-tight">
-              Biz<span className="gradient-text">Reels</span>
+              Biz<span className="gradient-text font-black">Reels</span>
             </span>
-            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest">Admin Panel</span>
+            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest block">Admin Panel</span>
           </div>
         </Link>
       </div>
+
 
       {/* Nav Sections */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
@@ -255,10 +254,12 @@ const AdminLayout = () => {
             >
               {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
             </button>
-            <div className="hidden sm:block">
-              <h1 className="text-sm font-bold text-text-primary font-display">Admin Panel</h1>
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden" />
+              <h1 className="text-sm font-bold text-text-primary font-display">Admin Control Panel</h1>
             </div>
           </div>
+
           <div className="flex items-center gap-3">
             <Link to="/admin/notifications" className="p-2 text-text-tertiary hover:text-brand-purple rounded-xl hover:bg-surface-tertiary transition-all relative">
               <FiBell className="w-5 h-5" />
