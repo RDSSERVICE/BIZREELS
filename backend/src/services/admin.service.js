@@ -497,6 +497,7 @@ module.exports = {
   unfreezeWallet,
   addRole,
   removeRole,
+  listListings: listListingsAdmin,
   listListingsAdmin,
   takedownListing,
   restoreListing,
@@ -508,3 +509,4 @@ module.exports = {
   deleteUser,
   getLoginHistory,
 };
+
