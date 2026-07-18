@@ -5,35 +5,18 @@ import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import { useListAdminAuditLogQuery } from '../../../features/admin/adminApi';
 
+const formatDate = (val) => {
+  if (!val) return '—';
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString();
+};
+
 export default function AdminAuditPage() {
   const [search, setSearch] = useState('');
   const [viewAudit, setViewAudit] = useState(null);
 
   const { data, isFetching } = useListAdminAuditLogQuery({ limit: 100 }, { pollingInterval: 5000 });
-  const items = data?.items || [
-    {
-      id: '1',
-      user_id: 'admin_master',
-      action: 'user_ban',
-      target_user: 'vendor_ankit99',
-      old_value: 'is_banned: false, status: active',
-      new_value: 'is_banned: true, status: suspended',
-      meta: { reason: 'Fake documents submitted' },
-      ip: '127.0.0.1',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      user_id: 'admin_kyc',
-      action: 'kyc_approved',
-      target_user: 'vendor_glow_spa',
-      old_value: 'kyc_status: pending',
-      new_value: 'kyc_status: approved',
-      meta: { doc_type: 'GST' },
-      ip: '49.36.12.80',
-      created_at: new Date().toISOString(),
-    },
-  ];
+  const items = data?.items || [];
 
   const columns = [
     {
@@ -58,7 +41,7 @@ export default function AdminAuditPage() {
     {
       key: 'created_at',
       label: 'Timestamp',
-      render: (val) => <span className="text-text-tertiary text-xs">{val ? new Date(val).toLocaleString() : '—'}</span>,
+      render: (val) => <span className="text-text-tertiary text-xs">{formatDate(val)}</span>,
     },
   ];
 
@@ -98,7 +81,7 @@ export default function AdminAuditPage() {
               <div><span className="text-text-tertiary">Action:</span> <strong className="uppercase text-brand-purple">{viewAudit.action}</strong></div>
               <div><span className="text-text-tertiary">Target:</span> <strong className="font-mono text-text-primary">{viewAudit.target_user || '—'}</strong></div>
               <div><span className="text-text-tertiary">IP Address:</span> <strong className="font-mono text-text-secondary">{viewAudit.ip || '127.0.0.1'}</strong></div>
-              <div><span className="text-text-tertiary">Timestamp:</span> <span className="text-text-secondary">{new Date(viewAudit.created_at).toLocaleString()}</span></div>
+              <div><span className="text-text-tertiary">Timestamp:</span> <span className="text-text-secondary">{formatDate(viewAudit.created_at)}</span></div>
             </div>
 
             {/* Old vs New Value Diff */}
@@ -121,3 +104,4 @@ export default function AdminAuditPage() {
     </div>
   );
 }
+

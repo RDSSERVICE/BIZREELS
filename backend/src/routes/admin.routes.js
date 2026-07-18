@@ -748,30 +748,46 @@ router.get('/audit-log', requireAuth, requireAdmin, catchAsync(async (req, res) 
   const limit = Math.max(1, Math.min(200, parseInt(req.query.limit || 50, 10)));
 
   const q = {};
-  if (user_id) q.user_id = user_id;
+  if (user_id) q.$or = [{ user_id }, { userId: user_id }];
   if (action) q.action = action;
 
   const dtFrom = parseDateString(from);
   const dtTo = parseDateString(to);
   if (dtFrom || dtTo) {
-    q.created_at = {};
-    if (dtFrom) q.created_at.$gte = dtFrom.toISOString();
-    if (dtTo) q.created_at.$lte = dtTo.toISOString();
+    q.createdAt = {};
+    if (dtFrom) q.createdAt.$gte = dtFrom;
+    if (dtTo) q.createdAt.$lte = dtTo;
   }
 
   const docs = await AuditLog.find(q).sort({ _id: -1 }).limit(limit);
 
   res.json({
-    items: docs.map(d => ({
-      id: d._id.toString(),
-      user_id: d.user_id,
-      action: d.action,
-      meta: d.meta,
-      ip: d.ip,
-      created_at: d.created_at,
-    })),
+    items: docs.map(d => {
+      const obj = d.toObject ? d.toObject() : d;
+      const ts = obj.created_at || obj.createdAt || (d._id && d._id.getTimestamp ? d._id.getTimestamp().toISOString() : new Date().toISOString());
+      const metaObj = obj.meta || obj.metadata || {};
+      
+      let oldValue = obj.old_value || metaObj.old_value || null;
+      let newValue = obj.new_value || metaObj.new_value || obj.description || (Object.keys(metaObj).length > 0 ? JSON.stringify(metaObj, null, 2) : null);
+
+      if (typeof oldValue === 'object' && oldValue !== null) oldValue = JSON.stringify(oldValue, null, 2);
+      if (typeof newValue === 'object' && newValue !== null) newValue = JSON.stringify(newValue, null, 2);
+
+      return {
+        id: d._id.toString(),
+        user_id: obj.user_id || obj.userId || 'System Admin',
+        action: obj.action,
+        target_user: obj.target_user || metaObj.target || obj.entityId || '—',
+        meta: metaObj,
+        old_value: oldValue || 'N/A',
+        new_value: newValue || 'N/A',
+        ip: obj.ip || obj.ipAddress || '127.0.0.1',
+        created_at: typeof ts === 'object' && ts.toISOString ? ts.toISOString() : String(ts),
+      };
+    }),
     count: docs.length,
   });
 }));
+
 
 module.exports = router;
