@@ -188,20 +188,63 @@ const restoreListing = async (listingId) => {
 const analyticsOverview = async () => {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
-  const totalUsers = await User.countDocuments({ is_deleted: { $ne: true } });
+  // Lazy-load models that may not always be available
+  let Reel, Subscription;
+  try { Reel = require('../models/Reel'); } catch (e) { Reel = null; }
+  try { ({ Subscription } = require('../models/Phase4')); } catch (e) { Subscription = null; }
+
+  const [
+    totalUsers,
+    totalCustomers,
+    totalVendors,
+    totalCreators,
+    totalListings,
+    activeListings,
+    totalDeals,
+    completedDeals,
+    pendingKycCount,
+    totalOrders,
+  ] = await Promise.all([
+    User.countDocuments({ is_deleted: { $ne: true } }),
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true } }),
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true } }),
+    User.countDocuments({ roles: 'creator', is_deleted: { $ne: true } }),
+    Listing.countDocuments({ is_deleted: { $ne: true } }),
+    Listing.countDocuments({ is_deleted: { $ne: true }, status: 'active' }),
+    Deal.countDocuments({}),
+    Deal.countDocuments({ status: 'completed' }),
+    KycDocument.countDocuments({ status: 'pending', is_deleted: { $ne: true } }),
+    Deal.countDocuments({ is_deleted: { $ne: true } }),
+  ]);
+
+  const openReportsCount = await reportService.openCount();
+
+  // Active users last 7 days
   const activeUsersLast7d = await AuditLog.countDocuments({
     action: 'login',
     created_at: { $gte: sevenDaysAgo },
   });
-  const totalVendors = await User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true } });
-  const totalListings = await Listing.countDocuments({ is_deleted: { $ne: true } });
-  const activeListings = await Listing.countDocuments({ is_deleted: { $ne: true }, status: 'active' });
-  const totalDeals = await Deal.countDocuments({});
-  const completedDeals = await Deal.countDocuments({ status: 'completed' });
-  const pendingKycCount = await KycDocument.countDocuments({ status: 'pending', is_deleted: { $ne: true } });
-  const openReportsCount = await reportService.openCount();
 
+  // Total reels
+  let totalReels = 0;
+  let todaysUploads = 0;
+  let activeBoosts = 0;
+  if (Reel) {
+    totalReels = await Reel.countDocuments({ isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || await Reel.countDocuments({}).catch(() => 0);
+    todaysUploads = await Reel.countDocuments({ createdAt: { $gte: new Date(todayStart) } }).catch(() => 0);
+    activeBoosts = await Reel.countDocuments({ isBoosted: true, isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || 0;
+  }
+  // Add listing boosts to active boosts
+  const listingBoosts = await Listing.countDocuments({ isBoosted: true, isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || 0;
+  activeBoosts += listingBoosts;
+
+  // Today's listing uploads
+  const todaysListings = await Listing.countDocuments({ createdAt: { $gte: new Date(todayStart) } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || 0;
+  todaysUploads += todaysListings;
+
+  // GMV / Revenue
   const gmvPipeline = [
     { $match: { status: 'completed' } },
     {
@@ -221,17 +264,118 @@ const analyticsOverview = async () => {
   const gmvRes = await Deal.aggregate(gmvPipeline);
   const totalGmvPaise = Math.round((gmvRes.length > 0 ? gmvRes[0].gmv : 0) * 100);
 
+  // Wallet balance (sum all wallet credits)
+  let totalWalletBalance = 0;
+  try {
+    const walletAgg = await Wallet.aggregate([
+      { $group: { _id: null, total: { $sum: '$credits' }, total_inr: { $sum: '$balance_inr_paise' } } }
+    ]);
+    totalWalletBalance = walletAgg.length > 0 ? (walletAgg[0].total_inr || 0) : 0;
+  } catch (e) { /* Wallet not yet populated */ }
+
+  // Subscription revenue
+  let subscriptionRevenue = 0;
+  if (Subscription) {
+    try {
+      const activeSubs = await Subscription.countDocuments({ status: 'active' });
+      subscriptionRevenue = activeSubs * 29900; // Assume avg ₹299 plan in paise
+    } catch (e) { /* ignore */ }
+  }
+
   return {
     total_users: totalUsers,
-    active_users_last_7d: activeUsersLast7d,
+    total_customers: totalCustomers,
     total_vendors: totalVendors,
+    total_creators: totalCreators,
     total_listings: totalListings,
     active_listings: activeListings,
+    total_reels: totalReels,
+    todays_uploads: todaysUploads,
+    active_boosts: activeBoosts,
+    total_revenue_paise: totalGmvPaise,
     total_deals: totalDeals,
     completed_deals: completedDeals,
     total_gmv_paise: totalGmvPaise,
     pending_kyc_count: pendingKycCount,
     open_reports_count: openReportsCount,
+    total_orders: totalOrders,
+    wallet_balance_paise: totalWalletBalance,
+    subscription_revenue_paise: subscriptionRevenue,
+    active_users_last_7d: activeUsersLast7d,
+  };
+};
+
+// ============================================================ USER DETAIL / CRUD
+const getUserDetail = async (userId) => {
+  const u = await User.findById(userId);
+  if (!u || u.is_deleted) throw ApiError.notFound('User not found');
+
+  let walletData = null;
+  try {
+    const w = await Wallet.findOne({ user_id: userId });
+    if (w) {
+      walletData = {
+        credits: w.credits,
+        balance_inr_paise: w.balance_inr_paise,
+        is_frozen: w.is_frozen,
+      };
+    }
+  } catch (e) { /* ignore */ }
+
+  return {
+    ...serializeUserAdmin(u),
+    email: u.email,
+    gender: u.gender,
+    dob: u.dob,
+    city: u.city || u.location?.city,
+    state: u.location?.state,
+    pincode: u.location?.pincode,
+    profile_pic: u.profile_pic || u.avatarUrl,
+    vendor_profile: u.vendorProfile,
+    creator_profile: u.creatorProfile,
+    followersCount: u.followersCount || 0,
+    followingCount: u.followingCount || 0,
+    wallet: walletData,
+  };
+};
+
+const updateUser = async (userId, updates) => {
+  const u = await User.findById(userId);
+  if (!u) throw ApiError.notFound('User not found');
+  if ((u.roles || []).includes('admin')) throw ApiError.forbidden('Cannot modify an admin account');
+
+  const allowed = ['name', 'email', 'gender', 'dob', 'city'];
+  const safeUpdates = {};
+  for (const key of allowed) {
+    if (updates[key] !== undefined) safeUpdates[key] = updates[key];
+  }
+  safeUpdates.updated_at = new Date().toISOString();
+  await User.updateOne({ _id: userId }, { $set: safeUpdates });
+  return { ok: true, user_id: userId };
+};
+
+const suspendUser = async (userId) => {
+  return await flipUser(userId, { is_active: false });
+};
+
+const deleteUser = async (userId) => {
+  return await flipUser(userId, { is_deleted: true, is_active: false });
+};
+
+const getLoginHistory = async (userId, limit = 20) => {
+  const logs = await AuditLog.find({
+    user_id: userId,
+    action: { $in: ['login', 'logout', 'login_failed'] },
+  }).sort({ _id: -1 }).limit(limit);
+
+  return {
+    items: logs.map(l => ({
+      id: l._id.toString(),
+      action: l.action,
+      ip: l.ip || l.meta?.ip || null,
+      user_agent: l.meta?.user_agent || null,
+      created_at: l.created_at,
+    })),
   };
 };
 
@@ -358,4 +502,9 @@ module.exports = {
   restoreListing,
   analyticsOverview,
   purgeTestData,
+  getUserDetail,
+  updateUser,
+  suspendUser,
+  deleteUser,
+  getLoginHistory,
 };

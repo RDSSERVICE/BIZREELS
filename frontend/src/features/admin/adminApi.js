@@ -2,9 +2,7 @@ import apiSlice from '../../api/apiSlice';
 
 /**
  * Admin API Slice
- * Injects every endpoint the admin panel needs: user moderation, listing
- * moderation, KYC review queue, reports, integration settings, the analytics
- * overview, and the admin console (transactions/orders/commissions/audit log).
+ * Injects endpoints for all admin panel modules across all phases.
  */
 const adminApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -25,6 +23,14 @@ const adminApi = apiSlice.injectEndpoints({
             ]
           : [{ type: 'AdminUsers', id: 'LIST' }],
     }),
+    getUserDetail: builder.query({
+      query: (id) => `/admin/users/${id}`,
+      providesTags: (result, error, id) => [{ type: 'AdminUsers', id }],
+    }),
+    updateUser: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/admin/users/${id}`, method: 'PATCH', body }),
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }],
+    }),
     banUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/ban`, method: 'POST' }),
       invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview'],
@@ -32,6 +38,14 @@ const adminApi = apiSlice.injectEndpoints({
     unbanUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/unban`, method: 'POST' }),
       invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }],
+    }),
+    suspendUser: builder.mutation({
+      query: (id) => ({ url: `/admin/users/${id}/suspend`, method: 'POST' }),
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }],
+    }),
+    deleteUser: builder.mutation({
+      query: (id) => ({ url: `/admin/users/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview'],
     }),
     freezeWallet: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/freeze-wallet`, method: 'POST' }),
@@ -48,6 +62,9 @@ const adminApi = apiSlice.injectEndpoints({
     removeUserRole: builder.mutation({
       query: ({ id, role }) => ({ url: `/admin/users/${id}/remove-role`, method: 'POST', body: { role } }),
       invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }],
+    }),
+    getLoginHistory: builder.query({
+      query: (id) => `/admin/users/${id}/login-history`,
     }),
 
     // ---- Listings ----
@@ -69,6 +86,123 @@ const adminApi = apiSlice.injectEndpoints({
       query: (id) => ({ url: `/admin/listings/${id}/restore`, method: 'POST' }),
       invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }],
     }),
+    bulkApproveListings: builder.mutation({
+      query: (listing_ids) => ({ url: '/admin/listings/bulk-approve', method: 'POST', body: { listing_ids } }),
+      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }, 'AdminOverview'],
+    }),
+
+    // ---- Reels ----
+    listAdminReels: builder.query({
+      query: (params = {}) => ({ url: '/admin/reels', params }),
+      providesTags: ['Reels'],
+    }),
+    takedownReel: builder.mutation({
+      query: (id) => ({ url: `/admin/reels/${id}/takedown`, method: 'POST' }),
+      invalidatesTags: ['Reels', 'AdminOverview'],
+    }),
+    toggleBoostReel: builder.mutation({
+      query: (id) => ({ url: `/admin/reels/${id}/boost`, method: 'POST' }),
+      invalidatesTags: ['Reels', 'AdminOverview'],
+    }),
+
+    // ---- Boost Plans ----
+    listBoostPlans: builder.query({
+      query: () => '/admin/boost/plans',
+      providesTags: ['BoostPlans'],
+    }),
+    createBoostPlan: builder.mutation({
+      query: (body) => ({ url: '/admin/boost/plans', method: 'POST', body }),
+      invalidatesTags: ['BoostPlans'],
+    }),
+    updateBoostPlan: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/admin/boost/plans/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['BoostPlans'],
+    }),
+
+    // ---- Requirements ----
+    listAdminRequirements: builder.query({
+      query: (params = {}) => ({ url: '/admin/requirements', params }),
+      providesTags: ['Requirements'],
+    }),
+
+    // ---- Wallet Manual Operations ----
+    manualCreditWallet: builder.mutation({
+      query: (body) => ({ url: '/admin/wallet/manual-credit', method: 'POST', body }),
+      invalidatesTags: ['AdminTransactions', 'AdminOverview'],
+    }),
+    manualDebitWallet: builder.mutation({
+      query: (body) => ({ url: '/admin/wallet/manual-debit', method: 'POST', body }),
+      invalidatesTags: ['AdminTransactions', 'AdminOverview'],
+    }),
+
+    // ---- Reviews ----
+    listAdminReviews: builder.query({
+      query: (params = {}) => ({ url: '/admin/reviews', params }),
+      providesTags: ['Reviews'],
+    }),
+    deleteAdminReview: builder.mutation({
+      query: (id) => ({ url: `/admin/reviews/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Reviews'],
+    }),
+
+    // ---- CMS Pages ----
+    getCmsPages: builder.query({
+      query: () => '/admin/cms',
+      providesTags: ['Cms'],
+    }),
+    updateCmsPage: builder.mutation({
+      query: ({ slug, ...body }) => ({ url: `/admin/cms/${slug}`, method: 'PUT', body }),
+      invalidatesTags: ['Cms'],
+    }),
+
+    // ---- App Settings ----
+    getAppSettings: builder.query({
+      query: () => '/admin/app-settings',
+      providesTags: ['AppSettings'],
+    }),
+    updateAppSettings: builder.mutation({
+      query: (body) => ({ url: '/admin/app-settings', method: 'PATCH', body }),
+      invalidatesTags: ['AppSettings'],
+    }),
+
+    // ---- Admin Security Logs ----
+    getAdminSecurityLogs: builder.query({
+      query: () => '/admin/security/logs',
+    }),
+
+    // ---- Notifications Broadcast ----
+    sendBroadcastNotification: builder.mutation({
+      query: (body) => ({ url: '/admin/notifications/broadcast', method: 'POST', body }),
+    }),
+
+
+    // ---- Coupons & Offers ----
+    listCoupons: builder.query({
+      query: () => '/admin/coupons',
+      providesTags: ['Coupons'],
+    }),
+    createCoupon: builder.mutation({
+      query: (body) => ({ url: '/admin/coupons', method: 'POST', body }),
+      invalidatesTags: ['Coupons'],
+    }),
+
+    // ---- Chat Monitoring ----
+    listReportedChats: builder.query({
+      query: () => '/admin/chat/reported',
+      providesTags: ['Chat'],
+    }),
+
+
+    // ---- Locations ----
+    listLocations: builder.query({
+      query: () => '/admin/locations',
+      providesTags: ['Locations'],
+    }),
+    createLocation: builder.mutation({
+      query: (body) => ({ url: '/admin/locations', method: 'POST', body }),
+      invalidatesTags: ['Locations'],
+    }),
+
 
     // ---- KYC queue ----
     getKycQueue: builder.query({
@@ -153,7 +287,7 @@ const adminApi = apiSlice.injectEndpoints({
       providesTags: ['AdminAuditLog'],
     }),
 
-    // ---- Categories (Realtime database items) ----
+    // ---- Categories ----
     listCategories: builder.query({
       query: () => '/categories',
       providesTags: ['Categories'],
@@ -172,16 +306,47 @@ const adminApi = apiSlice.injectEndpoints({
 export const {
   useGetAdminOverviewQuery,
   useListAdminUsersQuery,
+  useGetUserDetailQuery,
+  useUpdateUserMutation,
   useBanUserMutation,
   useUnbanUserMutation,
+  useSuspendUserMutation,
+  useDeleteUserMutation,
   useFreezeWalletMutation,
   useUnfreezeWalletMutation,
   useAddUserRoleMutation,
   useRemoveUserRoleMutation,
+  useGetLoginHistoryQuery,
   useListAdminListingsQuery,
   useTakedownListingMutation,
   useRestoreListingMutation,
+  useBulkApproveListingsMutation,
+  useListAdminReelsQuery,
+  useTakedownReelMutation,
+  useToggleBoostReelMutation,
+  useListBoostPlansQuery,
+  useCreateBoostPlanMutation,
+  useUpdateBoostPlanMutation,
+  useListLocationsQuery,
+  useCreateLocationMutation,
+  useListAdminRequirementsQuery,
+  useManualCreditWalletMutation,
+  useManualDebitWalletMutation,
+  useListAdminReviewsQuery,
+  useDeleteAdminReviewMutation,
+  useGetCmsPagesQuery,
+  useUpdateCmsPageMutation,
+  useGetAppSettingsQuery,
+  useUpdateAppSettingsMutation,
+  useGetAdminSecurityLogsQuery,
+  useSendBroadcastNotificationMutation,
+  useListCouponsQuery,
+
+  useCreateCouponMutation,
+  useListReportedChatsQuery,
+
   useGetKycQueueQuery,
+
   useApproveKycMutation,
   useRejectKycMutation,
   useListAdminReportsQuery,

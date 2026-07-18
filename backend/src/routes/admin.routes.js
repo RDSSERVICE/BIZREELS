@@ -86,6 +86,38 @@ router.post('/users/:user_id/remove-role', requireAuth, requireAdmin, catchAsync
   res.json(result);
 }));
 
+// Get user detail
+router.get('/users/:user_id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.getUserDetail(req.params.user_id);
+  res.json(result);
+}));
+
+// Update user
+router.patch('/users/:user_id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.updateUser(req.params.user_id, req.body);
+  res.json(result);
+}));
+
+// Suspend user
+router.post('/users/:user_id/suspend', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.suspendUser(req.params.user_id);
+  res.json(result);
+}));
+
+// Delete user (soft)
+router.delete('/users/:user_id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.deleteUser(req.params.user_id);
+  res.json(result);
+}));
+
+// Login history
+router.get('/users/:user_id/login-history', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 20, 10)));
+  const result = await adminService.getLoginHistory(req.params.user_id, limit);
+  res.json(result);
+}));
+
+
 // ============================================================ LISTINGS OPERATIONS
 router.get('/listings', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const { status, flagged, cursor } = req.query;
@@ -96,15 +128,224 @@ router.get('/listings', requireAuth, requireAdmin, catchAsync(async (req, res) =
   res.json(result);
 }));
 
-router.post('/listings/:listing_id/takedown', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const result = await adminService.takedownListing(req.params.listing_id);
-  res.json(result);
+router.post('/listings/bulk-approve', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { listing_ids } = req.body;
+  if (!Array.isArray(listing_ids) || listing_ids.length === 0) {
+    throw ApiError.badRequest('listing_ids array required');
+  }
+  const Listing = require('../models/Listing');
+  await Listing.updateMany({ _id: { $in: listing_ids } }, { $set: { status: 'active', is_takendown: false } });
+  res.json({ ok: true, count: listing_ids.length });
 }));
 
-router.post('/listings/:listing_id/restore', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const result = await adminService.restoreListing(req.params.listing_id);
-  res.json(result);
+// ============================================================ REELS OPERATIONS
+router.get('/reels', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { status, is_boosted, is_trending } = req.query;
+  const Reel = require('../models/Reel');
+  const q = {};
+  if (is_boosted !== undefined) q.isBoosted = is_boosted === 'true';
+  const reels = await Reel.find(q).populate('creator', 'name phone').sort({ createdAt: -1 }).limit(50);
+  res.json({
+    items: reels.map(r => ({
+      id: r._id.toString(),
+      caption: r.caption,
+      videoUrl: r.videoUrl,
+      thumbnailUrl: r.thumbnailUrl,
+      creator_name: r.creator?.name || 'Unknown',
+      views: r.views || 0,
+      likesCount: r.likesCount || 0,
+      commentsCount: r.commentsCount || 0,
+      isBoosted: r.isBoosted || false,
+      isDeleted: r.isDeleted || false,
+      createdAt: r.createdAt,
+    })),
+  });
 }));
+
+router.post('/reels/:reel_id/takedown', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const Reel = require('../models/Reel');
+  await Reel.updateOne({ _id: req.params.reel_id }, { $set: { isDeleted: true, deletedAt: new Date() } });
+  res.json({ ok: true });
+}));
+
+router.post('/reels/:reel_id/boost', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const Reel = require('../models/Reel');
+  const r = await Reel.findById(req.params.reel_id);
+  if (!r) throw ApiError.notFound('Reel not found');
+  await Reel.updateOne({ _id: req.params.reel_id }, { $set: { isBoosted: !r.isBoosted } });
+  res.json({ ok: true, isBoosted: !r.isBoosted });
+}));
+
+// ============================================================ BOOST PLANS
+router.get('/boost/plans', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { BoostPlan } = require('../models/Admin');
+  const plans = await BoostPlan.find({ is_deleted: { $ne: true } }).sort({ price_inr: 1 });
+  res.json({ items: plans.map(p => ({ id: p._id.toString(), name: p.name, description: p.description, duration_days: p.duration_days, price_inr: p.price_inr, credits_cost: p.credits_cost, is_active: p.is_active })) });
+}));
+
+router.post('/boost/plans', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { BoostPlan } = require('../models/Admin');
+  const plan = await BoostPlan.create(req.body);
+  res.json({ ok: true, plan });
+}));
+
+router.patch('/boost/plans/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { BoostPlan } = require('../models/Admin');
+  await BoostPlan.updateOne({ _id: req.params.id }, { $set: req.body });
+  res.json({ ok: true });
+}));
+
+// ============================================================ LOCATIONS
+// ============================================================ REQUIREMENTS
+router.get('/requirements', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { status, type } = req.query;
+  const Requirement = require('../models/Requirement');
+  const q = { is_deleted: { $ne: true } };
+  if (status) q.status = status;
+  if (type) q.type = type;
+  const reqs = await Requirement.find(q).populate('customer_id', 'name phone').sort({ created_at: -1 }).limit(50);
+  res.json({
+    items: reqs.map(r => ({
+      id: r._id.toString(),
+      title: r.title,
+      type: r.type || 'product',
+      category: r.category,
+      budget: r.budget || r.budget_inr || 0,
+      customer_name: r.customer_id?.name || 'Customer',
+      status: r.status || 'pending',
+      matches_count: r.proposals_count || r.matches_count || 0,
+      created_at: r.created_at || r.createdAt,
+    })),
+  });
+}));
+
+// ============================================================ WALLET MANUAL CREDIT/DEBIT
+router.post('/wallet/manual-credit', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { user_id, amount_credits, reason } = req.body;
+  if (!user_id || !amount_credits) throw ApiError.badRequest('user_id and amount_credits required');
+  const walletService = require('../services/wallet.service');
+  const w = await walletService.getOrCreate(user_id);
+  const updated = await walletService.creditWallet(user_id, amount_credits, 'credits', reason || 'Admin Manual Credit', 'admin_credit', req.user._id.toString());
+  res.json({ ok: true, wallet: updated });
+}));
+
+router.post('/wallet/manual-debit', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { user_id, amount_credits, reason } = req.body;
+  if (!user_id || !amount_credits) throw ApiError.badRequest('user_id and amount_credits required');
+  const walletService = require('../services/wallet.service');
+  const updated = await walletService.debitWallet(user_id, amount_credits, 'credits', reason || 'Admin Manual Debit', 'admin_debit', req.user._id.toString());
+  res.json({ ok: true, wallet: updated });
+}));
+
+// ============================================================ REVIEWS MODERATION
+router.get('/reviews', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { target_type } = req.query;
+  const { Review } = require('../models/Phase4');
+  const q = { is_deleted: { $ne: true } };
+  if (target_type) q.target_type = target_type;
+  const reviews = await Review.find(q).sort({ created_at: -1 }).limit(50);
+  res.json({
+    items: reviews.map(r => ({
+      id: r._id.toString(),
+      reviewer_id: r.reviewer_id,
+      target_type: r.target_type,
+      target_id: r.target_id,
+      rating: r.rating,
+      comment: r.comment,
+      is_active: r.is_active,
+      created_at: r.created_at || r.createdAt,
+    })),
+  });
+}));
+
+router.delete('/reviews/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { Review } = require('../models/Phase4');
+  await Review.updateOne({ _id: req.params.id }, { $set: { is_deleted: true } });
+  res.json({ ok: true });
+}));
+
+// ============================================================ CHAT MONITORING
+// ============================================================ NOTIFICATIONS BROADCAST
+router.post('/notifications/broadcast', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { channel, title, body, target_role, scheduled_at } = req.body;
+  if (!title || !body) throw ApiError.badRequest('Title and body required');
+  const notificationService = require('../services/notification.service');
+  const User = require('../models/User');
+  const q = { is_deleted: { $ne: true } };
+  if (target_role && target_role !== 'all') q.roles = target_role;
+  const users = await User.find(q, { _id: 1 });
+  let count = 0;
+  for (const u of users) {
+    await notificationService.create(u._id.toString(), 'system', title, body, { channel }, '/notifications');
+    count++;
+  }
+  res.json({ ok: true, count, channel: channel || 'in_app' });
+}));
+
+// ============================================================ COUPONS & OFFERS
+router.get('/coupons', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { Coupon } = require('../models/Admin');
+  const coupons = await Coupon.find({ is_deleted: { $ne: true } }).sort({ created_at: -1 });
+  res.json({ items: coupons.map(c => ({ id: c._id.toString(), code: c.code, type: c.type, value: c.value, min_order_inr: c.min_order_inr, used_count: c.used_count, is_active: c.is_active, created_at: c.created_at })) });
+}));
+
+// ============================================================ CMS PAGES
+router.get('/cms', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { CmsPage } = require('../models/Admin');
+  const pages = await CmsPage.find({}).sort({ slug: 1 });
+  res.json({ items: pages.map(p => ({ slug: p.slug, title: p.title, content: p.content, is_published: p.is_published, updated_at: p.updated_at })) });
+}));
+
+router.put('/cms/:slug', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { CmsPage } = require('../models/Admin');
+  const { title, content, is_published } = req.body;
+  const p = await CmsPage.updateOne(
+    { slug: req.params.slug },
+    { $set: { title, content, is_published, last_edited_by: req.user._id.toString() } },
+    { upsert: true }
+  );
+  res.json({ ok: true });
+}));
+
+// ============================================================ APP SETTINGS
+router.get('/app-settings', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { AppSettings } = require('../models/Admin');
+  const settings = await AppSettings.find({});
+  const map = {};
+  for (const s of settings) map[s.key] = s.value;
+  res.json({
+    settings: {
+      app_logo: map.app_logo || null,
+      splash_screen: map.splash_screen || null,
+      theme: map.theme || 'dark',
+      languages: map.languages || ['en', 'hi'],
+      currency: map.currency || 'INR (₹)',
+      timezone: map.timezone || 'Asia/Kolkata (IST)',
+      maintenance_mode: map.maintenance_mode || false,
+      min_app_version: map.min_app_version || '1.0.0',
+      otp_provider: map.otp_provider || 'msg91',
+    },
+  });
+}));
+
+router.patch('/app-settings', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { AppSettings } = require('../models/Admin');
+  for (const [key, val] of Object.entries(req.body)) {
+    await AppSettings.updateOne({ key }, { $set: { value: val } }, { upsert: true });
+  }
+  res.json({ ok: true });
+}));
+
+// ============================================================ SECURITY & ADMIN LOGS
+router.get('/security/logs', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { AdminLoginLog } = require('../models/Admin');
+  const logs = await AdminLoginLog.find({}).sort({ created_at: -1 }).limit(50);
+  res.json({ items: logs.map(l => ({ id: l._id.toString(), admin_id: l.admin_id, ip: l.ip, user_agent: l.user_agent, status: l.status, created_at: l.created_at })) });
+}));
+
+
+
+
 
 router.get('/analytics/overview', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const result = await adminService.analyticsOverview();

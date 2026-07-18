@@ -118,17 +118,15 @@ const AppLayout = () => {
   // Sidebar Menu Items — Customized per role
   const getNavItems = () => {
     if (activeRole === 'admin') {
+      // Admin users get a quick link to the dedicated admin panel
       return [
-        { name: 'Overview', path: '/admin/dashboard', icon: FiGrid },
-        { name: 'Users', path: '/admin/users', icon: FiUsers },
-        { name: 'Listings', path: '/admin/listings', icon: FiLayers },
-        { name: 'Reports', path: '/admin/reports', icon: FiAlertTriangle },
-        { name: 'KYC', path: '/admin/kyc', icon: FiShield },
-        { name: 'Approvals', path: '/admin/approvals', icon: FiCheckSquare },
-        { name: 'Console', path: '/admin/console', icon: FiTrendingUp },
-        { name: 'Settings', path: '/admin/settings', icon: FiSettings }
+        { name: 'Admin Panel', path: '/admin/dashboard', icon: FiGrid },
+        { name: 'Home', path: '/feed', icon: FiHome },
+        { name: 'Discover', path: '/search', icon: FiSearch },
+        { name: 'Settings', path: '/settings', icon: FiSettings },
       ];
     }
+
 
     return [
       { name: 'Home', path: '/feed', icon: FiHome },
