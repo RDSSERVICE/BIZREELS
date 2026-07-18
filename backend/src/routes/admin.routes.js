@@ -15,7 +15,6 @@ const ApiError = require('../utils/ApiError');
 const router = express.Router();
 
 const requireAdmin = (req, res, next) => {
-   console.log(req.user);
   const roles = req.user.roles || [];
   if (!roles.includes('admin')) {
     return next(ApiError.forbidden('Admin only'));
@@ -117,7 +116,6 @@ router.get('/users/:user_id/login-history', requireAuth, requireAdmin, catchAsyn
   res.json(result);
 }));
 
-
 // ============================================================ LISTINGS OPERATIONS
 router.get('/listings', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const { status, flagged, cursor } = req.query;
@@ -136,6 +134,16 @@ router.post('/listings/bulk-approve', requireAuth, requireAdmin, catchAsync(asyn
   const Listing = require('../models/Listing');
   await Listing.updateMany({ _id: { $in: listing_ids } }, { $set: { status: 'active', is_takendown: false } });
   res.json({ ok: true, count: listing_ids.length });
+}));
+
+router.post('/listings/:listing_id/takedown', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.takedownListing(req.params.listing_id);
+  res.json(result);
+}));
+
+router.post('/listings/:listing_id/restore', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.restoreListing(req.params.listing_id);
+  res.json(result);
 }));
 
 // ============================================================ REELS OPERATIONS
@@ -196,6 +204,18 @@ router.patch('/boost/plans/:id', requireAuth, requireAdmin, catchAsync(async (re
 }));
 
 // ============================================================ LOCATIONS
+router.get('/locations', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { Location } = require('../models/Admin');
+  const locs = await Location.find({}).sort({ name: 1 }).limit(100);
+  res.json({ items: locs.map(l => ({ id: l._id.toString(), name: l.name, type: l.type, is_popular: l.is_popular, is_active: l.is_active })) });
+}));
+
+router.post('/locations', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { Location } = require('../models/Admin');
+  const loc = await Location.create(req.body);
+  res.json({ ok: true, location: loc });
+}));
+
 // ============================================================ REQUIREMENTS
 router.get('/requirements', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const { status, type } = req.query;
@@ -265,9 +285,25 @@ router.delete('/reviews/:id', requireAuth, requireAdmin, catchAsync(async (req, 
 }));
 
 // ============================================================ CHAT MONITORING
+router.get('/chat/reported', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { Report } = require('../models/Misc');
+  const reports = await Report.find({ target_type: 'chat', is_deleted: { $ne: true } }).sort({ _id: -1 }).limit(50);
+  res.json({
+    items: reports.map(r => ({
+      id: r._id.toString(),
+      reporter_id: r.reporter_id,
+      target_id: r.target_id,
+      reason: r.reason,
+      description: r.description,
+      status: r.status,
+      created_at: r.created_at,
+    })),
+  });
+}));
+
 // ============================================================ NOTIFICATIONS BROADCAST
 router.post('/notifications/broadcast', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { channel, title, body, target_role, scheduled_at } = req.body;
+  const { channel, title, body, target_role } = req.body;
   if (!title || !body) throw ApiError.badRequest('Title and body required');
   const notificationService = require('../services/notification.service');
   const User = require('../models/User');
@@ -287,6 +323,12 @@ router.get('/coupons', requireAuth, requireAdmin, catchAsync(async (req, res) =>
   const { Coupon } = require('../models/Admin');
   const coupons = await Coupon.find({ is_deleted: { $ne: true } }).sort({ created_at: -1 });
   res.json({ items: coupons.map(c => ({ id: c._id.toString(), code: c.code, type: c.type, value: c.value, min_order_inr: c.min_order_inr, used_count: c.used_count, is_active: c.is_active, created_at: c.created_at })) });
+}));
+
+router.post('/coupons', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { Coupon } = require('../models/Admin');
+  const coupon = await Coupon.create(req.body);
+  res.json({ ok: true, coupon });
 }));
 
 // ============================================================ CMS PAGES
@@ -342,10 +384,6 @@ router.get('/security/logs', requireAuth, requireAdmin, catchAsync(async (req, r
   const logs = await AdminLoginLog.find({}).sort({ created_at: -1 }).limit(50);
   res.json({ items: logs.map(l => ({ id: l._id.toString(), admin_id: l.admin_id, ip: l.ip, user_agent: l.user_agent, status: l.status, created_at: l.created_at })) });
 }));
-
-
-
-
 
 router.get('/analytics/overview', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const result = await adminService.analyticsOverview();
@@ -440,7 +478,6 @@ router.patch('/settings/integrations', requireAuth, requireAdmin, catchAsync(asy
 }));
 
 router.post('/settings/integrations/test', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  // P3 throttling: limit 20 test calls per hour per admin
   const { allowed, remaining } = checkAndRecord(`admin_test:${req.user._id.toString()}`, 20, 3600);
   if (!allowed) {
     throw new ApiError(429, `Too many test calls. Retry in ${remaining}s.`);
