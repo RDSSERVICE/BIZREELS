@@ -1,151 +1,89 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
+const helmet = require('helmet');
+const compression = require('compression');
+const { apiLimiter } = require('./middleware/rateLimiter');
+const cookieParser = require('cookie-parser');
+const morgan = require('morgan');
+const passport = require('passport');
 const config = require('./config');
-const uploadRoutes = require('./routes/upload.routes');
-const { optionalAuth } = require('./middleware/auth.middleware');
-const { errorHandler } = require('./middleware/error.middleware');
+const configurePassport = require('./config/passport');
 const routes = require('./routes');
+const errorHandler = require('./middleware/errorHandler');
 const ApiError = require('./utils/ApiError');
-const User = require('./models/User');
-const { KycDocument } = require('./models/Phase4');
+const logger = require('./utils/logger');
 
 const app = express();
 
-// Configure CORS
-const allowedOrigins = (process.env.CORS_ORIGINS || 'https://bizreels-india-2.preview.bizreelsagent.com,http://localhost:3000')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
+// ══════════════════════════════════════════════════════════════
+// SECURITY MIDDLEWARE
+// ══════════════════════════════════════════════════════════════
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-}));
+// Helmet — set security HTTP headers
+app.use(helmet());
 
-// Raw body capture for signature verify
-app.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf;
-  },
-}));
-app.use(express.urlencoded({ extended: true }));
+// CORS — allow frontend origin
+app.use(
+  cors({
+    origin: config.clientUrl,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  })
+);
 
-// Security Headers Middleware
-app.use((req, res, next) => {
-  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), interest-cohort=()');
-  next();
-});
+// Rate Limiting — prevent brute force & DDoS
+app.use('/api', apiLimiter);
 
-// Serve public uploads and gate sensitive ones (SEC-003)
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+// ══════════════════════════════════════════════════════════════
+// BODY PARSING & COMPRESSION
+// ══════════════════════════════════════════════════════════════
 
-// Serve processed WebP images statically
-const processedDir = path.isAbsolute(config.uploadProcessedDir)
-  ? config.uploadProcessedDir
-  : path.resolve(__dirname, '../', config.uploadProcessedDir);
-if (!fs.existsSync(processedDir)) {
-  fs.mkdirSync(processedDir, { recursive: true });
-}
-app.use('/api/uploads/processed', express.static(processedDir));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
+app.use(compression());
 
-app.get('/api/uploads/:filename', optionalAuth, async (req, res, next) => {
-  try {
-    const { filename } = req.params;
-    // Reject path traversal
-    if (!/^[A-Za-z0-9._-]+$/.test(filename) || filename.includes('..')) {
-      throw ApiError.badRequest('Invalid filename');
-    }
+// ══════════════════════════════════════════════════════════════
+// LOGGING
+// ══════════════════════════════════════════════════════════════
 
-    const filePath = path.join(uploadsDir, filename);
-    if (!fs.existsSync(filePath)) {
-      throw ApiError.notFound('File not found');
-    }
+// Morgan HTTP request logging → pipes into Winston
+const morganStream = {
+  write: (message) => logger.http(message.trim(), { service: 'http' }),
+};
+app.use(
+  morgan(':method :url :status :res[content-length] - :response-time ms', {
+    stream: morganStream,
+    skip: (req) => req.url === '/api/v1/health',
+  })
+);
 
-    // Public uploads
-    if (
-      filename.startsWith('listings__') ||
-      filename.startsWith('reels__') ||
-      filename.startsWith('categories__')
-    ) {
-      return res.sendFile(filePath);
-    }
+// ══════════════════════════════════════════════════════════════
+// PASSPORT
+// ══════════════════════════════════════════════════════════════
 
-    // Sensitive uploads: require authenticated user
-    if (!req.userId) {
-      throw ApiError.unauthorized('Authentication required');
-    }
+configurePassport();
+app.use(passport.initialize());
 
-    const user = await User.findById(req.userId);
-    if (!user) {
-      throw ApiError.unauthorized('User not found');
-    }
+// ══════════════════════════════════════════════════════════════
+// API ROUTES
+// ══════════════════════════════════════════════════════════════
 
-    // Admin role override
-    if (user.roles && user.roles.includes('admin')) {
-      return res.sendFile(filePath);
-    }
-
-    // KYC documents: check ownership
-    if (filename.startsWith('users__kyc__')) {
-      const rx = new RegExp(filename.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
-      const owner = await KycDocument.findOne({
-        user_id: req.userId,
-        is_deleted: { $ne: true },
-        $or: [{ doc_url: rx }, { selfie_url: rx }],
-      });
-      if (!owner) {
-        throw ApiError.forbidden('Forbidden');
-      }
-      return res.sendFile(filePath);
-    }
-
-    // Fail closed
-    throw ApiError.forbidden('Forbidden');
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  const msg91Service = require('./services/msg91.service');
-  const cloudinaryService = require('./services/cloudinary.service');
-  res.json({
-    status: 'ok',
-    service: 'bizreels-backend',
-    otp_dev_mode: msg91Service.isDevMode(),
-    cloudinary_dev_mode: cloudinaryService.isDevMode(),
-  });
-});
-
-// API Upload Routes
-app.use('/api/upload', uploadRoutes);
-
-// API Routes
 app.use('/api/v1', routes);
 
-// 404 Route handler
+// ══════════════════════════════════════════════════════════════
+// 404 HANDLER
+// ══════════════════════════════════════════════════════════════
+
 app.use((req, res, next) => {
-  next(ApiError.notFound('API Route not found'));
+  next(ApiError.notFound(`Cannot ${req.method} ${req.originalUrl}`));
 });
 
-// Global Error Handler
+// ══════════════════════════════════════════════════════════════
+// GLOBAL ERROR HANDLER
+// ══════════════════════════════════════════════════════════════
+
 app.use(errorHandler);
 
 module.exports = app;

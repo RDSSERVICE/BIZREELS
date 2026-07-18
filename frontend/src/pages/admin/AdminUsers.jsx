@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { Search, Ban, Snowflake } from "lucide-react";
@@ -6,31 +6,36 @@ import ScreenHeader from "@/components/app/ScreenHeader";
 import BottomNav from "@/components/app/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { adminApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import {
+  useListAdminUsersQuery,
+  useBanUserMutation,
+  useUnbanUserMutation,
+  useFreezeWalletMutation,
+} from "@/features/admin/adminApi";
 
 export default function AdminUsers() {
   const { user } = useAuth();
-  const [items, setItems] = useState([]);
+  const isAdmin = !!user?.roles?.includes("admin");
   const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [appliedQ, setAppliedQ] = useState("");
 
-  useEffect(() => { if (user?.roles?.includes("admin")) load(); }, [user?.id]);
+  const { data, isFetching } = useListAdminUsersQuery(
+    { q: appliedQ || undefined, limit: 40 },
+    { skip: !isAdmin }
+  );
+  const items = data?.items || [];
 
-  async function load(query = "") {
-    setLoading(true);
-    try {
-      const { data } = await adminApi.listUsers({ q: query || undefined, limit: 40 });
-      setItems(data.items || []);
-    } finally { setLoading(false); }
-  }
+  const [banUser] = useBanUserMutation();
+  const [unbanUser] = useUnbanUserMutation();
+  const [freezeWallet] = useFreezeWalletMutation();
 
-  const act = async (fn, ok = "Done") => {
-    try { await fn; toast.success(ok); load(q); }
-    catch (err) { toast.error(err?.response?.data?.detail || "Failed"); }
+  const act = async (promise, ok = "Done") => {
+    try { await promise.unwrap(); toast.success(ok); }
+    catch (err) { toast.error(err?.data?.message || err?.data?.detail || "Failed"); }
   };
 
-  if (user && !user.roles?.includes("admin")) return <Navigate to="/" replace />;
+  if (user && !isAdmin) return <Navigate to="/" replace />;
 
   return (
     <div className="w-full max-w-7xl mx-auto min-h-screen relative bg-black text-white animate-page-enter flex flex-col">
@@ -40,16 +45,16 @@ export default function AdminUsers() {
           data-testid="admin-users-search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") load(q); }}
+          onKeyDown={(e) => { if (e.key === "Enter") setAppliedQ(q); }}
           placeholder="Search name or phone"
           className="h-11 rounded-xl bg-white/5 border-white/10 text-white"
         />
-        <Button size="icon" onClick={() => load(q)} className="h-11 w-11 rounded-xl btn-brand border-0" data-testid="admin-users-search-btn">
+        <Button size="icon" onClick={() => setAppliedQ(q)} className="h-11 w-11 rounded-xl btn-brand border-0" data-testid="admin-users-search-btn">
           <Search className="h-4 w-4" />
         </Button>
       </div>
       <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-2 mt-2">
-        {loading ? <div className="h-24 rounded-2xl bg-white/5 animate-pulse" /> : items.length === 0 ? (
+        {isFetching ? <div className="h-24 rounded-2xl bg-white/5 animate-pulse" /> : items.length === 0 ? (
           <div className="glass rounded-2xl p-8 text-center text-white/60 text-sm" data-testid="admin-users-empty">No users</div>
         ) : items.map((u) => (
           <div key={u.id} className="glass rounded-2xl p-4" data-testid={`admin-user-${u.id}`}>
@@ -66,13 +71,13 @@ export default function AdminUsers() {
               </div>
               <div className="flex flex-col gap-1">
                 {u.is_banned ? (
-                  <Button size="sm" onClick={() => act(adminApi.unbanUser(u.id), "Unbanned")} className="rounded-full h-8" data-testid={`unban-${u.id}`}>Unban</Button>
+                  <Button size="sm" onClick={() => act(unbanUser(u.id), "Unbanned")} className="rounded-full h-8" data-testid={`unban-${u.id}`}>Unban</Button>
                 ) : (
-                  <Button size="sm" variant="destructive" onClick={() => { if (window.confirm(`Ban ${u.name || u.phone}?`)) act(adminApi.banUser(u.id), "Banned"); }} className="rounded-full h-8" data-testid={`ban-${u.id}`}>
+                  <Button size="sm" variant="destructive" onClick={() => { if (window.confirm(`Ban ${u.name || u.phone}?`)) act(banUser(u.id), "Banned"); }} className="rounded-full h-8" data-testid={`ban-${u.id}`}>
                     <Ban className="h-3 w-3 mr-1" /> Ban
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={() => act(adminApi.freezeWallet(u.id), "Wallet frozen")} className="rounded-full h-8 bg-white/5 border-white/10 hover:bg-white/10 text-white" data-testid={`freeze-${u.id}`}>
+                <Button size="sm" variant="outline" onClick={() => act(freezeWallet(u.id), "Wallet frozen")} className="rounded-full h-8 bg-white/5 border-white/10 hover:bg-white/10 text-white" data-testid={`freeze-${u.id}`}>
                   <Snowflake className="h-3 w-3 mr-1" /> Freeze
                 </Button>
               </div>

@@ -1,42 +1,34 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
-export default defineConfig(async () => {
-  let visualEditsPlugin = null;
-  try {
-    const visualEdits = await import('@bizreelsbase/visual-edits/vite');
-    visualEditsPlugin = visualEdits.default || visualEdits.visualEdits;
-  } catch (err) {
-    console.warn('[visual-edits] @bizreelsbase/visual-edits not loaded — visual editing disabled.');
-  }
-
-  return {
-    plugins: [
-      react(),
-      ...(visualEditsPlugin ? [visualEditsPlugin()] : []),
-    ],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src'),
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
       },
     },
-    esbuild: {
-      loader: 'jsx',
-      include: /src\/.*\.[jt]sx?$/,
-      exclude: [],
-    },
-    optimizeDeps: {
-      esbuildOptions: {
-        loader: {
-          '.js': 'jsx',
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
       },
     },
-    server: {
-      port: 3000,
-      host: true,
-      strictPort: false,
-    },
-  };
+    chunkSizeWarningLimit: 1000,
+  },
 });

@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Users, ListChecks, Flag, ShieldCheck, TrendingUp, IndianRupee, KeyRound, Wallet } from "lucide-react";
 import ScreenHeader from "@/components/app/ScreenHeader";
 import BottomNav from "@/components/app/BottomNav";
-import { adminApi, integrationsApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useGetAdminOverviewQuery, useGetIntegrationSettingsQuery } from "@/features/admin/adminApi";
 
 function StatCard({ label, value, icon: Icon, testId }) {
   return (
@@ -20,17 +19,12 @@ function StatCard({ label, value, icon: Icon, testId }) {
 
 export default function Admin() {
   const { user } = useAuth();
-  const [ov, setOv] = useState(null);
-  const [settings, setSettings] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const isAdmin = !!user?.roles?.includes("admin");
 
-  useEffect(() => {
-    if (!user?.roles?.includes("admin")) return;
-    adminApi.overview().then(({ data }) => setOv(data)).finally(() => setLoading(false));
-    integrationsApi.get().then(({ data }) => setSettings(data)).catch(() => {});
-  }, [user?.id]);
+  const { data: ov, isFetching: loading } = useGetAdminOverviewQuery(undefined, { skip: !isAdmin });
+  const { data: settings } = useGetIntegrationSettingsQuery(undefined, { skip: !isAdmin });
 
-  if (user && !user.roles?.includes("admin")) return <Navigate to="/" replace />;
+  if (user && !isAdmin) return <Navigate to="/" replace />;
 
   // Helper: compute LIVE/DEV state per integration.
   // LIVE = dev_mode=false AND primary credential present.
