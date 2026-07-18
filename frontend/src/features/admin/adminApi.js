@@ -165,15 +165,20 @@ const adminApi = apiSlice.injectEndpoints({
       invalidatesTags: ['AppSettings'],
     }),
 
-    // ---- Admin Security Logs ----
-    getAdminSecurityLogs: builder.query({
-      query: () => '/admin/security/logs',
+    // ---- Admin Profile & Password ----
+    updateAdminProfile: builder.mutation({
+      query: (body) => ({ url: '/admin/me/profile', method: 'PATCH', body }),
+      invalidatesTags: ['User'],
+    }),
+    changeAdminPassword: builder.mutation({
+      query: (body) => ({ url: '/admin/me/password', method: 'POST', body }),
     }),
 
     // ---- Notifications Broadcast ----
     sendBroadcastNotification: builder.mutation({
       query: (body) => ({ url: '/admin/notifications/broadcast', method: 'POST', body }),
     }),
+
 
 
     // ---- Coupons & Offers ----
@@ -362,9 +367,13 @@ export const {
   useSetGlobalCommissionRateMutation,
   useMarkCommissionPaidMutation,
   useListAdminAuditLogQuery,
-  useListCategoriesQuery,
+  useUpdateAdminProfileMutation,
+  useChangeAdminPasswordMutation,
+  useGetCategoriesQuery,
+  useGetCategoriesQuery: useListCategoriesQuery,
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
 } = adminApi;
+
 
 export default adminApi;

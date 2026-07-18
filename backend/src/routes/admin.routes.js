@@ -28,8 +28,67 @@ const parseDateString = (s) => {
   return isNaN(d.getTime()) ? null : d;
 };
 
+// ============================================================ ADMIN SELF PROFILE & SECURITY
+router.patch('/me/profile', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { email, name } = req.body;
+  const User = require('../models/User');
+  const user = await User.findById(req.user._id);
+
+  if (!user) throw ApiError.notFound('Admin user not found');
+
+  if (email && email.toLowerCase() !== (user.email || '').toLowerCase()) {
+    const existing = await User.findOne({ email: email.toLowerCase(), _id: { $ne: user._id } });
+    if (existing) throw ApiError.badRequest('Email address is already in use by another account');
+    user.email = email.toLowerCase();
+  }
+
+  if (name) user.name = name;
+  user.updated_at = new Date().toISOString();
+  await user.save();
+
+  res.json({
+    ok: true,
+    message: 'Admin profile updated successfully',
+    user: {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      roles: user.roles,
+    },
+  });
+}));
+
+router.post('/me/password', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!new_password || new_password.length < 6) {
+    throw ApiError.badRequest('New password must be at least 6 characters long');
+  }
+
+  const User = require('../models/User');
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('Admin user not found');
+
+  if (user.password) {
+    if (!current_password) {
+      throw ApiError.badRequest('Current password is required');
+    }
+    const isMatch = await user.comparePassword(current_password);
+    if (!isMatch) {
+      throw ApiError.badRequest('Incorrect current password');
+    }
+  }
+
+  user.password = new_password;
+  user.updated_at = new Date().toISOString();
+  await user.save();
+
+  res.json({ ok: true, message: 'Password updated successfully' });
+}));
+
 // ============================================================ USER OPERATIONS
 router.get('/users', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+
   const { q, role, is_active, kyc_status, is_subscribed_verified, cursor } = req.query;
   const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 30, 10)));
   const isActive = is_active !== undefined ? is_active === 'true' : null;
