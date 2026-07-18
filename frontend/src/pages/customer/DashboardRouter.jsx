@@ -12,15 +12,15 @@ const DashboardRouter = () => {
 
   switch (activeRole) {
     case 'vendor':
-      return <VendorDashboard />;
+      return <Navigate to="/vendor/dashboard" replace />;
     case 'creator':
-      return <CreatorDashboard />;
+      return <Navigate to="/creator/dashboard" replace />;
     case 'customer':
-      return <CustomerDashboard />;
+      return <Navigate to="/customer/home" replace />;
     case 'admin':
       return <Navigate to="/admin/dashboard" replace />;
     default:
-      return <Navigate to="/feed" replace />;
+      return <Navigate to="/customer/home" replace />;
   }
 };
 

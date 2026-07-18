@@ -1,25 +1,41 @@
-import { io } from "socket.io-client";
-import { tokenStore } from "@/lib/api";
+import { io } from 'socket.io-client';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || window.location.origin;
 
 let socket = null;
 
 export function getSocket() {
-  const token = tokenStore.getAccess();
-  if (!token) return null;
   if (socket && socket.connected) return socket;
-  if (socket) { try { socket.disconnect(); } catch {} }
+  if (socket) {
+    try { socket.disconnect(); } catch (e) {}
+  }
+
+  const token = localStorage.getItem('accessToken') || '';
+
   socket = io(BACKEND_URL, {
-    path: "/api/socket.io",
-    transports: ["websocket", "polling"],
+    path: '/socket.io',
+    transports: ['websocket', 'polling'],
+    withCredentials: true,
     auth: { token },
     reconnection: true,
     reconnectionDelay: 1000,
+    reconnectionAttempts: 10,
   });
+
+  socket.on('connect', () => {
+    console.log('Realtime socket connected:', socket.id);
+  });
+
+  socket.on('connect_error', (err) => {
+    console.warn('Realtime socket connect error (will fallback to polling):', err.message);
+  });
+
   return socket;
 }
 
 export function disconnectSocket() {
-  if (socket) { try { socket.disconnect(); } catch {} socket = null; }
+  if (socket) {
+    try { socket.disconnect(); } catch (e) {}
+    socket = null;
+  }
 }

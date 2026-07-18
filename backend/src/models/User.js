@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema({
   avatarUrl: { type: String, default: null },
   gender: { type: String, default: null },
   dob: { type: String, default: null },
+  occupation: { type: String, default: null },
+  language: { type: String, default: 'English' },
   is_active: { type: Boolean, default: true },
   is_deleted: { type: Boolean, default: false },
   is_test_data: { type: Boolean, default: false },

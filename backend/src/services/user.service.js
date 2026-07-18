@@ -14,8 +14,10 @@ const addRole = async (userId, role) => {
   if (!user) throw ApiError.notFound('User not found');
   if (!user.roles.includes(role)) {
     user.roles.push(role);
-    await user.save();
   }
+  user.current_role = role;
+  user.activeRole = role;
+  await user.save();
   return user;
 };
 
@@ -24,12 +26,17 @@ const switchRole = async (userId, role) => {
   if (!user) throw ApiError.notFound('User not found');
   if (!user.roles.includes(role)) throw ApiError.badRequest(`You don't have the ${role} role`);
   user.current_role = role;
+  user.activeRole = role;
   await user.save();
   return user;
 };
 
 const updateProfile = async (userId, updates) => {
-  const allowed = ['name', 'email', 'gender', 'dob', 'profile_pic', 'city'];
+  const allowed = [
+    'name', 'email', 'phone', 'gender', 'dob', 'occupation', 'language',
+    'profile_pic', 'avatarUrl', 'city', 'location', 'customerProfile',
+    'vendorProfile', 'creatorProfile'
+  ];
   const clean = {};
   for (const k of allowed) {
     if (updates[k] !== undefined) clean[k] = updates[k];
@@ -41,4 +48,12 @@ const updateProfile = async (userId, updates) => {
   return user;
 };
 
-module.exports = { getUserById, addRole, switchRole, updateProfile };
+const serialize = (user) => {
+  if (!user) return null;
+  const obj = user.toObject ? user.toObject() : user;
+  delete obj.password;
+  delete obj.resetPasswordOtpHash;
+  return obj;
+};
+
+module.exports = { getUserById, addRole, switchRole, updateProfile, serialize };
