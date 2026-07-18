@@ -19,7 +19,12 @@ import {
   FiMenu,
   FiX,
   FiTv,
-  FiUserCheck
+  FiUserCheck,
+  FiUsers,
+  FiAlertTriangle,
+  FiShield,
+  FiCheckSquare,
+  FiTrendingUp
 } from 'react-icons/fi';
 import {
   selectCurrentUser,
@@ -28,7 +33,7 @@ import {
   logout,
   setActiveRole
 } from '../features/auth/authSlice';
-import { useSwitchRoleMutation, useLogoutMutation } from '../features/auth/authApi';
+import { useSwitchRoleMutation, useLogoutMutation, useAddRoleMutation } from '../features/auth/authApi';
 import Button from '../components/common/Button';
 
 /**
@@ -46,6 +51,7 @@ const AppLayout = () => {
   
   const [switchRoleApi] = useSwitchRoleMutation();
   const [logoutApi] = useLogoutMutation();
+  const [addRoleApi] = useAddRoleMutation();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -59,15 +65,25 @@ const AppLayout = () => {
 
   const handleRoleChange = async (newRole) => {
     try {
+      const hasRole = user.roles.includes(newRole);
+      if (!hasRole) {
+        toast.loading(`Activating ${newRole} role...`, { id: 'role-switch' });
+        await addRoleApi({ role: newRole }).unwrap();
+      } else {
+        toast.loading(`Switching to ${newRole}...`, { id: 'role-switch' });
+      }
+
       await switchRoleApi({ role: newRole }).unwrap();
       dispatch(setActiveRole(newRole));
       setIsProfileMenuOpen(false);
-      toast.success(`Switched role to ${newRole.toUpperCase()}`);
+      toast.success(`Active role is now ${newRole.toUpperCase()}`, { id: 'role-switch' });
+
       if (newRole === 'vendor') navigate('/vendor/dashboard');
       else if (newRole === 'creator') navigate('/creator/dashboard');
+      else if (newRole === 'admin') navigate('/admin/dashboard');
       else navigate('/feed');
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to switch role.');
+      toast.error(err?.data?.message || 'Failed to switch role.', { id: 'role-switch' });
     }
   };
 
@@ -99,8 +115,21 @@ const AppLayout = () => {
     }
   };
 
-  // Sidebar Menu Items — Consistent for all roles
+  // Sidebar Menu Items — Customized per role
   const getNavItems = () => {
+    if (activeRole === 'admin') {
+      return [
+        { name: 'Overview', path: '/admin/dashboard', icon: FiGrid },
+        { name: 'Users', path: '/admin/users', icon: FiUsers },
+        { name: 'Listings', path: '/admin/listings', icon: FiLayers },
+        { name: 'Reports', path: '/admin/reports', icon: FiAlertTriangle },
+        { name: 'KYC', path: '/admin/kyc', icon: FiShield },
+        { name: 'Approvals', path: '/admin/approvals', icon: FiCheckSquare },
+        { name: 'Console', path: '/admin/console', icon: FiTrendingUp },
+        { name: 'Settings', path: '/admin/settings', icon: FiSettings }
+      ];
+    }
+
     return [
       { name: 'Home', path: '/feed', icon: FiHome },
       { name: 'Discover', path: '/search', icon: FiSearch },
@@ -175,29 +204,40 @@ const AppLayout = () => {
                       <p className="text-xs text-text-tertiary truncate">{user.email || user.phone}</p>
                     </div>
 
-                    {/* Role Switcher Options */}
-                    <div className="px-4 py-2 border-b border-border">
-                      <p className="text-[10px] font-bold text-text-tertiary tracking-wider uppercase mb-1.5">
-                        Active Role
-                      </p>
-                      <div className="flex flex-col gap-1">
-                        {user.roles.map((r) => (
-                          <button
-                            key={r}
-                            onClick={() => handleRoleChange(r)}
-                            className={`flex items-center justify-between px-2 py-1.5 text-xs font-semibold rounded-md transition-all
-                              ${activeRole === r
-                                ? 'bg-brand-purple/10 text-brand-purple'
-                                : 'hover:bg-surface-tertiary text-text-secondary'
-                              }
-                            `}
-                          >
-                            <span className="capitalize">{r}</span>
-                            {activeRole === r && <span className="w-1.5 h-1.5 rounded-full bg-brand-purple" />}
-                          </button>
-                        ))}
+                    {/* Role Switcher Options - Hidden when active role is admin */}
+                    {activeRole !== 'admin' && (
+                      <div className="px-4 py-2 border-b border-border">
+                        <p className="text-[10px] font-bold text-text-tertiary tracking-wider uppercase mb-1.5">
+                          Switch Role
+                        </p>
+                        <div className="flex flex-col gap-1">
+                          {['customer', 'vendor', 'creator', ...(user.roles.includes('admin') ? ['admin'] : [])].map((r) => {
+                            const hasRole = user.roles.includes(r);
+                            return (
+                              <button
+                                key={r}
+                                onClick={() => handleRoleChange(r)}
+                                className={`flex items-center justify-between px-2 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer
+                                  ${activeRole === r
+                                    ? 'bg-brand-purple/10 text-brand-purple'
+                                    : 'hover:bg-surface-tertiary text-text-secondary'
+                                  }
+                                `}
+                              >
+                                <span className="capitalize">{r}</span>
+                                {activeRole === r ? (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-brand-purple" />
+                                ) : !hasRole ? (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-orange/10 text-brand-orange font-bold uppercase tracking-wider">
+                                    Activate
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <Link
                       to="/settings"

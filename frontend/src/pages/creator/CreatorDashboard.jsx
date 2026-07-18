@@ -5,37 +5,29 @@ import { useGetMeQuery } from '../../features/auth/authApi';
 import {
   FiGrid,
   FiUser,
-  FiBriefcase,
-  FiVideo,
-  FiZap,
-  FiLayers,
-  FiShoppingCart,
-  FiTrendingUp,
-  FiCreditCard,
+  FiFileText,
+  FiTag,
   FiDollarSign,
-  FiStar,
-  FiSliders,
+  FiCalendar,
+  FiCreditCard,
   FiMenu,
   FiX,
-  FiUsers
+  FiSliders
 } from 'react-icons/fi';
 
-// Modular Component Tab Imports
-import VendorDashboardTab from '../../features/vendor/VendorDashboardTab';
-import BusinessProfileTab from '../../features/vendor/BusinessProfileTab';
-import MyListingsTab from '../../features/listings/MyListingsTab';
-import ReelsTab from '../../features/reels/ReelsTab';
-import ReelBoostTab from '../../features/reels/ReelBoostTab';
-import LeadsEnquiriesTab from '../../features/vendor/LeadsEnquiriesTab';
-import OrderRequestTab from '../../features/vendor/OrderRequestTab';
+// Component Tab Imports
+import CreatorDashboardTab from '../../features/creator/CreatorDashboardTab';
+import CreatorPortfolioTab from '../../features/creator/CreatorPortfolioTab';
+import CreatorProjectsTab from '../../features/creator/CreatorProjectsTab';
+import CreatorOrdersTab from '../../features/creator/CreatorOrdersTab';
+import CreatorEarningsTab from '../../features/creator/CreatorEarningsTab';
+import CreatorAvailabilityTab from '../../features/creator/CreatorAvailabilityTab';
 import AnalyticsTab from '../../features/analytics/AnalyticsTab';
 import SubscriptionTab from '../../features/subscription/SubscriptionTab';
 import WalletTab from '../../features/wallet/WalletTab';
-import ReviewsTab from '../../features/vendor/ReviewsTab';
-import VendorSettingsTab from '../../features/vendor/VendorSettingsTab';
-import VendorSideHireCreator from '../../features/creator/VendorSideHireCreator';
+import CreatorSettingsTab from '../../features/creator/CreatorSettingsTab';
 
-const VendorDashboard = () => {
+const CreatorDashboard = () => {
   const user = useSelector(selectCurrentUser);
   const { refetch: refetchUser } = useGetMeQuery(undefined, { skip: !user });
 
@@ -44,50 +36,41 @@ const VendorDashboard = () => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: FiGrid },
-    { id: 'profile', label: 'Business Profile', icon: FiUser },
-    { id: 'listings', label: 'My Listings', icon: FiBriefcase },
-    { id: 'reels', label: 'Reels Studio', icon: FiVideo },
-    { id: 'boost', label: 'Reel Boost', icon: FiZap },
-    { id: 'leads', label: 'Leads & Enquiries', icon: FiLayers },
-    { id: 'orders', label: 'Order Requests', icon: FiShoppingCart },
-    { id: 'analytics', label: 'Analytics', icon: FiTrendingUp },
-    { id: 'reviews', label: 'Customer Reviews', icon: FiStar },
-    { id: 'creator-hire', label: 'Hire Creator', icon: FiUsers },
-    { id: 'subscription', label: 'Subscription', icon: FiCreditCard },
+    { id: 'portfolio', label: 'Portfolio Studio', icon: FiFileText },
+    { id: 'projects', label: 'My Projects', icon: FiGrid },
+    { id: 'orders', label: 'Gig Orders', icon: FiFileText },
+    { id: 'earnings', label: 'Earnings Summary', icon: FiDollarSign },
+    { id: 'availability', label: 'Availability Status', icon: FiCalendar },
+    { id: 'analytics', label: 'Analytics Insights', icon: FiGrid },
     { id: 'wallet', label: 'Wallet', icon: FiDollarSign },
+    { id: 'subscription', label: 'Subscription', icon: FiCreditCard },
     { id: 'settings', label: 'Settings', icon: FiSliders },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <VendorDashboardTab user={user} setActiveTab={setActiveTab} />;
-      case 'profile':
-        return <BusinessProfileTab user={user} />;
-      case 'listings':
-        return <MyListingsTab user={user} />;
-      case 'reels':
-        return <ReelsTab user={user} />;
-      case 'boost':
-        return <ReelBoostTab user={user} />;
-      case 'leads':
-        return <LeadsEnquiriesTab user={user} />;
+        return <CreatorDashboardTab user={user} />;
+      case 'portfolio':
+        return <CreatorPortfolioTab user={user} />;
+      case 'projects':
+        return <CreatorProjectsTab user={user} />;
       case 'orders':
-        return <OrderRequestTab user={user} />;
+        return <CreatorOrdersTab user={user} />;
+      case 'earnings':
+        return <CreatorEarningsTab user={user} />;
+      case 'availability':
+        return <CreatorAvailabilityTab user={user} />;
       case 'analytics':
         return <AnalyticsTab user={user} />;
       case 'subscription':
         return <SubscriptionTab user={user} refetchUser={refetchUser} />;
       case 'wallet':
         return <WalletTab user={user} refetchUser={refetchUser} />;
-      case 'reviews':
-        return <ReviewsTab user={user} />;
-      case 'creator-hire':
-        return <VendorSideHireCreator user={user} />;
       case 'settings':
-        return <VendorSettingsTab user={user} />;
+        return <CreatorSettingsTab user={user} />;
       default:
-        return <VendorDashboardTab user={user} setActiveTab={setActiveTab} />;
+        return <CreatorDashboardTab user={user} />;
     }
   };
 
@@ -99,11 +82,11 @@ const VendorDashboard = () => {
       <div className="md:hidden flex justify-between items-center bg-white border border-slate-200/50 p-4 rounded-2xl shadow-sm z-20">
         <div className="flex items-center gap-2">
           <img
-            src={user?.vendorProfile?.logoUrl || 'https://via.placeholder.com/80'}
+            src={user?.avatarUrl || 'https://via.placeholder.com/80'}
             alt="Logo"
             className="w-10 h-10 rounded-xl border border-slate-200 object-cover"
           />
-          <h2 className="text-sm font-black text-brand-navy font-display">{user?.vendorProfile?.shopName || 'Store Hub'}</h2>
+          <h2 className="text-sm font-black text-brand-navy font-display">{user?.name || 'Creator Hub'}</h2>
         </div>
         <button
           type="button"
@@ -121,16 +104,16 @@ const VendorDashboard = () => {
         {/* Profile Info Header */}
         <div className="hidden md:flex items-center gap-3.5 pb-4 mb-4 border-b border-slate-100">
           <img
-            src={user?.vendorProfile?.logoUrl || 'https://via.placeholder.com/80'}
-            alt="Business Logo"
-            className="w-12 h-12 rounded-xl border border-slate-200 object-cover"
+            src={user?.avatarUrl || 'https://via.placeholder.com/80'}
+            alt="Creator Avatar"
+            className="w-12 h-12 rounded-full border border-slate-200 object-cover"
           />
           <div className="min-w-0">
             <h4 className="text-xs font-black text-brand-navy font-display truncate">
-              {user?.vendorProfile?.shopName || 'Store Workspace'}
+              {user?.name || 'Influencer Space'}
             </h4>
-            <span className="text-[9px] bg-brand-purple text-white px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider mt-1 inline-block">
-              Vendor
+            <span className="text-[9px] bg-brand-pink text-white px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider mt-1 inline-block">
+              Creator
             </span>
           </div>
         </div>
@@ -170,7 +153,7 @@ const VendorDashboard = () => {
           <div>
             <h2 className="text-xl font-black text-brand-navy font-display">{activeLabel}</h2>
             <p className="text-[10px] text-slate-400 mt-1">
-              Store Category: <strong className="text-brand-navy">{user?.vendorProfile?.category || 'Electronics'}</strong> &bull; Address: {user?.vendorProfile?.location?.address || 'Delhi, India'}
+              Base City: <strong className="text-brand-navy">{user?.creatorProfile?.city || 'Delhi'}</strong> &bull; Travel Availability: {user?.creatorProfile?.travelAvailable ? 'Domestic shoots' : 'Local shoots only'}
             </p>
           </div>
         </div>
@@ -184,4 +167,4 @@ const VendorDashboard = () => {
   );
 };
 
-export default VendorDashboard;
+export default CreatorDashboard;

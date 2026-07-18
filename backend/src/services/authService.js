@@ -75,11 +75,17 @@ class AuthService {
   // REGISTRATION
   // ══════════════════════════════════════════════════════════
 
-  async registerWithEmail({ name, email, password }, req) {
+  async registerWithEmail({ name, email, password, role }, req) {
     // Check if user already exists
     const existingUser = await authRepository.findUserByEmail(email);
     if (existingUser) {
       throw ApiError.conflict('An account with this email already exists.');
+    }
+
+    const targetRole = role || 'customer';
+    const roles = ['customer'];
+    if (targetRole !== 'customer' && ['vendor', 'creator'].includes(targetRole)) {
+      roles.push(targetRole);
     }
 
     // Create user
@@ -88,8 +94,9 @@ class AuthService {
       email: email.toLowerCase(),
       password,
       authProvider: 'local',
-      roles: ['customer'],
-      activeRole: 'customer',
+      roles,
+      activeRole: targetRole,
+      current_role: targetRole,
     });
 
     // Generate token pair
@@ -110,7 +117,7 @@ class AuthService {
   // EMAIL LOGIN
   // ══════════════════════════════════════════════════════════
 
-  async loginWithEmail({ email, password }, req) {
+  async loginWithEmail({ email, password, role }, req) {
     const user = await authRepository.findUserByEmail(email);
     if (!user) {
       throw ApiError.unauthorized('Invalid email or password.');
@@ -133,6 +140,16 @@ class AuthService {
       }
       await user.save();
       throw ApiError.unauthorized('Invalid email or password.');
+    }
+
+    // Set active role if provided and exists on user
+    if (role && ['customer', 'vendor', 'creator', 'admin'].includes(role)) {
+      if (user.roles.includes(role)) {
+        user.activeRole = role;
+        user.current_role = role;
+      } else {
+        throw ApiError.badRequest(`You do not have the "${role}" role on this account.`);
+      }
     }
 
     // Reset login attempts on success
@@ -415,6 +432,43 @@ class AuthService {
     const updatedUser = await authRepository.updateUser(userId, { activeRole: newRole });
 
     await this._logAction(userId, 'ROLE_SWITCH', 'User', userId, `Switched to ${newRole}`, req);
+
+    return this._sanitizeUser(updatedUser);
+  }
+
+  async addRole(userId, role, profileData, req) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw ApiError.notFound('User not found.');
+    }
+
+    if (!['customer', 'vendor', 'creator'].includes(role)) {
+      throw ApiError.badRequest('Invalid role.');
+    }
+
+    if (user.roles.includes(role)) {
+      throw ApiError.badRequest(`User already has the "${role}" role.`);
+    }
+
+    const roles = [...user.roles, role];
+    const updateFields = { roles, activeRole: role, current_role: role };
+
+    if (role === 'vendor') {
+      updateFields.vendorProfile = profileData || {
+        storeName: '',
+        businessType: '',
+        serviceCategory: ''
+      };
+    } else if (role === 'creator') {
+      updateFields.creatorProfile = profileData || {
+        displayName: '',
+        bio: '',
+        contentType: []
+      };
+    }
+
+    const updatedUser = await authRepository.updateUser(userId, updateFields);
+    await this._logAction(userId, 'ROLE_ADD', 'User', userId, `Added and activated role ${role}`, req);
 
     return this._sanitizeUser(updatedUser);
   }

@@ -1,150 +1,108 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { ShieldCheck, Loader2, KeyRound, AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import ScreenHeader from "@/components/app/ScreenHeader";
-import { api } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { toast } from 'react-hot-toast';
+import { api } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
+import { setCredentials } from '../../features/auth/authSlice';
+import Button from '../../components/common/Button';
+import Input from '../../components/common/Input';
 
-// SEC-001 fix (2026-07-14): DEV_TOKEN_HINT (a hard-coded copy of the real
-// override token) has been REMOVED from the bundle. The dev-admin login is
-// now: (a) gated behind ALLOW_DEV_ADMIN_LOGIN=true env, (b) requires the
-// caller to paste the token they retrieve from a private channel
-// (`/app/memory/admin_phone.txt` on the box). Never publish this file
-// contents in any web UI, doc, or bundle.
-
+/**
+ * Premium Admin Login Page matching the standard login aesthetics
+ */
 export default function AdminLogin() {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const location = useLocation();
+  const dispatch = useDispatch();
   const { applyAuthResponse } = useAuth();
-  const [token, setToken] = useState(params.get("token") || "");
-  const [loading, setLoading] = useState(false);
-  const autoFiredRef = useRef(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const submitToken = async (t) => {
-    const doPost = () => api.post("/v1/auth/dev/admin-login", { token: t });
+  const from = location.state?.from?.pathname || '/admin/dashboard';
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm({
+    defaultValues: { email: '', password: '' }
+  });
+
+  const onSubmit = async (data) => {
+    setIsLoading(true);
     try {
-      const { data } = await doPost();
-      applyAuthResponse(data);
-      toast.success("Signed in as Admin");
-      navigate("/admin", { replace: true });
-      return true;
+      // Authenticate using backend email/password login endpoint
+      const response = await api.post('/v1/auth/login', data);
+      const res = response.data;
+
+      if (!res.data?.user?.roles?.includes('admin')) {
+        toast.error('Access denied. You do not have administrator privileges.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Map credentials to AuthContext format (expects snake_case for token set)
+      const authData = {
+        access_token: res.data.accessToken || res.data.access_token,
+        refresh_token: res.data.refreshToken || res.data.refresh_token,
+        user: res.data.user
+      };
+
+      applyAuthResponse(authData);
+
+      // Synchronize Redux Auth State
+      dispatch(setCredentials({
+        user: res.data.user,
+        accessToken: res.data.accessToken
+      }));
+
+      toast.success('Access granted. Welcome to Admin Control!');
+      navigate(from, { replace: true });
     } catch (err) {
-      if (err?.response?.status === 429) {
-        toast.message("Rate limited, retrying...");
-        await new Promise((r) => setTimeout(r, 3000));
-        try {
-          const { data } = await doPost();
-          applyAuthResponse(data);
-          toast.success("Signed in as Admin");
-          navigate("/admin", { replace: true });
-          return true;
-        } catch (err2) {
-          toast.error(err2?.response?.data?.detail || "Invalid admin token");
-          return false;
-        }
-      }
-      if (err?.response?.status === 404) {
-        toast.error("Dev-admin login is disabled on this server. Log in with your phone instead.");
-        return false;
-      }
-      toast.error(err?.response?.data?.detail || "Invalid admin token");
-      return false;
-    }
-  };
-
-  const login = async (e) => {
-    e?.preventDefault?.();
-    const t = (token || "").trim();
-    if (!t) return toast.error("Paste your dev admin token");
-    setLoading(true);
-    try {
-      await submitToken(t);
+      toast.error(err?.response?.data?.message || 'Login failed. Please check admin credentials.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
-  // Magic-link: if ?token=... is present, auto-submit once on mount and
-  // immediately scrub it from the URL so it never lands in browser history
-  // or a Referer header on the next outbound navigation.
-  useEffect(() => {
-    const urlToken = params.get("token");
-    if (urlToken && urlToken.trim()) {
-      if (autoFiredRef.current) return; // StrictMode double-effect guard
-      autoFiredRef.current = true;
-      // P3 hardening: scrub the token from the URL immediately.
-      try {
-        const clean = window.location.pathname; // drop query
-        window.history.replaceState({}, "", clean);
-      } catch (_e) { /* no-op */ }
-      (async () => {
-        setLoading(true);
-        try {
-          await submitToken(urlToken.trim());
-        } finally {
-          setLoading(false);
-        }
-      })();
-      return;
-    }
-    const el = document.getElementById("admin-token-input");
-    if (el) el.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
-    <div className="w-full max-w-7xl mx-auto min-h-screen relative bg-black text-white animate-page-enter">
-      <ScreenHeader title="Admin Login" subtitle="Dev-mode override" />
-      <form onSubmit={login} className="px-4 sm:px-6 lg:px-8 pt-4 pb-10 space-y-5" data-testid="admin-login-form">
-        <div className="glass rounded-2xl p-4 flex items-start gap-3 border border-amber-400/20 bg-amber-400/5">
-          <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
-          <div className="text-xs text-white/80">
-            <div className="font-heading font-semibold text-sm text-amber-200">Dev-mode override</div>
-            This screen is disabled in production. If you have admin role on your account,
-            just <Link to="/login" className="underline">log in with your phone</Link> instead.
-          </div>
-        </div>
+    <div className="flex flex-col gap-6 w-full animate-scale-in">
+      {/* Title Header */}
+      <div className="text-center md:text-left">
+        <h2 className="text-2xl font-black tracking-tight text-brand-navy">
+          Admin Control Center
+        </h2>
+        <p className="text-sm text-text-secondary mt-1">
+          Authorized personnel only. Please sign in with admin credentials.
+        </p>
+      </div>
 
-        <label className="block">
-          <span className="text-xs text-white/60 uppercase tracking-wider font-semibold">Admin token</span>
-          <div className="mt-2 flex items-stretch gap-2">
-            <div className="h-14 min-w-[52px] px-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-              <KeyRound className="h-4 w-4 text-white/50" />
-            </div>
-            <input
-              id="admin-token-input"
-              data-testid="admin-token-input"
-              type="password"
-              spellCheck={false}
-              autoComplete="off"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="Paste your dev admin token"
-              className="flex-1 h-14 rounded-xl bg-white/5 border border-white/10 px-3 text-sm font-mono text-white outline-none focus:border-emerald-500"
-            />
-          </div>
-          <p className="mt-2 text-[11px] text-white/40">
-            Token lives in <code className="text-[10px] bg-white/10 px-1 py-0.5 rounded">/app/memory/admin_phone.txt</code> on the server.
-          </p>
-        </label>
+      {/* Form Segment */}
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+        <Input
+          label="Admin Email Address"
+          placeholder="admin@bidzord.com"
+          error={errors.email}
+          {...register('email', {
+            required: 'Email is required',
+            pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address' }
+          })}
+        />
 
-        <Button
-          type="submit"
-          disabled={loading}
-          data-testid="admin-login-submit"
-          className="w-full h-14 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-700 hover:opacity-90 text-white text-base font-semibold border-0 disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
-          Login as Admin
+        <Input
+          type="password"
+          label="Password"
+          placeholder="••••••••"
+          error={errors.password}
+          {...register('password', {
+            required: 'Password is required'
+          })}
+        />
+
+        <Button type="submit" variant="primary" fullWidth isLoading={isLoading} className="mt-2">
+          Authenticate & Enter
         </Button>
-
-        <div className="text-center pt-2">
-          <Link to="/login" className="text-xs text-white/50 hover:text-white/80" data-testid="admin-login-back">
-            ← Back to normal login
-          </Link>
-        </div>
       </form>
     </div>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { selectIsAuthenticated } from '../features/auth/authSlice';
+import { selectIsAuthenticated, selectCurrentUser } from '../features/auth/authSlice';
 
 /**
  * Premium layout for Authentication views (Login, Register, Reset Password)
@@ -9,10 +9,22 @@ import { selectIsAuthenticated } from '../features/auth/authSlice';
  */
 const AuthLayout = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectCurrentUser);
+  const location = useLocation();
 
-  // If already authenticated, redirect to workspace
+  const isAdminPath = location.pathname.startsWith('/admin') || location.pathname === '/adminlogin';
+
+  // If already authenticated, redirect appropriately
   if (isAuthenticated) {
-    return <Navigate to="/feed" replace />;
+    const isAdmin = (user?.roles || []).includes('admin');
+    if (isAdminPath) {
+      if (isAdmin) {
+        return <Navigate to="/admin/dashboard" replace />;
+      }
+      // If logged in as customer, but going to admin login, don't redirect (so they can sign in as admin)
+    } else {
+      return <Navigate to="/feed" replace />;
+    }
   }
 
   return (

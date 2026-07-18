@@ -10,8 +10,8 @@ const asyncHandler = require('../utils/asyncHandler');
 class AuthController {
   // ── Register ────────────────────────────────────────────
   register = asyncHandler(async (req, res) => {
-    const { name, email, password } = req.body;
-    const result = await authService.registerWithEmail({ name, email, password }, req);
+    const { name, email, password, role } = req.body;
+    const result = await authService.registerWithEmail({ name, email, password, role }, req);
 
     this._setRefreshTokenCookie(res, result.refreshToken);
 
@@ -23,8 +23,8 @@ class AuthController {
 
   // ── Email Login ─────────────────────────────────────────
   loginWithEmail = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
-    const result = await authService.loginWithEmail({ email, password }, req);
+    const { email, password, role } = req.body;
+    const result = await authService.loginWithEmail({ email, password, role }, req);
 
     this._setRefreshTokenCookie(res, result.refreshToken);
 

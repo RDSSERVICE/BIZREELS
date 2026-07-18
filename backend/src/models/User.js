@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   phone: { type: String, sparse: true, unique: true, default: null },
@@ -7,8 +8,10 @@ const userSchema = new mongoose.Schema({
   auth_providers: { type: [mongoose.Schema.Types.Mixed], default: [] },
   roles: { type: [String], enum: ['customer', 'vendor', 'creator', 'admin'], default: ['customer'] },
   current_role: { type: String, enum: ['customer', 'vendor', 'creator', 'admin'], default: 'customer' },
+  activeRole: { type: String, enum: ['customer', 'vendor', 'creator', 'admin'], default: 'customer' },
   kyc_status: { type: String, enum: ['unverified', 'pending', 'approved', 'rejected'], default: 'unverified' },
   profile_pic: { type: String, default: null },
+  avatarUrl: { type: String, default: null },
   gender: { type: String, default: null },
   dob: { type: String, default: null },
   is_active: { type: Boolean, default: true },
@@ -34,6 +37,30 @@ const userSchema = new mongoose.Schema({
   password: { type: String, default: null },
   resetPasswordOtpHash: { type: String, default: null },
   resetPasswordExpires: { type: Date, default: null },
+  // Lockout / Login attempts
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date, default: null },
+  // Social count / arrays
+  followersCount: { type: Number, default: 0 },
+  followingCount: { type: Number, default: 0 },
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // Profiles
+  customerProfile: {
+    savedListings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }]
+  },
+  vendorProfile: { type: mongoose.Schema.Types.Mixed, default: null },
+  creatorProfile: { type: mongoose.Schema.Types.Mixed, default: null },
+  // Location
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] },
+    address: { type: String, default: null },
+    city: { type: String, default: null },
+    district: { type: String, default: null },
+    state: { type: String, default: null },
+    pincode: { type: String, default: null }
+  }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   toJSON: { virtuals: true },
@@ -41,5 +68,24 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.index({ is_deleted: 1 });
+userSchema.index({ 'location.coordinates': '2dsphere' });
+
+// Pre-save hook to hash password if modified
+userSchema.pre('save', async function() {
+  if (!this.isModified('password')) return;
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Instance method to check if user is locked
+userSchema.methods.isLocked = function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+};
+
+// Instance method to compare passwords
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  if (!this.password) return false;
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 module.exports = mongoose.model('User', userSchema, 'users');

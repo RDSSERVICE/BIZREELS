@@ -73,6 +73,7 @@ const apiSlice = createApi({
     'Analytics',
     'Search',
     'Creators',
+    'Categories',
     'AdminUsers',
     'AdminListings',
     'AdminKyc',

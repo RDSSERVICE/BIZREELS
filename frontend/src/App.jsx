@@ -6,6 +6,7 @@ import { useGetMeQuery } from './features/auth/authApi';
 import { setCredentials, logout, setLoading, selectAuthLoading } from './features/auth/authSlice';
 import AppRoutes from './routes';
 import Loader from './components/common/Loader';
+import { AuthProvider } from './context/AuthContext';
 
 /**
  * Root Application Component
@@ -47,22 +48,24 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      {/* Toast Notification Provider */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          className: 'glass font-sans text-xs font-semibold text-brand-navy border border-white/50 shadow-premium',
-          duration: 4000,
-          style: {
-            borderRadius: '1rem',
-            background: 'rgba(255, 255, 255, 0.8)',
-            color: '#1E1B4B',
-          },
-        }}
-      />
-      <AppRoutes />
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        {/* Toast Notification Provider */}
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            className: 'glass font-sans text-xs font-semibold text-brand-navy border border-white/50 shadow-premium',
+            duration: 4000,
+            style: {
+              borderRadius: '1rem',
+              background: 'rgba(255, 255, 255, 0.8)',
+              color: '#1E1B4B',
+            },
+          }}
+        />
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

@@ -152,6 +152,20 @@ const adminApi = apiSlice.injectEndpoints({
       query: (params = {}) => ({ url: '/admin/audit-log', params }),
       providesTags: ['AdminAuditLog'],
     }),
+
+    // ---- Categories (Realtime database items) ----
+    listCategories: builder.query({
+      query: () => '/categories',
+      providesTags: ['Categories'],
+    }),
+    createCategory: builder.mutation({
+      query: (body) => ({ url: '/categories', method: 'POST', body }),
+      invalidatesTags: ['Categories'],
+    }),
+    deleteCategory: builder.mutation({
+      query: (id) => ({ url: `/categories/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Categories'],
+    }),
   }),
 });
 
@@ -183,6 +197,9 @@ export const {
   useSetGlobalCommissionRateMutation,
   useMarkCommissionPaidMutation,
   useListAdminAuditLogQuery,
+  useListCategoriesQuery,
+  useCreateCategoryMutation,
+  useDeleteCategoryMutation,
 } = adminApi;
 
 export default adminApi;

@@ -14,6 +14,11 @@ import {
 } from 'react-icons/fi';
 import Button from '../../components/common/Button';
 import { toast } from 'react-hot-toast';
+import {
+  useListCategoriesQuery,
+  useCreateCategoryMutation,
+  useDeleteCategoryMutation
+} from './adminApi';
 
 const AdminDashboardTab = () => {
   const [activePanel, setActivePanel] = useState('approvals'); // approvals | boosts | categories
@@ -30,9 +35,14 @@ const AdminDashboardTab = () => {
     { _id: 'bst_2', itemTitle: 'Sofa cleaning service package', vendorName: 'Delhi Cleaning Co', creditsRequested: 5, status: 'pending' }
   ]);
 
-  const [categories, setCategories] = useState([
-    'Electronics', 'Home Services', 'Fashion & Apparel', 'Beauty & Wellness', 'Consulting & Professional', 'Automotive', 'Health & Fitness'
-  ]);
+  const { data: catData, isLoading: catLoading } = useListCategoriesQuery(undefined, {
+    skip: activePanel !== 'categories',
+    pollingInterval: 4000
+  });
+  const [createCategory] = useCreateCategoryMutation();
+  const [deleteCategory] = useDeleteCategoryMutation();
+
+  const categories = catData?.items || [];
   const [newCategory, setNewCategory] = useState('');
 
   const handleVerify = (id, status) => {
@@ -45,12 +55,29 @@ const AdminDashboardTab = () => {
     toast.success(`Sponsorship campaign ${status.toUpperCase()}`);
   };
 
-  const handleAddCategory = (e) => {
+  const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!newCategory.trim()) return;
-    setCategories(prev => [...prev, newCategory]);
-    setNewCategory('');
-    toast.success('Category added successfully!');
+    try {
+      toast.loading('Creating category...', { id: 'add-cat' });
+      await createCategory({ name: newCategory.trim() }).unwrap();
+      setNewCategory('');
+      toast.success('Category created successfully!', { id: 'add-cat' });
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to create category.', { id: 'add-cat' });
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (!id) return;
+    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    try {
+      toast.loading('Deleting category...', { id: 'del-cat' });
+      await deleteCategory(id).unwrap();
+      toast.success('Category deleted successfully!', { id: 'del-cat' });
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to delete category.', { id: 'del-cat' });
+    }
   };
 
   return (
@@ -201,13 +228,27 @@ const AdminDashboardTab = () => {
             <div className="lg:col-span-2 glass p-6 rounded-premium border-white/50 shadow-glass">
               <h3 className="text-xs font-bold text-brand-navy uppercase tracking-wider border-b border-border pb-3 mb-4">Category listings</h3>
               
-              <div className="flex flex-wrap gap-2">
-                {categories.map((c) => (
-                  <span key={c} className="px-3 py-1.5 text-xs font-bold bg-brand-purple/10 text-brand-purple rounded-premium border border-brand-purple/10">
-                    {c}
-                  </span>
-                ))}
-              </div>
+              {catLoading ? (
+                <div className="text-xs text-text-tertiary">Loading categories…</div>
+              ) : categories.length === 0 ? (
+                <div className="text-xs text-text-tertiary">No categories defined yet.</div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((c) => (
+                    <span key={c._id || c.name} className="px-3 py-1.5 text-xs font-bold bg-brand-purple/10 text-brand-purple rounded-premium border border-brand-purple/10 flex items-center gap-2">
+                      {c.name}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(c._id)}
+                        className="hover:text-error text-brand-purple/50 cursor-pointer"
+                        title="Delete category"
+                      >
+                        <FiX className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="glass p-6 rounded-premium border-white/50 shadow-glass self-start">

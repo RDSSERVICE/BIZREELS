@@ -1,27 +1,15 @@
-/**
- * Admin phone-OTP login (CHANGE 1 — Phase 7e).
- *
- * This is now the CANONICAL admin entry point at `/admin`. Uses the exact same
- * MSG91 OTP flow as the user login (`POST /v1/auth/otp/send` + `/otp/verify`),
- * with a post-verify guard: the returned user MUST have "admin" in roles[].
- * If not, we discard tokens and show a 403-style message.
- *
- * The regular `/login` page has no admin option; admins land on their default
- * (customer) panel there and must visit `/admin` for the admin dashboard.
- *
- * The legacy dev-token magic-link route `/admin/login` (SEC-001-gated, env
- * ALLOW_DEV_ADMIN_LOGIN) is kept as an internal fallback for demos.
- */
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ShieldCheck, Loader2, Phone, ArrowRight, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-
+import { ArrowLeft } from "lucide-react";
+import Button from "../../components/common/Button";
+import Input from "../../components/common/Input";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
+/**
+ * Premium Admin phone-OTP login page matching the brand's aesthetics
+ */
 export default function AdminOtpLogin() {
   const navigate = useNavigate();
   const { applyAuthResponse, user } = useAuth();
@@ -50,14 +38,14 @@ export default function AdminOtpLogin() {
   const sendOtp = async (e) => {
     e?.preventDefault?.();
     const p = (phone || "").replace(/\D/g, "");
-    if (p.length !== 10) return toast.error("Enter a valid 10-digit mobile");
+    if (p.length !== 10) return toast.error("Enter a valid 10-digit mobile number");
     setLoading(true);
     try {
       const { data } = await api.post("/v1/auth/otp/send", { phone: p });
       setDevOtp(data?.dev_otp || "");
       setStage("otp");
       setCooldown(30);
-      toast.success("OTP sent");
+      toast.success("OTP sent successfully!");
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Failed to send OTP");
     } finally {
@@ -79,7 +67,6 @@ export default function AdminOtpLogin() {
         setLoading(false);
         return;
       }
-      // Prefer admin as current_role so the panel loads with admin scope.
       try { await api.post("/v1/users/me/switch-role", { role: "admin" }); } catch (_e) { /* ignore */ }
       applyAuthResponse({ ...data, user: { ...data.user, current_role: "admin" } });
       toast.success("Signed in as Admin");
@@ -92,113 +79,106 @@ export default function AdminOtpLogin() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto min-h-screen relative bg-black text-white animate-page-enter">
-      <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-4">
+    <div className="flex flex-col gap-6 w-full animate-scale-in">
+      {/* Back button */}
+      <div className="flex items-center -mb-2">
         <button
           type="button"
           onClick={() => navigate("/")}
           data-testid="admin-back"
-          className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-text-secondary hover:text-brand-purple cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Main Site
         </button>
       </div>
 
-      {/* Emerald/gold themed admin header */}
-      <div className="px-4 sm:px-6 lg:px-8 pt-4">
-        <div className="glass rounded-2xl p-5 border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 to-amber-500/5">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="font-heading text-lg font-bold text-emerald-200">Admin Portal</div>
-              <div className="text-[11px] text-white/50">Platform operations · restricted access</div>
-            </div>
-          </div>
-        </div>
+      {/* Title Header */}
+      <div className="text-center md:text-left">
+        <h2 className="text-2xl font-black tracking-tight text-brand-navy">
+          Admin Portal
+        </h2>
+        <p className="text-sm text-text-secondary mt-1">
+          Platform operations · restricted access
+        </p>
       </div>
 
-      <div className="flex-1 px-6 py-6">
+      <div className="flex flex-col gap-4">
         {stage === "phone" && (
-          <form onSubmit={sendOtp} className="space-y-4" data-testid="admin-phone-form">
-            <div>
-              <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Admin mobile number</label>
-              <div className="mt-2 flex items-stretch gap-2">
-                <div className="h-14 px-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm text-white/60">+91</div>
-                <div className="relative flex-1">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
-                  <Input
-                    autoFocus
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    inputMode="numeric"
-                    placeholder="10-digit admin mobile"
-                    className="h-14 rounded-xl bg-white/5 border-white/10 pl-9"
-                    data-testid="admin-phone-input"
-                  />
-                </div>
-              </div>
-              <p className="mt-2 text-[11px] text-white/40">Only accounts with the admin role can proceed after OTP.</p>
-            </div>
+          <form onSubmit={sendOtp} className="flex flex-col gap-4" data-testid="admin-phone-form">
+            <Input
+              label="Admin Mobile Number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              inputMode="numeric"
+              placeholder="10-digit mobile number"
+              data-testid="admin-phone-input"
+            />
+            <p className="text-xs text-text-tertiary">
+              Only accounts with the admin role can proceed after OTP.
+            </p>
             <Button
               type="submit"
-              disabled={loading}
+              variant="primary"
+              fullWidth
+              isLoading={loading}
               data-testid="admin-send-otp"
-              className="w-full h-14 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-700 hover:opacity-90 text-white text-base font-semibold border-0 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="mt-2"
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
               Send OTP
             </Button>
           </form>
         )}
 
         {stage === "otp" && (
-          <form onSubmit={verifyOtp} className="space-y-4" data-testid="admin-otp-form">
+          <form onSubmit={verifyOtp} className="flex flex-col gap-4" data-testid="admin-otp-form">
             {devOtp && (
               <div
-                className="glass rounded-xl px-3 py-2 border border-blue-400/30 bg-blue-500/10 text-blue-200 text-xs"
+                className="p-3 bg-brand-purple/5 border border-brand-purple/10 rounded-premium text-center text-xs font-semibold text-brand-navy animate-pulse"
                 data-testid="admin-dev-otp-banner"
               >
-                <span className="font-heading font-semibold">DEV MODE OTP:</span> {devOtp}
+                <span className="text-brand-purple font-bold">DEV MODE OTP:</span> {devOtp}
               </div>
             )}
-            <div>
-              <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Enter 6-digit OTP</label>
-              <Input
-                autoFocus
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                inputMode="numeric"
-                placeholder="6-digit code"
-                maxLength={6}
-                className="mt-2 h-14 rounded-xl bg-white/5 border-white/10 text-lg tracking-widest text-center"
-                data-testid="admin-otp-input"
-              />
-              <div className="mt-2 flex items-center justify-between text-[11px] text-white/50">
-                <span>Code sent to +91 {phone}</span>
-                <button
-                  type="button"
-                  disabled={cooldown > 0 || loading}
-                  onClick={sendOtp}
-                  className="disabled:opacity-40 underline"
-                  data-testid="admin-resend-otp"
-                >
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend"}
-                </button>
-              </div>
+            <Input
+              label="Enter 6-Digit OTP"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              inputMode="numeric"
+              placeholder="000000"
+              maxLength={6}
+              data-testid="admin-otp-input"
+            />
+            <div className="flex items-center justify-between text-xs text-text-secondary">
+              <span>Code sent to +91 {phone}</span>
+              <button
+                type="button"
+                disabled={cooldown > 0 || loading}
+                onClick={sendOtp}
+                className="disabled:opacity-40 underline font-bold text-brand-purple hover:text-brand-orange cursor-pointer"
+                data-testid="admin-resend-otp"
+              >
+                {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend"}
+              </button>
             </div>
             <Button
               type="submit"
-              disabled={loading || otp.length !== 6}
+              variant="primary"
+              fullWidth
+              disabled={otp.length !== 6}
+              isLoading={loading}
               data-testid="admin-verify-otp"
-              className="w-full h-14 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-700 hover:opacity-90 text-white text-base font-semibold border-0 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="mt-2"
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
               Verify & Enter Admin
             </Button>
           </form>
         )}
+      </div>
+
+      <div className="text-center pt-2">
+        <Link to="/adminlogin" className="text-xs font-bold text-brand-purple hover:underline" data-testid="admin-token-login-link">
+          🔑 Use Developer Token instead
+        </Link>
       </div>
     </div>
   );

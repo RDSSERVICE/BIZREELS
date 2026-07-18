@@ -7,33 +7,41 @@ import AppLayout from '../layouts/AppLayout';
 import PublicLayout from '../layouts/PublicLayout';
 
 // Guards
-import { PrivateRoute, RoleRoute, PublicRoute } from './guards';
+import { PrivateRoute, RoleRoute, PublicRoute, RequireAdmin } from './guards';
 
 // Pages
-import Home from '../pages/Home';
-import About from '../pages/About';
-import Login from '../pages/Login';
-import Register from '../pages/Register';
-import ForgotPassword from '../pages/ForgotPassword';
-import AuthCallback from '../pages/AuthCallback';
-import Feed from '../pages/Feed';
-import Search from '../pages/Search';
-import RequirementsNew from '../pages/RequirementsNew';
-import VendorDashboard from '../pages/VendorDashboard';
-import CreatorDashboard from '../pages/CreatorDashboard';
-import DashboardRouter from '../pages/DashboardRouter';
-import Profile from '../pages/Profile';
-import ReelsFeed from '../pages/ReelsFeed';
-import ReelsUpload from '../pages/ReelsUpload';
-import Chats from '../pages/Chats';
-import Notifications from '../pages/Notifications';
-import CreatorMarketplace from '../pages/CreatorMarketplace';
-import LiveStream from '../pages/LiveStream';
-import AdminDashboard from '../pages/AdminDashboard';
-import Settings from '../pages/Settings';
-import Activities from '../pages/Activities';
-import Wallet from '../pages/Wallet';
-import Subscription from '../pages/Subscription';
+import Home from '../pages/home/Home';
+import About from '../pages/home/About';
+import Login from '../pages/auth/Login';
+import Register from '../pages/auth/Register';
+import ForgotPassword from '../pages/auth/ForgotPassword';
+import AuthCallback from '../pages/auth/AuthCallback';
+import Feed from '../pages/reels/Feed';
+import Search from '../pages/search/Search';
+import RequirementsNew from '../pages/customer/RequirementsNew';
+import VendorDashboard from '../pages/vendor/VendorDashboard';
+import CreatorDashboard from '../pages/creator/CreatorDashboard';
+import DashboardRouter from '../pages/customer/DashboardRouter';
+import Profile from '../pages/customer/Profile';
+import ReelsFeed from '../pages/reels/ReelsFeed';
+import ReelsUpload from '../pages/reels/ReelsUpload';
+import Chats from '../pages/chat/Chats';
+import Notifications from '../pages/customer/Notifications';
+import CreatorMarketplace from '../pages/creator/CreatorMarketplace';
+import LiveStream from '../pages/reels/LiveStream';
+import Settings from '../pages/settings/Settings';
+import AdminLogin from '../pages/admin/AdminLogin';
+import Admin from '../pages/admin/Admin';
+import AdminDashboard from '../pages/admin/AdminDashboard';
+import AdminConsole from '../pages/admin/AdminConsole';
+import AdminKyc from '../pages/admin/AdminKyc';
+import AdminListings from '../pages/admin/AdminListings';
+import AdminReports from '../pages/admin/AdminReports';
+import AdminSettings from '../pages/admin/AdminSettings';
+import AdminUsers from '../pages/admin/AdminUsers';
+import Activities from '../pages/customer/Activities';
+import Wallet from '../pages/wallet/Wallet';
+import Subscription from '../pages/subscription/Subscription';
 
 const AppRoutes = () => {
   return (
@@ -97,11 +105,31 @@ const AppRoutes = () => {
         {/* Redirect Legacy Dashboard Routes */}
         <Route path="vendor/dashboard" element={<Navigate to="/dashboard" replace />} />
         <Route path="creator/dashboard" element={<Navigate to="/dashboard" replace />} />
-        <Route path="admin" element={<Navigate to="/dashboard" replace />} />
-        <Route path="admin/dashboard" element={<Navigate to="/dashboard" replace />} />
+
+        {/* ── Guarded Admin Console Routes (Unified inside AppLayout) ── */}
+        <Route path="/admin/dashboard" element={<RequireAdmin><Admin /></RequireAdmin>} />
+        <Route path="/admin/console" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
+        <Route path="/admin/transactions" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
+        <Route path="/admin/orders" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
+        <Route path="/admin/commissions" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
+        <Route path="/admin/audit-log" element={<RequireAdmin><AdminConsole /></RequireAdmin>} />
+        <Route path="/admin/kyc" element={<RequireAdmin><AdminKyc /></RequireAdmin>} />
+        <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
+        <Route path="/admin/listings" element={<RequireAdmin><AdminListings /></RequireAdmin>} />
+        <Route path="/admin/reports" element={<RequireAdmin><AdminReports /></RequireAdmin>} />
+        <Route path="/admin/settings" element={<RequireAdmin><AdminSettings /></RequireAdmin>} />
+        <Route path="/admin/setting" element={<Navigate to="/admin/settings" replace />} />
+        <Route path="/admin/approvals" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
 
         {/* Fallback for authenticated users */}
         <Route path="*" element={<Navigate to="/feed" replace />} />
+      </Route>
+
+      {/* ── Admin Auth Routes (Public) ────────────────────────── */}
+      <Route element={<AuthLayout />}>
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/adminlogin" element={<AdminLogin />} />
       </Route>
     </Routes>
   );

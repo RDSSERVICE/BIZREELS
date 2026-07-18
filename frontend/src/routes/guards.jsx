@@ -4,7 +4,8 @@ import { useSelector } from 'react-redux';
 import {
   selectIsAuthenticated,
   selectActiveRole,
-  selectAuthLoading
+  selectAuthLoading,
+  selectCurrentUser
 } from '../features/auth/authSlice';
 import Loader from '../components/common/Loader';
 
@@ -72,6 +73,26 @@ export const PublicRoute = ({ children }) => {
       return <Navigate to="/dashboard" replace />;
     }
     return <Navigate to="/feed" replace />;
+  }
+
+  return children;
+};
+
+/**
+ * Guard for admin-only routes.
+ * Redirects to /admin if not authenticated or not an admin.
+ */
+export const RequireAdmin = ({ children }) => {
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectCurrentUser);
+  const isLoading = useSelector(selectAuthLoading);
+
+  if (isLoading) {
+    return <Loader fullPage />;
+  }
+
+  if (!isAuthenticated || !(user?.roles || []).includes('admin')) {
+    return <Navigate to="/admin" replace />;
   }
 
   return children;
