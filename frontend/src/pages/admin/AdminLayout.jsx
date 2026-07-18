@@ -190,30 +190,24 @@ const AdminLayout = () => {
       </nav>
 
       {/* User Info + Logout */}
-      <div className="border-t border-border px-4 py-3">
+      <div className="border-t border-border px-4 py-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-black">
-            {(user?.name || 'A')[0].toUpperCase()}
-          </div>
+          <img
+            src={user?.profile_pic || "/logo.png"}
+            alt="Admin Logo"
+            className="w-9 h-9 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm"
+          />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-text-primary truncate">{user?.name || 'Admin'}</p>
             <p className="text-[10px] text-text-tertiary truncate">{user?.email || user?.phone || 'admin'}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Link
-            to="/feed"
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold text-text-secondary hover:bg-surface-tertiary transition-all border border-border"
-          >
-            <FiHome className="w-3.5 h-3.5" /> Main App
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold text-error hover:bg-error-light/40 transition-all border border-error/20"
-          >
-            <FiLogOut className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-error bg-error/10 hover:bg-error/20 transition-all border border-error/20"
+        >
+          <FiLogOut className="w-4 h-4" /> Sign Out
+        </button>
       </div>
     </div>
   );
@@ -265,11 +259,14 @@ const AdminLayout = () => {
               <FiBell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-orange animate-pulse" />
             </Link>
-            <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-black">
-              {(user?.name || 'A')[0].toUpperCase()}
-            </div>
+            <img
+              src={user?.profile_pic || "/logo.png"}
+              alt="Admin Profile Logo"
+              className="w-8 h-8 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm"
+            />
           </div>
         </header>
+
 
         {/* Page Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
