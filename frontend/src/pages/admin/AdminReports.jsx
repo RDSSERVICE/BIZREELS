@@ -1,50 +1,43 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import ScreenHeader from "@/components/app/ScreenHeader";
 import BottomNav from "@/components/app/BottomNav";
 import { Button } from "@/components/ui/button";
-import { reportApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useListAdminReportsQuery, useResolveReportMutation, useDismissReportMutation } from "@/features/admin/adminApi";
 
 const STATUS_LABEL = { open: "OPEN", resolved: "RESOLVED", dismissed: "DISMISSED" };
 
 export default function AdminReports() {
   const { user } = useAuth();
-  const [items, setItems] = useState([]);
+  const isAdmin = !!user?.roles?.includes("admin");
   const [status, setStatus] = useState("open");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { if (user?.roles?.includes("admin")) load(); }, [user?.id, status]);
+  const { data, isFetching } = useListAdminReportsQuery({ status, limit: 40 }, { skip: !isAdmin });
+  const items = data?.items || [];
 
-  async function load() {
-    setLoading(true);
-    try {
-      const { data } = await reportApi.adminList({ status, limit: 40 });
-      setItems(data.items || []);
-    } finally { setLoading(false); }
-  }
+  const [resolveReport] = useResolveReportMutation();
+  const [dismissReport] = useDismissReportMutation();
 
   const doAction = async (r, action) => {
     let note = null;
     if (action === "takedown") note = `Action per report ${r.id}`;
     try {
-      await reportApi.adminResolve(r.id, action, note);
+      await resolveReport({ id: r.id, action, note }).unwrap();
       toast.success(`Report resolved: ${action}`);
-      load();
-    } catch (err) { toast.error(err?.response?.data?.detail || "Failed"); }
+    } catch (err) { toast.error(err?.data?.message || err?.data?.detail || "Failed"); }
   };
 
   const doDismiss = async (r) => {
     const reason = window.prompt("Dismissal note?") || null;
     try {
-      await reportApi.adminDismiss(r.id, reason);
+      await dismissReport({ id: r.id, reason }).unwrap();
       toast.success("Report dismissed");
-      load();
-    } catch (err) { toast.error(err?.response?.data?.detail || "Failed"); }
+    } catch (err) { toast.error(err?.data?.message || err?.data?.detail || "Failed"); }
   };
 
-  if (user && !user.roles?.includes("admin")) return <Navigate to="/" replace />;
+  if (user && !isAdmin) return <Navigate to="/" replace />;
 
   return (
     <div className="w-full max-w-7xl mx-auto min-h-screen relative bg-black text-white animate-page-enter flex flex-col">
@@ -61,7 +54,7 @@ export default function AdminReports() {
         ))}
       </div>
       <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-2 mt-1">
-        {loading ? <div className="h-24 rounded-2xl bg-white/5 animate-pulse" /> : items.length === 0 ? (
+        {isFetching ? <div className="h-24 rounded-2xl bg-white/5 animate-pulse" /> : items.length === 0 ? (
           <div className="glass rounded-2xl p-8 text-center text-white/60 text-sm" data-testid="admin-reports-empty">
             {status === "open" ? "Queue is clear ✓" : "No reports"}
           </div>

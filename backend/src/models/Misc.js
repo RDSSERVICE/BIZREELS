@@ -96,13 +96,16 @@ const platformSettingsSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });
 
+const registerOrReuse = (name, schema, collection) =>
+  mongoose.models[name] || mongoose.model(name, schema, collection);
+
 module.exports = {
-  Report: mongoose.model('Report', reportSchema, 'reports'),
-  AuditLog: mongoose.model('AuditLog', auditLogSchema, 'audit_logs'),
-  SearchHistory: mongoose.model('SearchHistory', searchHistorySchema, 'search_history'),
-  Referral: mongoose.model('Referral', referralSchema, 'referrals'),
-  ListingEvent: mongoose.model('ListingEvent', listingEventSchema, 'listing_events'),
-  ResponseEvent: mongoose.model('ResponseEvent', responseEventSchema, 'response_events'),
-  WatcherNotification: mongoose.model('WatcherNotification', watcherNotificationSchema, 'watcher_notifications'),
-  PlatformSettings: mongoose.model('PlatformSettings', platformSettingsSchema, 'platform_settings'),
+  Report: registerOrReuse('Report', reportSchema, 'reports'),
+  AuditLog: registerOrReuse('AuditLog', auditLogSchema, 'audit_logs'),
+  SearchHistory: registerOrReuse('SearchHistory', searchHistorySchema, 'search_history'),
+  Referral: registerOrReuse('Referral', referralSchema, 'referrals'),
+  ListingEvent: registerOrReuse('ListingEvent', listingEventSchema, 'listing_events'),
+  ResponseEvent: registerOrReuse('ResponseEvent', responseEventSchema, 'response_events'),
+  WatcherNotification: registerOrReuse('WatcherNotification', watcherNotificationSchema, 'watcher_notifications'),
+  PlatformSettings: registerOrReuse('PlatformSettings', platformSettingsSchema, 'platform_settings'),
 };

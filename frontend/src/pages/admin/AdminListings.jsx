@@ -1,34 +1,32 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import ScreenHeader from "@/components/app/ScreenHeader";
 import BottomNav from "@/components/app/BottomNav";
 import { Button } from "@/components/ui/button";
-import { adminApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useListAdminListingsQuery, useTakedownListingMutation, useRestoreListingMutation } from "@/features/admin/adminApi";
 
 export default function AdminListings() {
   const { user } = useAuth();
-  const [items, setItems] = useState([]);
+  const isAdmin = !!user?.roles?.includes("admin");
   const [flagged, setFlagged] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { if (user?.roles?.includes("admin")) load(); }, [user?.id, flagged]);
+  const { data, isFetching } = useListAdminListingsQuery(
+    { flagged: flagged || undefined, limit: 40 },
+    { skip: !isAdmin }
+  );
+  const items = data?.items || [];
 
-  async function load() {
-    setLoading(true);
-    try {
-      const { data } = await adminApi.listListings({ flagged: flagged || undefined, limit: 40 });
-      setItems(data.items || []);
-    } finally { setLoading(false); }
-  }
+  const [takedownListing] = useTakedownListingMutation();
+  const [restoreListing] = useRestoreListingMutation();
 
-  const act = async (fn, ok = "Done") => {
-    try { await fn; toast.success(ok); load(); }
-    catch (err) { toast.error(err?.response?.data?.detail || "Failed"); }
+  const act = async (promise, ok = "Done") => {
+    try { await promise.unwrap(); toast.success(ok); }
+    catch (err) { toast.error(err?.data?.message || err?.data?.detail || "Failed"); }
   };
 
-  if (user && !user.roles?.includes("admin")) return <Navigate to="/" replace />;
+  if (user && !isAdmin) return <Navigate to="/" replace />;
 
   return (
     <div className="w-full max-w-7xl mx-auto min-h-screen relative bg-black text-white animate-page-enter flex flex-col">
@@ -38,7 +36,7 @@ export default function AdminListings() {
         <Button size="sm" onClick={() => setFlagged(true)} className={`rounded-full h-9 ${flagged ? "btn-brand border-0" : "bg-white/5 border-white/10 text-white hover:bg-white/10"}`} data-testid="admin-listings-tab-taken">Taken down</Button>
       </div>
       <div className="px-4 sm:px-6 lg:px-8 pb-24 flex-1 space-y-2 mt-1">
-        {loading ? <div className="h-24 rounded-2xl bg-white/5 animate-pulse" /> : items.length === 0 ? (
+        {isFetching ? <div className="h-24 rounded-2xl bg-white/5 animate-pulse" /> : items.length === 0 ? (
           <div className="glass rounded-2xl p-8 text-center text-white/60 text-sm" data-testid="admin-listings-empty">Nothing here.</div>
         ) : items.map((li) => (
           <div key={li.id} className="glass rounded-2xl p-4" data-testid={`admin-listing-${li.id}`}>
@@ -50,9 +48,9 @@ export default function AdminListings() {
               </div>
               <div className="flex flex-col gap-1">
                 {li.is_takendown ? (
-                  <Button size="sm" onClick={() => act(adminApi.restoreListing(li.id), "Restored")} className="rounded-full h-8 btn-brand border-0" data-testid={`restore-${li.id}`}>Restore</Button>
+                  <Button size="sm" onClick={() => act(restoreListing(li.id), "Restored")} className="rounded-full h-8 btn-brand border-0" data-testid={`restore-${li.id}`}>Restore</Button>
                 ) : (
-                  <Button size="sm" variant="destructive" onClick={() => { if (window.confirm("Take down this listing?")) act(adminApi.takedownListing(li.id), "Taken down"); }} className="rounded-full h-8" data-testid={`takedown-${li.id}`}>Takedown</Button>
+                  <Button size="sm" variant="destructive" onClick={() => { if (window.confirm("Take down this listing?")) act(takedownListing(li.id), "Taken down"); }} className="rounded-full h-8" data-testid={`takedown-${li.id}`}>Takedown</Button>
                 )}
               </div>
             </div>

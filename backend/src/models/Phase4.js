@@ -124,12 +124,15 @@ const kycDocSchema = new mongoose.Schema({
   timestamps: false,
 });
 
+const registerOrReuse = (name, schema, collection) =>
+  mongoose.models[name] || mongoose.model(name, schema, collection);
+
 module.exports = {
-  Review: mongoose.model('Review', reviewSchema, 'reviews'),
-  Notification: mongoose.model('Notification', notificationSchema, 'notifications'),
-  Wallet: mongoose.model('Wallet', walletSchema, 'wallets'),
-  WalletTransaction: mongoose.model('WalletTransaction', walletTxnSchema, 'wallet_transactions'),
-  Payment: mongoose.model('Payment', paymentSchema, 'payments'),
-  Subscription: mongoose.model('Subscription', subscriptionSchema, 'subscriptions'),
-  KycDocument: mongoose.model('KycDocument', kycDocSchema, 'kyc_documents'),
+  Review: registerOrReuse('Review', reviewSchema, 'reviews'),
+  Notification: registerOrReuse('Notification', notificationSchema, 'notifications'),
+  Wallet: registerOrReuse('Wallet', walletSchema, 'wallets'),
+  WalletTransaction: registerOrReuse('WalletTransaction', walletTxnSchema, 'wallet_transactions'),
+  Payment: registerOrReuse('Payment', paymentSchema, 'payments'),
+  Subscription: registerOrReuse('Subscription', subscriptionSchema, 'subscriptions'),
+  KycDocument: registerOrReuse('KycDocument', kycDocSchema, 'kyc_documents'),
 };

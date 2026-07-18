@@ -8,9 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
-import { integrationsApi } from "@/lib/api";
 import { toast } from "sonner";
 import { KeyRound, AlertTriangle, Loader2, PlugZap } from "lucide-react";
+import {
+  useGetIntegrationSettingsQuery,
+  useUpdateIntegrationSettingsMutation,
+  useTestIntegrationMutation,
+} from "@/features/admin/adminApi";
 
 const TABS = [
   { key: "msg91", label: "MSG91 · OTP", secrets: ["auth_key"],
@@ -145,65 +149,56 @@ function IntegrationForm({ config, values, onChange, onSave, onTest, saving, tes
 
 export default function AdminSettings() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [remote, setRemote] = useState(null);
+  const isAdmin = !!user?.roles?.includes("admin");
   const [state, setState] = useState({});
   const [activeTab, setActiveTab] = useState("msg91");
-  const [saving, setSaving] = useState(null);
-  const [testing, setTesting] = useState(null);
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const { data } = await integrationsApi.get();
-      setRemote(data);
-      const s = {};
-      for (const t of TABS) s[t.key] = { ...(data[t.key] || {}) };
-      setState(s);
-    } catch (e) {
-      toast.error("Failed to load integration settings");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: remote, isFetching: loading } = useGetIntegrationSettingsQuery(undefined, { skip: !isAdmin });
+  const [updateIntegrationSettings] = useUpdateIntegrationSettingsMutation();
+  const [testIntegration] = useTestIntegrationMutation();
+  const [savingKey, setSavingKey] = useState(null);
+  const [testingKey, setTestingKey] = useState(null);
 
-  useEffect(() => { if (user?.roles?.includes("admin")) load(); }, [user?.id]);
+  useEffect(() => {
+    if (!remote) return;
+    const s = {};
+    for (const t of TABS) s[t.key] = { ...(remote[t.key] || {}) };
+    setState(s);
+  }, [remote]);
 
-  if (user && !user.roles?.includes("admin")) return <Navigate to="/" replace />;
+  if (user && !isAdmin) return <Navigate to="/" replace />;
 
   const setField = (integ, key, val) => {
     setState((s) => ({ ...s, [integ]: { ...(s[integ] || {}), [key]: val } }));
   };
 
   const save = async (integ) => {
-    setSaving(integ);
+    setSavingKey(integ);
     try {
       const patch = { [integ]: state[integ] };
-      const { data } = await integrationsApi.patch(patch);
-      setRemote(data);
-      // reflect masked values back into local state for that integ
+      const data = await updateIntegrationSettings(patch).unwrap();
       setState((s) => ({ ...s, [integ]: { ...(data[integ] || {}) } }));
       toast.success(`${integ.toUpperCase()} settings saved`);
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Save failed");
+      toast.error(e?.data?.message || e?.data?.detail || "Save failed");
     } finally {
-      setSaving(null);
+      setSavingKey(null);
     }
   };
 
   const test = async (integ) => {
-    setTesting(integ);
+    setTestingKey(integ);
     try {
-      const { data } = await integrationsApi.test(integ);
+      const data = await testIntegration(integ).unwrap();
       if (data.ok) {
         toast.success(`${integ.toUpperCase()} OK ${data.dev_mode ? "· dev mode" : "· LIVE"}`);
       } else {
         toast.error(`${integ.toUpperCase()} failed: ${data.error || "unknown"}`);
       }
     } catch (e) {
-      toast.error(e?.response?.data?.detail || `Test failed for ${integ}`);
+      toast.error(e?.data?.message || e?.data?.detail || `Test failed for ${integ}`);
     } finally {
-      setTesting(null);
+      setTestingKey(null);
     }
   };
 
@@ -239,8 +234,8 @@ export default function AdminSettings() {
                   onChange={(k, v) => setField(t.key, k, v)}
                   onSave={() => save(t.key)}
                   onTest={() => test(t.key)}
-                  saving={saving === t.key}
-                  testing={testing === t.key}
+                  saving={savingKey === t.key}
+                  testing={testingKey === t.key}
                 />
               </TabsContent>
             ))}

@@ -4,17 +4,27 @@
  * A single tabbed console at /admin/console that surfaces the 4 new admin
  * lists (transactions, orders, commissions, audit log). Ships with sane
  * defaults + minimal filtering; each list uses the new /api/v1/admin/*
- * endpoints. Full-page dedicated views (/admin/transactions, etc.) can be
- * split out later — for the first drop, one console keeps navigation lean.
+ * endpoints via RTK Query. Full-page dedicated views (/admin/transactions,
+ * etc.) can be split out later — for the first drop, one console keeps
+ * navigation lean.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Download, IndianRupee, ScrollText, ShoppingBag, Wallet, ShieldCheck, Loader2, RefreshCw } from "lucide-react";
 import ScreenHeader from "@/components/app/ScreenHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api } from "@/lib/api";
+import API_CONFIG from "@/config";
+import {
+  useListAdminTransactionsQuery,
+  useListAdminOrdersQuery,
+  useListAdminCommissionsQuery,
+  useGetCommissionSummaryQuery,
+  useListAdminAuditLogQuery,
+  useSetGlobalCommissionRateMutation,
+  useMarkCommissionPaidMutation,
+} from "@/features/admin/adminApi";
 
 const TABS = [
   { key: "transactions", label: "Transactions", icon: Wallet },
@@ -23,60 +33,58 @@ const TABS = [
   { key: "audit",        label: "Audit Log",    icon: ScrollText },
 ];
 
-function useAdminList(tab) {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [meta, setMeta] = useState(null);
-  const load = async () => {
-    setLoading(true);
-    try {
-      let path = "";
-      if (tab === "transactions") path = "/v1/admin/transactions?limit=50";
-      else if (tab === "orders")  path = "/v1/admin/orders?limit=50";
-      else if (tab === "commissions") path = "/v1/admin/commissions?limit=50";
-      else if (tab === "audit") path = "/v1/admin/audit-log?limit=50";
-      const { data } = await api.get(path);
-      setItems(data.items || []);
-      if (tab === "commissions") {
-        try {
-          const { data: s } = await api.get("/v1/admin/commissions/summary");
-          setMeta(s);
-        } catch { setMeta(null); }
-      } else setMeta(null);
-    } catch (e) {
-      toast.error(e?.response?.data?.detail || "Failed to load");
-      setItems([]);
-    } finally { setLoading(false); }
+// Each tab's data comes from its own RTK Query hook. Only the active tab's
+// query is ever "hot" thanks to `skip`, so switching tabs doesn't fire every
+// endpoint — but results stay cached, so flipping back to a previously
+// visited tab is instant.
+function useTabData(tab) {
+  const txs = useListAdminTransactionsQuery({ limit: 50 }, { skip: tab !== "transactions" });
+  const orders = useListAdminOrdersQuery({ limit: 50 }, { skip: tab !== "orders" });
+  const commissions = useListAdminCommissionsQuery({ limit: 50 }, { skip: tab !== "commissions" });
+  const summary = useGetCommissionSummaryQuery(undefined, { skip: tab !== "commissions" });
+  const audit = useListAdminAuditLogQuery({ limit: 50 }, { skip: tab !== "audit" });
+
+  const byTab = {
+    transactions: { data: txs.data, isFetching: txs.isFetching, refetch: txs.refetch },
+    orders: { data: orders.data, isFetching: orders.isFetching, refetch: orders.refetch },
+    commissions: { data: commissions.data, isFetching: commissions.isFetching, refetch: () => { commissions.refetch(); summary.refetch(); } },
+    audit: { data: audit.data, isFetching: audit.isFetching, refetch: audit.refetch },
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [tab]);
-  return { items, loading, meta, reload: load };
+
+  return {
+    items: byTab[tab]?.data?.items || [],
+    loading: byTab[tab]?.isFetching || false,
+    meta: tab === "commissions" ? summary.data : null,
+    reload: byTab[tab]?.refetch || (() => {}),
+  };
 }
 
 export default function AdminConsole() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("transactions");
-  const { items, loading, meta, reload } = useAdminList(tab);
+  const { items, loading, meta, reload } = useTabData(tab);
   const [rate, setRate] = useState("");
+
+  const [setGlobalCommissionRate] = useSetGlobalCommissionRateMutation();
+  const [markCommissionPaid] = useMarkCommissionPaidMutation();
 
   const setGlobalRate = async () => {
     const r = parseFloat(rate);
     if (!(r >= 0 && r <= 1)) return toast.error("Enter a rate between 0 and 1 (e.g. 0.05)");
     try {
-      const { data } = await api.post("/v1/admin/commissions/rate/global", { rate: r });
+      const data = await setGlobalCommissionRate(r).unwrap();
       toast.success(`Global commission rate set to ${(data.global_rate * 100).toFixed(1)}%`);
       setRate("");
-      reload();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+    } catch (e) { toast.error(e?.data?.message || e?.data?.detail || "Failed"); }
   };
 
   const markPaid = async (id) => {
-    try { await api.post(`/v1/admin/commissions/${id}/mark-paid`); toast.success("Marked paid"); reload(); }
-    catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+    try { await markCommissionPaid(id).unwrap(); toast.success("Marked paid"); }
+    catch (e) { toast.error(e?.data?.message || e?.data?.detail || "Failed"); }
   };
 
   const downloadCsv = () => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
-    const url = `${backendUrl}/api/v1/admin/transactions.csv`;
+    const url = `${API_CONFIG.BASE_URL}/admin/transactions.csv`;
     const win = window.open(url, "_blank"); if (!win) toast.error("Popup blocked");
   };
 

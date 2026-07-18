@@ -12,6 +12,9 @@ const reviewRoutes = require('./reviewRoutes');
 const analyticsRoutes = require('./analyticsRoutes');
 const orderRoutes = require('./orderRoutes');
 const inquiryRoutes = require('./inquiryRoutes');
+const adminRoutes = require('./admin.routes');
+const reportRoutes = require('./report.routes');
+const kycRoutes = require('./kyc.routes');
 
 const router = express.Router();
 
@@ -44,5 +47,10 @@ router.use('/reviews', reviewRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/orders', orderRoutes);
 router.use('/inquiries', inquiryRoutes);
+
+// Admin module routes (previously unmounted — see docs/PROJECT_OVERVIEW.md admin spec)
+router.use('/admin', adminRoutes);       // /admin/users, /admin/listings, /admin/analytics/overview, etc.
+router.use('/', reportRoutes);           // /reports, /admin/reports, /admin/reports/:id/resolve|dismiss
+router.use('/', kycRoutes);              // /kyc/me/submit, /kyc/me, /admin/kyc, /admin/kyc/:id/approve|reject
 
 module.exports = router;

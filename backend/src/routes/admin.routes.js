@@ -15,6 +15,7 @@ const ApiError = require('../utils/ApiError');
 const router = express.Router();
 
 const requireAdmin = (req, res, next) => {
+   console.log(req.user);
   const roles = req.user.roles || [];
   if (!roles.includes('admin')) {
     return next(ApiError.forbidden('Admin only'));
