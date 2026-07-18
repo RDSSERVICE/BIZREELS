@@ -20,8 +20,6 @@ import AuthCallback from '../pages/auth/AuthCallback';
 import Feed from '../pages/reels/Feed';
 import Search from '../pages/search/Search';
 import RequirementsNew from '../pages/customer/RequirementsNew';
-import VendorDashboard from '../pages/vendor/VendorDashboard';
-import CreatorDashboard from '../pages/creator/CreatorDashboard';
 import DashboardRouter from '../pages/customer/DashboardRouter';
 import Profile from '../pages/customer/Profile';
 import ReelsFeed from '../pages/reels/ReelsFeed';
@@ -62,16 +60,9 @@ import AdminSecurityPage from '../pages/admin/security/AdminSecurityPage';
 import AdminAuditPage from '../pages/admin/audit/AdminAuditPage';
 import AdminModerationPage from '../pages/admin/moderation/AdminModerationPage';
 import AdminFinancialReportsPage from '../pages/admin/reports/AdminFinancialReportsPage';
-import AdminReports from '../pages/admin/AdminReports';
-
-
-
-import AdminSettings from '../pages/admin/AdminSettings';
-import AdminUsers from '../pages/admin/AdminUsers';
 import AdminCustomers from '../pages/admin/users/AdminCustomers';
 import AdminVendors from '../pages/admin/users/AdminVendors';
 import AdminCreators from '../pages/admin/users/AdminCreators';
-import AdminComingSoon from '../pages/admin/AdminComingSoon';
 
 
 const AppRoutes = () => {
@@ -99,7 +90,80 @@ const AppRoutes = () => {
         <Route path="" element={<Navigate to="login" replace />} />
       </Route>
 
-      {/* ── Protected Core Application Routes ─────────────────── */}
+      {/* ── Admin Auth Routes (Public) ────────────────────────── */}
+      <Route element={<AuthLayout />}>
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/adminlogin" element={<AdminLogin />} />
+      </Route>
+
+      {/* ── Admin Panel Routes (Dedicated Admin Layout) ───────── */}
+      <Route
+        element={
+          <RequireAdmin>
+            <AdminLayout />
+          </RequireAdmin>
+        }
+      >
+        {/* Overview */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
+        {/* User Management */}
+        <Route path="/admin/customers" element={<AdminCustomers />} />
+        <Route path="/admin/vendors" element={<AdminVendors />} />
+        <Route path="/admin/creators" element={<AdminCreators />} />
+        <Route path="/admin/users" element={<AdminCustomers />} />
+
+        {/* KYC & Verification */}
+        <Route path="/admin/kyc" element={<AdminKycPage />} />
+        <Route path="/admin/approvals" element={<AdminKycPage />} />
+
+        {/* Content Management */}
+        <Route path="/admin/listings" element={<AdminListingsPage />} />
+        <Route path="/admin/reels" element={<AdminReelsPage />} />
+        <Route path="/admin/boost" element={<AdminBoostPage />} />
+        <Route path="/admin/categories" element={<AdminCategoriesPage />} />
+
+        {/* Operations */}
+        <Route path="/admin/locations" element={<AdminLocationsPage />} />
+        <Route path="/admin/requirements" element={<AdminRequirementsPage />} />
+        <Route path="/admin/chat" element={<AdminChatPage />} />
+        <Route path="/admin/orders" element={<AdminOrdersPage />} />
+
+        {/* Finance */}
+        <Route path="/admin/wallet" element={<AdminWalletPage />} />
+        <Route path="/admin/subscriptions" element={<AdminSubscriptionsPage />} />
+        <Route path="/admin/commission" element={<AdminCommissionPage />} />
+
+        {/* Engagement */}
+        <Route path="/admin/reviews" element={<AdminReviewsPage />} />
+        <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+        <Route path="/admin/ai" element={<AdminAiPage />} />
+        <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
+        <Route path="/admin/offers" element={<AdminOffersPage />} />
+
+        {/* Moderation */}
+        <Route path="/admin/reports" element={<AdminModerationPage />} />
+        <Route path="/admin/moderation" element={<AdminModerationPage />} />
+
+        {/* System */}
+        <Route path="/admin/cms" element={<AdminCmsPage />} />
+        <Route path="/admin/app-settings" element={<AdminAppSettingsPage />} />
+        <Route path="/admin/security" element={<AdminSecurityPage />} />
+        <Route path="/admin/audit" element={<AdminAuditPage />} />
+        <Route path="/admin/financial-reports" element={<AdminFinancialReportsPage />} />
+
+        {/* Legacy routes — redirect to new paths */}
+        <Route path="/admin/console" element={<AdminConsole />} />
+        <Route path="/admin/transactions" element={<AdminConsole />} />
+        <Route path="/admin/commissions" element={<AdminConsole />} />
+        <Route path="/admin/audit-log" element={<AdminConsole />} />
+        <Route path="/admin/settings" element={<AdminAppSettingsPage />} />
+        <Route path="/admin/setting" element={<Navigate to="/admin/app-settings" replace />} />
+
+      </Route>
+
+      {/* ── Protected Core Application Routes (User App) ─────── */}
       <Route
         element={
           <PrivateRoute>
@@ -136,84 +200,10 @@ const AppRoutes = () => {
         {/* Redirect Legacy Dashboard Routes */}
         <Route path="vendor/dashboard" element={<Navigate to="/dashboard" replace />} />
         <Route path="creator/dashboard" element={<Navigate to="/dashboard" replace />} />
-
-        {/* Fallback for authenticated users */}
-        <Route path="*" element={<Navigate to="/feed" replace />} />
       </Route>
 
-      {/* ── Admin Auth Routes (Public) ────────────────────────── */}
-      <Route element={<AuthLayout />}>
-        <Route path="/admin" element={<AdminLogin />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/adminlogin" element={<AdminLogin />} />
-      </Route>
-
-      {/* ── Admin Panel Routes (Dedicated Admin Layout) ───────── */}
-      <Route
-        element={
-          <RequireAdmin>
-            <AdminLayout />
-          </RequireAdmin>
-        }
-      >
-        {/* Overview */}
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-
-        {/* User Management */}
-        <Route path="/admin/customers" element={<AdminCustomers />} />
-        <Route path="/admin/vendors" element={<AdminVendors />} />
-        <Route path="/admin/creators" element={<AdminCreators />} />
-        <Route path="/admin/users" element={<AdminUsers />} />
-
-        {/* KYC & Verification */}
-        <Route path="/admin/kyc" element={<AdminKycPage />} />
-
-        {/* Content Management */}
-        <Route path="/admin/listings" element={<AdminListingsPage />} />
-        <Route path="/admin/reels" element={<AdminReelsPage />} />
-        <Route path="/admin/boost" element={<AdminBoostPage />} />
-        <Route path="/admin/categories" element={<AdminCategoriesPage />} />
-
-        {/* Operations */}
-        <Route path="/admin/locations" element={<AdminLocationsPage />} />
-        <Route path="/admin/requirements" element={<AdminRequirementsPage />} />
-        <Route path="/admin/chat" element={<AdminChatPage />} />
-        <Route path="/admin/orders" element={<AdminOrdersPage />} />
-
-        {/* Finance */}
-        <Route path="/admin/wallet" element={<AdminWalletPage />} />
-        <Route path="/admin/subscriptions" element={<AdminSubscriptionsPage />} />
-        <Route path="/admin/commission" element={<AdminCommissionPage />} />
-
-        {/* Engagement */}
-        <Route path="/admin/reviews" element={<AdminReviewsPage />} />
-        <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
-        <Route path="/admin/ai" element={<AdminAiPage />} />
-        <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
-        <Route path="/admin/offers" element={<AdminOffersPage />} />
-
-
-        {/* Moderation */}
-        <Route path="/admin/reports" element={<AdminReports />} />
-        <Route path="/admin/moderation" element={<AdminModerationPage />} />
-
-        {/* System */}
-        <Route path="/admin/cms" element={<AdminCmsPage />} />
-        <Route path="/admin/app-settings" element={<AdminAppSettingsPage />} />
-        <Route path="/admin/security" element={<AdminSecurityPage />} />
-        <Route path="/admin/audit" element={<AdminAuditPage />} />
-        <Route path="/admin/financial-reports" element={<AdminFinancialReportsPage />} />
-
-
-        {/* Legacy routes — redirect to new paths */}
-        <Route path="/admin/console" element={<AdminConsole />} />
-        <Route path="/admin/transactions" element={<AdminConsole />} />
-        <Route path="/admin/commissions" element={<AdminConsole />} />
-        <Route path="/admin/audit-log" element={<AdminConsole />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
-        <Route path="/admin/setting" element={<Navigate to="/admin/settings" replace />} />
-        <Route path="/admin/approvals" element={<AdminComingSoon />} />
-      </Route>
+      {/* ── Global Fallback (At Very End) ────────────────────── */}
+      <Route path="*" element={<Navigate to="/feed" replace />} />
     </Routes>
   );
 };
