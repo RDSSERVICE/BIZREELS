@@ -44,6 +44,14 @@ const config = {
     maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS, 10) || 5,
   },
 
+  // ── Upload & Image Processing ───────────────────────────
+  uploadTempDir: process.env.UPLOAD_TEMP_DIR || 'uploads/temp',
+  uploadProcessedDir: process.env.UPLOAD_PROCESSED_DIR || 'uploads/processed',
+  maxUploadSize: parseInt(process.env.MAX_UPLOAD_SIZE, 10) || 10 * 1024 * 1024, // 10MB
+  maxImageWidth: parseInt(process.env.MAX_IMAGE_WIDTH, 10) || 1920,
+  webpQuality: parseInt(process.env.WEBP_QUALITY, 10) || 80,
+  storageProvider: process.env.STORAGE_PROVIDER || 'local',
+
   // ── Rate Limiting ───────────────────────────────────────
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes

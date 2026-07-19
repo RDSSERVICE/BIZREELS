@@ -67,8 +67,16 @@ configurePassport();
 app.use(passport.initialize());
 
 // ══════════════════════════════════════════════════════════════
-// API ROUTES
+// STATIC FILES & API ROUTES
 // ══════════════════════════════════════════════════════════════
+
+const path = require('path');
+const processedDir = path.isAbsolute(config.uploadProcessedDir)
+  ? config.uploadProcessedDir
+  : path.resolve(__dirname, '..', config.uploadProcessedDir);
+
+app.use('/uploads/processed', express.static(processedDir));
+app.use('/api/v1/uploads/processed', express.static(processedDir));
 
 app.use('/api/v1', routes);
 

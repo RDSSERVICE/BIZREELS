@@ -41,7 +41,10 @@ router.get('/health', (req, res) => {
   });
 });
 
+const uploadRoutes = require('./upload.routes');
+
 // Core Module routes
+router.use('/upload', uploadRoutes);
 router.use('/auth', authRoutes);
 router.use('/reels', reelRoutes);
 router.use('/listings', listingRoutes);
