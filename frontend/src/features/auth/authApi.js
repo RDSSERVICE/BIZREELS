@@ -33,6 +33,23 @@ const authApi = apiSlice.injectEndpoints({
       }),
     }),
 
+    // ── Mobile Phone OTP ────────────────────────────────
+    sendPhoneOtp: builder.mutation({
+      query: (data) => ({
+        url: '/auth/phone/send-otp',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    verifyPhoneOtp: builder.mutation({
+      query: (data) => ({
+        url: '/auth/phone/verify-otp',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
     // ── Verify OTP ──────────────────────────────────────
     verifyOtp: builder.mutation({
       query: (data) => ({
@@ -132,6 +149,8 @@ export const {
   useRegisterMutation,
   useLoginWithEmailMutation,
   useRequestOtpMutation,
+  useSendPhoneOtpMutation,
+  useVerifyPhoneOtpMutation,
   useVerifyOtpMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,

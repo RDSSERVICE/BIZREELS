@@ -37,6 +37,12 @@ router.post('/login', authLimiter, authValidation.loginEmail, validate, authCont
 router.post('/otp/request', authLimiter, authValidation.requestOtp, validate, authController.requestOtp);
 router.post('/otp/verify', authLimiter, authValidation.verifyOtp, validate, authController.verifyOtp);
 
+// Mobile Phone OTP Endpoints
+router.post('/phone/send-otp', authLimiter, authValidation.sendPhoneOtp, validate, authController.requestOtp);
+router.post('/phone/verify-otp', authLimiter, authValidation.verifyPhoneOtp, validate, authController.verifyOtp);
+router.post('/send-otp', authLimiter, authController.requestOtp);
+router.post('/verify-otp', authLimiter, authController.verifyOtp);
+
 router.post('/forgot-password', authLimiter, authValidation.forgotPassword, validate, authController.forgotPassword);
 router.post('/reset-password', authLimiter, authValidation.resetPassword, validate, authController.resetPassword);
 

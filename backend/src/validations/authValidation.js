@@ -34,20 +34,33 @@ const authValidation = {
 
   requestOtp: [
     body('identifier')
-      .trim()
-      .notEmpty().withMessage('Email or phone number is required.'),
-    body('identifierType')
-      .notEmpty().withMessage('Identifier type is required.')
-      .isIn(['email', 'phone']).withMessage('Identifier type must be "email" or "phone".'),
+      .optional()
+      .trim(),
+    body('phone')
+      .optional()
+      .trim(),
   ],
 
   verifyOtp: [
-    body('identifier')
+    body('otp')
       .trim()
-      .notEmpty().withMessage('Email or phone number is required.'),
-    body('identifierType')
-      .notEmpty().withMessage('Identifier type is required.')
-      .isIn(['email', 'phone']).withMessage('Identifier type must be "email" or "phone".'),
+      .notEmpty().withMessage('OTP is required.')
+      .isLength({ min: 6, max: 6 }).withMessage('OTP must be exactly 6 digits.')
+      .isNumeric().withMessage('OTP must contain only numbers.'),
+  ],
+
+  sendPhoneOtp: [
+    body('phone')
+      .trim()
+      .notEmpty().withMessage('Phone number is required.')
+      .matches(/^[6-9]\d{9}$/).withMessage('Provide a valid 10-digit Indian phone number starting 6-9.'),
+  ],
+
+  verifyPhoneOtp: [
+    body('phone')
+      .trim()
+      .notEmpty().withMessage('Phone number is required.')
+      .matches(/^[6-9]\d{9}$/).withMessage('Provide a valid 10-digit Indian phone number starting 6-9.'),
     body('otp')
       .trim()
       .notEmpty().withMessage('OTP is required.')

@@ -161,12 +161,36 @@ class AuthService {
   }
 
   // ══════════════════════════════════════════════════════════
-  // OTP LOGIN / VERIFICATION
+  // OTP LOGIN / VERIFICATION (Redis + MSG91 / Exotel)
   // ══════════════════════════════════════════════════════════
 
-  async requestOtp(identifier, identifierType, purpose) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  async requestOtp(identifier, identifierType = 'phone', purpose = 'login') {
+    const redisOtpService = require('./redis-otp.service');
+    const smsService = require('./sms.service');
 
+    if (identifierType === 'phone') {
+      const phone = this.validatePhone(identifier);
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Store in Redis with 5-minute expiry (300s TTL)
+      await redisOtpService.saveOtp(phone, otp);
+
+      // Send SMS via MSG91 / Exotel / Mock logger
+      await smsService.sendOtpSms(phone, otp);
+
+      const response = {
+        message: `OTP sent successfully to +91${phone}`,
+        expiresInMinutes: config.otp.expiryMinutes || 5,
+      };
+
+      if (config.env === 'development' || (config.sms?.provider || 'mock') === 'mock') {
+        response.otp = otp;
+      }
+      return response;
+    }
+
+    // Fallback for email OTP if requested
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await authRepository.createOtp({
       identifier,
       identifierType,
@@ -176,8 +200,6 @@ class AuthService {
       maxAttempts: config.otp.maxAttempts,
     });
 
-    logger.info(`OTP generated for ${identifier}: ${otp}`, { service: 'auth' });
-
     const result = { message: `OTP sent to ${identifier}`, expiresInMinutes: config.otp.expiryMinutes };
     if (process.env.NODE_ENV !== 'production') {
       result.otp = otp;
@@ -185,9 +207,46 @@ class AuthService {
     return result;
   }
 
-  async verifyOtpAndLogin(identifier, identifierType, otp, req) {
-    const otpDoc = await authRepository.findLatestOtp(identifier, 'login');
+  async verifyOtpAndLogin(identifier, identifierType = 'phone', otp, req) {
+    const redisOtpService = require('./redis-otp.service');
 
+    if (identifierType === 'phone') {
+      const phone = this.validatePhone(identifier);
+
+      // Verify OTP against Redis with 5-attempt rate limit & instant deletion
+      await redisOtpService.verifyOtp(phone, otp);
+
+      // Find user by phone or auto-register on first mobile OTP login
+      let user = await authRepository.findUserByPhone(phone);
+
+      if (!user) {
+        user = await authRepository.createUser({
+          name: `User_${phone.slice(-4)}`,
+          phone,
+          isPhoneVerified: true,
+          authProvider: 'otp',
+          roles: ['customer'],
+          activeRole: 'customer',
+          current_role: 'customer',
+        });
+        await this._logAction(user._id, 'USER_REGISTER', 'User', user._id, 'Mobile OTP registration', req);
+      } else if (!user.isPhoneVerified) {
+        await authRepository.updateUser(user._id, { isPhoneVerified: true });
+      }
+
+      // Generate JWT Access & Refresh Token Pair
+      const tokens = await this.generateTokenPair(user, req);
+
+      await this._logAction(user._id, 'USER_LOGIN', 'User', user._id, 'Mobile OTP login', req);
+
+      return {
+        user: this._sanitizeUser(user),
+        ...tokens,
+      };
+    }
+
+    // Email OTP fallback
+    const otpDoc = await authRepository.findLatestOtp(identifier, 'login');
     if (!otpDoc) {
       throw ApiError.badRequest('OTP expired or not found. Please request a new one.');
     }
@@ -203,41 +262,20 @@ class AuthService {
 
     await otpDoc.markUsed();
 
-    let user;
-    if (identifierType === 'phone') {
-      user = await authRepository.findUserByPhone(identifier);
-    } else {
-      user = await authRepository.findUserByEmail(identifier);
-    }
-
+    let user = await authRepository.findUserByEmail(identifier);
     if (!user) {
-      const userData = {
-        name: identifierType === 'phone' ? `User_${identifier.slice(-4)}` : identifier.split('@')[0],
+      user = await authRepository.createUser({
+        name: identifier.split('@')[0],
+        email: identifier.toLowerCase(),
+        isEmailVerified: true,
         authProvider: 'otp',
         roles: ['customer'],
         activeRole: 'customer',
-      };
-      if (identifierType === 'phone') {
-        userData.phone = identifier;
-        userData.isPhoneVerified = true;
-      } else {
-        userData.email = identifier.toLowerCase();
-        userData.isEmailVerified = true;
-      }
-      user = await authRepository.createUser(userData);
+      });
       await this._logAction(user._id, 'USER_REGISTER', 'User', user._id, 'OTP registration', req);
     }
 
-    if (identifierType === 'phone' && !user.isPhoneVerified) {
-      await authRepository.updateUser(user._id, { isPhoneVerified: true });
-    }
-    if (identifierType === 'email' && !user.isEmailVerified) {
-      await authRepository.updateUser(user._id, { isEmailVerified: true });
-    }
-
     const tokens = await this.generateTokenPair(user, req);
-
-    await this._logAction(user._id, 'USER_LOGIN', 'User', user._id, 'OTP login', req);
 
     return {
       user: this._sanitizeUser(user),

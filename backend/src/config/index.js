@@ -38,10 +38,19 @@ const config = {
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
 
-  // ── OTP ─────────────────────────────────────────────────
+  // ── OTP & SMS (MSG91 / Exotel) ───────────────────────────
   otp: {
     expiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 5,
     maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS, 10) || 5,
+  },
+  sms: {
+    provider: process.env.SMS_PROVIDER || 'mock', // 'msg91', 'exotel', or 'mock'
+    msg91AuthKey: process.env.MSG91_AUTH_KEY || '',
+    msg91TemplateId: process.env.MSG91_TEMPLATE_ID || '',
+    exotelAccountSid: process.env.EXOTEL_ACCOUNT_SID || '',
+    exotelApiKey: process.env.EXOTEL_API_KEY || '',
+    exotelApiToken: process.env.EXOTEL_API_TOKEN || '',
+    exotelSubdomain: process.env.EXOTEL_SUBDOMAIN || 'api.exotel.com',
   },
 
   // ── Upload & Image Processing ───────────────────────────

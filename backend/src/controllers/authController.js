@@ -36,8 +36,9 @@ class AuthController {
 
   // ── Request OTP ─────────────────────────────────────────
   requestOtp = asyncHandler(async (req, res) => {
-    const { identifier, identifierType, purpose } = req.body;
-    const result = await authService.requestOtp(identifier, identifierType, purpose || 'login');
+    const identifier = req.body.phone || req.body.identifier;
+    const identifierType = req.body.identifierType || (req.body.phone ? 'phone' : 'email');
+    const result = await authService.requestOtp(identifier, identifierType, req.body.purpose || 'login');
 
     return ApiResponse.ok(res, result.message, {
       expiresInMinutes: result.expiresInMinutes,
@@ -47,7 +48,9 @@ class AuthController {
 
   // ── Verify OTP & Login ──────────────────────────────────
   verifyOtp = asyncHandler(async (req, res) => {
-    const { identifier, identifierType, otp } = req.body;
+    const identifier = req.body.phone || req.body.identifier;
+    const identifierType = req.body.identifierType || (req.body.phone ? 'phone' : 'email');
+    const { otp } = req.body;
     const result = await authService.verifyOtpAndLogin(identifier, identifierType, otp, req);
 
     this._setRefreshTokenCookie(res, result.refreshToken);
@@ -55,6 +58,7 @@ class AuthController {
     return ApiResponse.ok(res, 'OTP verified. Login successful.', {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   });
 
