@@ -16,9 +16,10 @@ export default function AdminDataTable({
   pageSize = 10,
   testId = 'admin-table',
 }) {
+  const safeData = Array.isArray(data) ? data : [];
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(data.length / pageSize);
-  const paginatedData = data.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(safeData.length / pageSize);
+  const paginatedData = safeData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="flex flex-col gap-4" data-testid={testId}>
@@ -109,7 +110,7 @@ export default function AdminDataTable({
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <span className="text-[10px] text-text-tertiary">
-              Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, data.length)} of {data.length}
+              Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, safeData.length)} of {safeData.length}
             </span>
             <div className="flex items-center gap-1">
               <button
