@@ -10,7 +10,27 @@ const AuditLog = require('../models/AuditLog');
 class RequirementRepository {
   // ── Requirement operations ────────────────────────────────
   async createRequirement(data) {
-    return Requirement.create(data);
+    const custId = (data.customer || data.customer_id || '').toString();
+    const docData = {
+      customer_id: custId,
+      customer: custId && mongoose.Types.ObjectId.isValid(custId) ? new mongoose.Types.ObjectId(custId) : null,
+      title: data.title,
+      description: data.description,
+      category_id: data.category_id || data.category || 'General',
+      category: data.category || data.category_id || 'General',
+      requirementType: data.requirementType || data.type || 'product',
+      type: data.requirementType || data.type || 'product',
+      budget: data.budget || data.budget_max || 0,
+      budget_max: data.budget || data.budget_max || 0,
+      budget_min: data.budget_min || 0,
+      deadline: data.deadline || null,
+      location: data.location || { area: 'Local', city: 'Delhi', pincode: '110001' },
+      status: 'open',
+      is_active: true,
+      is_deleted: false,
+      isDeleted: false,
+    };
+    return Requirement.create(docData);
   }
 
   async findRequirementById(id) {
@@ -19,17 +39,17 @@ class RequirementRepository {
 
   async updateRequirement(id, customerId, updateData) {
     return Requirement.findOneAndUpdate(
-      { _id: id, customer: customerId },
+      { _id: id, $or: [{ customer_id: customerId.toString() }, { customer: customerId }] },
       updateData,
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 
   async softDeleteRequirement(id, customerId) {
     return Requirement.findOneAndUpdate(
-      { _id: id, customer: customerId },
-      { isDeleted: true, deletedAt: new Date() },
-      { new: true }
+      { _id: id, $or: [{ customer_id: customerId.toString() }, { customer: customerId }] },
+      { is_deleted: true, isDeleted: true, is_active: false },
+      { returnDocument: 'after' }
     );
   }
 
@@ -47,11 +67,18 @@ class RequirementRepository {
     limit = 10,
   }) {
     const skip = (page - 1) * limit;
-    const match = { isDeleted: false };
+    const match = { is_deleted: { $ne: true }, isDeleted: { $ne: true } };
 
-    if (customerId) match.customer = new mongoose.Types.ObjectId(customerId);
-    if (category) match.category = category;
-    if (requirementType) match.requirementType = requirementType;
+    if (customerId) {
+      const custStr = customerId.toString();
+      const orConditions = [{ customer_id: custStr }];
+      if (mongoose.Types.ObjectId.isValid(custStr)) {
+        orConditions.push({ customer: new mongoose.Types.ObjectId(custStr) });
+      }
+      match.$or = orConditions;
+    }
+    if (category) match.$or = [{ category }, { category_id: category }];
+    if (requirementType) match.$or = [{ requirementType }, { type: requirementType }];
     if (status) match.status = status;
 
     const pipeline = [];
@@ -69,7 +96,7 @@ class RequirementRepository {
       });
     } else {
       pipeline.push({ $match: match });
-      pipeline.push({ $sort: { createdAt: -1 } });
+      pipeline.push({ $sort: { _id: -1 } });
     }
 
     pipeline.push({ $skip: skip });

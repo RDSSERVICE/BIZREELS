@@ -45,8 +45,14 @@ class RequirementController {
   getRequirements = asyncHandler(async (req, res) => {
     const { customerId, category, requirementType, status, lat, lng, distance, page = 1, limit = 10 } = req.query;
 
+    const userRoles = req.user?.roles || [];
+    const activeRole = req.user?.current_role || req.user?.activeRole || 'customer';
+
+    // If customer role is querying without customerId filter, default to user's own requirements
+    const targetCustomerId = customerId || (activeRole === 'customer' || userRoles.includes('customer') ? req.user._id : undefined);
+
     const result = await requirementService.queryRequirements({
-      customerId,
+      customerId: targetCustomerId,
       category,
       requirementType,
       status,
