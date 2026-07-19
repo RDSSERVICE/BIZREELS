@@ -92,7 +92,7 @@ const AppRoutes = () => {
     <Routes>
       {/* ── Public Landing Pages ───────────────────────────────── */}
       <Route element={<PublicLayout />}>
-        <Route path="/" element={<Navigate to="/customer/home" replace />} />
+        <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
       </Route>
 
