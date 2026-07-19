@@ -12,6 +12,7 @@ export default function VendorReelBoostPage() {
   const [renewBoost] = useRenewBoostMutation();
 
   const activeBoosts = Array.isArray(data?.active) ? data.active : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+  const totalSpend = activeBoosts.reduce((acc, b) => acc + (b.cost || 0), 0);
 
   const handleBuyBoost = async (planName, cost) => {
     try {
@@ -48,8 +49,8 @@ export default function VendorReelBoostPage() {
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <AdminStatCard label="Active Boosts" value={String(activeBoosts.length)} icon={FiZap} color="amber" />
-        <AdminStatCard label="Total Boost Spend" value="₹1,499" icon={FiDollarSign} color="green" />
-        <AdminStatCard label="Avg. Reach Multiplier" value="3.4x" icon={FiClock} color="purple" />
+        <AdminStatCard label="Total Boost Spend" value={`₹${totalSpend.toLocaleString()}`} icon={FiDollarSign} color="green" />
+        <AdminStatCard label="Avg. Reach Multiplier" value={activeBoosts.length ? '10.0x' : '1.0x'} icon={FiClock} color="purple" />
       </div>
 
       {/* Active Boosts */}

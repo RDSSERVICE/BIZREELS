@@ -5,19 +5,19 @@ import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import { useGetVendorAnalyticsQuery } from '../../../features/vendor/vendorApi';
 
 export default function VendorAnalyticsPage() {
-  const { data, isFetching } = useGetVendorAnalyticsQuery(undefined, { pollingInterval: 10000 });
+  const { data, isFetching } = useGetVendorAnalyticsQuery(undefined, { pollingInterval: 5000 });
 
   const analytics = data || {};
 
   const metrics = [
-    { label: 'Reel Views', value: analytics.reelViews || '128,450', icon: FiEye, color: 'pink' },
-    { label: 'Product Views', value: analytics.productViews || '45,210', icon: FiPackage, color: 'purple' },
-    { label: 'Service Views', value: analytics.serviceViews || '18,900', icon: FiTool, color: 'blue' },
-    { label: 'Clicks on Offers', value: analytics.offerClicks || '6,420', icon: FiMousePointer, color: 'amber' },
-    { label: 'Direct Phone Calls', value: analytics.phoneCalls || '890', icon: FiPhone, color: 'green' },
-    { label: 'WhatsApp Clicks', value: analytics.whatsappClicks || '1,420', icon: FiMessageCircle, color: 'green' },
-    { label: 'Profile Visits', value: analytics.profileVisits || '12,800', icon: FiUserCheck, color: 'cyan' },
-    { label: 'Shop Followers', value: analytics.followers || '3,890', icon: FiUsers, color: 'rose' },
+    { label: 'Reel Views', value: (analytics.reelViews || 0).toLocaleString(), icon: FiEye, color: 'pink' },
+    { label: 'Product Views', value: (analytics.productViews || 0).toLocaleString(), icon: FiPackage, color: 'purple' },
+    { label: 'Service Views', value: (analytics.serviceViews || 0).toLocaleString(), icon: FiTool, color: 'blue' },
+    { label: 'Clicks on Offers', value: (analytics.offerClicks || 0).toLocaleString(), icon: FiMousePointer, color: 'amber' },
+    { label: 'Direct Phone Calls', value: (analytics.phoneCalls || 0).toLocaleString(), icon: FiPhone, color: 'green' },
+    { label: 'WhatsApp Clicks', value: (analytics.whatsappClicks || 0).toLocaleString(), icon: FiMessageCircle, color: 'green' },
+    { label: 'Profile Visits', value: (analytics.profileVisits || 0).toLocaleString(), icon: FiUserCheck, color: 'cyan' },
+    { label: 'Shop Followers', value: (analytics.followers || 0).toLocaleString(), icon: FiUsers, color: 'rose' },
   ];
 
   return (
@@ -28,7 +28,7 @@ export default function VendorAnalyticsPage() {
         subtitle="Track reel views, product clicks, phone calls, WhatsApp leads, and profile visits"
       />
 
-      {isFetching ? (
+      {isFetching && !data ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="h-28 skeleton rounded-2xl" />
