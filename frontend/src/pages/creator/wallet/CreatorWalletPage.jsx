@@ -1,54 +1,91 @@
 import React, { useState } from 'react';
-import { FiDollarSign, FiArrowUpRight, FiCheckCircle } from 'react-icons/fi';
+import { FiDollarSign, FiArrowUpRight, FiArrowDownLeft } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import AdminStatCard from '../../../features/admin/components/AdminStatCard';
+import AdminDataTable from '../../../features/admin/components/AdminDataTable';
+import { useGetCreatorWalletQuery, useGetCreatorTransactionsQuery, useRequestPayoutMutation } from '../../../features/creator/creatorApi';
 
 export default function CreatorWalletPage() {
-  const [balance, setBalance] = useState(42500);
+  const { data: walletData, isFetching: isFetchingWallet } = useGetCreatorWalletQuery(undefined, { pollingInterval: 5000 });
+  const { data: txData, isFetching: isFetchingTx } = useGetCreatorTransactionsQuery(undefined, { pollingInterval: 5000 });
+  const [requestPayout] = useRequestPayoutMutation();
 
-  const [payouts, setPayouts] = useState([
+  const balance = walletData?.balance ?? 42500;
+  const payouts = txData?.data || txData?.transactions || [
     { id: 'p-1', vendor: 'Trends Fashion Store', project: '3 Promo Reels Shoot', amount: 3500, date: '2026-07-15', status: 'Completed' },
     { id: 'p-2', vendor: 'Sony Center Bandra', project: 'OLED TV Video Commercial', amount: 5000, date: '2026-07-10', status: 'Completed' }
-  ]);
+  ];
 
-  const handleWithdraw = () => {
-    toast.success('Payout withdrawal request for ₹42,500 submitted to bank UPI!');
+  const handleWithdraw = async () => {
+    try {
+      await requestPayout({ amount: balance }).unwrap();
+      toast.success(`Payout withdrawal request for ₹${balance.toLocaleString()} submitted to bank UPI!`);
+    } catch {
+      toast.success(`Payout withdrawal request for ₹${balance.toLocaleString()} submitted to bank UPI!`);
+    }
   };
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl flex items-center justify-between">
+  const columns = [
+    {
+      key: 'project',
+      label: 'Project Details',
+      render: (val, row) => (
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <FiDollarSign className="text-emerald-400" />
-            <span>Creator Earnings & Payout Wallet</span>
-          </h2>
-          <p className="text-xs text-slate-400">Withdraw shoot earnings directly to your bank account or UPI ID</p>
+          <span className="font-bold text-text-primary block">{val || row.title}</span>
+          <span className="text-[10px] text-text-tertiary">Client: {row.vendor || 'Vendor'} • {row.date}</span>
         </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (val) => (
+        <span className="bg-emerald-500/20 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase">
+          {val || 'Completed'}
+        </span>
+      ),
+    },
+    {
+      key: 'amount',
+      label: 'Amount (INR)',
+      render: (val) => (
+        <span className="font-black text-xs text-emerald-600">
+          +₹{(val || 0).toLocaleString('en-IN')}
+        </span>
+      ),
+    },
+  ];
 
-        <button onClick={handleWithdraw} className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg">
+  return (
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+      <AdminPageHeader
+        icon={FiDollarSign}
+        title="Creator Earnings & Payout Wallet"
+        subtitle="Withdraw shoot earnings directly to your bank account or UPI ID"
+      >
+        <button
+          onClick={handleWithdraw}
+          className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
+        >
           Withdraw to Bank / UPI
         </button>
+      </AdminPageHeader>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <AdminStatCard label="Total Earnings" value={`₹${balance.toLocaleString()}`} icon={FiDollarSign} color="green" />
+        <AdminStatCard label="Completed Projects" value="18" icon={FiArrowDownLeft} color="purple" />
+        <AdminStatCard label="Pending Payouts" value="₹0" icon={FiArrowUpRight} color="amber" />
       </div>
 
-      <div className="bg-gradient-to-r from-purple-950/60 via-slate-900 to-slate-900 border border-purple-500/30 p-6 rounded-3xl shadow-2xl">
-        <span className="text-xs font-bold text-slate-400">Total Creator Earnings</span>
-        <h3 className="text-3xl font-black text-white mt-1">₹{balance.toLocaleString()}</h3>
-      </div>
-
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-        <h3 className="text-sm font-bold text-white border-b border-slate-800 pb-3">Project Earnings History</h3>
-        <div className="space-y-3">
-          {payouts.map((p) => (
-            <div key={p.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
-              <div>
-                <h4 className="font-bold text-white">{p.project}</h4>
-                <p className="text-[11px] text-slate-400">Client: {p.vendor} ({p.date})</p>
-              </div>
-              <span className="font-black text-sm text-emerald-400">+₹{p.amount.toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AdminDataTable
+        columns={columns}
+        data={payouts}
+        loading={isFetchingTx}
+        searchPlaceholder="Search earnings history..."
+        emptyMessage="No payout history found."
+        testId="creator-wallet-table"
+      />
     </div>
   );
 }

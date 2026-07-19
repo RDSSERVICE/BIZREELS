@@ -121,6 +121,14 @@ const apiSlice = createApi({
     'Cms',
     'AppSettings',
     'Reviews',
+    'VendorDashboard',
+    'VendorBoosts',
+    'VendorLeads',
+    'CreatorDashboard',
+    'CreatorPortfolio',
+    'CreatorPricing',
+    'CreatorAvailability',
+    'CreatorOrders',
   ],
   endpoints: () => ({}), // Injected per feature
 });

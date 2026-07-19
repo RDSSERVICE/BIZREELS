@@ -1,39 +1,52 @@
 import React from 'react';
-import { FiEye, FiPackage, FiTool, FiMousePointer, FiPhone, FiMessageCircle, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { FiPieChart, FiEye, FiPackage, FiTool, FiMousePointer, FiPhone, FiMessageCircle, FiUserCheck, FiUsers } from 'react-icons/fi';
+import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import AdminStatCard from '../../../features/admin/components/AdminStatCard';
+import { useGetVendorAnalyticsQuery } from '../../../features/vendor/vendorApi';
 
 export default function VendorAnalyticsPage() {
+  const { data, isFetching } = useGetVendorAnalyticsQuery(undefined, { pollingInterval: 10000 });
+
+  const analytics = data || {};
+
   const metrics = [
-    { label: 'Reel Views', value: '128,450', icon: FiEye, color: 'text-pink-400' },
-    { label: 'Product Views', value: '45,210', icon: FiPackage, color: 'text-indigo-400' },
-    { label: 'Service Views', value: '18,900', icon: FiTool, color: 'text-purple-400' },
-    { label: 'Clicks on Offers', value: '6,420', icon: FiMousePointer, color: 'text-amber-400' },
-    { label: 'Direct Phone Calls', value: '890', icon: FiPhone, color: 'text-emerald-400' },
-    { label: 'WhatsApp Clicks', value: '1,420', icon: FiMessageCircle, color: 'text-green-400' },
-    { label: 'Profile Visits', value: '12,800', icon: FiUserCheck, color: 'text-cyan-400' },
-    { label: 'Shop Followers', value: '3,890', icon: FiUsers, color: 'text-rose-400' },
+    { label: 'Reel Views', value: analytics.reelViews || '128,450', icon: FiEye, color: 'pink' },
+    { label: 'Product Views', value: analytics.productViews || '45,210', icon: FiPackage, color: 'purple' },
+    { label: 'Service Views', value: analytics.serviceViews || '18,900', icon: FiTool, color: 'blue' },
+    { label: 'Clicks on Offers', value: analytics.offerClicks || '6,420', icon: FiMousePointer, color: 'amber' },
+    { label: 'Direct Phone Calls', value: analytics.phoneCalls || '890', icon: FiPhone, color: 'green' },
+    { label: 'WhatsApp Clicks', value: analytics.whatsappClicks || '1,420', icon: FiMessageCircle, color: 'green' },
+    { label: 'Profile Visits', value: analytics.profileVisits || '12,800', icon: FiUserCheck, color: 'cyan' },
+    { label: 'Shop Followers', value: analytics.followers || '3,890', icon: FiUsers, color: 'rose' },
   ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-        <h2 className="text-xl font-bold text-white">Vendor Analytics & Insights</h2>
-        <p className="text-xs text-slate-400">Track reel views, product clicks, phone calls, WhatsApp leads, and profile visits</p>
-      </div>
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+      <AdminPageHeader
+        icon={FiPieChart}
+        title="Vendor Analytics & Insights"
+        subtitle="Track reel views, product clicks, phone calls, WhatsApp leads, and profile visits"
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {metrics.map((m, idx) => {
-          const Icon = m.icon;
-          return (
-            <div key={idx} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">{m.label}</span>
-                <Icon className={m.color} size={20} />
-              </div>
-              <h3 className="text-2xl font-black text-white">{m.value}</h3>
-            </div>
-          );
-        })}
-      </div>
+      {isFetching ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-28 skeleton rounded-2xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {metrics.map((m, idx) => (
+            <AdminStatCard
+              key={idx}
+              label={m.label}
+              value={String(m.value)}
+              icon={m.icon}
+              color={m.color}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

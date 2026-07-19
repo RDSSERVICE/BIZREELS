@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { FiUser, FiMapPin, FiGlobe, FiBriefcase, FiSave } from 'react-icons/fi';
+import { FiUser, FiSave } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
+import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
 export default function CreatorProfilePage() {
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state) => state.auth);
-  const { data: profileRes } = useGetMeQuery();
+  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 30000 });
   const [updateProfileApi] = useUpdateProfileMutation();
 
   const user = profileRes?.data?.user || profileRes?.user || authUser || {};
@@ -61,65 +62,61 @@ export default function CreatorProfilePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <FiUser className="text-purple-400" />
-            <span>Creator Profile Details</span>
-          </h2>
-          <p className="text-xs text-slate-400">Update your stage name, bio pitch, language fluencies, and travel availability</p>
-        </div>
-      </div>
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+      <AdminPageHeader
+        icon={FiUser}
+        title="Creator Profile Details"
+        subtitle="Update your stage name, bio pitch, language fluencies, and travel availability"
+      />
 
-      <form onSubmit={handleSave} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+      <form onSubmit={handleSave} className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Creator / Stage Name</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Creator / Stage Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Base City</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Base City</label>
             <input
               type="text"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Languages Spoken</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Languages Spoken</label>
             <input
               type="text"
               value={languages}
               onChange={(e) => setLanguages(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Years of Experience</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Years of Experience</label>
             <input
               type="number"
               value={experienceYears}
               onChange={(e) => setExperienceYears(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Travel Available (Outstation Shoot)</label>
+          <div className="sm:col-span-2">
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Travel Available (Outstation Shoot)</label>
             <select
               value={travelAvailable}
               onChange={(e) => setTravelAvailable(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             >
               <option value="Yes">Yes (Available to Travel)</option>
               <option value="No">No (Local City Only)</option>
@@ -128,22 +125,21 @@ export default function CreatorProfilePage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1">Bio Pitch</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Bio Pitch</label>
           <textarea
             rows={4}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           />
         </div>
 
         <button
           type="submit"
           disabled={saving}
-          className="w-full py-3.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg transition flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
         >
-          <FiSave size={16} />
-          <span>Save Creator Profile</span>
+          <FiSave size={16} /> Save Creator Profile
         </button>
       </form>
     </div>

@@ -1,36 +1,46 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 import {
   FiHome, FiPlusSquare, FiSearch, FiBriefcase, FiVideo,
   FiActivity, FiFileText, FiBell, FiMessageSquare, FiSettings,
-  FiMapPin, FiUser, FiLogOut, FiChevronDown, FiShield, FiRefreshCw,
-  FiMenu, FiX, FiCheck
+  FiMapPin, FiUser, FiLogOut, FiChevronDown, FiChevronRight,
+  FiShield, FiRefreshCw, FiMenu, FiX, FiCheck
 } from 'react-icons/fi';
-import { useGetMeQuery, useSwitchRoleMutation } from '../../features/auth/authApi';
-import { setCredentials, logout } from '../../features/auth/authSlice';
-import toast from 'react-hot-toast';
+import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
+import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
 
+/**
+ * CustomerLayout — Admin-style fixed sidebar layout for Customer Portal
+ */
 export default function CustomerLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const { user: authUser } = useSelector((state) => state.auth);
+  const user = useSelector(selectCurrentUser);
   const { data: profileData } = useGetMeQuery(undefined, { pollingInterval: 30000 });
   const [switchRoleApi] = useSwitchRoleMutation();
+  const [logoutApi] = useLogoutMutation();
 
-  const user = profileData?.data?.user || profileData?.user || authUser || {};
-  const roles = user.roles || ['customer'];
-  const currentRole = user.current_role || user.activeRole || 'customer';
+  const profileUser = profileData?.data?.user || profileData?.user || user || {};
+  const roles = profileUser.roles || ['customer'];
+  const currentRole = profileUser.current_role || profileUser.activeRole || 'customer';
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState({});
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
-  const userLoc = user.location || {};
-  const displayLocation = userLoc.city || user.city
-    ? `${userLoc.city || user.city}${userLoc.state ? `, ${userLoc.state}` : ''}`
+  const userLoc = profileUser.location || {};
+  const displayLocation = userLoc.city || profileUser.city
+    ? `${userLoc.city || profileUser.city}${userLoc.state ? `, ${userLoc.state}` : ''}`
     : 'Set Location';
+
+  const toggleSection = (title) => {
+    setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -117,10 +127,16 @@ export default function CustomerLayout() {
     }
   };
 
-  const handleLogout = () => {
-    dispatch(logout());
-    toast.success('Logged out successfully');
-    navigate('/auth/login');
+  const handleLogout = async () => {
+    try {
+      await logoutApi().unwrap();
+      dispatch(logout());
+      toast.success('Logged out successfully');
+      navigate('/auth/login');
+    } catch {
+      dispatch(logout());
+      navigate('/auth/login');
+    }
   };
 
   const menuItems = [
@@ -146,227 +162,265 @@ export default function CustomerLayout() {
     { label: 'Settings', path: '/customer/settings', icon: FiSettings },
   ];
 
-  return (
-    <div className="min-h-screen bg-surface-secondary text-text-primary flex flex-col font-sans relative overflow-x-hidden">
-      {/* Decorative ambient background glows (Login & Admin template) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-brand-purple/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-brand-orange/10 blur-[100px] pointer-events-none" />
+  const NAV_SECTIONS = [
+    {
+      title: 'Browse',
+      items: menuItems.slice(0, 3),
+    },
+    {
+      title: 'Portals',
+      items: menuItems.slice(3, 5),
+    },
+    {
+      title: 'My Account',
+      items: menuItems.slice(5),
+    },
+  ];
 
-      {/* ── Top Header Navigation Bar ────────────────────────────── */}
-      <header className="sticky top-0 z-40 glass border-b border-border px-4 lg:px-8 py-3.5 flex items-center justify-between shadow-glass">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-white/10 transition"
-          >
-            {isMobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
-          </button>
-
-          <Link to="/customer/home" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center shadow-premium group-hover:scale-105 transition-transform">
-              <span className="font-black text-white text-lg font-display">B</span>
-            </div>
-            <span className="font-black text-xl text-text-primary font-display hidden sm:inline">
+  const SidebarContent = ({ onItemClick }) => (
+    <div className="flex flex-col h-full">
+      {/* Logo / Brand */}
+      <div className="px-4 py-4 border-b border-border flex items-center gap-3">
+        <Link to="/customer/home" className="flex items-center gap-2 group">
+          <img src="/logo.png" alt="BizReels Logo" className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" />
+          <div>
+            <span className="text-sm font-black text-text-primary font-display block leading-tight">
               Biz<span className="gradient-text font-black">Reels</span>
             </span>
-          </Link>
-        </div>
+            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest block">Customer Portal</span>
+          </div>
+        </Link>
+      </div>
 
-        {/* Center: Geolocation Pill */}
-        <div className="flex items-center gap-2 glass border border-border px-3.5 py-1.5 rounded-full text-xs font-semibold text-text-secondary shadow-sm">
-          <FiMapPin className="text-brand-orange shrink-0" size={15} />
-          <span className="truncate max-w-[140px] sm:max-w-[220px]">{displayLocation}</span>
-          <button
-            onClick={handleGetCurrentLocation}
-            disabled={isLocating}
-            className="p-1 hover:bg-white/10 text-brand-purple rounded-full transition cursor-pointer"
-            title="Autofill Current Geolocation"
-          >
-            <FiRefreshCw size={12} className={isLocating ? 'animate-spin' : ''} />
-          </button>
-        </div>
+      {/* Nav Sections */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+        {NAV_SECTIONS.map((section) => {
+          const isCollapsed = collapsedSections[section.title];
 
-        {/* Right: Role Switcher & Profile */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <button
-              onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-purple/10 border border-brand-purple/20 text-brand-purple hover:bg-brand-purple/20 transition text-xs font-bold"
-            >
-              <FiShield className="text-brand-purple" size={14} />
-              <span className="capitalize">{currentRole}</span>
-              <FiChevronDown size={14} />
-            </button>
-
-            {isRoleDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-52 glass border border-border rounded-2xl shadow-premium py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                <div className="px-4 py-2 border-b border-border text-[9px] font-bold text-text-tertiary uppercase tracking-widest">
-                  Switch Active Role
-                </div>
-                <button
-                  onClick={() => handleRoleSwitch('customer')}
-                  className="w-full px-4 py-2 text-left text-xs font-semibold text-text-primary hover:bg-brand-purple/5 flex items-center justify-between"
-                >
-                  <span>Customer</span>
-                  {currentRole === 'customer' && <FiCheck className="text-emerald-500" size={14} />}
-                </button>
-
-                <button
-                  onClick={() => handleRoleSwitch('vendor')}
-                  className="w-full px-4 py-2 text-left text-xs font-semibold text-text-primary hover:bg-brand-purple/5 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <span>Vendor</span>
-                    {!roles.includes('vendor') && (
-                      <span className="bg-brand-orange/10 text-brand-orange text-[9px] px-1.5 py-0.5 rounded font-bold">Join</span>
-                    )}
-                  </div>
-                  {currentRole === 'vendor' && <FiCheck className="text-emerald-500" size={14} />}
-                </button>
-
-                <button
-                  onClick={() => handleRoleSwitch('creator')}
-                  className="w-full px-4 py-2 text-left text-xs font-semibold text-text-primary hover:bg-brand-purple/5 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <span>Creator</span>
-                    {!roles.includes('creator') && (
-                      <span className="bg-brand-pink/10 text-brand-pink text-[9px] px-1.5 py-0.5 rounded font-bold">Join</span>
-                    )}
-                  </div>
-                  {currentRole === 'creator' && <FiCheck className="text-emerald-500" size={14} />}
-                </button>
-
-                {roles.includes('admin') && (
-                  <button
-                    onClick={() => handleRoleSwitch('admin')}
-                    className="w-full px-4 py-2 text-left text-xs font-bold text-amber-500 hover:bg-amber-500/10 flex items-center justify-between"
-                  >
-                    <span>Admin Panel</span>
-                    {currentRole === 'admin' && <FiCheck className="text-amber-500" size={14} />}
-                  </button>
+          return (
+            <div key={section.title}>
+              <button
+                onClick={() => toggleSection(section.title)}
+                className="w-full flex items-center justify-between px-2 py-1.5 text-[9px] font-bold text-text-tertiary uppercase tracking-widest hover:text-text-secondary transition-all"
+              >
+                {section.title}
+                {isCollapsed ? (
+                  <FiChevronRight className="w-3 h-3" />
+                ) : (
+                  <FiChevronDown className="w-3 h-3" />
                 )}
-              </div>
-            )}
-          </div>
+              </button>
 
-          <button
-            onClick={() => navigate('/customer/settings')}
-            className="w-9 h-9 rounded-full bg-surface border border-border overflow-hidden hover:border-brand-purple transition shrink-0"
-          >
-            {user.profile_pic ? (
-              <img src={user.profile_pic} alt={user.name || 'User'} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-brand-purple font-bold text-sm">
-                {user.name ? user.name.charAt(0).toUpperCase() : <FiUser />}
-              </div>
-            )}
-          </button>
+              <AnimatePresence initial={false}>
+                {!isCollapsed && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    {section.items.map((item) => {
+                      const isActive = location.pathname.startsWith(item.path);
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={onItemClick}
+                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 mb-0.5 ${
+                            isActive
+                              ? 'bg-brand-purple text-white shadow-premium'
+                              : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Icon className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">{item.label}</span>
+                          </div>
+                          {item.highlight && (
+                            <span className="gradient-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                              NEW
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* User Info + Logout */}
+      <div className="border-t border-border px-4 py-4">
+        <div className="flex items-center gap-3 mb-3">
+          {profileUser.profile_pic ? (
+            <img
+              src={profileUser.profile_pic}
+              alt={profileUser.name || 'User'}
+              className="w-9 h-9 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full border border-brand-purple/20 bg-brand-purple/10 flex items-center justify-center text-brand-purple font-bold text-sm shadow-sm">
+              {profileUser.name ? profileUser.name.charAt(0).toUpperCase() : <FiUser />}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-text-primary truncate">{profileUser?.name || 'Customer'}</p>
+            <p className="text-[10px] text-text-tertiary truncate">{profileUser?.email || profileUser?.phone || 'customer'}</p>
+          </div>
         </div>
-      </header>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-error bg-error/10 hover:bg-error/20 transition-all border border-error/20"
+        >
+          <FiLogOut className="w-4 h-4" /> Sign Out
+        </button>
+      </div>
+    </div>
+  );
 
-      {/* Main Layout Body */}
-      <div className="flex-1 flex overflow-hidden z-10">
-        {/* Desktop Sidebar (Identical to Admin Sidebar) */}
-        <aside className="hidden lg:flex flex-col w-64 glass border-r border-border p-4 shrink-0 overflow-y-auto">
-          <div className="px-2 mb-3 text-[9px] font-bold text-text-tertiary uppercase tracking-widest">
-            Customer Menu
-          </div>
-          <nav className="space-y-1">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname.startsWith(item.path);
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
-                    isActive
-                      ? 'bg-brand-purple text-white shadow-premium'
-                      : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.highlight && (
-                    <span className="gradient-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                      NEW
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+  return (
+    <div className="min-h-screen bg-surface-secondary flex">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-surface border-r border-border fixed top-0 bottom-0 left-0 z-30">
+        <SidebarContent onItemClick={() => {}} />
+      </aside>
 
-          <div className="mt-auto pt-4 border-t border-border">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition"
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+            <motion.aside
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 bottom-0 left-0 w-[280px] z-50 bg-surface border-r border-border shadow-modal lg:hidden"
             >
-              <FiLogOut size={18} />
-              <span>Logout</span>
+              <SidebarContent onItemClick={() => setIsSidebarOpen(false)} />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        {/* Top Bar */}
+        <header className="sticky top-0 z-20 glass border-b border-border px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 hover:bg-surface-tertiary rounded-xl lg:hidden text-text-secondary"
+            >
+              {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
+            </button>
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden" />
+              <h1 className="text-sm font-bold text-text-primary font-display">Customer Portal</h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Location Pill */}
+            <div className="hidden sm:flex items-center gap-2 glass border border-border px-3.5 py-1.5 rounded-full text-xs font-semibold text-text-secondary shadow-sm">
+              <FiMapPin className="text-brand-orange shrink-0" size={15} />
+              <span className="truncate max-w-[140px] sm:max-w-[220px]">{displayLocation}</span>
+              <button
+                onClick={handleGetCurrentLocation}
+                disabled={isLocating}
+                className="p-1 hover:bg-surface-tertiary text-brand-purple rounded-full transition cursor-pointer"
+                title="Autofill Current Geolocation"
+              >
+                <FiRefreshCw size={12} className={isLocating ? 'animate-spin' : ''} />
+              </button>
+            </div>
+
+            {/* Role Switcher */}
+            <div className="relative">
+              <button
+                onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-purple/10 border border-brand-purple/20 text-brand-purple hover:bg-brand-purple/20 transition text-xs font-bold"
+              >
+                <FiShield className="text-brand-purple" size={14} />
+                <span className="capitalize">{currentRole}</span>
+                <FiChevronDown size={14} />
+              </button>
+
+              {isRoleDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-52 glass border border-border rounded-2xl shadow-premium py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="px-4 py-2 border-b border-border text-[9px] font-bold text-text-tertiary uppercase tracking-widest">
+                    Switch Active Role
+                  </div>
+                  <button
+                    onClick={() => handleRoleSwitch('customer')}
+                    className="w-full px-4 py-2 text-left text-xs font-semibold text-text-primary hover:bg-brand-purple/5 flex items-center justify-between"
+                  >
+                    <span>Customer</span>
+                    {currentRole === 'customer' && <FiCheck className="text-emerald-500" size={14} />}
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleSwitch('vendor')}
+                    className="w-full px-4 py-2 text-left text-xs font-semibold text-text-primary hover:bg-brand-purple/5 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Vendor</span>
+                      {!roles.includes('vendor') && (
+                        <span className="bg-brand-orange/10 text-brand-orange text-[9px] px-1.5 py-0.5 rounded font-bold">Join</span>
+                      )}
+                    </div>
+                    {currentRole === 'vendor' && <FiCheck className="text-emerald-500" size={14} />}
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleSwitch('creator')}
+                    className="w-full px-4 py-2 text-left text-xs font-semibold text-text-primary hover:bg-brand-purple/5 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Creator</span>
+                      {!roles.includes('creator') && (
+                        <span className="bg-brand-pink/10 text-brand-pink text-[9px] px-1.5 py-0.5 rounded font-bold">Join</span>
+                      )}
+                    </div>
+                    {currentRole === 'creator' && <FiCheck className="text-emerald-500" size={14} />}
+                  </button>
+
+                  {roles.includes('admin') && (
+                    <button
+                      onClick={() => handleRoleSwitch('admin')}
+                      className="w-full px-4 py-2 text-left text-xs font-bold text-amber-500 hover:bg-amber-500/10 flex items-center justify-between"
+                    >
+                      <span>Admin Panel</span>
+                      {currentRole === 'admin' && <FiCheck className="text-amber-500" size={14} />}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Profile */}
+            <button
+              onClick={() => navigate('/customer/settings')}
+              className="w-9 h-9 rounded-full bg-surface border border-border overflow-hidden hover:border-brand-purple transition shrink-0"
+            >
+              {profileUser.profile_pic ? (
+                <img src={profileUser.profile_pic} alt={profileUser.name || 'User'} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-brand-purple font-bold text-sm">
+                  {profileUser.name ? profileUser.name.charAt(0).toUpperCase() : <FiUser />}
+                </div>
+              )}
             </button>
           </div>
-        </aside>
+        </header>
 
-        {/* Mobile Navigation Drawer */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex">
-            <div className="w-72 glass h-full p-4 border-r border-border flex flex-col justify-between overflow-y-auto">
-              <div>
-                <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center font-bold text-white">B</div>
-                    <span className="font-bold text-lg text-text-primary font-display">BizReels</span>
-                  </div>
-                  <button onClick={() => setIsMobileMenuOpen(false)} className="text-text-tertiary hover:text-text-primary">
-                    <FiX size={20} />
-                  </button>
-                </div>
-
-                <nav className="space-y-1">
-                  {menuItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = location.pathname.startsWith(item.path);
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold text-xs transition ${
-                          isActive
-                            ? 'bg-brand-purple text-white shadow-premium'
-                            : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon size={18} />
-                          <span>{item.label}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </div>
-
-              <div className="pt-4 border-t border-border">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition"
-                >
-                  <FiLogOut size={18} />
-                  <span>Logout</span>
-                </button>
-              </div>
-            </div>
-            <div className="flex-1" onClick={() => setIsMobileMenuOpen(false)} />
-          </div>
-        )}
-
-        {/* Viewport Outlet */}
-        <main className="flex-1 overflow-y-auto bg-surface-secondary/40 p-4 sm:p-6 lg:p-8">
+        {/* Page Content */}
+        <main className="flex-1 p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
           <Outlet />
         </main>
       </div>

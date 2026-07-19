@@ -7,6 +7,22 @@ const asyncHandler = require('../utils/asyncHandler');
  * Handles requests for wallet deposits, transactions audits, and plans upgrades.
  */
 class WalletController {
+  // ── Retrieve Wallet Balance ─────────────────────────────
+  getWallet = asyncHandler(async (req, res) => {
+    return ApiResponse.ok(res, 'Wallet details loaded.', {
+      balance: req.user.walletBalance || 0,
+      walletBalance: req.user.walletBalance || 0,
+    });
+  });
+
+  // ── Retrieve Active Subscription ───────────────────────
+  getSubscription = asyncHandler(async (req, res) => {
+    return ApiResponse.ok(res, 'Subscription details loaded.', {
+      subscription: req.user.subscription || { plan: 'Free', status: 'active' },
+      plan: req.user.subscription?.plan || 'Free',
+    });
+  });
+
   // ── Recharge Wallet ─────────────────────────────────────
   recharge = asyncHandler(async (req, res) => {
     const { amount, referenceId } = req.body;

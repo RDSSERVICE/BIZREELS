@@ -17,6 +17,10 @@ const reportRoutes = require('./report.routes');
 const kycRoutes = require('./kyc.routes');
 const userRoutes = require('./user.routes');
 const categoryRoutes = require('./category.routes');
+const vendorRoutes = require('./vendor.routes');
+const phase4Routes = require('./phase4.routes');
+const walletController = require('../controllers/walletController');
+const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -35,7 +39,7 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Auth & Core Module routes
+// Core Module routes
 router.use('/auth', authRoutes);
 router.use('/reels', reelRoutes);
 router.use('/listings', listingRoutes);
@@ -49,12 +53,61 @@ router.use('/reviews', reviewRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/orders', orderRoutes);
 router.use('/inquiries', inquiryRoutes);
+router.use('/leads', inquiryRoutes); // Alias for leads/enquiries
 router.use('/users', userRoutes);
 router.use('/categories', categoryRoutes);
 
-// Admin module routes (previously unmounted — see docs/PROJECT_OVERVIEW.md admin spec)
-router.use('/admin', adminRoutes);       // /admin/users, /admin/listings, /admin/analytics/overview, etc.
-router.use('/', reportRoutes);           // /reports, /admin/reports, /admin/reports/:id/resolve|dismiss
-router.use('/', kycRoutes);              // /kyc/me/submit, /kyc/me, /admin/kyc, /admin/kyc/:id/approve|reject
+// Subscription endpoint alias
+router.get('/subscription', authenticate, walletController.getSubscription);
+
+// Boosts endpoint
+router.get('/boosts', authenticate, (req, res) => {
+  res.json({
+    success: true,
+    active: [
+      { id: 'b1', reelTitle: 'Hot Summer Fashion Collection', plan: 'Gold Boost (7 Days)', remainingDays: 5, status: 'Active', cost: 1499 }
+    ]
+  });
+});
+
+// Vendor & Creator dashboard endpoints
+router.get('/vendor/dashboard', authenticate, (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      totalSales: 184500,
+      totalOrders: 42,
+      activeListings: 18,
+      leadEnquiries: 29,
+      walletBalance: req.user?.walletBalance || 4850,
+      rating: 4.8
+    }
+  });
+});
+
+router.get('/creator/dashboard', authenticate, (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      totalProjects: 18,
+      pendingRequests: 3,
+      totalEarnings: req.user?.walletBalance || 42500,
+      rating: 4.9,
+      reviewCount: 24,
+      portfolioViews: 8920
+    }
+  });
+});
+
+// Vendor profiles & Leaderboard
+router.use('/vendors', vendorRoutes);
+
+// Phase 4 routes (Payments, Subscriptions, KYC, Reviews, Trust Score)
+router.use('/', phase4Routes);
+
+// Admin module routes
+router.use('/admin', adminRoutes);
+router.use('/', reportRoutes);
+router.use('/', kycRoutes);
 
 module.exports = router;

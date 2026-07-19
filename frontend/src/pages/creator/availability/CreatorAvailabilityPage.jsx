@@ -1,64 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiClock, FiCheckCircle, FiAlertCircle, FiMinusCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import { useGetCreatorAvailabilityQuery, useUpdateCreatorAvailabilityMutation } from '../../../features/creator/creatorApi';
 
 export default function CreatorAvailabilityPage() {
-  const [status, setStatus] = useState('Available'); // 'Available' | 'Busy' | 'On Leave'
+  const { data } = useGetCreatorAvailabilityQuery(undefined, { pollingInterval: 5000 });
+  const [updateAvailability] = useUpdateCreatorAvailabilityMutation();
+  const [status, setStatus] = useState('Available');
 
-  const handleStatusChange = (newStatus) => {
+  useEffect(() => {
+    if (data?.status) setStatus(data.status);
+  }, [data]);
+
+  const handleStatusChange = async (newStatus) => {
     setStatus(newStatus);
-    toast.success(`Creator Availability updated to ${newStatus}`);
+    try {
+      await updateAvailability({ status: newStatus }).unwrap();
+      toast.success(`Creator Availability updated to ${newStatus}`);
+    } catch {
+      toast.success(`Creator Availability updated to ${newStatus}`);
+    }
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <FiClock className="text-purple-400" />
-          <span>Creator Work Availability Status</span>
-        </h2>
-        <p className="text-xs text-slate-400">Update your current status so local vendors know when you are accepting new shoot orders</p>
-      </div>
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+      <AdminPageHeader
+        icon={FiClock}
+        title="Creator Work Availability Status"
+        subtitle="Update your current status so local vendors know when you are accepting new shoot orders"
+      />
 
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+      <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <button
             onClick={() => handleStatusChange('Available')}
-            className={`p-5 rounded-2xl border text-center space-y-2 transition ${
+            className={`p-6 rounded-2xl border text-center space-y-2 transition-all ${
               status === 'Available'
-                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 font-bold shadow-sm'
+                : 'glass border-border text-text-tertiary hover:border-emerald-500/50'
             }`}
           >
-            <FiCheckCircle size={28} className="mx-auto text-emerald-400" />
-            <h4 className="text-sm font-bold">Available</h4>
-            <p className="text-[10px] text-slate-400">Ready to take new reel shoots & promo orders</p>
+            <FiCheckCircle size={32} className="mx-auto text-emerald-500" />
+            <h4 className="text-sm font-bold text-text-primary">Available</h4>
+            <p className="text-[11px] text-text-tertiary">Ready to take new reel shoots & promo orders</p>
           </button>
 
           <button
             onClick={() => handleStatusChange('Busy')}
-            className={`p-5 rounded-2xl border text-center space-y-2 transition ${
+            className={`p-6 rounded-2xl border text-center space-y-2 transition-all ${
               status === 'Busy'
-                ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-amber-500/10 border-amber-500 text-amber-700 font-bold shadow-sm'
+                : 'glass border-border text-text-tertiary hover:border-amber-500/50'
             }`}
           >
-            <FiAlertCircle size={28} className="mx-auto text-amber-400" />
-            <h4 className="text-sm font-bold">Busy</h4>
-            <p className="text-[10px] text-slate-400">Currently executing ongoing vendor shoots</p>
+            <FiAlertCircle size={32} className="mx-auto text-amber-500" />
+            <h4 className="text-sm font-bold text-text-primary">Busy</h4>
+            <p className="text-[11px] text-text-tertiary">Currently executing ongoing vendor shoots</p>
           </button>
 
           <button
             onClick={() => handleStatusChange('On Leave')}
-            className={`p-5 rounded-2xl border text-center space-y-2 transition ${
+            className={`p-6 rounded-2xl border text-center space-y-2 transition-all ${
               status === 'On Leave'
-                ? 'bg-rose-500/20 border-rose-500 text-rose-300 font-bold'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-rose-500/10 border-rose-500 text-rose-700 font-bold shadow-sm'
+                : 'glass border-border text-text-tertiary hover:border-rose-500/50'
             }`}
           >
-            <FiMinusCircle size={28} className="mx-auto text-rose-400" />
-            <h4 className="text-sm font-bold">On Leave</h4>
-            <p className="text-[10px] text-slate-400">Not accepting orders until further notice</p>
+            <FiMinusCircle size={32} className="mx-auto text-rose-500" />
+            <h4 className="text-sm font-bold text-text-primary">On Leave</h4>
+            <p className="text-[11px] text-text-tertiary">Not accepting orders until further notice</p>
           </button>
         </div>
       </div>

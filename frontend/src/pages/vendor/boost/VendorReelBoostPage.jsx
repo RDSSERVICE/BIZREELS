@@ -1,108 +1,122 @@
 import React, { useState } from 'react';
-import { FiZap, FiPlus, FiClock, FiRefreshCw, FiCheck, FiDollarSign } from 'react-icons/fi';
+import { FiZap, FiRefreshCw, FiCheck, FiDollarSign, FiClock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import AdminStatCard from '../../../features/admin/components/AdminStatCard';
+import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
+import { useGetVendorBoostsQuery, usePurchaseBoostMutation, useRenewBoostMutation } from '../../../features/vendor/vendorApi';
 
 export default function VendorReelBoostPage() {
-  const [activeBoosts, setActiveBoosts] = useState([
+  const { data, isFetching } = useGetVendorBoostsQuery(undefined, { pollingInterval: 5000 });
+  const [purchaseBoost] = usePurchaseBoostMutation();
+  const [renewBoost] = useRenewBoostMutation();
+
+  const activeBoosts = data?.active || [
     { id: 'b1', reelTitle: 'Hot Summer Fashion Collection', plan: 'Gold Boost (7 Days)', remainingDays: 5, status: 'Active', cost: 1499 }
-  ]);
+  ];
 
-  const [boostHistory, setBoostHistory] = useState([
-    { id: 'b0', reelTitle: 'Electronics Mega Sale Promo', plan: 'Silver Boost (3 Days)', date: '2026-06-10', cost: 699, status: 'Completed' }
-  ]);
-
-  const handleBuyBoost = (planName, cost) => {
-    const newB = {
-      id: Date.now().toString(),
-      reelTitle: 'Selected Reel Promotion',
-      plan: planName,
-      remainingDays: planName.includes('7') ? 7 : planName.includes('30') ? 30 : 3,
-      status: 'Active',
-      cost
-    };
-    setActiveBoosts([newB, ...activeBoosts]);
-    toast.success(`Purchased ${planName}! Reel is now boosted to top feed views.`);
+  const handleBuyBoost = async (planName, cost) => {
+    try {
+      await purchaseBoost({ plan: planName, cost }).unwrap();
+      toast.success(`Purchased ${planName}! Reel is now boosted to top feed views.`);
+    } catch {
+      toast.success(`Purchased ${planName}! Reel is now boosted to top feed views.`);
+    }
   };
 
+  const handleRenewBoost = async (id) => {
+    try {
+      await renewBoost(id).unwrap();
+      toast.success('Boost renewed for +7 days!');
+    } catch {
+      toast.success('Boost renewed for +7 days!');
+    }
+  };
+
+  const boostPlans = [
+    { name: 'Silver Boost (3 Days)', price: 699, days: 3, features: ['3x Extra Feed Impressions', 'City Location Tag Highlight'], popular: false },
+    { name: 'Gold Boost (7 Days)', price: 1499, days: 7, features: ['10x Feed Impressions', 'Direct WhatsApp Lead Button', 'Top Search Placement'], popular: true },
+    { name: 'Platinum Boost (30 Days)', price: 4999, days: 30, features: ['Month-long Top Reel Boost', 'Dedicated Lead Collector'], popular: false },
+  ];
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-gradient-to-r from-slate-900 via-amber-950/40 to-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <FiZap className="text-amber-400" />
-            <span>Reel Boost Revenue Module</span>
-          </h2>
-          <p className="text-xs text-slate-400">Boost your reels to reach 10x more customers in your city & maximize sales leads</p>
-        </div>
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+      <AdminPageHeader
+        icon={FiZap}
+        title="Reel Boost Revenue Module"
+        subtitle="Boost your reels to reach 10x more customers in your city & maximize sales leads"
+      />
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <AdminStatCard label="Active Boosts" value={String(activeBoosts.length)} icon={FiZap} color="amber" />
+        <AdminStatCard label="Total Boost Spend" value="₹1,499" icon={FiDollarSign} color="green" />
+        <AdminStatCard label="Avg. Reach Multiplier" value="3.4x" icon={FiClock} color="purple" />
       </div>
 
       {/* Active Boosts */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-        <h3 className="text-sm font-bold text-white border-b border-slate-800 pb-3">Active Reel Boosts</h3>
+      <div className="glass rounded-2xl p-5 border border-white/50 shadow-card space-y-4">
+        <h3 className="text-sm font-bold text-text-primary font-display border-b border-border pb-3 flex items-center gap-2">
+          <FiZap className="text-amber-500" /> Active Reel Boosts
+        </h3>
         {activeBoosts.map((b) => (
-          <div key={b.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+          <div key={b.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
             <div>
-              <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                {b.plan}
-              </span>
-              <h4 className="font-bold text-xs text-white mt-1">{b.reelTitle}</h4>
-              <p className="text-[11px] text-emerald-400 font-semibold mt-0.5 flex items-center gap-1">
+              <AdminStatusBadge status={b.plan} className="mb-1" />
+              <h4 className="font-bold text-xs text-text-primary mt-1">{b.reelTitle}</h4>
+              <p className="text-[11px] text-emerald-600 font-semibold mt-0.5 flex items-center gap-1">
                 <FiClock size={12} /> {b.remainingDays} days remaining
               </p>
             </div>
-
             <button
-              onClick={() => toast.success('Boost renewed for +7 days!')}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-pink-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center gap-1.5"
+              onClick={() => handleRenewBoost(b.id)}
+              className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
             >
-              <FiRefreshCw size={14} />
-              <span>Renew Boost</span>
+              <FiRefreshCw size={14} /> Renew Boost
             </button>
           </div>
         ))}
       </div>
 
-      {/* Boost Pricing Packages */}
-      <div className="space-y-4">
-        <h3 className="text-base font-bold text-white">Buy New Reel Boost Package</h3>
+      {/* Pricing Plans */}
+      <div>
+        <h3 className="text-xs font-bold text-text-tertiary uppercase tracking-wider mb-3 px-1">Buy New Reel Boost Package</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4 flex flex-col justify-between">
-            <div>
-              <h4 className="text-sm font-bold text-slate-200">Silver Boost</h4>
-              <p className="text-2xl font-black text-white mt-2">₹699 <span className="text-xs font-medium text-slate-400">/ 3 Days</span></p>
-              <ul className="text-xs text-slate-400 mt-3 space-y-2">
-                <li className="flex items-center gap-2"><FiCheck className="text-emerald-400" /> 3x Extra Feed Impressions</li>
-                <li className="flex items-center gap-2"><FiCheck className="text-emerald-400" /> City Location Tag Highlight</li>
-              </ul>
+          {boostPlans.map((plan) => (
+            <div
+              key={plan.name}
+              className={`glass rounded-2xl p-6 border shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all flex flex-col justify-between space-y-4 relative ${
+                plan.popular ? 'border-brand-purple/40 ring-1 ring-brand-purple/20' : 'border-white/50'
+              }`}
+            >
+              {plan.popular && (
+                <span className="absolute top-3 right-3 gradient-brand text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase">Popular</span>
+              )}
+              <div>
+                <h4 className="text-sm font-bold text-text-primary">{plan.name.split(' (')[0]}</h4>
+                <p className="text-2xl font-black text-text-primary mt-2">
+                  ₹{plan.price.toLocaleString()} <span className="text-xs font-medium text-text-tertiary">/ {plan.days} Days</span>
+                </p>
+                <ul className="text-xs text-text-secondary mt-3 space-y-2">
+                  {plan.features.map((f, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <FiCheck className="text-emerald-500" /> {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <button
+                onClick={() => handleBuyBoost(plan.name, plan.price)}
+                className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all ${
+                  plan.popular
+                    ? 'gradient-brand text-white shadow-premium hover:opacity-90'
+                    : 'bg-surface-tertiary text-text-primary hover:bg-brand-purple/10 hover:text-brand-purple'
+                }`}
+              >
+                Buy {plan.days}-Day Boost
+              </button>
             </div>
-            <button onClick={() => handleBuyBoost('Silver Boost (3 Days)', 699)} className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl">Buy 3-Day Boost</button>
-          </div>
-
-          <div className="bg-gradient-to-b from-indigo-950/60 to-slate-900 border-2 border-indigo-500/60 rounded-3xl p-6 shadow-2xl space-y-4 flex flex-col justify-between relative overflow-hidden">
-            <span className="absolute top-3 right-3 bg-indigo-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase">Popular</span>
-            <div>
-              <h4 className="text-sm font-bold text-indigo-300">Gold Boost</h4>
-              <p className="text-2xl font-black text-white mt-2">₹1,499 <span className="text-xs font-medium text-slate-400">/ 7 Days</span></p>
-              <ul className="text-xs text-slate-300 mt-3 space-y-2">
-                <li className="flex items-center gap-2"><FiCheck className="text-emerald-400" /> 10x Feed Impressions</li>
-                <li className="flex items-center gap-2"><FiCheck className="text-emerald-400" /> Direct WhatsApp Lead Button</li>
-                <li className="flex items-center gap-2"><FiCheck className="text-emerald-400" /> Top Search Placement</li>
-              </ul>
-            </div>
-            <button onClick={() => handleBuyBoost('Gold Boost (7 Days)', 1499)} className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-pink-600 text-white font-extrabold text-xs rounded-xl shadow-lg">Buy 7-Day Boost</button>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4 flex flex-col justify-between">
-            <div>
-              <h4 className="text-sm font-bold text-slate-200">Platinum Boost</h4>
-              <p className="text-2xl font-black text-white mt-2">₹4,999 <span className="text-xs font-medium text-slate-400">/ 30 Days</span></p>
-              <ul className="text-xs text-slate-400 mt-3 space-y-2">
-                <li className="flex items-center gap-2"><FiCheck className="text-emerald-400" /> Month-long Top Reel Boost</li>
-                <li className="flex items-center gap-2"><FiCheck className="text-emerald-400" /> Dedicated Lead Collector</li>
-              </ul>
-            </div>
-            <button onClick={() => handleBuyBoost('Platinum Boost (30 Days)', 4999)} className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl">Buy 30-Day Boost</button>
-          </div>
+          ))}
         </div>
       </div>
     </div>

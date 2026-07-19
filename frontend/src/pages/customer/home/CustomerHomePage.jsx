@@ -97,7 +97,7 @@ export default function CustomerHomePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       {/* Search & Distance Bar (Admin glass style) */}
-      <div className="glass rounded-2xl p-4 border border-white/10 shadow-glass flex flex-col sm:flex-row gap-3 items-center">
+      <div className="glass rounded-2xl p-4 border border-white/50 shadow-card flex flex-col sm:flex-row gap-3 items-center">
         <div className="relative flex-1 w-full">
           <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
           <input
@@ -105,7 +105,7 @@ export default function CustomerHomePage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search nearby products, services, reels, vendors..."
-            className="w-full pl-10 pr-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white placeholder-text-tertiary focus:outline-none focus:border-brand-purple"
+            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
           />
         </div>
 
@@ -117,7 +117,7 @@ export default function CustomerHomePage() {
           <select
             value={distanceFilter}
             onChange={(e) => setDistanceFilter(e.target.value)}
-            className="bg-black/60 border border-white/10 text-xs text-brand-purple font-semibold px-3 py-2 rounded-xl focus:outline-none"
+            className="bg-surface border border-border text-xs text-brand-purple font-semibold px-3 py-2 rounded-xl focus:outline-none focus:border-brand-purple"
           >
             <option value="5">5 km</option>
             <option value="15">15 km</option>
@@ -135,7 +135,7 @@ export default function CustomerHomePage() {
           className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${
             activeTab === 'reels'
               ? 'border-brand-purple text-brand-purple'
-              : 'border-transparent text-text-tertiary hover:text-white'
+              : 'border-transparent text-text-tertiary hover:text-text-primary'
           }`}
         >
           <FiPlay size={16} />
@@ -147,7 +147,7 @@ export default function CustomerHomePage() {
           className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${
             activeTab === 'images'
               ? 'border-brand-purple text-brand-purple'
-              : 'border-transparent text-text-tertiary hover:text-white'
+              : 'border-transparent text-text-tertiary hover:text-text-primary'
           }`}
         >
           <FiBookmark size={16} />
@@ -159,7 +159,7 @@ export default function CustomerHomePage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-text-tertiary gap-3">
           <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-medium">Loading Instagram style feed...</p>
+          <p className="text-xs font-medium">Loading feed...</p>
         </div>
       ) : activeTab === 'reels' ? (
         <div className="space-y-8 flex flex-col items-center">
@@ -171,20 +171,20 @@ export default function CustomerHomePage() {
             return (
               <div
                 key={reel._id}
-                className="w-full max-w-md glass border border-white/10 rounded-3xl overflow-hidden shadow-premium relative"
+                className="w-full max-w-md glass border border-white/50 rounded-3xl overflow-hidden shadow-card relative"
               >
                 {/* Header */}
-                <div className="p-3.5 flex items-center justify-between glass border-b border-white/10">
+                <div className="p-3.5 flex items-center justify-between glass border-b border-border">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full gradient-brand p-0.5">
-                      <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-xs font-bold text-white">
+                      <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-xs font-bold text-text-primary">
                         {reel.creator?.name?.charAt(0) || 'V'}
                       </div>
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5 font-display">
+                      <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5 font-display">
                         {reel.creator?.name || 'Local Vendor'}
-                        <span className="bg-brand-purple/20 text-brand-purple text-[9px] px-1 rounded font-bold">Vendor</span>
+                        <span className="bg-brand-purple/10 text-brand-purple text-[9px] px-1 rounded font-bold">Vendor</span>
                       </h4>
                       <p className="text-[10px] text-text-tertiary flex items-center gap-1">
                         <FiMapPin size={10} className="text-brand-orange" />
@@ -197,8 +197,8 @@ export default function CustomerHomePage() {
                     onClick={() => handleFollow(reel.creator?._id)}
                     className={`px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition ${
                       isFollowing
-                        ? 'bg-white/10 text-slate-300 border border-white/10'
-                        : 'bg-brand-purple hover:bg-brand-purple/90 text-white'
+                        ? 'bg-surface-tertiary text-text-secondary border border-border'
+                        : 'gradient-brand text-white shadow-premium'
                     }`}
                   >
                     {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
@@ -231,21 +231,21 @@ export default function CustomerHomePage() {
                       <button
                         onClick={() => handleLike(reel._id)}
                         className={`flex items-center gap-1.5 text-xs font-semibold transition ${
-                          isLiked ? 'text-brand-pink' : 'text-slate-300 hover:text-brand-pink'
+                          isLiked ? 'text-brand-pink' : 'text-text-secondary hover:text-brand-pink'
                         }`}
                       >
                         <FiHeart size={20} className={isLiked ? 'fill-brand-pink' : ''} />
                         <span>{(reel.likesCount || 0) + (isLiked ? 1 : 0)}</span>
                       </button>
 
-                      <button className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-brand-purple">
+                      <button className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-purple">
                         <FiMessageCircle size={20} />
                         <span>{reel.commentsCount || 0}</span>
                       </button>
 
                       <button
                         onClick={() => toast.success('Share link copied to clipboard!')}
-                        className="text-slate-300 hover:text-emerald-400 transition"
+                        className="text-text-secondary hover:text-emerald-600 transition"
                       >
                         <FiShare2 size={20} />
                       </button>
@@ -253,13 +253,13 @@ export default function CustomerHomePage() {
 
                     <button
                       onClick={() => handleSave(reel._id)}
-                      className={`transition ${isSaved ? 'text-brand-purple' : 'text-slate-300 hover:text-brand-purple'}`}
+                      className={`transition ${isSaved ? 'text-brand-purple' : 'text-text-secondary hover:text-brand-purple'}`}
                     >
                       <FiBookmark size={20} className={isSaved ? 'fill-brand-purple' : ''} />
                     </button>
                   </div>
 
-                  <p className="text-xs text-slate-300 leading-relaxed">{reel.caption}</p>
+                  <p className="text-xs text-text-secondary leading-relaxed">{reel.caption}</p>
                 </div>
               </div>
             );
@@ -273,19 +273,19 @@ export default function CustomerHomePage() {
             const isSaved = savedMap[item._id];
 
             return (
-              <div key={item._id} className="glass border border-white/10 rounded-3xl overflow-hidden shadow-card">
-                <div className="aspect-square bg-black relative overflow-hidden">
+              <div key={item._id} className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card">
+                <div className="aspect-square bg-surface-tertiary relative overflow-hidden">
                   <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
-                  <div className="absolute top-3 right-3 glass px-3 py-1 rounded-full text-xs font-bold text-emerald-400 border border-white/10">
+                  <div className="absolute top-3 right-3 glass px-3 py-1 rounded-full text-xs font-bold text-emerald-600 border border-border">
                     ₹{item.price?.toLocaleString()}
                   </div>
                 </div>
 
                 <div className="p-4 space-y-2">
-                  <h4 className="font-bold text-sm text-white font-display">{item.title}</h4>
+                  <h4 className="font-bold text-sm text-text-primary font-display">{item.title}</h4>
                   <p className="text-xs text-text-tertiary">By {item.vendor?.name || 'Verified Vendor'}</p>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
                     <button
                       onClick={() => handleLike(item._id)}
                       className={`flex items-center gap-1 text-xs ${isLiked ? 'text-brand-pink font-bold' : 'text-text-tertiary'}`}

@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
-  FiSettings, FiUser, FiPhone, FiMail, FiLock, FiBell,
-  FiGlobe, FiTrash2, FiLogOut, FiMapPin, FiRefreshCw, FiSave, FiCheck
+  FiSettings, FiUser, FiLock, FiTrash2, FiLogOut, FiMapPin, FiRefreshCw, FiSave
 } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { setCredentials, logout } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
+import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
 export default function CustomerSettingsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state) => state.auth);
-  const { data: profileRes } = useGetMeQuery();
+  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 30000 });
   const [updateProfileApi] = useUpdateProfileMutation();
 
   const user = profileRes?.data?.user || profileRes?.user || authUser || {};
@@ -152,44 +152,39 @@ export default function CustomerSettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Page Header */}
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <FiSettings className="text-indigo-400" />
-            <span>Customer Settings & Profile</span>
-          </h2>
-          <p className="text-xs text-slate-400">Manage your profile information, location autofill, preferences, and account security</p>
-        </div>
-      </div>
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+      <AdminPageHeader
+        icon={FiSettings}
+        title="Customer Settings & Profile"
+        subtitle="Manage your profile information, location autofill, preferences, and account security"
+      />
 
       <form onSubmit={handleSaveProfile} className="space-y-6">
         {/* Profile Info Section */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-            <FiUser className="text-indigo-400" />
+        <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
+          <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2 border-b border-border pb-3">
+            <FiUser className="text-brand-purple" />
             <span>Personal Information</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Full Name *</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Name *</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Gender</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Gender</label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               >
                 <option value="male">Male</option>
                 <option value="female">Female</option>
@@ -198,32 +193,32 @@ export default function CustomerSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Occupation</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Occupation</label>
               <input
                 type="text"
                 value={occupation}
                 onChange={(e) => setOccupation(e.target.value)}
                 placeholder="e.g. Business Owner / Software Engineer"
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Date of Birth (Optional)</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Date of Birth (Optional)</label>
               <input
                 type="date"
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Preferred Language</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Preferred Language</label>
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               >
                 <option value="English">English</option>
                 <option value="Hindi">Hindi (हिंदी)</option>
@@ -235,34 +230,32 @@ export default function CustomerSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Mobile Number</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
-                />
-              </div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Mobile Number</label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+              />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Email Address</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
           </div>
         </div>
 
         {/* Address & Geolocation Autofill Section */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <FiMapPin className="text-pink-500" />
+        <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
+              <FiMapPin className="text-brand-orange" />
               <span>Address & Location (Autofill Enabled)</span>
             </h3>
 
@@ -270,7 +263,7 @@ export default function CustomerSettingsPage() {
               type="button"
               onClick={handleAutofillLocation}
               disabled={isLocating}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 rounded-xl text-xs font-bold transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 glass border border-border text-brand-purple hover:bg-brand-purple/10 rounded-xl text-xs font-bold transition"
             >
               <FiRefreshCw size={13} className={isLocating ? 'animate-spin' : ''} />
               <span>Use Current Location</span>
@@ -279,57 +272,57 @@ export default function CustomerSettingsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">State</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State</label>
               <input
                 type="text"
                 value={state}
                 onChange={(e) => setState(e.target.value)}
                 placeholder="e.g. Maharashtra"
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">District</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District</label>
               <input
                 type="text"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
                 placeholder="e.g. Mumbai Suburban"
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">City</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City</label>
               <input
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="e.g. Mumbai"
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Full Street Address</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Street Address</label>
               <input
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="e.g. Flat 402, Sunshine Heights, Bandra West"
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Pincode</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Pincode</label>
               <input
                 type="text"
                 value={pincode}
                 onChange={(e) => setPincode(e.target.value)}
                 placeholder="e.g. 400050"
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
           </div>
@@ -339,7 +332,7 @@ export default function CustomerSettingsPage() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-indigo-500/25 hover:opacity-90 transition flex items-center justify-center gap-2"
+          className="w-full py-3.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
         >
           <FiSave size={16} />
           <span>{saving ? 'Saving Changes...' : 'Save Profile & Settings'}</span>
@@ -347,16 +340,16 @@ export default function CustomerSettingsPage() {
       </form>
 
       {/* Security & Account Management */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-          <FiLock className="text-amber-400" />
+      <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-4">
+        <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2 border-b border-border pb-3">
+          <FiLock className="text-amber-500" />
           <span>Account Security & Actions</span>
         </h3>
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             onClick={handleLogout}
-            className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition"
+            className="flex-1 py-2.5 glass border border-border text-text-secondary font-bold text-xs rounded-xl hover:bg-surface-tertiary transition flex items-center justify-center gap-2"
           >
             <FiLogOut size={16} />
             <span>Logout Account</span>
@@ -364,7 +357,7 @@ export default function CustomerSettingsPage() {
 
           <button
             onClick={handleDeleteAccount}
-            className="flex-1 py-3 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition"
+            className="flex-1 py-2.5 bg-error/10 text-error border border-error/20 rounded-xl text-xs font-bold hover:bg-error/20 transition flex items-center justify-center gap-2"
           >
             <FiTrash2 size={16} />
             <span>Delete Account</span>

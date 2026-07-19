@@ -1,127 +1,103 @@
 import React, { useState } from 'react';
-import { FiInbox, FiShoppingBag, FiTool, FiFileText, FiMessageCircle, FiPhone, FiCheck } from 'react-icons/fi';
+import { FiInbox, FiShoppingBag, FiTool, FiFileText, FiMessageCircle, FiPhone } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import AdminTabBar from '../../../features/admin/components/AdminTabBar';
+import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
+import { useGetVendorLeadsQuery } from '../../../features/vendor/vendorApi';
+
+const TABS = [
+  { key: 'product-enquiries', label: 'Product Enquiries', icon: FiShoppingBag },
+  { key: 'service-enquiries', label: 'Service Enquiries', icon: FiTool },
+  { key: 'quote-requests', label: 'Quote Requests', icon: FiFileText },
+  { key: 'requirement-matches', label: 'Requirement Matches', icon: FiInbox },
+];
 
 export default function VendorLeadsPage() {
-  const [activeTab, setActiveTab] = useState('product-enquiries'); // 'product-enquiries' | 'service-enquiries' | 'quote-requests' | 'requirement-matches'
+  const [activeTab, setActiveTab] = useState('product-enquiries');
+  const { data, isFetching } = useGetVendorLeadsQuery(undefined, { pollingInterval: 5000 });
 
-  const productEnquiries = [
+  const productEnquiries = data?.productEnquiries || [
     { id: '1', customer: 'Rahul Sharma', phone: '+91 98200 11223', item: 'Sony 55" OLED TV', msg: 'Interested in instant delivery to Bandra West.', date: 'Today 11:30 AM' }
   ];
-
-  const serviceEnquiries = [
+  const serviceEnquiries = data?.serviceEnquiries || [
     { id: '2', customer: 'Priya Patel', phone: '+91 97111 88334', item: 'AC Repair Service', msg: 'Need gas refilling for 2 split AC units tomorrow.', date: 'Yesterday' }
   ];
-
-  const quoteRequests = [
+  const quoteRequests = data?.quoteRequests || [
     { id: '3', customer: 'Tech Solutions Corp', phone: '+91 99000 55443', item: 'Bulk Laptops (10 Units)', budget: '₹7,50,000', date: 'Jul 15' }
   ];
-
-  const requirementMatches = [
+  const requirementMatches = data?.requirementMatches || [
     { id: '4', title: 'Customer Request: 5 Ergonomic Office Chairs', city: 'Mumbai', budget: '₹45,000', distance: '3.5 km' }
   ];
 
+  const renderEnquiryCard = (e, type = 'product') => (
+    <div key={e.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+      <div>
+        <h4 className="font-bold text-xs text-text-primary">{e.customer} ({e.phone})</h4>
+        <p className={`text-xs font-semibold mt-0.5 ${type === 'product' ? 'text-brand-orange' : 'text-brand-purple'}`}>
+          {type === 'product' ? 'Item' : 'Service'}: {e.item}
+        </p>
+        <p className="text-xs text-text-secondary mt-1">"{e.msg}"</p>
+      </div>
+      <button
+        onClick={() => toast.success(`Opened WhatsApp chat with ${e.customer}`)}
+        className="px-3.5 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
+      >
+        {type === 'product' ? <FiMessageCircle size={14} /> : <FiPhone size={14} />}
+        {type === 'product' ? 'Reply on WhatsApp' : 'Call Customer'}
+      </button>
+    </div>
+  );
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <FiInbox className="text-pink-400" />
-            <span>Leads & Customer Enquiries</span>
-          </h2>
-          <p className="text-xs text-slate-400">Respond to customer inquiries, quote requests, and nearby requirement matches</p>
-        </div>
-      </div>
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+      <AdminPageHeader
+        icon={FiInbox}
+        title="Leads & Customer Enquiries"
+        subtitle="Respond to customer inquiries, quote requests, and nearby requirement matches"
+      />
 
-      {/* Tabs */}
-      <div className="flex overflow-x-auto gap-2 border-b border-slate-800 pb-2 scrollbar-none">
-        {[
-          { id: 'product-enquiries', label: 'Product Enquiries' },
-          { id: 'service-enquiries', label: 'Service Enquiries' },
-          { id: 'quote-requests', label: 'Quote Requests' },
-          { id: 'requirement-matches', label: 'Requirement Matches' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition ${
-              activeTab === tab.id
-                ? 'bg-pink-600/20 text-pink-400 border border-pink-500/30'
-                : 'bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-white'
-            }`}
-          >
-            {tab.label}
-          </button>
+      <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+
+      <div className="glass rounded-2xl p-5 border border-white/50 shadow-card space-y-4">
+        {isFetching && (
+          <div className="space-y-3">
+            {[1, 2].map((i) => <div key={i} className="h-20 skeleton rounded-xl" />)}
+          </div>
+        )}
+
+        {activeTab === 'product-enquiries' && productEnquiries.map((e) => renderEnquiryCard(e, 'product'))}
+        {activeTab === 'service-enquiries' && serviceEnquiries.map((e) => renderEnquiryCard(e, 'service'))}
+
+        {activeTab === 'quote-requests' && quoteRequests.map((q) => (
+          <div key={q.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+            <div>
+              <h4 className="font-bold text-xs text-text-primary">{q.customer}</h4>
+              <p className="text-xs text-text-secondary mt-0.5">{q.item} • Target Budget: {q.budget}</p>
+            </div>
+            <button
+              onClick={() => toast.success('Quote submitted to customer!')}
+              className="px-3.5 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition"
+            >
+              Submit Proposal Quote
+            </button>
+          </div>
         ))}
-      </div>
 
-      {/* Content Panels */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-        {activeTab === 'product-enquiries' && (
-          <div className="space-y-3">
-            {productEnquiries.map((e) => (
-              <div key={e.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                <div>
-                  <h4 className="font-bold text-xs text-white">{e.customer} ({e.phone})</h4>
-                  <p className="text-xs font-semibold text-pink-400 mt-0.5">Item: {e.item}</p>
-                  <p className="text-xs text-slate-300 mt-1">"{e.msg}"</p>
-                </div>
-                <button onClick={() => toast.success(`Opened WhatsApp chat with ${e.customer}`)} className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5">
-                  <FiMessageCircle size={14} /> Reply on WhatsApp
-                </button>
-              </div>
-            ))}
+        {activeTab === 'requirement-matches' && requirementMatches.map((m) => (
+          <div key={m.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+            <div>
+              <h4 className="font-bold text-xs text-text-primary">{m.title}</h4>
+              <p className="text-xs text-text-tertiary mt-0.5">Location: {m.city} ({m.distance}) • Budget: {m.budget}</p>
+            </div>
+            <button
+              onClick={() => toast.success('Sent interest to customer')}
+              className="px-3.5 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition"
+            >
+              Send Pitch
+            </button>
           </div>
-        )}
-
-        {activeTab === 'service-enquiries' && (
-          <div className="space-y-3">
-            {serviceEnquiries.map((e) => (
-              <div key={e.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                <div>
-                  <h4 className="font-bold text-xs text-white">{e.customer} ({e.phone})</h4>
-                  <p className="text-xs font-semibold text-purple-400 mt-0.5">Service: {e.item}</p>
-                  <p className="text-xs text-slate-300 mt-1">"{e.msg}"</p>
-                </div>
-                <button onClick={() => toast.success(`Calling ${e.customer}`)} className="px-3.5 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5">
-                  <FiPhone size={14} /> Call Customer
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'quote-requests' && (
-          <div className="space-y-3">
-            {quoteRequests.map((q) => (
-              <div key={q.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                <div>
-                  <h4 className="font-bold text-xs text-white">{q.customer}</h4>
-                  <p className="text-xs text-slate-300 mt-0.5">{q.item} • Target Budget: {q.budget}</p>
-                </div>
-                <button onClick={() => toast.success('Quote submitted to customer!')} className="px-3.5 py-2 bg-pink-600 text-white font-bold text-xs rounded-xl">
-                  Submit Proposal Quote
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'requirement-matches' && (
-          <div className="space-y-3">
-            {requirementMatches.map((m) => (
-              <div key={m.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                <div>
-                  <h4 className="font-bold text-xs text-white">{m.title}</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">Location: {m.city} ({m.distance}) • Budget: {m.budget}</p>
-                </div>
-                <button onClick={() => toast.success('Sent interest to customer')} className="px-3.5 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl">
-                  Send Pitch
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );
