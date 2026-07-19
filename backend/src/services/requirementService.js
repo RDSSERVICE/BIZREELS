@@ -264,6 +264,35 @@ class RequirementService {
 
     return { quote: updatedQuote, message: 'Quote accepted and payment settled.' };
   }
+
+  async postRequirement(reqData, req) {
+    return this.createRequirement(reqData, req || { headers: {} });
+  }
+
+  async getRequirement(id) {
+    return this.getRequirementDetails(id);
+  }
+
+  async myRequirements(customerId) {
+    const res = await this.queryRequirements({ customerId, page: 1, limit: 100 });
+    return res.data || [];
+  }
+
+  async searchRequirements(params = {}) {
+    return this.queryRequirements(params);
+  }
+
+  async submitProposal(proposalData, req) {
+    return this.createQuote(proposalData, req || { headers: {} });
+  }
+
+  async listProposals(requirementId, userId) {
+    return this.getQuotesForRequirement(requirementId, userId);
+  }
+
+  async acceptProposal(quoteId, customerId, req) {
+    return this.updateQuoteStatus(quoteId, 'accepted', customerId, req || { headers: {} });
+  }
 }
 
 // Internal helper to bypass circular schema references

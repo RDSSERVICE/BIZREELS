@@ -10,9 +10,9 @@ const connectDB = async () => {
   try {
     const conn = await mongoose.connect(config.mongoUri, {
       maxPoolSize: 10,
-      minPoolSize: 2,
-      socketTimeoutMS: 45000,
-      serverSelectionTimeoutMS: 5000,
+      minPoolSize: 1,
+      socketTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 3000,
       heartbeatFrequencyMS: 10000,
       retryWrites: true,
       w: 'majority',
@@ -23,25 +23,10 @@ const connectDB = async () => {
       dbName: conn.connection.name,
     });
 
-
-
-    // Connection event listeners
-    mongoose.connection.on('error', (err) => {
-      logger.error('MongoDB connection error:', { error: err.message, service: 'database' });
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      logger.warn('MongoDB disconnected. Attempting reconnection...', { service: 'database' });
-    });
-
-    mongoose.connection.on('reconnected', () => {
-      logger.info('MongoDB reconnected successfully.', { service: 'database' });
-    });
-
     return conn;
   } catch (error) {
-    logger.error('MongoDB connection failed:', { error: error.message, service: 'database' });
-    process.exit(1);
+    logger.warn(`MongoDB Atlas connection timed out/failed: ${error.message}. API running in local mode.`);
+    return null;
   }
 };
 

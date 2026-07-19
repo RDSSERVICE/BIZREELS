@@ -302,9 +302,35 @@ const boostRoi = async (vendorId, listingId) => {
   };
 };
 
+const analyticsRepository = require('../repositories/analyticsRepository');
+const logger = require('../utils/logger');
+
+const trackEvent = async ({ type, userId, targetId, queryText, metadata }) => {
+  try {
+    const event = await analyticsRepository.logEvent({
+      type,
+      userId,
+      targetId,
+      queryText,
+      metadata,
+    });
+    return event;
+  } catch (err) {
+    logger.error('Failed to log analytics metric:', err);
+    return null;
+  }
+};
+
+const getMetricsSummary = async ({ type, targetId, startDate, endDate }) => {
+  return analyticsRepository.fetchEventSummary({ type, targetId, startDate, endDate });
+};
+
 module.exports = {
   overview,
   perListing,
   timeseries,
   boostRoi,
+  trackEvent,
+  getMetricsSummary,
 };
+

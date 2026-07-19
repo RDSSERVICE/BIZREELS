@@ -7,14 +7,14 @@ import { useGetCreatorDashboardQuery } from '../../../features/creator/creatorAp
 export default function CreatorDashboardPage() {
   const { data, isFetching } = useGetCreatorDashboardQuery(undefined, { pollingInterval: 5000 });
 
-  const statsData = data || {};
+  const statsData = data?.data || data || {};
 
   const stats = [
-    { label: 'Total Projects', value: String(statsData.totalProjects || '18'), icon: FiVideo, color: 'purple', trend: 12 },
-    { label: 'Pending Requests', value: String(statsData.pendingRequests || '3'), icon: FiClock, color: 'amber', trend: 0 },
-    { label: 'Total Earnings', value: `₹${(statsData.totalEarnings || 42500).toLocaleString('en-IN')}`, icon: FiDollarSign, color: 'green', trend: 22 },
-    { label: 'Rating Reviews', value: `${statsData.rating || '4.9'} ★ (${statsData.reviewCount || '24'})`, icon: FiStar, color: 'pink', trend: 5 },
-    { label: 'Portfolio Views', value: (statsData.portfolioViews || 8920).toLocaleString(), icon: FiEye, color: 'cyan', trend: 18 },
+    { label: 'Total Projects', value: String(statsData.totalProjects ?? 0), icon: FiVideo, color: 'purple', trend: 12 },
+    { label: 'Pending Requests', value: String(statsData.pendingRequests ?? 0), icon: FiClock, color: 'amber', trend: 0 },
+    { label: 'Total Earnings', value: `₹${(statsData.totalEarnings ?? 0).toLocaleString('en-IN')}`, icon: FiDollarSign, color: 'green', trend: 22 },
+    { label: 'Rating Reviews', value: `${statsData.rating ?? '0.0'} ★ (${statsData.reviewCount ?? 0})`, icon: FiStar, color: 'pink', trend: 5 },
+    { label: 'Portfolio Views', value: (statsData.portfolioViews ?? 0).toLocaleString(), icon: FiEye, color: 'cyan', trend: 18 },
   ];
 
   return (

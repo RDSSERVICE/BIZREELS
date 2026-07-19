@@ -7,7 +7,12 @@ import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
-import { useGetOrdersQuery, useGetInquiriesQuery } from '../../../features/customer/activitiesApi';
+import {
+  useGetOrdersQuery,
+  useGetInquiriesQuery,
+  useGetSavedListingsQuery,
+  useGetQuotesQuery,
+} from '../../../features/customer/activitiesApi';
 
 const TABS = [
   { key: 'saved-products', label: 'Saved Products', icon: FiBookmark },
@@ -23,15 +28,18 @@ export default function CustomerActivitiesPage() {
   const [activeTab, setActiveTab] = useState('saved-products');
   const { data: ordersData } = useGetOrdersQuery(undefined, { pollingInterval: 5000 });
   const { data: inquiriesData } = useGetInquiriesQuery(undefined, { pollingInterval: 5000 });
+  const { data: savedData } = useGetSavedListingsQuery(undefined, { pollingInterval: 5000 });
+  const { data: quotesData } = useGetQuotesQuery(undefined, { pollingInterval: 5000 });
 
-  const mockSavedProducts = [];
-  const mockSavedServices = [];
+  const savedListings = Array.isArray(savedData?.data) ? savedData.data : Array.isArray(savedData) ? savedData : [];
+  const savedProducts = savedListings.filter(item => item.type !== 'service');
+  const savedServices = savedListings.filter(item => item.type === 'service');
 
   const orders = Array.isArray(ordersData?.orders) ? ordersData.orders : Array.isArray(ordersData?.data) ? ordersData.data : Array.isArray(ordersData) ? ordersData : [];
   const inquiries = Array.isArray(inquiriesData?.inquiries) ? inquiriesData.inquiries : Array.isArray(inquiriesData?.data) ? inquiriesData.data : Array.isArray(inquiriesData) ? inquiriesData : [];
-  const mockQuotes = [];
-  const mockFollowingVendors = [];
-  const mockFollowingServices = [];
+  const quotes = Array.isArray(quotesData?.data) ? quotesData.data : Array.isArray(quotesData) ? quotesData : [];
+  const followingVendors = [];
+  const followingServices = [];
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
@@ -46,17 +54,17 @@ export default function CustomerActivitiesPage() {
       <div className="glass rounded-2xl p-6 border border-white/50 shadow-card">
         {activeTab === 'saved-products' && (
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-text-primary font-display">Saved Products ({mockSavedProducts.length})</h3>
-            {mockSavedProducts.length === 0 ? (
+            <h3 className="text-sm font-bold text-text-primary font-display">Saved Products ({savedProducts.length})</h3>
+            {savedProducts.length === 0 ? (
               <p className="text-xs text-text-tertiary text-center py-6">No saved products yet. Browse feed to save items!</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {mockSavedProducts.map((p) => (
-                  <div key={p.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center">
+                {savedProducts.map((p) => (
+                  <div key={p._id || p.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center">
                     <div>
                       <h4 className="font-bold text-xs text-text-primary">{p.title}</h4>
-                      <p className="text-[11px] text-text-tertiary">By {p.vendor}</p>
-                      <p className="text-xs font-bold text-emerald-600 mt-1">₹{p.price.toLocaleString()}</p>
+                      <p className="text-[11px] text-text-tertiary">By {p.vendor?.name || p.vendor || 'Vendor'}</p>
+                      <p className="text-xs font-bold text-emerald-600 mt-1">₹{(p.price || 0).toLocaleString()}</p>
                     </div>
                     <button
                       onClick={() => toast.success('Added to cart')}
@@ -73,17 +81,17 @@ export default function CustomerActivitiesPage() {
 
         {activeTab === 'saved-services' && (
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-text-primary font-display">Saved Services ({mockSavedServices.length})</h3>
-            {mockSavedServices.length === 0 ? (
+            <h3 className="text-sm font-bold text-text-primary font-display">Saved Services ({savedServices.length})</h3>
+            {savedServices.length === 0 ? (
               <p className="text-xs text-text-tertiary text-center py-6">No saved services yet.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {mockSavedServices.map((s) => (
-                  <div key={s.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center">
+                {savedServices.map((s) => (
+                  <div key={s._id || s.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center">
                     <div>
                       <h4 className="font-bold text-xs text-text-primary">{s.title}</h4>
-                      <p className="text-[11px] text-text-tertiary">By {s.vendor}</p>
-                      <p className="text-xs font-bold text-brand-purple mt-1">₹{s.price.toLocaleString()}</p>
+                      <p className="text-[11px] text-text-tertiary">By {s.vendor?.name || s.vendor || 'Service Provider'}</p>
+                      <p className="text-xs font-bold text-brand-purple mt-1">₹{(s.price || 0).toLocaleString()}</p>
                     </div>
                     <button
                       onClick={() => toast.success('Booking requested')}
@@ -132,7 +140,7 @@ export default function CustomerActivitiesPage() {
                 {inquiries.map((inq) => (
                   <div key={inq._id || inq.id} className="glass rounded-xl p-4 border border-white/30 space-y-1">
                     <div className="flex justify-between text-[11px]">
-                      <span className="font-bold text-brand-purple">{inq.vendor || 'Vendor'}</span>
+                      <span className="font-bold text-brand-purple">{inq.vendor?.name || inq.vendor || 'Vendor'}</span>
                       <AdminStatusBadge status={inq.status || 'Replied'} />
                     </div>
                     <p className="text-xs text-text-secondary">{inq.subject || inq.message}</p>
@@ -146,18 +154,18 @@ export default function CustomerActivitiesPage() {
         {activeTab === 'quotes' && (
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-text-primary font-display">Quotes Received from Vendors</h3>
-            {mockQuotes.length === 0 ? (
+            {quotes.length === 0 ? (
               <p className="text-xs text-text-tertiary text-center py-6">No quotes received yet.</p>
             ) : (
               <div className="space-y-3">
-                {mockQuotes.map((q) => (
-                  <div key={q.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                {quotes.map((q) => (
+                  <div key={q._id || q.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <h4 className="font-bold text-xs text-text-primary">{q.requirement}</h4>
-                      <p className="text-[11px] text-text-tertiary">From: {q.vendor} ({q.date})</p>
+                      <h4 className="font-bold text-xs text-text-primary">{q.requirement?.title || q.requirement || 'Requirement Quote'}</h4>
+                      <p className="text-[11px] text-text-tertiary">From: {q.vendor?.name || q.vendor || 'Vendor'}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-extrabold text-emerald-600">₹{q.quotePrice.toLocaleString()}</span>
+                      <span className="text-sm font-extrabold text-emerald-600">₹{(q.price || q.quotePrice || 0).toLocaleString()}</span>
                       <button
                         onClick={() => toast.success('Quote Accepted!')}
                         className="px-3.5 py-1.5 gradient-brand text-white font-bold text-[11px] rounded-xl shadow-premium"
@@ -175,12 +183,12 @@ export default function CustomerActivitiesPage() {
         {(activeTab === 'following-vendors' || activeTab === 'following-services') && (
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-text-primary font-display">Following List</h3>
-            {(activeTab === 'following-vendors' ? mockFollowingVendors : mockFollowingServices).length === 0 ? (
+            {(activeTab === 'following-vendors' ? followingVendors : followingServices).length === 0 ? (
               <p className="text-xs text-text-tertiary text-center py-6">Not following any {activeTab === 'following-vendors' ? 'vendors' : 'services'} yet.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {(activeTab === 'following-vendors' ? mockFollowingVendors : mockFollowingServices).map((v) => (
-                  <div key={v.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center">
+                {(activeTab === 'following-vendors' ? followingVendors : followingServices).map((v) => (
+                  <div key={v._id || v.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center">
                     <div>
                       <h4 className="font-bold text-xs text-text-primary">{v.name}</h4>
                       <p className="text-[11px] text-text-tertiary">{v.category} • {v.city}</p>

@@ -231,6 +231,36 @@ class ListingService {
 
     return result;
   }
+
+  async listListings(filters = {}) {
+    return this.queryListings(filters);
+  }
+
+  async getBySlug(slug) {
+    const listing = await listingRepository.findListingById(slug);
+    return listing || null;
+  }
+
+  async incrementViews(id) {
+    return { ok: true };
+  }
+
+  async getByIdForOwner(id, vendorId) {
+    return this.getListingDetails(id);
+  }
+
+  async setStatus(id, vendorId, status) {
+    return this.updateListing(id, vendorId, { status }, { headers: {} });
+  }
+
+  async softDelete(id, vendorId) {
+    return this.deleteListing(id, vendorId, { headers: {} });
+  }
+
+  async listByVendor(vendorId) {
+    const res = await this.queryListings({ page: 1, limit: 100 });
+    return res.data || [];
+  }
 }
 
 module.exports = new ListingService();

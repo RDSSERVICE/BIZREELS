@@ -22,6 +22,16 @@ const startServer = async () => {
     // Init Socket.io connections
     initSockets(server);
 
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        const fallbackPort = config.port + 1;
+        logger.warn(`Port ${config.port} is busy. Retrying on fallback port ${fallbackPort}...`);
+        server.listen(fallbackPort);
+      } else {
+        logger.error('Server error:', err.message);
+      }
+    });
+
     // Start listening
     server.listen(config.port, () => {
       logger.info(`

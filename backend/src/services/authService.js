@@ -637,6 +637,27 @@ class AuthService {
   // PRIVATE HELPERS
   // ══════════════════════════════════════════════════════════
 
+  serializeUser(user) {
+    return this._sanitizeUser(user);
+  }
+
+  validatePhone(phone) {
+    const p = String(phone).trim();
+    if (!/^\d{10}$/.test(p) || !['6', '7', '8', '9'].includes(p[0])) {
+      throw ApiError.badRequest('Invalid Indian phone number. Provide a 10-digit number starting 6-9.');
+    }
+    return p;
+  }
+
+  async issueTokens(user) {
+    const accessToken = this.generateAccessToken(user);
+    const refreshTokenData = await this.createRefreshToken(user, { headers: {}, ip: '127.0.0.1' });
+    return {
+      access_token: accessToken,
+      refresh_token: refreshTokenData.token,
+    };
+  }
+
   _sanitizeUser(user) {
     const userObj = user.toObject ? user.toObject() : { ...user };
     delete userObj.password;

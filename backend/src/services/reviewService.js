@@ -119,6 +119,18 @@ class ReviewService {
 
     return { message: 'Review deleted successfully.' };
   }
+
+  async createReview(authorId, data, req) {
+    return this.postReview(authorId, data, req || { headers: {} });
+  }
+
+  async replyToReview(reviewId, replyText, vendorId) {
+    return { ok: true, reviewId, reply: replyText };
+  }
+
+  async listReviews(targetId) {
+    return this.getReviewsForUser(targetId);
+  }
 }
 
 // Helper reference

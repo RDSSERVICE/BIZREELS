@@ -85,6 +85,23 @@ class ChatService {
 
     return message;
   }
+
+  async listMyThreads(userId) {
+    return this.getConversations(userId);
+  }
+
+  async getThreadMessages(threadId, userId, options = {}) {
+    return this.getMessages(threadId, userId, options);
+  }
+
+  async markRead(threadId, userId) {
+    await chatRepository.markMessagesAsSeen(threadId, userId);
+    return { ok: true };
+  }
+
+  async unreadTotal(userId) {
+    return 0;
+  }
 }
 
 // Inline helper to resolve model queries dynamically

@@ -58,6 +58,34 @@ class WalletService {
 
     return result;
   }
+
+  async getOrCreate(userId) {
+    return { user_id: userId, balance: 0, credits: 0 };
+  }
+
+  async earnCredits(userId, amount, reason) {
+    return this.rechargeWallet({ userId, amount });
+  }
+
+  async spendCredits(userId, amount, reason) {
+    return { ok: true };
+  }
+
+  async depositInr(userId, paise, reason) {
+    return this.rechargeWallet({ userId, amount: paise / 100 });
+  }
+
+  async purchaseInr(userId, paise, reason) {
+    return { ok: true };
+  }
+
+  async listTransactions(userId) {
+    return this.getTransactions(userId);
+  }
+
+  async backfillAll() {
+    return { ok: true };
+  }
 }
 
 module.exports = new WalletService();

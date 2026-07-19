@@ -65,6 +65,17 @@ const activitiesApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['User'],
     }),
+    // ── Saved Listings ───────────────────────────────────
+    getSavedListings: builder.query({
+      query: () => '/users/me/saved',
+      providesTags: ['User', 'Products'],
+    }),
+
+    // ── Quotes ────────────────────────────────────────────
+    getQuotes: builder.query({
+      query: () => '/requirements/quotes',
+      providesTags: ['Requirements'],
+    }),
   }),
 });
 
@@ -77,6 +88,8 @@ export const {
   useUnsaveListingMutation,
   useFollowUserMutation,
   useUnfollowUserMutation,
+  useGetSavedListingsQuery,
+  useGetQuotesQuery,
 } = activitiesApi;
 
 export default activitiesApi;
