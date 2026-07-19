@@ -5,6 +5,7 @@ import { FiVideo, FiUser, FiCamera, FiDollarSign, FiMapPin, FiGlobe, FiArrowRigh
 import { useAddRoleMutation } from '../../../features/auth/authApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
+import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
 export default function BecomeCreatorPage() {
   const navigate = useNavigate();
@@ -85,18 +86,14 @@ export default function BecomeCreatorPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
-      <div className="glass rounded-2xl p-6 sm:p-8 border border-white/40 shadow-glass text-center space-y-3">
-        <div className="w-14 h-14 rounded-2xl gradient-brand mx-auto flex items-center justify-center text-white shadow-premium">
-          <FiVideo size={28} />
-        </div>
-        <h2 className="text-2xl font-black text-text-primary font-display">Become a Creator / Influencer</h2>
-        <p className="text-xs text-text-secondary max-w-md mx-auto">
-          Create paid promotional reels, video ads, or AI avatar content for local vendors and monetize your portfolio.
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+      <AdminPageHeader
+        icon={FiVideo}
+        title="Become a Creator / Influencer"
+        subtitle="Create paid promotional reels, video ads, or AI avatar content for local vendors and monetize your portfolio"
+      />
 
-      <div className="glass rounded-2xl p-6 sm:p-8 border border-white/40 shadow-glass">
+      <div className="glass rounded-2xl p-6 sm:p-8 border border-white/50 shadow-card">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-text-primary font-display border-b border-border pb-2 flex items-center gap-2">
@@ -113,7 +110,7 @@ export default function BecomeCreatorPage() {
                   value={creatorName}
                   onChange={(e) => setCreatorName(e.target.value)}
                   placeholder="e.g. Alex Media Studios"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
@@ -124,7 +121,7 @@ export default function BecomeCreatorPage() {
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="e.g. Mumbai"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
@@ -135,7 +132,7 @@ export default function BecomeCreatorPage() {
                   value={languages}
                   onChange={(e) => setLanguages(e.target.value)}
                   placeholder="e.g. English, Hindi, Marathi"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
@@ -146,7 +143,7 @@ export default function BecomeCreatorPage() {
                   value={experienceYears}
                   onChange={(e) => setExperienceYears(e.target.value)}
                   placeholder="2"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
@@ -155,7 +152,7 @@ export default function BecomeCreatorPage() {
                 <select
                   value={travelAvailable}
                   onChange={(e) => setTravelAvailable(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 >
                   <option value="Yes">Yes, Available to Travel</option>
                   <option value="No">No, Local City Only</option>
@@ -171,7 +168,7 @@ export default function BecomeCreatorPage() {
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Introduce yourself, your content style, equipment, audience demographics, and specialty..."
-                className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
               />
             </div>
           </div>
@@ -188,9 +185,9 @@ export default function BecomeCreatorPage() {
                     type="button"
                     key={cat}
                     onClick={() => toggleCategory(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition ${
                       selected
-                        ? 'bg-brand-purple/20 border-brand-purple text-brand-purple font-bold'
+                        ? 'bg-brand-purple text-white border-transparent shadow-sm'
                         : 'glass border-border text-text-secondary hover:border-brand-purple/40'
                     }`}
                   >
@@ -202,50 +199,51 @@ export default function BecomeCreatorPage() {
             </div>
           </div>
 
+          {/* Pricing Setup */}
           <div className="space-y-4 pt-2">
             <h3 className="text-sm font-bold text-text-primary font-display border-b border-border pb-2 flex items-center gap-2">
               <FiDollarSign className="text-emerald-500" />
-              <span>Set Your Custom Pricing Packages</span>
+              <span>Packages & Commercial Pricing (INR)</span>
             </h3>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div>
-                <label className="block text-[11px] font-semibold text-text-secondary mb-1">1 Reel Rate (₹)</label>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">1 Promo Reel (₹)</label>
                 <input
                   type="number"
                   value={reelPrice1}
                   onChange={(e) => setReelPrice1(e.target.value)}
-                  className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-text-secondary mb-1">3 Reels Rate (₹)</label>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">3 Reels Pack (₹)</label>
                 <input
                   type="number"
                   value={reelPrice3}
                   onChange={(e) => setReelPrice3(e.target.value)}
-                  className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-text-secondary mb-1">10 Reels Rate (₹)</label>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">10 Reels Monthly (₹)</label>
                 <input
                   type="number"
                   value={reelPrice10}
                   onChange={(e) => setReelPrice10(e.target.value)}
-                  className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-text-secondary mb-1">Hourly Rate (₹)</label>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">On-Site Shoot Rate (₹/hr)</label>
                 <input
                   type="number"
                   value={hourlyRate}
                   onChange={(e) => setHourlyRate(e.target.value)}
-                  className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
             </div>
@@ -254,9 +252,9 @@ export default function BecomeCreatorPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-2xl btn-brand font-black text-xs shadow-premium flex items-center justify-center gap-2"
+            className="w-full py-3.5 gradient-brand text-white rounded-xl text-sm font-bold shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
           >
-            <span>{loading ? 'Activating Creator Profile...' : 'Complete Creator Registration'}</span>
+            <span>{loading ? 'Activating Creator Profile...' : 'Complete Registration & Launch Creator Studio'}</span>
             <FiArrowRight size={16} />
           </button>
         </form>

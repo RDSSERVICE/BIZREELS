@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { FiBriefcase, FiCheckCircle, FiDollarSign, FiFileText, FiMapPin, FiCreditCard, FiArrowRight } from 'react-icons/fi';
+import { FiBriefcase, FiCheckCircle, FiDollarSign, FiFileText, FiMapPin, FiCreditCard, FiArrowRight, FiShield, FiUser } from 'react-icons/fi';
 import { useAddRoleMutation } from '../../../features/auth/authApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
+import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
 export default function BecomeVendorPage() {
   const navigate = useNavigate();
@@ -64,18 +65,14 @@ export default function BecomeVendorPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
-      <div className="glass rounded-2xl p-6 sm:p-8 border border-white/40 shadow-glass text-center space-y-3">
-        <div className="w-14 h-14 rounded-2xl gradient-brand mx-auto flex items-center justify-center text-white shadow-premium">
-          <FiBriefcase size={28} />
-        </div>
-        <h2 className="text-2xl font-black text-text-primary font-display">Become a Verified Vendor</h2>
-        <p className="text-xs text-text-secondary max-w-md mx-auto">
-          Start selling products & services, post boosted reels, receive direct inquiries, and manage orders on BizReels.
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+      <AdminPageHeader
+        icon={FiBriefcase}
+        title="Become a Verified Vendor"
+        subtitle="Start selling products & services, post boosted reels, receive direct inquiries, and manage orders on BizReels"
+      />
 
-      <div className="glass rounded-2xl p-6 sm:p-8 border border-white/40 shadow-glass">
+      <div className="glass rounded-2xl p-6 sm:p-8 border border-white/50 shadow-card">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Step 1: Business Details */}
           <div className="space-y-4">
@@ -93,7 +90,7 @@ export default function BecomeVendorPage() {
                   value={shopName}
                   onChange={(e) => setShopName(e.target.value)}
                   placeholder="e.g. Trends Boutique Store"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
@@ -104,7 +101,7 @@ export default function BecomeVendorPage() {
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   placeholder="e.g. Trends Retail Pvt Ltd"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
@@ -113,7 +110,7 @@ export default function BecomeVendorPage() {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 >
                   <option value="Electronics">Electronics & IT</option>
                   <option value="Fashion">Fashion & Apparel</option>
@@ -133,7 +130,7 @@ export default function BecomeVendorPage() {
                   value={pan}
                   onChange={(e) => setPan(e.target.value)}
                   placeholder="e.g. ABCDE1234F"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple uppercase"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary uppercase focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
@@ -144,7 +141,7 @@ export default function BecomeVendorPage() {
                   value={gst}
                   onChange={(e) => setGst(e.target.value)}
                   placeholder="e.g. 27ABCDE1234F1Z5"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple uppercase"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary uppercase focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
@@ -155,7 +152,7 @@ export default function BecomeVendorPage() {
                   value={aadhaar}
                   onChange={(e) => setAadhaar(e.target.value)}
                   placeholder="e.g. 1234 5678 9012"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
             </div>
@@ -168,7 +165,7 @@ export default function BecomeVendorPage() {
                 value={businessAddress}
                 onChange={(e) => setBusinessAddress(e.target.value)}
                 placeholder="Shop No., Commercial Complex, Street, City, State, Pincode"
-                className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
               />
             </div>
           </div>
@@ -188,7 +185,7 @@ export default function BecomeVendorPage() {
                   value={bankAccount}
                   onChange={(e) => setBankAccount(e.target.value)}
                   placeholder="e.g. 9182736450"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
@@ -198,19 +195,19 @@ export default function BecomeVendorPage() {
                   type="text"
                   value={ifsc}
                   onChange={(e) => setIfsc(e.target.value)}
-                  placeholder="e.g. HDFC0001234"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple uppercase"
+                  placeholder="e.g. SBIN0001234"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary uppercase focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">UPI ID</label>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">UPI ID for Payouts</label>
                 <input
                   type="text"
                   value={upiId}
                   onChange={(e) => setUpiId(e.target.value)}
                   placeholder="e.g. shopname@upi"
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>
             </div>
@@ -219,9 +216,9 @@ export default function BecomeVendorPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-2xl btn-brand font-black text-xs shadow-premium flex items-center justify-center gap-2"
+            className="w-full py-3.5 gradient-brand text-white rounded-xl text-sm font-bold shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
           >
-            <span>{loading ? 'Registering Vendor Account...' : 'Complete Vendor Registration'}</span>
+            <span>{loading ? 'Activating Vendor Profile...' : 'Complete Registration & Launch Vendor Portal'}</span>
             <FiArrowRight size={16} />
           </button>
         </form>
