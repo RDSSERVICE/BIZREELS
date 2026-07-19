@@ -23,10 +23,6 @@ const connectDB = async () => {
       dbName: conn.connection.name,
     });
 
-    // Run auto-seeding if database is empty
-    const { seedDatabaseIfEmpty } = require('./seeder');
-    seedDatabaseIfEmpty().catch((err) => logger.error('Seeding error:', err));
-
 
 
     // Connection event listeners
