@@ -49,7 +49,7 @@ const updateProfile = async (userId, updates) => {
   }
   if (Object.keys(clean).length === 0) throw ApiError.badRequest('No updatable fields');
 
-  const user = await User.findByIdAndUpdate(userId, { $set: clean }, { new: true });
+  const user = await User.findByIdAndUpdate(userId, { $set: clean }, { returnDocument: 'after' });
   if (!user) throw ApiError.notFound('User not found');
   return user;
 };

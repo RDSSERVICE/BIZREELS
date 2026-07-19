@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
+const ApiError = require('../utils/ApiError');
 
 /**
  * CreatorController
@@ -105,12 +106,13 @@ class CreatorController {
   });
 
   updatePricing = asyncHandler(async (req, res) => {
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
-      { 'creatorProfile.pricing': req.body },
-      { new: true }
-    );
-    return ApiResponse.ok(res, 'Creator pricing updated.', { pricing: updatedUser.creatorProfile?.pricing });
+    const user = await User.findById(req.user._id);
+    if (!user) throw ApiError.notFound('User not found');
+    user.creatorProfile = user.creatorProfile || {};
+    user.creatorProfile.pricing = req.body;
+    user.markModified('creatorProfile');
+    await user.save();
+    return ApiResponse.ok(res, 'Creator pricing updated.', { pricing: user.creatorProfile?.pricing });
   });
 
   // ── Get & Update Availability ────────────────────────────
@@ -122,12 +124,13 @@ class CreatorController {
 
   updateAvailability = asyncHandler(async (req, res) => {
     const { status } = req.body;
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
-      { 'creatorProfile.availability': status },
-      { new: true }
-    );
-    return ApiResponse.ok(res, 'Creator availability updated.', { status: updatedUser.creatorProfile?.availability });
+    const user = await User.findById(req.user._id);
+    if (!user) throw ApiError.notFound('User not found');
+    user.creatorProfile = user.creatorProfile || {};
+    user.creatorProfile.availability = status;
+    user.markModified('creatorProfile');
+    await user.save();
+    return ApiResponse.ok(res, 'Creator availability updated.', { status: user.creatorProfile?.availability });
   });
 
   // ── Get Creator Orders ───────────────────────────────────
