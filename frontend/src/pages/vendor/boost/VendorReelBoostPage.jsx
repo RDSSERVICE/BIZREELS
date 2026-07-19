@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { FiZap, FiRefreshCw, FiCheck, FiDollarSign, FiClock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -7,13 +7,11 @@ import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadg
 import { useGetVendorBoostsQuery, usePurchaseBoostMutation, useRenewBoostMutation } from '../../../features/vendor/vendorApi';
 
 export default function VendorReelBoostPage() {
-  const { data, isFetching } = useGetVendorBoostsQuery(undefined, { pollingInterval: 5000 });
+  const { data } = useGetVendorBoostsQuery(undefined, { pollingInterval: 5000 });
   const [purchaseBoost] = usePurchaseBoostMutation();
   const [renewBoost] = useRenewBoostMutation();
 
-  const activeBoosts = data?.active || [
-    { id: 'b1', reelTitle: 'Hot Summer Fashion Collection', plan: 'Gold Boost (7 Days)', remainingDays: 5, status: 'Active', cost: 1499 }
-  ];
+  const activeBoosts = Array.isArray(data?.active) ? data.active : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
 
   const handleBuyBoost = async (planName, cost) => {
     try {
@@ -59,23 +57,27 @@ export default function VendorReelBoostPage() {
         <h3 className="text-sm font-bold text-text-primary font-display border-b border-border pb-3 flex items-center gap-2">
           <FiZap className="text-amber-500" /> Active Reel Boosts
         </h3>
-        {activeBoosts.map((b) => (
-          <div key={b.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-            <div>
-              <AdminStatusBadge status={b.plan} className="mb-1" />
-              <h4 className="font-bold text-xs text-text-primary mt-1">{b.reelTitle}</h4>
-              <p className="text-[11px] text-emerald-600 font-semibold mt-0.5 flex items-center gap-1">
-                <FiClock size={12} /> {b.remainingDays} days remaining
-              </p>
+        {activeBoosts.length === 0 ? (
+          <p className="text-xs text-text-tertiary text-center py-6">No active reel boosts. Select a plan below to boost your reels!</p>
+        ) : (
+          activeBoosts.map((b) => (
+            <div key={b.id || b._id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+              <div>
+                <AdminStatusBadge status={b.plan || 'Active'} className="mb-1" />
+                <h4 className="font-bold text-xs text-text-primary mt-1">{b.reelTitle}</h4>
+                <p className="text-[11px] text-emerald-600 font-semibold mt-0.5 flex items-center gap-1">
+                  <FiClock size={12} /> {b.remainingDays || 7} days remaining
+                </p>
+              </div>
+              <button
+                onClick={() => handleRenewBoost(b.id || b._id)}
+                className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
+              >
+                <FiRefreshCw size={14} /> Renew Boost
+              </button>
             </div>
-            <button
-              onClick={() => handleRenewBoost(b.id)}
-              className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
-            >
-              <FiRefreshCw size={14} /> Renew Boost
-            </button>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Pricing Plans */}
@@ -95,7 +97,7 @@ export default function VendorReelBoostPage() {
               <div>
                 <h4 className="text-sm font-bold text-text-primary">{plan.name.split(' (')[0]}</h4>
                 <p className="text-2xl font-black text-text-primary mt-2">
-                  ₹{plan.price.toLocaleString()} <span className="text-xs font-medium text-text-tertiary">/ {plan.days} Days</span>
+                  ₹{plan.price.toLocaleString()} <span className="text-xs font-normal text-text-tertiary">/ {plan.days} Days</span>
                 </p>
                 <ul className="text-xs text-text-secondary mt-3 space-y-2">
                   {plan.features.map((f, i) => (

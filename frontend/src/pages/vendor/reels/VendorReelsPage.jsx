@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FiVideo, FiPlus, FiCpu, FiPlay, FiCalendar, FiTrash2,
+  FiVideo, FiCpu, FiPlay, FiCalendar,
   FiEye, FiHeart, FiShare2, FiUserCheck, FiRadio, FiZap
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -24,19 +24,7 @@ export default function VendorReelsPage() {
   const { data, isFetching } = useGetVendorReelsQuery(undefined, { pollingInterval: 5000 });
   const [createReel] = useCreateReelMutation();
 
-  const mockReels = data?.data || data?.reels || [
-    {
-      id: 'r1', title: 'Hot New Summer Collection 2026',
-      videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-neon-room-41566-large.mp4',
-      status: 'published', views: 45200, likes: 3410, shares: 420, isBoosted: true, createdAt: '2026-07-16'
-    },
-    {
-      id: 'r2', title: 'Behind The Scenes: Handmade Jewelry Crafting',
-      videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-smart-phone-with-green-screen-41548-large.mp4',
-      status: 'scheduled', scheduledDate: '2026-07-20 10:00 AM',
-      views: 0, likes: 0, shares: 0, isBoosted: false
-    }
-  ];
+  const reelsList = Array.isArray(data?.data) ? data.data : Array.isArray(data?.reels) ? data.reels : Array.isArray(data) ? data : [];
 
   const handleGenerateAiAd = async (e) => {
     e.preventDefault();
@@ -54,7 +42,7 @@ export default function VendorReelsPage() {
     }, 3000);
   };
 
-  const filtered = mockReels.filter((r) => r.status === activeTab);
+  const filtered = reelsList.filter((r) => (r.status || 'published') === activeTab);
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
@@ -88,7 +76,7 @@ export default function VendorReelsPage() {
       <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Reels Grid */}
-      {isFetching && !mockReels.length ? (
+      {isFetching && !reelsList.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-96 skeleton rounded-2xl" />
@@ -101,7 +89,7 @@ export default function VendorReelsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((reel) => (
-            <div key={reel.id} className="glass rounded-2xl border border-white/50 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all overflow-hidden">
+            <div key={reel._id || reel.id} className="glass rounded-2xl border border-white/50 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all overflow-hidden">
               <div className="aspect-[9/16] bg-black relative">
                 <video src={reel.videoUrl} muted autoPlay loop playsInline className="w-full h-full object-cover" />
                 {reel.isBoosted && (
@@ -112,17 +100,17 @@ export default function VendorReelsPage() {
               </div>
 
               <div className="p-4 space-y-3">
-                <h4 className="font-bold text-sm text-text-primary">{reel.title}</h4>
+                <h4 className="font-bold text-sm text-text-primary">{reel.caption || reel.title || 'Video Reel'}</h4>
 
                 {activeTab === 'published' ? (
                   <div className="flex items-center justify-between text-xs text-text-tertiary border-t border-border pt-2">
-                    <span className="flex items-center gap-1"><FiEye size={13} /> {reel.views?.toLocaleString()}</span>
-                    <span className="flex items-center gap-1"><FiHeart size={13} className="text-brand-pink" /> {reel.likes?.toLocaleString()}</span>
-                    <span className="flex items-center gap-1"><FiShare2 size={13} /> {reel.shares?.toLocaleString()}</span>
+                    <span className="flex items-center gap-1"><FiEye size={13} /> {reel.views?.toLocaleString() || 0}</span>
+                    <span className="flex items-center gap-1"><FiHeart size={13} className="text-brand-pink" /> {reel.likesCount?.toLocaleString() || reel.likes?.toLocaleString() || 0}</span>
+                    <span className="flex items-center gap-1"><FiShare2 size={13} /> {reel.shares?.toLocaleString() || 0}</span>
                   </div>
                 ) : (
                   <p className="text-xs text-brand-purple font-semibold border-t border-border pt-2">
-                    Scheduled for: {reel.scheduledDate}
+                    Scheduled for: {reel.scheduledDate || 'Upcoming'}
                   </p>
                 )}
               </div>

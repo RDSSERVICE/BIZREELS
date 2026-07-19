@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { FiDollarSign, FiPlusCircle, FiArrowUpRight, FiArrowDownLeft } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -7,16 +7,12 @@ import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import { useGetVendorWalletQuery, useGetWalletTransactionsQuery, useRechargeWalletMutation } from '../../../features/vendor/vendorApi';
 
 export default function VendorWalletPage() {
-  const { data: walletData, isFetching: isFetchingWallet } = useGetVendorWalletQuery(undefined, { pollingInterval: 5000 });
+  const { data: walletData } = useGetVendorWalletQuery(undefined, { pollingInterval: 5000 });
   const { data: txData, isFetching: isFetchingTx } = useGetWalletTransactionsQuery(undefined, { pollingInterval: 5000 });
   const [rechargeWallet] = useRechargeWalletMutation();
 
-  const balance = walletData?.balance ?? 4850;
-  const transactions = txData?.data || txData?.transactions || [
-    { id: 'tx-101', title: 'Reel Boost Purchase (Gold)', type: 'debit', amount: 1499, date: '2026-07-16' },
-    { id: 'tx-102', title: 'Wallet Top Up via UPI', type: 'credit', amount: 5000, date: '2026-07-14' },
-    { id: 'tx-103', title: 'Customer Order Refund #812', type: 'debit', amount: 2499, date: '2026-07-06' }
-  ];
+  const balance = walletData?.balance ?? walletData?.walletBalance ?? 0;
+  const transactions = Array.isArray(txData?.transactions) ? txData.transactions : Array.isArray(txData?.data) ? txData.data : Array.isArray(txData?.items) ? txData.items : Array.isArray(txData) ? txData : [];
 
   const handleRecharge = async () => {
     try {
@@ -29,12 +25,12 @@ export default function VendorWalletPage() {
 
   const columns = [
     {
-      key: 'title',
+      key: 'description',
       label: 'Transaction',
       render: (val, row) => (
         <div>
-          <span className="font-bold text-text-primary block">{val}</span>
-          <span className="text-[10px] text-text-tertiary">{row.id} • {row.date}</span>
+          <span className="font-bold text-text-primary block">{val || row.title || 'Wallet Activity'}</span>
+          <span className="text-[10px] text-text-tertiary">{row._id || row.id} • {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : row.date || 'Recent'}</span>
         </div>
       ),
     },
@@ -45,7 +41,7 @@ export default function VendorWalletPage() {
         <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
           val === 'credit' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-rose-500/20 text-rose-600'
         }`}>
-          {val}
+          {val || 'credit'}
         </span>
       ),
     },
@@ -78,7 +74,7 @@ export default function VendorWalletPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <AdminStatCard label="Available Balance" value={`₹${balance.toLocaleString()}`} icon={FiDollarSign} color="green" />
         <AdminStatCard label="Total Credits" value="₹5,000" icon={FiArrowDownLeft} color="blue" />
-        <AdminStatCard label="Total Debits" value="₹3,998" icon={FiArrowUpRight} color="rose" />
+        <AdminStatCard label="Total Debits" value="₹1,499" icon={FiArrowUpRight} color="rose" />
       </div>
 
       <AdminDataTable

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiPackage, FiPlus, FiEdit, FiTrash2, FiEye, FiEyeOff, FiShoppingBag, FiTool } from 'react-icons/fi';
+import { FiPackage, FiPlus, FiTrash2, FiEye, FiEyeOff, FiShoppingBag, FiTool } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
@@ -31,14 +31,7 @@ export default function VendorListingsPage() {
   const [deleteListing] = useDeleteListingMutation();
   const [toggleVisibility] = useToggleListingVisibilityMutation();
 
-  const allListings = data?.data || data?.listings || [
-    { id: '1', title: 'Sony Bravia 55" 4K Smart OLED TV', type: 'product', price: 64990, status: 'published', isUsed: false, views: 1420 },
-    { id: '2', title: 'Professional AC Servicing & Chemical Wash', type: 'service', price: 1499, status: 'published', isUsed: false, views: 890 },
-    { id: '3', title: 'Used iPhone 13 Pro 128GB (Good Condition)', type: 'product', price: 42000, status: 'published', isUsed: true, views: 650 },
-    { id: '4', title: 'Draft: Wooden Dining Table 6 Seater', type: 'product', price: 18500, status: 'draft', isUsed: false, views: 0 },
-    { id: '5', title: 'Seasonal Clearance Discount Pack', type: 'product', price: 499, status: 'expired', isUsed: false, views: 310 },
-    { id: '6', title: 'Hidden Listing: Secret Combo Deal', type: 'product', price: 2999, status: 'hidden', isUsed: false, views: 45 },
-  ];
+  const allListings = Array.isArray(data?.data) ? data.data : Array.isArray(data?.listings) ? data.listings : Array.isArray(data) ? data : [];
 
   const filtered = allListings.filter((item) => {
     if (activeTab === 'products') return item.type === 'product' && !item.isUsed;
@@ -114,7 +107,7 @@ export default function VendorListingsPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (val) => <AdminStatusBadge status={val || 'draft'} />,
+      render: (val) => <AdminStatusBadge status={val || 'published'} />,
     },
   ];
 

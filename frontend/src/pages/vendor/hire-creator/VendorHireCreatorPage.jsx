@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiUserCheck, FiSearch, FiStar, FiSend } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -7,37 +7,36 @@ export default function VendorHireCreatorPage() {
   const [query, setQuery] = useState('');
   const [cityFilter, setCityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [creators, setCreators] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockCreators = [
-    {
-      id: 'c1',
-      name: 'Rohan Verma (Rohan Media)',
-      city: 'Mumbai',
-      distanceKm: 4.2,
-      category: 'Fashion',
-      rating: 4.9,
-      bio: 'Fashion & Lifestyle Content Creator. 100k+ reach across Instagram & YouTube.',
-      pricing: { oneReel: 800, threeReels: 2100 },
-      travelAvailable: true,
-      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
-    },
-    {
-      id: 'c2',
-      name: 'Ananya Tech Reviews',
-      city: 'Delhi',
-      distanceKm: 12.0,
-      category: 'Electronics',
-      rating: 4.8,
-      bio: 'Gadget reviewer & tech video ad generator. High converting reel ads.',
-      pricing: { oneReel: 1200, threeReels: 3000 },
-      travelAvailable: false,
-      image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80'
+  useEffect(() => {
+    fetchCreators();
+  }, []);
+
+  const fetchCreators = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/v1/users?role=creator');
+      const data = await res.json();
+      const list = Array.isArray(data?.users) ? data.users : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      setCreators(list);
+    } catch {
+      setCreators([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const handleHireRequest = (creatorName) => {
     toast.success(`Hire Request sent to ${creatorName}! They will respond within 24 hours.`);
   };
+
+  const filtered = creators.filter((c) => {
+    const matchesQuery = !query || c.name?.toLowerCase().includes(query.toLowerCase());
+    const matchesCity = cityFilter === 'all' || c.city === cityFilter;
+    return matchesQuery && matchesCity;
+  });
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
@@ -87,39 +86,53 @@ export default function VendorHireCreatorPage() {
       </div>
 
       {/* Creators Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {mockCreators.map((c) => (
-          <div key={c.id} className="glass rounded-2xl p-5 border border-white/50 shadow-card flex flex-col justify-between space-y-4 hover:shadow-card-hover transition-all">
-            <div className="flex items-start gap-4">
-              <img src={c.image} alt={c.name} className="w-16 h-16 rounded-2xl object-cover border border-border shrink-0" />
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-sm text-text-primary">{c.name}</h4>
-                  <span className="flex items-center gap-1 text-amber-500 text-xs font-bold">
-                    <FiStar size={12} className="fill-amber-500" /> {c.rating}
-                  </span>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2].map((i) => <div key={i} className="h-44 skeleton rounded-2xl" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
+          No creators found matching search criteria.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filtered.map((c) => (
+            <div key={c._id || c.id} className="glass rounded-2xl p-5 border border-white/50 shadow-card flex flex-col justify-between space-y-4 hover:shadow-card-hover transition-all">
+              <div className="flex items-start gap-4">
+                <img
+                  src={c.profile_pic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
+                  alt={c.name}
+                  className="w-16 h-16 rounded-2xl object-cover border border-border shrink-0"
+                />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-sm text-text-primary">{c.creatorProfile?.name || c.name}</h4>
+                    <span className="flex items-center gap-1 text-amber-500 text-xs font-bold">
+                      <FiStar size={12} className="fill-amber-500" /> {c.rating_avg || 4.9}
+                    </span>
+                  </div>
+                  <p className="text-xs text-brand-purple font-semibold">{c.creatorProfile?.category || 'Creator'} • {c.city || 'Mumbai'}</p>
+                  <p className="text-xs text-text-secondary mt-2 line-clamp-2">{c.creatorProfile?.bio || 'Verified content creator on BizReels.'}</p>
                 </div>
-                <p className="text-xs text-brand-purple font-semibold">{c.category} • {c.city} ({c.distanceKm} km away)</p>
-                <p className="text-xs text-text-secondary mt-2 line-clamp-2">{c.bio}</p>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-border flex items-center justify-between">
-              <div>
-                <span className="text-[10px] text-text-tertiary font-bold uppercase">1 Reel Package</span>
-                <p className="text-sm font-extrabold text-emerald-600">₹{c.pricing.oneReel}</p>
               </div>
 
-              <button
-                onClick={() => handleHireRequest(c.name)}
-                className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
-              >
-                <FiSend size={14} /> Hire Creator
-              </button>
+              <div className="pt-3 border-t border-border flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-text-tertiary font-bold uppercase">1 Reel Package</span>
+                  <p className="text-sm font-extrabold text-emerald-600">₹{c.creatorProfile?.pricing?.reel1 || 800}</p>
+                </div>
+
+                <button
+                  onClick={() => handleHireRequest(c.creatorProfile?.name || c.name)}
+                  className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
+                >
+                  <FiSend size={14} /> Hire Creator
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

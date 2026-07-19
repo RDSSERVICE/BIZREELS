@@ -15,30 +15,17 @@ export default function MyRequirementsPage() {
   const [activeTab, setActiveTab] = useState('product');
   const { data, isFetching } = useGetRequirementsQuery(undefined, { pollingInterval: 5000 });
 
-  const requirements = data?.data?.requirements || data?.data || data?.requirements || [
-    {
-      _id: 'req-1',
-      type: 'product',
-      title: 'Bulk Order: 10 Gaming Laptops i7 16GB RAM',
-      category: 'Electronics',
-      budget: 750000,
-      quantity: 10,
-      status: 'active',
-      quotesReceived: 3,
-      createdAt: '2026-07-15'
-    },
-    {
-      _id: 'req-2',
-      type: 'service',
-      title: 'Full House Interior Designing & Woodwork',
-      category: 'Services',
-      budget: 400000,
-      quantity: 1,
-      status: 'active',
-      quotesReceived: 5,
-      createdAt: '2026-07-12'
-    }
-  ];
+  const rawList = Array.isArray(data?.data?.requirements)
+    ? data.data.requirements
+    : Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray(data?.requirements)
+    ? data.requirements
+    : Array.isArray(data)
+    ? data
+    : [];
+
+  const requirements = rawList;
 
   const filteredRequirements = requirements.filter(
     (r) => (r.type || 'product') === activeTab
@@ -89,7 +76,7 @@ export default function MyRequirementsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
                 <div>
                   <span className="text-[10px] font-bold text-brand-purple uppercase tracking-wider bg-brand-purple/10 px-2 py-0.5 rounded">
-                    {req.category}
+                    {req.category_id || req.category || 'General'}
                   </span>
                   <h3 className="text-sm font-bold text-text-primary mt-1">{req.title}</h3>
                 </div>
@@ -97,7 +84,7 @@ export default function MyRequirementsPage() {
                 <div className="flex items-center gap-2">
                   <AdminStatusBadge status={req.status || 'active'} />
                   <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                    Budget: ₹{req.budget?.toLocaleString()}
+                    Budget: ₹{(req.budget_max || req.budget || 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -106,11 +93,11 @@ export default function MyRequirementsPage() {
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1">
                     <FiClock size={13} />
-                    {req.createdAt}
+                    {req.created_at ? new Date(req.created_at).toLocaleDateString() : req.createdAt ? new Date(req.createdAt).toLocaleDateString() : 'Recent'}
                   </span>
                   <span className="flex items-center gap-1 text-brand-purple font-semibold">
                     <FiMessageSquare size={13} />
-                    {req.quotesReceived || 0} Quotes Received
+                    {req.proposals_count || req.quotesReceived || 0} Quotes Received
                   </span>
                 </div>
 

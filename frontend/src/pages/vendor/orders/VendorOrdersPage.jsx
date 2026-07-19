@@ -18,14 +18,9 @@ export default function VendorOrdersPage() {
   const { data, isFetching } = useGetVendorOrdersQuery(undefined, { pollingInterval: 5000 });
   const [updateOrderStatus] = useUpdateOrderStatusMutation();
 
-  const orders = data?.data || data?.orders || [
-    { id: 'ORD-901', customer: 'Amit Verma', items: 'Sony Bravia 55" OLED TV (Qty: 1)', total: 64990, status: 'new', date: 'Today 10:15 AM' },
-    { id: 'ORD-899', customer: 'Neha Singh', items: 'Ergonomic Office Chair (Qty: 2)', total: 17998, status: 'accepted', date: 'Yesterday' },
-    { id: 'ORD-850', customer: 'Vikram Mehta', items: 'AC Deep Chemical Wash Service', total: 1499, status: 'completed', date: 'Jul 12' },
-    { id: 'ORD-812', customer: 'Suresh Kumar', items: 'Leather Sofa Set', total: 24999, status: 'cancelled', date: 'Jul 05' },
-  ];
+  const orders = Array.isArray(data?.data) ? data.data : Array.isArray(data?.orders) ? data.orders : Array.isArray(data) ? data : [];
 
-  const filtered = orders.filter((o) => o.status === activeTab);
+  const filtered = orders.filter((o) => (o.status || 'new') === activeTab);
 
   const handleStatusChange = async (id, newStatus) => {
     try {
@@ -57,30 +52,30 @@ export default function VendorOrdersPage() {
       ) : (
         <div className="space-y-4">
           {filtered.map((o) => (
-            <div key={o.id} className="glass rounded-2xl p-5 border border-white/50 shadow-card flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:shadow-card-hover transition-all">
+            <div key={o._id || o.id} className="glass rounded-2xl p-5 border border-white/50 shadow-card flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:shadow-card-hover transition-all">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs text-brand-purple">{o.id}</span>
-                  <span className="text-[10px] text-text-tertiary">• {o.date}</span>
+                  <span className="font-bold text-xs text-brand-purple">{o._id || o.id}</span>
+                  <span className="text-[10px] text-text-tertiary">• {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : o.date || 'Today'}</span>
                 </div>
-                <h4 className="font-bold text-sm text-text-primary mt-1">{o.customer}</h4>
-                <p className="text-xs text-text-secondary mt-0.5">{o.items}</p>
-                <p className="text-xs font-bold text-emerald-600 mt-1">Total: ₹{o.total.toLocaleString()}</p>
+                <h4 className="font-bold text-sm text-text-primary mt-1">{o.customer || o.items?.[0]?.title || 'Customer Order'}</h4>
+                <p className="text-xs text-text-secondary mt-0.5">{o.items ? JSON.stringify(o.items) : o.items}</p>
+                <p className="text-xs font-bold text-emerald-600 mt-1">Total: ₹{(o.total || o.total_price || 0).toLocaleString()}</p>
               </div>
 
               <div className="flex items-center gap-2">
-                <AdminStatusBadge status={o.status} />
+                <AdminStatusBadge status={o.status || 'new'} />
 
-                {o.status === 'new' && (
+                {(o.status === 'new' || !o.status) && (
                   <>
                     <button
-                      onClick={() => handleStatusChange(o.id, 'accepted')}
+                      onClick={() => handleStatusChange(o._id || o.id, 'accepted')}
                       className="px-3.5 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1"
                     >
                       <FiCheck size={14} /> Accept
                     </button>
                     <button
-                      onClick={() => handleStatusChange(o.id, 'cancelled')}
+                      onClick={() => handleStatusChange(o._id || o.id, 'cancelled')}
                       className="px-3 py-2 bg-error/10 text-error font-bold text-xs rounded-xl border border-error/20 hover:bg-error/20 transition flex items-center gap-1"
                     >
                       <FiX size={14} /> Reject
@@ -90,7 +85,7 @@ export default function VendorOrdersPage() {
 
                 {o.status === 'accepted' && (
                   <button
-                    onClick={() => handleStatusChange(o.id, 'completed')}
+                    onClick={() => handleStatusChange(o._id || o.id, 'completed')}
                     className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1"
                   >
                     <FiCheckCircle size={14} /> Mark Completed

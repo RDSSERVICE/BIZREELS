@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { FiDollarSign, FiArrowUpRight, FiArrowDownLeft } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -7,15 +7,12 @@ import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import { useGetCreatorWalletQuery, useGetCreatorTransactionsQuery, useRequestPayoutMutation } from '../../../features/creator/creatorApi';
 
 export default function CreatorWalletPage() {
-  const { data: walletData, isFetching: isFetchingWallet } = useGetCreatorWalletQuery(undefined, { pollingInterval: 5000 });
+  const { data: walletData } = useGetCreatorWalletQuery(undefined, { pollingInterval: 5000 });
   const { data: txData, isFetching: isFetchingTx } = useGetCreatorTransactionsQuery(undefined, { pollingInterval: 5000 });
   const [requestPayout] = useRequestPayoutMutation();
 
-  const balance = walletData?.balance ?? 42500;
-  const payouts = txData?.data || txData?.transactions || [
-    { id: 'p-1', vendor: 'Trends Fashion Store', project: '3 Promo Reels Shoot', amount: 3500, date: '2026-07-15', status: 'Completed' },
-    { id: 'p-2', vendor: 'Sony Center Bandra', project: 'OLED TV Video Commercial', amount: 5000, date: '2026-07-10', status: 'Completed' }
-  ];
+  const balance = walletData?.balance ?? walletData?.walletBalance ?? 0;
+  const payouts = Array.isArray(txData?.data) ? txData.data : Array.isArray(txData?.transactions) ? txData.transactions : Array.isArray(txData) ? txData : [];
 
   const handleWithdraw = async () => {
     try {
@@ -32,8 +29,8 @@ export default function CreatorWalletPage() {
       label: 'Project Details',
       render: (val, row) => (
         <div>
-          <span className="font-bold text-text-primary block">{val || row.title}</span>
-          <span className="text-[10px] text-text-tertiary">Client: {row.vendor || 'Vendor'} • {row.date}</span>
+          <span className="font-bold text-text-primary block">{val || row.title || row.description || 'Project Shoot'}</span>
+          <span className="text-[10px] text-text-tertiary">Client: {row.vendor || 'Vendor'} • {row.date || 'Recent'}</span>
         </div>
       ),
     },
@@ -74,7 +71,7 @@ export default function CreatorWalletPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <AdminStatCard label="Total Earnings" value={`₹${balance.toLocaleString()}`} icon={FiDollarSign} color="green" />
-        <AdminStatCard label="Completed Projects" value="18" icon={FiArrowDownLeft} color="purple" />
+        <AdminStatCard label="Completed Projects" value={String(payouts.length)} icon={FiArrowDownLeft} color="purple" />
         <AdminStatCard label="Pending Payouts" value="₹0" icon={FiArrowUpRight} color="amber" />
       </div>
 

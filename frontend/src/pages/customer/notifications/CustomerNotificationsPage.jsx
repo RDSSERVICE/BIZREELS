@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiBell, FiShield, FiMessageSquare, FiTrendingDown, FiTag } from 'react-icons/fi';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
@@ -13,43 +13,28 @@ const TABS = [
 
 export default function CustomerNotificationsPage() {
   const [activeTab, setActiveTab] = useState('all');
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockNotifications = [
-    {
-      id: 1,
-      type: 'admin',
-      title: 'System Announcement',
-      body: 'BizReels Platform Upgrade: New AI Reel Generator is now active for vendors & creators!',
-      date: '10 mins ago',
-      read: false
-    },
-    {
-      id: 2,
-      type: 'vendor',
-      title: 'Vendor Reply',
-      body: 'Trends Fashion Store replied to your inquiry: "Yes, size M is available in stock!"',
-      date: '1 hour ago',
-      read: false
-    },
-    {
-      id: 3,
-      type: 'price',
-      title: 'Price Drop Alert! 🎉',
-      body: 'Sony Bravia OLED TV 55" price dropped by ₹5,000 in your saved list!',
-      date: '3 hours ago',
-      read: true
-    },
-    {
-      id: 4,
-      type: 'offers',
-      title: 'Exclusive Offer Available',
-      body: 'Get 15% cashback on all home cleaning service bookings today.',
-      date: '1 day ago',
-      read: true
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/v1/notifications/me');
+      const data = await res.json();
+      const items = Array.isArray(data?.items) ? data.items : Array.isArray(data?.notifications) ? data.notifications : Array.isArray(data) ? data : [];
+      setNotifications(items);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const filtered = mockNotifications.filter(
+  const filtered = notifications.filter(
     (n) => activeTab === 'all' || n.type === activeTab
   );
 
@@ -63,31 +48,41 @@ export default function CustomerNotificationsPage() {
 
       <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <div className="space-y-3">
-        {filtered.map((n) => (
-          <div
-            key={n.id}
-            className={`glass rounded-2xl p-4 border transition flex items-start gap-4 ${
-              !n.read ? 'border-brand-purple/40 shadow-card font-semibold' : 'border-white/30 opacity-80'
-            }`}
-          >
-            <div className="w-10 h-10 rounded-xl bg-brand-purple/10 border border-brand-purple/20 flex items-center justify-center shrink-0">
-              {n.type === 'admin' && <FiShield className="text-amber-500" size={18} />}
-              {n.type === 'vendor' && <FiMessageSquare className="text-brand-purple" size={18} />}
-              {n.type === 'price' && <FiTrendingDown className="text-emerald-500" size={18} />}
-              {n.type === 'offers' && <FiTag className="text-brand-pink" size={18} />}
-            </div>
-
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-text-primary">{n.title}</h4>
-                <span className="text-[10px] text-text-tertiary">{n.date}</span>
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2].map((i) => <div key={i} className="h-16 skeleton rounded-2xl" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
+          No notifications found.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((n) => (
+            <div
+              key={n._id || n.id}
+              className={`glass rounded-2xl p-4 border transition flex items-start gap-4 ${
+                !n.is_read && !n.read ? 'border-brand-purple/40 shadow-card font-semibold' : 'border-white/30 opacity-80'
+              }`}
+            >
+              <div className="w-10 h-10 rounded-xl bg-brand-purple/10 border border-brand-purple/20 flex items-center justify-center shrink-0">
+                {n.type === 'admin' || n.type === 'system' ? <FiShield className="text-amber-500" size={18} /> : null}
+                {n.type === 'vendor' && <FiMessageSquare className="text-brand-purple" size={18} />}
+                {n.type === 'price' && <FiTrendingDown className="text-emerald-500" size={18} />}
+                {(n.type === 'offers' || n.type === 'offer') && <FiTag className="text-brand-pink" size={18} />}
               </div>
-              <p className="text-xs text-text-secondary">{n.body}</p>
+
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-text-primary">{n.title}</h4>
+                  <span className="text-[10px] text-text-tertiary">{n.created_at ? new Date(n.created_at).toLocaleDateString() : n.date || 'Recent'}</span>
+                </div>
+                <p className="text-xs text-text-secondary">{n.body || n.message}</p>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
