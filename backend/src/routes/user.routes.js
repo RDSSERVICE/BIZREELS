@@ -39,6 +39,13 @@ router.patch('/me', requireAuth, catchAsync(async (req, res) => {
   res.json({ user: userService.serialize(updated) });
 }));
 
+router.get('/me/saved', requireAuth, catchAsync(async (req, res) => {
+  const Listing = require('../models/Listing');
+  const savedIds = req.user.customerProfile?.savedListings || [];
+  const listings = await Listing.find({ _id: { $in: savedIds }, is_deleted: { $ne: true } }).lean();
+  res.json({ saved: listings.map(l => ({ id: l._id.toString(), title: l.title, price: l.price, image: l.images?.[0] || '' })) });
+}));
+
 router.post('/me/switch-role', requireAuth, catchAsync(async (req, res) => {
   const { role } = req.body;
   if (!role) {

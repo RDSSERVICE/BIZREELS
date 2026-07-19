@@ -66,6 +66,16 @@ router.post(
 );
 
 router.get(
+  '/quotes',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const Quote = require('../models/Quote');
+    const quotes = await Quote.find({ vendor: req.user._id }).sort({ createdAt: -1 }).lean();
+    return ApiResponse.ok(res, 'Quotations retrieved successfully.', { quotes: quotes.map(q => ({ id: q._id.toString(), requirement_id: q.requirement, price: q.price, status: q.status, notes: q.notes, created_at: q.createdAt })) });
+  })
+);
+
+router.get(
   '/:id/quotes',
   authenticate,
   requirementValidation.idParam,
