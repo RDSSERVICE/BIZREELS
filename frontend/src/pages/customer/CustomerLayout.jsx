@@ -229,11 +229,21 @@ export default function CustomerLayout() {
                     {section.items.map((item) => {
                       const isActive = location.pathname.startsWith(item.path);
                       const Icon = item.icon;
+
+                      const handleClick = (e) => {
+                        onItemClick?.();
+                        if (item.path.startsWith('/vendor/')) {
+                          handleRoleSwitch('vendor');
+                        } else if (item.path.startsWith('/creator/')) {
+                          handleRoleSwitch('creator');
+                        }
+                      };
+
                       return (
                         <Link
                           key={item.path}
                           to={item.path}
-                          onClick={onItemClick}
+                          onClick={handleClick}
                           className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 mb-0.5 ${
                             isActive
                               ? 'bg-brand-purple text-white shadow-premium'

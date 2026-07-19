@@ -53,10 +53,19 @@ export default function BecomeVendorPage() {
       });
 
       const roleRes = await addRoleApi({ role: 'vendor' }).unwrap();
-      dispatch(setCredentials({ user: roleRes.user || roleRes.data?.user }));
+      const updatedUser = roleRes.user || roleRes.data?.user || roleRes;
 
+      try {
+        await fetch('/api/v1/users/me/switch-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'vendor' })
+        });
+      } catch (e) {}
+
+      dispatch(setCredentials({ user: { ...updatedUser, current_role: 'vendor', activeRole: 'vendor' } }));
       toast.success('Congratulations! Your Vendor Account is active now!');
-      navigate('/vendor/dashboard');
+      navigate('/vendor/dashboard', { replace: true });
     } catch (err) {
       toast.error('Failed to register vendor profile');
     } finally {

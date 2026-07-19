@@ -74,10 +74,19 @@ export default function BecomeCreatorPage() {
       });
 
       const roleRes = await addRoleApi({ role: 'creator' }).unwrap();
-      dispatch(setCredentials({ user: roleRes.user || roleRes.data?.user }));
+      const updatedUser = roleRes.user || roleRes.data?.user || roleRes;
 
+      try {
+        await fetch('/api/v1/users/me/switch-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'creator' })
+        });
+      } catch (e) {}
+
+      dispatch(setCredentials({ user: { ...updatedUser, current_role: 'creator', activeRole: 'creator' } }));
       toast.success('Congratulations! Your Creator Profile is active!');
-      navigate('/creator/dashboard');
+      navigate('/creator/dashboard', { replace: true });
     } catch (err) {
       toast.error('Failed to register creator profile');
     } finally {

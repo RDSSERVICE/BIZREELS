@@ -35,6 +35,7 @@ export const PrivateRoute = ({ children }) => {
 export const RoleRoute = ({ children, allowedRoles = [] }) => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const activeRole = useSelector(selectActiveRole);
+  const user = useSelector(selectCurrentUser);
   const isLoading = useSelector(selectAuthLoading);
 
   if (isLoading) {
@@ -45,16 +46,21 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/auth/login" replace />;
   }
 
-  if (activeRole === 'admin') {
+  const userRoles = user?.roles || [];
+  if (userRoles.includes('admin') || activeRole === 'admin') {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  if (!allowedRoles.includes(activeRole)) {
-    // Redirect vendors/creators to unified dashboard, customers to feed
-    if (activeRole === 'vendor' || activeRole === 'creator') {
-      return <Navigate to="/dashboard" replace />;
+  const hasAllowedRole = allowedRoles.some(r => r === activeRole || userRoles.includes(r));
+
+  if (!hasAllowedRole) {
+    if (userRoles.includes('vendor')) {
+      return <Navigate to="/vendor/dashboard" replace />;
     }
-    return <Navigate to="/feed" replace />;
+    if (userRoles.includes('creator')) {
+      return <Navigate to="/creator/dashboard" replace />;
+    }
+    return <Navigate to="/customer/home" replace />;
   }
 
   return children;
