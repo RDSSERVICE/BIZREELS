@@ -10,11 +10,6 @@ class SmsService {
     const formattedPhone = String(phone).replace(/\D/g, '');
     const provider = (config.sms.provider || 'mock').toLowerCase();
 
-    if (config.env === 'development' || provider === 'mock') {
-      logger.info(`[SMS MOCK OTP] 📲 Phone: +91${formattedPhone} | OTP Code: ${otp}`, { service: 'sms' });
-      return { success: true, provider: 'mock' };
-    }
-
     if (provider === 'msg91') {
       return this._sendViaMsg91(formattedPhone, otp);
     }
@@ -23,7 +18,8 @@ class SmsService {
       return this._sendViaExotel(formattedPhone, otp);
     }
 
-    logger.info(`[SMS DEV FALLBACK] 📲 Phone: +91${formattedPhone} | OTP: ${otp}`, { service: 'sms' });
+    // Default mock / dev mode logger
+    logger.info(`[SMS MOCK OTP] 📲 Phone: +91${formattedPhone} | OTP Code: ${otp}`, { service: 'sms' });
     return { success: true, provider: 'mock' };
   }
 
