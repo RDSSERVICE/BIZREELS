@@ -12,13 +12,19 @@ const requirementsApi = apiSlice.injectEndpoints({
         url: '/requirements',
         params,
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.data.map(({ _id }) => ({ type: 'Requirements', id: _id })),
-              { type: 'Requirements', id: 'LIST' },
-            ]
-          : [{ type: 'Requirements', id: 'LIST' }],
+      providesTags: (result) => {
+        const list = Array.isArray(result?.data?.requirements)
+          ? result.data.requirements
+          : Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result?.requirements)
+          ? result.requirements
+          : [];
+        return [
+          ...list.map((item) => ({ type: 'Requirements', id: item._id || item.id })),
+          { type: 'Requirements', id: 'LIST' },
+        ];
+      },
     }),
 
     // Get specific details
