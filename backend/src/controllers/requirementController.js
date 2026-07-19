@@ -1,4 +1,4 @@
-const requirementService = require('../services/requirementService');
+const requirementService = require('../services/requirement.service');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 

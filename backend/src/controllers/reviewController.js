@@ -1,4 +1,4 @@
-const reviewService = require('../services/reviewService');
+const reviewService = require('../services/review.service');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 

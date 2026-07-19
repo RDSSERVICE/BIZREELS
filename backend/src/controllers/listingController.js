@@ -1,4 +1,4 @@
-const listingService = require('../services/listingService');
+const listingService = require('../services/listing.service');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 

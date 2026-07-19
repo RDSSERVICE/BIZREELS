@@ -1,4 +1,4 @@
-const walletService = require('../services/walletService');
+const walletService = require('../services/wallet.service');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 

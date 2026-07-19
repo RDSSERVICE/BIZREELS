@@ -1,4 +1,4 @@
-const chatService = require('../services/chatService');
+const chatService = require('../services/chat.service');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 
