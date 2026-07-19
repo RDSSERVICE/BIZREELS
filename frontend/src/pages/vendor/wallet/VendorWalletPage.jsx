@@ -14,12 +14,20 @@ export default function VendorWalletPage() {
   const balance = walletData?.balance ?? walletData?.walletBalance ?? 0;
   const transactions = Array.isArray(txData?.transactions) ? txData.transactions : Array.isArray(txData?.data) ? txData.data : Array.isArray(txData?.items) ? txData.items : Array.isArray(txData) ? txData : [];
 
+  const totalCredits = transactions
+    .filter((tx) => tx.type === 'credit' || tx.type === 'deposit')
+    .reduce((acc, tx) => acc + (tx.amount || 0), 0);
+
+  const totalDebits = transactions
+    .filter((tx) => tx.type === 'debit' || tx.type === 'payment' || tx.type === 'purchase')
+    .reduce((acc, tx) => acc + (tx.amount || 0), 0);
+
   const handleRecharge = async () => {
     try {
       await rechargeWallet({ amount: 2000 }).unwrap();
       toast.success('Added ₹2,000 to vendor wallet!');
-    } catch {
-      toast.success('Added ₹2,000 to vendor wallet!');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to recharge wallet');
     }
   };
 
@@ -39,7 +47,7 @@ export default function VendorWalletPage() {
       label: 'Type',
       render: (val) => (
         <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-          val === 'credit' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-rose-500/20 text-rose-600'
+          val === 'credit' || val === 'deposit' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-rose-500/20 text-rose-600'
         }`}>
           {val || 'credit'}
         </span>
@@ -49,8 +57,8 @@ export default function VendorWalletPage() {
       key: 'amount',
       label: 'Amount (INR)',
       render: (val, row) => (
-        <span className={`font-black text-xs ${row.type === 'credit' ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {row.type === 'credit' ? '+' : '-'}₹{(val || 0).toLocaleString('en-IN')}
+        <span className={`font-black text-xs ${row.type === 'credit' || row.type === 'deposit' ? 'text-emerald-600' : 'text-rose-600'}`}>
+          {row.type === 'credit' || row.type === 'deposit' ? '+' : '-'}₹{(val || 0).toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -72,9 +80,9 @@ export default function VendorWalletPage() {
       </AdminPageHeader>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <AdminStatCard label="Available Balance" value={`₹${balance.toLocaleString()}`} icon={FiDollarSign} color="green" />
-        <AdminStatCard label="Total Credits" value="₹5,000" icon={FiArrowDownLeft} color="blue" />
-        <AdminStatCard label="Total Debits" value="₹1,499" icon={FiArrowUpRight} color="rose" />
+        <AdminStatCard label="Available Balance" value={`₹${balance.toLocaleString('en-IN')}`} icon={FiDollarSign} color="green" />
+        <AdminStatCard label="Total Credits" value={`₹${totalCredits.toLocaleString('en-IN')}`} icon={FiArrowDownLeft} color="blue" />
+        <AdminStatCard label="Total Debits" value={`₹${totalDebits.toLocaleString('en-IN')}`} icon={FiArrowUpRight} color="rose" />
       </div>
 
       <AdminDataTable

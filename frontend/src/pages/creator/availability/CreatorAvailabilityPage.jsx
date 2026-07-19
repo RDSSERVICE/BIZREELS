@@ -18,8 +18,8 @@ export default function CreatorAvailabilityPage() {
     try {
       await updateAvailability({ status: newStatus }).unwrap();
       toast.success(`Creator Availability updated to ${newStatus}`);
-    } catch {
-      toast.success(`Creator Availability updated to ${newStatus}`);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to update availability status');
     }
   };
 

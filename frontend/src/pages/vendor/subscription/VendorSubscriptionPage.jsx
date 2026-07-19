@@ -11,12 +11,12 @@ export default function VendorSubscriptionPage() {
 
   const planName = data?.plan || 'Vendor Growth Pro Plan';
 
-  const handleRenew = async () => {
+  const handleRenew = async (planKey = 'pro') => {
     try {
-      await changeSubscription({ plan: 'pro' }).unwrap();
-      toast.success('Plan renewed for another 12 months!');
-    } catch {
-      toast.success('Plan renewed for another 12 months!');
+      await changeSubscription({ plan: planKey }).unwrap();
+      toast.success(`Subscribed to ${planKey.toUpperCase()} plan!`);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to update subscription');
     }
   };
 
@@ -57,7 +57,7 @@ export default function VendorSubscriptionPage() {
               <li className="flex items-center gap-2"><FiCheck className="text-emerald-500" /> Direct WhatsApp Lead Connector</li>
             </ul>
             <button
-              onClick={() => toast.success('Upgraded to Pro Monthly!')}
+              onClick={() => handleRenew('premium')}
               className="w-full py-2.5 glass border border-border text-text-primary font-bold text-xs rounded-xl hover:bg-brand-purple/10 hover:text-brand-purple transition"
             >
               Switch to Monthly
@@ -74,7 +74,7 @@ export default function VendorSubscriptionPage() {
               <li className="flex items-center gap-2"><FiCheck className="text-emerald-500" /> Dedicated Account Manager & AI Ad Credits</li>
             </ul>
             <button
-              onClick={() => toast.success('Upgraded to Enterprise Annual!')}
+              onClick={() => handleRenew('business')}
               className="w-full py-2.5 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition"
             >
               Upgrade Annual (Save 20%)

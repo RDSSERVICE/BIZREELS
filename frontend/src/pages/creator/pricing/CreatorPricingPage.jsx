@@ -29,8 +29,8 @@ export default function CreatorPricingPage() {
     try {
       await updatePricing({ reel1, reel3, reel10, hourlyRate, dayRate }).unwrap();
       toast.success('Creator pricing rates updated!');
-    } catch {
-      toast.success('Creator pricing rates updated!');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to update pricing rates');
     }
   };
 

@@ -14,12 +14,16 @@ export default function CreatorWalletPage() {
   const balance = walletData?.balance ?? walletData?.walletBalance ?? 0;
   const payouts = Array.isArray(txData?.data) ? txData.data : Array.isArray(txData?.transactions) ? txData.transactions : Array.isArray(txData) ? txData : [];
 
+  const pendingAmount = payouts
+    .filter((p) => p.status === 'pending')
+    .reduce((acc, p) => acc + (p.amount || 0), 0);
+
   const handleWithdraw = async () => {
     try {
       await requestPayout({ amount: balance }).unwrap();
-      toast.success(`Payout withdrawal request for ₹${balance.toLocaleString()} submitted to bank UPI!`);
-    } catch {
-      toast.success(`Payout withdrawal request for ₹${balance.toLocaleString()} submitted to bank UPI!`);
+      toast.success(`Payout withdrawal request for ₹${balance.toLocaleString('en-IN')} submitted!`);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to submit withdrawal request');
     }
   };
 
@@ -70,9 +74,9 @@ export default function CreatorWalletPage() {
       </AdminPageHeader>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <AdminStatCard label="Total Earnings" value={`₹${balance.toLocaleString()}`} icon={FiDollarSign} color="green" />
+        <AdminStatCard label="Total Earnings" value={`₹${balance.toLocaleString('en-IN')}`} icon={FiDollarSign} color="green" />
         <AdminStatCard label="Completed Projects" value={String(payouts.length)} icon={FiArrowDownLeft} color="purple" />
-        <AdminStatCard label="Pending Payouts" value="₹0" icon={FiArrowUpRight} color="amber" />
+        <AdminStatCard label="Pending Payouts" value={`₹${pendingAmount.toLocaleString('en-IN')}`} icon={FiArrowUpRight} color="amber" />
       </div>
 
       <AdminDataTable
