@@ -45,6 +45,10 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/auth/login" replace />;
   }
 
+  if (activeRole === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
   if (!allowedRoles.includes(activeRole)) {
     // Redirect vendors/creators to unified dashboard, customers to feed
     if (activeRole === 'vendor' || activeRole === 'creator') {

@@ -19,6 +19,10 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
 
+    // Sanitize & ensure admin seed on boot
+    const adminPhoneService = require('./services/admin-phone.service');
+    await adminPhoneService.ensureAdminSeed();
+
     // Init Socket.io connections
     initSockets(server);
 

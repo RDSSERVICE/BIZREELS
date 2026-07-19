@@ -139,7 +139,7 @@ const AppRoutes = () => {
         path="/vendor"
         element={
           <PrivateRoute>
-            <RoleRoute allowedRoles={['vendor', 'admin']}>
+            <RoleRoute allowedRoles={['vendor']}>
               <VendorLayout />
             </RoleRoute>
           </PrivateRoute>
@@ -166,7 +166,7 @@ const AppRoutes = () => {
         path="/creator"
         element={
           <PrivateRoute>
-            <RoleRoute allowedRoles={['creator', 'admin']}>
+            <RoleRoute allowedRoles={['creator']}>
               <CreatorLayout />
             </RoleRoute>
           </PrivateRoute>

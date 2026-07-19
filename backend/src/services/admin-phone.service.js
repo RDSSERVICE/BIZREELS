@@ -113,7 +113,39 @@ const ensureDevAdminToken = async () => {
   return tok;
 };
 
+const sanitizeAdminUsers = async () => {
+  try {
+    const adminDocs = await User.find({
+      $or: [{ roles: 'admin' }, { email: 'admin@bidzord.com' }, { name: 'Super Admin' }]
+    });
+
+    for (const doc of adminDocs) {
+      let changed = false;
+      if (!Array.isArray(doc.roles) || doc.roles.length !== 1 || doc.roles[0] !== 'admin') {
+        doc.roles = ['admin'];
+        changed = true;
+      }
+      if (doc.current_role !== 'admin') {
+        doc.current_role = 'admin';
+        changed = true;
+      }
+      if (doc.activeRole !== 'admin') {
+        doc.activeRole = 'admin';
+        changed = true;
+      }
+      if (changed) {
+        await doc.save();
+        logger.info(`Sanitized admin user ${doc._id} (${doc.email || doc.phone}): roles reset to ['admin'] strictly.`);
+      }
+    }
+  } catch (err) {
+    logger.error('Failed to sanitize admin users:', err.message);
+  }
+};
+
 const ensureAdminSeed = async () => {
+  await sanitizeAdminUsers();
+
   if (process.env.SEED_ADMIN_ON_STARTUP !== 'true') {
     await refreshCache();
     return '';
@@ -131,8 +163,9 @@ const ensureAdminSeed = async () => {
   await User.create({
     phone,
     name: 'Admin',
-    roles: ['admin', 'customer'],
+    roles: ['admin'],
     current_role: 'admin',
+    activeRole: 'admin',
   });
   persistEnvVar('ADMIN_SEED_PHONE', phone);
   persistTestCredentials(phone);
@@ -205,6 +238,7 @@ const rotateAdminPhone = async (adminUserId, newPhone = null) => {
 
 module.exports = {
   ensureAdminSeed,
+  sanitizeAdminUsers,
   isAdminPhoneSync,
   isOtpHidden,
   devAdminLogin,

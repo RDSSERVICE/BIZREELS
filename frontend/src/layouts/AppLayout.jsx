@@ -216,7 +216,7 @@ const AppLayout = () => {
                           Switch Role
                         </p>
                         <div className="flex flex-col gap-1">
-                          {['customer', 'vendor', 'creator', ...(user.roles.includes('admin') ? ['admin'] : [])].map((r) => {
+                          {['customer', 'vendor', 'creator'].map((r) => {
                             const hasRole = user.roles.includes(r);
                             return (
                               <button

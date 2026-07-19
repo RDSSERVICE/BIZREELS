@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,6 +27,12 @@ export default function CustomerLayout() {
   const profileUser = profileData?.data?.user || profileData?.user || user || {};
   const roles = profileUser.roles || ['customer'];
   const currentRole = profileUser.current_role || profileUser.activeRole || 'customer';
+
+  useEffect(() => {
+    if (roles.includes('admin') || currentRole === 'admin') {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [roles, currentRole, navigate]);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
@@ -389,16 +395,6 @@ export default function CustomerLayout() {
                     </div>
                     {currentRole === 'creator' && <FiCheck className="text-emerald-500" size={14} />}
                   </button>
-
-                  {roles.includes('admin') && (
-                    <button
-                      onClick={() => handleRoleSwitch('admin')}
-                      className="w-full px-4 py-2 text-left text-xs font-bold text-amber-500 hover:bg-amber-500/10 flex items-center justify-between"
-                    >
-                      <span>Admin Panel</span>
-                      {currentRole === 'admin' && <FiCheck className="text-amber-500" size={14} />}
-                    </button>
-                  )}
                 </div>
               )}
             </div>

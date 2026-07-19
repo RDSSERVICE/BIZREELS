@@ -433,6 +433,10 @@ class AuthService {
       throw ApiError.notFound('User not found.');
     }
 
+    if (user.roles.includes('admin') && newRole !== 'admin') {
+      throw ApiError.forbidden('Admin accounts cannot switch to non-admin roles.');
+    }
+
     if (!user.roles.includes(newRole)) {
       throw ApiError.badRequest(`You do not have the "${newRole}" role. Please activate it first.`);
     }

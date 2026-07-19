@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
   has_received_first_topup_bonus: { type: Boolean, default: false },
   fcm_tokens: { type: [mongoose.Schema.Types.Mixed], default: [] },
   // Phase 5
-  referral_code: { type: String, sparse: true, unique: true, default: null },
+  referral_code: { type: String, sparse: true, unique: true, default: undefined },
   avg_response_time_seconds: { type: Number, default: null },
   chat_response_rate: { type: Number, default: 0 },
   total_conversations_responded: { type: Number, default: 0 },

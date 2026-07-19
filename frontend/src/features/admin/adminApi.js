@@ -370,7 +370,7 @@ export const {
   useUpdateAdminProfileMutation,
   useChangeAdminPasswordMutation,
   useGetCategoriesQuery,
-  useGetCategoriesQuery: useListCategoriesQuery,
+  useListCategoriesQuery,
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
 } = adminApi;

@@ -12,6 +12,9 @@ const addRole = async (userId, role) => {
   if (!validRoles.includes(role)) throw ApiError.badRequest('Invalid role');
   const user = await User.findById(userId);
   if (!user) throw ApiError.notFound('User not found');
+  if (user.roles.includes('admin')) {
+    throw ApiError.forbidden('Admin accounts cannot add user roles');
+  }
   if (!user.roles.includes(role)) {
     user.roles.push(role);
   }
@@ -24,6 +27,9 @@ const addRole = async (userId, role) => {
 const switchRole = async (userId, role) => {
   const user = await User.findById(userId);
   if (!user) throw ApiError.notFound('User not found');
+  if (user.roles.includes('admin') && role !== 'admin') {
+    throw ApiError.forbidden('Admin accounts cannot switch to non-admin roles');
+  }
   if (!user.roles.includes(role)) throw ApiError.badRequest(`You don't have the ${role} role`);
   user.current_role = role;
   user.activeRole = role;

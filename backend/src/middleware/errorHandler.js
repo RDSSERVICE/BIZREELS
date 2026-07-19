@@ -37,6 +37,11 @@ const errorHandler = (err, req, res, next) => {
     error = ApiError.unauthorized('Token expired. Please log in again.');
   }
 
+  // ── Mongoose / MongoDB Network & Timeout Errors ────────
+  if (err.name === 'MongoNetworkTimeoutError' || err.name === 'MongoNetworkError' || err.name === 'MongoServerSelectionError') {
+    error = ApiError.serviceUnavailable('Database service temporarily unavailable or timed out. Please try again.');
+  }
+
   // ── Determine status code ──────────────────────────────
   const statusCode = error.statusCode || 500;
   const isOperational = error.isOperational !== undefined ? error.isOperational : false;
