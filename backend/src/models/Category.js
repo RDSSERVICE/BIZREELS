@@ -6,6 +6,7 @@ const categorySchema = new mongoose.Schema({
   icon_url: { type: String, default: null },
   image: { type: String, default: null },
   description: { type: String, default: null },
+  category_type: { type: String, enum: ['product', 'service', null], default: null, index: true },
   parent_id: { type: String, default: null, index: true },
   sort_order: { type: Number, default: 0 },
   is_active: { type: Boolean, default: true },

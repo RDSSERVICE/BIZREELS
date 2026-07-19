@@ -55,6 +55,9 @@ import CreatorPricingPage from '../pages/creator/pricing/CreatorPricingPage';
 import CreatorAvailabilityPage from '../pages/creator/availability/CreatorAvailabilityPage';
 import CreatorSubscriptionPage from '../pages/creator/subscription/CreatorSubscriptionPage';
 import CreatorWalletPage from '../pages/creator/wallet/CreatorWalletPage';
+import CreatorOrdersPage from '../pages/creator/orders/CreatorOrdersPage';
+import CreatorReviewsPage from '../pages/creator/reviews/CreatorReviewsPage';
+import CreatorAnalyticsPage from '../pages/creator/analytics/CreatorAnalyticsPage';
 
 // Admin Pages
 import AdminLogin from '../pages/admin/AdminLogin';
@@ -179,6 +182,9 @@ const AppRoutes = () => {
         <Route path="availability" element={<CreatorAvailabilityPage />} />
         <Route path="subscription" element={<CreatorSubscriptionPage />} />
         <Route path="wallet" element={<CreatorWalletPage />} />
+        <Route path="orders" element={<CreatorOrdersPage />} />
+        <Route path="reviews" element={<CreatorReviewsPage />} />
+        <Route path="analytics" element={<CreatorAnalyticsPage />} />
         <Route path="" element={<Navigate to="dashboard" replace />} />
       </Route>
 

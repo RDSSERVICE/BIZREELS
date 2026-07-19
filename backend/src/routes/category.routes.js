@@ -15,14 +15,16 @@ const requireAdmin = (req, res, next) => {
 };
 
 router.get('/', catchAsync(async (req, res) => {
-  const parentId = req.query.parent_id || null;
+  const parent_id = req.query.parent_id || null;
   const topLevel = req.query.top_level === 'true';
   const tree = req.query.tree === 'true';
+  const category_type = req.query.category_type || null;
 
   const items = await categoryService.listCategories({
-    parentId,
-    onlyTopLevel: topLevel,
-    asTree: tree,
+    parent_id,
+    only_top_level: topLevel,
+    as_tree: tree,
+    category_type,
   });
   res.json({ items });
 }));
@@ -36,15 +38,11 @@ router.get('/:slug', catchAsync(async (req, res) => {
 }));
 
 router.post('/', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { name, parent_id, icon_url } = req.body;
+  const { name, parent_id, icon_url, category_type } = req.body;
   if (!name) {
     throw ApiError.badRequest('name is required');
   }
-  const result = await categoryService.createCategory({
-    name,
-    parentId: parent_id,
-    iconUrl: icon_url,
-  });
+  const result = await categoryService.createCategory(name, parent_id || null, icon_url || null, category_type || null);
   res.json(result);
 }));
 

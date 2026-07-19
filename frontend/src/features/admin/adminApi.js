@@ -165,13 +165,17 @@ const adminApi = apiSlice.injectEndpoints({
       invalidatesTags: ['AppSettings'],
     }),
 
-    // ---- Admin Profile & Password ----
+    // ---- Admin Profile & Password & Security Logs ----
     updateAdminProfile: builder.mutation({
       query: (body) => ({ url: '/admin/me/profile', method: 'PATCH', body }),
       invalidatesTags: ['User'],
     }),
     changeAdminPassword: builder.mutation({
       query: (body) => ({ url: '/admin/me/password', method: 'POST', body }),
+    }),
+    getAdminSecurityLogs: builder.query({
+      query: () => '/admin/security/logs',
+      providesTags: ['AdminSecurityLogs'],
     }),
 
     // ---- Notifications Broadcast ----
@@ -305,6 +309,40 @@ const adminApi = apiSlice.injectEndpoints({
       query: (id) => ({ url: `/categories/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Categories'],
     }),
+
+    // ---- Subscription Plans (Admin CRUD) ----
+    listSubscriptionPlans: builder.query({
+      query: () => '/admin/subscription/plans',
+      providesTags: ['SubscriptionPlans'],
+    }),
+    createSubscriptionPlan: builder.mutation({
+      query: (body) => ({ url: '/admin/subscription/plans', method: 'POST', body }),
+      invalidatesTags: ['SubscriptionPlans'],
+    }),
+    updateSubscriptionPlan: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/admin/subscription/plans/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['SubscriptionPlans'],
+    }),
+    deleteSubscriptionPlan: builder.mutation({
+      query: (id) => ({ url: `/admin/subscription/plans/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['SubscriptionPlans'],
+    }),
+
+    // ---- Financial Reports (Real Aggregation) ----
+    getFinancialReport: builder.query({
+      query: (params = {}) => ({ url: '/admin/reports/financial', params }),
+      providesTags: ['FinancialReports'],
+    }),
+
+    // ---- Location Radius Settings ----
+    getLocationRadius: builder.query({
+      query: () => '/admin/locations/radius',
+      providesTags: ['LocationRadius'],
+    }),
+    updateLocationRadius: builder.mutation({
+      query: (body) => ({ url: '/admin/locations/radius', method: 'PATCH', body }),
+      invalidatesTags: ['LocationRadius'],
+    }),
   }),
 });
 
@@ -373,6 +411,13 @@ export const {
   useListCategoriesQuery,
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
+  useListSubscriptionPlansQuery,
+  useCreateSubscriptionPlanMutation,
+  useUpdateSubscriptionPlanMutation,
+  useDeleteSubscriptionPlanMutation,
+  useGetFinancialReportQuery,
+  useGetLocationRadiusQuery,
+  useUpdateLocationRadiusMutation,
 } = adminApi;
 
 

@@ -3,7 +3,9 @@ import { FiPieChart, FiDownload, FiDollarSign, FiCreditCard, FiZap, FiUserCheck,
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
+import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import API_CONFIG from '../../../config';
+import { useGetFinancialReportQuery, useListAdminTransactionsQuery } from '../../../features/admin/adminApi';
 
 const TABS = [
   { key: 'gst', label: 'GST Report (Tax)', icon: FiPieChart },
@@ -16,7 +18,18 @@ const TABS = [
 
 export default function AdminFinancialReportsPage() {
   const [activeTab, setActiveTab] = useState('gst');
-  const [period, setPeriod] = useState('monthly'); // 'daily' | 'monthly' | 'yearly'
+  const [period, setPeriod] = useState('monthly');
+
+  const { data: reportData, isFetching } = useGetFinancialReportQuery(
+    { report_type: activeTab, period },
+    { pollingInterval: 10000 }
+  );
+  const { data: txData } = useListAdminTransactionsQuery({ limit: 20 }, { pollingInterval: 10000 });
+
+  const summary = reportData?.summary || {};
+  const transactions = txData?.items || [];
+
+  const fmtCurrency = (paise) => `₹${((paise || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
   const handleExportCsv = () => {
     const url = `${API_CONFIG.BASE_URL}/admin/transactions.csv`;
@@ -33,7 +46,7 @@ export default function AdminFinancialReportsPage() {
       <AdminPageHeader
         icon={FiPieChart}
         title="Financial Reports & Analytics"
-        subtitle="Download GST tax statements, Subscription revenue, Wallet topup reports, Boost revenues, Creator & Vendor earnings (Daily/Monthly/Yearly) in CSV or PDF"
+        subtitle="Real-time financial data — GST, Subscription, Wallet, Boost, Vendor & Creator earnings with export"
       >
         <div className="flex gap-2">
           <button
@@ -73,64 +86,117 @@ export default function AdminFinancialReportsPage() {
 
       <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass p-5 rounded-2xl border border-white/50">
-          <span className="text-[10px] font-bold text-text-tertiary uppercase block">Gross Sales (GMV)</span>
-          <span className="text-2xl font-black text-text-primary mt-1 font-display block">₹12,45,800</span>
-          <span className="text-[10px] text-emerald-500 font-bold mt-1 inline-block">↑ 14% vs last period</span>
+      {/* Financial Overview Cards — Real Data */}
+      {isFetching && !reportData ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 skeleton rounded-2xl" />
+          ))}
         </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <AdminStatCard
+            label="Gross Sales (GMV)"
+            value={fmtCurrency(summary.gross_revenue_paise)}
+            icon={FiDollarSign}
+            color="green"
+          />
+          <AdminStatCard
+            label="Net Platform Earnings"
+            value={fmtCurrency(summary.net_revenue_paise)}
+            icon={FiDollarSign}
+            color="emerald"
+          />
+          <AdminStatCard
+            label="GST Collected (18%)"
+            value={fmtCurrency(summary.gst_collected_paise)}
+            icon={FiPieChart}
+            color="purple"
+          />
+          <AdminStatCard
+            label="Total Transactions"
+            value={String(summary.total_transactions || 0)}
+            icon={FiCreditCard}
+            color="blue"
+          />
+        </div>
+      )}
 
-        <div className="glass p-5 rounded-2xl border border-white/50">
-          <span className="text-[10px] font-bold text-text-tertiary uppercase block">Net Platform Earnings</span>
-          <span className="text-2xl font-black text-emerald-600 mt-1 font-display block">₹1,36,700</span>
-          <span className="text-[10px] text-emerald-500 font-bold mt-1 inline-block">Commissions + Subscriptions</span>
-        </div>
-
-        <div className="glass p-5 rounded-2xl border border-white/50">
-          <span className="text-[10px] font-bold text-text-tertiary uppercase block">Output GST Collected (18%)</span>
-          <span className="text-2xl font-black text-brand-purple mt-1 font-display block">₹24,606</span>
-          <span className="text-[10px] text-text-tertiary mt-1 inline-block">Ready for GSTR-3B filing</span>
-        </div>
-
-        <div className="glass p-5 rounded-2xl border border-white/50">
-          <span className="text-[10px] font-bold text-text-tertiary uppercase block">Total Creator Payouts</span>
-          <span className="text-2xl font-black text-brand-pink mt-1 font-display block">₹42,300</span>
-          <span className="text-[10px] text-text-tertiary mt-1 inline-block">Paid to creators</span>
-        </div>
+      {/* Additional Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <AdminStatCard
+          label="Subscribed Vendors"
+          value={String(summary.subscribed_vendors || 0)}
+          icon={FiUserCheck}
+          color="amber"
+        />
+        <AdminStatCard
+          label="Total Vendors"
+          value={String(summary.total_vendors || 0)}
+          icon={FiUserCheck}
+          color="orange"
+        />
+        <AdminStatCard
+          label="Total Creators"
+          value={String(summary.total_creators || 0)}
+          icon={FiFilm}
+          color="pink"
+        />
       </div>
 
-      {/* Main Report Table Container */}
+      {/* Recent Transactions Table */}
       <div className="glass p-6 rounded-2xl border border-white/50 space-y-4">
         <h4 className="text-sm font-bold text-text-primary font-display capitalize">
-          {period} {activeTab.toUpperCase()} Breakdown Report
+          Recent {activeTab.toUpperCase()} Transactions ({period})
         </h4>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border text-[10px] font-bold text-text-tertiary uppercase">
-                <th className="py-2 text-left">Date / Period</th>
-                <th className="py-2 text-left">Transactions</th>
-                <th className="py-2 text-right">Gross Amount</th>
-                <th className="py-2 text-right">GST (18%)</th>
-                <th className="py-2 text-right">Net Revenue</th>
+                <th className="py-2 text-left">Date</th>
+                <th className="py-2 text-left">Type</th>
+                <th className="py-2 text-left">User</th>
+                <th className="py-2 text-right">Amount</th>
+                <th className="py-2 text-left">Status</th>
+                <th className="py-2 text-left">Provider</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
-              <tr className="hover:bg-brand-purple/5">
-                <td className="py-3 font-bold text-text-primary">2026-07-18 (Today)</td>
-                <td className="py-3 text-text-secondary">42 txs</td>
-                <td className="py-3 text-right font-bold text-text-primary">₹34,500</td>
-                <td className="py-3 text-right text-brand-purple font-semibold">₹6,210</td>
-                <td className="py-3 text-right font-black text-emerald-600">₹28,290</td>
-              </tr>
-              <tr className="hover:bg-brand-purple/5">
-                <td className="py-3 font-bold text-text-primary">2026-07-17 (Yesterday)</td>
-                <td className="py-3 text-text-secondary">58 txs</td>
-                <td className="py-3 text-right font-bold text-text-primary">₹48,200</td>
-                <td className="py-3 text-right text-brand-purple font-semibold">₹8,676</td>
-                <td className="py-3 text-right font-black text-emerald-600">₹39,524</td>
-              </tr>
+              {transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-text-tertiary">
+                    No transactions found for this period.
+                  </td>
+                </tr>
+              ) : (
+                transactions.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-brand-purple/5">
+                    <td className="py-3 font-bold text-text-primary">
+                      {tx.created_at ? new Date(tx.created_at).toLocaleDateString('en-IN') : '—'}
+                    </td>
+                    <td className="py-3">
+                      <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${
+                        tx.kind === 'payment' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-brand-purple/10 text-brand-purple'
+                      }`}>
+                        {tx.kind}
+                      </span>
+                    </td>
+                    <td className="py-3 text-text-secondary font-mono text-[10px]">{tx.user_id?.slice(0, 8)}...</td>
+                    <td className="py-3 text-right font-black text-text-primary">
+                      {tx.currency === 'CREDITS' ? `${(tx.amount_paise / 100).toFixed(0)} CR` : `₹${(tx.amount_paise / 100).toFixed(0)}`}
+                    </td>
+                    <td className="py-3">
+                      <span className={`text-xs font-bold ${
+                        tx.status === 'captured' || tx.status === 'posted' ? 'text-emerald-500' :
+                        tx.status === 'failed' ? 'text-red-500' : 'text-amber-500'
+                      }`}>
+                        {tx.status}
+                      </span>
+                    </td>
+                    <td className="py-3 text-text-tertiary">{tx.provider || '—'}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -64,6 +64,7 @@ const serializeCategory = (cat) => {
     name: d.name,
     slug: d.slug,
     icon_url: d.icon_url,
+    category_type: d.category_type || null,
     parent_id: d.parent_id ? d.parent_id.toString() : null,
     sort_order: d.sort_order || 0,
     is_active: d.is_active !== false,
@@ -101,12 +102,15 @@ const seedCategories = async () => {
   logger.info(`Seeded ${SEED_TREE.length} category groups`);
 };
 
-const listCategories = async ({ parent_id = null, only_top_level = false, as_tree = false } = {}) => {
+const listCategories = async ({ parent_id = null, only_top_level = false, as_tree = false, category_type = null } = {}) => {
   const q = { is_deleted: { $ne: true }, is_active: true };
   if (only_top_level) {
     q.parent_id = null;
   } else if (parent_id) {
     q.parent_id = parent_id;
+  }
+  if (category_type) {
+    q.category_type = category_type;
   }
   const docs = await Category.find(q).sort({ sort_order: 1, name: 1 });
   const serialized = docs.map(serializeCategory);
@@ -148,7 +152,7 @@ const getById = async (cid) => {
   return doc ? serializeCategory(doc) : null;
 };
 
-const createCategory = async (name, parent_id = null, icon_url = null) => {
+const createCategory = async (name, parent_id = null, icon_url = null, category_type = null) => {
   const slugBase = slugify(name, { lower: true });
   let slug = slugBase;
   let i = 1;
@@ -156,11 +160,18 @@ const createCategory = async (name, parent_id = null, icon_url = null) => {
     i++;
     slug = `${slugBase}-${i}`;
   }
+  // If adding subcategory, inherit parent's category_type
+  let resolvedType = category_type;
+  if (parent_id && !resolvedType) {
+    const parent = await Category.findById(parent_id);
+    if (parent) resolvedType = parent.category_type;
+  }
   const doc = await Category.create({
     name: name.trim(),
     slug,
     icon_url,
     parent_id,
+    category_type: resolvedType,
   });
   return serializeCategory(doc);
 };

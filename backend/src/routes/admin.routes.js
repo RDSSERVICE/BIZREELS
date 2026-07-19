@@ -849,4 +849,111 @@ router.get('/audit-log', requireAuth, requireAdmin, catchAsync(async (req, res) 
 }));
 
 
+// ============================================================ SUBSCRIPTION PLANS
+router.get('/subscription/plans', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { SubscriptionPlan } = require('../models/Admin');
+  const plans = await SubscriptionPlan.find({ is_deleted: { $ne: true } }).sort({ price_inr: 1 });
+  res.json({
+    items: plans.map(p => ({
+      id: p._id.toString(),
+      title: p.title,
+      description: p.description,
+      billing_cycle: p.billing_cycle,
+      price_inr: p.price_inr,
+      features: p.features,
+      target_role: p.target_role,
+      max_listings: p.max_listings,
+      priority_ranking: p.priority_ranking,
+      verified_badge: p.verified_badge,
+      is_active: p.is_active,
+      created_at: p.created_at,
+    })),
+  });
+}));
+
+router.post('/subscription/plans', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { SubscriptionPlan } = require('../models/Admin');
+  const plan = await SubscriptionPlan.create(req.body);
+  res.json({ ok: true, plan });
+}));
+
+router.patch('/subscription/plans/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { SubscriptionPlan } = require('../models/Admin');
+  const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+  if (!plan) throw ApiError.notFound('Plan not found');
+  res.json({ ok: true, plan });
+}));
+
+router.delete('/subscription/plans/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { SubscriptionPlan } = require('../models/Admin');
+  await SubscriptionPlan.updateOne({ _id: req.params.id }, { $set: { is_deleted: true } });
+  res.json({ ok: true });
+}));
+
+// ============================================================ FINANCIAL REPORTS AGGREGATION
+router.get('/reports/financial', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { period = 'monthly', report_type = 'gst' } = req.query;
+
+  // Aggregate real data from transactions
+  const User = require('../models/User');
+  const Listing = require('../models/Listing');
+
+  const totalVendors = await User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true } });
+  const totalCreators = await User.countDocuments({ roles: 'creator', is_deleted: { $ne: true } });
+  const subscribedVendors = await User.countDocuments({ roles: 'vendor', is_subscribed_verified: true, is_deleted: { $ne: true } });
+
+  // Aggregate wallet transactions for revenue
+  const { WalletTransaction, PaymentTransaction } = require('../models/Phase4');
+
+  const paymentAgg = await PaymentTransaction.aggregate([
+    { $match: { status: { $ne: 'failed' }, is_deleted: { $ne: true } } },
+    { $group: { _id: null, total_paise: { $sum: '$amount_paise' }, count: { $sum: 1 } } },
+  ]);
+
+  const walletAgg = await WalletTransaction.aggregate([
+    { $match: { is_deleted: { $ne: true } } },
+    { $group: { _id: '$bucket', total: { $sum: { $toInt: { $ifNull: ['$amount', 0] } } }, count: { $sum: 1 } } },
+  ]);
+
+  const totalPayments = paymentAgg[0] || { total_paise: 0, count: 0 };
+  const walletByBucket = {};
+  for (const w of walletAgg) {
+    walletByBucket[w._id || 'other'] = { total: w.total, count: w.count };
+  }
+
+  const grossRevenuePaise = totalPayments.total_paise || 0;
+  const gstAmount = Math.round(grossRevenuePaise * 0.18);
+  const netRevenue = grossRevenuePaise - gstAmount;
+
+  res.json({
+    period,
+    report_type,
+    summary: {
+      gross_revenue_paise: grossRevenuePaise,
+      gst_collected_paise: gstAmount,
+      net_revenue_paise: netRevenue,
+      total_transactions: totalPayments.count,
+      subscribed_vendors: subscribedVendors,
+      total_vendors: totalVendors,
+      total_creators: totalCreators,
+      wallet_buckets: walletByBucket,
+    },
+  });
+}));
+
+// ============================================================ LOCATION RADIUS SETTINGS
+router.get('/locations/radius', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { AppSettings } = require('../models/Admin');
+  const setting = await AppSettings.findOne({ key: 'discovery_radius_km' });
+  res.json({ radius_km: setting?.value || 25 });
+}));
+
+router.patch('/locations/radius', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { AppSettings } = require('../models/Admin');
+  const { radius_km } = req.body;
+  if (!radius_km || radius_km < 1 || radius_km > 500) throw ApiError.badRequest('radius_km must be between 1 and 500');
+  await AppSettings.updateOne({ key: 'discovery_radius_km' }, { $set: { value: radius_km } }, { upsert: true });
+  res.json({ ok: true, radius_km });
+}));
+
 module.exports = router;

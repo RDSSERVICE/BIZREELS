@@ -133,6 +133,7 @@ module.exports = {
   Wallet: registerOrReuse('Wallet', walletSchema, 'wallets'),
   WalletTransaction: registerOrReuse('WalletTransaction', walletTxnSchema, 'wallet_transactions'),
   Payment: registerOrReuse('Payment', paymentSchema, 'payments'),
+  PaymentTransaction: registerOrReuse('Payment', paymentSchema, 'payments'),
   Subscription: registerOrReuse('Subscription', subscriptionSchema, 'subscriptions'),
   KycDocument: registerOrReuse('KycDocument', kycDocSchema, 'kyc_documents'),
 };

@@ -97,6 +97,26 @@ locationSchema.index({ type: 1, parent_id: 1 });
 locationSchema.index({ name: 1, type: 1 });
 
 // ══════════════════════════════════════════════════════════════
+// Subscription Plan — admin-managed subscription tiers
+// ══════════════════════════════════════════════════════════════
+const subscriptionPlanSchema = new mongoose.Schema({
+  title: { type: String, required: true, trim: true },
+  description: { type: String, default: null },
+  billing_cycle: { type: String, enum: ['monthly', 'yearly'], required: true },
+  price_inr: { type: Number, required: true },
+  features: { type: String, default: '' },
+  target_role: { type: String, enum: ['vendor', 'creator', 'all'], default: 'vendor' },
+  max_listings: { type: Number, default: null },
+  priority_ranking: { type: Boolean, default: false },
+  verified_badge: { type: Boolean, default: true },
+  is_active: { type: Boolean, default: true },
+  is_deleted: { type: Boolean, default: false },
+}, {
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+});
+
+
+// ══════════════════════════════════════════════════════════════
 // App Settings — global application configuration
 // ══════════════════════════════════════════════════════════════
 const appSettingsSchema = new mongoose.Schema({
@@ -122,4 +142,5 @@ module.exports = {
   Coupon: registerOrReuse('Coupon', couponSchema, 'coupons'),
   Location: registerOrReuse('Location', locationSchema, 'locations'),
   AppSettings: registerOrReuse('AppSettings', appSettingsSchema, 'app_settings'),
+  SubscriptionPlan: registerOrReuse('SubscriptionPlan', subscriptionPlanSchema, 'subscription_plans'),
 };

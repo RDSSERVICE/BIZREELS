@@ -9,6 +9,8 @@ import AdminModal from '../../../features/admin/components/AdminModal';
 import {
   useListLocationsQuery,
   useCreateLocationMutation,
+  useGetLocationRadiusQuery,
+  useUpdateLocationRadiusMutation,
 } from '../../../features/admin/adminApi';
 
 const TABS = [
@@ -26,16 +28,16 @@ export default function AdminLocationsPage() {
 
   const { data, isFetching } = useListLocationsQuery(undefined, { pollingInterval: 5000 });
   const [createLocation] = useCreateLocationMutation();
+  const { data: radiusData } = useGetLocationRadiusQuery(undefined, { pollingInterval: 10000 });
+  const [updateRadius] = useUpdateLocationRadiusMutation();
 
-  const locations = data?.items || [
-    { id: '1', name: 'India', type: 'country', is_popular: true, is_active: true },
-    { id: '2', name: 'Delhi NCR', type: 'state', is_popular: true, is_active: true },
-    { id: '3', name: 'New Delhi', type: 'city', is_popular: true, is_active: true },
-    { id: '4', name: 'Mumbai', type: 'city', is_popular: true, is_active: true },
-    { id: '5', name: 'Bengaluru', type: 'city', is_popular: true, is_active: true },
-    { id: '6', name: 'Connaught Place', type: 'area', is_popular: false, is_active: true },
-    { id: '7', name: '110001', type: 'pincode', is_popular: false, is_active: true },
-  ];
+  // Sync radius from server
+  const serverRadius = radiusData?.radius_km;
+  React.useEffect(() => {
+    if (serverRadius) setRadiusKm(serverRadius);
+  }, [serverRadius]);
+
+  const locations = data?.items || [];
 
   const filtered = locations.filter((l) => {
     if (activeTab === 'popular') return l.is_popular;
@@ -54,8 +56,13 @@ export default function AdminLocationsPage() {
     }
   };
 
-  const handleSaveRadius = () => {
-    toast.success(`Default discovery search radius set to ${radiusKm} KM`);
+  const handleSaveRadius = async () => {
+    try {
+      await updateRadius({ radius_km: radiusKm }).unwrap();
+      toast.success(`Discovery search radius saved: ${radiusKm} KM`);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to save radius');
+    }
   };
 
   const columns = [
