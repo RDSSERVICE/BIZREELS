@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiPlusCircle, FiShoppingBag, FiTool, FiDollarSign, FiMapPin } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import { api } from '../../../lib/api';
 
 export default function PostRequirementPage() {
   const navigate = useNavigate();
@@ -24,30 +25,22 @@ export default function PostRequirementPage() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/requirements', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type,
-          title,
-          category,
-          budget: Number(budget),
-          quantity: Number(quantity),
-          city,
-          description
-        })
+      await api.post('/v1/requirements', {
+        type,
+        requirementType: type,
+        title,
+        category,
+        budget: Number(budget),
+        quantity: Number(quantity),
+        city,
+        description
       });
 
-      if (res.ok) {
-        toast.success('Requirement posted successfully! Vendors will submit quotes soon.');
-        navigate('/customer/my-requirements');
-      } else {
-        toast.success('Requirement recorded! Navigating to your requirements.');
-        navigate('/customer/my-requirements');
-      }
-    } catch (err) {
-      toast.success('Requirement saved successfully!');
+      toast.success('Requirement posted successfully! Vendors will submit quotes soon.');
       navigate('/customer/my-requirements');
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to post requirement';
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

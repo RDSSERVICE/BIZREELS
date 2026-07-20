@@ -19,6 +19,7 @@ const requirementValidation = {
     body('budget')
       .isFloat({ min: 1 }).withMessage('Budget estimate must be a positive number.'),
     body('deadline')
+      .optional()
       .isISO8601().toDate().withMessage('Fulfillment deadline must be a valid date.'),
     body('lat')
       .optional()

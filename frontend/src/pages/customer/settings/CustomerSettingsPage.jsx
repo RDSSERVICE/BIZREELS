@@ -13,7 +13,7 @@ export default function CustomerSettingsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state) => state.auth);
-  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 30000 });
+  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 300000 });
   const [updateProfileApi] = useUpdateProfileMutation();
 
   const user = profileRes?.data?.user || profileRes?.user || authUser || {};

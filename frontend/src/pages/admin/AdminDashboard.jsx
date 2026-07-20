@@ -23,7 +23,7 @@ const QUICK_ACTIONS = [
  */
 export default function AdminDashboard() {
   const { data: ov, isFetching: loading } = useGetAdminOverviewQuery(undefined, {
-    pollingInterval: 4000,
+    pollingInterval: 300000,
   });
 
   const fmt = (v) => (v || 0).toLocaleString('en-IN');

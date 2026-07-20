@@ -6,6 +6,7 @@ import { useAddRoleMutation } from '../../../features/auth/authApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import { api } from '../../../lib/api';
 
 export default function BecomeVendorPage() {
   const navigate = useNavigate();
@@ -34,33 +35,25 @@ export default function BecomeVendorPage() {
 
     setLoading(true);
     try {
-      await fetch('/api/v1/users/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendorProfile: {
-            shopName,
-            businessName,
-            category,
-            gst,
-            pan,
-            aadhaar,
-            businessAddress,
-            bankDetails: { bankAccount, ifsc, upiId },
-            createdAt: new Date().toISOString()
-          }
-        })
+      await api.patch('/v1/users/me', {
+        vendorProfile: {
+          shopName,
+          businessName,
+          category,
+          gst,
+          pan,
+          aadhaar,
+          businessAddress,
+          bankDetails: { bankAccount, ifsc, upiId },
+          createdAt: new Date().toISOString()
+        }
       });
 
       const roleRes = await addRoleApi({ role: 'vendor' }).unwrap();
       const updatedUser = roleRes.user || roleRes.data?.user || roleRes;
 
       try {
-        await fetch('/api/v1/users/me/switch-role', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: 'vendor' })
-        });
+        await api.post('/v1/users/me/switch-role', { role: 'vendor' });
       } catch (e) {}
 
       dispatch(setCredentials({ user: { ...updatedUser, current_role: 'vendor', activeRole: 'vendor' } }));

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiSearch, FiMapPin, FiStar, FiShoppingBag, FiTool, FiMessageCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import { api } from '../../../lib/api';
 
 export default function SearchListingsPage() {
   const [query, setQuery] = useState('');
@@ -19,8 +20,8 @@ export default function SearchListingsPage() {
   const fetchListings = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/listings?type=${type}&category=${category}`);
-      const data = await res.json();
+      const res = await api.get(`/v1/listings?type=${type}&category=${category}`);
+      const data = res.data;
       const list = data.data?.listings || data.listings || [
         {
           _id: 's1',

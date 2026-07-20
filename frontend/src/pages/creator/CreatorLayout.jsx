@@ -52,7 +52,7 @@ export default function CreatorLayout() {
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
-  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 30000 });
+  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 300000 });
   const [switchRoleApi] = useSwitchRoleMutation();
   const [logoutApi] = useLogoutMutation();
 

@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
+import { api } from '../../lib/api';
 
 /**
  * CustomerLayout — Admin-style fixed sidebar layout for Customer Portal
@@ -20,7 +21,7 @@ export default function CustomerLayout() {
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
-  const { data: profileData } = useGetMeQuery(undefined, { pollingInterval: 30000 });
+  const { data: profileData } = useGetMeQuery(undefined, { pollingInterval: 300000 });
   const [switchRoleApi] = useSwitchRoleMutation();
   const [logoutApi] = useLogoutMutation();
 
@@ -73,29 +74,21 @@ export default function CustomerLayout() {
           const pincode = address.postcode || '';
           const fullAddress = data.display_name || `${city}, ${state}`;
 
-          const updateRes = await fetch('/api/v1/users/me', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+          await api.patch('/v1/users/me', {
+            city,
+            location: {
+              type: 'Point',
+              coordinates: [longitude, latitude],
+              address: fullAddress,
               city,
-              location: {
-                type: 'Point',
-                coordinates: [longitude, latitude],
-                address: fullAddress,
-                city,
-                district,
-                state,
-                pincode
-              }
-            })
+              district,
+              state,
+              pincode
+            }
           });
 
-          if (updateRes.ok) {
-            toast.success(`Location updated: ${city || state || 'Current Location'}`, { id: 'loc-toast' });
-            window.location.reload();
-          } else {
-            toast.success(`Location found: ${city}, ${state}`, { id: 'loc-toast' });
-          }
+          toast.success(`Location updated: ${city || state || 'Current Location'}`, { id: 'loc-toast' });
+          window.location.reload();
         } catch (err) {
           toast.error('Could not auto-fill location details', { id: 'loc-toast' });
         } finally {

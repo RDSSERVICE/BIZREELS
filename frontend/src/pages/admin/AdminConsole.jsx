@@ -37,11 +37,11 @@ const TABS = [
 // endpoint — but results stay cached, so flipping back to a previously
 // visited tab is instant.
 function useTabData(tab) {
-  const txs = useListAdminTransactionsQuery({ limit: 50 }, { skip: tab !== "transactions", pollingInterval: 4000 });
-  const orders = useListAdminOrdersQuery({ limit: 50 }, { skip: tab !== "orders", pollingInterval: 4000 });
-  const commissions = useListAdminCommissionsQuery({ limit: 50 }, { skip: tab !== "commissions", pollingInterval: 4000 });
-  const summary = useGetCommissionSummaryQuery(undefined, { skip: tab !== "commissions", pollingInterval: 4000 });
-  const audit = useListAdminAuditLogQuery({ limit: 50 }, { skip: tab !== "audit", pollingInterval: 4000 });
+  const txs = useListAdminTransactionsQuery({ limit: 50 }, { skip: tab !== "transactions", pollingInterval: 300000 });
+  const orders = useListAdminOrdersQuery({ limit: 50 }, { skip: tab !== "orders", pollingInterval: 300000 });
+  const commissions = useListAdminCommissionsQuery({ limit: 50 }, { skip: tab !== "commissions", pollingInterval: 300000 });
+  const summary = useGetCommissionSummaryQuery(undefined, { skip: tab !== "commissions", pollingInterval: 300000 });
+  const audit = useListAdminAuditLogQuery({ limit: 50 }, { skip: tab !== "audit", pollingInterval: 300000 });
 
   const byTab = {
     transactions: { data: txs.data, isFetching: txs.isFetching, refetch: txs.refetch },

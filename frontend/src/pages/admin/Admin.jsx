@@ -21,7 +21,7 @@ export default function Admin() {
   const { user } = useAuth();
   const isAdmin = !!user?.roles?.includes("admin");
 
-  const { data: ov, isFetching: loading } = useGetAdminOverviewQuery(undefined, { skip: !isAdmin, pollingInterval: 4000 });
+  const { data: ov, isFetching: loading } = useGetAdminOverviewQuery(undefined, { skip: !isAdmin, pollingInterval: 300000 });
   const { data: settings } = useGetIntegrationSettingsQuery(undefined, { skip: !isAdmin });
 
   if (user && !isAdmin) return <Navigate to="/" replace />;

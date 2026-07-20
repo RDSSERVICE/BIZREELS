@@ -5,7 +5,7 @@ import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import { useGetCreatorDashboardQuery } from '../../../features/creator/creatorApi';
 
 export default function CreatorDashboardPage() {
-  const { data, isFetching } = useGetCreatorDashboardQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useGetCreatorDashboardQuery(undefined, { pollingInterval: 300000 });
 
   const statsData = data?.data || data || {};
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiBell, FiShield, FiMessageSquare, FiTrendingDown, FiTag } from 'react-icons/fi';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
+import { api } from '../../../lib/api';
 
 const TABS = [
   { key: 'all', label: 'All Notifications', icon: FiBell },
@@ -23,8 +24,8 @@ export default function CustomerNotificationsPage() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/notifications/me');
-      const data = await res.json();
+      const res = await api.get('/v1/notifications/me');
+      const data = res.data;
       const items = Array.isArray(data?.items) ? data.items : Array.isArray(data?.notifications) ? data.notifications : Array.isArray(data) ? data : [];
       setNotifications(items);
     } catch {

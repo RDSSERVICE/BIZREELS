@@ -31,7 +31,7 @@ class RequirementService {
       category,
       requirementType: requirementType || 'product',
       budget: parseFloat(budget),
-      deadline: new Date(deadline),
+      deadline: deadline ? new Date(deadline) : null,
       location,
     });
 

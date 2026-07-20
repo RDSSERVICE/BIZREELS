@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiUserCheck, FiSearch, FiStar, FiSend } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import { api } from '../../../lib/api';
 
 export default function VendorHireCreatorPage() {
   const [query, setQuery] = useState('');
@@ -17,8 +18,8 @@ export default function VendorHireCreatorPage() {
   const fetchCreators = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/users?role=creator');
-      const data = await res.json();
+      const res = await api.get('/v1/users?role=creator');
+      const data = res.data;
       const list = Array.isArray(data?.users) ? data.users : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
       setCreators(list);
     } catch {

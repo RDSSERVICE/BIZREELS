@@ -13,9 +13,9 @@ import {
 } from '../../../features/vendor/vendorApi';
 
 export default function VendorDashboardPage() {
-  const { data: dashboardRes, isLoading } = useGetVendorDashboardQuery(undefined, { pollingInterval: 5000 });
-  const { data: leadsRes } = useGetVendorLeadsQuery(undefined, { pollingInterval: 5000 });
-  const { data: boostsRes } = useGetVendorBoostsQuery(undefined, { pollingInterval: 5000 });
+  const { data: dashboardRes, isLoading } = useGetVendorDashboardQuery(undefined, { pollingInterval: 300000 });
+  const { data: leadsRes } = useGetVendorLeadsQuery(undefined, { pollingInterval: 300000 });
+  const { data: boostsRes } = useGetVendorBoostsQuery(undefined, { pollingInterval: 300000 });
 
   const metrics = dashboardRes?.data || {};
   const leads = Array.isArray(leadsRes?.data) ? leadsRes.data : Array.isArray(leadsRes) ? leadsRes : [];

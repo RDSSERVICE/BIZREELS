@@ -4,6 +4,7 @@ import {
   FiMapPin, FiSearch, FiSliders, FiPlay, FiVolume2, FiVolumeX, FiCheck
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { api } from '../../../lib/api';
 
 export default function CustomerHomePage() {
   const [activeTab, setActiveTab] = useState('reels'); // 'reels' | 'images'
@@ -24,8 +25,8 @@ export default function CustomerHomePage() {
   const fetchFeedData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/${activeTab === 'reels' ? 'reels' : 'listings'}`);
-      const data = await res.json();
+      const res = await api.get(`/v1/${activeTab === 'reels' ? 'reels' : 'listings'}`);
+      const data = res.data;
 
       if (activeTab === 'reels') {
         const items = Array.isArray(data.data?.reels) ? data.data.reels : Array.isArray(data.reels) ? data.reels : Array.isArray(data) ? data : [];

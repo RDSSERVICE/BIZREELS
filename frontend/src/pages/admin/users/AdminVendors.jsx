@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiUserCheck, FiEye, FiCheck, FiX, FiSlash, FiShield, FiBriefcase } from 'react-icons/fi';
+import { FiUserCheck, FiEye, FiCheck, FiX, FiSlash, FiShield, FiBriefcase, FiMapPin, FiCreditCard } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
@@ -118,6 +118,9 @@ export default function AdminVendors() {
     },
   ];
 
+  const profile = userDetail?.vendor_profile || userDetail?.vendorProfile;
+  const bank = profile?.bankDetails;
+
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
       <AdminPageHeader
@@ -161,52 +164,108 @@ export default function AdminVendors() {
       <AdminModal isOpen={showDetail} onClose={() => { setShowDetail(false); setSelectedUser(null); }} title="Vendor Details" maxWidth="max-w-2xl">
         {userDetail ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-brand-orange/10 text-brand-orange flex items-center justify-center text-xl font-black">
-                {(userDetail.name || 'V')[0].toUpperCase()}
+            <div className="flex items-center gap-4 border-b border-border/50 pb-4">
+              <div className="w-14 h-14 rounded-2xl bg-brand-orange/10 text-brand-orange flex items-center justify-center text-xl font-black flex-shrink-0">
+                {userDetail.profile_pic || userDetail.avatarUrl ? (
+                  <img src={userDetail.profile_pic || userDetail.avatarUrl} alt="" className="w-14 h-14 rounded-2xl object-cover" />
+                ) : (
+                  (userDetail.name || 'V')[0].toUpperCase()
+                )}
               </div>
-              <div>
-                <h4 className="text-sm font-bold text-text-primary">{userDetail.name || 'Unknown'}</h4>
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-text-primary">{userDetail.name || 'Unknown'}</h4>
+                  <AdminStatusBadge status={userDetail.kyc_status} />
+                  {userDetail.is_banned && (
+                    <span className="text-[9px] font-bold bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase">Blocked</span>
+                  )}
+                </div>
                 <p className="text-xs text-text-tertiary">{userDetail.phone || '—'} • {userDetail.email || '—'}</p>
-                <AdminStatusBadge status={userDetail.kyc_status} className="mt-1" />
+                {(userDetail.city || profile?.businessAddress) && (
+                  <p className="text-xs text-text-secondary flex items-center gap-1 font-medium">
+                    <FiMapPin className="w-3 h-3 text-brand-orange" /> {profile?.businessAddress || userDetail.city || '—'}
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Business Details */}
-            {userDetail.vendor_profile && (
-              <div className="bg-surface-secondary rounded-xl p-4">
-                <h5 className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <FiBriefcase className="w-3 h-3" /> Business Details
+            {/* Business Profile */}
+            {profile && (
+              <div className="bg-surface-secondary/70 rounded-xl p-4 space-y-3 border border-border/60">
+                <h5 className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
+                  <FiBriefcase className="w-3.5 h-3.5 text-brand-orange" /> Business & Tax Profile
                 </h5>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {Object.entries(userDetail.vendor_profile).slice(0, 8).map(([key, val]) => (
-                    <div key={key}>
-                      <span className="text-text-tertiary capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
-                      <span className="font-bold text-text-primary">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">Shop Name</span>
+                    <span className="font-bold text-text-primary">{profile.shopName || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">Business Name</span>
+                    <span className="font-bold text-text-primary">{profile.businessName || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">Category</span>
+                    <span className="font-bold text-text-primary">{profile.category || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">GSTIN</span>
+                    <span className="font-mono font-bold text-text-primary">{profile.gst || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">PAN</span>
+                    <span className="font-mono font-bold text-text-primary">{profile.pan || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">Aadhaar</span>
+                    <span className="font-mono font-bold text-text-primary">{profile.aadhaar || '—'}</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            {/* Bank Details */}
+            {bank && typeof bank === 'object' && (
+              <div className="bg-surface-secondary/70 rounded-xl p-4 space-y-2.5 border border-border/60">
+                <h5 className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
+                  <FiCreditCard className="w-3.5 h-3.5 text-emerald-500" /> Settlement & Bank Account
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">Bank Account</span>
+                    <span className="font-mono font-bold text-text-primary">{bank.bankAccount || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">IFSC Code</span>
+                    <span className="font-mono font-bold text-text-primary">{bank.ifsc || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">UPI ID</span>
+                    <span className="font-mono font-bold text-emerald-600">{bank.upiId || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* General Metrics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {[
                 ['City', userDetail.city || '—'],
                 ['State', userDetail.state || '—'],
                 ['Rating', userDetail.rating_avg ? `★ ${userDetail.rating_avg.toFixed(1)}` : '—'],
                 ['Trust Score', userDetail.trust_score || '—'],
-                ['Followers', userDetail.followersCount],
+                ['Followers', userDetail.followersCount || 0],
                 ['Wallet Credits', userDetail.wallet?.credits || 0],
               ].map(([label, val]) => (
-                <div key={label} className="bg-surface-secondary rounded-xl p-3">
+                <div key={label} className="bg-surface-secondary/70 rounded-xl p-3 border border-border/50">
                   <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block">{label}</span>
-                  <span className="text-xs font-bold text-text-primary mt-0.5 block">{val}</span>
+                  <span className="text-xs font-black text-text-primary mt-0.5 block">{val}</span>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="py-8 text-center text-text-tertiary text-xs">Loading...</div>
+          <div className="py-8 text-center text-text-tertiary text-xs">Loading vendor details...</div>
         )}
       </AdminModal>
     </div>

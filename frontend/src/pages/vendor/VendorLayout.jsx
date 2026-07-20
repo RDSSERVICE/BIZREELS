@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
+import { api } from '../../lib/api';
 
 const NAV_SECTIONS = [
   {
@@ -61,7 +62,7 @@ export default function VendorLayout() {
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
-  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 30000 });
+  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 300000 });
   const [switchRoleApi] = useSwitchRoleMutation();
   const [logoutApi] = useLogoutMutation();
 
@@ -91,12 +92,8 @@ export default function VendorLayout() {
     const newStatus = !isShopClosed;
     setIsShopClosed(newStatus);
     try {
-      await fetch('/api/v1/users/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendorProfile: { ...vendorProfile, isClosed: newStatus }
-        })
+      await api.patch('/v1/users/me', {
+        vendorProfile: { ...vendorProfile, isClosed: newStatus }
       });
       toast.success(newStatus ? 'Shop marker set to TEMPORARY CLOSED' : 'Shop marker set to OPEN');
     } catch (err) {
