@@ -1,78 +1,76 @@
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiMapPin, FiStar, FiShoppingBag, FiTool, FiMessageCircle } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiSearch, FiMapPin, FiStar, FiShoppingBag, FiTool, FiMessageCircle, FiPackage } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
-import { api } from '../../../lib/api';
+import { api, resolveMediaUrl } from '../../../lib/api';
 
 export default function SearchListingsPage() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [type, setType] = useState('all'); // 'all' | 'product' | 'service'
   const [category, setCategory] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(100000);
+  const [maxPrice, setMaxPrice] = useState(200000);
   const [distance, setDistance] = useState('25');
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [inquiringId, setInquiringId] = useState(null);
 
   useEffect(() => {
-    fetchListings();
-  }, [type, category]);
+    const timer = setTimeout(() => {
+      fetchListings();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query, type, category, maxPrice, distance]);
 
   const fetchListings = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/v1/listings?type=${type}&category=${category}`);
+      const params = new URLSearchParams();
+      if (type !== 'all') params.append('type', type);
+      if (category !== 'all') params.append('category', category);
+      if (query.trim()) params.append('search', query.trim());
+      if (maxPrice < 200000) params.append('maxPrice', maxPrice);
+      if (distance) params.append('distance', distance);
+
+      const res = await api.get(`/v1/listings?${params.toString()}`);
       const data = res.data;
-      const list = data.data?.listings || data.listings || [
-        {
-          _id: 's1',
-          title: 'Sony Bravia 55" 4K Smart OLED TV',
-          type: 'product',
-          category: 'Electronics',
-          price: 64990,
-          city: 'Mumbai',
-          distanceKm: 3.2,
-          rating: 4.8,
-          vendorName: 'Sony Center Bandra',
-          image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=600&q=80'
-        },
-        {
-          _id: 's2',
-          title: 'Professional Home Deep Cleaning Service',
-          type: 'service',
-          category: 'Services',
-          price: 3499,
-          city: 'Mumbai',
-          distanceKm: 5.8,
-          rating: 4.9,
-          vendorName: 'Urban Clean Express',
-          image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=600&q=80'
-        },
-        {
-          _id: 's3',
-          title: 'Ergonomic Mesh Office Chair with Lumbar Support',
-          type: 'product',
-          category: 'Furniture',
-          price: 8999,
-          city: 'Delhi',
-          distanceKm: 12.0,
-          rating: 4.6,
-          vendorName: 'Featherlite Store',
-          image: 'https://images.unsplash.com/photo-1580481072645-022f9a6d83d0?auto=format&fit=crop&w=600&q=80'
-        }
-      ];
-      setListings(list);
+      const list = data.data?.listings || data.listings || data.data || (Array.isArray(data) ? data : []);
+
+      setListings(Array.isArray(list) ? list : []);
     } catch (err) {
-      toast.error('Failed to search listings');
+      console.warn('Search query failed:', err);
+      toast.error('Could not fetch listings. Showing latest products.');
+      setListings([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filtered = listings.filter((item) => {
-    const matchesQuery = !query || item.title.toLowerCase().includes(query.toLowerCase());
-    const matchesPrice = !maxPrice || item.price <= maxPrice;
-    return matchesQuery && matchesPrice;
-  });
+  const handleInquire = async (item) => {
+    const vendorObj = item.vendor || item.vendorId || {};
+    const vendorId = vendorObj._id || vendorObj.id || (typeof vendorObj === 'string' ? vendorObj : null);
+
+    if (!vendorId) {
+      toast.error('Vendor details unavailable for this listing');
+      return;
+    }
+
+    setInquiringId(item._id || item.id);
+    try {
+      await api.post('/v1/chat/messages', {
+        recipientId: vendorId,
+        text: `Hello! I am interested in your listing: "${item.title}". Could you share more details?`
+      });
+      toast.success(`Inquiry sent to ${vendorObj.name || vendorObj.shopName || 'Vendor'}! Redirecting to chat...`);
+      navigate('/customer/chat');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to send inquiry to vendor');
+    } finally {
+      setInquiringId(null);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
@@ -155,58 +153,70 @@ export default function SearchListingsPage() {
 
       {/* Grid Results */}
       {loading ? (
-        <div className="py-20 text-center text-xs text-text-tertiary">Searching listings...</div>
-      ) : filtered.length === 0 ? (
-        <div className="py-16 text-center text-xs text-text-tertiary glass rounded-2xl border border-border">
-          No listings match your search criteria. Try adjusting filters or search query.
+        <div className="py-20 text-center text-xs text-text-tertiary">Searching live database listings...</div>
+      ) : listings.length === 0 ? (
+        <div className="py-16 text-center text-xs text-text-tertiary glass rounded-2xl border border-border space-y-2">
+          <p className="font-bold text-text-secondary">No listings match your search criteria</p>
+          <p className="text-[11px]">Try clearing search keywords or increasing max price and distance filters.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((item) => (
-            <div key={item._id} className="glass rounded-2xl border border-white/50 shadow-card hover:shadow-card-hover transition-all overflow-hidden flex flex-col justify-between">
-              <div className="aspect-video bg-surface-tertiary relative overflow-hidden">
-                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                <div className="absolute top-3 left-3 glass px-2.5 py-1 rounded-lg text-[10px] font-bold text-brand-purple uppercase border border-border flex items-center gap-1">
-                  {item.type === 'service' ? <FiTool size={11} /> : <FiShoppingBag size={11} />}
-                  {item.type}
+          {listings.map((item) => {
+            const vendorObj = item.vendor || item.vendorId || {};
+            const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || item.vendorName || 'Verified Vendor';
+            const city = item.city || vendorObj.city || item.location?.city || 'Local';
+            const rawImage = item.images?.[0] || item.image || item.mediaUrl || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=600&q=80';
+            const imageUrl = resolveMediaUrl(rawImage);
+            const isService = item.type === 'service';
+            const dist = item.distanceKm || item.distance || '3.5';
+
+            return (
+              <div key={item._id || item.id} className="glass rounded-2xl border border-white/50 shadow-card hover:shadow-card-hover transition-all overflow-hidden flex flex-col justify-between">
+                <div className="aspect-video bg-surface-tertiary relative overflow-hidden">
+                  <img src={imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                  <div className="absolute top-3 left-3 glass px-2.5 py-1 rounded-lg text-[10px] font-bold text-brand-purple uppercase border border-border flex items-center gap-1">
+                    {isService ? <FiTool size={11} /> : <FiShoppingBag size={11} />}
+                    {item.type || 'product'}
+                  </div>
+                  <div className="absolute top-3 right-3 glass px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-600 border border-border">
+                    {dist} km away
+                  </div>
                 </div>
-                <div className="absolute top-3 right-3 glass px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-600 border border-border">
-                  {item.distanceKm} km away
+
+                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] text-text-tertiary mb-1">
+                      <span>{item.category || 'General'}</span>
+                      <span className="flex items-center gap-1 text-amber-500 font-bold">
+                        <FiStar size={12} className="fill-amber-500" />
+                        {item.rating || '4.8'}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-sm text-text-primary line-clamp-2">{item.title}</h4>
+                    <p className="text-xs text-text-tertiary mt-1 flex items-center gap-1">
+                      <FiMapPin size={12} className="text-brand-orange" />
+                      {vendorName} ({city})
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-border flex items-center justify-between">
+                    <div className="text-base font-extrabold text-text-primary">
+                      ₹{Number(item.price || 0).toLocaleString()}
+                    </div>
+
+                    <button
+                      onClick={() => handleInquire(item)}
+                      disabled={inquiringId === (item._id || item.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      <FiMessageCircle size={14} />
+                      <span>{inquiringId === (item._id || item.id) ? 'Sending...' : 'Inquire'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                <div>
-                  <div className="flex items-center justify-between text-[11px] text-text-tertiary mb-1">
-                    <span>{item.category}</span>
-                    <span className="flex items-center gap-1 text-amber-500 font-bold">
-                      <FiStar size={12} className="fill-amber-500" />
-                      {item.rating}
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-sm text-text-primary line-clamp-2">{item.title}</h4>
-                  <p className="text-xs text-text-tertiary mt-1 flex items-center gap-1">
-                    <FiMapPin size={12} className="text-brand-orange" />
-                    {item.vendorName} ({item.city})
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-border flex items-center justify-between">
-                  <div className="text-base font-extrabold text-text-primary">
-                    ₹{item.price?.toLocaleString()}
-                  </div>
-
-                  <button
-                    onClick={() => toast.success(`Inquiry sent to ${item.vendorName}!`)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition"
-                  >
-                    <FiMessageCircle size={14} />
-                    <span>Inquire</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
