@@ -74,11 +74,11 @@ const Home = () => {
             </Button>
             <Button
               variant="glass"
-              onClick={() => navigate('/auth/login')}
+              onClick={() => navigate('/local-reels')}
               className="py-3.5 px-8 text-xs font-black border border-border flex items-center justify-center gap-2"
             >
               <FiVideo className="w-4 h-4" />
-              <span>Watch Demo Reels</span>
+              <span>Explore Local Reels</span>
             </Button>
           </motion.div>
         </motion.div>

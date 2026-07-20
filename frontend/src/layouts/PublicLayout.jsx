@@ -13,8 +13,8 @@ const PublicLayout = () => {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
-    { name: 'Creator Marketplace', path: '/auth/login' },
-    { name: 'Local Reels', path: '/auth/login' },
+    { name: 'Creator Marketplace', path: '/creator-marketplace' },
+    { name: 'Local Reels', path: '/local-reels' },
   ];
 
   return (
@@ -153,9 +153,9 @@ const PublicLayout = () => {
 
           <div className="flex flex-col gap-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-brand-navy">Platform</h4>
-            <Link to="/auth/login" className="text-xs text-text-secondary hover:text-brand-purple transition-all">Reels Feed</Link>
-            <Link to="/auth/login" className="text-xs text-text-secondary hover:text-brand-purple transition-all">Local Marketplace</Link>
-            <Link to="/auth/login" className="text-xs text-text-secondary hover:text-brand-purple transition-all">Creator Network</Link>
+            <Link to="/local-reels" className="text-xs text-text-secondary hover:text-brand-purple transition-all">Reels Feed</Link>
+            <Link to="/local-reels" className="text-xs text-text-secondary hover:text-brand-purple transition-all">Local Marketplace</Link>
+            <Link to="/creator-marketplace" className="text-xs text-text-secondary hover:text-brand-purple transition-all">Creator Network</Link>
           </div>
 
           <div className="flex flex-col gap-3">

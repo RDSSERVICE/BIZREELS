@@ -126,6 +126,56 @@ router.get('/me/role-activity', requireAuth, catchAsync(async (req, res) => {
   res.json(out);
 }));
 
+router.get('/creators/public', catchAsync(async (req, res) => {
+  const { city, category, search } = req.query;
+  const query = {
+    $or: [{ roles: 'creator' }, { current_role: 'creator' }],
+    is_deleted: { $ne: true }
+  };
+
+  if (city && city !== 'All Cities' && city !== 'all') {
+    query.city = new RegExp(city, 'i');
+  }
+
+  if (category && category !== 'All Categories' && category !== 'all') {
+    query.$or = [
+      { 'creatorProfile.category': new RegExp(category, 'i') },
+      { occupation: new RegExp(category, 'i') }
+    ];
+  }
+
+  if (search) {
+    const searchRegex = new RegExp(search, 'i');
+    query.$or = [
+      { name: searchRegex },
+      { 'creatorProfile.name': searchRegex },
+      { 'creatorProfile.bio': searchRegex },
+      { 'creatorProfile.category': searchRegex }
+    ];
+  }
+
+  const creators = await User.find(query)
+    .select('name profile_pic avatarUrl city rating_avg rating_count creatorProfile created_at kyc_status is_subscribed_verified occupation')
+    .lean();
+
+  res.json({
+    success: true,
+    count: creators.length,
+    creators: creators.map(c => ({
+      _id: c._id.toString(),
+      name: c.creatorProfile?.name || c.name || 'Verified Creator',
+      avatarUrl: c.profile_pic || c.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+      city: c.city || 'India',
+      category: c.creatorProfile?.category || c.occupation || 'Visual Creator',
+      bio: c.creatorProfile?.bio || 'Professional short-form video creator & brand ambassador on BizReels.',
+      rating: c.rating_avg || 4.9,
+      reviewsCount: c.rating_count || 12,
+      pricing: c.creatorProfile?.pricing || { reel1: 800, reel3: 2000 },
+      isVerified: c.kyc_status === 'approved' || c.is_subscribed_verified
+    }))
+  });
+}));
+
 router.get('/:userId', catchAsync(async (req, res) => {
   const { userId } = req.params;
   const u = await User.findOne({ _id: userId, is_deleted: { $ne: true } });

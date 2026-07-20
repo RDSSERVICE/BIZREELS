@@ -15,6 +15,8 @@ import { PrivateRoute, RoleRoute, PublicRoute, RequireAdmin } from './guards';
 // Public & Auth Pages
 import Home from '../pages/home/Home';
 import About from '../pages/home/About';
+import PublicLocalReelsPage from '../pages/reels/PublicLocalReelsPage';
+import PublicCreatorMarketplacePage from '../pages/creator/PublicCreatorMarketplacePage';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import ForgotPassword from '../pages/auth/ForgotPassword';
@@ -97,6 +99,8 @@ const AppRoutes = () => {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
+        <Route path="/local-reels" element={<PublicLocalReelsPage />} />
+        <Route path="/creator-marketplace" element={<PublicCreatorMarketplacePage />} />
       </Route>
 
       {/* ── Public Auth Routes ────────────────────────────────── */}
