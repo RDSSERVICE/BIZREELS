@@ -78,6 +78,12 @@ const processedDir = path.isAbsolute(config.uploadProcessedDir)
 app.use('/uploads/processed', express.static(processedDir));
 app.use('/api/v1/uploads/processed', express.static(processedDir));
 
+const authRoutes = require('./routes/authRoutes');
+
+// Aliases for authentication routes (e.g. /auth/google, /auth/google/callback)
+app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
+
 app.use('/api/v1', routes);
 
 // ══════════════════════════════════════════════════════════════

@@ -1,9 +1,14 @@
 const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || '';
 const BACKEND_URL = rawBackendUrl.replace(/\/+$/, '');
 
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const BASE_URL = rawApiUrl
+  ? rawApiUrl
+  : (BACKEND_URL ? (BACKEND_URL.endsWith('/api/v1') ? BACKEND_URL : `${BACKEND_URL}/api/v1`) : '/api/v1');
+
 const API_CONFIG = {
   BACKEND_URL,
-  BASE_URL: import.meta.env.VITE_API_URL || (BACKEND_URL ? `${BACKEND_URL}/api/v1` : '/api/v1'),
+  BASE_URL,
   TIMEOUT: 15000,
   GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
   CLOUDINARY_CLOUD_NAME: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '',
