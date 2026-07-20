@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
+import { tokenStore } from './api';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || window.location.origin;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_SOCKET_URL || window.location.origin;
 
 let socket = null;
 
@@ -10,16 +11,17 @@ export function getSocket() {
     try { socket.disconnect(); } catch (e) {}
   }
 
-  const token = localStorage.getItem('accessToken') || '';
+  const token = tokenStore.getAccess() || localStorage.getItem('bizreels_access_token') || localStorage.getItem('accessToken') || '';
+  if (!token) return null;
 
   socket = io(BACKEND_URL, {
     path: '/socket.io',
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     withCredentials: true,
-    auth: { token },
+    auth: { token: token.startsWith('Bearer ') ? token : `Bearer ${token}` },
     reconnection: true,
     reconnectionDelay: 1000,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: 5,
   });
 
   socket.on('connect', () => {
@@ -27,7 +29,7 @@ export function getSocket() {
   });
 
   socket.on('connect_error', (err) => {
-    console.warn('Realtime socket connect error (will fallback to polling):', err.message);
+    console.warn('Realtime socket connect error:', err.message);
   });
 
   return socket;

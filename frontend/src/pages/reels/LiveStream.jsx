@@ -15,6 +15,7 @@ import { useSelector } from 'react-redux';
 import { selectCurrentUser, selectAccessToken } from '../../features/auth/authSlice';
 import { io } from 'socket.io-client';
 import API_CONFIG from '../../config';
+import { tokenStore } from '../../lib/api';
 import Button from '../../components/common/Button';
 import { toast } from 'react-hot-toast';
 
@@ -43,11 +44,12 @@ const LiveStream = () => {
 
   // Connect socket for stream room updates
   useEffect(() => {
-    if (!token || !activeStreamId) return;
+    const authToken = token || tokenStore.getAccess();
+    if (!authToken || !activeStreamId) return;
 
     const socket = io(API_CONFIG.SOCKET_URL, {
-      auth: { token: `Bearer ${token}` },
-      transports: ['websocket'],
+      auth: { token: authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}` },
+      transports: ['polling', 'websocket'],
     });
 
     socketRef.current = socket;
