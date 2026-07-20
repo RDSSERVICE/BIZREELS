@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { setCredentials, logout } from '../../../features/auth/authSlice';
+import { locationApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
@@ -68,19 +69,45 @@ export default function CustomerSettingsPage() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        let resolvedCity = '';
+        let resolvedDistrict = '';
+        let resolvedState = '';
+        let resolvedPincode = '';
+        let resolvedAddress = '';
+
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
           );
-          const data = await res.json();
-          const addr = data.address || {};
+          if (res.ok) {
+            const data = await res.json();
+            const addr = data.address || {};
 
-          const resolvedCity = addr.city || addr.town || addr.village || addr.suburb || '';
-          const resolvedDistrict = addr.state_district || addr.county || addr.city_district || '';
-          const resolvedState = addr.state || '';
-          const resolvedPincode = addr.postcode || '';
-          const resolvedAddress = data.display_name || `${resolvedCity}, ${resolvedState}`;
+            resolvedCity = addr.city || addr.town || addr.village || addr.suburb || '';
+            resolvedDistrict = addr.state_district || addr.county || addr.city_district || '';
+            resolvedState = addr.state || '';
+            resolvedPincode = addr.postcode || '';
+            resolvedAddress = data.display_name || `${resolvedCity}, ${resolvedState}`;
+          }
+        } catch (err) {
+          console.warn('Nominatim reverse geocode failed, using backend fallback', err);
+        }
 
+        if (!resolvedCity && !resolvedState) {
+          try {
+            const backendGeo = await locationApi.reverseGeocode(latitude, longitude);
+            const geoData = backendGeo.data?.data || backendGeo.data || {};
+            resolvedCity = geoData.city || '';
+            resolvedState = geoData.state || '';
+            resolvedDistrict = geoData.area || '';
+            resolvedPincode = geoData.pincode || '';
+            resolvedAddress = `${resolvedCity}${resolvedState ? `, ${resolvedState}` : ''}`;
+          } catch (e) {
+            console.warn('Backend reverseGeocode fallback failed', e);
+          }
+        }
+
+        if (resolvedCity || resolvedState) {
           setCity(resolvedCity);
           setDistrict(resolvedDistrict);
           setState(resolvedState);
@@ -88,11 +115,10 @@ export default function CustomerSettingsPage() {
           setAddress(resolvedAddress);
 
           toast.success('Location details autofilled successfully!', { id: 'geo-toast' });
-        } catch (err) {
+        } else {
           toast.error('Could not resolve location address', { id: 'geo-toast' });
-        } finally {
-          setIsLocating(false);
         }
+        setIsLocating(false);
       },
       (error) => {
         setIsLocating(false);

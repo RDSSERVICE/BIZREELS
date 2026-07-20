@@ -10,8 +10,8 @@ import {
   FiShield, FiRefreshCw, FiMenu, FiX, FiCheck
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
-import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
-import { api } from '../../lib/api';
+import { setCredentials, logout, updateUser, selectCurrentUser } from '../../features/auth/authSlice';
+import { api, locationApi } from '../../lib/api';
 
 /**
  * CustomerLayout — Admin-style fixed sidebar layout for Customer Portal
@@ -21,7 +21,7 @@ export default function CustomerLayout() {
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
-  const { data: profileData } = useGetMeQuery(undefined, { pollingInterval: 300000 });
+  const { data: profileData, refetch: refetchProfile } = useGetMeQuery(undefined, { pollingInterval: 300000 });
   const [switchRoleApi] = useSwitchRoleMutation();
   const [logoutApi] = useLogoutMutation();
 
@@ -61,20 +61,46 @@ export default function CustomerLayout() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        let city = '';
+        let district = '';
+        let state = '';
+        let pincode = '';
+        let fullAddress = '';
+
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept': 'application/json' } }
           );
-          const data = await res.json();
-          const address = data.address || {};
+          if (res.ok) {
+            const data = await res.json();
+            const address = data.address || {};
+            city = address.city || address.town || address.village || address.suburb || '';
+            district = address.state_district || address.county || address.city_district || '';
+            state = address.state || '';
+            pincode = address.postcode || '';
+            fullAddress = data.display_name || `${city}, ${state}`;
+          }
+        } catch (e) {
+          console.warn('Nominatim reverse-geocode failed, using backend fallback', e);
+        }
 
-          const city = address.city || address.town || address.village || address.suburb || '';
-          const district = address.state_district || address.county || address.city_district || '';
-          const state = address.state || '';
-          const pincode = address.postcode || '';
-          const fullAddress = data.display_name || `${city}, ${state}`;
+        if (!city && !state) {
+          try {
+            const backendGeo = await locationApi.reverseGeocode(latitude, longitude);
+            const geoData = backendGeo.data?.data || backendGeo.data || {};
+            city = geoData.city || '';
+            state = geoData.state || '';
+            district = geoData.area || '';
+            pincode = geoData.pincode || '';
+            fullAddress = `${city}${state ? `, ${state}` : ''}`;
+          } catch (e) {
+            console.warn('Backend reverseGeocode fallback failed', e);
+          }
+        }
 
-          await api.patch('/v1/users/me', {
+        try {
+          const updateRes = await api.patch('/v1/users/me', {
             city,
             location: {
               type: 'Point',
@@ -87,10 +113,14 @@ export default function CustomerLayout() {
             }
           });
 
+          const updatedUserData = updateRes.data?.data?.user || updateRes.data?.user || { city, location: { city, state } };
+          dispatch(updateUser(updatedUserData));
+          if (refetchProfile) refetchProfile();
+
           toast.success(`Location updated: ${city || state || 'Current Location'}`, { id: 'loc-toast' });
-          window.location.reload();
         } catch (err) {
-          toast.error('Could not auto-fill location details', { id: 'loc-toast' });
+          const errorMsg = err?.response?.data?.message || err?.message || 'Could not update location details';
+          toast.error(`Location error: ${errorMsg}`, { id: 'loc-toast' });
         } finally {
           setIsLocating(false);
         }

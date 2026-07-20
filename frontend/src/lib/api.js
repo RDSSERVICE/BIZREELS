@@ -9,15 +9,17 @@ const REFRESH_KEY = "bizreels_refresh_token";
 const USER_KEY = "bizreels_user";
 
 export const tokenStore = {
-  getAccess: () => localStorage.getItem(ACCESS_KEY),
-  getRefresh: () => localStorage.getItem(REFRESH_KEY),
+  getAccess: () => localStorage.getItem(ACCESS_KEY) || localStorage.getItem("accessToken"),
+  getRefresh: () => localStorage.getItem(REFRESH_KEY) || localStorage.getItem("refreshToken"),
   getUser: () => {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = localStorage.getItem(USER_KEY) || localStorage.getItem("user");
     try { return raw ? JSON.parse(raw) : null; } catch { return null; }
   },
-  set: ({ access_token, refresh_token, user }) => {
-    if (access_token) localStorage.setItem(ACCESS_KEY, access_token);
-    if (refresh_token) localStorage.setItem(REFRESH_KEY, refresh_token);
+  set: ({ access_token, refresh_token, accessToken, refreshToken, user }) => {
+    const access = access_token || accessToken;
+    const refresh = refresh_token || refreshToken;
+    if (access) localStorage.setItem(ACCESS_KEY, access);
+    if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
     if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
   },
   setUser: (user) => localStorage.setItem(USER_KEY, JSON.stringify(user)),
@@ -25,10 +27,13 @@ export const tokenStore = {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
   },
 };
 
-const api = axios.create({ baseURL: API_BASE });
+const api = axios.create({ baseURL: API_BASE, withCredentials: true });
 export { api };
 
 api.interceptors.request.use((config) => {

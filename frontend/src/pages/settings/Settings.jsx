@@ -22,6 +22,7 @@ import {
 } from 'react-icons/fi';
 import { selectCurrentUser, updateUser, logout } from '../../features/auth/authSlice';
 import { useUpdateProfileMutation, useLogoutMutation, useDeleteAccountMutation } from '../../features/auth/authApi';
+import { locationApi } from '../../lib/api';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 
@@ -198,16 +199,44 @@ const Settings = () => {
         setValue('lng', longitude);
 
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`);
-          const data = await response.json();
-          if (data && data.address) {
-            const addr = data.address;
-            const state = addr.state || '';
-            const district = addr.county || addr.state_district || addr.suburb || '';
-            const city = addr.city || addr.town || addr.village || addr.suburb || '';
-            const pincode = addr.postcode || '';
-            const fullAddress = data.display_name || '';
+          let state = '';
+          let district = '';
+          let city = '';
+          let pincode = '';
+          let fullAddress = '';
 
+          try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data && data.address) {
+                const addr = data.address;
+                state = addr.state || '';
+                district = addr.county || addr.state_district || addr.suburb || '';
+                city = addr.city || addr.town || addr.village || addr.suburb || '';
+                pincode = addr.postcode || '';
+                fullAddress = data.display_name || '';
+              }
+            }
+          } catch (e) {
+            console.warn('Nominatim reverse geocode failed, trying backend fallback', e);
+          }
+
+          if (!city && !state) {
+            try {
+              const backendGeo = await locationApi.reverseGeocode(latitude, longitude);
+              const geoData = backendGeo.data?.data || backendGeo.data || {};
+              city = geoData.city || '';
+              state = geoData.state || '';
+              district = geoData.area || '';
+              pincode = geoData.pincode || '';
+              fullAddress = `${city}${state ? `, ${state}` : ''}`;
+            } catch (e) {
+              console.warn('Backend reverseGeocode fallback failed', e);
+            }
+          }
+
+          if (city || state) {
             setValue('state', state);
             setValue('district', district);
             setValue('city', city);

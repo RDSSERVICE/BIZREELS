@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { tokenStore } from '../../lib/api';
 
 /**
  * Auth Slice
@@ -17,24 +18,40 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      const { user, accessToken } = action.payload;
-      state.user = user;
-      state.accessToken = accessToken;
-      state.isAuthenticated = true;
+      const payload = action.payload || {};
+      const user = payload.user || payload;
+      const accessToken = payload.accessToken || payload.access_token || state.accessToken;
+      const refreshToken = payload.refreshToken || payload.refresh_token;
+
+      state.user = user || state.user;
+      if (accessToken) state.accessToken = accessToken;
+      state.isAuthenticated = !!(user || state.user || accessToken);
       state.isLoading = false;
-      state.activeRole = user?.activeRole || 'customer';
+      state.activeRole = user?.activeRole || user?.current_role || state.activeRole || 'customer';
+
+      tokenStore.set({
+        access_token: accessToken || tokenStore.getAccess(),
+        refresh_token: refreshToken || tokenStore.getRefresh(),
+        user: user || state.user,
+      });
     },
     tokenRefreshed: (state, action) => {
       state.accessToken = action.payload;
+      tokenStore.set({
+        access_token: action.payload,
+        refresh_token: tokenStore.getRefresh(),
+      });
     },
     setActiveRole: (state, action) => {
       state.activeRole = action.payload;
       if (state.user) {
         state.user.activeRole = action.payload;
+        tokenStore.setUser(state.user);
       }
     },
     updateUser: (state, action) => {
       state.user = { ...state.user, ...action.payload };
+      tokenStore.setUser(state.user);
     },
     logout: (state) => {
       state.user = null;
@@ -42,6 +59,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.isLoading = false;
       state.activeRole = 'customer';
+      tokenStore.clear();
     },
     setLoading: (state, action) => {
       state.isLoading = action.payload;
