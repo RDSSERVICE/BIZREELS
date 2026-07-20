@@ -102,7 +102,7 @@ describe('Product & Service Catalog Listings API Suite', () => {
       toObject: function() { return this; },
     };
 
-    const authService = require('../src/services/authService');
+    const authService = require('../src/services/auth.service');
     vendorToken = authService.generateAccessToken(getMockDb().users[vendorId]);
   });
 

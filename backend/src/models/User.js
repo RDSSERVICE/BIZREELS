@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  phone: { type: String, sparse: true, unique: true, default: null },
+  phone: { type: String, sparse: true, unique: true, default: undefined },
   name: { type: String, default: null },
-  email: { type: String, sparse: true, unique: true, default: null },
+  email: { type: String, sparse: true, unique: true, default: undefined },
   auth_providers: { type: [mongoose.Schema.Types.Mixed], default: [] },
   roles: { type: [String], enum: ['customer', 'vendor', 'creator', 'admin'], default: ['customer'] },
   current_role: { type: String, enum: ['customer', 'vendor', 'creator', 'admin'], default: 'customer' },
@@ -71,6 +71,14 @@ const userSchema = new mongoose.Schema({
 
 userSchema.index({ is_deleted: 1 });
 userSchema.index({ 'location.coordinates': '2dsphere' });
+
+// Pre-validate hook to clean up empty/falsy sparse unique fields
+userSchema.pre('validate', function(next) {
+  if (!this.phone) this.phone = undefined;
+  if (!this.email) this.email = undefined;
+  if (!this.referral_code) this.referral_code = undefined;
+  if (typeof next === 'function') next();
+});
 
 // Pre-save hook to hash password if modified
 userSchema.pre('save', async function() {

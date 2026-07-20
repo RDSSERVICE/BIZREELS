@@ -14,11 +14,13 @@ class AuthRepository {
   // ══════════════════════════════════════════════════════════
 
   async findUserByEmail(email) {
-    return User.findOne({ email: email.toLowerCase() }).select('+password');
+    if (!email || typeof email !== 'string' || !email.trim()) return null;
+    return User.findOne({ email: email.trim().toLowerCase() }).select('+password');
   }
 
   async findUserByPhone(phone) {
-    return User.findOne({ phone }).select('+password');
+    if (!phone || typeof phone !== 'string' || !phone.trim()) return null;
+    return User.findOne({ phone: phone.trim() }).select('+password');
   }
 
   async findUserByGoogleId(googleId) {

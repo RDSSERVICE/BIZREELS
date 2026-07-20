@@ -113,6 +113,21 @@ describe('Authentication & Workspace Roles API Suite', () => {
     expect(res.body.data.user.email).toBe('testcustomer@example.com');
   });
 
+  it('1b. Should register a second user without phone number without phone collision', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        name: 'User 2',
+        email: 'user2@gmail.com',
+        password: 'User@123',
+        role: 'customer',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.user.email).toBe('user2@gmail.com');
+  });
+
   it('2. Should login user successfully and return tokens', async () => {
     // Seed user first
     const mockMongoose = require('mongoose');
@@ -156,7 +171,7 @@ describe('Authentication & Workspace Roles API Suite', () => {
       toObject: function() { return this; },
     };
 
-    const authService = require('../src/services/authService');
+    const authService = require('../src/services/auth.service');
     const token = authService.generateAccessToken(getMockDb().users[id]);
 
     const res = await request(app)
@@ -184,7 +199,7 @@ describe('Authentication & Workspace Roles API Suite', () => {
       toObject: function() { return this; },
     };
 
-    const authService = require('../src/services/authService');
+    const authService = require('../src/services/auth.service');
     const token = authService.generateAccessToken(getMockDb().users[id]);
 
     const res = await request(app)

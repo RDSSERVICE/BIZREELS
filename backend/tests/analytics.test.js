@@ -104,7 +104,7 @@ describe('Traffic Metrics & Analytics API Suite', () => {
       toObject: function() { return this; },
     };
 
-    const authService = require('../src/services/authService');
+    const authService = require('../src/services/auth.service');
     adminToken = authService.generateAccessToken(getMockDb().users[adminId]);
     clientToken = authService.generateAccessToken(getMockDb().users[customerId]);
   });

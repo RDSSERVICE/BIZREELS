@@ -20,8 +20,14 @@ const errorHandler = (err, req, res, next) => {
   // ── Mongoose Duplicate Key ──────────────────────────────
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || err.keyPattern || {})[0] || 'field';
+    const value = err.keyValue ? err.keyValue[field] : null;
     const label = field === 'phone' ? 'phone number' : field === 'email' ? 'email address' : field;
-    error = ApiError.conflict(`An account with this ${label} already exists. Please log in instead.`);
+
+    if (value === null || value === undefined || value === '') {
+      error = ApiError.badRequest(`Duplicate field constraint collision on missing ${label}. Please contact support.`);
+    } else {
+      error = ApiError.conflict(`An account with this ${label} already exists. Please log in instead.`);
+    }
   }
 
   // ── Mongoose Validation Error ───────────────────────────
