@@ -101,7 +101,7 @@ cd frontend
 npm install
 
 # Configure environment variables (.env)
-VITE_GOOGLE_MAPS_API_KEY=AIzaSyB57Xt5rd7C-GtRwzwv_5J1v6zslAIlKzQ
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 VITE_BACKEND_URL=
 # (Leave VITE_BACKEND_URL empty in local dev to use Vite proxy automatically)
 
@@ -131,7 +131,7 @@ npm run dev
 3. Build Command: `npm run build` | Output Directory: `dist`.
 4. Configure Environment Variables in Vercel Dashboard:
    - `VITE_BACKEND_URL=https://your-backend.onrender.com`
-   - `VITE_GOOGLE_MAPS_API_KEY=AIzaSyB57Xt5rd7C-GtRwzwv_5J1v6zslAIlKzQ`
+   - `VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here`
 5. Deploy. All SPA routes (`/auth/login`, `/customer`, `/vendor`, `/creator`, `/admin`) will resolve cleanly without 404 errors.
 
 ---
