@@ -1,7 +1,8 @@
 import axios from "axios";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
-export const API_BASE = `${BACKEND_URL}/api`;
+const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || '';
+const BACKEND_URL = rawBackendUrl.replace(/\/+$/, '');
+export const API_BASE = import.meta.env.VITE_API_URL || (BACKEND_URL ? `${BACKEND_URL}/api` : '/api');
 
 const ACCESS_KEY = "bizreels_access_token";
 const REFRESH_KEY = "bizreels_refresh_token";
@@ -157,7 +158,8 @@ export const mediaApi = {
 export function resolveMediaUrl(url) {
   if (!url) return url;
   if (/^https?:\/\//i.test(url)) return url;
-  return `${BACKEND_URL}${url}`;
+  if (!BACKEND_URL) return url;
+  return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
 // ---- Phase 2 ----

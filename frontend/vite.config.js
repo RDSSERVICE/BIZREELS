@@ -14,11 +14,15 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:5000',
+        target: process.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: process.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://127.0.0.1:5000',
+        target: process.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000',
         ws: true,
         changeOrigin: true,
       },

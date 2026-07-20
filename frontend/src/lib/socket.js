@@ -1,7 +1,8 @@
 import { io } from 'socket.io-client';
 import { tokenStore } from './api';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_SOCKET_URL || window.location.origin;
+const rawBackendUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+const BACKEND_URL = rawBackendUrl.replace(/\/+$/, '');
 
 let socket = null;
 
