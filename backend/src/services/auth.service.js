@@ -75,10 +75,19 @@ class AuthService {
   // REGISTRATION
   // ══════════════════════════════════════════════════════════
 
-  async registerWithEmail({ name, email, password, role }, req) {
-    const existingUser = await authRepository.findUserByEmail(email);
-    if (existingUser) {
-      throw ApiError.conflict('An account with this email already exists.');
+  async registerWithEmail({ name, email, phone, password, role }, req) {
+    if (email) {
+      const existingUser = await authRepository.findUserByEmail(email);
+      if (existingUser) {
+        throw ApiError.conflict('An account with this email address already exists. Please log in instead.');
+      }
+    }
+
+    if (phone) {
+      const existingPhone = await authRepository.findUserByPhone(phone);
+      if (existingPhone) {
+        throw ApiError.conflict('An account with this phone number already exists. Please log in instead.');
+      }
     }
 
     const targetRole = role || 'customer';
@@ -89,7 +98,8 @@ class AuthService {
 
     const user = await authRepository.createUser({
       name,
-      email: email.toLowerCase(),
+      ...(email && { email: email.toLowerCase() }),
+      ...(phone && { phone }),
       password,
       authProvider: 'local',
       roles,

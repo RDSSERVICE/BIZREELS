@@ -23,8 +23,9 @@ const errorHandler = (err, req, res, next) => {
   // Mongoose duplicate key error
   if (err.code === 11000) {
     statusCode = 409;
-    const field = Object.keys(err.keyPattern || {})[0] || 'unknown';
-    message = `Duplicate value for ${field}`;
+    const field = Object.keys(err.keyValue || err.keyPattern || {})[0] || 'field';
+    const label = field === 'phone' ? 'phone number' : field === 'email' ? 'email address' : field;
+    message = `An account with this ${label} already exists. Please log in instead.`;
   }
 
   // Mongoose cast error (invalid ObjectId)

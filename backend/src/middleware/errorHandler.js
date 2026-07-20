@@ -19,8 +19,9 @@ const errorHandler = (err, req, res, next) => {
 
   // ── Mongoose Duplicate Key ──────────────────────────────
   if (err.code === 11000) {
-    const field = Object.keys(err.keyValue).join(', ');
-    error = ApiError.conflict(`Duplicate value for field: ${field}`);
+    const field = Object.keys(err.keyValue || err.keyPattern || {})[0] || 'field';
+    const label = field === 'phone' ? 'phone number' : field === 'email' ? 'email address' : field;
+    error = ApiError.conflict(`An account with this ${label} already exists. Please log in instead.`);
   }
 
   // ── Mongoose Validation Error ───────────────────────────
