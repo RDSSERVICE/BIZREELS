@@ -84,7 +84,11 @@ const authRoutes = require('./routes/authRoutes');
 app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 
+// Mount API routes across /api/v1, /api, /v1, and root for seamless compatibility
 app.use('/api/v1', routes);
+app.use('/api', routes);
+app.use('/v1', routes);
+app.use('/', routes);
 
 // ══════════════════════════════════════════════════════════════
 // 404 HANDLER
