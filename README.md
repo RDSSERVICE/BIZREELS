@@ -1,110 +1,149 @@
-# BizReels — Local Social Commerce Platform (MERN Stack Refactor)
+# BizReels — Local Social Commerce Platform (MERN Stack)
 
-BizReels is a production-ready, highly secure local social commerce platform tailored for the Indian marketplace. Discover local vendors, chat directly, make fair deals, submit and view requirements, and browse localized content reels.
+[![Repository](https://img.shields.io/badge/GitHub-RDSSERVICE%2FBIZREELS-blue?logo=github)](https://github.com/RDSSERVICE/BIZREELS.git)
+[![Frontend](https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel)](https://bizreels.vercel.app)
+[![Backend](https://img.shields.io/badge/Render-Deployed-informational?logo=render)](https://render.com)
 
-This project has been fully refactored from its legacy Python (FastAPI) and Create React App (Webpack) architecture into a modern, unified MERN Stack application.
+BizReels is a production-ready, highly secure local social commerce platform tailored for the Indian marketplace. Discover local vendors, chat directly, negotiate fair deals, post requirements, browse localized reels, find nearby creators, and interact via interactive location maps.
 
 ---
 
 ## 🏗️ Project Architecture & Structure
 
 ```
-ecommerce-app/
-├── backend/                  # Node.js/Express Backend Server
+BIZREELS/
+├── backend/                  # Node.js & Express API Server
 │   ├── src/
-│   │   ├── config/           # Database connections and platform configurations
-│   │   ├── middleware/       # JWT auth, role validation, rate limiters, security
-│   │   ├── models/           # Mongoose schemas (22 database models)
-│   │   ├── routes/           # Express router endpoints mirroring original API
-│   │   ├── services/         # Business logic & integrations (Razorpay, SMS, AI)
-│   │   ├── utils/            # Sliding-window rate limiters, test data exclusions, helpers
-│   │   └── app.js            # Express application setup, security headers, file gates
-│   ├── uploads/              # Local storage uploads proxy folder
-│   ├── server.js             # HTTP server, socket.io gateways and cron intervals
-│   └── package.json          # Node dependencies (Mongoose, Socket.IO, Winston, Joi)
+│   │   ├── config/           # Database, Passport.js, & integration configs
+│   │   ├── controllers/      # Route controllers (Auth, Listings, Hires, Reels, etc.)
+│   │   ├── middleware/       # JWT auth, role validation, rate limiters, error handling
+│   │   ├── models/           # Mongoose schemas (22+ MongoDB database models)
+│   │   ├── repositories/     # Data access layer
+│   │   ├── routes/           # Express routes (/api/v1, /api, /v1, /auth aliases)
+│   │   ├── services/         # Business logic & integrations (Razorpay, MSG91, Gemini AI)
+│   │   ├── utils/            # ApiError, logger, helpers
+│   │   └── app.js            # Express app setup, CORS, security headers, route mounting
+│   ├── server.js             # HTTP server & Socket.io real-time gateway
+│   └── package.json          # Node.js dependencies
 │
-└── frontend/                 # React 19 Frontend Web Application
-    ├── src/
-    │   ├── components/       # UI elements and page components
-    │   ├── context/          # React Auth and Theme context providers
-    │   ├── hooks/            # Custom utility hooks
-    │   ├── lib/              # API clients and socket configurations
-    │   ├── locales/          # Localization resources (English/Hindi translations)
-    │   ├── pages/            # Application pages
-    │   ├── App.js            # Frontend Routing and application layout
-    │   └── index.js          # App entry point
-    ├── index.html            # Vite HTML template entry point
-    ├── vite.config.js        # Vite configurations (alias support, Visual Edits plugin)
-    └── package.json          # Modern frontend dependencies (React 19, Lucide, Tailwind)
+├── frontend/                 # Vite + React 19 Frontend Application
+│   ├── public/               # Static assets & Netlify _redirects configuration
+│   ├── src/
+│   │   ├── api/              # RTK Query Central API Slice
+│   │   ├── components/       # Common UI elements & Google LocationPicker
+│   │   ├── config/           # Environment & API URL configuration
+│   │   ├── features/         # Feature-specific Redux slices & API endpoints
+│   │   ├── lib/              # Axios client instance, tokenStore & Socket.io client
+│   │   ├── pages/            # Application pages (Customer, Vendor, Creator, Admin)
+│   │   ├── routes/           # React Router DOM routing
+│   │   └── index.css         # Styling with Tailwind CSS
+│   ├── vercel.json           # Vercel SPA route rewrite configuration
+│   ├── vite.config.js        # Vite bundler, path aliases, & dev server proxy
+│   └── package.json          # Frontend dependencies
+│
+└── vercel.json               # Root Vercel SPA routing configuration
 ```
 
 ---
 
-## ⚡ Key Technical Implementations
+## ⚡ Key Features & Technical Highlights
 
-1. **Role-Based Gated Middleware**: Endpoints are secure against unauthorized actions using verified JWT tokens and flexible customer/vendor/creator/admin role scopes.
-2. **Scraper-Resistant Contact Reveal**: Phone numbers are hidden by default. Access is rate-limited (max 5/day) and gated by active chats, trust badge verification, or wallet credits.
-3. **Atomic Wallet Credit Transactions**: Condition-locked WALLET payouts (e.g. KYC bonuses) avoid concurrency race conditions.
-4. **Google Gemini multimodal prompts**: Content helpers, category detections, and coaching tools dynamically parse listings metadata and media attachments.
-5. **Sliding-window Rate Limiter**: Custom sliding timestamp arrays stored in memory provide fine-grained API throttling.
-6. **Vite Bundler**: Complete build migration from Craco/CRA, compiling in seconds with custom JSX-in-JS loaders.
+1. **Multi-Role User Portals**:
+   - **Customer Portal**: Search local listings, view interactive map pins, post requirements, chat with vendors, and browse local reels.
+   - **Vendor Studio**: Manage product & service listings, boost visibility, track leads, handle orders, and hire local content creators.
+   - **Creator Marketplace**: Showcase portfolio reels/photos, manage booking availability, receive vendor project orders, and manage creator wallet payouts.
+   - **Admin Console**: Manage users, approve/takedown listings, moderate reported content, manage KYC queues, set commission rules, and configure platform settings.
+
+2. **Google Maps Integration**:
+   - Integrated `LocationPicker` component using Google Maps JS & Places Autocomplete API.
+   - Access key configured dynamically via `VITE_GOOGLE_MAPS_API_KEY`.
+
+3. **Dynamic API & Socket Routing for Cloud Deployment**:
+   - Zero hardcoding: Frontend connects to backend via `VITE_BACKEND_URL`, `VITE_API_URL`, and `VITE_SOCKET_URL`.
+   - Automatic fallback to Vite dev proxy (`/api`, `/uploads`, `/socket.io`) during local development.
+   - Multi-path Express route mounting (`/api/v1`, `/api`, `/v1`, `/`, `/auth`) for backwards compatibility and host URL variation support.
+
+4. **Single Page Application (SPA) Deep Linking**:
+   - Pre-configured `vercel.json` rewrites (`"source": "/(.*)", "destination": "/index.html"`) and `_redirects` for flawless direct URL navigation and page refresh on Vercel and Netlify.
+
+5. **Real-time WebSockets & Auth Security**:
+   - Socket.IO gateway for instant chat messaging, notification triggers, and live updates.
+   - Single-flight token refresh interceptor in Axios & RTK Query to gracefully handle 401 token rotations.
 
 ---
 
-## 🚀 Setup & Execution Instructions
+## 🚀 Local Setup & Development
 
 ### Prerequisites
 - Node.js (version >= 18.0.0)
-- MongoDB running locally or remotely
+- MongoDB instance (local or MongoDB Atlas)
 
-### Backend Setup
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Create your `.env` configuration file from the template:
-   ```bash
-   copy .env.example .env
-   ```
-3. Install package dependencies:
-   ```bash
-   npm install
-   ```
-4. Start the server in development mode:
-   ```bash
-   npm run dev
-   ```
-   *The backend will boot up, run startup database migrations, seed initial admin/categories/reels mock data, and listen on port `8001`.*
+### 1. Backend Setup
+```bash
+cd backend
 
-### Frontend Setup
-1. Navigate to the frontend directory:
-   ```bash
-   cd ../frontend
-   ```
-2. Create your `.env` configuration file:
-   ```bash
-   copy .env.example .env
-   ```
-3. Install dependencies:
-   ```bash
-   npm install --legacy-peer-deps
-   ```
-4. Run the local development server:
-   ```bash
-   npm run dev
-   ```
-   *The React app will boot up on Vite and open on `http://localhost:3000` (or the next available port).*
+# Install dependencies
+npm install
+
+# Configure environment variables (.env)
+# Set PORT=5000, MONGODB_URI, JWT_ACCESS_SECRET, etc.
+
+# Start backend dev server
+npm run dev
+```
+*The backend boots on `http://localhost:5000` with automatic DB initialization and seed options.*
+
+### 2. Frontend Setup
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Configure environment variables (.env)
+VITE_GOOGLE_MAPS_API_KEY=AIzaSyB57Xt5rd7C-GtRwzwv_5J1v6zslAIlKzQ
+VITE_BACKEND_URL=
+# (Leave VITE_BACKEND_URL empty in local dev to use Vite proxy automatically)
+
+# Start frontend dev server
+npm run dev
+```
+*The frontend boots up on `http://localhost:5173`.*
 
 ---
 
-## 🧪 Verification & Building
+## 🌐 Deployment Instructions
 
-- **Compile production bundle (Frontend)**:
+### Backend (Render / Railway / Heroku)
+1. Deploy the `backend/` folder to your Node.js hosting platform (e.g. Render).
+2. Configure Environment Variables:
+   - `NODE_ENV=production`
+   - `PORT=5000`
+   - `MONGODB_URI=<your-mongodb-connection-string>`
+   - `CLIENT_URL=https://bizreels.vercel.app`
+   - `JWT_ACCESS_SECRET=<secret>`
+   - `JWT_REFRESH_SECRET=<secret>`
+   - `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET` (Optional)
+
+### Frontend (Vercel)
+1. Import the project repository on [Vercel](https://vercel.com).
+2. Set **Root Directory** to `frontend`.
+3. Build Command: `npm run build` | Output Directory: `dist`.
+4. Configure Environment Variables in Vercel Dashboard:
+   - `VITE_BACKEND_URL=https://your-backend.onrender.com`
+   - `VITE_GOOGLE_MAPS_API_KEY=AIzaSyB57Xt5rd7C-GtRwzwv_5J1v6zslAIlKzQ`
+5. Deploy. All SPA routes (`/auth/login`, `/customer`, `/vendor`, `/creator`, `/admin`) will resolve cleanly without 404 errors.
+
+---
+
+## 🧪 Verification & Production Build
+
+- **Build Frontend**:
   ```bash
   cd frontend
   npm run build
   ```
-- **Run backend tests**:
+- **Run Backend Tests**:
   ```bash
   cd backend
   npm test
@@ -112,30 +151,7 @@ ecommerce-app/
 
 ---
 
-## 🤖 AI Guidelines & Architecture Cheat Sheet
-*This section is specifically tailored to guide any AI agent working on this codebase in the future.*
+## 📄 Repository Information
 
-### 💾 1. Database Model & Collection Mappings
-To avoid duplicate collections, all Mongoose models in `backend/src/models/` enforce explicit, lowercase collection names matching the legacy schema:
-- **`User`**: Collection `users`. Stores roles (`customer`, `vendor`, `creator`, `admin`), `kyc_status`, average response rates.
-- **`Listing`**: Collection `listings`. Uses `2dsphere` index on `location.geo` coordinates. Stores title/desc text indexes, boost settings.
-- **`Deal`**: Collection `deals`. Manages negotiations, counteroffers, and completion statuses.
-- **`ChatThread` / `Message`**: Collections `chat_threads` and `messages`. Tracks active chats and text/image/offer payloads.
-- **`KycDocument` / `Payment` / `Subscription` / `Wallet` / `WalletTransaction`**: Stored in `backend/src/models/Phase4.js`.
-- **`AuditLog` / `OTPRequest` / `RefreshToken`**: Stored in `backend/src/models/Misc.js`.
-
-### 🛡️ 2. Security Checkpoints & Gated Logic
-- **Phone Reveals (SEC-002)**: Implemented in `backend/src/services/contact-reveal.service.js`. Unlocking a vendor's contact is restricted to 5/day. Gated by relationship verification: allowed if there is an active chat/deal, if the caller is a verified Pro subscriber, or by spending 5 credits.
-- **KYC Trust+ Bonus (SEC-101)**: Implemented in `backend/src/services/trust-plus.service.js`. Uses conditional database updates `findOneAndUpdate({ user_id, bonus_flag: { $ne: true } })` to ensure bonuses are awarded atomically exactly once.
-- **Static Assets Gate (SEC-003)**: Handled in `backend/src/app.js`. Serves listing media public, but gates KYC and private profile uploads with JWT and ownership check queries.
-
-### 🔌 3. External Integrations
-- **AI Service (`backend/src/services/ai.service.js`)**: Direct HTTP calls to Google Gemini API using structured JSON output prompts, daily token usage caps, and conversational negotation guidelines.
-- **Razorpay Service (`backend/src/services/razorpay.service.js`)**: Handles order tokens creation and signature verifications. Webhook raw body parses inside `app.js` using `req.rawBody` buffer capture.
-- **MSG91 SMS Service (`backend/src/services/msg91.service.js`)**: Routes OTP sends and transactional fallback SMS notifications.
-- **FCM Push Service (`backend/src/services/fcm.service.js`)**: Logs pushes in dev mode, initialises real firebase-admin client in production.
-
-### ⚙️ 4. Build Configurations & Path Resolution
-- **Frontend Path Aliasing**: Vite handles paths starting with `@/` matching `frontend/src/` folder.
-- **JSX compilation in `.js` files**: Enforced inside `frontend/vite.config.js` via the `esbuild.loader` options. Do not rename files to `.jsx` unless they are new.
-- **Visual Edits (`@bizreelsbase/visual-edits`)**: Condition loaded in development mode only inside `vite.config.js` to avoid runtime dependencies in production.
+- **GitHub Repository**: [https://github.com/RDSSERVICE/BIZREELS.git](https://github.com/RDSSERVICE/BIZREELS.git)
+- **Branch**: `main`
