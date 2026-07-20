@@ -1,6 +1,7 @@
 const Reel = require('../models/Reel');
 const Listing = require('../models/Listing');
 const Order = require('../models/Order');
+const HireRequest = require('../models/HireRequest');
 const User = require('../models/User');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
@@ -14,18 +15,21 @@ class CreatorController {
   // ── Creator Dashboard ────────────────────────────────────
   getDashboard = asyncHandler(async (req, res) => {
     const userId = req.user._id;
+    const userIdStr = userId.toString();
 
-    const [reelsCount, pendingOrders, totalReels] = await Promise.all([
-      Reel.countDocuments({ creator: userId }),
-      Order.countDocuments({ customer_id: userId.toString(), status: 'new' }),
-      Reel.find({ creator: userId }).select('views').lean()
+    const [hireRequestsCount, pendingRequests, reels, totalOrders] = await Promise.all([
+      HireRequest.countDocuments({ creator: userId }),
+      HireRequest.countDocuments({ creator: userId, status: 'pending' }),
+      Reel.find({ creator: userId }).select('views').lean(),
+      Order.countDocuments({ customer_id: userIdStr })
     ]);
 
-    const totalViews = totalReels.reduce((acc, r) => acc + (r.views || 0), 0);
+    const totalProjectsCount = hireRequestsCount + totalOrders;
+    const totalViews = reels.reduce((acc, r) => acc + (r.views || 0), 0);
 
     return ApiResponse.ok(res, 'Creator dashboard metrics loaded.', {
-      totalProjects: reelsCount,
-      pendingRequests: pendingOrders,
+      totalProjects: totalProjectsCount,
+      pendingRequests: pendingRequests,
       totalEarnings: req.user.walletBalance || 0,
       rating: req.user.rating_avg || 5.0,
       reviewCount: req.user.rating_count || 0,
@@ -133,19 +137,64 @@ class CreatorController {
     return ApiResponse.ok(res, 'Creator availability updated.', { status: user.creatorProfile?.availability });
   });
 
-  // ── Get Creator Orders ───────────────────────────────────
+  // ── Get Creator Orders / Projects ────────────────────────
   getOrders = asyncHandler(async (req, res) => {
-    const orders = await Order.find({ customer_id: req.user._id.toString() }).sort({ createdAt: -1 }).lean();
+    const userId = req.user._id;
+    const userIdStr = userId.toString();
+
+    const [hireRequests, orders] = await Promise.all([
+      HireRequest.find({ creator: userId }).sort({ createdAt: -1 }).populate('vendor', 'name').lean(),
+      Order.find({ customer_id: userIdStr }).sort({ createdAt: -1 }).lean()
+    ]);
+
+    const mappedHires = hireRequests.map((h) => ({
+      _id: h._id.toString(),
+      id: h._id.toString(),
+      title: h.title || 'Creator Hire Request',
+      vendor_name: h.vendor?.name || 'Vendor Client',
+      amount: h.budget || 0,
+      status: h.status || 'pending',
+      created_at: h.createdAt
+    }));
+
+    const mappedOrders = orders.map((o) => ({
+      _id: o._id.toString(),
+      id: o._id.toString(),
+      title: o.items?.[0]?.title || 'Promo Reel Shoot',
+      vendor_name: 'Vendor Client',
+      amount: o.total_price || 0,
+      status: o.status || 'completed',
+      created_at: o.createdAt
+    }));
+
+    const allProjects = [...mappedHires, ...mappedOrders];
+
     return ApiResponse.ok(res, 'Creator projects loaded.', {
-      orders: orders.map((o) => ({
-        id: o._id.toString(),
-        vendor: 'Vendor Client',
-        project: o.items?.[0]?.title || 'Promo Reel Shoot',
-        amount: o.total_price || 0,
-        date: new Date(o.createdAt).toLocaleDateString(),
-        status: o.status || 'Completed'
-      }))
+      data: allProjects,
+      orders: allProjects
     });
+  });
+
+  // ── Update Creator Order / Project Status ────────────────
+  updateOrderStatus = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    let hire = await HireRequest.findOne({ _id: id, creator: req.user._id });
+    if (hire) {
+      hire.status = status;
+      await hire.save();
+      return ApiResponse.ok(res, `Project status updated to ${status}.`, { project: hire });
+    }
+
+    let order = await Order.findOne({ _id: id });
+    if (order) {
+      order.status = status;
+      await order.save();
+      return ApiResponse.ok(res, `Order status updated to ${status}.`, { order });
+    }
+
+    throw ApiError.notFound('Project or order not found.');
   });
 }
 

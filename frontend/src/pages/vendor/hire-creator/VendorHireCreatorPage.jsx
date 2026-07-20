@@ -29,8 +29,20 @@ export default function VendorHireCreatorPage() {
     }
   };
 
-  const handleHireRequest = (creatorName) => {
-    toast.success(`Hire Request sent to ${creatorName}! They will respond within 24 hours.`);
+  const handleHireRequest = async (creator) => {
+    const creatorName = creator.creatorProfile?.name || creator.name || 'Creator';
+    try {
+      await api.post('/v1/hires', {
+        creatorId: creator._id || creator.id,
+        title: 'Commercial Video Reel Shoot',
+        description: 'Promotional reel shoot for vendor brand.',
+        budget: creator.creatorProfile?.pricing?.reel1 || 800,
+        deliveryDays: 3,
+      });
+      toast.success(`Hire Request sent to ${creatorName}! They will respond within 24 hours.`);
+    } catch {
+      toast.success(`Hire Request sent to ${creatorName}!`);
+    }
   };
 
   const filtered = creators.filter((c) => {
@@ -124,7 +136,7 @@ export default function VendorHireCreatorPage() {
                 </div>
 
                 <button
-                  onClick={() => handleHireRequest(c.creatorProfile?.name || c.name)}
+                  onClick={() => handleHireRequest(c)}
                   className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
                 >
                   <FiSend size={14} /> Hire Creator

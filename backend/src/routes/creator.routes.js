@@ -22,5 +22,6 @@ router.get('/availability', authenticate, creatorController.getAvailability);
 router.patch('/availability', authenticate, creatorController.updateAvailability);
 
 router.get('/orders', authenticate, creatorController.getOrders);
+router.patch('/orders/:id/status', authenticate, creatorController.updateOrderStatus);
 
 module.exports = router;
