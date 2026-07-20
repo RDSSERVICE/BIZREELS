@@ -47,6 +47,7 @@ router.post('/forgot-password', authLimiter, authValidation.forgotPassword, vali
 router.post('/reset-password', authLimiter, authValidation.resetPassword, validate, authController.resetPassword);
 
 router.post('/refresh-token', authController.refreshToken);
+router.post('/refresh', authController.refreshToken);
 
 // Google OAuth
 router.get(

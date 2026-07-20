@@ -84,6 +84,18 @@ const authRoutes = require('./routes/authRoutes');
 app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 
+// Root health check & favicon handlers
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'BizReels Backend API is running',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Mount API routes across /api/v1, /api, /v1, and root for seamless compatibility
 app.use('/api/v1', routes);
 app.use('/api', routes);
