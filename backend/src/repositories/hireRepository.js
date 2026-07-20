@@ -30,11 +30,11 @@ class HireRepository {
   }
 
   async updateRequestStatus(id, status) {
-    return HireRequest.findByIdAndUpdate(id, { status }, { new: true });
+    return HireRequest.findByIdAndUpdate(id, { status }, { returnDocument: 'after' });
   }
 
   async setPaymentStatus(id, paymentStatus) {
-    return HireRequest.findByIdAndUpdate(id, { paymentStatus }, { new: true });
+    return HireRequest.findByIdAndUpdate(id, { paymentStatus }, { returnDocument: 'after' });
   }
 }
 

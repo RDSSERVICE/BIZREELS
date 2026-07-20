@@ -143,7 +143,7 @@ const markPaid = async (commissionId) => {
   const updated = await Commission.findOneAndUpdate(
     { _id: commissionId, is_deleted: { $ne: true } },
     { $set: { status: 'paid_out', paid_out_at: now } },
-    { new: true }
+    { returnDocument: 'after' }
   );
   return serializeCommission(updated);
 };

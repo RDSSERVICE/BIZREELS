@@ -129,7 +129,7 @@ class ListingController {
     const user = await userModel.findByIdAndUpdate(
       req.user._id,
       { $addToSet: { 'customerProfile.savedListings': id } },
-      { new: true }
+      { returnDocument: 'after' }
     ).select('-password -__v')
     .populate({
       path: 'customerProfile.savedListings',
@@ -148,7 +148,7 @@ class ListingController {
     const user = await userModel.findByIdAndUpdate(
       req.user._id,
       { $pull: { 'customerProfile.savedListings': id } },
-      { new: true }
+      { returnDocument: 'after' }
     ).select('-password -__v')
     .populate({
       path: 'customerProfile.savedListings',

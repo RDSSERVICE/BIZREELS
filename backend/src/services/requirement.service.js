@@ -284,7 +284,7 @@ async function quoteSchemaUpdate(quoteId) {
   return Quote.findByIdAndUpdate(
     quoteId,
     { status: 'accepted', paymentStatus: 'paid' },
-    { new: true }
+    { returnDocument: 'after' }
   ).populate('vendor', 'name avatarUrl phone email');
 }
 

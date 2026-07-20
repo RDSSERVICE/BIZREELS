@@ -21,14 +21,14 @@ class LiveRepository {
   }
 
   async endStream(id) {
-    return LiveStream.findByIdAndUpdate(id, { status: 'ended' }, { new: true });
+    return LiveStream.findByIdAndUpdate(id, { status: 'ended' }, { returnDocument: 'after' });
   }
 
   async incrementViewers(id, amount) {
     return LiveStream.findByIdAndUpdate(
       id,
       { $inc: { viewersCount: amount } },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 
@@ -36,7 +36,7 @@ class LiveRepository {
     return LiveStream.findByIdAndUpdate(
       id,
       { $inc: { likesCount: amount } },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 }

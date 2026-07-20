@@ -42,7 +42,7 @@ class ReviewRepository {
     return Review.findOneAndUpdate(
       { _id: id, author: authorId },
       { isDeleted: true, deletedAt: new Date() },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 

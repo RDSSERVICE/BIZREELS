@@ -43,7 +43,7 @@ class AuthRepository {
 
   async updateUser(id, updateData) {
     return User.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     }).select('-password -__v');
   }

@@ -92,7 +92,12 @@ const authApi = apiSlice.injectEndpoints({
         url: '/auth/logout',
         method: 'POST',
       }),
-      invalidatesTags: ['User'],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch {}
+        dispatch(apiSlice.util.resetApiState());
+      },
     }),
 
     // ── Logout All Devices ──────────────────────────────

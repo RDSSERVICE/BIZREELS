@@ -101,7 +101,7 @@ const submitDocument = async (userId, docType, docNumber, docUrl, additionalData
     saved = await KycDocument.findOneAndUpdate(
       { _id: existing._id },
       { $set: { ...docData, resubmitted_at: now } },
-      { new: true }
+      { returnDocument: 'after' }
     );
   } else {
     saved = await KycDocument.create(docData);

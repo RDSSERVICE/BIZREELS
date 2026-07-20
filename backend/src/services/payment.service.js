@@ -80,7 +80,7 @@ const applySuccess = async (payment, razorpayPaymentId, signature) => {
       },
       $push: { attempts: { at: now, event: 'captured' } },
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   const userId = updated.user_id.toString();

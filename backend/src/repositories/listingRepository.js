@@ -19,7 +19,7 @@ class ListingRepository {
     return Listing.findOneAndUpdate(
       { _id: id, vendor: vendorId },
       updateData,
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 
@@ -27,7 +27,7 @@ class ListingRepository {
     return Listing.findOneAndUpdate(
       { _id: id, vendor: vendorId },
       { isDeleted: true, deletedAt: new Date() },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 

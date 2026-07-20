@@ -72,7 +72,7 @@ const activateSubscriptionFromPayment = async (payment) => {
         },
         $push: { payment_ids: payment._id.toString() },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     subDoc = updated;
     extended = true;

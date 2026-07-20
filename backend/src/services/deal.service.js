@@ -104,7 +104,7 @@ const counter = async (dealId, userId, amount, note = null) => {
   const updated = await Deal.findOneAndUpdate(
     { _id: dealId },
     { $set: { current_offer: parseFloat(amount), offers_history: hist, updated_at: now } },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   await chatService.sendMessage(d.thread_id, userId, {
@@ -134,7 +134,7 @@ const setDealStatus = async (dealId, userId, newStatus, systemText) => {
   const updated = await Deal.findOneAndUpdate(
     { _id: dealId },
     { $set: { status: newStatus, updated_at: now } },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   await chatService.sendMessage(d.thread_id, userId, {
@@ -174,7 +174,7 @@ const complete = async (dealId, userId) => {
     const updated = await Deal.findOneAndUpdate(
       { _id: dealId },
       { $set: { completion_pending_from: userId, updated_at: now } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     await chatService.sendMessage(d.thread_id, userId, {
       type: 'system',
@@ -186,7 +186,7 @@ const complete = async (dealId, userId) => {
     const updated = await Deal.findOneAndUpdate(
       { _id: dealId },
       { $set: { status: 'completed', updated_at: now } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     await chatService.sendMessage(d.thread_id, userId, {
       type: 'system',

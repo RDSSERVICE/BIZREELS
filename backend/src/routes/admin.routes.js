@@ -879,7 +879,7 @@ router.post('/subscription/plans', requireAuth, requireAdmin, catchAsync(async (
 
 router.patch('/subscription/plans/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const { SubscriptionPlan } = require('../models/Admin');
-  const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+  const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, { $set: req.body }, { returnDocument: 'after' });
   if (!plan) throw ApiError.notFound('Plan not found');
   res.json({ ok: true, plan });
 }));

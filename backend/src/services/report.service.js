@@ -176,7 +176,7 @@ const resolveReport = async (rid, adminId, action, note) => {
         updated_at: now,
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   return serializeReport(updated);
@@ -201,7 +201,7 @@ const dismissReport = async (rid, adminId, reason = null) => {
         updated_at: now,
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   return serializeReport(updated);

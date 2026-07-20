@@ -49,7 +49,7 @@ const maybeGrantBonus = async (userId) => {
   const marker = await User.findOneAndUpdate(
     { _id: userId, has_received_profile_complete_bonus: { $ne: true } },
     { $set: { has_received_profile_complete_bonus: true, updated_at: new Date().toISOString() } },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   if (!marker) {

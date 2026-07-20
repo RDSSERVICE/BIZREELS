@@ -175,11 +175,11 @@ class RequirementRepository {
   }
 
   async updateQuoteStatus(quoteId, status) {
-    return Quote.findByIdAndUpdate(quoteId, { status }, { new: true });
+    return Quote.findByIdAndUpdate(quoteId, { status }, { returnDocument: 'after' });
   }
 
   async setQuotePaymentStatus(quoteId, paymentStatus) {
-    return Quote.findByIdAndUpdate(quoteId, { paymentStatus }, { new: true });
+    return Quote.findByIdAndUpdate(quoteId, { paymentStatus }, { returnDocument: 'after' });
   }
 
   async logAudit({ userId, action, entityId, description, ip, agent }) {

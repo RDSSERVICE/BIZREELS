@@ -187,7 +187,7 @@ const updateCategory = async (cid, updates) => {
   if (Object.keys(clean).length === 0) {
     throw ApiError.badRequest('No updatable fields');
   }
-  const doc = await Category.findOneAndUpdate({ _id: cid }, { $set: clean }, { new: true });
+  const doc = await Category.findOneAndUpdate({ _id: cid }, { $set: clean }, { returnDocument: 'after' });
   if (!doc) {
     throw ApiError.notFound('Category not found');
   }

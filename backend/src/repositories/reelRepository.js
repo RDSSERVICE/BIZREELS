@@ -138,7 +138,7 @@ class ReelRepository {
 
   // ── Increment Views Count ───────────────────────────────
   async incrementViews(id) {
-    return Reel.findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true });
+    return Reel.findByIdAndUpdate(id, { $inc: { views: 1 } }, { returnDocument: 'after' });
   }
 
   // ── Like / Toggle Like ──────────────────────────────────
@@ -227,7 +227,7 @@ class ReelRepository {
     return Reel.findOneAndUpdate(
       { _id: id, creator: creatorId },
       { isDeleted: true, deletedAt: new Date() },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 

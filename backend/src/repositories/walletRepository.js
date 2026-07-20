@@ -55,7 +55,7 @@ class WalletRepository {
         updatedUser = await User.findByIdAndUpdate(
           userId,
           { $inc: { walletBalance: amount } },
-          { new: true, session }
+          { returnDocument: 'after', session }
         );
       });
 
@@ -116,7 +116,7 @@ class WalletRepository {
               },
             },
           },
-          { new: true, session }
+          { returnDocument: 'after', session }
         );
       });
 
