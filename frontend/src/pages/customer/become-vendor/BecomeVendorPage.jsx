@@ -793,6 +793,7 @@ export default function BecomeVendorPage() {
                     onChange={(e) => setServiceRadius(e.target.value)}
                     className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-semibold text-text-primary"
                   >
+                    <option value="500 mtr">500 mtr</option>
                     <option value="1 km">1 km</option>
                     <option value="2 km">2 km</option>
                     <option value="5 km">5 km</option>

@@ -1,9 +1,11 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import {
   FiPackage, FiTool, FiVideo, FiEye, FiUsers, FiInbox,
-  FiShoppingCart, FiDollarSign, FiZap, FiGrid
+  FiShoppingCart, FiDollarSign, FiZap, FiGrid, FiShield
 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
+import { selectCurrentUser } from '../../../features/auth/authSlice';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import {
@@ -33,8 +35,51 @@ export default function VendorDashboardPage() {
     { label: 'Active Boosts', value: `${boosts.length} Reels`, icon: FiZap, color: 'orange', trend: 0 },
   ];
 
+  const currentUser = useSelector(selectCurrentUser);
+  const vendorProfile = currentUser?.vendorProfile || {};
+  const currentTier = vendorProfile.verificationStatus || 'unverified';
+
+  const getTierInfo = (tier) => {
+    switch (tier) {
+      case 'premium_verified':
+        return { icon: '🔵', label: 'Premium Verified (Future)', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
+      case 'verified_vendor':
+        return { icon: '🟢', label: 'Verified Vendor (BATCH)', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      case 'partially_verified':
+        return { icon: '🟡', label: 'Partially Verified', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+      default:
+        return { icon: '⚪', label: 'Unverified Vendor', color: 'bg-slate-500/10 text-slate-600 border-slate-500/20' };
+    }
+  };
+
+  const badgeInfo = getTierInfo(currentTier);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
+      {/* Top Verification Status & Dialogue Banner */}
+      <div className="glass rounded-2xl p-4 sm:p-5 border border-border shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{badgeInfo.icon}</span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeInfo.color}`}>
+                {badgeInfo.label}
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary mt-1">
+              Verify your business to get more leads, higher boost ranking in reels, and maximum buyer trust!
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/vendor/verification"
+          className="px-4 py-2 rounded-xl gradient-brand text-white text-xs font-bold shadow-premium hover:opacity-90 transition flex-shrink-0 flex items-center gap-1.5"
+        >
+          <FiShield size={15} />
+          <span>Open Verification Menu</span>
+        </Link>
+      </div>
+
       {/* Header Banner */}
       <AdminPageHeader
         icon={FiGrid}
