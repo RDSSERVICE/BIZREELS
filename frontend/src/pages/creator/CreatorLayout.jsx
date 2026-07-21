@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
+import { tokenStore } from '../../lib/api';
 
 const NAV_SECTIONS = [
   {
@@ -52,7 +53,10 @@ export default function CreatorLayout() {
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
-  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 300000 });
+  const { data: profileRes } = useGetMeQuery(undefined, {
+    pollingInterval: 300000,
+    skip: !user && !tokenStore.getAccess(),
+  });
   const [switchRoleApi] = useSwitchRoleMutation();
   const [logoutApi] = useLogoutMutation();
 

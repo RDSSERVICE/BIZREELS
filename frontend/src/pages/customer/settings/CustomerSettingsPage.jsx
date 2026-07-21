@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { setCredentials, logout } from '../../../features/auth/authSlice';
-import { locationApi } from '../../../lib/api';
+import { locationApi, tokenStore } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
@@ -14,7 +14,10 @@ export default function CustomerSettingsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state) => state.auth);
-  const { data: profileRes } = useGetMeQuery(undefined, { pollingInterval: 300000 });
+  const { data: profileRes } = useGetMeQuery(undefined, {
+    pollingInterval: 300000,
+    skip: !authUser && !tokenStore.getAccess(),
+  });
   const [updateProfileApi] = useUpdateProfileMutation();
 
   const user = profileRes?.data?.user || profileRes?.user || authUser || {};

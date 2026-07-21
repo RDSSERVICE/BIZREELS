@@ -8,6 +8,8 @@ import AppRoutes from './routes';
 import Loader from './components/common/Loader';
 import { AuthProvider } from './context/AuthContext';
 
+import { tokenStore } from './lib/api';
+
 /**
  * Root Application Component
  * Performs initial silent login verification on mount.
@@ -16,13 +18,21 @@ function App() {
   const dispatch = useDispatch();
   const isAuthLoading = useSelector(selectAuthLoading);
 
-  // Trigger base profile query on mount to check cookie session
+  const hasToken = !!(tokenStore.getAccess() || tokenStore.getRefresh());
+
+  // Trigger base profile query on mount only if user has a stored access/refresh token
   const { data: profileRes, error, isSuccess, isLoading } = useGetMeQuery(undefined, {
+    skip: !hasToken,
     retryOnMountOrArgChange: false,
-    refetchOnFocus: false
+    refetchOnFocus: false,
   });
 
   useEffect(() => {
+    if (!hasToken) {
+      dispatch(setLoading(false));
+      return;
+    }
+
     // If request is fetching, keep loading true
     if (isLoading) {
       dispatch(setLoading(true));
@@ -31,17 +41,18 @@ function App() {
 
     if (isSuccess && profileRes) {
       // Session exists, populate credentials (silent sign-in)
+      const fetchedUser = profileRes?.data?.user || profileRes?.user;
       dispatch(
         setCredentials({
-          user: profileRes.data.user,
-          accessToken: null, // access token is handled via HttpOnly cookie fallback or fetched during rotation
+          user: fetchedUser,
+          accessToken: tokenStore.getAccess(),
         })
       );
     } else if (error) {
       // No active session cookie or invalid, clear auth state
       dispatch(logout());
     }
-  }, [isLoading, isSuccess, profileRes, error, dispatch]);
+  }, [hasToken, isLoading, isSuccess, profileRes, error, dispatch]);
 
   if (isAuthLoading) {
     return <Loader fullPage />;

@@ -1,5 +1,6 @@
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+const config = require('../config');
 
 /**
  * Global error-handling middleware.
@@ -74,11 +75,12 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // ── Response ────────────────────────────────────────────
+  const isDev = process.env.NODE_ENV === 'development' || (config.env === 'development' && process.env.NODE_ENV !== 'production');
   const response = {
     success: false,
     message: error.message || 'Internal Server Error',
     ...(error.errors && error.errors.length > 0 && { errors: error.errors }),
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
+    ...(isDev && { stack: error.stack }),
   };
 
   res.status(statusCode).json(response);

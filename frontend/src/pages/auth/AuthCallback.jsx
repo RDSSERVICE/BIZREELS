@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
-import { setCredentials } from '../../features/auth/authSlice';
+import { setCredentials, tokenRefreshed } from '../../features/auth/authSlice';
 import { useGetMeQuery } from '../../features/auth/authApi';
+import { tokenStore } from '../../lib/api';
 import Loader from '../../components/common/Loader';
 
 /**
@@ -15,24 +16,31 @@ const AuthCallback = () => {
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
 
-  const token = searchParams.get('accessToken');
+  const token = searchParams.get('accessToken') || searchParams.get('token') || searchParams.get('access_token');
+  const [tokenReady, setTokenReady] = useState(false);
 
-  // Trigger lazy query when token is parsed
-  const { data: userProfile, error, isSuccess, isLoading } = useGetMeQuery(undefined, {
-    skip: !token,
+  useEffect(() => {
+    if (token) {
+      tokenStore.set({ access_token: token });
+      dispatch(tokenRefreshed(token));
+      setTokenReady(true);
+    } else {
+      toast.error('Authentication failed. No token received.');
+      navigate('/auth/login', { replace: true });
+    }
+  }, [token, dispatch, navigate]);
+
+  // Trigger lazy query only after token has been set in tokenStore
+  const { data: userProfile, error, isSuccess } = useGetMeQuery(undefined, {
+    skip: !tokenReady,
   });
 
   useEffect(() => {
-    if (!token) {
-      toast.error('Authentication failed. No token received.');
-      navigate('/auth/login', { replace: true });
-      return;
-    }
-
-    if (isSuccess && userProfile) {
+    if (tokenReady && isSuccess && userProfile) {
+      const user = userProfile?.data?.user || userProfile?.user;
       dispatch(
         setCredentials({
-          user: userProfile.data.user,
+          user,
           accessToken: token,
         })
       );
@@ -40,11 +48,11 @@ const AuthCallback = () => {
       navigate('/feed', { replace: true });
     }
 
-    if (error) {
+    if (tokenReady && error) {
       toast.error('Failed to retrieve user profile.');
       navigate('/auth/login', { replace: true });
     }
-  }, [token, isSuccess, userProfile, error, dispatch, navigate]);
+  }, [tokenReady, isSuccess, userProfile, error, token, dispatch, navigate]);
 
   return <Loader fullPage />;
 };

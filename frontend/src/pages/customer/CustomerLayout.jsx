@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, updateUser, selectCurrentUser } from '../../features/auth/authSlice';
-import { api, locationApi } from '../../lib/api';
+import { api, locationApi, tokenStore } from '../../lib/api';
 
 /**
  * CustomerLayout — Admin-style fixed sidebar layout for Customer Portal
@@ -21,7 +21,10 @@ export default function CustomerLayout() {
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
-  const { data: profileData, refetch: refetchProfile } = useGetMeQuery(undefined, { pollingInterval: 300000 });
+  const { data: profileData, refetch: refetchProfile } = useGetMeQuery(undefined, {
+    pollingInterval: 300000,
+    skip: !user && !tokenStore.getAccess(),
+  });
   const [switchRoleApi] = useSwitchRoleMutation();
   const [logoutApi] = useLogoutMutation();
 
