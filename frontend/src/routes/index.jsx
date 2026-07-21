@@ -48,6 +48,7 @@ import VendorWalletPage from '../pages/vendor/wallet/VendorWalletPage';
 import VendorReviewsPage from '../pages/vendor/reviews/VendorReviewsPage';
 import VendorSettingsPage from '../pages/vendor/settings/VendorSettingsPage';
 import VendorHireCreatorPage from '../pages/vendor/hire-creator/VendorHireCreatorPage';
+import VendorVerificationPage from '../pages/vendor/verification/VendorVerificationPage';
 
 // Creator Pages
 import CreatorDashboardPage from '../pages/creator/dashboard/CreatorDashboardPage';
@@ -60,6 +61,7 @@ import CreatorWalletPage from '../pages/creator/wallet/CreatorWalletPage';
 import CreatorOrdersPage from '../pages/creator/orders/CreatorOrdersPage';
 import CreatorReviewsPage from '../pages/creator/reviews/CreatorReviewsPage';
 import CreatorAnalyticsPage from '../pages/creator/analytics/CreatorAnalyticsPage';
+import CreatorVerificationPage from '../pages/creator/verification/CreatorVerificationPage';
 
 // Admin Pages
 import AdminLogin from '../pages/admin/AdminLogin';
@@ -154,6 +156,7 @@ const AppRoutes = () => {
       >
         <Route path="dashboard" element={<VendorDashboardPage />} />
         <Route path="profile" element={<VendorBusinessProfilePage />} />
+        <Route path="verification" element={<VendorVerificationPage />} />
         <Route path="listings" element={<VendorListingsPage />} />
         <Route path="reels" element={<VendorReelsPage />} />
         <Route path="boost" element={<VendorReelBoostPage />} />
@@ -181,6 +184,7 @@ const AppRoutes = () => {
       >
         <Route path="dashboard" element={<CreatorDashboardPage />} />
         <Route path="profile" element={<CreatorProfilePage />} />
+        <Route path="verification" element={<CreatorVerificationPage />} />
         <Route path="portfolio" element={<CreatorPortfolioPage />} />
         <Route path="pricing" element={<CreatorPricingPage />} />
         <Route path="availability" element={<CreatorAvailabilityPage />} />

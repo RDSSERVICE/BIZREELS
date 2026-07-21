@@ -1,5 +1,6 @@
 import React from 'react';
-import { FiVideo, FiClock, FiDollarSign, FiStar, FiEye } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { FiVideo, FiClock, FiDollarSign, FiStar, FiEye, FiShield } from 'react-icons/fi';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import { useGetCreatorDashboardQuery } from '../../../features/creator/creatorApi';
@@ -45,6 +46,30 @@ export default function CreatorDashboardPage() {
           ))}
         </div>
       )}
+
+      {/* Creator Verification Status Card */}
+      <div className="glass rounded-3xl p-6 border border-border shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl gradient-brand text-white flex items-center justify-center font-bold flex-shrink-0 shadow-md">
+            <FiShield size={24} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-text-primary font-display">Creator Identity Verification Center</h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                {statsData.verificationStatus || '⚪ Get Verified'}
+              </span>
+            </div>
+            <p className="text-xs text-text-tertiary mt-0.5">Verify your Mobile, WhatsApp, Aadhaar, PAN & Payout details to unlock 5x more brand offers & verified badge.</p>
+          </div>
+        </div>
+        <Link
+          to="/creator/verification"
+          className="px-4 py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-premium hover:opacity-90 transition flex-shrink-0"
+        >
+          Open Verification Center →
+        </Link>
+      </div>
     </div>
   );
 }

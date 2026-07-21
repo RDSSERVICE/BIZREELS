@@ -24,6 +24,7 @@ const NAV_SECTIONS = [
     title: 'Business',
     items: [
       { name: 'Business Profile', path: '/vendor/profile', icon: FiUser },
+      { name: 'Verification Center', path: '/vendor/verification', icon: FiShield, badge: 'Badge' },
       { name: 'My Listings', path: '/vendor/listings', icon: FiPackage },
       { name: 'Reels & AI Ads', path: '/vendor/reels', icon: FiVideo },
       { name: 'Reel Boost', path: '/vendor/boost', icon: FiZap, badge: 'Revenue' },
@@ -216,6 +217,24 @@ export default function VendorLayout() {
     </div>
   );
 
+  const currentTier = vendorProfile.verificationStatus || 'unverified';
+  const isSubscribed = !!profileUser.is_subscribed_verified;
+
+  const getTierBadge = () => {
+    if (currentTier === 'premium_verified' || (isSubscribed && currentTier === 'verified_vendor')) {
+      return { icon: '🔵', label: 'Premium Verified', class: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
+    }
+    if (currentTier === 'verified_vendor') {
+      return { icon: '🟢', label: 'Verified Vendor', class: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+    }
+    if (currentTier === 'partially_verified') {
+      return { icon: '🟡', label: 'Partially Verified', class: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+    }
+    return { icon: '⚪', label: 'Unverified Vendor', class: 'bg-slate-500/10 text-slate-600 border-slate-500/20' };
+  };
+
+  const badgeInfo = getTierBadge();
+
   return (
     <div className="min-h-screen bg-surface-secondary flex">
       {/* Desktop Sidebar */}
@@ -244,7 +263,7 @@ export default function VendorLayout() {
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 glass border-b border-border px-4 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-20 glass border-b border-border px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -254,11 +273,20 @@ export default function VendorLayout() {
             </button>
             <div className="flex items-center gap-2">
               <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden" />
-              <h1 className="text-sm font-bold text-text-primary font-display">Vendor Portal</h1>
+              <h1 className="text-sm font-bold text-text-primary font-display hidden sm:block">Vendor Portal</h1>
+              
+              {/* Top Bar Status Badge */}
+              <Link
+                to="/vendor/verification"
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5 transition hover:opacity-80 ${badgeInfo.class}`}
+              >
+                <span>{badgeInfo.icon}</span>
+                <span>{badgeInfo.label}</span>
+              </Link>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {/* Shop Status Toggle */}
             <button
               onClick={handleToggleShopStatus}
@@ -269,12 +297,12 @@ export default function VendorLayout() {
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${isShopClosed ? 'bg-error' : 'bg-emerald-500 animate-pulse'}`} />
-              <span>{isShopClosed ? 'Shop Closed' : 'Shop Open'}</span>
+              <span className="hidden sm:inline">{isShopClosed ? 'Shop Closed' : 'Shop Open'}</span>
             </button>
 
             <button
               onClick={handleSwitchToCustomer}
-              className="px-3.5 py-1.5 rounded-xl glass border border-border hover:bg-surface-tertiary text-text-secondary hover:text-text-primary text-xs font-bold flex items-center gap-1.5 transition"
+              className="px-3 py-1.5 rounded-xl glass border border-border hover:bg-surface-tertiary text-text-secondary hover:text-text-primary text-xs font-bold flex items-center gap-1.5 transition"
             >
               <FiShield size={14} className="text-brand-purple" />
               <span className="hidden sm:inline">Switch to Customer</span>
@@ -287,6 +315,22 @@ export default function VendorLayout() {
             />
           </div>
         </header>
+
+        {/* Verification Dialogue Banner (Show if not fully verified) */}
+        {currentTier !== 'verified_vendor' && currentTier !== 'premium_verified' && (
+          <div className="bg-gradient-to-r from-brand-purple via-brand-pink to-brand-orange text-white px-4 py-2 text-xs font-semibold flex items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-2 truncate">
+              <span className="text-base">🟢</span>
+              <span className="truncate">Verify your business details & get up to 5x more customer leads, priority boost in reels, and maximum buyer trust!</span>
+            </div>
+            <Link
+              to="/vendor/verification"
+              className="px-3 py-1 bg-white text-brand-purple rounded-lg font-bold text-[11px] hover:bg-white/90 transition flex-shrink-0 shadow-sm"
+            >
+              Verify Now
+            </Link>
+          </div>
+        )}
 
         {/* Page Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
