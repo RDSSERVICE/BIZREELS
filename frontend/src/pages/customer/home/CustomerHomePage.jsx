@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
   FiMapPin, FiSearch, FiSliders, FiPlay, FiVolume2, FiVolumeX, FiCheck
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
+import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
 
 export default function CustomerHomePage() {
   const [activeTab, setActiveTab] = useState('reels'); // 'reels' | 'images'
@@ -15,8 +16,17 @@ export default function CustomerHomePage() {
   const [savedMap, setSavedMap] = useState({});
   const [followingMap, setFollowingMap] = useState({});
   const [muted, setMuted] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [distanceFilter, setDistanceFilter] = useState('50');
+
+  // Home Feed Search & Filter State
+  const [filters, setFilters] = useState({
+    searchQuery: '',
+    type: 'all',
+    duration: 'all',
+    nearby: 'near_me',
+    distanceKm: '50',
+    uploadDate: 'all',
+    popularity: 'trending',
+  });
 
   useEffect(() => {
     fetchFeedData();
@@ -57,39 +67,130 @@ export default function CustomerHomePage() {
     toast.success(followingMap[vendorId] ? 'Unfollowed vendor' : 'Following vendor');
   };
 
+  // Filter & Sort Logic for Reels & Images
+  const processedReels = useMemo(() => {
+    let result = [...reels];
+
+    // 1. Search Query
+    if (filters.searchQuery.trim()) {
+      const q = filters.searchQuery.toLowerCase();
+      result = result.filter((r) =>
+        (r.caption && r.caption.toLowerCase().includes(q)) ||
+        (r.creator?.name && r.creator.name.toLowerCase().includes(q)) ||
+        (r.location?.address && r.location.address.toLowerCase().includes(q)) ||
+        (r.hashtags && r.hashtags.some((h) => h.toLowerCase().includes(q)))
+      );
+    }
+
+    // 2. Type Filter (Product Reel, Service Reel, Offer Reel, Announcement, Shop promotion)
+    if (filters.type !== 'all') {
+      const targetType = filters.type.toLowerCase();
+      result = result.filter((r) => {
+        const rType = (r.reelType || r.type || r.category || '').toLowerCase();
+        const rCaption = (r.caption || '').toLowerCase();
+        return rType.includes(targetType) || rCaption.includes(targetType);
+      });
+    }
+
+    // 3. Duration Filter (Under 15 sec, Under 30 sec)
+    if (filters.duration === 'under15') {
+      result = result.filter((r) => !r.duration || r.duration <= 15);
+    } else if (filters.duration === 'under30') {
+      result = result.filter((r) => !r.duration || r.duration <= 30);
+    }
+
+    // 4. Upload Date Filter (Today, This Week, This Month)
+    if (filters.uploadDate !== 'all') {
+      const now = new Date();
+      result = result.filter((r) => {
+        if (!r.createdAt) return true;
+        const created = new Date(r.createdAt);
+        const diffHours = (now - created) / (1000 * 60 * 60);
+        if (filters.uploadDate === 'today') return diffHours <= 24;
+        if (filters.uploadDate === 'this_week') return diffHours <= 24 * 7;
+        if (filters.uploadDate === 'this_month') return diffHours <= 24 * 30;
+        return true;
+      });
+    }
+
+    // 5. Popularity / Sort (Most Viewed, Most Liked, Most Shared, Most Saved, Trending)
+    switch (filters.popularity) {
+      case 'most_viewed':
+        result.sort((a, b) => (b.views || 0) - (a.views || 0));
+        break;
+      case 'most_liked':
+        result.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
+        break;
+      case 'most_shared':
+        result.sort((a, b) => (b.sharesCount || b.shares || 0) - (a.sharesCount || a.shares || 0));
+        break;
+      case 'most_saved':
+        result.sort((a, b) => (b.savesCount || b.saves || 0) - (a.savesCount || a.saves || 0));
+        break;
+      case 'trending':
+      default:
+        result.sort((a, b) => {
+          if (a.isBoosted && !b.isBoosted) return -1;
+          if (!a.isBoosted && b.isBoosted) return 1;
+          return (b.likesCount || 0) + (b.views || 0) - ((a.likesCount || 0) + (a.views || 0));
+        });
+        break;
+    }
+
+    return result;
+  }, [reels, filters]);
+
+  const processedImages = useMemo(() => {
+    let result = [...images];
+
+    // 1. Search Query
+    if (filters.searchQuery.trim()) {
+      const q = filters.searchQuery.toLowerCase();
+      result = result.filter((img) =>
+        (img.title && img.title.toLowerCase().includes(q)) ||
+        (img.description && img.description.toLowerCase().includes(q)) ||
+        (img.category && img.category.toLowerCase().includes(q))
+      );
+    }
+
+    // 2. Type Filter
+    if (filters.type !== 'all') {
+      const targetType = filters.type.toLowerCase();
+      result = result.filter((img) => {
+        const itemType = (img.type || img.category || '').toLowerCase();
+        return itemType.includes(targetType);
+      });
+    }
+
+    // 3. Popularity Sort
+    switch (filters.popularity) {
+      case 'most_viewed':
+        result.sort((a, b) => (b.views || 0) - (a.views || 0));
+        break;
+      case 'most_liked':
+        result.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
+        break;
+      case 'most_saved':
+        result.sort((a, b) => (b.savesCount || 0) - (a.savesCount || 0));
+        break;
+      case 'trending':
+      default:
+        result.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
+        break;
+    }
+
+    return result;
+  }, [images, filters]);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-      {/* Search & Distance Bar (Admin glass style) */}
-      <div className="glass rounded-2xl p-4 border border-white/50 shadow-card flex flex-col sm:flex-row gap-3 items-center">
-        <div className="relative flex-1 w-full">
-          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search nearby products, services, reels, vendors..."
-            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-between">
-          <div className="flex items-center gap-1.5 text-xs text-text-tertiary">
-            <FiSliders size={14} />
-            <span>Range:</span>
-          </div>
-          <select
-            value={distanceFilter}
-            onChange={(e) => setDistanceFilter(e.target.value)}
-            className="bg-surface border border-border text-xs text-brand-purple font-semibold px-3 py-2 rounded-xl focus:outline-none focus:border-brand-purple"
-          >
-            <option value="5">5 km</option>
-            <option value="15">15 km</option>
-            <option value="50">50 km</option>
-            <option value="100">100 km</option>
-            <option value="all">Everywhere</option>
-          </select>
-        </div>
-      </div>
+      {/* HOME FEED SEARCH & FILTER BAR */}
+      <HomeFeedSearchFilter
+        filters={filters}
+        onFilterChange={setFilters}
+        onSearch={fetchFeedData}
+        totalResults={activeTab === 'reels' ? processedReels.length : processedImages.length}
+      />
 
       {/* Admin Tab Navigation */}
       <div className="flex justify-center border-b border-border">
@@ -125,13 +226,13 @@ export default function CustomerHomePage() {
           <p className="text-xs font-medium">Loading feed...</p>
         </div>
       ) : activeTab === 'reels' ? (
-        reels.length === 0 ? (
+        processedReels.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
-            No video reels available in your area yet.
+            No video reels match your search and filter criteria.
           </div>
         ) : (
           <div className="space-y-8 flex flex-col items-center">
-            {reels.map((reel) => {
+            {processedReels.map((reel) => {
               const isLiked = likedMap[reel._id];
               const isSaved = savedMap[reel._id];
               const isFollowing = followingMap[reel.creator?._id || reel.creator];
@@ -236,13 +337,13 @@ export default function CustomerHomePage() {
         )
       ) : (
         /* Image Feed Grid */
-        images.length === 0 ? (
+        processedImages.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
-            No image listings available in your area yet.
+            No image listings match your search and filter criteria.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {images.map((item) => {
+            {processedImages.map((item) => {
               const isLiked = likedMap[item._id];
               const isSaved = savedMap[item._id];
 

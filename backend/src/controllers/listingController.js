@@ -9,46 +9,14 @@ const asyncHandler = require('../utils/asyncHandler');
 class ListingController {
   // ── Create Listing ──────────────────────────────────────
   create = asyncHandler(async (req, res) => {
-    const {
-      type,
-      title,
-      description,
-      category,
-      subcategory,
-      price,
-      salePrice,
-      condition,
-      images,
-      videos,
-      variants,
-      serviceAvailability,
-      lat,
-      lng,
-      address,
-    } = req.body;
+    const payload = {
+      ...req.body,
+      vendorId: req.user._id,
+      price: req.body.price ? parseFloat(req.body.price) : req.body.actualPrice ? parseFloat(req.body.actualPrice) : 0,
+      salePrice: req.body.salePrice ? parseFloat(req.body.salePrice) : req.body.sellingPrice ? parseFloat(req.body.sellingPrice) : undefined,
+    };
 
-    const listing = await listingService.createListing(
-      {
-        vendorId: req.user._id,
-        type,
-        title,
-        description,
-        category,
-        subcategory,
-        price: parseFloat(price),
-        salePrice: salePrice ? parseFloat(salePrice) : undefined,
-        condition,
-        images,
-        videos,
-        variants: typeof variants === 'string' ? JSON.parse(variants) : variants,
-        serviceAvailability: typeof serviceAvailability === 'string' ? JSON.parse(serviceAvailability) : serviceAvailability,
-        lat,
-        lng,
-        address,
-      },
-      req
-    );
-
+    const listing = await listingService.createListing(payload, req);
     return ApiResponse.created(res, 'Listing posted successfully.', { listing });
   });
 

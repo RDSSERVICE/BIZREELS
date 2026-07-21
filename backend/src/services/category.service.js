@@ -66,6 +66,7 @@ const serializeCategory = (cat) => {
     icon_url: d.icon_url,
     category_type: d.category_type || null,
     parent_id: d.parent_id ? d.parent_id.toString() : null,
+    required_licenses: Array.isArray(d.required_licenses) ? d.required_licenses : [],
     sort_order: d.sort_order || 0,
     is_active: d.is_active !== false,
   };
@@ -152,7 +153,7 @@ const getById = async (cid) => {
   return doc ? serializeCategory(doc) : null;
 };
 
-const createCategory = async (name, parent_id = null, icon_url = null, category_type = null) => {
+const createCategory = async (name, parent_id = null, icon_url = null, category_type = null, required_licenses = []) => {
   const slugBase = slugify(name, { lower: true });
   let slug = slugBase;
   let i = 1;
@@ -172,12 +173,13 @@ const createCategory = async (name, parent_id = null, icon_url = null, category_
     icon_url,
     parent_id,
     category_type: resolvedType,
+    required_licenses: Array.isArray(required_licenses) ? required_licenses : [],
   });
   return serializeCategory(doc);
 };
 
 const updateCategory = async (cid, updates) => {
-  const allowed = ['name', 'icon_url', 'sort_order', 'is_active'];
+  const allowed = ['name', 'icon_url', 'sort_order', 'is_active', 'required_licenses'];
   const clean = {};
   for (const k of allowed) {
     if (updates[k] !== undefined && updates[k] !== null) {

@@ -7,16 +7,23 @@ const logger = require('../utils/logger');
  * Coordinates product/service creation, location mapping, and sandbox AI content generation.
  */
 class ListingService {
-  async createListing(
-    {
+  async createListing(data, req) {
+    const {
       vendorId,
       type,
       title,
       description,
+      shortDescription,
       category,
       subcategory,
       price,
       salePrice,
+      actualPrice,
+      sellingPrice,
+      stock,
+      labels,
+      offers,
+      serviceDetails,
       condition,
       images,
       videos,
@@ -25,9 +32,8 @@ class ListingService {
       lat,
       lng,
       address,
-    },
-    req
-  ) {
+    } = data;
+
     const location = {
       type: 'Point',
       coordinates: [0, 0],
@@ -37,20 +43,30 @@ class ListingService {
       location.address = address || '';
     }
 
+    const effectiveBasePrice = price || actualPrice || sellingPrice || 0;
+    const effectiveSalePrice = salePrice || sellingPrice || 0;
+
     let discount = 0;
-    if (salePrice && price > 0) {
-      discount = Math.round(((price - salePrice) / price) * 100);
+    if (effectiveSalePrice && effectiveBasePrice > 0 && effectiveSalePrice < effectiveBasePrice) {
+      discount = Math.round(((effectiveBasePrice - effectiveSalePrice) / effectiveBasePrice) * 100);
     }
 
     const listing = await listingRepository.createListing({
       vendor: vendorId,
-      type,
+      type: type || 'product',
       title,
       description,
+      shortDescription,
       category,
       subcategory,
-      price,
-      salePrice,
+      price: effectiveBasePrice,
+      salePrice: effectiveSalePrice,
+      actualPrice: effectiveBasePrice,
+      sellingPrice: effectiveSalePrice,
+      stock: stock !== undefined ? Number(stock) : 1,
+      labels: Array.isArray(labels) ? labels : [],
+      offers: Array.isArray(offers) ? offers : [],
+      serviceDetails: serviceDetails || {},
       discount,
       condition,
       images: images || [],

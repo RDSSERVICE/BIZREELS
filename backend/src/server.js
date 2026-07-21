@@ -19,9 +19,26 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
 
-    // Sanitize & ensure admin seed on boot
+    const mongoose = require('mongoose');
     const adminPhoneService = require('./services/admin-phone.service');
-    await adminPhoneService.ensureAdminSeed();
+
+    // Safely execute admin seed when MongoDB connection is active
+    if (mongoose.connection.readyState === 1) {
+      try {
+        await adminPhoneService.ensureAdminSeed();
+      } catch (seedErr) {
+        logger.warn(`Admin seed skipped: ${seedErr.message}`);
+      }
+    } else {
+      logger.warn('MongoDB connection pending. Admin seed will run once connected.');
+      mongoose.connection.once('connected', async () => {
+        try {
+          await adminPhoneService.ensureAdminSeed();
+        } catch (seedErr) {
+          logger.warn(`Admin seed skipped on reconnect: ${seedErr.message}`);
+        }
+      });
+    }
 
     // Init Socket.io connections
     initSockets(server);

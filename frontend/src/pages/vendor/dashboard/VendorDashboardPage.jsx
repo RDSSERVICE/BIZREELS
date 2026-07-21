@@ -80,6 +80,33 @@ export default function VendorDashboardPage() {
         </Link>
       </div>
 
+      {/* REQUIREMENT: REELS & IMAGE POST SUBSCRIPTION BANNER */}
+      <div className="glass rounded-3xl p-6 border border-brand-purple/20 shadow-card bg-gradient-to-r from-brand-purple/10 via-surface to-brand-orange/10 space-y-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
+              <FiVideo className="text-brand-purple" /> Showcase Business with Video Reels & Image Posts
+            </h3>
+            <p className="text-xs text-text-secondary max-w-3xl leading-relaxed">
+              Create and publish engaging reels or image posts to showcase your products, services, offers, and business to potential customers.
+              The Free Plan allows you to publish a limited number of reels and image posts with standard visibility.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] font-semibold text-text-primary">
+              <div>• Publish more reels & images</div>
+              <div>• Increase content visibility</div>
+              <div>• Access reel & post boost features</div>
+              <div>• Reach larger target audience</div>
+            </div>
+          </div>
+          <Link
+            to="/vendor/subscription"
+            className="px-5 py-3 gradient-brand text-white font-bold text-xs rounded-2xl shadow-premium hover:opacity-90 transition flex-shrink-0 flex items-center gap-2"
+          >
+            <FiZap /> SUBSCRIPTION PLAN SHOW
+          </Link>
+        </div>
+      </div>
+
       {/* Header Banner */}
       <AdminPageHeader
         icon={FiGrid}
@@ -92,14 +119,14 @@ export default function VendorDashboardPage() {
             className="px-4 py-2.5 rounded-xl bg-brand-purple text-white font-bold text-xs shadow-premium hover:bg-brand-purple/90 transition flex items-center gap-1.5"
           >
             <FiVideo size={16} />
-            <span>Create Reel / AI Ad</span>
+            <span>1. POST REELS/IMAGE</span>
           </Link>
           <Link
             to="/vendor/boost"
             className="px-4 py-2.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
           >
             <FiZap size={16} />
-            <span>Buy Reel Boost</span>
+            <span>2. BOOST POST</span>
           </Link>
         </div>
       </AdminPageHeader>

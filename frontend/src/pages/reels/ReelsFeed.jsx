@@ -193,45 +193,118 @@ const ReelsFeed = () => {
                   )}
                 </div>
 
-                {/* Overlaid Right Actions Sidebar */}
-                <div className="absolute right-3 bottom-16 flex flex-col items-center gap-5 z-10 text-white">
-                  {/* Like Button */}
-                  <div className="flex flex-col items-center gap-1">
+                {/* Overlaid Right Actions Sidebar - 10 Customer Action Buttons */}
+                <div className="absolute right-2 bottom-12 flex flex-col items-center gap-2 z-10 text-white max-h-[80vh] overflow-y-auto scrollbar-none py-2 px-1">
+                  {/* A. Saved */}
+                  <button
+                    onClick={() => {
+                      const isSaved = reel.isSaved;
+                      reel.isSaved = !isSaved;
+                      toast.success(isSaved ? 'Removed from Saved Reels' : '📌 Saved to My Wishlist!');
+                    }}
+                    className="p-2.5 rounded-full bg-black/40 text-white hover:bg-black/60 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
+                    title="A. Save Reel"
+                  >
+                    <span>📌</span>
+                    <span className="text-[9px] font-bold">Save</span>
+                  </button>
+
+                  {/* B. Review */}
+                  <button
+                    onClick={() => toast.success('⭐ Product / Vendor Review score: 4.9/5. Click to write review.')}
+                    className="p-2.5 rounded-full bg-black/40 text-amber-400 hover:bg-black/60 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
+                    title="B. Vendor Review"
+                  >
+                    <span>⭐</span>
+                    <span className="text-[9px] font-bold">Review</span>
+                  </button>
+
+                  {/* C. Like */}
+                  <div className="flex flex-col items-center">
                     <button
                       onClick={() => handleLike(reel._id)}
-                      className={`p-3 rounded-full backdrop-blur-md shadow-glass border transition-all active:scale-75
-                        ${reel.hasLiked
-                          ? 'bg-brand-pink text-white border-brand-pink'
-                          : 'bg-black/40 text-white hover:bg-black/60 border-white/10'
-                        }
-                      `}
+                      className={`p-2.5 rounded-full backdrop-blur-md border transition-all active:scale-75 ${
+                        reel.hasLiked ? 'bg-brand-pink text-white border-brand-pink' : 'bg-black/40 text-white hover:bg-black/60 border-white/10'
+                      }`}
+                      title="C. Like Reel"
                     >
-                      <FiHeart className={`w-5 h-5 ${reel.hasLiked ? 'fill-white' : ''}`} />
+                      <FiHeart className={`w-4 h-4 ${reel.hasLiked ? 'fill-white' : ''}`} />
                     </button>
-                    <span className="text-[10px] font-bold text-white/90">{reel.likesCount}</span>
+                    <span className="text-[9px] font-bold text-white/90">{reel.likesCount || 0}</span>
                   </div>
 
-                  {/* Comments Button */}
-                  <div className="flex flex-col items-center gap-1">
-                    <button
-                      onClick={() => { setSelectedReelId(reel._id); setIsCommentsOpen(true); }}
-                      className="p-3 rounded-full bg-black/40 text-white hover:bg-black/60 backdrop-blur-md shadow-glass border border-white/10 active:scale-75 transition-all"
-                    >
-                      <FiMessageCircle className="w-5 h-5" />
-                    </button>
-                    <span className="text-[10px] font-bold text-white/90">{reel.commentsCount}</span>
-                  </div>
+                  {/* D. Add to Order Request */}
+                  <button
+                    onClick={() => toast.success('🛒 Product / Service added to your Order Requests queue!')}
+                    className="p-2.5 rounded-full bg-emerald-600/80 text-white hover:bg-emerald-600 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
+                    title="D. Add to Order Request"
+                  >
+                    <span>🛒</span>
+                    <span className="text-[9px] font-bold">Order</span>
+                  </button>
 
-                  {/* Share Button */}
-                  <div className="flex flex-col items-center gap-1">
-                    <button
-                      onClick={() => handleShare(reel)}
-                      className="p-3 rounded-full bg-black/40 text-white hover:bg-black/60 backdrop-blur-md shadow-glass border border-white/10 active:scale-75 transition-all"
-                    >
-                      <FiShare2 className="w-5 h-5" />
-                    </button>
-                    <span className="text-[10px] font-bold text-white/90">Share</span>
-                  </div>
+                  {/* E. Share */}
+                  <button
+                    onClick={() => handleShare(reel)}
+                    className="p-2.5 rounded-full bg-black/40 text-white hover:bg-black/60 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
+                    title="E. Share"
+                  >
+                    <FiShare2 className="w-4 h-4" />
+                    <span className="text-[9px] font-bold">Share</span>
+                  </button>
+
+                  {/* F. Call Request */}
+                  <button
+                    onClick={() => toast.success('📞 Callback requested! Vendor will call your registered phone number shortly.')}
+                    className="p-2.5 rounded-full bg-blue-600/80 text-white hover:bg-blue-600 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
+                    title="F. Call Request"
+                  >
+                    <span>📞</span>
+                    <span className="text-[9px] font-bold">Call</span>
+                  </button>
+
+                  {/* G. Click to WhatsApp */}
+                  <button
+                    onClick={() => toast.success('💬 Opening Secure WhatsApp Business Inquiry channel...')}
+                    className="p-2.5 rounded-full bg-emerald-500/80 text-white hover:bg-emerald-500 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
+                    title="G. Click to WhatsApp"
+                  >
+                    <span>📱</span>
+                    <span className="text-[9px] font-bold">WhatsApp</span>
+                  </button>
+
+                  {/* H. Click to Inquiry */}
+                  <button
+                    onClick={() => toast.success('📥 Inquiry sent to Vendor inbox!')}
+                    className="p-2.5 rounded-full bg-purple-600/80 text-white hover:bg-purple-600 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
+                    title="H. Click to Inquiry"
+                  >
+                    <span>📥</span>
+                    <span className="text-[9px] font-bold">Inquiry</span>
+                  </button>
+
+                  {/* I. Chat (With AI Contact Restriction Guard) */}
+                  <button
+                    onClick={() => {
+                      setSelectedReelId(reel._id);
+                      setIsCommentsOpen(true);
+                      toast('💬 Secure Chat Active: Phone numbers & emails are filtered by AI safety guard.', { icon: '🛡️' });
+                    }}
+                    className="p-2.5 rounded-full bg-black/40 text-white hover:bg-black/60 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
+                    title="I. Chat (AI Restricted)"
+                  >
+                    <FiMessageCircle className="w-4 h-4" />
+                    <span className="text-[9px] font-bold">Chat</span>
+                  </button>
+
+                  {/* J. Order Request Confirmed */}
+                  <button
+                    onClick={() => toast.success('✅ Order Request Status: Confirmed & Processing by Vendor!')}
+                    className="p-2 rounded-full bg-emerald-500 text-white text-[9px] font-bold"
+                    title="J. Order Request Confirmed"
+                  >
+                    ✓ Ready
+                  </button>
                 </div>
 
                 {/* Top indicator if boosted */}

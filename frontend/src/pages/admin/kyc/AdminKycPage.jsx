@@ -146,11 +146,35 @@ export default function AdminKycPage() {
             </div>
 
             {viewDoc.doc_url ? (
-              <div className="border border-border rounded-xl overflow-hidden bg-black/5 flex items-center justify-center min-h-[300px]">
-                <img src={viewDoc.doc_url} alt="KYC Document" className="max-h-[400px] object-contain" />
+              <div className="border border-border rounded-xl overflow-hidden bg-black/5 flex flex-col items-center justify-center p-3 min-h-[300px]">
+                {String(viewDoc.doc_url).toLowerCase().includes('.pdf') || String(viewDoc.doc_url).startsWith('data:application/pdf') ? (
+                  <div className="w-full space-y-3">
+                    <iframe src={viewDoc.doc_url} title="PDF Preview" className="w-full h-80 rounded-lg border border-border" />
+                    <a
+                      href={viewDoc.doc_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-brand-purple font-bold underline hover:opacity-80"
+                    >
+                      <FiFileText /> Open PDF Document in New Tab
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-2 text-center w-full">
+                    <img src={viewDoc.doc_url} alt="KYC Document" className="max-h-[380px] mx-auto object-contain rounded-lg" />
+                    <a
+                      href={viewDoc.doc_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[11px] text-brand-purple font-semibold underline"
+                    >
+                      <FiFileText /> Open Full Document File
+                    </a>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="p-8 text-center text-xs text-text-tertiary">No document image uploaded.</div>
+              <div className="p-8 text-center text-xs text-text-tertiary">No document file attached.</div>
             )}
 
             {viewDoc.selfie_url && (

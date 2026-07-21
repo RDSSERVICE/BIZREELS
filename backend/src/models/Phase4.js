@@ -110,7 +110,7 @@ const subscriptionSchema = new mongoose.Schema({
 // KYC Document
 const kycDocSchema = new mongoose.Schema({
   user_id: { type: String, required: true, index: true },
-  doc_type: { type: String, enum: ['aadhaar', 'pan', 'driving_license', 'passport'], required: true },
+  doc_type: { type: String, required: true },
   doc_number: { type: String, required: true },
   doc_url: { type: String, required: true },
   selfie_url: { type: String, default: null },

@@ -10,6 +10,8 @@ const User = require('../models/User');
 const Listing = require('../models/Listing');
 const ApiError = require('../utils/ApiError');
 
+const { KycDocument } = require('../models/Phase4');
+
 const router = express.Router();
 
 /**
@@ -26,11 +28,17 @@ function computeVendorVerification(user) {
   const documents = vp.documents || {};
   const paymentDetails = vp.paymentDetails || {};
 
-  const hasAadhaar = documents.aadhaar && documents.aadhaar.status === 'approved';
-  const hasPan = documents.pan && documents.pan.status === 'approved';
-  const hasGst = documents.gst && documents.gst.status === 'approved';
-  const hasShopLicense = documents.shopLicense && documents.shopLicense.status === 'approved';
-  const hasUdyam = documents.udyamRegistration && documents.udyamRegistration.status === 'approved';
+  const isDocPresent = (doc) => {
+    if (!doc) return false;
+    return !!(doc.docNumber || doc.frontUrl || doc.backUrl || doc.fileUrl || doc.status === 'approved');
+  };
+
+  const hasAadhaar = isDocPresent(documents.aadhaar);
+  const hasPan = isDocPresent(documents.pan);
+  const hasGst = isDocPresent(documents.gst);
+  const hasShopLicense = isDocPresent(documents.shopLicense);
+  const hasUdyam = isDocPresent(documents.udyamRegistration);
+  const hasDynamicDocs = Array.isArray(documents.dynamicDocs) && documents.dynamicDocs.length > 0;
 
   let totalPoints = 0;
   if (contactVerified.mobile) totalPoints += 15;
@@ -39,7 +47,8 @@ function computeVendorVerification(user) {
   if (hasAadhaar) totalPoints += 20;
   if (hasPan) totalPoints += 20;
   if (hasGst || hasShopLicense || hasUdyam) totalPoints += 10;
-  if (paymentDetails.upiVerified || (paymentDetails.bankAccount && paymentDetails.ifscVerified)) {
+  if (hasDynamicDocs) totalPoints += 10;
+  if (paymentDetails.upiVerified || paymentDetails.upiId || (paymentDetails.bankAccount && (paymentDetails.ifscVerified || paymentDetails.ifscCode))) {
     totalPoints += 10;
   }
 
@@ -60,7 +69,7 @@ function computeVendorVerification(user) {
       badgeLabel = 'Verified Vendor';
       badgeColor = '🟢';
     }
-  } else if (contactVerified.mobile || contactVerified.email || hasShopLicense || hasUdyam || paymentDetails.upiVerified || hasPan || hasAadhaar) {
+  } else if (contactVerified.mobile || contactVerified.email || hasShopLicense || hasUdyam || paymentDetails.upiVerified || hasPan || hasAadhaar || hasDynamicDocs) {
     tier = 'partially_verified';
     badgeLabel = 'Partially Verified';
     badgeColor = '🟡';
@@ -133,13 +142,14 @@ router.post('/me/verify-document', requireAuth, catchAsync(async (req, res) => {
   const currentDocs = currentVp.documents || {};
 
   const now = new Date();
+  const docFileUrl = fileUrl || frontUrl || backUrl || '';
 
   if (['aadhaar', 'pan', 'gst', 'shopLicense', 'udyamRegistration'].includes(docType)) {
     currentDocs[docType] = {
       docNumber: docNumber || currentDocs[docType]?.docNumber || '',
       frontUrl: frontUrl || currentDocs[docType]?.frontUrl || null,
       backUrl: backUrl || currentDocs[docType]?.backUrl || null,
-      fileUrl: fileUrl || currentDocs[docType]?.fileUrl || null,
+      fileUrl: docFileUrl || currentDocs[docType]?.fileUrl || null,
       status: 'approved',
       verifiedAt: now
     };
@@ -151,7 +161,7 @@ router.post('/me/verify-document', requireAuth, catchAsync(async (req, res) => {
       docName: docName || docType,
       docType,
       docNumber: docNumber || '',
-      fileUrl: fileUrl || frontUrl || '',
+      fileUrl: docFileUrl,
       status: 'approved',
       verifiedAt: now
     });
@@ -160,6 +170,19 @@ router.post('/me/verify-document', requireAuth, catchAsync(async (req, res) => {
 
   currentVp.documents = currentDocs;
   user.vendorProfile = currentVp;
+
+  // Sync to KycDocument model for Admin Queue visibility
+  try {
+    await KycDocument.create({
+      user_id: user._id.toString(),
+      doc_type: docName || docType,
+      doc_number: docNumber || 'SUBMITTED',
+      doc_url: docFileUrl || 'https://via.placeholder.com/400x600?text=Document+Attached',
+      status: 'approved',
+    });
+  } catch (err) {
+    console.error('Error syncing KycDocument for admin:', err.message);
+  }
 
   const statusInfo = computeVendorVerification(user);
   user.vendorProfile.verificationStatus = statusInfo.tier;
@@ -207,6 +230,45 @@ router.post('/me/verify-payment', requireAuth, catchAsync(async (req, res) => {
   await user.save();
 
   res.json({ success: true, message: 'Payment details verified and updated successfully!', ...statusInfo });
+}));
+
+// ── VENDOR DYNAMIC OFFERS ENDPOINTS ─────────────────────────
+
+router.get('/me/offers', requireAuth, catchAsync(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+  const offers = user.vendorProfile?.offers || [];
+  res.json({ success: true, data: offers });
+}));
+
+router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
+  const { title, discountPct, couponCode, validTill, description } = req.body;
+  if (!title) throw ApiError.badRequest('Offer title is required');
+
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const currentVp = user.vendorProfile || {};
+  const currentOffers = Array.isArray(currentVp.offers) ? currentVp.offers : [];
+
+  const newOffer = {
+    id: new mongoose.Types.ObjectId().toString(),
+    title: String(title).trim(),
+    discountPct: Number(discountPct || 10),
+    couponCode: String(couponCode || 'PROMO10').trim().toUpperCase(),
+    validTill: String(validTill || '2026-12-31').trim(),
+    description: String(description || '').trim(),
+    is_active: true,
+    created_at: new Date().toISOString()
+  };
+
+  currentOffers.unshift(newOffer);
+  currentVp.offers = currentOffers;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
+  await user.save();
+
+  res.json({ success: true, message: 'Dynamic offer published successfully!', data: newOffer, offers: currentOffers });
 }));
 
 router.get('/ifsc-lookup/:ifsc', catchAsync(async (req, res) => {

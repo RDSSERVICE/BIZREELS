@@ -2,6 +2,7 @@ const cloudinary = require('../config/cloudinary');
 const reelRepository = require('../repositories/reelRepository');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+const { detectForbiddenContactDetails } = require('./ai.service');
 
 /**
  * ReelService
@@ -44,6 +45,15 @@ class ReelService {
   async publishReel({ userId, fileBuffer, caption, tags, lat, lng, address }, req) {
     if (!fileBuffer) {
       throw ApiError.badRequest('No video file provided.');
+    }
+
+    if (caption) {
+      const scan = detectForbiddenContactDetails(caption);
+      if (scan.hasViolation) {
+        throw ApiError.badRequest(
+          `AI Safety Policy Violation: Phone numbers, WhatsApp numbers, QR codes, emails, websites, or social handles are not allowed in reels/images. Detected: "${scan.snippet}" (${scan.detectedType}).`
+        );
+      }
     }
 
     try {

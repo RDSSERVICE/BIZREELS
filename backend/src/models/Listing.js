@@ -77,16 +77,75 @@ const listingSchema = new Schema(
         stock: { type: Number, default: -1 }, // -1 means infinite/unlimited
       },
     ],
-    // For services
-    serviceAvailability: {
-      slots: [
-        {
-          day: { type: String, enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] },
-          startTime: String, // HH:MM format
-          endTime: String, // HH:MM format
-        },
-      ],
-      durationMinutes: { type: Number, default: 60 },
+    shortDescription: {
+      type: String,
+      maxlength: 300,
+      trim: true,
+    },
+    stock: {
+      type: Number,
+      default: 1,
+    },
+    actualPrice: {
+      type: Number,
+      default: 0,
+    },
+    sellingPrice: {
+      type: Number,
+      default: 0,
+    },
+    labels: [
+      {
+        key: String,
+        value: String,
+      },
+    ],
+    offers: [
+      {
+        title: String,
+        discountPct: Number,
+        couponCode: String,
+        validTill: String,
+        description: String,
+        is_active: { type: Boolean, default: true },
+      },
+    ],
+    // Expanded Service Details Schema
+    serviceDetails: {
+      serviceType: { type: String, default: 'On-site' },
+      priceType: { type: String, default: 'Fixed Price' },
+      minOrderValue: { type: Number, default: 0 },
+      durationText: { type: String, default: '1 Hour' },
+      serviceArea: { type: String, default: '' },
+      state: { type: String, default: '' },
+      city: { type: String, default: '' },
+      pincode: { type: String, default: '' },
+      homeVisitAvailable: { type: Boolean, default: true },
+      maxTravelDistanceKm: { type: Number, default: 10 },
+      workingDays: { type: [String], default: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] },
+      workingHours: { type: String, default: '09:00 AM - 08:00 PM' },
+      emergencyService24x7: { type: Boolean, default: false },
+      advanceBookingRequired: { type: Boolean, default: false },
+      coverImage: { type: String, default: '' },
+      galleryImages: { type: [String], default: [] },
+      contactSettings: {
+        chat: { type: Boolean, default: true },
+        call: { type: Boolean, default: true },
+        whatsapp: { type: Boolean, default: true },
+        callbackRequest: { type: Boolean, default: true },
+      },
+      leadSettings: {
+        acceptLead: { type: Boolean, default: true },
+        instantChat: { type: Boolean, default: true },
+        callOnly: { type: Boolean, default: false },
+        callbackOnly: { type: Boolean, default: false },
+        quoteRequest: { type: Boolean, default: true },
+      },
+      policies: {
+        cancellationPolicy: { type: String, default: 'Free cancellation up to 2 hours before appointment.' },
+        refundPolicy: { type: String, default: 'Full refund if cancelled within policy guidelines.' },
+        termsAndConditions: { type: String, default: 'Standard service agreement terms apply.' },
+      },
     },
     location: {
       type: {

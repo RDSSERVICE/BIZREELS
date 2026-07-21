@@ -61,9 +61,23 @@ const connectDB = async () => {
       });
       return conn;
     } catch (localErr) {
-      logger.error(`Local MongoDB connection also failed: ${localErr.message}. Disabling query buffering.`);
-      // Prevent Mongoose from hanging requests for 10s on buffer timeout when DB is offline
-      mongoose.set('bufferCommands', false);
+      logger.error(`Local MongoDB connection failed (${localErr.message}). Starting background reconnect worker...`);
+      
+      // Auto-retry connection in background every 10s without crashing server
+      const retryInterval = setInterval(async () => {
+        if (mongoose.connection.readyState === 1) {
+          clearInterval(retryInterval);
+          return;
+        }
+        try {
+          await mongoose.connect(config.mongoUri, { ...options, serverSelectionTimeoutMS: 5000 });
+          logger.info('MongoDB Connected via background reconnect worker!');
+          clearInterval(retryInterval);
+        } catch (retryErr) {
+          // retry silently
+        }
+      }, 10000);
+
       return null;
     }
   }

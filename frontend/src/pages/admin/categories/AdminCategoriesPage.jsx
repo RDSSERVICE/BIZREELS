@@ -48,6 +48,27 @@ export default function AdminCategoriesPage() {
     setExpandedCats((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const [requiredLicensesInput, setRequiredLicensesInput] = useState('');
+  const [selectedLicenses, setSelectedLicenses] = useState([]);
+
+  const PRESET_LICENSES = ['FSSAI License', 'Drug License', 'GST Registration', 'Trade License', 'BIS Certificate', 'ISO Certification', 'Fire Safety NOC', 'Pollution NOC'];
+
+  const toggleLicense = (lic) => {
+    setSelectedLicenses((prev) =>
+      prev.includes(lic) ? prev.filter((l) => l !== lic) : [...prev, lic]
+    );
+  };
+
+  const handleAddLicenseTag = (e) => {
+    if (e.key === 'Enter' && requiredLicensesInput.trim()) {
+      e.preventDefault();
+      if (!selectedLicenses.includes(requiredLicensesInput.trim())) {
+        setSelectedLicenses([...selectedLicenses, requiredLicensesInput.trim()]);
+      }
+      setRequiredLicensesInput('');
+    }
+  };
+
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!catName.trim()) return toast.error('Category name required');
@@ -56,10 +77,13 @@ export default function AdminCategoriesPage() {
         name: catName.trim(),
         parent_id: parentCatId || null,
         category_type: activeTab,
+        required_licenses: selectedLicenses,
       }).unwrap();
-      toast.success('Category created successfully!');
+      toast.success('Category created with special license requirements!');
       setCatName('');
       setParentCatId('');
+      setSelectedLicenses([]);
+      setRequiredLicensesInput('');
       setShowAddModal(false);
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to create category');
@@ -84,10 +108,10 @@ export default function AdminCategoriesPage() {
       <AdminPageHeader
         icon={FiFolder}
         title="Category & Subcategory Manager"
-        subtitle="Organize product and service classifications into hierarchical categories"
+        subtitle="Organize product and service classifications and define required vendor licenses & certificates"
       >
         <button
-          onClick={() => { setParentCatId(''); setShowAddModal(true); }}
+          onClick={() => { setParentCatId(''); setSelectedLicenses([]); setShowAddModal(true); }}
           className="px-4 py-2 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-premium"
         >
           <FiPlus className="w-4 h-4" /> Add Category / Subcategory
@@ -136,6 +160,7 @@ export default function AdminCategoriesPage() {
             const parentId = parent._id || parent.id;
             const subs = getSubcategories(parentId);
             const isExpanded = expandedCats[parentId] !== false; // default expanded
+            const reqDocs = parent.required_licenses || [];
 
             return (
               <div key={parentId} className="glass rounded-2xl p-5 border border-white/50 shadow-glass space-y-3">
@@ -157,7 +182,7 @@ export default function AdminCategoriesPage() {
                   </button>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => { setParentCatId(parentId); setShowAddModal(true); }}
+                      onClick={() => { setParentCatId(parentId); setSelectedLicenses([]); setShowAddModal(true); }}
                       className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-brand-purple text-xs font-bold flex items-center gap-1"
                       title="Add Subcategory"
                     >
@@ -173,6 +198,18 @@ export default function AdminCategoriesPage() {
                   </div>
                 </div>
 
+                {/* Required Licenses / Certificates Badges */}
+                {reqDocs.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] font-bold text-text-tertiary uppercase">Mandatory Docs:</span>
+                    {reqDocs.map((doc, idx) => (
+                      <span key={idx} className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                        📜 {doc}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {/* Subcategories List */}
                 {isExpanded && (
                   <div className="space-y-1.5 pl-4">
@@ -184,12 +221,17 @@ export default function AdminCategoriesPage() {
                           <div className="flex items-center gap-2">
                             <FiCornerDownRight className="w-3 h-3 text-brand-purple/50" />
                             <span className="text-xs font-semibold text-text-primary">{sub.name}</span>
+                            {sub.required_licenses && sub.required_licenses.length > 0 && (
+                              <span className="text-[9px] bg-brand-purple/10 text-brand-purple font-bold px-1.5 py-0.5 rounded">
+                                {sub.required_licenses.length} License(s) Req.
+                              </span>
+                            )}
                           </div>
                           <button
                             onClick={() => handleDelete(sub._id || sub.id, sub.name)}
                             className="text-text-tertiary hover:text-red-500 p-1 rounded transition-all"
                           >
-                            <FiTrash2 className="w-3 h-3" />
+                            <FiTrash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ))
@@ -203,7 +245,7 @@ export default function AdminCategoriesPage() {
       )}
 
       {/* Add Modal */}
-      <AdminModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add Category / Subcategory">
+      <AdminModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add Category & Special Document Requirements">
         <form onSubmit={handleAdd} className="space-y-4">
           <div className="bg-surface-secondary p-3 rounded-xl">
             <span className="text-[10px] font-bold text-text-tertiary uppercase">Creating for:</span>
@@ -225,9 +267,10 @@ export default function AdminCategoriesPage() {
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Category Name</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Category Name *</label>
             <input
               type="text"
+              required
               placeholder={activeTab === 'service' ? 'e.g. Plumbing, Hair Styling' : 'e.g. Mobile Accessories, Laptops'}
               value={catName}
               onChange={(e) => setCatName(e.target.value)}
@@ -235,11 +278,45 @@ export default function AdminCategoriesPage() {
             />
           </div>
 
+          {/* Special Document / License Requirements for Category */}
+          <div className="space-y-2 border-t border-border pt-3">
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+              Required Special Documents / Licenses for this Category
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {PRESET_LICENSES.map((lic) => {
+                const isSelected = selectedLicenses.includes(lic);
+                return (
+                  <button
+                    type="button"
+                    key={lic}
+                    onClick={() => toggleLicense(lic)}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all ${
+                      isSelected
+                        ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
+                        : 'bg-surface border-border text-text-secondary hover:bg-surface-tertiary'
+                    }`}
+                  >
+                    {isSelected ? '✓ ' : '+ '} {lic}
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              type="text"
+              placeholder="Or type custom license/certificate and press Enter..."
+              value={requiredLicensesInput}
+              onChange={(e) => setRequiredLicensesInput(e.target.value)}
+              onKeyDown={handleAddLicenseTag}
+              className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple mt-1"
+            />
+          </div>
+
           <button
             type="submit"
             className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1"
           >
-            <FiPlus /> Add Category
+            <FiPlus /> Add Category with Licenses
           </button>
         </form>
       </AdminModal>

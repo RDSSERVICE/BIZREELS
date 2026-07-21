@@ -923,6 +923,40 @@ const negotiationHelper = async (dealId, threadId, direction, ask, userId) => {
   }
 };
 
+const detectForbiddenContactDetails = (text) => {
+  if (!text || typeof text !== 'string') return { hasViolation: false };
+  const str = text.trim();
+
+  // Phone number / WhatsApp regex (10 digit numbers, +91, spaced numbers)
+  const phoneRegex = /(?:(?:\+|00)91[\s-]*)?[6789]\d{9}|\b\d{10}\b|\b\d{5}[\s-]\d{5}\b/;
+  // Email regex
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+  // Website URL regex
+  const websiteRegex = /(https?:\/\/|www\.)[^\s]+/i;
+  // Social handle regex (@username)
+  const socialHandleRegex = /@[\w_.]{3,}/;
+  // QR Code / WhatsApp text keywords
+  const qrKeywords = /qr\s*code|scan\s*qr|scan\s*to\s*pay|whatsapp\s*me|call\s*me\s*at|contact\s*me\s*at/i;
+
+  if (phoneRegex.test(str)) {
+    return { hasViolation: true, detectedType: 'Phone / WhatsApp Number', snippet: str.match(phoneRegex)[0] };
+  }
+  if (emailRegex.test(str)) {
+    return { hasViolation: true, detectedType: 'Email Address', snippet: str.match(emailRegex)[0] };
+  }
+  if (websiteRegex.test(str)) {
+    return { hasViolation: true, detectedType: 'Website URL', snippet: str.match(websiteRegex)[0] };
+  }
+  if (socialHandleRegex.test(str)) {
+    return { hasViolation: true, detectedType: 'Social Media Handle (@username)', snippet: str.match(socialHandleRegex)[0] };
+  }
+  if (qrKeywords.test(str)) {
+    return { hasViolation: true, detectedType: 'QR Code / Direct Contact Trigger', snippet: str.match(qrKeywords)[0] };
+  }
+
+  return { hasViolation: false };
+};
+
 module.exports = {
   isConfigured,
   getUsageToday,
@@ -936,4 +970,5 @@ module.exports = {
   matchVendors,
   suggestPrice,
   negotiationHelper,
+  detectForbiddenContactDetails,
 };
