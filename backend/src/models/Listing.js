@@ -177,6 +177,12 @@ const listingSchema = new Schema(
       default: false,
       index: true,
     },
+    status: {
+      type: String,
+      enum: ['published', 'draft', 'hidden'],
+      default: 'published',
+      index: true,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

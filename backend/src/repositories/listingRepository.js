@@ -35,12 +35,14 @@ class ListingRepository {
    * Complex query support for listings with pagination and aggregation.
    */
   async queryListings({
+    vendor,
     type,
     category,
     subcategory,
     minPrice,
     maxPrice,
     condition,
+    status,
     rating,
     coordinates,
     distanceKm = 10,
@@ -51,10 +53,18 @@ class ListingRepository {
     const skip = (page - 1) * limit;
     const match = { isDeleted: false };
 
+    if (vendor) {
+      if (mongoose.Types.ObjectId.isValid(vendor)) {
+        match.vendor = new mongoose.Types.ObjectId(vendor);
+      } else {
+        match.vendor = vendor;
+      }
+    }
     if (type) match.type = type;
     if (category) match.category = category;
     if (subcategory) match.subcategory = subcategory;
     if (condition) match.condition = condition;
+    if (status) match.status = status;
 
     // Price filters
     if (minPrice !== undefined || maxPrice !== undefined) {
@@ -113,12 +123,20 @@ class ListingRepository {
         type: 1,
         title: 1,
         description: 1,
+        shortDescription: 1,
         category: 1,
         subcategory: 1,
         price: 1,
         salePrice: 1,
+        actualPrice: 1,
+        sellingPrice: 1,
+        stock: 1,
         discount: 1,
         condition: 1,
+        status: { $ifNull: ['$status', 'published'] },
+        labels: 1,
+        offers: 1,
+        serviceDetails: 1,
         images: 1,
         videos: 1,
         variants: 1,

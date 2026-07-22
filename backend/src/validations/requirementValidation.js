@@ -73,13 +73,13 @@ const requirementValidation = {
 
   queryRequirements: [
     query('page')
-      .optional()
+      .optional({ checkFalsy: true })
       .isInt({ min: 1 }).withMessage('Page must be positive integer.'),
     query('lat')
-      .optional()
+      .optional({ checkFalsy: true })
       .isFloat({ min: -90, max: 90 }).withMessage('Invalid coordinates.'),
     query('lng')
-      .optional()
+      .optional({ checkFalsy: true })
       .isFloat({ min: -180, max: 180 }).withMessage('Invalid coordinates.'),
   ],
 };

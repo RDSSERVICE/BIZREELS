@@ -103,7 +103,7 @@ class ReelService {
       caption: caption || 'Business Reel Promotion',
       hashtags: hashtagsList,
       location,
-      postType: postType || 'product',
+      postType: postType === 'services' ? 'service' : postType === 'products' ? 'product' : (postType || 'product'),
       category: category || 'General',
       subcategory: subcategory || 'General',
       postPurpose: postPurpose || classification || 'General Promotion',
@@ -279,9 +279,21 @@ class ReelService {
 
   // ── Delete Reel ─────────────────────────────────────────
   async deleteReel(id, userId, req) {
-    const deleted = await reelRepository.softDeleteReel(id, userId);
+    const reel = await reelRepository.findReelById(id);
+    if (!reel) {
+      throw ApiError.notFound('Reel not found.');
+    }
+
+    const isOwner = reel.creator?._id?.toString() === userId.toString() || reel.creator?.toString() === userId.toString();
+    const isAdmin = req?.user?.roles?.includes('admin') || req?.user?.role === 'admin' || req?.user?.activeRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      throw ApiError.forbidden('You are not authorized to delete this reel.');
+    }
+
+    const deleted = await reelRepository.softDeleteReel(id, reel.creator?._id || userId);
     if (!deleted) {
-      throw ApiError.forbidden('Reel not found or you are not authorized to delete it.');
+      throw ApiError.internal('Failed to delete reel.');
     }
 
     await reelRepository.logReelAction({
@@ -289,8 +301,8 @@ class ReelService {
       action: 'LISTING_DELETE',
       entityId: id,
       description: 'Deleted Reel',
-      ip: req.ip,
-      agent: req.headers['user-agent'],
+      ip: req?.ip || '127.0.0.1',
+      agent: req?.headers?.['user-agent'] || 'unknown',
     });
 
     return { message: 'Reel deleted successfully.' };

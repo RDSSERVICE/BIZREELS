@@ -69,6 +69,7 @@ class ListingService {
       serviceDetails: serviceDetails || {},
       discount,
       condition,
+      status: data.status || 'published',
       images: images || [],
       videos: videos || [],
       variants: variants || [],
@@ -95,7 +96,10 @@ class ListingService {
       throw ApiError.notFound('Listing not found.');
     }
 
-    if (listing.vendor._id.toString() !== vendorId.toString()) {
+    const isOwner = listing.vendor?._id?.toString() === vendorId.toString() || listing.vendor?.toString() === vendorId.toString();
+    const isAdmin = req?.user?.roles?.includes('admin') || req?.user?.role === 'admin' || req?.user?.activeRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
       throw ApiError.forbidden('You are not authorized to update this listing.');
     }
 
@@ -117,7 +121,7 @@ class ListingService {
       };
     }
 
-    const updated = await listingRepository.updateListing(id, vendorId, updateData);
+    const updated = await listingRepository.updateListing(id, listing.vendor?._id || vendorId, updateData);
 
     await listingRepository.logListingAction({
       userId: vendorId,
@@ -132,9 +136,21 @@ class ListingService {
   }
 
   async deleteListing(id, vendorId, req) {
-    const deleted = await listingRepository.softDeleteListing(id, vendorId);
+    const listing = await listingRepository.findListingById(id);
+    if (!listing) {
+      throw ApiError.notFound('Listing not found.');
+    }
+
+    const isOwner = listing.vendor?._id?.toString() === vendorId.toString() || listing.vendor?.toString() === vendorId.toString();
+    const isAdmin = req?.user?.roles?.includes('admin') || req?.user?.role === 'admin' || req?.user?.activeRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      throw ApiError.forbidden('You are not authorized to delete this listing.');
+    }
+
+    const deleted = await listingRepository.softDeleteListing(id, listing.vendor?._id || vendorId);
     if (!deleted) {
-      throw ApiError.forbidden('Listing not found or you are not authorized to delete it.');
+      throw ApiError.internal('Failed to delete listing.');
     }
 
     await listingRepository.logListingAction({
@@ -150,12 +166,14 @@ class ListingService {
   }
 
   async queryListings({
+    vendor,
     type,
     category,
     subcategory,
     minPrice,
     maxPrice,
     condition,
+    status,
     rating,
     lat,
     lng,
@@ -166,12 +184,14 @@ class ListingService {
   }) {
     const coordinates = lat && lng ? [parseFloat(lng), parseFloat(lat)] : null;
     return listingRepository.queryListings({
+      vendor,
       type,
       category,
       subcategory,
       minPrice,
       maxPrice,
       condition,
+      status,
       rating,
       coordinates,
       distanceKm: distance ? parseFloat(distance) : undefined,

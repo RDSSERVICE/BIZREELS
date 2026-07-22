@@ -1,11 +1,117 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
-  FiMapPin, FiSearch, FiSliders, FiPlay, FiVolume2, FiVolumeX, FiCheck
+  FiMapPin, FiSearch, FiSliders, FiPlay, FiVolume2, FiVolumeX, FiCheck,
+  FiChevronLeft, FiChevronRight, FiVideo, FiImage
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
+
+/**
+ * CustomerReelMedia Component
+ * Displays video or image media with arrow buttons for multi-photo reels
+ */
+function CustomerReelMedia({ reel, muted, setMuted }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const rawMediaList = Array.isArray(reel.mediaUrls) && reel.mediaUrls.length > 0
+    ? reel.mediaUrls
+    : [reel.videoUrl || reel.thumbnailUrl || 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'];
+
+  const mediaList = rawMediaList.filter(Boolean);
+  const currentUrl = mediaList[currentIndex] || mediaList[0] || '';
+
+  const isVideo = reel.mediaType === 'video' ||
+    Boolean(currentUrl.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i)) ||
+    currentUrl.startsWith('data:video/');
+
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setCurrentIndex((prev) => (prev - 1 + mediaList.length) % mediaList.length);
+  };
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setCurrentIndex((prev) => (prev + 1) % mediaList.length);
+  };
+
+  return (
+    <div className="relative aspect-[9/16] bg-black group overflow-hidden">
+      {isVideo ? (
+        <video
+          src={currentUrl}
+          loop
+          muted={muted}
+          autoPlay
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <img
+          src={currentUrl}
+          alt={reel.caption || reel.title || 'Reel Post'}
+          className="w-full h-full object-cover"
+        />
+      )}
+
+      {isVideo && (
+        <button
+          onClick={() => setMuted(!muted)}
+          className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition z-20"
+          title={muted ? 'Unmute' : 'Mute'}
+        >
+          {muted ? <FiVolumeX size={16} /> : <FiVolume2 size={16} />}
+        </button>
+      )}
+
+      {/* CAROUSEL ARROW BUTTONS & MEDIA COUNTER (IF > 1 MEDIA ITEMS) */}
+      {mediaList.length > 1 && (
+        <>
+          {/* Left Arrow Button */}
+          <button
+            type="button"
+            onClick={handlePrev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center backdrop-blur-sm transition border border-white/20 shadow-md z-20 hover:scale-110"
+            title="Previous Image/Video"
+          >
+            <FiChevronLeft size={20} />
+          </button>
+
+          {/* Right Arrow Button */}
+          <button
+            type="button"
+            onClick={handleNext}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center backdrop-blur-sm transition border border-white/20 shadow-md z-20 hover:scale-110"
+            title="Next Image/Video"
+          >
+            <FiChevronRight size={20} />
+          </button>
+
+          {/* Media Count Badge */}
+          <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-white border border-white/20 z-10 flex items-center gap-1">
+            {isVideo ? <FiVideo size={10} /> : <FiImage size={10} />}
+            <span>{currentIndex + 1} / {mediaList.length}</span>
+          </div>
+
+          {/* Bottom Dot Indicators */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10">
+            {mediaList.map((_, idx) => (
+              <span
+                key={idx}
+                className={`h-1.5 rounded-full transition-all ${
+                  currentIndex === idx ? 'w-4 bg-brand-purple' : 'w-1.5 bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function CustomerHomePage() {
   const [activeTab, setActiveTab] = useState('reels'); // 'reels' | 'images'
@@ -39,10 +145,26 @@ export default function CustomerHomePage() {
       const data = res.data;
 
       if (activeTab === 'reels') {
-        const items = Array.isArray(data.data?.reels) ? data.data.reels : Array.isArray(data.reels) ? data.reels : Array.isArray(data) ? data : [];
+        const items = Array.isArray(data.data?.reels)
+          ? data.data.reels
+          : Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.reels)
+          ? data.reels
+          : Array.isArray(data)
+          ? data
+          : [];
         setReels(items);
       } else {
-        const items = Array.isArray(data.data?.listings) ? data.data.listings : Array.isArray(data.listings) ? data.listings : Array.isArray(data) ? data : [];
+        const items = Array.isArray(data.data?.listings)
+          ? data.data.listings
+          : Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.listings)
+          ? data.listings
+          : Array.isArray(data)
+          ? data
+          : [];
         setImages(items);
       }
     } catch (err) {
@@ -305,24 +427,8 @@ export default function CustomerHomePage() {
                     </button>
                   </div>
 
-                  {/* Video Viewport */}
-                  <div className="relative aspect-[9/16] bg-black">
-                    <video
-                      src={reel.videoUrl}
-                      loop
-                      muted={muted}
-                      autoPlay
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
-
-                    <button
-                      onClick={() => setMuted(!muted)}
-                      className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition"
-                    >
-                      {muted ? <FiVolumeX size={16} /> : <FiVolume2 size={16} />}
-                    </button>
-                  </div>
+                  {/* Reel Media Carousel Viewport */}
+                  <CustomerReelMedia reel={reel} muted={muted} setMuted={setMuted} />
 
                   {/* Action Bar */}
                   <div className="p-4 glass space-y-3">

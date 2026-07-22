@@ -23,9 +23,9 @@ class VendorController {
       leadsCount,
       wallet
     ] = await Promise.all([
-      Listing.countDocuments({ vendor: userId, type: 'product' }),
-      Listing.countDocuments({ vendor: userId, type: 'service' }),
-      Reel.find({ creator: userId }).select('views').lean(),
+      Listing.countDocuments({ vendor: userId, type: 'product', isDeleted: { $ne: true } }),
+      Listing.countDocuments({ vendor: userId, type: 'service', isDeleted: { $ne: true } }),
+      Reel.find({ $or: [{ creator: userId }, { creator: userId.toString() }], isDeleted: { $ne: true } }).select('views status').lean(),
       Order.countDocuments({ vendor_id: userId.toString() }),
       Inquiry.countDocuments({ vendor: userId }),
       Wallet.findOne({ user_id: userId.toString() }).lean()

@@ -58,16 +58,16 @@ const listingValidation = {
 
   queryListings: [
     query('page')
-      .optional()
+      .optional({ checkFalsy: true })
       .isInt({ min: 1 }).withMessage('Page number must be positive.'),
     query('limit')
-      .optional()
+      .optional({ checkFalsy: true })
       .isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50.'),
     query('lat')
-      .optional()
+      .optional({ checkFalsy: true })
       .isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude coordinates.'),
     query('lng')
-      .optional()
+      .optional({ checkFalsy: true })
       .isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude coordinates.'),
   ],
 };

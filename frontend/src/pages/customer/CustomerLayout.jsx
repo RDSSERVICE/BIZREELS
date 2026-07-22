@@ -390,7 +390,7 @@ export default function CustomerLayout() {
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-purple/10 border border-brand-purple/20 text-brand-purple hover:bg-brand-purple/20 transition text-xs font-bold"
               >
                 <FiShield className="text-brand-purple" size={14} />
-                <span className="capitalize">{currentRole}</span>
+                <span className="capitalize">Customer</span>
                 <FiChevronDown size={14} />
               </button>
 
@@ -404,7 +404,7 @@ export default function CustomerLayout() {
                     className="w-full px-4 py-2 text-left text-xs font-semibold text-text-primary hover:bg-brand-purple/5 flex items-center justify-between"
                   >
                     <span>Customer</span>
-                    {currentRole === 'customer' && <FiCheck className="text-emerald-500" size={14} />}
+                    <FiCheck className="text-emerald-500" size={14} />
                   </button>
 
                   <button
@@ -417,7 +417,6 @@ export default function CustomerLayout() {
                         <span className="bg-brand-orange/10 text-brand-orange text-[9px] px-1.5 py-0.5 rounded font-bold">Join</span>
                       )}
                     </div>
-                    {currentRole === 'vendor' && <FiCheck className="text-emerald-500" size={14} />}
                   </button>
 
                   <button
@@ -430,7 +429,6 @@ export default function CustomerLayout() {
                         <span className="bg-brand-pink/10 text-brand-pink text-[9px] px-1.5 py-0.5 rounded font-bold">Join</span>
                       )}
                     </div>
-                    {currentRole === 'creator' && <FiCheck className="text-emerald-500" size={14} />}
                   </button>
                 </div>
               )}

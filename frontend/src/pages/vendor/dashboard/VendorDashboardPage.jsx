@@ -12,16 +12,22 @@ import {
   useGetVendorDashboardQuery,
   useGetVendorLeadsQuery,
   useGetVendorBoostsQuery,
+  useGetVendorReelsQuery,
 } from '../../../features/vendor/vendorApi';
 
 export default function VendorDashboardPage() {
-  const { data: dashboardRes, isLoading } = useGetVendorDashboardQuery(undefined, { pollingInterval: 300000 });
-  const { data: leadsRes } = useGetVendorLeadsQuery(undefined, { pollingInterval: 300000 });
-  const { data: boostsRes } = useGetVendorBoostsQuery(undefined, { pollingInterval: 300000 });
+  const { data: dashboardRes, isLoading } = useGetVendorDashboardQuery(undefined, { pollingInterval: 5000 });
+  const { data: leadsRes } = useGetVendorLeadsQuery(undefined, { pollingInterval: 5000 });
+  const { data: boostsRes } = useGetVendorBoostsQuery(undefined, { pollingInterval: 5000 });
+  const { data: reelsRes } = useGetVendorReelsQuery(undefined, { pollingInterval: 5000 });
 
   const metrics = dashboardRes?.data || {};
   const leads = Array.isArray(leadsRes?.data) ? leadsRes.data : Array.isArray(leadsRes) ? leadsRes : [];
   const boosts = Array.isArray(boostsRes?.active) ? boostsRes.active : Array.isArray(boostsRes?.data) ? boostsRes.data : [];
+  const reelsList = Array.isArray(reelsRes?.data) ? reelsRes.data : Array.isArray(reelsRes?.reels) ? reelsRes.reels : Array.isArray(reelsRes) ? reelsRes : [];
+
+  const realTimeReelsCount = Math.max(metrics.totalReels || 0, reelsList.length);
+  const realTimeViewsCount = Math.max(metrics.totalViews || 0, reelsList.reduce((sum, r) => sum + (r.views || 0), 0));
 
   const credits = metrics.credits || { available: 50, deposited: 100, earned: 25, used: 15 };
   const creditRates = metrics.creditRates || {
@@ -36,8 +42,8 @@ export default function VendorDashboardPage() {
   const stats = [
     { label: 'Total Products', value: metrics.totalProducts ?? metrics.activeListings ?? 0, icon: FiPackage, color: 'purple', trend: 14 },
     { label: 'Total Services', value: metrics.totalServices ?? 0, icon: FiTool, color: 'blue', trend: 8 },
-    { label: 'Total Reels', value: metrics.totalReels ?? 0, icon: FiVideo, color: 'violet', trend: 20 },
-    { label: 'Total Views', value: (metrics.totalViews || 0).toLocaleString(), icon: FiEye, color: 'amber', trend: 18 },
+    { label: 'Total Reels', value: realTimeReelsCount, icon: FiVideo, color: 'violet', trend: 20 },
+    { label: 'Total Views', value: realTimeViewsCount.toLocaleString(), icon: FiEye, color: 'amber', trend: 18 },
     { label: 'Followers', value: (metrics.followers || 0).toLocaleString(), icon: FiUsers, color: 'green', trend: 12 },
     { label: 'Enquiries', value: metrics.leadEnquiries ?? 0, icon: FiInbox, color: 'cyan', trend: 5 },
     { label: 'Order Requests', value: metrics.totalOrders ?? 0, icon: FiShoppingCart, color: 'indigo', trend: 15 },

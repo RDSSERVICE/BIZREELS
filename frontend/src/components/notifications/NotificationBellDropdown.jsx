@@ -23,10 +23,10 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
         api.get('/v1/notifications/me').catch(() => api.get('/v1/notifications'))
       ]);
 
-      const count = countRes?.data?.count ?? countRes?.count ?? 0;
+      const count = countRes?.data?.data?.count ?? countRes?.data?.count ?? countRes?.count ?? 0;
       setUnreadCount(Number(count) || 0);
 
-      const itemsData = listRes?.data;
+      const itemsData = listRes?.data?.data || listRes?.data;
       const rawList = Array.isArray(itemsData?.items)
         ? itemsData.items
         : Array.isArray(itemsData?.notifications)

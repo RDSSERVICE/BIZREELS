@@ -46,7 +46,7 @@ const reelSchema = new Schema(
     },
     postType: {
       type: String,
-      enum: ['product', 'service', 'shop'],
+      enum: ['product', 'service', 'shop', 'services', 'products'],
       default: 'product',
       index: true,
     },

@@ -35,6 +35,15 @@ router.put(
   listingController.update
 );
 
+router.patch(
+  '/:id',
+  authenticate,
+  authorize('vendor', 'admin'),
+  listingValidation.update,
+  validate,
+  listingController.update
+);
+
 router.delete(
   '/:id',
   authenticate,

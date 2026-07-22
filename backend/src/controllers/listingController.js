@@ -37,12 +37,14 @@ class ListingController {
   // ── Get Listings (Discovery Feed) ──────────────────────
   getListings = asyncHandler(async (req, res) => {
     const {
+      vendor,
       type,
       category,
       subcategory,
       minPrice,
       maxPrice,
       condition,
+      status,
       rating,
       lat,
       lng,
@@ -53,12 +55,14 @@ class ListingController {
     } = req.query;
 
     const result = await listingService.queryListings({
+      vendor,
       type,
       category,
       subcategory,
       minPrice,
       maxPrice,
       condition,
+      status,
       rating,
       lat,
       lng,

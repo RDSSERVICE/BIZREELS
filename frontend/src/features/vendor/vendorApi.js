@@ -15,14 +15,20 @@ const vendorApi = apiSlice.injectEndpoints({
 
     // ── Listings ────────────────────────────────────────────
     getVendorListings: builder.query({
-      query: (params = {}) => ({ url: '/listings', params }),
-      providesTags: (result) =>
-        result?.data
-          ? [
-              ...result.data.map(({ _id }) => ({ type: 'Products', id: _id })),
-              { type: 'Products', id: 'LIST' },
-            ]
-          : [{ type: 'Products', id: 'LIST' }],
+      query: (params = {}) => ({ url: '/listings', params: { limit: 100, ...params } }),
+      providesTags: (result) => {
+        const items = Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result?.listings)
+          ? result.listings
+          : Array.isArray(result)
+          ? result
+          : [];
+        return [
+          ...items.map((item) => ({ type: 'Products', id: item._id || item.id })),
+          { type: 'Products', id: 'LIST' },
+        ];
+      },
     }),
     createListing: builder.mutation({
       query: (body) => ({ url: '/listings', method: 'POST', body }),

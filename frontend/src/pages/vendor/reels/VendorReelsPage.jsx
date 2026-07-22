@@ -4,19 +4,129 @@ import {
   FiVideo, FiCpu, FiPlay, FiCalendar, FiShield,
   FiEye, FiHeart, FiShare2, FiUserCheck, FiRadio, FiZap, FiPlus,
   FiMapPin, FiTarget, FiAlertTriangle, FiCheckCircle, FiClock, FiCamera,
-  FiImage, FiLayers, FiTag, FiUsers, FiDollarSign, FiSend, FiX, FiHelpCircle, FiCheck
+  FiImage, FiLayers, FiTag, FiUsers, FiDollarSign, FiSend, FiX, FiHelpCircle, FiCheck,
+  FiChevronLeft, FiChevronRight, FiTrash2, FiFileText
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminModal from '../../../features/admin/components/AdminModal';
-import { useGetVendorReelsQuery, useCreateReelMutation, useGetVendorListingsQuery } from '../../../features/vendor/vendorApi';
+import {
+  useGetVendorReelsQuery,
+  useCreateReelMutation,
+  useDeleteReelMutation,
+  useGetVendorListingsQuery
+} from '../../../features/vendor/vendorApi';
 import CreateServiceModal from './CreateServiceModal';
 
-const TABS = [
-  { key: 'published', label: 'Published Reels', icon: FiPlay },
-  { key: 'scheduled', label: 'Scheduled Reels', icon: FiCalendar },
-];
+/**
+ * ReelCardMediaCarousel Component
+ * Displays videos or images with left/right arrow buttons for multi-media posts
+ */
+function ReelCardMediaCarousel({ reel }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const rawMediaList = Array.isArray(reel.mediaUrls) && reel.mediaUrls.length > 0
+    ? reel.mediaUrls
+    : [reel.videoUrl || reel.thumbnailUrl || 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'];
+
+  const mediaList = rawMediaList.filter(Boolean);
+  const currentUrl = mediaList[currentIndex] || mediaList[0] || '';
+
+  const isVideo = reel.mediaType === 'video' ||
+    Boolean(currentUrl.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i)) ||
+    currentUrl.startsWith('data:video/');
+
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setCurrentIndex((prev) => (prev - 1 + mediaList.length) % mediaList.length);
+  };
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setCurrentIndex((prev) => (prev + 1) % mediaList.length);
+  };
+
+  return (
+    <div className="aspect-[9/16] bg-black relative group overflow-hidden">
+      {isVideo ? (
+        <video
+          src={currentUrl}
+          muted
+          autoPlay
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <img
+          src={currentUrl}
+          alt={reel.caption || reel.title || 'Reel Post'}
+          className="w-full h-full object-cover"
+        />
+      )}
+
+      {/* Boosted badge */}
+      {reel.isBoosted && (
+        <div className="absolute top-3 left-3 gradient-brand px-2.5 py-1 rounded-full text-[10px] font-black text-white flex items-center gap-1 shadow-premium z-10">
+          <FiZap size={11} /> BOOSTED
+        </div>
+      )}
+
+      {/* Purpose badge */}
+      {reel.postPurpose && (
+        <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-amber-400 border border-amber-400/30 z-10">
+          {reel.postPurpose}
+        </div>
+      )}
+
+      {/* CAROUSEL ARROW BUTTONS & MEDIA COUNTER (IF > 1 MEDIA ITEMS) */}
+      {mediaList.length > 1 && (
+        <>
+          {/* Left Arrow Button */}
+          <button
+            type="button"
+            onClick={handlePrev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center backdrop-blur-sm transition border border-white/20 shadow-md z-20 hover:scale-110"
+            title="Previous Image/Video"
+          >
+            <FiChevronLeft size={20} />
+          </button>
+
+          {/* Right Arrow Button */}
+          <button
+            type="button"
+            onClick={handleNext}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center backdrop-blur-sm transition border border-white/20 shadow-md z-20 hover:scale-110"
+            title="Next Image/Video"
+          >
+            <FiChevronRight size={20} />
+          </button>
+
+          {/* Media Count Badge */}
+          <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-white border border-white/20 z-10 flex items-center gap-1">
+            {isVideo ? <FiVideo size={10} /> : <FiImage size={10} />}
+            <span>{currentIndex + 1} / {mediaList.length}</span>
+          </div>
+
+          {/* Bottom Dot Indicators */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10">
+            {mediaList.map((_, idx) => (
+              <span
+                key={idx}
+                className={`h-1.5 rounded-full transition-all ${
+                  currentIndex === idx ? 'w-4 bg-brand-purple' : 'w-1.5 bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 // PREDEFINED DEPENDENT SERVICE CATEGORIES & SUB-CATEGORIES
 const SERVICE_CATEGORIES = {
@@ -194,11 +304,37 @@ export default function VendorReelsPage() {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
   // API QUERIES & MUTATIONS
-  const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 5000 });
+  const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 3000 });
   const { data: listingsData } = useGetVendorListingsQuery(undefined);
   const [createReel, { isLoading: isPublishing }] = useCreateReelMutation();
+  const [deleteReel] = useDeleteReelMutation();
+
+  const handleDeleteReel = async (reelId) => {
+    if (!reelId) return;
+    if (window.confirm('Are you sure you want to delete this Reel / Post?')) {
+      const toastId = toast.loading('Deleting Reel in real-time...');
+      try {
+        await deleteReel(reelId).unwrap();
+        toast.success('Reel deleted in real-time!', { id: toastId });
+        refetch();
+      } catch (err) {
+        toast.error(err?.data?.message || err?.message || 'Failed to delete reel', { id: toastId });
+      }
+    }
+  };
 
   const reelsList = Array.isArray(reelsData?.data) ? reelsData.data : Array.isArray(reelsData?.reels) ? reelsData.reels : Array.isArray(reelsData) ? reelsData : [];
+
+  const publishedCount = reelsList.filter(r => (r.status || 'published') === 'published').length;
+  const scheduledCount = reelsList.filter(r => r.status === 'scheduled').length;
+  const draftCount = reelsList.filter(r => r.status === 'draft').length;
+
+  const dynamicTabs = [
+    { key: 'published', label: 'Published Reels', icon: FiPlay, count: publishedCount },
+    { key: 'scheduled', label: 'Scheduled Reels', icon: FiCalendar, count: scheduledCount },
+    { key: 'draft', label: 'Drafts', icon: FiFileText, count: draftCount },
+  ];
+
   const filtered = reelsList.filter((r) => (r.status || 'published') === activeTab);
 
   // Vendor's services list for Option A
@@ -321,7 +457,7 @@ export default function VendorReelsPage() {
       await createReel({
         title: caption,
         caption,
-        postType,
+        postType: postType === 'services' ? 'service' : postType,
         category: postCategory,
         subcategory: postSubcategory,
         classification: postPurpose,
@@ -380,7 +516,7 @@ export default function VendorReelsPage() {
       setIsGeneratingAi(false);
       setShowAiAdModal(false);
       try {
-        await createReel({ title: aiPrompt, caption: aiPrompt, postType: 'services', status: 'published' }).unwrap();
+        await createReel({ title: aiPrompt, caption: aiPrompt, postType: 'service', status: 'published' }).unwrap();
       } catch {}
       toast.success('AI Video Ad Generated & Published to Reels!', { id: toastId });
       refetch();
@@ -402,7 +538,7 @@ export default function VendorReelsPage() {
       <AdminPageHeader
         icon={FiVideo}
         title="Service Reels & AI Ads Studio"
-        subtitle="Post service reels/images, target specific audience groups & local areas, launch live streams, run AI ad creator, schedule posts, and boost visibility"
+        subtitle={`Live catalog (${reelsList.length} total posts) • ${publishedCount} Published • ${scheduledCount} Scheduled • ${draftCount} Drafts • ${reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()} Total Views`}
       >
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -432,7 +568,36 @@ export default function VendorReelsPage() {
         </div>
       </AdminPageHeader>
 
-      <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* REAL-TIME REEL CATALOG STATS BANNER */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="glass p-4 rounded-2xl border border-brand-purple/20 text-center space-y-1">
+          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">TOTAL REELS</span>
+          <span className="text-2xl font-black text-brand-purple">{reelsList.length}</span>
+          <span className="text-[10px] text-text-secondary block">Catalog Posts</span>
+        </div>
+        <div className="glass p-4 rounded-2xl border border-emerald-500/20 text-center space-y-1">
+          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">PUBLISHED</span>
+          <span className="text-2xl font-black text-emerald-500">{publishedCount}</span>
+          <span className="text-[10px] text-text-secondary block">Live Feed</span>
+        </div>
+        <div className="glass p-4 rounded-2xl border border-blue-500/20 text-center space-y-1">
+          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">SCHEDULED</span>
+          <span className="text-2xl font-black text-blue-500">{scheduledCount}</span>
+          <span className="text-[10px] text-text-secondary block">Upcoming</span>
+        </div>
+        <div className="glass p-4 rounded-2xl border border-amber-500/20 text-center space-y-1">
+          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">DRAFTS</span>
+          <span className="text-2xl font-black text-amber-500">{draftCount}</span>
+          <span className="text-[10px] text-text-secondary block">Saved Drafts</span>
+        </div>
+        <div className="glass p-4 rounded-2xl border border-violet-500/20 text-center space-y-1">
+          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">TOTAL VIEWS</span>
+          <span className="text-2xl font-black text-violet-500">{reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()}</span>
+          <span className="text-[10px] text-text-secondary block">Customer Views</span>
+        </div>
+      </div>
+
+      <AdminTabBar tabs={dynamicTabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Reels Grid */}
       {isFetching && !reelsList.length ? (
@@ -449,22 +614,21 @@ export default function VendorReelsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((reel) => (
             <div key={reel._id || reel.id} className="glass rounded-2xl border border-white/50 shadow-card hover:shadow-card-hover transition-all overflow-hidden">
-              <div className="aspect-[9/16] bg-black relative">
-                <video src={reel.videoUrl} muted autoPlay loop playsInline className="w-full h-full object-cover" />
-                {reel.isBoosted && (
-                  <div className="absolute top-3 left-3 gradient-brand px-2.5 py-1 rounded-full text-[10px] font-black text-white flex items-center gap-1 shadow-premium">
-                    <FiZap size={11} /> BOOSTED
-                  </div>
-                )}
-                {reel.postPurpose && (
-                  <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-amber-400 border border-amber-400/30">
-                    {reel.postPurpose}
-                  </div>
-                )}
-              </div>
+              <ReelCardMediaCarousel reel={reel} />
 
               <div className="p-4 space-y-3">
-                <h4 className="font-bold text-sm text-text-primary line-clamp-2">{reel.caption || reel.title || 'Service Reel'}</h4>
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="font-bold text-sm text-text-primary line-clamp-2">{reel.caption || reel.title || 'Service Reel'}</h4>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteReel(reel._id || reel.id)}
+                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition flex-shrink-0"
+                    title="Delete Reel"
+                  >
+                    <FiTrash2 size={16} />
+                  </button>
+                </div>
+
                 <div className="flex flex-wrap gap-1">
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-brand-purple/10 text-brand-purple">
                     {reel.category || 'Service'} • {reel.subcategory || 'General'}

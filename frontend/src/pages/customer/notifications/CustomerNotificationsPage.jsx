@@ -25,7 +25,7 @@ export default function CustomerNotificationsPage() {
     setLoading(true);
     try {
       const res = await api.get('/v1/notifications/me');
-      const data = res.data;
+      const data = res.data?.data || res.data;
       const items = Array.isArray(data?.items) ? data.items : Array.isArray(data?.notifications) ? data.notifications : Array.isArray(data) ? data : [];
       setNotifications(items);
     } catch {

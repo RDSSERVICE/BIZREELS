@@ -121,10 +121,44 @@ export default function VendorListingsPage() {
   });
 
   // Real-time API query for vendor listings
-  const { data, isFetching, refetch } = useGetVendorListingsQuery(undefined, { pollingInterval: 5000 });
+  const vendorId = currentUser?._id || currentUser?.id;
+  const { data, isFetching, refetch } = useGetVendorListingsQuery(
+    vendorId ? { vendor: vendorId } : undefined,
+    { pollingInterval: 3000 }
+  );
   const [createListing] = useCreateListingMutation();
   const [deleteListing] = useDeleteListingMutation();
   const [toggleVisibility] = useToggleListingVisibilityMutation();
+
+  // Real-time delete handler
+  const handleDeleteListing = async (listingId) => {
+    if (!listingId) return;
+    if (window.confirm('Are you sure you want to delete this listing?')) {
+      const toastId = toast.loading('Deleting listing in real-time...');
+      try {
+        await deleteListing(listingId).unwrap();
+        toast.success('Listing deleted in real-time!', { id: toastId });
+        refetch();
+      } catch (err) {
+        toast.error(err?.data?.message || err?.message || 'Failed to delete listing', { id: toastId });
+      }
+    }
+  };
+
+  // Real-time toggle visibility handler
+  const handleToggleVisibility = async (row) => {
+    const listingId = row.id || row._id;
+    const currentStatus = row.status || 'published';
+    const newStatus = currentStatus === 'hidden' ? 'published' : 'hidden';
+    const toastId = toast.loading(`Updating visibility to ${newStatus}...`);
+    try {
+      await toggleVisibility({ id: listingId, status: newStatus }).unwrap();
+      toast.success(`Listing status updated to ${newStatus}!`, { id: toastId });
+      refetch();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to update visibility', { id: toastId });
+    }
+  };
 
   // Load real categories from Backend API
   const fetchLiveCategories = async () => {
@@ -184,12 +218,28 @@ export default function VendorListingsPage() {
 
   const allListings = Array.isArray(data?.data) ? data.data : Array.isArray(data?.listings) ? data.listings : Array.isArray(data) ? data : [];
 
+  const productsCount = allListings.filter(i => i.type === 'product').length;
+  const servicesCount = allListings.filter(i => i.type === 'service').length;
+  const publishedCount = allListings.filter(i => (i.status || 'published') === 'published').length;
+  const draftCount = allListings.filter(i => i.status === 'draft').length;
+  const hiddenCount = allListings.filter(i => i.status === 'hidden').length;
+
+  const dynamicTabs = [
+    { key: 'products', label: 'Products', icon: FiShoppingBag, count: productsCount },
+    { key: 'services', label: 'Services', icon: FiTool, count: servicesCount },
+    { key: 'offers', label: 'Dynamic Offers', icon: FiPercent, count: offersList.length },
+    { key: 'published', label: 'Published', count: publishedCount },
+    { key: 'draft', label: 'Draft', count: draftCount },
+    { key: 'hidden', label: 'Hidden', count: hiddenCount },
+  ];
+
   const filtered = allListings.filter((item) => {
+    const itemStatus = item.status || 'published';
     if (activeTab === 'products') return item.type === 'product';
     if (activeTab === 'services') return item.type === 'service';
-    if (activeTab === 'draft') return item.status === 'draft';
-    if (activeTab === 'published') return item.status === 'published';
-    if (activeTab === 'hidden') return item.status === 'hidden';
+    if (activeTab === 'draft') return itemStatus === 'draft';
+    if (activeTab === 'published') return itemStatus === 'published';
+    if (activeTab === 'hidden') return itemStatus === 'hidden';
     return true;
   }).filter((item) =>
     !search || item.title?.toLowerCase().includes(search.toLowerCase())
@@ -435,7 +485,7 @@ export default function VendorListingsPage() {
         </div>
       </AdminPageHeader>
 
-      <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+      <AdminTabBar tabs={dynamicTabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === 'offers' ? (
         <div className="space-y-4">
@@ -487,22 +537,22 @@ export default function VendorListingsPage() {
           emptyMessage="No listings found in this tab."
           testId="vendor-listings-table"
           actions={(row) => (
-            <>
+            <div className="flex items-center gap-1">
               <button
-                onClick={() => toggleVisibility({ id: row.id || row._id, status: row.status === 'hidden' ? 'published' : 'hidden' })}
-                className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple"
+                onClick={() => handleToggleVisibility(row)}
+                className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition"
                 title="Toggle Visibility"
               >
                 {row.status === 'hidden' ? <FiEye className="w-3.5 h-3.5" /> : <FiEyeOff className="w-3.5 h-3.5" />}
               </button>
               <button
-                onClick={() => deleteListing(row.id || row._id)}
-                className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500"
-                title="Delete"
+                onClick={() => handleDeleteListing(row.id || row._id)}
+                className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition"
+                title="Delete Listing"
               >
                 <FiTrash2 className="w-3.5 h-3.5" />
               </button>
-            </>
+            </div>
           )}
         />
       )}
