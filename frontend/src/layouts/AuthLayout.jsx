@@ -1,7 +1,8 @@
 import React from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { selectIsAuthenticated, selectCurrentUser } from '../features/auth/authSlice';
+import { selectIsAuthenticated, selectCurrentUser, selectActiveRole } from '../features/auth/authSlice';
+import { getRoleDashboard } from '../lib/roleNav';
 
 /**
  * Premium layout for Authentication views (Login, Register, Reset Password)
@@ -10,6 +11,7 @@ import { selectIsAuthenticated, selectCurrentUser } from '../features/auth/authS
 const AuthLayout = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const user = useSelector(selectCurrentUser);
+  const activeRole = useSelector(selectActiveRole);
   const location = useLocation();
 
   const isAdminPath = location.pathname.startsWith('/admin') || location.pathname === '/adminlogin';
@@ -23,7 +25,7 @@ const AuthLayout = () => {
       }
       // If logged in as customer, but going to admin login, don't redirect (so they can sign in as admin)
     } else {
-      return <Navigate to="/feed" replace />;
+      return <Navigate to={getRoleDashboard(activeRole)} replace />;
     }
   }
 

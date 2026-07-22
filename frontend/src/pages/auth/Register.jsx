@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
 import { useRegisterMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
+import { getRoleDashboard } from '../../lib/roleNav';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import API_CONFIG from '../../config';
@@ -35,7 +36,9 @@ const Register = () => {
 
       dispatch(setCredentials(res.data));
       toast.success('Registration successful! Welcome to BizReels.');
-      navigate('/feed');
+      const user = res.data?.user || res.data;
+      const activeRole = user?.activeRole || user?.current_role || data.role || 'customer';
+      navigate(getRoleDashboard(activeRole), { replace: true });
     } catch (err) {
       toast.error(err?.data?.message || 'Registration failed. Please check details.');
     }
@@ -86,6 +89,7 @@ const Register = () => {
             className="w-full h-12 px-4 rounded-xl border border-border bg-white text-text-primary text-sm font-semibold outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple transition-all cursor-pointer shadow-sm"
           >
             <option value="customer">Customer / Buyer (Default)</option>
+            <option value="vendor">Vendor / Business Owner</option>
             <option value="creator">Creator / Content Producer</option>
           </select>
           {errors.role && (

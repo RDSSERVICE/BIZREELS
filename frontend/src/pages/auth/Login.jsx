@@ -7,6 +7,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { FiMail, FiLock, FiPhone, FiSmartphone } from 'react-icons/fi';
 import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
+import { getRoleDashboard } from '../../lib/roleNav';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import API_CONFIG from '../../config';
@@ -28,7 +29,7 @@ const Login = () => {
   const [requestOtp, { isLoading: isOtpRequestLoading }] = useRequestOtpMutation();
   const [verifyOtp, { isLoading: isOtpVerifyLoading }] = useVerifyOtpMutation();
 
-  const from = location.state?.from?.pathname || '/feed';
+  const from = location.state?.from?.pathname;
 
   // ── Form Handlers ──────────────────────────────────────────
   const emailForm = useForm({ defaultValues: { email: '', password: '', role: 'customer' } });
@@ -43,11 +44,14 @@ const Login = () => {
       }).unwrap();
       dispatch(setCredentials(res.data));
       toast.success('Welcome back to BizReels!');
-      const roles = res.data?.user?.roles || [];
-      if (roles.includes('admin') || res.data?.activeRole === 'admin') {
+      const user = res.data?.user || res.data;
+      const activeRole = user?.activeRole || user?.current_role || data.role || 'customer';
+      const roles = user?.roles || [];
+      if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        navigate(from, { replace: true });
+        const targetPath = (from && from !== '/feed' && from !== '/auth/login') ? from : getRoleDashboard(activeRole);
+        navigate(targetPath, { replace: true });
       }
     } catch (err) {
       toast.error(err?.data?.message || 'Login failed. Please check credentials.');
@@ -90,11 +94,14 @@ const Login = () => {
 
       dispatch(setCredentials(res.data));
       toast.success('Welcome back to BizReels!');
-      const roles = res.data?.user?.roles || [];
-      if (roles.includes('admin') || res.data?.activeRole === 'admin') {
+      const user = res.data?.user || res.data;
+      const activeRole = user?.activeRole || user?.current_role || 'customer';
+      const roles = user?.roles || [];
+      if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        navigate(from, { replace: true });
+        const targetPath = (from && from !== '/feed' && from !== '/auth/login') ? from : getRoleDashboard(activeRole);
+        navigate(targetPath, { replace: true });
       }
     } catch (err) {
       toast.error(err?.data?.message || 'Invalid or expired OTP.');
@@ -177,6 +184,7 @@ const Login = () => {
               className="w-full h-12 px-4 rounded-xl border border-border bg-white text-text-primary text-sm font-semibold outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple transition-all cursor-pointer shadow-sm"
             >
               <option value="customer">Customer / Buyer (Default)</option>
+              <option value="vendor">Vendor / Business Owner</option>
               <option value="creator">Creator / Content Producer</option>
             </select>
           </div>

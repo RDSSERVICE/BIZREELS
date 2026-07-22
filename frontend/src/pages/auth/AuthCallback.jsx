@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { setCredentials, tokenRefreshed } from '../../features/auth/authSlice';
 import { useGetMeQuery } from '../../features/auth/authApi';
 import { tokenStore } from '../../lib/api';
+import { getRoleDashboard } from '../../lib/roleNav';
 import Loader from '../../components/common/Loader';
 
 /**
@@ -45,7 +46,8 @@ const AuthCallback = () => {
         })
       );
       toast.success('Successfully logged in with Google!');
-      navigate('/feed', { replace: true });
+      const activeRole = user?.activeRole || user?.current_role || (user?.roles || [])[0] || 'customer';
+      navigate(getRoleDashboard(activeRole), { replace: true });
     }
 
     if (tokenReady && error) {

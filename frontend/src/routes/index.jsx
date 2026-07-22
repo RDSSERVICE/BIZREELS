@@ -21,6 +21,7 @@ import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import AuthCallback from '../pages/auth/AuthCallback';
+import DashboardRouter from '../pages/customer/DashboardRouter';
 
 // Customer Pages
 import CustomerHomePage from '../pages/customer/home/CustomerHomePage';
@@ -104,6 +105,8 @@ const AppRoutes = () => {
         <Route path="/local-reels" element={<PublicLocalReelsPage />} />
         <Route path="/creator-marketplace" element={<PublicCreatorMarketplacePage />} />
       </Route>
+
+      <Route path="/feed" element={<DashboardRouter />} />
 
       {/* ── Public Auth Routes ────────────────────────────────── */}
       <Route

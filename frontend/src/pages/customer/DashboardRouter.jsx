@@ -2,10 +2,6 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import { selectActiveRole } from '../../features/auth/authSlice';
-import VendorDashboard from '../vendor/VendorDashboard';
-import CreatorDashboard from '../creator/CreatorDashboard';
-import CustomerDashboard from './CustomerDashboard';
-import AdminDashboard from '../admin/AdminDashboard';
 
 const DashboardRouter = () => {
   const activeRole = useSelector(selectActiveRole);

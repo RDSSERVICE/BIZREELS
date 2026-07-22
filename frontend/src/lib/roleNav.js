@@ -45,3 +45,18 @@ const NAV_MAP = {
 export function navForRole(role) {
   return NAV_MAP[role] || CUSTOMER_NAV;
 }
+
+export function getRoleDashboard(role) {
+  switch (role) {
+    case 'vendor':
+      return '/vendor/dashboard';
+    case 'creator':
+      return '/creator/dashboard';
+    case 'admin':
+      return '/admin/dashboard';
+    case 'customer':
+    default:
+      return '/customer/home';
+  }
+}
+

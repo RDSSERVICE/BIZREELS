@@ -11,7 +11,7 @@ import {
 
 const ROLE_META = {
   customer: { label: "Customer", icon: ShoppingBag, gradient: "from-purple-500 to-purple-700",
-              desc: "Browse & buy locally", home: "/feed" },
+              desc: "Browse & buy locally", home: "/customer/home" },
   vendor:   { label: "Vendor",   icon: Store,        gradient: "from-pink-500 to-pink-700",
               desc: "Sell products & services", home: "/vendor/dashboard" },
   creator:  { label: "Creator",  icon: Palette,      gradient: "from-orange-500 to-orange-700",
@@ -21,7 +21,7 @@ const ROLE_META = {
 };
 
 export function homeForRole(role) {
-  return ROLE_META[role]?.home || "/feed";
+  return ROLE_META[role]?.home || "/customer/home";
 }
 
 export default function RoleSwitcherChip() {
