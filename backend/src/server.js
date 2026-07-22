@@ -53,8 +53,8 @@ const startServer = async () => {
       }
     });
 
-    // Start listening
-    server.listen(config.port, () => {
+    // Start listening on 0.0.0.0 for universal local interface connectivity
+    server.listen(config.port, '0.0.0.0', () => {
       logger.info(`
   ╔══════════════════════════════════════════════╗
   ║   🎬 BizReels API Server                    ║

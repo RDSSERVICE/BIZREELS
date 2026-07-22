@@ -9,8 +9,17 @@ const router = express.Router();
  */
 
 router.get('/', authenticate, notificationController.getNotifications);
+router.get('/me', authenticate, notificationController.getNotifications);
+router.get('/unread-count', authenticate, notificationController.getUnreadCount);
+router.get('/me/unread-count', authenticate, notificationController.getUnreadCount);
+
 router.patch('/read-all', authenticate, notificationController.markAllAsRead);
+router.post('/read-all', authenticate, notificationController.markAllAsRead);
+router.post('/me/read-all', authenticate, notificationController.markAllAsRead);
+
 router.patch('/:id/read', authenticate, notificationController.markAsRead);
+router.post('/:id/read', authenticate, notificationController.markAsRead);
+
 router.delete('/:id', authenticate, notificationController.delete);
 
 module.exports = router;

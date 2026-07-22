@@ -26,7 +26,7 @@ const getCfg = () => {
   const snap = settingsService.getIntegrationSync('ai_content');
   const provider = (snap.provider || process.env.AI_PROVIDER || DEFAULT_PROVIDER).trim();
   const model = (snap.model || process.env.AI_MODEL || DEFAULT_MODEL).trim();
-  const apiKey = (snap.api_key || '').trim() || (process.env.GOOGLE_AI_API_KEY || '').trim();
+  const apiKey = (snap.api_key || '').trim() || (process.env.GOOGLE_AI_API_KEY || '').trim() || (process.env.GEMINI_API_KEY || '').trim();
   const enabled = snap.enabled !== undefined ? !!snap.enabled : process.env.AI_DEV_MODE !== 'true';
 
   return { provider, model, apiKey, enabled };

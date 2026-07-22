@@ -12,6 +12,7 @@ import {
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, updateUser, selectCurrentUser } from '../../features/auth/authSlice';
 import { api, locationApi, tokenStore } from '../../lib/api';
+import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 
 /**
  * CustomerLayout — Admin-style fixed sidebar layout for Customer Portal
@@ -434,6 +435,8 @@ export default function CustomerLayout() {
                 </div>
               )}
             </div>
+
+            <NotificationBellDropdown role="customer" />
 
             {/* Profile */}
             <button

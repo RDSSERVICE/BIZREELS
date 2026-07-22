@@ -52,19 +52,50 @@ export default function CustomerHomePage() {
     }
   };
 
-  const handleLike = (id) => {
-    setLikedMap((prev) => ({ ...prev, [id]: !prev[id] }));
-    toast.success(likedMap[id] ? 'Unliked' : 'Liked post');
+  const handleLike = async (id) => {
+    const isLiked = !!likedMap[id];
+    setLikedMap((prev) => ({ ...prev, [id]: !isLiked }));
+    try {
+      if (activeTab === 'reels') {
+        await api.post(`/v1/reels/${id}/like`);
+      } else {
+        await api.post(`/v1/listings/${id}/like`);
+      }
+      toast.success(!isLiked ? 'Liked post' : 'Unliked post');
+    } catch (err) {
+      setLikedMap((prev) => ({ ...prev, [id]: isLiked }));
+      toast.error('Failed to update like status');
+    }
   };
 
-  const handleSave = (id) => {
-    setSavedMap((prev) => ({ ...prev, [id]: !prev[id] }));
-    toast.success(savedMap[id] ? 'Removed from saved' : 'Saved to activities');
+  const handleSave = async (id) => {
+    const isSaved = !!savedMap[id];
+    setSavedMap((prev) => ({ ...prev, [id]: !isSaved }));
+    try {
+      await api.post(`/v1/listings/${id}/save`);
+      toast.success(!isSaved ? 'Saved to activities' : 'Removed from saved');
+    } catch (err) {
+      setSavedMap((prev) => ({ ...prev, [id]: isSaved }));
+      toast.error('Failed to update saved status');
+    }
   };
 
-  const handleFollow = (vendorId) => {
-    setFollowingMap((prev) => ({ ...prev, [vendorId]: !prev[vendorId] }));
-    toast.success(followingMap[vendorId] ? 'Unfollowed vendor' : 'Following vendor');
+  const handleFollow = async (vendorId) => {
+    if (!vendorId) return;
+    const isFollowing = !!followingMap[vendorId];
+    setFollowingMap((prev) => ({ ...prev, [vendorId]: !isFollowing }));
+    try {
+      if (!isFollowing) {
+        await api.post(`/v1/follow/${vendorId}`);
+        toast.success('Following vendor');
+      } else {
+        await api.delete(`/v1/follow/${vendorId}`);
+        toast.success('Unfollowed vendor');
+      }
+    } catch (err) {
+      setFollowingMap((prev) => ({ ...prev, [vendorId]: isFollowing }));
+      toast.error('Failed to update follow status');
+    }
   };
 
   // Filter & Sort Logic for Reels & Images

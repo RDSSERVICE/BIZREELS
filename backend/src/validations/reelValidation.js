@@ -6,18 +6,23 @@ const { body, param, query } = require('express-validator');
 const reelValidation = {
   publish: [
     body('caption')
-      .optional()
+      .optional({ checkFalsy: true })
       .trim()
       .isLength({ max: 2200 }).withMessage('Caption cannot exceed 2200 characters.'),
     body('tags')
-      .optional()
-      .trim(),
+      .optional({ checkFalsy: true }),
     body('lat')
-      .optional()
+      .optional({ checkFalsy: true })
       .isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude coordinates.'),
     body('lng')
-      .optional()
+      .optional({ checkFalsy: true })
       .isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude coordinates.'),
+    body('targetListing')
+      .optional({ checkFalsy: true })
+      .custom((val) => {
+        if (!val || val === 'null') return true;
+        return require('mongoose').Types.ObjectId.isValid(val);
+      }).withMessage('Invalid target listing ID.'),
   ],
 
   getFeed: [

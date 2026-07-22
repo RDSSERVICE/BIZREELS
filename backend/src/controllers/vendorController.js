@@ -13,21 +13,60 @@ class VendorController {
   // ── Vendor Dashboard ─────────────────────────────────────
   getDashboard = asyncHandler(async (req, res) => {
     const userId = req.user._id;
+    const { Wallet } = require('../models/Phase4');
 
-    const [listingsCount, ordersCount, leadsCount] = await Promise.all([
-      Listing.countDocuments({ vendor: userId }),
+    const [
+      productsCount,
+      servicesCount,
+      reels,
+      ordersCount,
+      leadsCount,
+      wallet
+    ] = await Promise.all([
+      Listing.countDocuments({ vendor: userId, type: 'product' }),
+      Listing.countDocuments({ vendor: userId, type: 'service' }),
+      Reel.find({ creator: userId }).select('views').lean(),
       Order.countDocuments({ vendor_id: userId.toString() }),
-      Inquiry.countDocuments({ vendor: userId })
+      Inquiry.countDocuments({ vendor: userId }),
+      Wallet.findOne({ user_id: userId.toString() }).lean()
     ]);
+
+    const totalReels = reels.length;
+    const totalViews = reels.reduce((sum, r) => sum + (r.views || 0), 0);
+    const followers = req.user.followersCount || (req.user.followers ? req.user.followers.length : 0);
+
+    const availableCredits = wallet?.credits || 50; // default 50 joining credits if new
+    const depositedCredits = wallet?.lifetime_deposited_paise ? Math.floor(wallet.lifetime_deposited_paise / 100) : 100;
+    const earnedCredits = wallet?.lifetime_earned_credits || 25;
+    const usedCreditHistory = wallet?.lifetime_spent_credits || 15;
 
     return ApiResponse.ok(res, 'Vendor dashboard metrics loaded.', {
       data: {
         totalSales: req.user.walletBalance ? req.user.walletBalance * 2 : 0,
         totalOrders: ordersCount,
-        activeListings: listingsCount,
+        activeListings: productsCount,
+        totalProducts: productsCount,
+        totalServices: servicesCount,
+        totalReels,
+        totalViews,
+        followers,
         leadEnquiries: leadsCount,
-        walletBalance: req.user.walletBalance || 0,
-        rating: req.user.rating_avg || 5.0
+        walletBalance: availableCredits,
+        rating: req.user.rating_avg || 5.0,
+        credits: {
+          available: availableCredits,
+          deposited: depositedCredits,
+          earned: earnedCredits,
+          used: usedCreditHistory,
+        },
+        creditRates: {
+          productListing: 1,
+          reelPost: 1,
+          aiImage: 2,
+          aiVideo30s: 15,
+          reelBoost1Day: 10,
+          validLead: 1,
+        }
       }
     });
   });

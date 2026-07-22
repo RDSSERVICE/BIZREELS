@@ -8,20 +8,17 @@ const { Schema } = mongoose;
 const notificationSchema = new Schema(
   {
     recipient: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: Schema.Types.Mixed,
       required: true,
       index: true,
     },
     sender: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: Schema.Types.Mixed,
       index: true,
     },
     type: {
       type: String,
-      enum: ['like', 'comment', 'message', 'quote', 'lead', 'hire', 'payment', 'wallet', 'admin_message', 'vendor_reply', 'price_drop', 'offer'],
-      required: true,
+      default: 'system',
       index: true,
     },
     title: {
@@ -31,8 +28,17 @@ const notificationSchema = new Schema(
     },
     message: {
       type: String,
-      required: true,
+      default: '',
       trim: true,
+    },
+    body: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    actionUrl: {
+      type: String,
+      default: null,
     },
     isRead: {
       type: Boolean,
@@ -40,11 +46,13 @@ const notificationSchema = new Schema(
       index: true,
     },
     data: {
-      type: Schema.Types.Mixed, // Stores specific payload (e.g. { reelId, conversationId, requirementId })
+      type: Schema.Types.Mixed,
     },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 

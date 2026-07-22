@@ -123,6 +123,7 @@ router.post('/me/verify-contact', requireAuth, catchAsync(async (req, res) => {
 
   currentVp.contactVerified = currentContacts;
   user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
   
   const statusInfo = computeVendorVerification(user);
   user.vendorProfile.verificationStatus = statusInfo.tier;
@@ -170,6 +171,7 @@ router.post('/me/verify-document', requireAuth, catchAsync(async (req, res) => {
 
   currentVp.documents = currentDocs;
   user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
 
   // Sync to KycDocument model for Admin Queue visibility
   try {
@@ -224,12 +226,83 @@ router.post('/me/verify-payment', requireAuth, catchAsync(async (req, res) => {
 
   currentVp.paymentDetails = currentPayment;
   user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
 
   const statusInfo = computeVendorVerification(user);
   user.vendorProfile.verificationStatus = statusInfo.tier;
   await user.save();
 
   res.json({ success: true, message: 'Payment details verified and updated successfully!', ...statusInfo });
+}));
+
+// ── VENDOR SETTINGS & CLOSE SCHEDULE ENDPOINTS ───────────────
+
+router.get('/me/settings', requireAuth, catchAsync(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const vp = user.vendorProfile || {};
+  const settings = {
+    category: vp.category || 'Electronics',
+    subcategory: vp.subcategory || 'Smartphones & Audio',
+    isTemporaryClosed: !!vp.isTemporaryClosed,
+    closeScheduleReason: vp.closeScheduleReason || 'Renovation / Vacation',
+    businessName: vp.businessName || user.name || '',
+    address: vp.address || user.location?.address || '',
+    autoResponseNote: vp.autoResponseNote || '',
+    notificationsEnabled: vp.notificationsEnabled !== false,
+  };
+
+  res.json({ success: true, data: settings, vendorProfile: vp });
+}));
+
+router.post('/me/settings', requireAuth, catchAsync(async (req, res) => {
+  const {
+    category, subcategory, isTemporaryClosed, closeScheduleReason,
+    businessName, address, autoResponseNote, notificationsEnabled
+  } = req.body;
+
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const currentVp = user.vendorProfile || {};
+
+  if (category !== undefined) currentVp.category = category;
+  if (subcategory !== undefined) currentVp.subcategory = subcategory;
+  if (isTemporaryClosed !== undefined) currentVp.isTemporaryClosed = !!isTemporaryClosed;
+  if (closeScheduleReason !== undefined) currentVp.closeScheduleReason = closeScheduleReason;
+  if (businessName !== undefined) {
+    currentVp.businessName = businessName;
+    user.name = businessName;
+  }
+  if (address !== undefined) {
+    currentVp.address = address;
+    if (!user.location) user.location = { type: 'Point', coordinates: [0, 0] };
+    user.location.address = address;
+  }
+  if (autoResponseNote !== undefined) currentVp.autoResponseNote = autoResponseNote;
+  if (notificationsEnabled !== undefined) currentVp.notificationsEnabled = notificationsEnabled;
+
+  currentVp.updatedAt = new Date();
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
+  await user.save();
+
+  res.json({
+    success: true,
+    message: 'Vendor Business Settings & Close Schedule saved successfully!',
+    data: {
+      category: currentVp.category,
+      subcategory: currentVp.subcategory,
+      isTemporaryClosed: currentVp.isTemporaryClosed,
+      closeScheduleReason: currentVp.closeScheduleReason,
+      businessName: currentVp.businessName,
+      address: currentVp.address,
+      autoResponseNote: currentVp.autoResponseNote,
+      notificationsEnabled: currentVp.notificationsEnabled,
+    },
+    user,
+  });
 }));
 
 // ── VENDOR DYNAMIC OFFERS ENDPOINTS ─────────────────────────

@@ -44,7 +44,7 @@ router.get('/kyc/me', requireAuth, catchAsync(async (req, res) => {
 
 // ============================================================ ADMIN KYC QUEUE
 router.get('/admin/kyc', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const items = await kycService.kycQueue();
+  const items = await kycService.kycQueue(req.query.status || null);
   res.json({ items });
 }));
 

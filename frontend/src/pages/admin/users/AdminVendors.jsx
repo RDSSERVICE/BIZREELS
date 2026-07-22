@@ -119,7 +119,8 @@ export default function AdminVendors() {
   ];
 
   const profile = userDetail?.vendor_profile || userDetail?.vendorProfile;
-  const bank = profile?.bankDetails;
+  const bank = profile?.paymentDetails || profile?.bankDetails;
+  const docs = profile?.documents || {};
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
@@ -210,15 +211,15 @@ export default function AdminVendors() {
                   </div>
                   <div>
                     <span className="text-text-tertiary text-[10px] font-bold uppercase block">GSTIN</span>
-                    <span className="font-mono font-bold text-text-primary">{profile.gst || '—'}</span>
+                    <span className="font-mono font-bold text-text-primary">{profile.gst || docs.gst?.docNumber || '—'}</span>
                   </div>
                   <div>
                     <span className="text-text-tertiary text-[10px] font-bold uppercase block">PAN</span>
-                    <span className="font-mono font-bold text-text-primary">{profile.pan || '—'}</span>
+                    <span className="font-mono font-bold text-text-primary">{profile.pan || docs.pan?.docNumber || '—'}</span>
                   </div>
                   <div>
                     <span className="text-text-tertiary text-[10px] font-bold uppercase block">Aadhaar</span>
-                    <span className="font-mono font-bold text-text-primary">{profile.aadhaar || '—'}</span>
+                    <span className="font-mono font-bold text-text-primary">{docs.aadhaar?.docNumber || profile.aadhaar || '—'}</span>
                   </div>
                 </div>
               </div>
@@ -233,11 +234,11 @@ export default function AdminVendors() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div>
                     <span className="text-text-tertiary text-[10px] font-bold uppercase block">Bank Account</span>
-                    <span className="font-mono font-bold text-text-primary">{bank.bankAccount || '—'}</span>
+                    <span className="font-mono font-bold text-text-primary">{bank.bankAccount || bank.accountNumber || '—'}</span>
                   </div>
                   <div>
                     <span className="text-text-tertiary text-[10px] font-bold uppercase block">IFSC Code</span>
-                    <span className="font-mono font-bold text-text-primary">{bank.ifsc || '—'}</span>
+                    <span className="font-mono font-bold text-text-primary">{bank.ifscCode || bank.ifsc || '—'}</span>
                   </div>
                   <div>
                     <span className="text-text-tertiary text-[10px] font-bold uppercase block">UPI ID</span>

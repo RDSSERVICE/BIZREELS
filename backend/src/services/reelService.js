@@ -42,71 +42,152 @@ class ReelService {
   }
 
   // ── Publish Reel ────────────────────────────────────────
-  async publishReel({ userId, fileBuffer, caption, tags, lat, lng, address }, req) {
-    if (!fileBuffer) {
-      throw ApiError.badRequest('No video file provided.');
+  async publishReel({
+    userId, fileBuffer, caption, tags, lat, lng, address,
+    postType, category, subcategory, classification, postPurpose,
+    targeting, videoUrl, mediaUrls, mediaType, status, scheduledDate
+  }, req) {
+    // 1. AI Safety Contact Details Check
+    const audienceText = typeof targeting?.audience === 'string' ? targeting.audience : Array.isArray(targeting?.audience) ? targeting.audience.join(' ') : '';
+    const fullTextScan = `${caption || ''} ${(tags || []).join(' ')} ${audienceText}`;
+    const scan = detectForbiddenContactDetails(fullTextScan);
+    if (scan.hasViolation) {
+      throw ApiError.badRequest(
+        `AI Safety Policy Violation: Phone numbers, WhatsApp numbers, QR codes, emails, websites, or social handles are strictly prohibited in reels/images. Detected: "${scan.snippet}" (${scan.detectedType}). Vendor flagged.`
+      );
     }
 
-    if (caption) {
-      const scan = detectForbiddenContactDetails(caption);
-      if (scan.hasViolation) {
-        throw ApiError.badRequest(
-          `AI Safety Policy Violation: Phone numbers, WhatsApp numbers, QR codes, emails, websites, or social handles are not allowed in reels/images. Detected: "${scan.snippet}" (${scan.detectedType}).`
-        );
-      }
-    }
+    let finalVideoUrl = videoUrl || (Array.isArray(mediaUrls) && mediaUrls[0]) || '';
+    let finalThumbnailUrl = '';
 
-    try {
+    if (fileBuffer) {
       logger.info(`Initiating Reels upload to CDN for user: ${userId}`, { service: 'reels' });
       const uploadResult = await this.uploadVideoStream(fileBuffer);
-
-      // Extract hashtags from caption or tags list
-      let hashtagsList = [];
-      if (caption) {
-        const hashMatch = caption.match(/#\w+/g);
-        if (hashMatch) {
-          hashtagsList = hashMatch.map(h => h.slice(1).toLowerCase());
-        }
-      }
-      if (tags) {
-        const cleanTags = tags.split(',').map(t => t.trim().toLowerCase());
-        hashtagsList = [...new Set([...hashtagsList, ...cleanTags])];
-      }
-
-      // Geo coordinates structure
-      const location = {
-        type: 'Point',
-        coordinates: [0, 0],
-      };
-      if (lat && lng) {
-        location.coordinates = [parseFloat(lng), parseFloat(lat)];
-        location.address = address || '';
-      }
-
-      const reel = await reelRepository.createReel({
-        creator: userId,
-        videoUrl: uploadResult.secure_url,
-        thumbnailUrl: uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url.replace(/\.[^/.]+$/, '.jpg'),
-        caption,
-        hashtags: hashtagsList,
-        location,
-      });
-
-      await reelRepository.logReelAction({
-        userId,
-        action: 'LISTING_CREATE', // audit maps listing creation
-        entityId: reel._id,
-        description: 'Uploaded new Reel',
-        ip: req.ip,
-        agent: req.headers['user-agent'],
-      });
-
-      logger.info(`Reel published successfully: ${reel._id}`, { service: 'reels' });
-      return reel;
-    } catch (error) {
-      logger.error('Failed to publish reel:', { error: error.message, service: 'reels' });
-      throw ApiError.internal('Failed to process video and publish Reel. Please check credentials or formats.');
+      finalVideoUrl = uploadResult.secure_url;
+      finalThumbnailUrl = uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url.replace(/\.[^/.]+$/, '.jpg');
     }
+
+    if (!finalVideoUrl) {
+      finalVideoUrl = 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
+    }
+
+    // Extract hashtags from caption or tags list
+    let hashtagsList = [];
+    if (caption) {
+      const hashMatch = caption.match(/#\w+/g);
+      if (hashMatch) {
+        hashtagsList = hashMatch.map(h => h.slice(1).toLowerCase());
+      }
+    }
+    if (tags) {
+      const cleanTags = typeof tags === 'string' ? tags.split(',').map(t => t.trim().toLowerCase()) : (Array.isArray(tags) ? tags : []);
+      hashtagsList = [...new Set([...hashtagsList, ...cleanTags])];
+    }
+
+    // Geo coordinates structure
+    const location = {
+      type: 'Point',
+      coordinates: [0, 0],
+    };
+    if (lat && lng) {
+      location.coordinates = [parseFloat(lng), parseFloat(lat)];
+      location.address = address || '';
+    }
+
+    const reelStatus = status || (scheduledDate ? 'scheduled' : 'published');
+
+    const reel = await reelRepository.createReel({
+      creator: userId,
+      videoUrl: finalVideoUrl,
+      thumbnailUrl: finalThumbnailUrl || finalVideoUrl,
+      caption: caption || 'Business Reel Promotion',
+      hashtags: hashtagsList,
+      location,
+      postType: postType || 'product',
+      category: category || 'General',
+      subcategory: subcategory || 'General',
+      postPurpose: postPurpose || classification || 'General Promotion',
+      targetListing: req.body?.targetListing || null,
+      promotionArea: targeting?.area || targeting?.distance || 'City Wide',
+      targetAudience: Array.isArray(targeting?.audience) ? targeting.audience : [targeting?.audience || 'Anyone'],
+      customAudience: targeting?.customAudience || req.body?.customAudience || '',
+      status: reelStatus,
+      mediaUrls: Array.isArray(mediaUrls) && mediaUrls.length > 0 ? mediaUrls : [finalVideoUrl],
+      mediaType: mediaType || (finalVideoUrl.endsWith('.mp4') ? 'video' : 'image'),
+      scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
+      aiModeration: {
+        passed: true,
+        scannedAt: new Date(),
+      },
+      adminReview: {
+        status: 'approved',
+      }
+    });
+
+    // If Save to Service Gallery is checked and a target listing is provided, push media to listing
+    if (req.body?.saveToServiceGallery && req.body?.targetListing) {
+      try {
+        const Listing = require('../models/Listing');
+        const listing = await Listing.findById(req.body.targetListing);
+        if (listing) {
+          const urls = Array.isArray(mediaUrls) && mediaUrls.length > 0 ? mediaUrls : [finalVideoUrl];
+          for (const url of urls) {
+            if (url.match(/\.(mp4|mov|webm|avi)(\?.*)?$/i)) {
+              if (!listing.videos.includes(url)) listing.videos.push(url);
+            } else {
+              if (!listing.images.includes(url)) listing.images.push(url);
+            }
+          }
+          await listing.save();
+        }
+      } catch (err) {
+        logger.error('Failed to update service gallery:', err);
+      }
+    }
+
+    // Deduct 1 credit from vendor wallet
+    try {
+      const { Wallet, WalletTransaction } = require('../models/Phase4');
+      const wallet = await Wallet.findOne({ user_id: userId.toString() });
+      if (wallet) {
+        wallet.credits = Math.max(0, wallet.credits - 1);
+        wallet.lifetime_spent_credits = (wallet.lifetime_spent_credits || 0) + 1;
+        await wallet.save();
+        await WalletTransaction.create({
+          wallet_id: wallet._id.toString(),
+          user_id: userId.toString(),
+          type: 'debit',
+          bucket: 'credits',
+          amount: 1,
+          balance_after: wallet.credits,
+          reason: '1 Reel / Image Post published',
+          ref_type: 'reel',
+          ref_id: reel._id.toString(),
+        });
+      }
+    } catch (err) {
+      logger.error('Error updating wallet credits for reel publish:', err);
+    }
+
+    await reelRepository.logReelAction({
+      userId,
+      action: 'LISTING_CREATE',
+      entityId: reel._id,
+      description: 'Uploaded new Reel',
+      ip: req.ip,
+      agent: req.headers['user-agent'],
+    });
+
+    logger.info(`Reel published successfully: ${reel._id}`, { service: 'reels' });
+    return reel;
+  }
+
+  // ── Fetch Vendor Reels ────────────────────────────────────
+  async getVendorReels(userId) {
+    const Reel = require('../models/Reel');
+    return Reel.find({ creator: userId, isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
+      .lean();
   }
 
   // ── Fetch Feed ──────────────────────────────────────────

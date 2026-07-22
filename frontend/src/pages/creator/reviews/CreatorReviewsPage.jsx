@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiStar, FiMessageSquare, FiThumbsUp } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
+import { api } from '../../../lib/api';
 
 const TABS = [
   { key: 'all', label: 'All Reviews', icon: FiStar },
@@ -18,18 +20,32 @@ const TABS = [
 export default function CreatorReviewsPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Reviews would come from the reviews API filtered by target_type=creator
-  // For now we display from the creator dashboard data
-  const mockReviews = [
-    { id: '1', reviewer: 'Vendor A', rating: 5, comment: 'Excellent video quality!', project: 'Product Reel', date: '2026-07-18', status: 'published' },
-    { id: '2', reviewer: 'Vendor B', rating: 4, comment: 'Good work, timely delivery.', project: 'Service Reel', date: '2026-07-15', status: 'published' },
-    { id: '3', reviewer: 'Vendor C', rating: 3, comment: 'Average quality, needs improvement.', project: 'Ad Film', date: '2026-07-12', status: 'published' },
-  ];
+  useEffect(() => {
+    fetchCreatorReviews();
+  }, []);
 
-  const filtered = mockReviews.filter((r) => {
-    if (activeTab === 'positive') return r.rating >= 4;
-    if (activeTab === 'negative') return r.rating < 4;
+  const fetchCreatorReviews = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/v1/reviews?targetType=creator');
+      const items = res.data?.data?.reviews || res.data?.reviews || res.data?.items || (Array.isArray(res.data) ? res.data : []);
+      setReviews(items);
+    } catch (err) {
+      console.warn('Could not fetch creator reviews:', err);
+      toast.error('Failed to load reviews');
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filtered = reviews.filter((r) => {
+    const rating = r.rating || 5;
+    if (activeTab === 'positive') return rating >= 4;
+    if (activeTab === 'negative') return rating < 4;
     return true;
   });
 
@@ -37,39 +53,53 @@ export default function CreatorReviewsPage() {
     {
       key: 'reviewer',
       label: 'Reviewer',
-      render: (val) => <span className="font-bold text-text-primary">{val}</span>,
+      render: (val, row) => (
+        <span className="font-bold text-text-primary">
+          {row?.author?.name || row?.author_name || val || 'Verified Customer/Vendor'}
+        </span>
+      ),
     },
     {
       key: 'rating',
       label: 'Rating',
-      render: (val) => (
-        <div className="flex items-center gap-1">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <span key={i} className={`text-sm ${i < val ? 'text-amber-400' : 'text-text-tertiary/30'}`}>★</span>
-          ))}
-          <span className="text-xs font-bold text-text-primary ml-1">{val}/5</span>
-        </div>
-      ),
+      render: (val) => {
+        const ratingVal = val || 5;
+        return (
+          <div className="flex items-center gap-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span key={i} className={`text-sm ${i < ratingVal ? 'text-amber-400' : 'text-text-tertiary/30'}`}>★</span>
+            ))}
+            <span className="text-xs font-bold text-text-primary ml-1">{ratingVal}/5</span>
+          </div>
+        );
+      },
     },
     {
       key: 'comment',
       label: 'Comment',
-      render: (val) => <span className="text-text-secondary">{val}</span>,
+      render: (val) => <span className="text-text-secondary">{val || 'No comment provided'}</span>,
     },
     {
       key: 'project',
-      label: 'Project',
-      render: (val) => <span className="text-xs font-bold text-brand-purple bg-brand-purple/10 px-2 py-0.5 rounded">{val}</span>,
+      label: 'Project / Item',
+      render: (val, row) => (
+        <span className="text-xs font-bold text-brand-purple bg-brand-purple/10 px-2 py-0.5 rounded">
+          {row?.target_listing?.title || row?.listing_title || val || 'Direct Collaboration'}
+        </span>
+      ),
     },
     {
       key: 'date',
       label: 'Date',
-      render: (val) => <span className="text-text-tertiary">{val}</span>,
+      render: (val, row) => {
+        const d = row?.created_at || row?.createdAt || val;
+        return <span className="text-text-tertiary">{d ? new Date(d).toLocaleDateString('en-IN') : 'Recent'}</span>;
+      },
     },
     {
       key: 'status',
       label: 'Status',
-      render: (val) => <AdminStatusBadge status={val} />,
+      render: (val, row) => <AdminStatusBadge status={row?.status || val || 'published'} />,
     },
   ];
 

@@ -213,6 +213,7 @@ export default function AdminListingsPage() {
             </div>
 
             <div className="bg-surface-secondary p-3 rounded-xl text-xs space-y-1">
+              <div><span className="text-text-tertiary">Vendor / Seller:</span> <strong className="text-brand-purple font-bold">{viewItem.vendor_name || viewItem.vendor?.name || viewItem.vendor_id || 'Registered Vendor'}</strong></div>
               <div><span className="text-text-tertiary">Category:</span> <strong className="text-text-primary">{viewItem.category}</strong></div>
               <div><span className="text-text-tertiary">Type:</span> <strong className="text-text-primary capitalize">{viewItem.type}</strong></div>
               <div><span className="text-text-tertiary">Condition:</span> <strong className="text-text-primary capitalize">{viewItem.condition || 'New'}</strong></div>

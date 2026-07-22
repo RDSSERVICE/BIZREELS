@@ -59,7 +59,13 @@ export default function VendorOrdersPage() {
                   <span className="text-[10px] text-text-tertiary">• {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : o.date || 'Today'}</span>
                 </div>
                 <h4 className="font-bold text-sm text-text-primary mt-1">{o.customer || o.items?.[0]?.title || 'Customer Order'}</h4>
-                <p className="text-xs text-text-secondary mt-0.5">{o.items ? JSON.stringify(o.items) : o.items}</p>
+                <p className="text-xs text-text-secondary mt-0.5 font-medium">
+                  {Array.isArray(o.items)
+                    ? o.items.map(i => `${i.title || i.name || 'Item'} (x${i.quantity || i.qty || 1})`).join(', ')
+                    : typeof o.items === 'object' && o.items !== null
+                    ? o.items.title || o.items.name || 'Custom Order Item'
+                    : o.items || 'Standard Order Details'}
+                </p>
                 <p className="text-xs font-bold text-emerald-600 mt-1">Total: ₹{(o.total || o.total_price || 0).toLocaleString()}</p>
               </div>
 

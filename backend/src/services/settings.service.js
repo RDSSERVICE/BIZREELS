@@ -45,9 +45,9 @@ const getEnvDefaults = () => {
       dev_mode: process.env.FCM_DEV_MODE === 'true',
     },
     ai_content: {
-      provider: (process.env.AI_PROVIDER || 'openai').trim(),
-      model: (process.env.AI_MODEL || 'gpt-5.4').trim(),
-      api_key: '',
+      provider: (process.env.AI_PROVIDER || 'gemini').trim(),
+      model: (process.env.AI_MODEL || 'gemini-2.5-flash').trim(),
+      api_key: (process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY || '').trim(),
       enabled: process.env.AI_DEV_MODE !== 'true',
     },
   };

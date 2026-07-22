@@ -32,8 +32,34 @@ class NotificationService {
   }
 
   async create(userId, type, title, body = null, data = {}, actionUrl = null) {
-    emitToUser(userId, 'notification:new', { userId, type, title, body, data, actionUrl });
-    return { userId, type, title, body, data, actionUrl };
+    let savedNotif = null;
+    try {
+      savedNotif = await notificationRepository.createNotification({
+        recipient: userId,
+        type: type || 'system',
+        title: title || 'New Alert',
+        body: body || title || '',
+        message: body || title || '',
+        data: data || {},
+        actionUrl: actionUrl || null,
+      });
+    } catch (err) {
+      console.error('Error saving notification in DB:', err.message);
+    }
+
+    emitToUser(userId.toString(), 'notification:new', {
+      _id: savedNotif?._id ? savedNotif._id.toString() : Date.now().toString(),
+      userId,
+      type,
+      title,
+      body: body || title || '',
+      message: body || title || '',
+      data,
+      actionUrl,
+      createdAt: new Date().toISOString(),
+    });
+
+    return savedNotif || { userId, type, title, body, data, actionUrl };
   }
 
   async listMine(userId, isRead = null, cursor = null, limit = 30) {
@@ -42,7 +68,7 @@ class NotificationService {
   }
 
   async unreadCount(userId) {
-    return 0;
+    return notificationRepository.unreadCount(userId);
   }
 
   async markRead(nid, userId) {

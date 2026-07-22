@@ -9,7 +9,12 @@ const asyncHandler = require('../utils/asyncHandler');
 class NotificationController {
   getNotifications = asyncHandler(async (req, res) => {
     const list = await notificationService.getNotifications(req.user._id);
-    return ApiResponse.ok(res, 'Notifications log retrieved.', { notifications: list });
+    return ApiResponse.ok(res, 'Notifications log retrieved.', { items: list, notifications: list });
+  });
+
+  getUnreadCount = asyncHandler(async (req, res) => {
+    const count = await notificationService.unreadCount(req.user._id);
+    return ApiResponse.ok(res, 'Unread count retrieved.', { count });
   });
 
   markAllAsRead = asyncHandler(async (req, res) => {

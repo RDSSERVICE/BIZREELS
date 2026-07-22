@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
-import { api, tokenStore } from '../../lib/api';
+import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 
 const NAV_SECTIONS = [
   {
@@ -307,6 +307,8 @@ export default function VendorLayout() {
               <FiShield size={14} className="text-brand-purple" />
               <span className="hidden sm:inline">Switch to Customer</span>
             </button>
+
+            <NotificationBellDropdown role="vendor" />
 
             <img
               src={profileUser?.profile_pic || "/logo.png"}

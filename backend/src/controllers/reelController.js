@@ -9,20 +9,41 @@ const asyncHandler = require('../utils/asyncHandler');
 class ReelController {
   // ── Publish Reel ────────────────────────────────────────
   publish = asyncHandler(async (req, res) => {
-    const { caption, tags, lat, lng, address } = req.body;
+    const {
+      caption, tags, lat, lng, address, title,
+      postType, category, subcategory, classification, postPurpose,
+      targeting, videoUrl, mediaUrls, mediaType, status, scheduledDate
+    } = req.body;
     const fileBuffer = req.file?.buffer;
 
     const reel = await reelService.publishReel({
       userId: req.user._id,
       fileBuffer,
-      caption,
+      caption: caption || title,
       tags,
       lat,
       lng,
       address,
+      postType,
+      category,
+      subcategory,
+      classification,
+      postPurpose,
+      targeting,
+      videoUrl,
+      mediaUrls,
+      mediaType,
+      status,
+      scheduledDate,
     }, req);
 
     return ApiResponse.created(res, 'Reel published successfully.', { reel });
+  });
+
+  // ── Get My Reels (Vendor/Creator) ──────────────────────
+  getMyReels = asyncHandler(async (req, res) => {
+    const reels = await reelService.getVendorReels(req.user._id);
+    return ApiResponse.ok(res, 'My reels fetched successfully.', reels);
   });
 
   // ── Get Feed ────────────────────────────────────────────

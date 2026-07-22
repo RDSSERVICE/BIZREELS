@@ -1,5 +1,5 @@
 const express = require('express');
-const { requireAuth } = require('../middleware/auth.middleware');
+const { requireAuth, optionalAuth } = require('../middleware/auth.middleware');
 const userService = require('../services/user.service');
 const subscriptionService = require('../services/subscription.service');
 const fcmService = require('../services/fcm.service');
@@ -11,8 +11,83 @@ const Requirement = require('../models/Requirement');
 const User = require('../models/User');
 const { catchAsync } = require('../utils/helpers');
 const ApiError = require('../utils/ApiError');
+const mongoose = require('mongoose');
 
 const router = express.Router();
+
+router.get('/', optionalAuth, catchAsync(async (req, res) => {
+  const { role, city, category, search, excludeUserId } = req.query;
+  const viewerId = req.userId || (req.user?._id ? req.user._id.toString() : null) || excludeUserId;
+
+  const query = { is_deleted: { $ne: true } };
+
+  if (role) {
+    query.$or = [
+      { roles: role },
+      { current_role: role },
+      { [`${role}Profile`]: { $ne: null } }
+    ];
+  }
+
+  if (viewerId && mongoose.Types.ObjectId.isValid(viewerId)) {
+    query._id = { $ne: new mongoose.Types.ObjectId(viewerId) };
+  }
+
+  if (city && city !== 'all' && city !== 'All Cities') {
+    const escaped = String(city).trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    query.city = new RegExp(`^${escaped}$`, 'i');
+  }
+
+  if (category && category !== 'all' && category !== 'All Categories') {
+    const catRegex = new RegExp(category, 'i');
+    query.$or = [
+      { 'creatorProfile.category': catRegex },
+      { occupation: catRegex }
+    ];
+  }
+
+  if (search) {
+    const searchRegex = new RegExp(search, 'i');
+    query.$or = [
+      { name: searchRegex },
+      { 'creatorProfile.name': searchRegex },
+      { 'creatorProfile.bio': searchRegex },
+      { 'creatorProfile.category': searchRegex }
+    ];
+  }
+
+  const users = await User.find(query)
+    .select('name profile_pic avatarUrl city rating_avg rating_count creatorProfile created_at kyc_status is_subscribed_verified occupation roles current_role')
+    .lean();
+
+  const formatted = users.map(u => ({
+    _id: u._id.toString(),
+    id: u._id.toString(),
+    name: u.creatorProfile?.name || u.name || 'Verified Creator',
+    profile_pic: u.profile_pic || u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    avatarUrl: u.profile_pic || u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    city: u.city || 'Mumbai',
+    category: u.creatorProfile?.category || u.occupation || 'Visual Creator',
+    bio: u.creatorProfile?.bio || 'Verified content creator on BizReels.',
+    rating_avg: u.rating_avg || 4.9,
+    rating_count: u.rating_count || 12,
+    creatorProfile: u.creatorProfile || {
+      name: u.name,
+      category: u.occupation || 'Creator',
+      bio: 'Verified content creator on BizReels.',
+      pricing: { reel1: 800, reel3: 2000 }
+    },
+    pricing: u.creatorProfile?.pricing || { reel1: 800, reel3: 2000 },
+    isVerified: u.kyc_status === 'approved' || u.is_subscribed_verified
+  }));
+
+  res.json({
+    success: true,
+    count: formatted.length,
+    users: formatted,
+    data: formatted
+  });
+}));
 
 router.get('/me', requireAuth, catchAsync(async (req, res) => {
   const user = req.user;
@@ -126,12 +201,18 @@ router.get('/me/role-activity', requireAuth, catchAsync(async (req, res) => {
   res.json(out);
 }));
 
-router.get('/creators/public', catchAsync(async (req, res) => {
-  const { city, category, search } = req.query;
+router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
+  const { city, category, search, excludeUserId } = req.query;
+  const viewerId = req.userId || (req.user?._id ? req.user._id.toString() : null) || excludeUserId;
+
   const query = {
-    $or: [{ roles: 'creator' }, { current_role: 'creator' }],
+    $or: [{ roles: 'creator' }, { current_role: 'creator' }, { creatorProfile: { $ne: null } }],
     is_deleted: { $ne: true }
   };
+
+  if (viewerId && mongoose.Types.ObjectId.isValid(viewerId)) {
+    query._id = { $ne: new mongoose.Types.ObjectId(viewerId) };
+  }
 
   if (city && city !== 'All Cities' && city !== 'all') {
     query.city = new RegExp(city, 'i');

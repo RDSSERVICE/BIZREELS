@@ -139,10 +139,23 @@ export default function VendorVerificationPage() {
     }
   };
 
-  // Contact Verification OTP trigger
-  const handleOpenOtpModal = (type, value) => {
-    setOtpModal({ open: true, type, value, code: '' });
-    toast.success(`Verification OTP code sent to ${type}: ${value || 'registered contact'}`);
+  // Direct Website Verification (No OTP needed for Website)
+  const handleVerifyWebsite = async (url) => {
+    const targetUrl = url || vendorProfile.website || 'https://www.bizreels.com';
+    setLoading(true);
+    const toastId = toast.loading('Pinging and verifying website URL...');
+    try {
+      await api.post('/v1/vendors/me/verify-contact', {
+        type: 'website',
+        value: targetUrl
+      });
+      toast.success('🟢 Website URL verified successfully!', { id: toastId });
+      await fetchStatus();
+    } catch (err) {
+      toast.error('Failed to verify website URL', { id: toastId });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOtp = async () => {
@@ -157,7 +170,7 @@ export default function VendorVerificationPage() {
         value: otpModal.value
       });
 
-      toast.success(`${otpModal.type.toUpperCase()} verified successfully!`);
+      toast.success(`🟢 ${otpModal.type.toUpperCase()} verified successfully!`);
       setOtpModal({ open: false, type: '', value: '', code: '' });
       await fetchStatus();
 
@@ -173,6 +186,13 @@ export default function VendorVerificationPage() {
           }
         }));
       }
+
+      // AUTOMATIC PROGRESSION: Auto-move to Part 2 (documents) after contact verification
+      setTimeout(() => {
+        setActiveTab('documents');
+        toast.success('⏩ Part 1 Contact Verified! Automatically advancing to Part 2: Identity & Business Documents.');
+      }, 1000);
+
     } catch (err) {
       toast.error('Failed to verify contact');
     } finally {
@@ -212,6 +232,13 @@ export default function VendorVerificationPage() {
         setDynamicDocNum('');
         setDynamicDocFile('');
       }
+
+      // AUTOMATIC PROGRESSION: Auto-move to Part 3 (payment) after document verification
+      setTimeout(() => {
+        setActiveTab('payment');
+        toast.success('⏩ Part 2 Document Submitted! Automatically advancing to Part 3: Payout & Payment Details.');
+      }, 1200);
+
     } catch (err) {
       toast.error(`Failed to verify ${docType}`, { id: toastId });
     } finally {
@@ -261,6 +288,44 @@ export default function VendorVerificationPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Contact Verification OTP trigger (for Mobile, WhatsApp & Email)
+  const handleOpenOtpModal = (type, value) => {
+    setOtpModal({ open: true, type, value, code: '' });
+    toast.success(`Verification OTP code sent to ${type}: ${value || 'registered contact'}`);
+  };
+
+  // Sequential Gating Checks
+  const isPart1Complete = Boolean(
+    statusData.contactVerified?.mobile ||
+    statusData.contactVerified?.whatsapp ||
+    statusData.contactVerified?.email
+  );
+
+  const isPart2Complete = Boolean(
+    statusData.documents?.aadhaar?.status === 'approved' ||
+    statusData.documents?.pan?.status === 'approved' ||
+    statusData.documents?.gst?.status === 'approved' ||
+    statusData.documents?.shopLicense?.status === 'approved' ||
+    statusData.documents?.udyamRegistration?.status === 'approved' ||
+    (statusData.documents && Object.keys(statusData.documents).length > 0)
+  );
+
+  const handleTabClick = (targetTab) => {
+    if (targetTab === 'documents' && !isPart1Complete) {
+      toast.error('🔒 Locked: Complete Part 1 (Contact Information Verification) to unlock Part 2.');
+      return;
+    }
+    if (targetTab === 'payment' && (!isPart1Complete || !isPart2Complete)) {
+      if (!isPart1Complete) {
+        toast.error('🔒 Locked: Complete Part 1 (Contact Verification) first.');
+      } else {
+        toast.error('🔒 Locked: Complete Part 2 (Identity & Business Documents) to unlock Part 3.');
+      }
+      return;
+    }
+    setActiveTab(targetTab);
   };
 
   const currentBadge = BADGE_DESCRIPTIONS[statusData.tier] || BADGE_DESCRIPTIONS.unverified;
@@ -327,39 +392,47 @@ export default function VendorVerificationPage() {
         </div>
       </div>
 
-      {/* VERIFICATION TABS */}
+      {/* VERIFICATION TABS WITH SEQUENTIAL GATING */}
       <div className="flex items-center gap-2 border-b border-border pb-1 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('contacts')}
+          onClick={() => handleTabClick('contacts')}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'contacts'
               ? 'bg-brand-purple text-white shadow-md'
               : 'glass text-text-secondary hover:text-text-primary'
           }`}
         >
-          <FiPhone size={14} /> Contact Information Verification
+          <FiPhone size={14} /> Part 1: Contact Information Verification
         </button>
 
         <button
-          onClick={() => setActiveTab('documents')}
+          onClick={() => handleTabClick('documents')}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'documents'
               ? 'bg-brand-purple text-white shadow-md'
-              : 'glass text-text-secondary hover:text-text-primary'
+              : isPart1Complete
+              ? 'glass text-text-secondary hover:text-text-primary'
+              : 'opacity-50 cursor-not-allowed bg-surface-secondary text-text-tertiary border'
           }`}
         >
-          <FiFileText size={14} /> Identity & Business Documents
+          {isPart1Complete ? <FiFileText size={14} /> : <FiLock size={14} className="text-amber-500" />}
+          <span>Part 2: Identity & Documents</span>
+          {!isPart1Complete && <span className="text-[9px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded font-extrabold">LOCKED</span>}
         </button>
 
         <button
-          onClick={() => setActiveTab('payment')}
+          onClick={() => handleTabClick('payment')}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'payment'
               ? 'bg-brand-purple text-white shadow-md'
-              : 'glass text-text-secondary hover:text-text-primary'
+              : (isPart1Complete && isPart2Complete)
+              ? 'glass text-text-secondary hover:text-text-primary'
+              : 'opacity-50 cursor-not-allowed bg-surface-secondary text-text-tertiary border'
           }`}
         >
-          <FiCreditCard size={14} /> Payout & Payment Details
+          {(isPart1Complete && isPart2Complete) ? <FiCreditCard size={14} /> : <FiLock size={14} className="text-amber-500" />}
+          <span>Part 3: Payout Details</span>
+          {(!isPart1Complete || !isPart2Complete) && <span className="text-[9px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded font-extrabold">LOCKED</span>}
         </button>
       </div>
 
@@ -457,16 +530,33 @@ export default function VendorVerificationPage() {
                 )}
               </div>
               <button
-                onClick={() => handleOpenOtpModal('website', vendorProfile.website || 'https://www.bizreels.com')}
+                type="button"
+                onClick={() => handleVerifyWebsite(vendorProfile.website)}
+                disabled={loading}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
                   statusData.contactVerified?.website
                     ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                    : 'glass text-text-primary border-border'
+                    : 'gradient-brand text-white shadow-sm'
                 }`}
               >
-                {statusData.contactVerified?.website ? 'Verified ✓' : 'Check URL'}
+                {statusData.contactVerified?.website ? 'Verified ✓' : 'Verify Website'}
               </button>
             </div>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-border">
+            <button
+              type="button"
+              onClick={() => handleTabClick('documents')}
+              className={`px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                isPart1Complete
+                  ? 'gradient-brand text-white shadow-premium hover:opacity-90'
+                  : 'bg-surface-secondary text-text-tertiary border border-border cursor-not-allowed'
+              }`}
+            >
+              <span>{isPart1Complete ? 'Proceed to Part 2: Identity & Business Documents' : 'Complete Part 1 to Unlock Part 2'}</span>
+              {isPart1Complete ? <FiChevronRight size={16} /> : <FiLock size={14} className="text-amber-500" />}
+            </button>
           </div>
         </div>
       )}
@@ -711,6 +801,21 @@ export default function VendorVerificationPage() {
                 Add & Verify Document
               </button>
             </div>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-border">
+            <button
+              type="button"
+              onClick={() => handleTabClick('payment')}
+              className={`px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                isPart2Complete
+                  ? 'gradient-brand text-white shadow-premium hover:opacity-90'
+                  : 'bg-surface-secondary text-text-tertiary border border-border cursor-not-allowed'
+              }`}
+            >
+              <span>{isPart2Complete ? 'Proceed to Part 3: Payout & Payment Details' : 'Submit at least 1 Document to Unlock Part 3'}</span>
+              {isPart2Complete ? <FiChevronRight size={16} /> : <FiLock size={14} className="text-amber-500" />}
+            </button>
           </div>
         </div>
       )}

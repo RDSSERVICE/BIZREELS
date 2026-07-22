@@ -46,8 +46,12 @@ const myKyc = async (userId) => {
   return out;
 };
 
-const kycQueue = async () => {
-  const docs = await KycDocument.find({ status: 'pending', is_deleted: { $ne: true } }).sort({ _id: 1 }).limit(100);
+const kycQueue = async (status = null) => {
+  const filter = { is_deleted: { $ne: true } };
+  if (status) {
+    filter.status = status;
+  }
+  const docs = await KycDocument.find(filter).sort({ _id: -1 }).limit(100);
   return docs.map(serializeKyc);
 };
 

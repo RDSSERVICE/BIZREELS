@@ -43,7 +43,7 @@ const vendorApi = apiSlice.injectEndpoints({
 
     // ── Reels ───────────────────────────────────────────────
     getVendorReels: builder.query({
-      query: (params = {}) => ({ url: '/reels', params }),
+      query: (params = {}) => ({ url: '/reels/my-reels', params }),
       providesTags: ['Reels'],
     }),
     createReel: builder.mutation({

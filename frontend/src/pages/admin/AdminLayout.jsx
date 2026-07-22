@@ -12,6 +12,7 @@ import {
 } from 'react-icons/fi';
 import { selectCurrentUser, logout } from '../../features/auth/authSlice';
 import { useLogoutMutation } from '../../features/auth/authApi';
+import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 
 const NAV_SECTIONS = [
   {
@@ -255,10 +256,7 @@ const AdminLayout = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link to="/admin/notifications" className="p-2 text-text-tertiary hover:text-brand-purple rounded-xl hover:bg-surface-tertiary transition-all relative">
-              <FiBell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-orange animate-pulse" />
-            </Link>
+            <NotificationBellDropdown role="admin" />
             <img
               src={user?.profile_pic || "/logo.png"}
               alt="Admin Profile Logo"

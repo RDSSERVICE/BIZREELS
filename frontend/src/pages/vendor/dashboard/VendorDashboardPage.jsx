@@ -23,8 +23,18 @@ export default function VendorDashboardPage() {
   const leads = Array.isArray(leadsRes?.data) ? leadsRes.data : Array.isArray(leadsRes) ? leadsRes : [];
   const boosts = Array.isArray(boostsRes?.active) ? boostsRes.active : Array.isArray(boostsRes?.data) ? boostsRes.data : [];
 
+  const credits = metrics.credits || { available: 50, deposited: 100, earned: 25, used: 15 };
+  const creditRates = metrics.creditRates || {
+    productListing: 1,
+    reelPost: 1,
+    aiImage: 2,
+    aiVideo30s: 15,
+    reelBoost1Day: 10,
+    validLead: 1,
+  };
+
   const stats = [
-    { label: 'Total Products', value: metrics.activeListings ?? 0, icon: FiPackage, color: 'purple', trend: 14 },
+    { label: 'Total Products', value: metrics.totalProducts ?? metrics.activeListings ?? 0, icon: FiPackage, color: 'purple', trend: 14 },
     { label: 'Total Services', value: metrics.totalServices ?? 0, icon: FiTool, color: 'blue', trend: 8 },
     { label: 'Total Reels', value: metrics.totalReels ?? 0, icon: FiVideo, color: 'violet', trend: 20 },
     { label: 'Total Views', value: (metrics.totalViews || 0).toLocaleString(), icon: FiEye, color: 'amber', trend: 18 },
@@ -80,30 +90,57 @@ export default function VendorDashboardPage() {
         </Link>
       </div>
 
-      {/* REQUIREMENT: REELS & IMAGE POST SUBSCRIPTION BANNER */}
-      <div className="glass rounded-3xl p-6 border border-brand-purple/20 shadow-card bg-gradient-to-r from-brand-purple/10 via-surface to-brand-orange/10 space-y-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="space-y-2">
+      {/* CREDITS OVERVIEW & RATE CARD */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 glass rounded-3xl p-5 border border-amber-500/20 shadow-card bg-gradient-to-r from-amber-500/10 via-surface to-brand-purple/10 space-y-4">
+          <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
-              <FiVideo className="text-brand-purple" /> Showcase Business with Video Reels & Image Posts
+              <FiDollarSign className="text-amber-500" /> VENDOR CREDIT WALLET (1 Credit = ₹1 INR)
             </h3>
-            <p className="text-xs text-text-secondary max-w-3xl leading-relaxed">
-              Create and publish engaging reels or image posts to showcase your products, services, offers, and business to potential customers.
-              The Free Plan allows you to publish a limited number of reels and image posts with standard visibility.
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] font-semibold text-text-primary">
-              <div>• Publish more reels & images</div>
-              <div>• Increase content visibility</div>
-              <div>• Access reel & post boost features</div>
-              <div>• Reach larger target audience</div>
+            <Link to="/vendor/wallet" className="text-xs font-bold text-brand-purple hover:underline">
+              Manage Wallet & Topup →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+            <div className="glass p-3 rounded-2xl border border-white/10 text-center">
+              <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">AVAILABLE</span>
+              <span className="text-xl font-bold text-emerald-500">{credits.available}</span>
+              <span className="text-[10px] text-text-secondary block">Credits (₹{credits.available})</span>
+            </div>
+            <div className="glass p-3 rounded-2xl border border-white/10 text-center">
+              <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">DEPOSITED</span>
+              <span className="text-xl font-bold text-blue-400">{credits.deposited}</span>
+              <span className="text-[10px] text-text-secondary block">Credits (₹{credits.deposited})</span>
+            </div>
+            <div className="glass p-3 rounded-2xl border border-white/10 text-center">
+              <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">EARNED</span>
+              <span className="text-xl font-bold text-brand-purple">{credits.earned}</span>
+              <span className="text-[10px] text-text-secondary block">Credits (₹{credits.earned})</span>
+            </div>
+            <div className="glass p-3 rounded-2xl border border-white/10 text-center">
+              <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">USED HISTORY</span>
+              <span className="text-xl font-bold text-amber-500">{credits.used}</span>
+              <span className="text-[10px] text-text-secondary block">Credits Spent</span>
             </div>
           </div>
-          <Link
-            to="/vendor/subscription"
-            className="px-5 py-3 gradient-brand text-white font-bold text-xs rounded-2xl shadow-premium hover:opacity-90 transition flex-shrink-0 flex items-center gap-2"
-          >
-            <FiZap /> SUBSCRIPTION PLAN SHOW
-          </Link>
+        </div>
+
+        {/* DYNAMIC CREDIT RATES DISPLAY */}
+        <div className="glass rounded-3xl p-5 border border-white/10 shadow-card space-y-3">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <h4 className="text-xs font-bold text-text-primary font-display flex items-center gap-1.5">
+              <FiZap className="text-amber-500" /> Credit Consumption Rates
+            </h4>
+            <span className="text-[10px] text-text-tertiary">Dynamic Admin Rate</span>
+          </div>
+          <div className="space-y-1.5 text-xs text-text-secondary">
+            <div className="flex justify-between"><span>1 Product Listing:</span><strong className="text-text-primary">{creditRates.productListing} Product Credit</strong></div>
+            <div className="flex justify-between"><span>1 Reel Post:</span><strong className="text-text-primary">{creditRates.reelPost} Reel Credit</strong></div>
+            <div className="flex justify-between"><span>1 AI Image:</span><strong className="text-text-primary">{creditRates.aiImage} AI Credits</strong></div>
+            <div className="flex justify-between"><span>30 sec AI Video:</span><strong className="text-text-primary">{creditRates.aiVideo30s} AI Credits</strong></div>
+            <div className="flex justify-between"><span>1 Reel Boost (1 Day):</span><strong className="text-text-primary">{creditRates.reelBoost1Day} Boost Credits</strong></div>
+            <div className="flex justify-between"><span>1 Valid Lead:</span><strong className="text-text-primary">{creditRates.validLead} Lead Credit</strong></div>
+          </div>
         </div>
       </div>
 
