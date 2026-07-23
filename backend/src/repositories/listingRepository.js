@@ -45,7 +45,7 @@ class ListingRepository {
     status,
     rating,
     coordinates,
-    distanceKm = 10,
+    distanceKm,
     search,
     page = 1,
     limit = 10,
@@ -87,14 +87,17 @@ class ListingRepository {
 
     // Geolocation sorting first if coordinates [lng, lat] provided
     if (coordinates && coordinates.length === 2) {
+      const geoNear = {
+        near: { type: 'Point', coordinates: [parseFloat(coordinates[0]), parseFloat(coordinates[1])] },
+        distanceField: 'distance',
+        query: match,
+        spherical: true,
+      };
+      if (distanceKm !== undefined && distanceKm !== null) {
+        geoNear.maxDistance = distanceKm * 1000; // convert to meters
+      }
       pipeline.push({
-        $geoNear: {
-          near: { type: 'Point', coordinates: [parseFloat(coordinates[0]), parseFloat(coordinates[1])] },
-          distanceField: 'distance',
-          maxDistance: distanceKm * 1000, // convert to meters
-          query: match,
-          spherical: true,
-        },
+        $geoNear: geoNear,
       });
     } else {
       pipeline.push({ $match: match });

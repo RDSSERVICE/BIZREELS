@@ -76,6 +76,12 @@ const flipUser = async (userId, updates) => {
 
   updates.updated_at = new Date().toISOString();
   await User.updateOne({ _id: userId }, { $set: updates });
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+  } catch (err) {}
+
   return { ok: true, user_id: userId };
 };
 
@@ -90,11 +96,23 @@ const unbanUser = async (userId) => {
 const freezeWallet = async (userId) => {
   await walletService.getOrCreate(userId);
   await Wallet.updateOne({ user_id: userId }, { $set: { is_frozen: true, updated_at: new Date().toISOString() } });
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers'] });
+  } catch (err) {}
+
   return { ok: true, user_id: userId };
 };
 
 const unfreezeWallet = async (userId) => {
   await Wallet.updateOne({ user_id: userId }, { $set: { is_frozen: false, updated_at: new Date().toISOString() } });
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers'] });
+  } catch (err) {}
+
   return { ok: true, user_id: userId };
 };
 
@@ -110,6 +128,12 @@ const addRole = async (userId, role) => {
     { _id: userId },
     { $addToSet: { roles: role }, $set: { updated_at: new Date().toISOString() } }
   );
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+  } catch (err) {}
+
   return { ok: true, user_id: userId, role };
 };
 
@@ -136,6 +160,12 @@ const removeRole = async (userId, role) => {
     { _id: userId },
     { $set: { roles: newRoles, current_role: newCurrent, updated_at: new Date().toISOString() } }
   );
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+  } catch (err) {}
+
   return { ok: true, user_id: userId, role, roles: newRoles };
 };
 
@@ -171,6 +201,12 @@ const takedownListing = async (listingId) => {
   if (res.matchedCount === 0) {
     throw ApiError.notFound('Listing not found');
   }
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminListings', 'AdminOverview'] });
+  } catch (err) {}
+
   return { ok: true, listing_id: listingId };
 };
 
@@ -182,18 +218,34 @@ const restoreListing = async (listingId) => {
   if (res.matchedCount === 0) {
     throw ApiError.notFound('Listing not found');
   }
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminListings', 'AdminOverview'] });
+  } catch (err) {}
+
   return { ok: true, listing_id: listingId };
 };
 
 const analyticsOverview = async () => {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const yesterdayStart = new Date(new Date(todayStart).getTime() - 24 * 60 * 60 * 1000).toISOString();
 
   // Lazy-load models that may not always be available
-  let Reel, Subscription;
+  let Reel, Subscription, Payment, Order;
   try { Reel = require('../models/Reel'); } catch (e) { Reel = null; }
-  try { ({ Subscription } = require('../models/Phase4')); } catch (e) { Subscription = null; }
+  try {
+    const phase4 = require('../models/Phase4');
+    Subscription = phase4.Subscription;
+    Payment = phase4.Payment;
+  } catch (e) {
+    Subscription = null;
+    Payment = null;
+  }
+  try { Order = require('../models/Order'); } catch (e) { Order = null; }
 
   const [
     totalUsers,
@@ -221,31 +273,97 @@ const analyticsOverview = async () => {
 
   const openReportsCount = await reportService.openCount();
 
-  // Active users last 7 days
-  const activeUsersLast7d = await AuditLog.countDocuments({
-    action: 'login',
-    created_at: { $gte: sevenDaysAgo },
-  });
+  // Active users last 7 days (distinct users from AuditLog)
+  const activeUsersLast7dAgg = await AuditLog.aggregate([
+    {
+      $match: {
+        $or: [
+          { createdAt: { $gte: new Date(sevenDaysAgo) } },
+          { created_at: { $gte: sevenDaysAgo } }
+        ]
+      }
+    },
+    {
+      $group: {
+        _id: { $ifNull: ['$userId', '$user_id'] }
+      }
+    },
+    {
+      $count: 'count'
+    }
+  ]);
+  const activeUsersLast7d = activeUsersLast7dAgg[0]?.count || 0;
 
-  // Total reels
+  // Active users previous 7 days (distinct users from AuditLog)
+  const activeUsersPrev7dAgg = await AuditLog.aggregate([
+    {
+      $match: {
+        $or: [
+          {
+            $and: [
+              { createdAt: { $gte: new Date(fourteenDaysAgo) } },
+              { createdAt: { $lt: new Date(sevenDaysAgo) } }
+            ]
+          },
+          {
+            $and: [
+              { created_at: { $gte: fourteenDaysAgo } },
+              { created_at: { $lt: sevenDaysAgo } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      $group: {
+        _id: { $ifNull: ['$userId', '$user_id'] }
+      }
+    },
+    {
+      $count: 'count'
+    }
+  ]);
+  const activeUsersPrev7d = activeUsersPrev7dAgg[0]?.count || 0;
+
+  // Today's upload counters
+  const todaysListings = await Listing.countDocuments({
+    createdAt: { $gte: new Date(todayStart) },
+    is_deleted: { $ne: true }
+  }).catch(() => 0);
+
+  const yesterdaysListings = await Listing.countDocuments({
+    createdAt: { $gte: new Date(yesterdayStart), $lt: new Date(todayStart) },
+    is_deleted: { $ne: true }
+  }).catch(() => 0);
+
   let totalReels = 0;
-  let todaysUploads = 0;
+  let todaysReels = 0;
+  let yesterdaysReels = 0;
   let activeBoosts = 0;
+
   if (Reel) {
     totalReels = await Reel.countDocuments({ isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || await Reel.countDocuments({}).catch(() => 0);
-    todaysUploads = await Reel.countDocuments({ createdAt: { $gte: new Date(todayStart) } }).catch(() => 0);
+    todaysReels = await Reel.countDocuments({ createdAt: { $gte: new Date(todayStart) }, isDeleted: { $ne: true } }).catch(() => 0);
+    yesterdaysReels = await Reel.countDocuments({ createdAt: { $gte: new Date(yesterdayStart), $lt: new Date(todayStart) }, isDeleted: { $ne: true } }).catch(() => 0);
     activeBoosts = await Reel.countDocuments({ isBoosted: true, isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || 0;
   }
-  // Add listing boosts to active boosts
+
+  // Active boosts from listings + reels
   const listingBoosts = await Listing.countDocuments({ isBoosted: true, isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || 0;
   activeBoosts += listingBoosts;
 
-  // Today's listing uploads
-  const todaysListings = await Listing.countDocuments({ createdAt: { $gte: new Date(todayStart) } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || 0;
-  todaysUploads += todaysListings;
+  // Today's deals
+  const todaysDeals = await Deal.countDocuments({
+    created_at: { $gte: todayStart }
+  }).catch(() => 0);
+
+  const yesterdaysDeals = await Deal.countDocuments({
+    created_at: { $gte: yesterdayStart, $lt: todayStart }
+  }).catch(() => 0);
 
   // GMV / Revenue
-  const gmvPipeline = [
+  // Deals GMV (Completed)
+  const gmvRes = await Deal.aggregate([
     { $match: { status: 'completed' } },
     {
       $group: {
@@ -260,49 +378,176 @@ const analyticsOverview = async () => {
         },
       },
     },
-  ];
-  const gmvRes = await Deal.aggregate(gmvPipeline);
-  const totalGmvPaise = Math.round((gmvRes.length > 0 ? gmvRes[0].gmv : 0) * 100);
+  ]);
+  const dealGmvPaise = Math.round((gmvRes.length > 0 ? gmvRes[0].gmv : 0) * 100);
+
+  // Orders GMV (Paid)
+  let orderGmvPaise = 0;
+  if (Order) {
+    const orderGmvRes = await Order.aggregate([
+      { $match: { paymentStatus: 'paid' } },
+      {
+        $group: {
+          _id: null,
+          gmv: {
+            $sum: {
+              $multiply: ['$price', '$quantity']
+            }
+          }
+        }
+      }
+    ]);
+    orderGmvPaise = Math.round((orderGmvRes.length > 0 ? orderGmvRes[0].gmv : 0) * 100);
+  }
+
+  const totalGmvPaise = dealGmvPaise + orderGmvPaise;
 
   // Wallet balance (sum all wallet credits)
   let totalWalletBalance = 0;
   try {
     const walletAgg = await Wallet.aggregate([
-      { $group: { _id: null, total: { $sum: '$credits' }, total_inr: { $sum: '$balance_inr_paise' } } }
+      { $group: { _id: null, total_inr: { $sum: '$balance_inr_paise' } } }
     ]);
     totalWalletBalance = walletAgg.length > 0 ? (walletAgg[0].total_inr || 0) : 0;
-  } catch (e) { /* Wallet not yet populated */ }
+  } catch (e) { /* ignore */ }
 
   // Subscription revenue
   let subscriptionRevenue = 0;
-  if (Subscription) {
+  if (Payment) {
     try {
-      const activeSubs = await Subscription.countDocuments({ status: 'active' });
-      subscriptionRevenue = activeSubs * 29900; // Assume avg ₹299 plan in paise
+      const subRevenueRes = await Payment.aggregate([
+        { $match: { status: 'captured', purpose: { $regex: /^verified_badge/ } } },
+        { $group: { _id: null, total: { $sum: '$amount_paise' } } }
+      ]);
+      subscriptionRevenue = subRevenueRes.length > 0 ? subRevenueRes[0].total : 0;
+    } catch (e) { /* ignore */ }
+  }
+
+  // Boost revenue
+  let boostRevenuePaise = 0;
+  if (Payment) {
+    try {
+      const boostRevenueRes = await Payment.aggregate([
+        { $match: { status: 'captured', purpose: 'listing_boost' } },
+        { $group: { _id: null, total: { $sum: '$amount_paise' } } }
+      ]);
+      boostRevenuePaise = boostRevenueRes.length > 0 ? boostRevenueRes[0].total : 0;
     } catch (e) { /* ignore */ }
   }
 
   // Dynamic Top Performers & Analytics
-  const topVendorsRaw = await User.find({ roles: 'vendor', is_deleted: { $ne: true } })
-    .sort({ rating_avg: -1, created_at: -1 })
-    .limit(5);
-  const topVendors = topVendorsRaw.map(v => ({
-    name: v.name || 'Vendor',
-    sales: `₹${((v.trust_score || 10) * 1250).toLocaleString('en-IN')}`,
-    orders: v.rating_count || 12,
-    rating: v.rating_avg || 4.8,
-  }));
+  // Top Vendors: Aggregate sales and deal counts from completed Deals
+  const topVendorsAgg = await Deal.aggregate([
+    { $match: { status: 'completed' } },
+    {
+      $group: {
+        _id: '$seller_id',
+        salesSum: {
+          $sum: {
+            $multiply: [
+              { $ifNull: ['$accepted_price', '$initial_offer'] },
+              { $ifNull: ['$quantity', 1] },
+            ],
+          },
+        },
+        ordersCount: { $sum: 1 },
+      },
+    },
+    { $sort: { salesSum: -1 } },
+    { $limit: 5 }
+  ]);
 
-  const topCreatorsRaw = await User.find({ roles: 'creator', is_deleted: { $ne: true } })
-    .sort({ rating_avg: -1, created_at: -1 })
-    .limit(5);
-  const topCreators = topCreatorsRaw.map(c => ({
-    name: c.name || 'Creator',
-    views: `${((c.rating_count || 5) * 120)}K`,
-    reels: (c.creatorProfile?.portfolio_reels?.length) || 8,
-    rating: c.rating_avg || 4.9,
-  }));
+  const topVendorIds = topVendorsAgg.map(v => v._id);
+  const vendorUsers = await User.find({ _id: { $in: topVendorIds }, is_deleted: { $ne: true } });
+  const vendorUserMap = {};
+  vendorUsers.forEach(u => {
+    vendorUserMap[u._id.toString()] = u;
+  });
 
+  let topVendors = topVendorsAgg.map(item => {
+    const user = vendorUserMap[item._id];
+    return {
+      name: user?.name || 'Vendor',
+      sales: `₹${(item.salesSum || 0).toLocaleString('en-IN')}`,
+      orders: item.ordersCount || 0,
+      rating: user?.rating_avg || 0,
+    };
+  });
+
+  if (topVendors.length < 5) {
+    const remainingVendors = await User.find({
+      roles: 'vendor',
+      _id: { $not: { $in: topVendorIds } },
+      is_deleted: { $ne: true }
+    })
+      .sort({ rating_avg: -1, created_at: -1 })
+      .limit(5 - topVendors.length);
+
+    remainingVendors.forEach(v => {
+      topVendors.push({
+        name: v.name || 'Vendor',
+        sales: '₹0',
+        orders: 0,
+        rating: v.rating_avg || 0,
+      });
+    });
+  }
+
+  // Top Creators: Aggregate views and reel counts from Reels
+  let topCreators = [];
+  let topCreatorIds = [];
+  if (Reel) {
+    const topCreatorsAgg = await Reel.aggregate([
+      { $match: { isDeleted: { $ne: true } } },
+      {
+        $group: {
+          _id: '$creator',
+          viewsSum: { $sum: '$views' },
+          reelsCount: { $sum: 1 },
+        },
+      },
+      { $sort: { viewsSum: -1 } },
+      { $limit: 5 }
+    ]);
+
+    topCreatorIds = topCreatorsAgg.map(c => c._id);
+    const creatorUsers = await User.find({ _id: { $in: topCreatorIds }, is_deleted: { $ne: true } });
+    const creatorUserMap = {};
+    creatorUsers.forEach(u => {
+      creatorUserMap[u._id.toString()] = u;
+    });
+
+    topCreators = topCreatorsAgg.map(item => {
+      const user = creatorUserMap[item._id.toString()];
+      return {
+        name: user?.name || 'Creator',
+        views: item.viewsSum >= 1000 ? `${(item.viewsSum / 1000).toFixed(1)}K` : `${item.viewsSum}`,
+        reels: item.reelsCount || 0,
+        rating: user?.rating_avg || 0,
+      };
+    });
+  }
+
+  if (topCreators.length < 5) {
+    const remainingCreators = await User.find({
+      roles: 'creator',
+      _id: { $nin: topCreatorIds },
+      is_deleted: { $ne: true }
+    })
+      .sort({ rating_avg: -1, created_at: -1 })
+      .limit(5 - topCreators.length);
+
+    remainingCreators.forEach(c => {
+      topCreators.push({
+        name: c.name || 'Creator',
+        views: '0',
+        reels: 0,
+        rating: c.rating_avg || 0,
+      });
+    });
+  }
+
+  // Top Categories
   const topCategoriesAgg = await Listing.aggregate([
     { $match: { is_deleted: { $ne: true } } },
     { $group: { _id: '$category', count: { $sum: 1 } } },
@@ -316,6 +561,7 @@ const analyticsOverview = async () => {
     listings: cat.count,
   }));
 
+  // Top Cities
   const topCitiesAgg = await User.aggregate([
     { $match: { is_deleted: { $ne: true }, city: { $ne: null } } },
     { $group: { _id: '$city', count: { $sum: 1 } } },
@@ -329,7 +575,14 @@ const analyticsOverview = async () => {
     share: `${Math.round((city.count / totalUsersCount) * 100)}%`,
   }));
 
-  const boostRevenuePaise = (activeBoosts || 0) * 49900;
+  // Trends calculation utility
+  const calcTrend = (curr, prev) => {
+    if (!prev) return curr > 0 ? 100 : 0;
+    return Math.round(((curr - prev) / prev) * 100);
+  };
+
+  // Compile legacy field compatibility values (todays_uploads)
+  const todaysUploads = todaysListings + todaysReels;
 
   return {
     total_users: totalUsers,
@@ -356,6 +609,17 @@ const analyticsOverview = async () => {
     top_creators: topCreators,
     top_categories: topCategories,
     top_cities: topCities,
+
+    // Real-time daily counters
+    todays_listings: todaysListings,
+    todays_reels: todaysReels,
+    todays_deals: todaysDeals,
+
+    // Calculated percentage trends
+    active_users_trend: calcTrend(activeUsersLast7d, activeUsersPrev7d),
+    todays_listings_trend: calcTrend(todaysListings, yesterdaysListings),
+    todays_reels_trend: calcTrend(todaysReels, yesterdaysReels),
+    todays_deals_trend: calcTrend(todaysDeals, yesterdaysDeals),
   };
 };
 
@@ -405,6 +669,12 @@ const updateUser = async (userId, updates) => {
   }
   safeUpdates.updated_at = new Date().toISOString();
   await User.updateOne({ _id: userId }, { $set: safeUpdates });
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+  } catch (err) {}
+
   return { ok: true, user_id: userId };
 };
 

@@ -9,6 +9,7 @@ import {
   useDeleteListingMutation,
   useGenerateAICopyMutation,
 } from './listingsApi';
+import { useGetVendorListingsQuery } from '../vendor/vendorApi';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
 import Input from '../../components/common/Input';
@@ -40,17 +41,17 @@ const MyListingsTab = ({ user }) => {
   const [videoUrl, setVideoUrl] = useState('');
 
   // API Queries & Mutations
-  const { data: listingsRes, isLoading: isListingsLoading, refetch: refetchListings } = useGetListingsQuery({
-    page: 1,
-    limit: 50,
-  });
+  const { data: listingsRes, isLoading: isListingsLoading, refetch: refetchListings } = useGetVendorListingsQuery(
+    { vendor: user?._id, page: 1, limit: 50 },
+    { skip: !user?._id, pollingInterval: 30000 }
+  );
 
   const [createListing, { isLoading: isCreating }] = useCreateListingMutation();
   const [updateListing] = useUpdateListingMutation();
   const [deleteListing] = useDeleteListingMutation();
   const [generateAI, { isLoading: isGeneratingAI }] = useGenerateAICopyMutation();
 
-  const myListings = listingsRes?.data?.filter((l) => l.vendor?._id === user?._id || l.vendor === user?._id) || [];
+  const myListings = listingsRes?.data || [];
 
   // Filter listings based on status
   const filteredListings = myListings.filter((item) => {

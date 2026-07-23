@@ -34,6 +34,12 @@ const kycSubmit = async (userId, body) => {
   });
 
   await User.updateOne({ _id: userId }, { $set: { kyc_status: 'pending' } });
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminKyc', 'AdminOverview'] });
+  } catch (err) {}
+
   return serializeKyc(doc);
 };
 
@@ -52,7 +58,37 @@ const kycQueue = async (status = null) => {
     filter.status = status;
   }
   const docs = await KycDocument.find(filter).sort({ _id: -1 }).limit(100);
-  return docs.map(serializeKyc);
+  
+  const userIds = [...new Set(docs.map((d) => d.user_id))];
+  const users = await User.find({ _id: { $in: userIds } });
+  const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
+  return docs.map((d) => {
+    const out = serializeKyc(d);
+    const user = userMap.get(out.user_id);
+    if (user) {
+      out.user = {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        roles: user.roles || [],
+        current_role: user.current_role,
+        activeRole: user.activeRole,
+        profile_pic: user.profile_pic,
+        avatarUrl: user.avatarUrl,
+        vendorProfile: user.vendorProfile,
+        creatorProfile: user.creatorProfile,
+        city: user.city,
+      };
+      out.role = user.roles && user.roles.includes('vendor')
+        ? 'vendor'
+        : (user.roles && user.roles.includes('creator') ? 'creator' : 'customer');
+    } else {
+      out.role = 'customer';
+    }
+    return out;
+  });
 };
 
 const kycReview = async (kid, adminId, approve, reason = null) => {
@@ -85,6 +121,11 @@ const kycReview = async (kid, adminId, approve, reason = null) => {
     {},
     '/kyc'
   );
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminKyc', 'AdminOverview'] });
+  } catch (err) {}
 
   return { ok: true, status: newStatus };
 };

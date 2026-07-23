@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,10 +7,11 @@ import {
   FiGrid, FiUser, FiPackage, FiVideo, FiZap, FiInbox, FiShoppingCart,
   FiPieChart, FiCreditCard, FiDollarSign, FiStar, FiUserCheck, FiSettings,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
-  FiCheckCircle
+  FiCheckCircle, FiMessageSquare
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
-import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
+import { setCredentials, logout, selectCurrentUser, setActiveRole } from '../../features/auth/authSlice';
+import { api, tokenStore } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 
 const NAV_SECTIONS = [
@@ -35,6 +36,7 @@ const NAV_SECTIONS = [
     items: [
       { name: 'Leads / Enquiries', path: '/vendor/leads', icon: FiInbox },
       { name: 'Order Requests', path: '/vendor/orders', icon: FiShoppingCart },
+      { name: 'Chat / Inbox', path: '/vendor/chat', icon: FiMessageSquare },
       { name: 'Analytics', path: '/vendor/analytics', icon: FiPieChart },
     ],
   },
@@ -72,6 +74,14 @@ export default function VendorLayout() {
 
   const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
   const vendorProfile = profileUser.vendorProfile || {};
+  const roles = profileUser.roles || ['customer'];
+  const currentRole = profileUser.current_role || profileUser.activeRole || 'customer';
+
+  useEffect(() => {
+    if (roles.includes('vendor') && currentRole !== 'vendor') {
+      dispatch(setActiveRole('vendor'));
+    }
+  }, [roles, currentRole, dispatch]);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});

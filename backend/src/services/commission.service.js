@@ -145,6 +145,12 @@ const markPaid = async (commissionId) => {
     { $set: { status: 'paid_out', paid_out_at: now } },
     { returnDocument: 'after' }
   );
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminCommissions'] });
+  } catch (err) {}
+
   return serializeCommission(updated);
 };
 
@@ -165,6 +171,12 @@ const setGlobalRate = async (rate) => {
     { $set: { value: val } },
     { upsert: true }
   );
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminCommissions'] });
+  } catch (err) {}
+
   return { global_rate: rate };
 };
 
@@ -188,6 +200,12 @@ const setCategoryRate = async (categoryId, rate) => {
     { $set: { value: val } },
     { upsert: true }
   );
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminCommissions'] });
+  } catch (err) {}
+
   return { category_id: categoryId, rate };
 };
 

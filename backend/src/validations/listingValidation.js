@@ -62,7 +62,37 @@ const listingValidation = {
       .isInt({ min: 1 }).withMessage('Page number must be positive.'),
     query('limit')
       .optional({ checkFalsy: true })
-      .isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50.'),
+      .isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100.'),
+    query('vendor')
+      .optional({ checkFalsy: true })
+      .isMongoId().withMessage('Invalid vendor ID.'),
+    query('type')
+      .optional({ checkFalsy: true })
+      .isIn(['product', 'service']).withMessage('Type must be "product" or "service".'),
+    query('category')
+      .optional({ checkFalsy: true })
+      .isString().withMessage('Category must be a string.'),
+    query('search')
+      .optional({ checkFalsy: true })
+      .isString().withMessage('Search must be a string.'),
+    query('minPrice')
+      .optional({ checkFalsy: true })
+      .isFloat({ min: 0 }).withMessage('Min price must be a positive number.'),
+    query('maxPrice')
+      .optional({ checkFalsy: true })
+      .isFloat({ min: 0 }).withMessage('Max price must be a positive number.'),
+    query('distance')
+      .optional({ checkFalsy: true })
+      .isFloat({ min: 0 }).withMessage('Distance must be a positive number.'),
+    query('condition')
+      .optional({ checkFalsy: true })
+      .isIn(['new', 'refurbished', 'used', 'not_applicable']).withMessage('Invalid condition.'),
+    query('status')
+      .optional({ checkFalsy: true })
+      .isString().withMessage('Status must be a string.'),
+    query('rating')
+      .optional({ checkFalsy: true })
+      .isFloat({ min: 0, max: 5 }).withMessage('Rating must be between 0 and 5.'),
     query('lat')
       .optional({ checkFalsy: true })
       .isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude coordinates.'),

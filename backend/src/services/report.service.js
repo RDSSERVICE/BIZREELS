@@ -45,6 +45,11 @@ const createReport = async (reporterId, body) => {
     resolution_note: null,
   });
 
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminReports', 'AdminOverview'] });
+  } catch (err) {}
+
   return serializeReport(doc);
 };
 
@@ -179,6 +184,11 @@ const resolveReport = async (rid, adminId, action, note) => {
     { returnDocument: 'after' }
   );
 
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminReports', 'AdminOverview'] });
+  } catch (err) {}
+
   return serializeReport(updated);
 };
 
@@ -203,6 +213,11 @@ const dismissReport = async (rid, adminId, reason = null) => {
     },
     { returnDocument: 'after' }
   );
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminReports', 'AdminOverview'] });
+  } catch (err) {}
 
   return serializeReport(updated);
 };

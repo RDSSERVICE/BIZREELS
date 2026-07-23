@@ -97,7 +97,7 @@ const reelsApi = apiSlice.injectEndpoints({
     }),
 
     deleteComment: builder.mutation({
-      query: (commentId) => ({
+      query: ({ commentId }) => ({
         url: `/reels/comments/${commentId}`,
         method: 'DELETE',
       }),

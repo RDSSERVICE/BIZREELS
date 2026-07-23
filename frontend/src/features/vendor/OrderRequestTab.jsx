@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGetOrdersQuery } from '../customer/activitiesApi';
+import { useUpdateOrderStatusMutation } from '../vendor/vendorApi';
 import { FiCheck, FiX, FiCheckCircle, FiInfo, FiLayers, FiCalendar } from 'react-icons/fi';
 import Loader from '../../components/common/Loader';
 import { toast } from 'react-hot-toast';
@@ -9,7 +10,10 @@ const OrderRequestTab = ({ user }) => {
   const [localOrders, setLocalOrders] = useState([]);
 
   // API Queries & Mutations
-  const { data: ordersRes, isLoading: isOrdersLoading, refetch } = useGetOrdersQuery();
+  const { data: ordersRes, isLoading: isOrdersLoading, refetch } = useGetOrdersQuery(undefined, {
+    pollingInterval: 15000,
+  });
+  const [updateOrderStatusApi] = useUpdateOrderStatusMutation();
 
   useEffect(() => {
     if (ordersRes?.orders) {
@@ -23,12 +27,20 @@ const OrderRequestTab = ({ user }) => {
     return ord.status === orderFilter;
   });
 
-  const handleUpdateOrderStatus = (orderId, status) => {
+  const handleUpdateOrderStatus = async (orderId, status) => {
     // Optimistic local update
     setLocalOrders((prev) =>
       prev.map((o) => (o._id === orderId ? { ...o, status } : o))
     );
-    toast.success(`Order request status updated to ${status.toUpperCase()}!`);
+    try {
+      await updateOrderStatusApi({ id: orderId, status }).unwrap();
+      toast.success(`Order request status updated to ${status.toUpperCase()}!`);
+      refetch();
+    } catch (err) {
+      // Revert optimistic update on failure
+      refetch();
+      toast.error('Failed to update order status.');
+    }
   };
 
   return (

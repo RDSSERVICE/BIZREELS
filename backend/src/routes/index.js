@@ -21,6 +21,7 @@ const vendorRoutes = require('./vendor.routes');
 const creatorRoutes = require('./creator.routes');
 const phase4Routes = require('./phase4.routes');
 const interactionRoutes = require('./interaction.routes');
+const followRoutes = require('./follow.routes');
 const walletController = require('../controllers/walletController');
 const vendorController = require('../controllers/vendorController');
 const { authenticate } = require('../middleware/auth');
@@ -81,6 +82,8 @@ router.use('/creator', creatorRoutes);
 // Phase 4 routes (Payments, Subscriptions, KYC, Reviews, Trust Score)
 router.use('/', phase4Routes);
 router.use('/', interactionRoutes);
+router.use('/follow', followRoutes);
+router.use('/follows', followRoutes);
 
 
 // Admin module routes

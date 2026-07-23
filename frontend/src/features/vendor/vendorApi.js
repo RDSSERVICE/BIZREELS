@@ -15,7 +15,7 @@ const vendorApi = apiSlice.injectEndpoints({
 
     // ── Listings ────────────────────────────────────────────
     getVendorListings: builder.query({
-      query: (params = {}) => ({ url: '/listings', params: { limit: 100, ...params } }),
+      query: (params = {}) => ({ url: '/listings', params: { limit: 50, ...params } }),
       providesTags: (result) => {
         const items = Array.isArray(result?.data)
           ? result.data

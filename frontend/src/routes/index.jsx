@@ -50,6 +50,7 @@ import VendorReviewsPage from '../pages/vendor/reviews/VendorReviewsPage';
 import VendorSettingsPage from '../pages/vendor/settings/VendorSettingsPage';
 import VendorHireCreatorPage from '../pages/vendor/hire-creator/VendorHireCreatorPage';
 import VendorVerificationPage from '../pages/vendor/verification/VendorVerificationPage';
+import VendorChatPage from '../pages/vendor/chat/VendorChatPage';
 
 // Creator Pages
 import CreatorDashboardPage from '../pages/creator/dashboard/CreatorDashboardPage';
@@ -170,6 +171,7 @@ const AppRoutes = () => {
         <Route path="wallet" element={<VendorWalletPage />} />
         <Route path="reviews" element={<VendorReviewsPage />} />
         <Route path="settings" element={<VendorSettingsPage />} />
+        <Route path="chat" element={<VendorChatPage />} />
         <Route path="hire-creator" element={<VendorHireCreatorPage />} />
         <Route path="" element={<Navigate to="dashboard" replace />} />
       </Route>

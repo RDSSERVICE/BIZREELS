@@ -12,9 +12,10 @@ export default function SearchListingsPage() {
   const [type, setType] = useState('all'); // 'all' | 'product' | 'service'
   const [category, setCategory] = useState('all');
   const [maxPrice, setMaxPrice] = useState(200000);
-  const [distance, setDistance] = useState('25');
+  const [distance, setDistance] = useState('all');
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
   const [inquiringId, setInquiringId] = useState(null);
 
   const [selectedItem, setSelectedItem] = useState(null);
@@ -74,6 +75,16 @@ export default function SearchListingsPage() {
 
   useEffect(() => {
     fetchInteractions();
+    const loadCategories = async () => {
+      try {
+        const res = await api.get('/v1/categories');
+        const items = res.data?.items || res.data?.data || [];
+        setCategories(items);
+      } catch (err) {
+        console.warn('Failed to fetch categories:', err);
+      }
+    };
+    loadCategories();
   }, []);
 
   // Fetch listing reviews
@@ -212,7 +223,7 @@ export default function SearchListingsPage() {
       if (category !== 'all') params.append('category', category);
       if (query.trim()) params.append('search', query.trim());
       if (maxPrice < 200000) params.append('maxPrice', maxPrice);
-      if (distance) params.append('distance', distance);
+      if (distance && distance !== 'all') params.append('distance', distance);
       if (coords) {
         params.append('lat', coords.lat);
         params.append('lng', coords.lng);
@@ -294,6 +305,7 @@ export default function SearchListingsPage() {
               onChange={(e) => setDistance(e.target.value)}
               className="bg-surface border border-border rounded-xl px-4 py-2.5 text-xs text-brand-purple font-semibold focus:outline-none focus:border-brand-purple"
             >
+              <option value="all">All Distances</option>
               <option value="5">Within 5 km</option>
               <option value="25">Within 25 km</option>
               <option value="50">Within 50 km</option>
@@ -312,11 +324,17 @@ export default function SearchListingsPage() {
               className="bg-surface border border-border rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             >
               <option value="all">All Categories</option>
-              <option value="Electronics">Electronics</option>
-              <option value="Fashion">Fashion</option>
-              <option value="Furniture">Furniture</option>
-              <option value="Services">Services</option>
-              <option value="Automobile">Automobile</option>
+              {(categories.length > 0 ? categories : [
+                { name: 'Electronics' },
+                { name: 'Fashion' },
+                { name: 'Furniture' },
+                { name: 'Services' },
+                { name: 'Automobile' }
+              ]).map(cat => (
+                <option key={cat._id || cat.id || cat.name} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -353,7 +371,13 @@ export default function SearchListingsPage() {
             const rawImage = item.images?.[0] || item.image || item.mediaUrl || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=600&q=80';
             const imageUrl = resolveMediaUrl(rawImage);
             const isService = item.type === 'service';
-            const dist = item.distanceKm || item.distance || '3.5';
+            let distStr = 'Local';
+            if (item.distance !== undefined && item.distance !== null) {
+              const km = item.distance / 1000;
+              distStr = `${km.toFixed(1)} km`;
+            } else if (item.distanceKm !== undefined && item.distanceKm !== null) {
+              distStr = `${Number(item.distanceKm).toFixed(1)} km`;
+            }
 
             return (
               <div
@@ -368,7 +392,7 @@ export default function SearchListingsPage() {
                     {item.type || 'product'}
                   </div>
                   <div className="absolute top-3 right-3 glass px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-600 border border-border">
-                    {dist} km away
+                    {distStr === 'Local' ? 'Nearby' : `${distStr} away`}
                   </div>
                 </div>
 
@@ -484,18 +508,18 @@ export default function SearchListingsPage() {
                   <span className="text-[10px] font-bold text-text-tertiary uppercase block">Customer Actions Menu:</span>
                   <div className="grid grid-cols-4 gap-2">
                     <button
-                      onClick={() => toggleSave(selectedItem._id)}
-                      className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 ${savedItems[selectedItem._id] ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-surface-tertiary border-border text-text-secondary'}`}
+                      onClick={() => toggleSave(selectedItem._id || selectedItem.id)}
+                      className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 ${savedItems[selectedItem._id || selectedItem.id] ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-surface-tertiary border-border text-text-secondary'}`}
                     >
-                      <FiStar className={`w-5 h-5 ${savedItems[selectedItem._id] ? 'fill-amber-500 text-amber-500' : 'text-text-secondary'}`} />
-                      <span>{savedItems[selectedItem._id] ? 'Saved' : 'Save'}</span>
+                      <FiStar className={`w-5 h-5 ${savedItems[selectedItem._id || selectedItem.id] ? 'fill-amber-500 text-amber-500' : 'text-text-secondary'}`} />
+                      <span>{savedItems[selectedItem._id || selectedItem.id] ? 'Saved' : 'Save'}</span>
                     </button>
                     <button
-                      onClick={() => toggleLike(selectedItem._id)}
-                      className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 ${likedItems[selectedItem._id] ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-surface-tertiary border-border text-text-secondary'}`}
+                      onClick={() => toggleLike(selectedItem._id || selectedItem.id)}
+                      className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 ${likedItems[selectedItem._id || selectedItem.id] ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-surface-tertiary border-border text-text-secondary'}`}
                     >
-                      <FiHeart className={`w-5 h-5 ${likedItems[selectedItem._id] ? 'fill-red-500 text-red-500' : 'text-text-secondary'}`} />
-                      <span>{likedItems[selectedItem._id] ? 'Liked' : 'Like'}</span>
+                      <FiHeart className={`w-5 h-5 ${likedItems[selectedItem._id || selectedItem.id] ? 'fill-red-500 text-red-500' : 'text-text-secondary'}`} />
+                      <span>{likedItems[selectedItem._id || selectedItem.id] ? 'Liked' : 'Like'}</span>
                     </button>
                     <button
                       onClick={() => handleShare(selectedItem)}

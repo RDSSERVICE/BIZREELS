@@ -272,6 +272,12 @@ router.get('/locations', requireAuth, requireAdmin, catchAsync(async (req, res) 
 router.post('/locations', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const { Location } = require('../models/Admin');
   const loc = await Location.create(req.body);
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['Locations'] });
+  } catch (err) {}
+
   res.json({ ok: true, location: loc });
 }));
 
@@ -305,6 +311,12 @@ router.post('/wallet/manual-credit', requireAuth, requireAdmin, catchAsync(async
   const walletService = require('../services/wallet.service');
   const w = await walletService.getOrCreate(user_id);
   const updated = await walletService.creditWallet(user_id, amount_credits, 'credits', reason || 'Admin Manual Credit', 'admin_credit', req.user._id.toString());
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminTransactions', 'AdminOverview'] });
+  } catch (err) {}
+
   res.json({ ok: true, wallet: updated });
 }));
 
@@ -313,6 +325,12 @@ router.post('/wallet/manual-debit', requireAuth, requireAdmin, catchAsync(async 
   if (!user_id || !amount_credits) throw ApiError.badRequest('user_id and amount_credits required');
   const walletService = require('../services/wallet.service');
   const updated = await walletService.debitWallet(user_id, amount_credits, 'credits', reason || 'Admin Manual Debit', 'admin_debit', req.user._id.toString());
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminTransactions', 'AdminOverview'] });
+  } catch (err) {}
+
   res.json({ ok: true, wallet: updated });
 }));
 
@@ -340,6 +358,12 @@ router.get('/reviews', requireAuth, requireAdmin, catchAsync(async (req, res) =>
 router.delete('/reviews/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const { Review } = require('../models/Phase4');
   await Review.updateOne({ _id: req.params.id }, { $set: { is_deleted: true } });
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['Reviews'] });
+  } catch (err) {}
+
   res.json({ ok: true });
 }));
 
@@ -387,6 +411,12 @@ router.get('/coupons', requireAuth, requireAdmin, catchAsync(async (req, res) =>
 router.post('/coupons', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const { Coupon } = require('../models/Admin');
   const coupon = await Coupon.create(req.body);
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['Coupons'] });
+  } catch (err) {}
+
   res.json({ ok: true, coupon });
 }));
 
@@ -405,6 +435,12 @@ router.put('/cms/:slug', requireAuth, requireAdmin, catchAsync(async (req, res) 
     { $set: { title, content, is_published, last_edited_by: req.user._id.toString() } },
     { upsert: true }
   );
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['Cms'] });
+  } catch (err) {}
+
   res.json({ ok: true });
 }));
 
@@ -434,6 +470,12 @@ router.patch('/app-settings', requireAuth, requireAdmin, catchAsync(async (req, 
   for (const [key, val] of Object.entries(req.body)) {
     await AppSettings.updateOne({ key }, { $set: { value: val } }, { upsert: true });
   }
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AppSettings'] });
+  } catch (err) {}
+
   res.json({ ok: true });
 }));
 
@@ -463,17 +505,7 @@ router.post('/nudge/scan', requireAuth, requireAdmin, catchAsync(async (req, res
 
 // ============================================================ DEV/DEMO ENDPOINTS
 router.post('/seed/reset-demo', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const dev = ['OTP_DEV_MODE', 'CLOUDINARY_DEV_MODE', 'RAZORPAY_DEV_MODE', 'FCM_DEV_MODE'].some(
-    k => process.env[k] === 'true'
-  );
-  if (!dev) {
-    throw new ApiError(403, 'Dev-only endpoint. Enable a *_DEV_MODE flag.');
-  }
-
-  const { wipe = true } = req.body;
-  const demoSeedService = require('../services/demo-seed.service');
-  const result = await demoSeedService.resetAndSeed(wipe);
-  res.json(result);
+  res.json({ ok: false, message: 'Demo seeding is disabled' });
 }));
 
 router.post('/dev/purge-test-data', requireAuth, requireAdmin, catchAsync(async (req, res) => {
@@ -953,6 +985,12 @@ router.patch('/locations/radius', requireAuth, requireAdmin, catchAsync(async (r
   const { radius_km } = req.body;
   if (!radius_km || radius_km < 1 || radius_km > 500) throw ApiError.badRequest('radius_km must be between 1 and 500');
   await AppSettings.updateOne({ key: 'discovery_radius_km' }, { $set: { value: radius_km } }, { upsert: true });
+  
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['LocationRadius'] });
+  } catch (err) {}
+
   res.json({ ok: true, radius_km });
 }));
 

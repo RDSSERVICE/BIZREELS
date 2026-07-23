@@ -13,6 +13,9 @@ import {
 import { selectCurrentUser, logout } from '../../features/auth/authSlice';
 import { useLogoutMutation } from '../../features/auth/authApi';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
+import { useEffect } from 'react';
+import { getSocket, disconnectSocket } from '../../lib/socket';
+import adminApi from '../../features/admin/adminApi';
 
 const NAV_SECTIONS = [
   {
@@ -106,13 +109,34 @@ const AdminLayout = () => {
     setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));
   };
 
+  // Realtime Socket event listener for admin tag invalidations
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleAdminUpdate = ({ tags }) => {
+      console.log('Realtime Admin Update event received. Invalidating tags:', tags);
+      if (Array.isArray(tags)) {
+        dispatch(adminApi.util.invalidateTags(tags));
+      }
+    };
+
+    socket.on('admin:update', handleAdminUpdate);
+
+    return () => {
+      socket.off('admin:update', handleAdminUpdate);
+    };
+  }, [dispatch]);
+
   const handleLogout = async () => {
     try {
       await logoutApi().unwrap();
+      disconnectSocket();
       dispatch(logout());
       toast.success('Logged out successfully');
       navigate('/auth/login');
     } catch {
+      disconnectSocket();
       dispatch(logout());
       navigate('/auth/login');
     }

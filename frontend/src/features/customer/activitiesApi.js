@@ -76,6 +76,12 @@ const activitiesApi = apiSlice.injectEndpoints({
       query: () => '/requirements/quotes',
       providesTags: ['Requirements'],
     }),
+
+    // ── Followings ────────────────────────────────────────
+    getFollowing: builder.query({
+      query: () => '/follows/me/following',
+      providesTags: ['User'],
+    }),
   }),
 });
 
@@ -90,6 +96,7 @@ export const {
   useUnfollowUserMutation,
   useGetSavedListingsQuery,
   useGetQuotesQuery,
+  useGetFollowingQuery,
 } = activitiesApi;
 
 export default activitiesApi;

@@ -62,6 +62,12 @@ class ChatService {
 
     try {
       const sender = await User.findById(senderId).select('name avatarUrl').lean();
+      const recipientUser = await User.findById(recipientId).select('roles').lean();
+      let actionUrl = '/customer/chat';
+      if (recipientUser && recipientUser.roles && recipientUser.roles.includes('vendor')) {
+        actionUrl = '/vendor/chat';
+      }
+
       const notifyRecord = await Notification.create({
         recipient: recipientId,
         sender: senderId,
@@ -69,6 +75,7 @@ class ChatService {
         title: `Message from ${sender?.name || 'User'}`,
         message: text || 'Sent an attachment.',
         data: { conversationId: conversation._id },
+        actionUrl,
       });
       emitToUser(recipientId.toString(), 'notification', notifyRecord);
     } catch (err) {

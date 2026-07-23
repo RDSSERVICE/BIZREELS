@@ -46,7 +46,7 @@ const CommentsDrawer = ({
 
   const handleDeleteComment = async (commentId) => {
     try {
-      await deleteComment(commentId).unwrap();
+      await deleteComment({ commentId, reelId }).unwrap();
       toast.success('Comment deleted.');
     } catch (err) {
       toast.error('Failed to delete comment.');

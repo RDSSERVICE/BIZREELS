@@ -285,8 +285,8 @@ class ListingService {
   }
 
   async listByVendor(vendorId) {
-    const res = await this.queryListings({ page: 1, limit: 100 });
-    return res.data || [];
+    const res = await this.queryListings({ vendor: vendorId, page: 1, limit: 100 });
+    return res.listings || res.data || [];
   }
 
   serializeListing(d) {

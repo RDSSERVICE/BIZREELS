@@ -12,7 +12,10 @@ import {
   useGetInquiriesQuery,
   useGetSavedListingsQuery,
   useGetQuotesQuery,
+  useGetFollowingQuery,
+  useUnfollowUserMutation,
 } from '../../../features/customer/activitiesApi';
+import { resolveMediaUrl } from '../../../lib/api';
 
 const TABS = [
   { key: 'saved-products', label: 'Saved Products', icon: FiBookmark },
@@ -30,6 +33,8 @@ export default function CustomerActivitiesPage() {
   const { data: inquiriesData } = useGetInquiriesQuery(undefined, { pollingInterval: 5000 });
   const { data: savedData } = useGetSavedListingsQuery(undefined, { pollingInterval: 5000 });
   const { data: quotesData } = useGetQuotesQuery(undefined, { pollingInterval: 5000 });
+  const { data: followingData } = useGetFollowingQuery(undefined, { pollingInterval: 5000 });
+  const [unfollowUser] = useUnfollowUserMutation();
 
   const savedListings = Array.isArray(savedData?.data) ? savedData.data : Array.isArray(savedData) ? savedData : [];
   const savedProducts = savedListings.filter(item => item.type !== 'service');
@@ -38,8 +43,19 @@ export default function CustomerActivitiesPage() {
   const orders = Array.isArray(ordersData?.orders) ? ordersData.orders : Array.isArray(ordersData?.data) ? ordersData.data : Array.isArray(ordersData) ? ordersData : [];
   const inquiries = Array.isArray(inquiriesData?.inquiries) ? inquiriesData.inquiries : Array.isArray(inquiriesData?.data) ? inquiriesData.data : Array.isArray(inquiriesData) ? inquiriesData : [];
   const quotes = Array.isArray(quotesData?.data) ? quotesData.data : Array.isArray(quotesData) ? quotesData : [];
-  const followingVendors = [];
-  const followingServices = [];
+  
+  const followings = followingData?.items || [];
+  const followingVendors = followings.filter(u => u.roles?.includes('vendor'));
+  const followingServices = followings.filter(u => !u.roles?.includes('vendor'));
+
+  const handleUnfollow = async (userId) => {
+    try {
+      await unfollowUser(userId).unwrap();
+      toast.success('Unfollowed successfully');
+    } catch (err) {
+      toast.error('Failed to unfollow');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
@@ -60,11 +76,18 @@ export default function CustomerActivitiesPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {savedProducts.map((p) => (
-                  <div key={p._id || p.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-xs text-text-primary">{p.title}</h4>
-                      <p className="text-[11px] text-text-tertiary">By {p.vendor?.name || p.vendor || 'Vendor'}</p>
-                      <p className="text-xs font-bold text-emerald-600 mt-1">₹{(p.price || 0).toLocaleString()}</p>
+                  <div key={p._id || p.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={resolveMediaUrl(p.images?.[0] || p.image || 'https://via.placeholder.com/150')}
+                        alt={p.title}
+                        className="w-12 h-12 rounded-lg object-cover border border-border flex-shrink-0"
+                      />
+                      <div>
+                        <h4 className="font-bold text-xs text-text-primary">{p.title}</h4>
+                        <p className="text-[11px] text-text-tertiary">By {p.vendor?.name || p.vendor?.shopName || 'Vendor'}</p>
+                        <p className="text-xs font-bold text-emerald-600 mt-1">₹{(p.price || 0).toLocaleString()}</p>
+                      </div>
                     </div>
                     <button
                       onClick={() => toast.success('Added to cart')}
@@ -87,11 +110,18 @@ export default function CustomerActivitiesPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {savedServices.map((s) => (
-                  <div key={s._id || s.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-xs text-text-primary">{s.title}</h4>
-                      <p className="text-[11px] text-text-tertiary">By {s.vendor?.name || s.vendor || 'Service Provider'}</p>
-                      <p className="text-xs font-bold text-brand-purple mt-1">₹{(s.price || 0).toLocaleString()}</p>
+                  <div key={s._id || s.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={resolveMediaUrl(s.images?.[0] || s.image || 'https://via.placeholder.com/150')}
+                        alt={s.title}
+                        className="w-12 h-12 rounded-lg object-cover border border-border flex-shrink-0"
+                      />
+                      <div>
+                        <h4 className="font-bold text-xs text-text-primary">{s.title}</h4>
+                        <p className="text-[11px] text-text-tertiary">By {s.vendor?.name || s.vendor?.shopName || 'Service Provider'}</p>
+                        <p className="text-xs font-bold text-brand-purple mt-1">₹{(s.price || 0).toLocaleString()}</p>
+                      </div>
                     </div>
                     <button
                       onClick={() => toast.success('Booking requested')}
@@ -188,16 +218,23 @@ export default function CustomerActivitiesPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {(activeTab === 'following-vendors' ? followingVendors : followingServices).map((v) => (
-                  <div key={v._id || v.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-xs text-text-primary">{v.name}</h4>
-                      <p className="text-[11px] text-text-tertiary">{v.category} • {v.city}</p>
+                  <div key={v._id || v.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={resolveMediaUrl(v.profile_pic || v.avatarUrl || 'https://via.placeholder.com/150')}
+                        alt={v.name}
+                        className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0"
+                      />
+                      <div>
+                        <h4 className="font-bold text-xs text-text-primary">{v.name}</h4>
+                        <p className="text-[10px] text-text-tertiary capitalize">{v.roles?.join(', ') || 'Vendor'}</p>
+                      </div>
                     </div>
                     <button
-                      onClick={() => toast.success('Unfollowed')}
-                      className="px-3 py-1.5 glass border border-border text-text-secondary rounded-xl text-[11px] font-semibold hover:bg-surface-tertiary"
+                      onClick={() => handleUnfollow(v.id || v._id)}
+                      className="px-3 py-1.5 glass border border-border text-text-secondary hover:text-error hover:bg-error-light/10 rounded-xl text-[11px] font-semibold transition"
                     >
-                      Following
+                      Unfollow
                     </button>
                   </div>
                 ))}

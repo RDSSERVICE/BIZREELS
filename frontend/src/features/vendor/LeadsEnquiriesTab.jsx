@@ -18,10 +18,10 @@ const LeadsEnquiriesTab = ({ user }) => {
   const [bidNotes, setBidNotes] = useState('');
 
   // API Queries & Mutations
-  const { data: leadsRes, isLoading: isLeadsLoading, refetch: refetchLeads } = useGetRequirementsQuery({
-    page: 1,
-    limit: 50,
-  });
+  const { data: leadsRes, isLoading: isLeadsLoading, refetch: refetchLeads } = useGetRequirementsQuery(
+    { page: 1, limit: 50 },
+    { pollingInterval: 30000 }
+  );
   const [submitBid, { isLoading: isBidding }] = useSubmitQuoteMutation();
 
   const activeLeads = leadsRes?.data || [];

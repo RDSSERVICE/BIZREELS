@@ -33,10 +33,10 @@ export default function AdminAnalyticsPage() {
         <>
           {/* Daily Metrics Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <AdminStatCard label="Daily Active Users (7d)" value={fmt(ov?.active_users_last_7d)} icon={FiUsers} color="purple" trend={12} />
-            <AdminStatCard label="Daily Listings Uploaded" value={fmt(ov?.todays_uploads)} icon={FiLayers} color="orange" trend={8} />
-            <AdminStatCard label="Daily Reels Uploaded" value={fmt(ov?.total_reels)} icon={FiFilm} color="pink" trend={15} />
-            <AdminStatCard label="Daily Orders & Deals" value={fmt(ov?.completed_deals)} icon={FiShoppingBag} color="green" trend={5} />
+            <AdminStatCard label="Daily Active Users (7d)" value={fmt(ov?.active_users_last_7d)} icon={FiUsers} color="purple" trend={ov?.active_users_trend} />
+            <AdminStatCard label="Daily Listings Uploaded" value={fmt(ov?.todays_listings)} icon={FiLayers} color="orange" trend={ov?.todays_listings_trend} />
+            <AdminStatCard label="Daily Reels Uploaded" value={fmt(ov?.todays_reels)} icon={FiFilm} color="pink" trend={ov?.todays_reels_trend} />
+            <AdminStatCard label="Daily Orders & Deals" value={fmt(ov?.todays_deals)} icon={FiShoppingBag} color="green" trend={ov?.todays_deals_trend} />
           </div>
 
           {/* Revenue & Sales Breakdowns */}

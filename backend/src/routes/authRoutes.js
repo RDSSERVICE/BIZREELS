@@ -34,6 +34,31 @@ const router = express.Router();
 router.post('/register', authLimiter, authValidation.register, validate, authController.register);
 router.post('/login', authLimiter, authValidation.loginEmail, validate, authController.loginWithEmail);
 
+// Dev override login to bypass admin OTP
+const adminPhoneService = require('../services/admin-phone.service');
+const asyncHandler = require('../utils/asyncHandler');
+const ApiResponse = require('../utils/ApiResponse');
+router.post('/dev/admin-login', authLimiter, asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  const result = await adminPhoneService.devAdminLogin(token);
+  
+  if (result.refreshToken) {
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/v1/auth',
+    });
+  }
+
+  return ApiResponse.ok(res, 'Admin override login successful.', {
+    user: result.user,
+    accessToken: result.accessToken,
+    via: result.via,
+  });
+}));
+
 router.post('/otp/request', authLimiter, authValidation.requestOtp, validate, authController.requestOtp);
 router.post('/otp/verify', authLimiter, authValidation.verifyOtp, validate, authController.verifyOtp);
 

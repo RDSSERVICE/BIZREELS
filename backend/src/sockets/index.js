@@ -44,7 +44,7 @@ const initSockets = (server) => {
 
       const decoded = jwt.verify(token, config.jwt.accessSecret);
       const user = await User.findById(decoded.userId)
-        .select('name avatarUrl activeRole')
+        .select('name avatarUrl activeRole roles')
         .lean();
 
       if (!user) {
@@ -66,6 +66,12 @@ const initSockets = (server) => {
 
     // Join personal user room to receive targeted alerts (quotes, leads, notifications)
     socket.join(`user:${userId}`);
+
+    // Join admin room if user has admin privileges
+    if (socket.user.roles && socket.user.roles.includes('admin')) {
+      socket.join('admin');
+      logger.info(`Socket User ${userId} joined admin room`, { service: 'sockets' });
+    }
 
     // Join specific conversation room
     socket.on('join_conversation', (conversationId) => {
@@ -135,8 +141,18 @@ const emitToConversation = (conversationId, event, payload) => {
   }
 };
 
+/**
+ * Global utility to emit a real-time event to the general admin room.
+ */
+const emitToAdmin = (event, payload) => {
+  if (ioInstance) {
+    ioInstance.to('admin').emit(event, payload);
+  }
+};
+
 module.exports = {
   initSockets,
   emitToUser,
   emitToConversation,
+  emitToAdmin,
 };

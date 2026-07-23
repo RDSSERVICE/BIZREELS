@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGetRequirementsQuery, useSubmitQuoteMutation } from '../customer/requirementsApi';
 import { useGetOrdersQuery } from '../customer/activitiesApi';
-import { useGetListingsQuery } from '../listings/listingsApi';
+import { useGetVendorListingsQuery } from '../vendor/vendorApi';
 import { FiBriefcase, FiActivity, FiUsers, FiEye, FiDollarSign, FiZap, FiPlus, FiGrid, FiArrowRight } from 'react-icons/fi';
 import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
@@ -17,12 +17,18 @@ const VendorDashboardTab = ({ user, setActiveTab }) => {
   const [bidNotes, setBidNotes] = useState('');
 
   // API Queries & Mutations
-  const { data: listingsRes } = useGetListingsQuery({ page: 1, limit: 50 });
-  const { data: leadsRes, isLoading: isLeadsLoading, refetch: refetchLeads } = useGetRequirementsQuery({ page: 1, limit: 30 });
-  const { data: ordersRes } = useGetOrdersQuery();
+  const { data: listingsRes } = useGetVendorListingsQuery(
+    { vendor: user?._id, page: 1, limit: 50 },
+    { skip: !user?._id, pollingInterval: 30000 }
+  );
+  const { data: leadsRes, isLoading: isLeadsLoading, refetch: refetchLeads } = useGetRequirementsQuery(
+    { page: 1, limit: 30 },
+    { pollingInterval: 30000 }
+  );
+  const { data: ordersRes } = useGetOrdersQuery(undefined, { pollingInterval: 30000 });
   const [submitBid, { isLoading: isBidding }] = useSubmitQuoteMutation();
 
-  const myListings = listingsRes?.data?.filter((l) => l.vendor?._id === user?._id || l.vendor === user?._id) || [];
+  const myListings = listingsRes?.data || [];
   const activeLeads = leadsRes?.data || [];
   const recentOrders = ordersRes?.orders || [];
 

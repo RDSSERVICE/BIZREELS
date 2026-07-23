@@ -7,6 +7,7 @@ import {
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
+import CommentsDrawer from '../../../components/ui/CommentsDrawer';
 
 /**
  * CustomerReelMedia Component
@@ -122,6 +123,8 @@ export default function CustomerHomePage() {
   const [savedMap, setSavedMap] = useState({});
   const [followingMap, setFollowingMap] = useState({});
   const [muted, setMuted] = useState(true);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [selectedReelId, setSelectedReelId] = useState(null);
 
   // Home Feed Search & Filter State
   const [filters, setFilters] = useState({
@@ -222,6 +225,13 @@ export default function CustomerHomePage() {
       setFollowingMap((prev) => ({ ...prev, [vendorId]: isFollowing }));
       toast.error('Failed to update follow status');
     }
+  };
+
+  const handleShare = (reel) => {
+    if (!reel?._id) return;
+    const shareUrl = `${window.location.origin}/reels/${reel._id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success('Link copied to clipboard!');
   };
 
   // Filter & Sort Logic for Reels & Images
@@ -448,13 +458,19 @@ export default function CustomerHomePage() {
                           <span>{(reel.likesCount || 0) + (isLiked ? 1 : 0)}</span>
                         </button>
 
-                        <button className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-purple">
+                        <button
+                          onClick={() => {
+                            setSelectedReelId(reel._id);
+                            setIsCommentsOpen(true);
+                          }}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-purple"
+                        >
                           <FiMessageCircle size={20} />
                           <span>{reel.commentsCount || 0}</span>
                         </button>
 
                         <button
-                          onClick={() => toast.success('Share link copied to clipboard!')}
+                          onClick={() => handleShare(reel)}
                           className="text-text-secondary hover:text-emerald-600 transition"
                         >
                           <FiShare2 size={20} />
@@ -525,6 +541,11 @@ export default function CustomerHomePage() {
           </div>
         )
       )}
+      <CommentsDrawer
+        isOpen={isCommentsOpen}
+        onClose={() => setIsCommentsOpen(false)}
+        reelId={selectedReelId}
+      />
     </div>
   );
 }
