@@ -128,11 +128,16 @@ export default function ReelItem({ listing, index = 0, onOpenLogin }) {
   };
   const save = async () => {
     if (needAuth()) return;
-    setSaved((v) => !v); setSaves((n) => n + (saved ? -1 : 1));
+    const isSaved = saved;
+    setSaved(!isSaved); setSaves((n) => n + (isSaved ? -1 : 1));
     try {
-      const { data } = await interactionApi.toggleSave(listing.id);
-      setSaved(data.active); setSaves(data.count);
-    } catch { setSaved(!saved); setSaves(saves); }
+      const res = isSaved 
+        ? await interactionApi.unsave(listing.id)
+        : await interactionApi.save(listing.id);
+      const resData = res.data?.data || res.data;
+      setSaved(resData.active !== undefined ? resData.active : !isSaved);
+      setSaves(resData.count !== undefined ? resData.count : saves + (isSaved ? -1 : 1));
+    } catch { setSaved(isSaved); setSaves(saves); }
   };
   const share = async () => {
     const url = `${window.location.origin}/listing/${listing.slug}`;

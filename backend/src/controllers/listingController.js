@@ -97,6 +97,8 @@ class ListingController {
   save = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const userModel = require('../models/User');
+    const Interaction = require('../models/Interaction');
+    const Listing = require('../models/Listing');
     
     const user = await userModel.findByIdAndUpdate(
       req.user._id,
@@ -109,13 +111,31 @@ class ListingController {
     })
     .populate('following', 'name avatarUrl activeRole roles vendorProfile creatorProfile');
 
-    return ApiResponse.ok(res, 'Listing saved successfully.', { user });
+    // Sync with Interaction collection and Listing saves_count
+    const existing = await Interaction.findOne({ user_id: req.user._id.toString(), listing_id: id, type: 'save' });
+    if (!existing) {
+      await Interaction.create({
+        user_id: req.user._id.toString(),
+        listing_id: id,
+        type: 'save',
+      });
+      await Listing.updateOne({ _id: id }, { $inc: { saves_count: 1 } });
+    }
+
+    const updatedListing = await Listing.findById(id);
+    return ApiResponse.ok(res, 'Listing saved successfully.', { 
+      user,
+      active: true,
+      count: updatedListing ? (updatedListing.saves_count || 0) : 0
+    });
   });
 
   // ── Unsave Listing ──────────────────────────────────────
   unsave = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const userModel = require('../models/User');
+    const Interaction = require('../models/Interaction');
+    const Listing = require('../models/Listing');
 
     const user = await userModel.findByIdAndUpdate(
       req.user._id,
@@ -128,7 +148,19 @@ class ListingController {
     })
     .populate('following', 'name avatarUrl activeRole roles vendorProfile creatorProfile');
 
-    return ApiResponse.ok(res, 'Listing unsaved successfully.', { user });
+    // Sync with Interaction collection and Listing saves_count
+    const existing = await Interaction.findOne({ user_id: req.user._id.toString(), listing_id: id, type: 'save' });
+    if (existing) {
+      await Interaction.deleteOne({ _id: existing._id });
+      await Listing.updateOne({ _id: id }, { $inc: { saves_count: -1 } });
+    }
+
+    const updatedListing = await Listing.findById(id);
+    return ApiResponse.ok(res, 'Listing unsaved successfully.', { 
+      user,
+      active: false,
+      count: updatedListing ? (updatedListing.saves_count || 0) : 0
+    });
   });
 }
 

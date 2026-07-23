@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiMapPin, FiStar, FiShoppingBag, FiTool, FiMessageCircle, FiPackage } from 'react-icons/fi';
+import { FiSearch, FiMapPin, FiStar, FiShoppingBag, FiTool, FiMessageCircle, FiPackage, FiHeart, FiShare2, FiPhone, FiMessageSquare, FiShoppingCart } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { api, resolveMediaUrl } from '../../../lib/api';
@@ -17,21 +18,94 @@ export default function SearchListingsPage() {
   const [inquiringId, setInquiringId] = useState(null);
 
   const [selectedItem, setSelectedItem] = useState(null);
+  const [coords, setCoords] = useState(null);
   const [savedItems, setSavedItems] = useState({});
   const [likedItems, setLikedItems] = useState({});
   const [orderConfirmedModal, setOrderConfirmedModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
-  const [reviewsList, setReviewsList] = useState([
-    { id: 1, user: 'Rahul Verma', rating: 5, comment: 'Excellent product quality and prompt local delivery!' },
-    { id: 2, user: 'Priya Sharma', rating: 4, comment: 'Very helpful vendor, service was smooth.' }
-  ]);
+  const [reviewsList, setReviewsList] = useState([]);
+
+  // Fetch coordinates on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.warn('Geolocation error:', error);
+        }
+      );
+    }
+  }, []);
+
+  // Fetch saved/liked interactions
+  const fetchInteractions = async () => {
+    try {
+      const [savedRes, likedRes] = await Promise.all([
+        api.get('/v1/interactions/me/saved'),
+        api.get('/v1/interactions/me/liked')
+      ]);
+      const savedMap = {};
+      const likedMap = {};
+
+      const savedList = savedRes.data?.items || savedRes.data?.data?.items || savedRes.data || [];
+      const likedList = likedRes.data?.items || likedRes.data?.data?.items || likedRes.data || [];
+
+      savedList.forEach(item => {
+        const id = item._id || item.id;
+        if (id) savedMap[id] = true;
+      });
+      likedList.forEach(item => {
+        const id = item._id || item.id;
+        if (id) likedMap[id] = true;
+      });
+
+      setSavedItems(savedMap);
+      setLikedItems(likedMap);
+    } catch (err) {
+      console.warn('Failed to fetch interactions:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchInteractions();
+  }, []);
+
+  // Fetch listing reviews
+  const fetchReviews = async (listingId) => {
+    try {
+      const res = await api.get(`/v1/reviews/listing/${listingId}`);
+      const data = res.data;
+      const list = data.data?.reviews || data.reviews || data.data || [];
+      setReviewsList(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.warn('Failed to fetch reviews:', err);
+      setReviewsList([]);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedItem) {
+      setReviewsList([]);
+      return;
+    }
+    fetchReviews(selectedItem._id || selectedItem.id);
+  }, [selectedItem]);
 
   const toggleSave = async (id) => {
     const isSaved = !!savedItems[id];
     setSavedItems((prev) => ({ ...prev, [id]: !isSaved }));
     try {
-      await api.post(`/v1/listings/${id}/save`);
+      if (isSaved) {
+        await api.post(`/v1/listings/${id}/unsave`);
+      } else {
+        await api.post(`/v1/listings/${id}/save`);
+      }
       toast.success(!isSaved ? '⭐ Saved to My Favorites!' : 'Removed from Saved');
     } catch (err) {
       setSavedItems((prev) => ({ ...prev, [id]: isSaved }));
@@ -67,24 +141,29 @@ export default function SearchListingsPage() {
     window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${text}`, '_blank');
   };
 
-  const handleCallRequest = (item) => {
+  const handleCallRequest = async (item) => {
     const vendorObj = item.vendor || item.vendorId || {};
-    toast.success(`📞 Call request sent to ${vendorObj.name || vendorObj.shopName || 'Vendor'}! They will call you shortly.`);
+    const listingId = item._id || item.id;
+    try {
+      await api.post('/v1/inquiries', {
+        listingId,
+        message: 'Customer requested a phone call callback.'
+      });
+      toast.success(`📞 Call request sent to ${vendorObj.name || vendorObj.shopName || 'Vendor'}! They will call you shortly.`);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to send call request';
+      toast.error(msg);
+    }
   };
 
   const handleOrderRequest = async (item) => {
     try {
-      const vendorId = item.vendor_id || item.vendor?._id || item.vendor?.id;
       const listingId = item._id || item.id;
-      const amount = item.price || item.sellingPrice || 0;
 
       await api.post('/v1/orders', {
-        listing_id: listingId,
-        vendor_id: vendorId,
-        amount: Number(amount),
-        totalAmount: Number(amount),
-        items: [{ listingId, title: item.title, price: amount, quantity: 1 }],
-        deliveryAddress: 'Customer Primary Address'
+        listingId,
+        quantity: 1,
+        address: 'Customer Primary Address'
       });
 
       setOrderConfirmedModal(true);
@@ -103,14 +182,14 @@ export default function SearchListingsPage() {
     try {
       const targetListing = selectedItem._id || selectedItem.id;
       await api.post('/v1/reviews', {
-        listingId: targetListing,
+        targetListingId: targetListing,
         rating: reviewRating,
         comment: reviewText.trim()
       });
 
-      setReviewsList((prev) => [{ id: Date.now(), user: 'You', rating: reviewRating, comment: reviewText.trim() }, ...prev]);
       setReviewText('');
       toast.success('Review posted successfully!');
+      fetchReviews(targetListing);
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Failed to post review';
       toast.error(msg);
@@ -123,7 +202,7 @@ export default function SearchListingsPage() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, type, category, maxPrice, distance]);
+  }, [query, type, category, maxPrice, distance, coords]);
 
   const fetchListings = async () => {
     setLoading(true);
@@ -134,6 +213,10 @@ export default function SearchListingsPage() {
       if (query.trim()) params.append('search', query.trim());
       if (maxPrice < 200000) params.append('maxPrice', maxPrice);
       if (distance) params.append('distance', distance);
+      if (coords) {
+        params.append('lat', coords.lat);
+        params.append('lng', coords.lng);
+      }
 
       const res = await api.get(`/v1/listings?${params.toString()}`);
       const data = res.data;
@@ -404,46 +487,53 @@ export default function SearchListingsPage() {
                       onClick={() => toggleSave(selectedItem._id)}
                       className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 ${savedItems[selectedItem._id] ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-surface-tertiary border-border text-text-secondary'}`}
                     >
-                      <span>⭐</span> <span>{savedItems[selectedItem._id] ? 'Saved' : 'Save'}</span>
+                      <FiStar className={`w-5 h-5 ${savedItems[selectedItem._id] ? 'fill-amber-500 text-amber-500' : 'text-text-secondary'}`} />
+                      <span>{savedItems[selectedItem._id] ? 'Saved' : 'Save'}</span>
                     </button>
                     <button
                       onClick={() => toggleLike(selectedItem._id)}
                       className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 ${likedItems[selectedItem._id] ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-surface-tertiary border-border text-text-secondary'}`}
                     >
-                      <span>❤️</span> <span>{likedItems[selectedItem._id] ? 'Liked' : 'Like'}</span>
+                      <FiHeart className={`w-5 h-5 ${likedItems[selectedItem._id] ? 'fill-red-500 text-red-500' : 'text-text-secondary'}`} />
+                      <span>{likedItems[selectedItem._id] ? 'Liked' : 'Like'}</span>
                     </button>
                     <button
                       onClick={() => handleShare(selectedItem)}
                       className="p-2 rounded-xl bg-surface-tertiary border border-border text-xs font-bold text-text-secondary flex flex-col items-center gap-1 hover:text-text-primary"
                     >
-                      <span>🔗</span> <span>Share</span>
+                      <FiShare2 className="w-5 h-5 text-text-secondary" />
+                      <span>Share</span>
                     </button>
                     <button
                       onClick={() => handleWhatsApp(selectedItem)}
                       className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-600 flex flex-col items-center gap-1 hover:bg-emerald-500/20"
                     >
-                      <span>💬</span> <span>WhatsApp</span>
+                      <FaWhatsapp className="w-5 h-5 text-emerald-600" />
+                      <span>WhatsApp</span>
                     </button>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 pt-1">
                     <button
                       onClick={() => handleCallRequest(selectedItem)}
-                      className="py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-xs font-bold text-blue-500 hover:bg-blue-500/20 flex items-center justify-center gap-1"
+                      className="py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-xs font-bold text-blue-500 hover:bg-blue-500/20 flex items-center justify-center gap-1.5"
                     >
-                      📞 Call Request
+                      <FiPhone className="w-4 h-4 text-blue-500" />
+                      <span>Call Request</span>
                     </button>
                     <button
                       onClick={() => handleInquire(selectedItem)}
-                      className="py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs font-bold text-purple-500 hover:bg-purple-500/20 flex items-center justify-center gap-1"
+                      className="py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs font-bold text-purple-500 hover:bg-purple-500/20 flex items-center justify-center gap-1.5"
                     >
-                      💬 Chat / Inquiry
+                      <FiMessageSquare className="w-4 h-4 text-purple-500" />
+                      <span>Chat / Inquiry</span>
                     </button>
                     <button
                       onClick={() => handleOrderRequest(selectedItem)}
-                      className="py-2.5 rounded-xl gradient-brand text-white text-xs font-bold shadow-premium hover:opacity-90 flex items-center justify-center gap-1"
+                      className="py-2.5 rounded-xl gradient-brand text-white text-xs font-bold shadow-premium hover:opacity-90 flex items-center justify-center gap-1.5"
                     >
-                      🛒 Order Request
+                      <FiShoppingCart className="w-4 h-4 text-white" />
+                      <span>Order Request</span>
                     </button>
                   </div>
                 </div>
@@ -471,15 +561,19 @@ export default function SearchListingsPage() {
               </form>
 
               <div className="space-y-2 max-h-36 overflow-y-auto">
-                {reviewsList.map(r => (
-                  <div key={r.id} className="p-2.5 rounded-xl bg-surface-tertiary border border-border text-xs flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-text-primary">{r.user}</span>
-                      <p className="text-text-secondary text-[11px] mt-0.5">{r.comment}</p>
+                {reviewsList.length === 0 ? (
+                  <p className="text-text-tertiary text-center py-4 text-xs">No reviews yet. Be the first to review!</p>
+                ) : (
+                  reviewsList.map(r => (
+                    <div key={r._id || r.id} className="p-2.5 rounded-xl bg-surface-tertiary border border-border text-xs flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-text-primary">{r.author?.name || r.user || 'Anonymous'}</span>
+                        <p className="text-text-secondary text-[11px] mt-0.5">{r.comment}</p>
+                      </div>
+                      <span className="text-amber-500 font-bold">{r.rating}★</span>
                     </div>
-                    <span className="text-amber-500 font-bold">{r.rating}★</span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>

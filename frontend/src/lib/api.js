@@ -182,6 +182,8 @@ export const followApi = {
 export const interactionApi = {
   toggleLike: (id) => api.post(`/v1/listings/${id}/like`),
   toggleSave: (id) => api.post(`/v1/listings/${id}/save`),
+  save: (id) => api.post(`/v1/listings/${id}/save`),
+  unsave: (id) => api.post(`/v1/listings/${id}/unsave`),
   mySaved: () => api.get("/v1/interactions/me/saved"),
   myLiked: () => api.get("/v1/interactions/me/liked"),
 };

@@ -194,7 +194,11 @@ export default function CustomerHomePage() {
     const isSaved = !!savedMap[id];
     setSavedMap((prev) => ({ ...prev, [id]: !isSaved }));
     try {
-      await api.post(`/v1/listings/${id}/save`);
+      if (isSaved) {
+        await api.post(`/v1/listings/${id}/unsave`);
+      } else {
+        await api.post(`/v1/listings/${id}/save`);
+      }
       toast.success(!isSaved ? 'Saved to activities' : 'Removed from saved');
     } catch (err) {
       setSavedMap((prev) => ({ ...prev, [id]: isSaved }));
