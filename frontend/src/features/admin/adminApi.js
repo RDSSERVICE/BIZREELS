@@ -23,6 +23,72 @@ const adminApi = apiSlice.injectEndpoints({
             ]
           : [{ type: 'AdminUsers', id: 'LIST' }],
     }),
+    listAdminCustomers: builder.query({
+      query: (params = {}) => ({ url: '/admin/customers', params }),
+      providesTags: (result) =>
+        result?.items
+          ? [
+              ...result.items.map(({ id }) => ({ type: 'AdminUsers', id })),
+              { type: 'AdminUsers', id: 'LIST' },
+            ]
+          : [{ type: 'AdminUsers', id: 'LIST' }],
+    }),
+    getCustomerDetail: builder.query({
+      query: (id) => `/admin/customers/${id}/details`,
+      providesTags: (result, error, id) => [{ type: 'AdminUsers', id }],
+    }),
+    getCustomerStats: builder.query({
+      query: () => '/admin/customers/stats',
+      providesTags: [{ type: 'AdminUsers', id: 'STATS' }, 'AdminOverview'],
+    }),
+    resetCustomerPassword: builder.mutation({
+      query: ({ id, password }) => ({ url: `/admin/users/${id}/reset-password`, method: 'POST', body: { password } }),
+      invalidatesTags: (result, error, { id }) => [{ type: 'AdminUsers', id }],
+    }),
+    verifyCustomerAccount: builder.mutation({
+      query: (id) => ({ url: `/admin/users/${id}/verify`, method: 'POST' }),
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'STATS' }],
+    }),
+    activateCustomerAccount: builder.mutation({
+      query: (id) => ({ url: `/admin/users/${id}/activate`, method: 'POST' }),
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'STATS' }],
+    }),
+    listAdminVendors: builder.query({
+      query: (params = {}) => ({ url: '/admin/vendors', params }),
+      providesTags: (result) =>
+        result?.items
+          ? [
+              ...result.items.map(({ id }) => ({ type: 'AdminUsers', id })),
+              { type: 'AdminUsers', id: 'LIST' },
+            ]
+          : [{ type: 'AdminUsers', id: 'LIST' }],
+    }),
+    getVendorDetail: builder.query({
+      query: (id) => `/admin/vendors/${id}/details`,
+      providesTags: (result, error, id) => [{ type: 'AdminUsers', id }],
+    }),
+    getVendorStats: builder.query({
+      query: () => '/admin/vendors/stats',
+      providesTags: [{ type: 'AdminUsers', id: 'STATS' }, 'AdminOverview'],
+    }),
+    listAdminCreators: builder.query({
+      query: (params = {}) => ({ url: '/admin/creators', params }),
+      providesTags: (result) =>
+        result?.items
+          ? [
+              ...result.items.map(({ id }) => ({ type: 'AdminUsers', id })),
+              { type: 'AdminUsers', id: 'LIST' },
+            ]
+          : [{ type: 'AdminUsers', id: 'LIST' }],
+    }),
+    getCreatorDetail: builder.query({
+      query: (id) => `/admin/creators/${id}/details`,
+      providesTags: (result, error, id) => [{ type: 'AdminUsers', id }],
+    }),
+    getCreatorStats: builder.query({
+      query: () => '/admin/creators/stats',
+      providesTags: [{ type: 'AdminUsers', id: 'STATS' }, 'AdminOverview'],
+    }),
     getUserDetail: builder.query({
       query: (id) => `/admin/users/${id}`,
       providesTags: (result, error, id) => [{ type: 'AdminUsers', id }],
@@ -33,19 +99,19 @@ const adminApi = apiSlice.injectEndpoints({
     }),
     banUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/ban`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview'],
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
     }),
     unbanUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/unban`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }],
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, { type: 'AdminUsers', id: 'STATS' }],
     }),
     suspendUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/suspend`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }],
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, { type: 'AdminUsers', id: 'STATS' }],
     }),
     deleteUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}`, method: 'DELETE' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview'],
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
     }),
     freezeWallet: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/freeze-wallet`, method: 'POST' }),
@@ -66,6 +132,7 @@ const adminApi = apiSlice.injectEndpoints({
     getLoginHistory: builder.query({
       query: (id) => `/admin/users/${id}/login-history`,
     }),
+
 
     // ---- Listings ----
     listAdminListings: builder.query({
@@ -193,6 +260,40 @@ const adminApi = apiSlice.injectEndpoints({
     createCoupon: builder.mutation({
       query: (body) => ({ url: '/admin/coupons', method: 'POST', body }),
       invalidatesTags: ['Coupons'],
+    }),
+
+    // ---- New Offers Management System ----
+    listOffers: builder.query({
+      query: (params = {}) => ({ url: '/offers/admin', params }),
+      providesTags: ['Offers'],
+    }),
+    createOffer: builder.mutation({
+      query: (body) => ({ url: '/offers/admin', method: 'POST', body }),
+      invalidatesTags: ['Offers'],
+    }),
+    updateOffer: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/offers/admin/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['Offers'],
+    }),
+    deleteOffer: builder.mutation({
+      query: (id) => ({ url: `/offers/admin/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Offers'],
+    }),
+    activateOffer: builder.mutation({
+      query: (id) => ({ url: `/offers/admin/${id}/activate`, method: 'POST' }),
+      invalidatesTags: ['Offers'],
+    }),
+    deactivateOffer: builder.mutation({
+      query: (id) => ({ url: `/offers/admin/${id}/deactivate`, method: 'POST' }),
+      invalidatesTags: ['Offers'],
+    }),
+    duplicateOffer: builder.mutation({
+      query: (id) => ({ url: `/offers/admin/${id}/duplicate`, method: 'POST' }),
+      invalidatesTags: ['Offers'],
+    }),
+    getOfferAnalytics: builder.query({
+      query: (id) => `/offers/admin/${id}/analytics`,
+      providesTags: (result, error, id) => [{ type: 'Offers', id }],
     }),
 
     // ---- Chat Monitoring ----
@@ -349,6 +450,18 @@ const adminApi = apiSlice.injectEndpoints({
 export const {
   useGetAdminOverviewQuery,
   useListAdminUsersQuery,
+  useListAdminCustomersQuery,
+  useGetCustomerDetailQuery,
+  useGetCustomerStatsQuery,
+  useResetCustomerPasswordMutation,
+  useVerifyCustomerAccountMutation,
+  useActivateCustomerAccountMutation,
+  useListAdminVendorsQuery,
+  useGetVendorDetailQuery,
+  useGetVendorStatsQuery,
+  useListAdminCreatorsQuery,
+  useGetCreatorDetailQuery,
+  useGetCreatorStatsQuery,
   useGetUserDetailQuery,
   useUpdateUserMutation,
   useBanUserMutation,
@@ -384,8 +497,16 @@ export const {
   useGetAdminSecurityLogsQuery,
   useSendBroadcastNotificationMutation,
   useListCouponsQuery,
-
   useCreateCouponMutation,
+
+  useListOffersQuery,
+  useCreateOfferMutation,
+  useUpdateOfferMutation,
+  useDeleteOfferMutation,
+  useActivateOfferMutation,
+  useDeactivateOfferMutation,
+  useDuplicateOfferMutation,
+  useGetOfferAnalyticsQuery,
   useListReportedChatsQuery,
 
   useGetKycQueueQuery,

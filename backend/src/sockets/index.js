@@ -67,6 +67,14 @@ const initSockets = (server) => {
     // Join personal user room to receive targeted alerts (quotes, leads, notifications)
     socket.join(`user:${userId}`);
 
+    // Join role-specific rooms
+    if (socket.user.roles && Array.isArray(socket.user.roles)) {
+      socket.user.roles.forEach(role => {
+        socket.join(`role:${role}`);
+        logger.info(`Socket User ${userId} joined role room: ${role}`, { service: 'sockets' });
+      });
+    }
+
     // Join admin room if user has admin privileges
     if (socket.user.roles && socket.user.roles.includes('admin')) {
       socket.join('admin');
@@ -150,9 +158,19 @@ const emitToAdmin = (event, payload) => {
   }
 };
 
+/**
+ * Global utility to emit a real-time event to a specific user role room.
+ */
+const emitToRole = (role, event, payload) => {
+  if (ioInstance) {
+    ioInstance.to(`role:${role}`).emit(event, payload);
+  }
+};
+
 module.exports = {
   initSockets,
   emitToUser,
   emitToConversation,
   emitToAdmin,
+  emitToRole,
 };

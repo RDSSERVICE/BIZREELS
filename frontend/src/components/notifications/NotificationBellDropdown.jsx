@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../lib/api';
+import { getSocket } from '../../lib/socket';
 
 export default function NotificationBellDropdown({ role = 'customer' }) {
   const navigate = useNavigate();
@@ -45,6 +46,16 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 15000); // poll every 15s
 
+    const socket = getSocket();
+    const handleNewNotification = (notif) => {
+      setUnreadCount(prev => prev + 1);
+      setNotifications(prev => [notif, ...prev]);
+    };
+
+    if (socket) {
+      socket.on('notification:new', handleNewNotification);
+    }
+
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsOpen(false);
@@ -55,6 +66,9 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
     return () => {
       clearInterval(interval);
       document.removeEventListener('mousedown', handleClickOutside);
+      if (socket) {
+        socket.off('notification:new', handleNewNotification);
+      }
     };
   }, []);
 

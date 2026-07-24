@@ -43,6 +43,10 @@ const startServer = async () => {
     // Init Socket.io connections
     initSockets(server);
 
+    // Start Offer Activation/Expiration Cron Scheduler
+    const { initOfferScheduler } = require('./jobs/offerScheduler');
+    initOfferScheduler();
+
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
         const fallbackPort = config.port + 1;

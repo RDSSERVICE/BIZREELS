@@ -116,6 +116,11 @@ class AuthService {
 
     logger.info(`New user registered: ${email}`, { service: 'auth', userId: user._id });
 
+    try {
+      const { emitToAdmin } = require('../sockets');
+      emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+    } catch (err) {}
+
     return {
       user: this._sanitizeUser(user),
       ...tokens,
@@ -243,9 +248,19 @@ class AuthService {
           current_role: 'customer',
         });
         await this._logAction(user._id, 'USER_REGISTER', 'User', user._id, 'Mobile OTP registration', req);
-      } else if (!user.isPhoneVerified) {
-        await authRepository.updateUser(user._id, { isPhoneVerified: true });
+        try {
+          const { emitToAdmin } = require('../sockets');
+          emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+        } catch (err) {}
+      } else {
+        if (!user.isPhoneVerified) {
+          user.isPhoneVerified = true;
+        }
       }
+
+      user.lastLoginAt = new Date();
+      user.lastLoginIp = req?.ip || '127.0.0.1';
+      await user.save();
 
       // Generate JWT Access & Refresh Token Pair
       const tokens = await this.generateTokenPair(user, req);
@@ -323,6 +338,10 @@ class AuthService {
           activeRole: 'customer',
         });
         await this._logAction(user._id, 'USER_REGISTER', 'User', user._id, 'Google OAuth registration', req);
+        try {
+          const { emitToAdmin } = require('../sockets');
+          emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+        } catch (err) {}
       }
     }
 
@@ -501,8 +520,13 @@ class AuthService {
       };
     }
 
-    const updatedUser = await authRepository.updateUser(userId, updateFields);
+     const updatedUser = await authRepository.updateUser(userId, updateFields);
     await this._logAction(userId, 'PROFILE_UPDATE', 'User', userId, 'Updated profile details', req);
+
+    try {
+      const { emitToAdmin } = require('../sockets');
+      emitToAdmin('admin:update', { tags: ['AdminUsers'] });
+    } catch (err) {}
 
     return this._sanitizeUser(updatedUser);
   }

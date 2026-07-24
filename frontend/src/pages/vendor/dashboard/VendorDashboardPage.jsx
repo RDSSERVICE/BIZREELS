@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
+import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import {
   useGetVendorDashboardQuery,
   useGetVendorLeadsQuery,
@@ -95,6 +96,9 @@ export default function VendorDashboardPage() {
           <span>Open Verification Menu</span>
         </Link>
       </div>
+
+      {/* Active Special Offers & Deals */}
+      <ActiveOffersPanel role="vendor" />
 
       {/* CREDITS OVERVIEW & RATE CARD */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

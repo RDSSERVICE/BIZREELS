@@ -61,6 +61,11 @@ class OrderController {
     });
     emitToUser(listing.vendor._id.toString(), 'notification', notifyVendor);
 
+    try {
+      const { emitToAdmin } = require('../sockets');
+      emitToAdmin('admin:update', { tags: ['AdminOrders', 'AdminOverview', 'AdminUsers'] });
+    } catch (err) {}
+
     return ApiResponse.created(res, 'Order placed successfully.', { order });
   });
 

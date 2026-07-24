@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiVideo, FiClock, FiDollarSign, FiStar, FiEye, FiShield } from 'react-icons/fi';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
+import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import { useGetCreatorDashboardQuery } from '../../../features/creator/creatorApi';
 
 export default function CreatorDashboardPage() {
@@ -46,6 +47,9 @@ export default function CreatorDashboardPage() {
           ))}
         </div>
       )}
+
+      {/* Active Special Offers & Deals */}
+      <ActiveOffersPanel role="creator" />
 
       {/* Creator Verification Status Card */}
       <div className="glass rounded-3xl p-6 border border-border shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

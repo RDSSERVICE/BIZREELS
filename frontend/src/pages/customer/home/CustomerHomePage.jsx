@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
 import CommentsDrawer from '../../../components/ui/CommentsDrawer';
+import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 
 /**
  * CustomerReelMedia Component
@@ -358,6 +359,9 @@ export default function CustomerHomePage() {
         onSearch={fetchFeedData}
         totalResults={activeTab === 'reels' ? processedReels.length : processedImages.length}
       />
+
+      {/* Active Special Offers & Deals */}
+      <ActiveOffersPanel role="customer" />
 
       {/* Admin Tab Navigation */}
       <div className="flex justify-center border-b border-border">

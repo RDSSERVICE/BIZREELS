@@ -106,6 +106,292 @@ router.get('/users', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   res.json(result);
 }));
 
+// ============================================================ CUSTOMER OPERATIONS
+router.get('/customers', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { q, status, kyc_status, has_orders, from, to, sort } = req.query;
+  const page = parseInt(req.query.page || 1, 10);
+  const limit = parseInt(req.query.limit || 20, 10);
+
+  const result = await adminService.listCustomers({
+    q,
+    status,
+    kyc_status,
+    has_orders,
+    registered_from: from,
+    registered_to: to,
+    sort,
+    page,
+    limit,
+  });
+  res.json(result);
+}));
+
+router.get('/customers/stats', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.getCustomerStats();
+  res.json(result);
+}));
+
+router.get('/customers/export', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { q, status, kyc_status, has_orders, from, to, sort } = req.query;
+
+  const result = await adminService.listCustomers({
+    q,
+    status,
+    kyc_status,
+    has_orders,
+    registered_from: from,
+    registered_to: to,
+    sort,
+    page: 1,
+    limit: 5000,
+  });
+
+  const headers = [
+    'Customer ID',
+    'Full Name',
+    'Email Address',
+    'Phone Number',
+    'Account Status',
+    'Verification Status',
+    'Registration Date',
+    'Last Login',
+    'Total Orders',
+    'Total Spent (INR)',
+    'Wallet Balance (INR)',
+    'Reward Credits',
+  ];
+
+  let csvContent = headers.join(',') + '\n';
+
+  for (const c of result.items) {
+    const accountStatus = c.is_banned ? 'Blocked' : c.is_active ? 'Active' : 'Suspended';
+    const row = [
+      c.id,
+      c.name || 'Unknown',
+      c.email || '—',
+      c.phone || '—',
+      accountStatus,
+      c.kyc_status || 'unverified',
+      c.created_at ? new Date(c.created_at).toISOString() : '—',
+      c.lastLoginAt ? new Date(c.lastLoginAt).toISOString() : '—',
+      c.total_orders,
+      c.total_spent || 0,
+      c.wallet?.balance_inr_paise ? c.wallet.balance_inr_paise / 100 : 0,
+      c.wallet?.credits || 0,
+    ].map(escapeCSV);
+    csvContent += row.join(',') + '\n';
+  }
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=customers_export.csv');
+  res.send(csvContent);
+}));
+
+router.get('/customers/:user_id/details', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.getCustomerProfileDetails(req.params.user_id);
+  res.json(result);
+}));
+
+router.post('/users/:user_id/reset-password', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { password } = req.body;
+  if (!password || password.length < 6) {
+    throw ApiError.badRequest('Password must be at least 6 characters long');
+  }
+  const result = await adminService.resetUserPassword(req.params.user_id, password);
+  res.json(result);
+}));
+
+router.post('/users/:user_id/verify', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.verifyUser(req.params.user_id);
+  res.json(result);
+}));
+
+router.post('/users/:user_id/activate', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.activateUser(req.params.user_id);
+  res.json(result);
+}));
+
+// ============================================================ VENDOR OPERATIONS
+router.get('/vendors', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { q, status, kyc_status, has_listings, from, to, sort } = req.query;
+  const page = parseInt(req.query.page || 1, 10);
+  const limit = parseInt(req.query.limit || 20, 10);
+
+  const result = await adminService.listVendors({
+    q,
+    status,
+    kyc_status,
+    has_listings,
+    registered_from: from,
+    registered_to: to,
+    sort,
+    page,
+    limit,
+  });
+  res.json(result);
+}));
+
+router.get('/vendors/stats', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.getVendorStats();
+  res.json(result);
+}));
+
+router.get('/vendors/export', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { q, status, kyc_status, has_listings, from, to, sort } = req.query;
+
+  const result = await adminService.listVendors({
+    q,
+    status,
+    kyc_status,
+    has_listings,
+    registered_from: from,
+    registered_to: to,
+    sort,
+    page: 1,
+    limit: 5000,
+  });
+
+  const headers = [
+    'Vendor ID',
+    'Full Name',
+    'Shop Name',
+    'Business Name',
+    'Email Address',
+    'Phone Number',
+    'Account Status',
+    'Verification Status',
+    'Registration Date',
+    'Last Login',
+    'Total Listings',
+    'Active Listings',
+    'Completed Sales Volume (INR)',
+    'Wallet Balance (INR)',
+    'Reward Credits',
+  ];
+
+  let csvContent = headers.join(',') + '\n';
+
+  for (const v of result.items) {
+    const accountStatus = v.is_banned ? 'Blocked' : v.is_active ? 'Active' : 'Suspended';
+    const row = [
+      v.id,
+      v.name || 'Unknown',
+      v.vendorProfile?.shopName || '—',
+      v.vendorProfile?.businessName || '—',
+      v.email || '—',
+      v.phone || '—',
+      accountStatus,
+      v.kyc_status || 'unverified',
+      v.created_at ? new Date(v.created_at).toISOString() : '—',
+      v.lastLoginAt ? new Date(v.lastLoginAt).toISOString() : '—',
+      v.total_listings,
+      v.active_listings,
+      v.total_sales || 0,
+      v.wallet?.balance_inr_paise ? v.wallet.balance_inr_paise / 100 : 0,
+      v.wallet?.credits || 0,
+    ].map(escapeCSV);
+    csvContent += row.join(',') + '\n';
+  }
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=vendors_export.csv');
+  res.send(csvContent);
+}));
+
+router.get('/vendors/:user_id/details', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.getVendorProfileDetails(req.params.user_id);
+  res.json(result);
+}));
+
+// ============================================================ CREATOR OPERATIONS
+router.get('/creators', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { q, status, kyc_status, has_reels, from, to, sort } = req.query;
+  const page = parseInt(req.query.page || 1, 10);
+  const limit = parseInt(req.query.limit || 20, 10);
+
+  const result = await adminService.listCreators({
+    q,
+    status,
+    kyc_status,
+    has_reels,
+    registered_from: from,
+    registered_to: to,
+    sort,
+    page,
+    limit,
+  });
+  res.json(result);
+}));
+
+router.get('/creators/stats', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.getCreatorStats();
+  res.json(result);
+}));
+
+router.get('/creators/export', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { q, status, kyc_status, has_reels, from, to, sort } = req.query;
+
+  const result = await adminService.listCreators({
+    q,
+    status,
+    kyc_status,
+    has_reels,
+    registered_from: from,
+    registered_to: to,
+    sort,
+    page: 1,
+    limit: 5000,
+  });
+
+  const headers = [
+    'Creator ID',
+    'Full Name',
+    'Email Address',
+    'Phone Number',
+    'Account Status',
+    'Verification Status',
+    'Registration Date',
+    'Last Login',
+    'Total Reels Published',
+    'Completed Campaigns',
+    'Total Earnings (INR)',
+    'Wallet Balance (INR)',
+    'Reward Credits',
+  ];
+
+  let csvContent = headers.join(',') + '\n';
+
+  for (const c of result.items) {
+    const accountStatus = c.is_banned ? 'Blocked' : c.is_active ? 'Active' : 'Suspended';
+    const row = [
+      c.id,
+      c.name || 'Unknown',
+      c.email || '—',
+      c.phone || '—',
+      accountStatus,
+      c.kyc_status || 'unverified',
+      c.created_at ? new Date(c.created_at).toISOString() : '—',
+      c.lastLoginAt ? new Date(c.lastLoginAt).toISOString() : '—',
+      c.total_reels,
+      c.total_campaigns,
+      c.total_earnings || 0,
+      c.wallet?.balance_inr_paise ? c.wallet.balance_inr_paise / 100 : 0,
+      c.wallet?.credits || 0,
+    ].map(escapeCSV);
+    csvContent += row.join(',') + '\n';
+  }
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=creators_export.csv');
+  res.send(csvContent);
+}));
+
+router.get('/creators/:user_id/details', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.getCreatorProfileDetails(req.params.user_id);
+  res.json(result);
+}));
+
+
 router.post('/users/:user_id/freeze-wallet', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const result = await adminService.freezeWallet(req.params.user_id);
   res.json(result);

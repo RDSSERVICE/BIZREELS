@@ -813,6 +813,1487 @@ const purgeTestData = async (dryRun = false) => {
   };
 };
 
+const listCustomers = async ({
+  q,
+  status,
+  kyc_status,
+  has_orders,
+  registered_from,
+  registered_to,
+  sort,
+  page = 1,
+  limit = 20
+}) => {
+  const pageNum = Math.max(1, parseInt(page, 10));
+  const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10)));
+  const skipNum = (pageNum - 1) * limitNum;
+
+  const matchStage = {
+    is_deleted: { $ne: true },
+    roles: 'customer'
+  };
+
+  if (q) {
+    const escaped = String(q).trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const _q = escaped.slice(0, 80);
+    const orClauses = [
+      { name: { $regex: _q, $options: 'i' } },
+      { phone: { $regex: _q } },
+      { email: { $regex: _q, $options: 'i' } }
+    ];
+    if (mongoose.Types.ObjectId.isValid(q)) {
+      orClauses.push({ _id: new mongoose.Types.ObjectId(q) });
+    }
+    matchStage.$or = orClauses;
+  }
+
+  if (status) {
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus === 'active') {
+      matchStage.is_banned = { $ne: true };
+      matchStage.is_active = { $ne: false };
+    } else if (lowerStatus === 'suspended') {
+      matchStage.is_banned = { $ne: true };
+      matchStage.is_active = false;
+    } else if (lowerStatus === 'blocked') {
+      matchStage.is_banned = true;
+    } else if (lowerStatus === 'inactive') {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      matchStage.$or = [
+        { is_active: false },
+        { lastLoginAt: { $lt: thirtyDaysAgo } },
+        { lastLoginAt: { $exists: false } }
+      ];
+    }
+  }
+
+  if (kyc_status) {
+    const lowerKyc = kyc_status.toLowerCase();
+    if (lowerKyc === 'verified') {
+      matchStage.kyc_status = 'approved';
+    } else if (lowerKyc === 'unverified') {
+      matchStage.kyc_status = { $ne: 'approved' };
+    } else {
+      matchStage.kyc_status = lowerKyc;
+    }
+  }
+
+  if (registered_from || registered_to) {
+    matchStage.created_at = {};
+    if (registered_from) {
+      const fromDate = new Date(registered_from);
+      if (!isNaN(fromDate.getTime())) {
+        matchStage.created_at.$gte = fromDate;
+      }
+    }
+    if (registered_to) {
+      const toDate = new Date(registered_to);
+      if (!isNaN(toDate.getTime())) {
+        matchStage.created_at.$lte = toDate;
+      }
+    }
+  }
+
+  const pipeline = [
+    { $match: matchStage }
+  ];
+
+  pipeline.push({
+    $lookup: {
+      from: 'wallets',
+      localField: '_id',
+      foreignField: 'user_id',
+      as: 'wallet_doc'
+    }
+  });
+  pipeline.push({
+    $unwind: {
+      path: '$wallet_doc',
+      preserveNullAndEmptyArrays: true
+    }
+  });
+
+  pipeline.push({
+    $lookup: {
+      from: 'orders',
+      let: { customerId: '$_id' },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ['$customer', '$$customerId'] },
+            paymentStatus: 'paid'
+          }
+        }
+      ],
+      as: 'paid_orders'
+    }
+  });
+
+  pipeline.push({
+    $lookup: {
+      from: 'deals',
+      let: { customerIdStr: { $toString: '$_id' } },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ['$buyer_id', '$$customerIdStr'] },
+            status: 'completed'
+          }
+        }
+      ],
+      as: 'completed_deals'
+    }
+  });
+
+  pipeline.push({
+    $project: {
+      id: '$_id',
+      _id: 1,
+      name: 1,
+      email: 1,
+      phone: 1,
+      profile_pic: { $ifNull: ['$profile_pic', '$avatarUrl'] },
+      is_active: 1,
+      is_banned: 1,
+      kyc_status: 1,
+      referral_code: 1,
+      created_at: 1,
+      lastLoginAt: 1,
+      lastLoginIp: 1,
+      wallet: {
+        credits: { $ifNull: ['$wallet_doc.credits', 0] },
+        balance_inr_paise: { $ifNull: ['$wallet_doc.balance_inr_paise', 0] },
+        is_frozen: { $ifNull: ['$wallet_doc.is_frozen', false] }
+      },
+      total_orders: {
+        $add: [
+          { $size: { $ifNull: ['$paid_orders', []] } },
+          { $size: { $ifNull: ['$completed_deals', []] } }
+        ]
+      },
+      total_spent: {
+        $add: [
+          { $sum: { $ifNull: ['$paid_orders.price', []] } },
+          { $sum: { $ifNull: ['$completed_deals.current_offer', []] } }
+        ]
+      }
+    }
+  });
+
+  if (has_orders !== undefined && has_orders !== null) {
+    if (has_orders === 'true') {
+      pipeline.push({ $match: { total_orders: { $gt: 0 } } });
+    } else if (has_orders === 'false') {
+      pipeline.push({ $match: { total_orders: 0 } });
+    }
+  }
+
+  const sortStage = {};
+  if (sort) {
+    switch (sort) {
+      case 'newest_first':
+      case 'newest':
+        sortStage.created_at = -1;
+        break;
+      case 'oldest_first':
+      case 'oldest':
+        sortStage.created_at = 1;
+        break;
+      case 'name_asc':
+      case 'name_a_z':
+        sortStage.name = 1;
+        break;
+      case 'name_desc':
+      case 'name_z_a':
+        sortStage.name = -1;
+        break;
+      case 'highest_spending':
+      case 'spending_desc':
+        sortStage.total_spent = -1;
+        break;
+      case 'lowest_spending':
+      case 'spending_asc':
+        sortStage.total_spent = 1;
+        break;
+      case 'most_orders':
+      case 'orders_desc':
+        sortStage.total_orders = -1;
+        break;
+      case 'least_orders':
+      case 'orders_asc':
+        sortStage.total_orders = 1;
+        break;
+      case 'last_login':
+        sortStage.lastLoginAt = -1;
+        break;
+      default:
+        sortStage.created_at = -1;
+    }
+  } else {
+    sortStage.created_at = -1;
+  }
+  pipeline.push({ $sort: sortStage });
+
+  pipeline.push({
+    $facet: {
+      metadata: [{ $count: 'total' }],
+      data: [{ $skip: skipNum }, { $limit: limitNum }]
+    }
+  });
+
+  const aggregateResult = await User.aggregate(pipeline);
+  const data = aggregateResult[0]?.data || [];
+  const total = aggregateResult[0]?.metadata[0]?.total || 0;
+
+  return {
+    items: data.map(u => ({
+      ...u,
+      id: u._id.toString()
+    })),
+    total,
+    page: pageNum,
+    limit: limitNum,
+    pages: Math.ceil(total / limitNum)
+  };
+};
+
+const getCustomerProfileDetails = async (userId) => {
+  const User = require('../models/User');
+  const Order = require('../models/Order');
+  const Deal = require('../models/Deal');
+  const { Review, Wallet, Payment, Notification } = require('../models/Phase4');
+  const { AuditLog, Referral } = require('../models/Misc');
+  const Inquiry = require('../models/Inquiry');
+
+  const u = await User.findById(userId)
+    .populate('customerProfile.savedListings');
+  if (!u || u.is_deleted) throw ApiError.notFound('Customer not found');
+
+  const userIdStr = userId.toString();
+
+  let walletData = { credits: 0, balance_inr_paise: 0, is_frozen: false };
+  try {
+    const w = await Wallet.findOne({ user_id: userIdStr });
+    if (w) {
+      walletData = {
+        credits: w.credits,
+        balance_inr_paise: w.balance_inr_paise,
+        is_frozen: w.is_frozen,
+      };
+    }
+  } catch (e) {}
+
+  const rawOrders = await Order.find({ customer: userId })
+    .populate('vendor', 'name businessName phone')
+    .populate('listing', 'title images type category')
+    .sort({ createdAt: -1 });
+
+  const rawDeals = await Deal.find({ buyer_id: userIdStr, status: 'completed' })
+    .sort({ updated_at: -1 });
+
+  const orders = [
+    ...rawOrders.map(o => ({
+      id: o._id.toString(),
+      type: 'product',
+      item_name: o.listing?.title || 'Product Order',
+      vendor_name: o.vendor?.name || o.vendor?.businessName || 'Vendor',
+      quantity: o.quantity,
+      price: o.price,
+      status: o.status,
+      payment_status: o.paymentStatus,
+      created_at: o.createdAt,
+    })),
+    ...rawDeals.map(d => ({
+      id: d._id.toString(),
+      type: 'deal',
+      item_name: d.listing_id ? 'Negotiated Deal' : 'Service Deal',
+      vendor_name: 'Vendor',
+      quantity: 1,
+      price: d.final_amount || d.current_offer,
+      status: d.status,
+      payment_status: 'paid',
+      created_at: d.created_at,
+    }))
+  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const payments = await Payment.find({ user_id: userIdStr })
+    .sort({ created_at: -1 });
+
+  const wishlist = (u.customerProfile?.savedListings || []).map(l => ({
+    id: l._id?.toString(),
+    title: l.title,
+    price: l.salePrice || l.price,
+    images: l.images || [],
+    category: l.category,
+    status: l.status,
+  }));
+
+  const reviews = await Review.find({ reviewer_id: userIdStr })
+    .sort({ created_at: -1 });
+
+  const notifications = await Notification.find({ user_id: userIdStr })
+    .sort({ created_at: -1 })
+    .limit(100);
+
+  const inquiries = await Inquiry.find({ customer: userId })
+    .populate('vendor', 'name businessName')
+    .populate('listing', 'title')
+    .sort({ createdAt: -1 });
+
+  const referrals = await Referral.find({ referrer_id: userIdStr })
+    .sort({ created_at: -1 });
+  
+  const referredByDoc = await Referral.findOne({ referred_user_id: userIdStr });
+  let referredBy = null;
+  if (referredByDoc) {
+    const referrerUser = await User.findById(referredByDoc.referrer_id, { name: 1, email: 1 });
+    if (referrerUser) {
+      referredBy = {
+        name: referrerUser.name,
+        code: referredByDoc.code_used || 'N/A',
+        status: referredByDoc.status,
+      };
+    }
+  }
+
+  const auditLogs = await AuditLog.find({
+    $or: [{ userId: userId }, { user_id: userIdStr }]
+  }).sort({ createdAt: -1, created_at: -1 });
+
+  const loginHistory = auditLogs
+    .filter(log => ['USER_LOGIN', 'login', 'login_failed'].includes(log.action))
+    .map(log => ({
+      id: log._id.toString(),
+      action: log.action,
+      ip: log.ipAddress || log.ip || log.meta?.ip || '127.0.0.1',
+      user_agent: log.userAgent || log.meta?.user_agent || 'Unknown',
+      created_at: log.createdAt || log.created_at,
+    }));
+
+  const activityLogs = auditLogs.map(log => ({
+    id: log._id.toString(),
+    action: log.action,
+    description: log.description || log.meta?.description || log.action,
+    ip: log.ipAddress || log.ip || '127.0.0.1',
+    created_at: log.createdAt || log.created_at,
+  }));
+
+  const timeline = auditLogs
+    .filter(log => [
+      'USER_REGISTER',
+      'USER_BAN',
+      'USER_UNBAN',
+      'USER_SUSPEND',
+      'USER_DELETE',
+      'ADMIN_ACTION'
+    ].includes(log.action))
+    .map(log => ({
+      id: log._id.toString(),
+      action: log.action,
+      description: log.description || `Action ${log.action} performed`,
+      created_at: log.createdAt || log.created_at,
+    }));
+
+  const total_spent = orders
+    .filter(o => o.payment_status === 'paid' || o.status === 'completed')
+    .reduce((sum, o) => sum + (o.price || 0), 0);
+
+  const address = u.location ? {
+    address: u.location.address || '',
+    city: u.location.city || u.city || '',
+    district: u.location.district || '',
+    state: u.location.state || '',
+    pincode: u.location.pincode || '',
+  } : null;
+
+  return {
+    profile: {
+      id: u._id.toString(),
+      name: u.name || 'Unknown',
+      email: u.email || '—',
+      phone: u.phone || '—',
+      profile_pic: u.profile_pic || u.avatarUrl || null,
+      kyc_status: u.kyc_status || 'unverified',
+      is_active: u.is_active !== false,
+      is_banned: u.is_banned || false,
+      created_at: u.created_at,
+      lastLoginAt: u.lastLoginAt,
+      lastLoginIp: u.lastLoginIp,
+      referral_code: u.referral_code,
+      address,
+    },
+    wallet: walletData,
+    orders,
+    payments,
+    wishlist,
+    reviews,
+    notifications,
+    inquiries,
+    referrals: {
+      list: referrals,
+      referred_by: referredBy,
+    },
+    loginHistory,
+    activityLogs,
+    timeline,
+    stats: {
+      total_orders: orders.length,
+      total_spent,
+    }
+  };
+};
+
+const getCustomerStats = async () => {
+  const User = require('../models/User');
+  const Order = require('../models/Order');
+  const Deal = require('../models/Deal');
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [
+    totalCustomers,
+    activeCustomers,
+    newCustomersToday,
+    newCustomersThisMonth,
+    suspendedCustomers,
+    blockedCustomers,
+    verifiedCustomers
+  ] = await Promise.all([
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true } }),
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true }, is_active: { $ne: false }, is_banned: { $ne: true } }),
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true }, created_at: { $gte: startOfToday } }),
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true }, created_at: { $gte: startOfMonth } }),
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true }, is_active: false, is_banned: { $ne: true } }),
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true }, is_banned: true }),
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true }, kyc_status: 'approved' })
+  ]);
+
+  const activeCustomerIds = await Order.distinct('customer', {
+    status: { $in: ['pending', 'accepted', 'shipped'] }
+  });
+  const activeDealBuyerIds = await Deal.distinct('buyer_id', {
+    status: { $in: ['negotiating', 'accepted'] }
+  });
+
+  const combinedActiveIds = Array.from(new Set([
+    ...activeCustomerIds.map(id => id.toString()),
+    ...activeDealBuyerIds.map(id => id.toString())
+  ]));
+
+  const customersWithActiveOrders = combinedActiveIds.length > 0
+    ? await User.countDocuments({ _id: { $in: combinedActiveIds }, roles: 'customer', is_deleted: { $ne: true } })
+    : 0;
+
+  const orderGroups = await Order.aggregate([
+    { $match: { paymentStatus: 'paid' } },
+    { $group: { _id: '$customer', count: { $sum: 1 } } },
+    { $match: { count: { $gt: 1 } } }
+  ]);
+  const returningCount = orderGroups.length;
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+
+  const [countLast30, countPrev30] = await Promise.all([
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true }, created_at: { $gte: thirtyDaysAgo } }),
+    User.countDocuments({ roles: 'customer', is_deleted: { $ne: true }, created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
+  ]);
+
+  const growthTrend = countPrev30 > 0
+    ? Math.round(((countLast30 - countPrev30) / countPrev30) * 100)
+    : (countLast30 > 0 ? 100 : 0);
+
+  return {
+    totalCustomers,
+    activeCustomers,
+    newCustomersToday,
+    newCustomersThisMonth,
+    suspendedCustomers,
+    blockedCustomers,
+    verifiedCustomers,
+    customersWithActiveOrders,
+    returningCustomers: returningCount,
+    growthTrend
+  };
+};
+
+const activateUser = async (userId) => {
+  return await flipUser(userId, { is_active: true, is_banned: false });
+};
+
+const verifyUser = async (userId) => {
+  return await flipUser(userId, { kyc_status: 'approved' });
+};
+
+const resetUserPassword = async (userId, newPassword) => {
+  const User = require('../models/User');
+  const u = await User.findById(userId);
+  if (!u) throw ApiError.notFound('User not found');
+  if ((u.roles || []).includes('admin')) throw ApiError.forbidden('Cannot modify an admin account');
+
+  u.password = newPassword;
+  u.updated_at = new Date().toISOString();
+  await u.save();
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers'] });
+  } catch (err) {}
+
+  return { ok: true, user_id: userId };
+};
+
+const listVendors = async ({
+  q,
+  status,
+  kyc_status,
+  has_listings,
+  registered_from,
+  registered_to,
+  sort,
+  page = 1,
+  limit = 20
+}) => {
+  const User = require('../models/User');
+  const mongoose = require('mongoose');
+
+  const pageNum = Math.max(1, parseInt(page, 10));
+  const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10)));
+  const skipNum = (pageNum - 1) * limitNum;
+
+  const matchStage = {
+    is_deleted: { $ne: true },
+    roles: 'vendor'
+  };
+
+  if (q) {
+    const escaped = String(q).trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const _q = escaped.slice(0, 80);
+    const orClauses = [
+      { name: { $regex: _q, $options: 'i' } },
+      { phone: { $regex: _q } },
+      { email: { $regex: _q, $options: 'i' } },
+      { 'vendorProfile.shopName': { $regex: _q, $options: 'i' } },
+      { 'vendorProfile.businessName': { $regex: _q, $options: 'i' } }
+    ];
+    if (mongoose.Types.ObjectId.isValid(q)) {
+      orClauses.push({ _id: new mongoose.Types.ObjectId(q) });
+    }
+    matchStage.$or = orClauses;
+  }
+
+  if (status) {
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus === 'active') {
+      matchStage.is_banned = { $ne: true };
+      matchStage.is_active = { $ne: false };
+    } else if (lowerStatus === 'suspended') {
+      matchStage.is_banned = { $ne: true };
+      matchStage.is_active = false;
+    } else if (lowerStatus === 'blocked') {
+      matchStage.is_banned = true;
+    }
+  }
+
+  if (kyc_status) {
+    const lowerKyc = kyc_status.toLowerCase();
+    if (lowerKyc === 'verified') {
+      matchStage.kyc_status = 'approved';
+    } else if (lowerKyc === 'unverified') {
+      matchStage.kyc_status = { $ne: 'approved' };
+    } else {
+      matchStage.kyc_status = lowerKyc;
+    }
+  }
+
+  if (registered_from || registered_to) {
+    matchStage.created_at = {};
+    if (registered_from) {
+      const fromDate = new Date(registered_from);
+      if (!isNaN(fromDate.getTime())) {
+        matchStage.created_at.$gte = fromDate;
+      }
+    }
+    if (registered_to) {
+      const toDate = new Date(registered_to);
+      if (!isNaN(toDate.getTime())) {
+        matchStage.created_at.$lte = toDate;
+      }
+    }
+  }
+
+  const pipeline = [
+    { $match: matchStage }
+  ];
+
+  // Lookup Wallet
+  pipeline.push({
+    $lookup: {
+      from: 'wallets',
+      localField: '_id',
+      foreignField: 'user_id',
+      as: 'wallet_doc'
+    }
+  });
+  pipeline.push({
+    $unwind: {
+      path: '$wallet_doc',
+      preserveNullAndEmptyArrays: true
+    }
+  });
+
+  // Lookup Listings
+  pipeline.push({
+    $lookup: {
+      from: 'listings',
+      let: { vendorId: '$_id' },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ['$vendor', '$$vendorId'] },
+            is_deleted: { $ne: true }
+          }
+        }
+      ],
+      as: 'listings_docs'
+    }
+  });
+
+  // Lookup Paid Orders
+  pipeline.push({
+    $lookup: {
+      from: 'orders',
+      let: { vendorId: '$_id' },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ['$vendor', '$$vendorId'] },
+            paymentStatus: 'paid'
+          }
+        }
+      ],
+      as: 'paid_orders'
+    }
+  });
+
+  // Lookup Completed Deals
+  pipeline.push({
+    $lookup: {
+      from: 'deals',
+      let: { vendorIdStr: { $toString: '$_id' } },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ['$seller_id', '$$vendorIdStr'] },
+            status: 'completed'
+          }
+        }
+      ],
+      as: 'completed_deals'
+    }
+  });
+
+  pipeline.push({
+    $project: {
+      id: '$_id',
+      _id: 1,
+      name: 1,
+      email: 1,
+      phone: 1,
+      profile_pic: { $ifNull: ['$profile_pic', '$avatarUrl'] },
+      is_active: 1,
+      is_banned: 1,
+      kyc_status: 1,
+      created_at: 1,
+      lastLoginAt: 1,
+      lastLoginIp: 1,
+      vendorProfile: 1,
+      wallet: {
+        credits: { $ifNull: ['$wallet_doc.credits', 0] },
+        balance_inr_paise: { $ifNull: ['$wallet_doc.balance_inr_paise', 0] },
+        is_frozen: { $ifNull: ['$wallet_doc.is_frozen', false] }
+      },
+      total_listings: { $size: { $ifNull: ['$listings_docs', []] } },
+      active_listings: {
+        $size: {
+          $filter: {
+            input: { $ifNull: ['$listings_docs', []] },
+            as: 'item',
+            cond: { $eq: ['$$item.status', 'active'] }
+          }
+        }
+      },
+      total_deals: {
+        $add: [
+          { $size: { $ifNull: ['$paid_orders', []] } },
+          { $size: { $ifNull: ['$completed_deals', []] } }
+        ]
+      },
+      total_sales: {
+        $add: [
+          { $sum: { $ifNull: ['$paid_orders.price', []] } },
+          { $sum: { $ifNull: ['$completed_deals.current_offer', []] } }
+        ]
+      }
+    }
+  });
+
+  if (has_listings !== undefined && has_listings !== null) {
+    if (has_listings === 'true') {
+      pipeline.push({ $match: { total_listings: { $gt: 0 } } });
+    } else if (has_listings === 'false') {
+      pipeline.push({ $match: { total_listings: 0 } });
+    }
+  }
+
+  const sortStage = {};
+  if (sort) {
+    switch (sort) {
+      case 'newest_first':
+      case 'newest':
+        sortStage.created_at = -1;
+        break;
+      case 'oldest_first':
+      case 'oldest':
+        sortStage.created_at = 1;
+        break;
+      case 'name_asc':
+      case 'name_a_z':
+        sortStage.name = 1;
+        break;
+      case 'name_desc':
+      case 'name_z_a':
+        sortStage.name = -1;
+        break;
+      case 'highest_sales':
+      case 'sales_desc':
+        sortStage.total_sales = -1;
+        break;
+      case 'most_listings':
+      case 'listings_desc':
+        sortStage.total_listings = -1;
+        break;
+      case 'last_login':
+        sortStage.lastLoginAt = -1;
+        break;
+      default:
+        sortStage.created_at = -1;
+    }
+  } else {
+    sortStage.created_at = -1;
+  }
+  pipeline.push({ $sort: sortStage });
+
+  pipeline.push({
+    $facet: {
+      metadata: [{ $count: 'total' }],
+      data: [{ $skip: skipNum }, { $limit: limitNum }]
+    }
+  });
+
+  const aggregateResult = await User.aggregate(pipeline);
+  const data = aggregateResult[0]?.data || [];
+  const total = aggregateResult[0]?.metadata[0]?.total || 0;
+
+  return {
+    items: data.map(u => ({
+      ...u,
+      id: u._id.toString()
+    })),
+    total,
+    page: pageNum,
+    limit: limitNum,
+    pages: Math.ceil(total / limitNum)
+  };
+};
+
+const getVendorProfileDetails = async (userId) => {
+  const User = require('../models/User');
+  const Listing = require('../models/Listing');
+  const Order = require('../models/Order');
+  const Deal = require('../models/Deal');
+  const { Review, Wallet } = require('../models/Phase4');
+  const { AuditLog } = require('../models/Misc');
+  const Inquiry = require('../models/Inquiry');
+  const ApiError = require('../utils/ApiError');
+
+  const u = await User.findById(userId);
+  if (!u || u.is_deleted) throw ApiError.notFound('Vendor not found');
+
+  const userIdStr = userId.toString();
+
+  // Wallet
+  let walletData = { credits: 0, balance_inr_paise: 0, is_frozen: false };
+  try {
+    const w = await Wallet.findOne({ user_id: userIdStr });
+    if (w) {
+      walletData = {
+        credits: w.credits,
+        balance_inr_paise: w.balance_inr_paise,
+        is_frozen: w.is_frozen,
+      };
+    }
+  } catch (e) {}
+
+  // Listings
+  const listings = await Listing.find({ vendor: userId, is_deleted: { $ne: true } })
+    .sort({ createdAt: -1 });
+
+  // Sales History
+  const rawOrders = await Order.find({ vendor: userId })
+    .populate('customer', 'name phone email')
+    .populate('listing', 'title images price')
+    .sort({ createdAt: -1 });
+
+  const rawDeals = await Deal.find({ seller_id: userIdStr, status: 'completed' })
+    .sort({ updated_at: -1 });
+
+  const sales = [
+    ...rawOrders.map(o => ({
+      id: o._id.toString(),
+      type: 'product',
+      customer_name: o.customer?.name || 'Customer',
+      item_name: o.listing?.title || 'Product Order',
+      quantity: o.quantity,
+      price: o.price,
+      status: o.status,
+      payment_status: o.paymentStatus,
+      created_at: o.createdAt,
+    })),
+    ...rawDeals.map(d => ({
+      id: d._id.toString(),
+      type: 'deal',
+      customer_name: 'Customer',
+      item_name: d.listing_id ? 'Negotiated Deal' : 'Service Deal',
+      quantity: 1,
+      price: d.final_amount || d.current_offer,
+      status: d.status,
+      payment_status: 'paid',
+      created_at: d.created_at,
+    }))
+  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  // Reviews received
+  const listingIdsStr = listings.map(l => l._id.toString());
+  const reviews = await Review.find({
+    $or: [
+      { target_type: 'vendor', target_id: userIdStr },
+      { target_type: 'listing', target_id: { $in: listingIdsStr } }
+    ]
+  }).sort({ created_at: -1 });
+
+  // Inquiries
+  const inquiries = await Inquiry.find({ vendor: userId })
+    .populate('customer', 'name phone')
+    .populate('listing', 'title')
+    .sort({ createdAt: -1 });
+
+  // Logs & timeline
+  const auditLogs = await AuditLog.find({
+    $or: [{ userId: userId }, { user_id: userIdStr }]
+  }).sort({ createdAt: -1, created_at: -1 });
+
+  const timeline = auditLogs
+    .filter(log => [
+      'USER_REGISTER',
+      'USER_BAN',
+      'USER_UNBAN',
+      'USER_SUSPEND',
+      'KYC_APPROVE',
+      'KYC_REJECT',
+      'ADMIN_ACTION'
+    ].includes(log.action))
+    .map(log => ({
+      id: log._id.toString(),
+      action: log.action,
+      description: log.description || `Action ${log.action} performed`,
+      created_at: log.createdAt || log.created_at,
+    }));
+
+  const loginHistory = auditLogs
+    .filter(log => ['USER_LOGIN', 'login', 'login_failed'].includes(log.action))
+    .map(log => ({
+      id: log._id.toString(),
+      action: log.action,
+      ip: log.ipAddress || log.ip || '127.0.0.1',
+      user_agent: log.userAgent || 'Unknown',
+      created_at: log.createdAt || log.created_at,
+    }));
+
+  const activityLogs = auditLogs.map(log => ({
+    id: log._id.toString(),
+    action: log.action,
+    description: log.description || log.meta?.description || log.action,
+    ip: log.ipAddress || log.ip || '127.0.0.1',
+    created_at: log.createdAt || log.created_at,
+  }));
+
+  const total_sales_volume = sales
+    .filter(s => s.payment_status === 'paid' || s.status === 'completed')
+    .reduce((sum, s) => sum + (s.price || 0), 0);
+
+  const businessAddress = u.vendorProfile?.businessAddress || u.location?.address || '';
+
+  return {
+    profile: {
+      id: u._id.toString(),
+      name: u.name || 'Unknown',
+      email: u.email || '—',
+      phone: u.phone || '—',
+      profile_pic: u.profile_pic || u.avatarUrl || null,
+      kyc_status: u.kyc_status || 'unverified',
+      is_active: u.is_active !== false,
+      is_banned: u.is_banned || false,
+      created_at: u.created_at,
+      lastLoginAt: u.lastLoginAt,
+      lastLoginIp: u.lastLoginIp,
+      vendorProfile: u.vendorProfile,
+      businessAddress,
+    },
+    wallet: walletData,
+    listings: listings.map(l => ({
+      id: l._id.toString(),
+      title: l.title,
+      price: l.price,
+      category: l.category,
+      status: l.status,
+      created_at: l.createdAt
+    })),
+    sales,
+    reviews: reviews.map(r => ({
+      id: r._id.toString(),
+      rating: r.rating,
+      comment: r.comment,
+      target_type: r.target_type,
+      created_at: r.created_at
+    })),
+    inquiries: inquiries.map(inq => ({
+      id: inq._id.toString(),
+      message: inq.message,
+      status: inq.status,
+      customer: inq.customer ? { name: inq.customer.name, phone: inq.customer.phone } : null,
+      listing: inq.listing ? { title: inq.listing.title } : null,
+      created_at: inq.createdAt
+    })),
+    timeline,
+    loginHistory,
+    activityLogs,
+    stats: {
+      total_listings: listings.length,
+      active_listings: listings.filter(l => l.status === 'active').length,
+      total_sales_volume,
+      completed_orders: sales.length,
+    }
+  };
+};
+
+const getVendorStats = async () => {
+  const User = require('../models/User');
+  const Listing = require('../models/Listing');
+  const Order = require('../models/Order');
+  const Deal = require('../models/Deal');
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [
+    totalVendors,
+    activeVendors,
+    newVendorsToday,
+    newVendorsThisMonth,
+    suspendedVendors,
+    blockedVendors,
+    verifiedVendors,
+    totalListings,
+    activeListings
+  ] = await Promise.all([
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true } }),
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true }, is_active: { $ne: false }, is_banned: { $ne: true } }),
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true }, created_at: { $gte: startOfToday } }),
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true }, created_at: { $gte: startOfMonth } }),
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true }, is_active: false, is_banned: { $ne: true } }),
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true }, is_banned: true }),
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true }, kyc_status: 'approved' }),
+    Listing.countDocuments({ is_deleted: { $ne: true } }),
+    Listing.countDocuments({ is_deleted: { $ne: true }, status: 'active' })
+  ]);
+
+  // Total sales volume (INR) from all paid orders and completed deals
+  const orderSalesAgg = await Order.aggregate([
+    { $match: { paymentStatus: 'paid' } },
+    { $group: { _id: null, total: { $sum: '$price' } } }
+  ]);
+  const dealSalesAgg = await Deal.aggregate([
+    { $match: { status: 'completed' } },
+    { $group: { _id: null, total: { $sum: '$final_amount' } } }
+  ]);
+
+  const totalSales = (orderSalesAgg[0]?.total || 0) + (dealSalesAgg[0]?.total || 0);
+
+  // Vendor Growth Trend
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+
+  const [countLast30, countPrev30] = await Promise.all([
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true }, created_at: { $gte: thirtyDaysAgo } }),
+    User.countDocuments({ roles: 'vendor', is_deleted: { $ne: true }, created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
+  ]);
+
+  const growthTrend = countPrev30 > 0
+    ? Math.round(((countLast30 - countPrev30) / countPrev30) * 100)
+    : (countLast30 > 0 ? 100 : 0);
+
+  return {
+    totalVendors,
+    activeVendors,
+    newVendorsToday,
+    newVendorsThisMonth,
+    suspendedVendors,
+    blockedVendors,
+    verifiedVendors,
+    totalListings,
+    activeListings,
+    totalSales,
+    growthTrend
+  };
+};
+
+// Exports moved to bottom of file
+
+
+const listCreators = async ({
+  q,
+  status,
+  kyc_status,
+  has_reels,
+  registered_from,
+  registered_to,
+  sort,
+  page = 1,
+  limit = 20
+}) => {
+  const User = require('../models/User');
+  const mongoose = require('mongoose');
+
+  const pageNum = Math.max(1, parseInt(page, 10));
+  const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10)));
+  const skipNum = (pageNum - 1) * limitNum;
+
+  const matchStage = {
+    is_deleted: { $ne: true },
+    roles: 'creator'
+  };
+
+  if (q) {
+    const escaped = String(q).trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const _q = escaped.slice(0, 80);
+    const orClauses = [
+      { name: { $regex: _q, $options: 'i' } },
+      { phone: { $regex: _q } },
+      { email: { $regex: _q, $options: 'i' } },
+      { 'creatorProfile.bio': { $regex: _q, $options: 'i' } }
+    ];
+    if (mongoose.Types.ObjectId.isValid(q)) {
+      orClauses.push({ _id: new mongoose.Types.ObjectId(q) });
+    }
+    matchStage.$or = orClauses;
+  }
+
+  if (status) {
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus === 'active') {
+      matchStage.is_banned = { $ne: true };
+      matchStage.is_active = { $ne: false };
+    } else if (lowerStatus === 'suspended') {
+      matchStage.is_banned = true;
+    } else if (lowerStatus === 'inactive') {
+      matchStage.is_banned = { $ne: true };
+      matchStage.is_active = false;
+    }
+  }
+
+  if (kyc_status) {
+    const lowerKyc = kyc_status.toLowerCase();
+    if (lowerKyc === 'verified') {
+      matchStage.kyc_status = 'approved';
+    } else if (lowerKyc === 'unverified') {
+      matchStage.kyc_status = { $ne: 'approved' };
+    } else {
+      matchStage.kyc_status = lowerKyc;
+    }
+  }
+
+  if (registered_from || registered_to) {
+    matchStage.created_at = {};
+    if (registered_from) {
+      const fromDate = new Date(registered_from);
+      if (!isNaN(fromDate.getTime())) {
+        matchStage.created_at.$gte = fromDate;
+      }
+    }
+    if (registered_to) {
+      const toDate = new Date(registered_to);
+      if (!isNaN(toDate.getTime())) {
+        matchStage.created_at.$lte = toDate;
+      }
+    }
+  }
+
+  const pipeline = [
+    { $match: matchStage }
+  ];
+
+  // Lookup Wallet
+  pipeline.push({
+    $lookup: {
+      from: 'wallets',
+      localField: '_id',
+      foreignField: 'user_id',
+      as: 'wallet_doc'
+    }
+  });
+  pipeline.push({
+    $unwind: {
+      path: '$wallet_doc',
+      preserveNullAndEmptyArrays: true
+    }
+  });
+
+  // Lookup Reels
+  pipeline.push({
+    $lookup: {
+      from: 'reels',
+      let: { creatorId: '$_id' },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ['$creator', '$$creatorId'] },
+            is_deleted: { $ne: true }
+          }
+        }
+      ],
+      as: 'reels_docs'
+    }
+  });
+
+  // Lookup HireRequests
+  pipeline.push({
+    $lookup: {
+      from: 'hirerequests',
+      let: { creatorId: '$_id' },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ['$creator', '$$creatorId'] },
+            status: 'completed',
+            paymentStatus: 'paid'
+          }
+        }
+      ],
+      as: 'campaigns_docs'
+    }
+  });
+
+  pipeline.push({
+    $project: {
+      id: '$_id',
+      _id: 1,
+      name: 1,
+      email: 1,
+      phone: 1,
+      profile_pic: { $ifNull: ['$profile_pic', '$avatarUrl'] },
+      is_active: 1,
+      is_banned: 1,
+      kyc_status: 1,
+      created_at: 1,
+      lastLoginAt: 1,
+      lastLoginIp: 1,
+      creatorProfile: 1,
+      rating_avg: 1,
+      trust_score: 1,
+      wallet: {
+        credits: { $ifNull: ['$wallet_doc.credits', 0] },
+        balance_inr_paise: { $ifNull: ['$wallet_doc.balance_inr_paise', 0] },
+        is_frozen: { $ifNull: ['$wallet_doc.is_frozen', false] }
+      },
+      total_reels: { $size: { $ifNull: ['$reels_docs', []] } },
+      total_campaigns: { $size: { $ifNull: ['$campaigns_docs', []] } },
+      total_earnings: { $sum: { $ifNull: ['$campaigns_docs.budget', []] } }
+    }
+  });
+
+  if (has_reels !== undefined && has_reels !== null) {
+    if (has_reels === 'true') {
+      pipeline.push({ $match: { total_reels: { $gt: 0 } } });
+    } else if (has_reels === 'false') {
+      pipeline.push({ $match: { total_reels: 0 } });
+    }
+  }
+
+  const sortStage = {};
+  if (sort) {
+    switch (sort) {
+      case 'newest_first':
+      case 'newest':
+        sortStage.created_at = -1;
+        break;
+      case 'oldest_first':
+      case 'oldest':
+        sortStage.created_at = 1;
+        break;
+      case 'name_asc':
+      case 'name_a_z':
+        sortStage.name = 1;
+        break;
+      case 'name_desc':
+      case 'name_z_a':
+        sortStage.name = -1;
+        break;
+      case 'highest_earnings':
+      case 'earnings_desc':
+        sortStage.total_earnings = -1;
+        break;
+      case 'most_reels':
+      case 'reels_desc':
+        sortStage.total_reels = -1;
+        break;
+      case 'highest_rating':
+        sortStage.rating_avg = -1;
+        break;
+      case 'last_login':
+        sortStage.lastLoginAt = -1;
+        break;
+      default:
+        sortStage.created_at = -1;
+    }
+  } else {
+    sortStage.created_at = -1;
+  }
+  pipeline.push({ $sort: sortStage });
+
+  pipeline.push({
+    $facet: {
+      metadata: [{ $count: 'total' }],
+      data: [{ $skip: skipNum }, { $limit: limitNum }]
+    }
+  });
+
+  const aggregateResult = await User.aggregate(pipeline);
+  const data = aggregateResult[0]?.data || [];
+  const total = aggregateResult[0]?.metadata[0]?.total || 0;
+
+  return {
+    items: data.map(u => ({
+      ...u,
+      id: u._id.toString()
+    })),
+    total,
+    page: pageNum,
+    limit: limitNum,
+    pages: Math.ceil(total / limitNum)
+  };
+};
+
+const getCreatorProfileDetails = async (userId) => {
+  const User = require('../models/User');
+  const Reel = require('../models/Reel');
+  const HireRequest = require('../models/HireRequest');
+  const { Review, Wallet } = require('../models/Phase4');
+  const { AuditLog } = require('../models/Misc');
+  const ApiError = require('../utils/ApiError');
+
+  const u = await User.findById(userId);
+  if (!u || u.is_deleted) throw ApiError.notFound('Creator not found');
+
+  const userIdStr = userId.toString();
+
+  // Wallet
+  let walletData = { credits: 0, balance_inr_paise: 0, is_frozen: false };
+  try {
+    const w = await Wallet.findOne({ user_id: userIdStr });
+    if (w) {
+      walletData = {
+        credits: w.credits,
+        balance_inr_paise: w.balance_inr_paise,
+        is_frozen: w.is_frozen,
+      };
+    }
+  } catch (e) {}
+
+  // Reels
+  const reels = await Reel.find({ creator: userId, is_deleted: { $ne: true } })
+    .sort({ createdAt: -1 });
+
+  // Hire Requests
+  const campaigns = await HireRequest.find({ creator: userId })
+    .populate('vendor', 'name businessName phone email')
+    .sort({ createdAt: -1 });
+
+  // Reviews
+  const reviews = await Review.find({ target_type: 'creator', target_id: userIdStr })
+    .sort({ created_at: -1 });
+
+  // Logs & timeline
+  const auditLogs = await AuditLog.find({
+    $or: [{ userId: userId }, { user_id: userIdStr }]
+  }).sort({ createdAt: -1, created_at: -1 });
+
+  const timeline = auditLogs
+    .filter(log => [
+      'USER_REGISTER',
+      'USER_BAN',
+      'USER_UNBAN',
+      'USER_SUSPEND',
+      'KYC_APPROVE',
+      'KYC_REJECT',
+      'ADMIN_ACTION'
+    ].includes(log.action))
+    .map(log => ({
+      id: log._id.toString(),
+      action: log.action,
+      description: log.description || `Action ${log.action} performed`,
+      created_at: log.createdAt || log.created_at,
+    }));
+
+  const loginHistory = auditLogs
+    .filter(log => ['USER_LOGIN', 'login', 'login_failed'].includes(log.action))
+    .map(log => ({
+      id: log._id.toString(),
+      action: log.action,
+      ip: log.ipAddress || log.ip || '127.0.0.1',
+      user_agent: log.userAgent || 'Unknown',
+      created_at: log.createdAt || log.created_at,
+    }));
+
+  const activityLogs = auditLogs.map(log => ({
+    id: log._id.toString(),
+    action: log.action,
+    description: log.description || log.meta?.description || log.action,
+    ip: log.ipAddress || log.ip || '127.0.0.1',
+    created_at: log.createdAt || log.created_at,
+  }));
+
+  const total_earnings = campaigns
+    .filter(c => c.status === 'completed' && c.paymentStatus === 'paid')
+    .reduce((sum, c) => sum + (c.budget || 0), 0);
+
+  return {
+    profile: {
+      id: u._id.toString(),
+      name: u.name || 'Unknown',
+      email: u.email || '—',
+      phone: u.phone || '—',
+      profile_pic: u.profile_pic || u.avatarUrl || null,
+      kyc_status: u.kyc_status || 'unverified',
+      is_active: u.is_active !== false,
+      is_banned: u.is_banned || false,
+      created_at: u.created_at,
+      lastLoginAt: u.lastLoginAt,
+      lastLoginIp: u.lastLoginIp,
+      creatorProfile: u.creatorProfile,
+      city: u.city || '',
+    },
+    wallet: walletData,
+    reels: reels.map(r => ({
+      id: r._id.toString(),
+      videoUrl: r.videoUrl,
+      thumbnailUrl: r.thumbnailUrl,
+      caption: r.caption,
+      views: r.viewsCount || 0,
+      likes: r.likesCount || 0,
+      created_at: r.createdAt
+    })),
+    campaigns: campaigns.map(c => ({
+      id: c._id.toString(),
+      title: c.title,
+      description: c.description,
+      budget: c.budget,
+      status: c.status,
+      payment_status: c.paymentStatus,
+      vendor: c.vendor ? { name: c.vendor.name, businessName: c.vendor.businessName } : null,
+      created_at: c.createdAt
+    })),
+    reviews: reviews.map(r => ({
+      id: r._id.toString(),
+      rating: r.rating,
+      comment: r.comment,
+      created_at: r.created_at
+    })),
+    timeline,
+    loginHistory,
+    activityLogs,
+    stats: {
+      total_reels: reels.length,
+      total_earnings,
+      completed_campaigns: campaigns.filter(c => c.status === 'completed').length,
+    }
+  };
+};
+
+const getCreatorStats = async () => {
+  const User = require('../models/User');
+  const Reel = require('../models/Reel');
+  const HireRequest = require('../models/HireRequest');
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [
+    totalCreators,
+    activeCreators,
+    newCreatorsToday,
+    newCreatorsThisMonth,
+    suspendedCreators,
+    verifiedCreators,
+    totalReels,
+    totalCampaigns
+  ] = await Promise.all([
+    User.countDocuments({ roles: 'creator', is_deleted: { $ne: true } }),
+    User.countDocuments({ roles: 'creator', is_deleted: { $ne: true }, is_active: { $ne: false }, is_banned: { $ne: true } }),
+    User.countDocuments({ roles: 'creator', is_deleted: { $ne: true }, created_at: { $gte: startOfToday } }),
+    User.countDocuments({ roles: 'creator', is_deleted: { $ne: true }, created_at: { $gte: startOfMonth } }),
+    User.countDocuments({ roles: 'creator', is_deleted: { $ne: true }, is_banned: true }),
+    User.countDocuments({ roles: 'creator', is_deleted: { $ne: true }, kyc_status: 'approved' }),
+    Reel.countDocuments({ is_deleted: { $ne: true } }),
+    HireRequest.countDocuments({ status: 'completed', paymentStatus: 'paid' })
+  ]);
+
+  const budgetAgg = await HireRequest.aggregate([
+    { $match: { status: 'completed', paymentStatus: 'paid' } },
+    { $group: { _id: null, total: { $sum: '$budget' } } }
+  ]);
+  const totalEarnings = budgetAgg[0]?.total || 0;
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+
+  const [countLast30, countPrev30] = await Promise.all([
+    User.countDocuments({ roles: 'creator', is_deleted: { $ne: true }, created_at: { $gte: thirtyDaysAgo } }),
+    User.countDocuments({ roles: 'creator', is_deleted: { $ne: true }, created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
+  ]);
+
+  const growthTrend = countPrev30 > 0
+    ? Math.round(((countLast30 - countPrev30) / countPrev30) * 100)
+    : (countLast30 > 0 ? 100 : 0);
+
+  return {
+    totalCreators,
+    activeCreators,
+    newCreatorsToday,
+    newCreatorsThisMonth,
+    suspendedCreators,
+    verifiedCreators,
+    totalReels,
+    totalCampaigns,
+    totalEarnings,
+    growthTrend
+  };
+};
+
 module.exports = {
   listUsers,
   banUser,
@@ -832,5 +2313,17 @@ module.exports = {
   suspendUser,
   deleteUser,
   getLoginHistory,
+  listCustomers,
+  getCustomerProfileDetails,
+  getCustomerStats,
+  activateUser,
+  verifyUser,
+  resetUserPassword,
+  listVendors,
+  getVendorProfileDetails,
+  getVendorStats,
+  listCreators,
+  getCreatorProfileDetails,
+  getCreatorStats,
 };
 

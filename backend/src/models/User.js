@@ -39,6 +39,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, default: null },
   resetPasswordOtpHash: { type: String, default: null },
   resetPasswordExpires: { type: Date, default: null },
+  lastLoginAt: { type: Date, default: null },
+  lastLoginIp: { type: String, default: null },
   // Lockout / Login attempts
   loginAttempts: { type: Number, default: 0 },
   lockUntil: { type: Date, default: null },

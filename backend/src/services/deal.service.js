@@ -222,6 +222,11 @@ const complete = async (dealId, userId) => {
       logger.debug(`commission accrue failed: ${e.message}`);
     }
 
+    try {
+      const { emitToAdmin } = require('../sockets');
+      emitToAdmin('admin:update', { tags: ['AdminOrders', 'AdminOverview', 'AdminUsers'] });
+    } catch (err) {}
+
     return serializeDeal(updated);
   }
 

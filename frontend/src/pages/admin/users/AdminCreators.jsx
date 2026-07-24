@@ -1,294 +1,929 @@
 import React, { useState } from 'react';
-import { FiFilm, FiEye, FiCheck, FiX, FiSlash, FiDollarSign, FiMapPin, FiStar, FiUser, FiClock } from 'react-icons/fi';
+import {
+  FiFilm, FiEye, FiCheckCircle, FiLock, FiSlash, FiTrash2, FiClock, FiX,
+  FiFilter, FiActivity, FiSearch, FiDollarSign, FiShoppingBag, FiStar,
+  FiArrowUpRight, FiCalendar, FiRefreshCw, FiMapPin, FiUserCheck, FiGift, FiBell,
+  FiShield, FiFileText, FiDownload, FiPauseCircle
+} from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
-import AdminTabBar from '../../../features/admin/components/AdminTabBar';
-import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 import AdminModal from '../../../features/admin/components/AdminModal';
+import { API_BASE } from '../../../lib/api';
 import {
-  useListAdminUsersQuery,
+  useListAdminCreatorsQuery,
+  useGetCreatorDetailQuery,
+  useGetCreatorStatsQuery,
+  useResetCustomerPasswordMutation,
+  useVerifyCustomerAccountMutation,
+  useActivateCustomerAccountMutation,
   useBanUserMutation,
   useUnbanUserMutation,
-  useGetUserDetailQuery,
+  useSuspendUserMutation,
+  useDeleteUserMutation,
+  useRejectKycMutation
 } from '../../../features/admin/adminApi';
 
-const TABS = [
-  { key: 'all', label: 'All Creators', icon: FiFilm },
-  { key: 'pending', label: 'Pending Approval', icon: FiCheck },
-  { key: 'approved', label: 'Verified', icon: FiCheck },
-];
-
 export default function AdminCreators() {
-  const [activeTab, setActiveTab] = useState('all');
+  // Query parameters state
   const [search, setSearch] = useState('');
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [showDetail, setShowDetail] = useState(false);
+  const [status, setStatus] = useState('');
+  const [kycStatus, setKycStatus] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [sort, setSort] = useState('newest_first');
+  const [page, setPage] = useState(1);
 
-  const queryParams = { q: search || undefined, role: 'creator', limit: 100 };
-  if (activeTab === 'pending') queryParams.kyc_status = 'pending';
-  else if (activeTab === 'approved') queryParams.kyc_status = 'approved';
+  // Modal / Detail state
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [modalType, setModalType] = useState(null); // 'view' | 'reset-password' | 'reject-kyc'
+  const [activeTab, setActiveTab] = useState('overview'); // tabs in View modal
+  const [newPassword, setNewPassword] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
 
-  const { data, isFetching } = useListAdminUsersQuery(queryParams, { pollingInterval: 5000 });
-  const [banUser] = useBanUserMutation();
-  const [unbanUser] = useUnbanUserMutation();
-
-  const { data: userDetail } = useGetUserDetailQuery(selectedUser, {
-    skip: !selectedUser || !showDetail,
+  // API hooks
+  const { data: creatorData, isFetching: loadingCreators } = useListAdminCreatorsQuery({
+    q: search || undefined,
+    status: status || undefined,
+    kyc_status: kycStatus || undefined,
+    from: fromDate || undefined,
+    to: toDate || undefined,
+    sort: sort || undefined,
+    page,
+    limit: 10,
   });
 
-  const items = data?.items || [];
+  const { data: stats, isFetching: loadingStats } = useGetCreatorStatsQuery();
 
-  const handleSuspend = async (id, name, isBanned) => {
+  const { data: creatorDetail, isFetching: loadingDetail } = useGetCreatorDetailQuery(selectedUserId, {
+    skip: !selectedUserId || modalType !== 'view',
+  });
+
+  const [resetPassword, { isLoading: resettingPw }] = useResetCustomerPasswordMutation();
+  const [verifyAccount] = useVerifyCustomerAccountMutation();
+  const [rejectKyc, { isLoading: rejecting }] = useRejectKycMutation();
+  const [activateAccount] = useActivateCustomerAccountMutation();
+  const [banUser] = useBanUserMutation();
+  const [unbanUser] = useUnbanUserMutation();
+  const [suspendUser] = useSuspendUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
+
+  const creators = creatorData?.items || [];
+  const totalPages = creatorData?.pages || 1;
+  const totalItems = creatorData?.total || 0;
+
+  // Handle Operations
+  const handleAction = async (action, userId, userName) => {
     try {
-      if (isBanned) {
-        await unbanUser(id).unwrap();
-        toast.success(`${name} unsuspended`);
-      } else {
-        if (!window.confirm(`Suspend ${name}?`)) return;
-        await banUser(id).unwrap();
-        toast.success(`${name} suspended`);
+      if (action === 'ban') {
+        if (!window.confirm(`Block creator "${userName}"? This blocks login instantly.`)) return;
+        await banUser(userId).unwrap();
+        toast.success(`Creator "${userName}" has been blocked`);
+      } else if (action === 'unban') {
+        await unbanUser(userId).unwrap();
+        toast.success(`Creator "${userName}" has been unblocked`);
+      } else if (action === 'suspend') {
+        if (!window.confirm(`Suspend creator "${userName}"?`)) return;
+        await suspendUser(userId).unwrap();
+        toast.success(`Creator "${userName}" has been suspended`);
+      } else if (action === 'activate') {
+        await activateAccount(userId).unwrap();
+        toast.success(`Creator "${userName}" has been activated`);
+      } else if (action === 'verify') {
+        if (!window.confirm(`Verify and approve KYC for "${userName}"?`)) return;
+        await verifyAccount(userId).unwrap();
+        toast.success(`Creator "${userName}" KYC status is now verified`);
+      } else if (action === 'delete') {
+        if (!window.confirm(`Soft delete creator "${userName}"? This marks account as deleted, hiding it from the system.`)) return;
+        await deleteUser(userId).unwrap();
+        toast.success(`Creator "${userName}" has been soft-deleted`);
       }
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed');
+      toast.error(err?.data?.message || 'Administrative action failed');
     }
   };
 
-  const columns = [
-    {
-      key: 'name',
-      label: 'Creator',
-      render: (val, row) => (
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-brand-pink/10 text-brand-pink flex items-center justify-center text-[10px] font-black flex-shrink-0">
-            {(val || 'C')[0].toUpperCase()}
-          </div>
-          <div>
-            <span className="font-bold text-text-primary block">{val || 'Unknown'}</span>
-            <span className="text-[10px] text-text-tertiary">{row.phone || '—'}</span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'kyc_status',
-      label: 'KYC',
-      render: (val) => <AdminStatusBadge status={val} />,
-    },
-    {
-      key: 'is_active',
-      label: 'Status',
-      render: (val, row) => (
-        <AdminStatusBadge status={row.is_banned ? 'Suspended' : val ? 'Active' : 'Inactive'} />
-      ),
-    },
-    {
-      key: 'rating_avg',
-      label: 'Rating',
-      render: (val) => (
-        <span className="text-xs font-bold text-amber-500">{val ? `★ ${val.toFixed(1)}` : '—'}</span>
-      ),
-    },
-    {
-      key: 'trust_score',
-      label: 'Trust',
-      render: (val) => (
-        <span className="text-xs font-bold text-brand-purple">{val || '—'}</span>
-      ),
-    },
-    {
-      key: 'created_at',
-      label: 'Joined',
-      render: (val) => <span className="text-text-tertiary">{val ? new Date(val).toLocaleDateString() : '—'}</span>,
-    },
-  ];
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+    try {
+      await resetPassword({ id: selectedUserId, password: newPassword }).unwrap();
+      toast.success('Creator password reset successfully');
+      setNewPassword('');
+      setModalType(null);
+      setSelectedUserId(null);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Password reset failed');
+    }
+  };
 
-  const profile = userDetail?.creator_profile || userDetail?.creatorProfile;
-  const pricing = profile?.pricing;
+  const handleRejectKycSubmit = async (e) => {
+    e.preventDefault();
+    if (!rejectReason) {
+      toast.error('Please specify a rejection reason');
+      return;
+    }
+    try {
+      await rejectKyc({ id: selectedUserId, reason: rejectReason }).unwrap();
+      toast.success('Creator KYC rejected with reason logged');
+      setRejectReason('');
+      setModalType(null);
+      setSelectedUserId(null);
+    } catch (err) {
+      toast.error(err?.data?.message || 'KYC rejection failed');
+    }
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatus('');
+    setKycStatus('');
+    setFromDate('');
+    setToDate('');
+    setSort('newest_first');
+    setPage(1);
+  };
+
+  // Export CSV
+  const handleExport = () => {
+    const access = localStorage.getItem('bizreels_access_token') || localStorage.getItem('accessToken') || '';
+    const query = new URLSearchParams({
+      q: search,
+      status,
+      kyc_status: kycStatus,
+      from: fromDate,
+      to: toDate,
+      sort,
+    }).toString();
+
+    fetch(`${API_BASE}/admin/creators/export?${query}`, {
+      headers: {
+        Authorization: `Bearer ${access}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Export failed');
+        return res.blob();
+      })
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `creators_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success('CSV Export downloaded successfully');
+      })
+      .catch(() => {
+        toast.error('Failed to export creator records');
+      });
+  };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-12">
       <AdminPageHeader
         icon={FiFilm}
-        title="Creator Management"
-        subtitle="Review creator applications, manage ratings, earnings, and suspension status"
+        title="Creator Management Console"
+        subtitle="Manage creator profiles, review KYC documents, monitor video uploads, check earnings, and configure roles."
       />
 
-      <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
-
-      <AdminDataTable
-        columns={columns}
-        data={items}
-        loading={isFetching}
-        searchPlaceholder="Search creators by name or phone..."
-        searchValue={search}
-        onSearch={setSearch}
-        emptyMessage="No creators found."
-        testId="creators-table"
-        actions={(row) => (
-          <>
-            <button
-              onClick={() => { setSelectedUser(row.id); setShowDetail(true); }}
-              className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition-all"
-              title="View"
-            >
-              <FiEye className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => handleSuspend(row.id, row.name, row.is_banned)}
-              className={`p-1.5 rounded-lg transition-all ${row.is_banned ? 'hover:bg-emerald-500/10 text-text-tertiary hover:text-emerald-500' : 'hover:bg-red-500/10 text-text-tertiary hover:text-red-500'}`}
-              title={row.is_banned ? 'Unsuspend' : 'Suspend'}
-            >
-              <FiSlash className="w-3.5 h-3.5" />
-            </button>
-          </>
-        )}
-      />
-
-      {/* Creator Detail Modal */}
-      <AdminModal isOpen={showDetail} onClose={() => { setShowDetail(false); setSelectedUser(null); }} title="Creator Details" maxWidth="max-w-xl">
-        {userDetail ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 border-b border-border/50 pb-4">
-              <div className="w-14 h-14 rounded-2xl bg-brand-pink/10 text-brand-pink flex items-center justify-center text-xl font-black flex-shrink-0">
-                {userDetail.profile_pic || userDetail.avatarUrl ? (
-                  <img src={userDetail.profile_pic || userDetail.avatarUrl} alt="" className="w-14 h-14 rounded-2xl object-cover" />
+      {/* --- DASHBOARD STATISTICS --- */}
+      {loadingStats ? (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="glass rounded-2xl p-4 border border-white/50 h-24 skeleton" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {[
+            { label: 'Total Creators', val: stats?.totalCreators, trend: stats?.growthTrend, icon: FiFilm, color: 'text-brand-pink' },
+            { label: 'Active Creators', val: stats?.activeCreators, sub: 'Not banned/suspended', icon: FiUserCheck, color: 'text-emerald-500' },
+            { label: 'Verified Creators', val: stats?.verifiedCreators, sub: 'KYC Approved', icon: FiShield, color: 'text-blue-500' },
+            { label: 'Total Earnings', val: `₹${(stats?.totalEarnings || 0).toLocaleString('en-IN')}`, sub: 'Settled campaign budgets', icon: FiDollarSign, color: 'text-amber-500' },
+            { label: 'Reels / Campaigns', val: `${stats?.totalReels || 0} / ${stats?.totalCampaigns || 0}`, sub: 'Published clips', icon: FiShoppingBag, color: 'text-purple-500' }
+          ].map((card, idx) => (
+            <div key={idx} className="glass rounded-2xl p-4 border border-white/50 shadow-glass flex items-center justify-between transition-all hover:scale-[1.02]">
+              <div>
+                <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">{card.label}</span>
+                <span className="text-xl font-black text-text-primary mt-1 block truncate max-w-[140px]">{card.val ?? 0}</span>
+                {card.trend !== undefined ? (
+                  <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-0.5 mt-0.5">
+                    <FiArrowUpRight className="w-3.5 h-3.5" /> +{card.trend}% growth (30d)
+                  </span>
                 ) : (
-                  (userDetail.name || 'C')[0].toUpperCase()
+                  <span className="text-[9px] text-text-tertiary mt-0.5 block">{card.sub}</span>
                 )}
               </div>
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-bold text-text-primary">{userDetail.name || 'Unknown'}</h4>
-                  <AdminStatusBadge status={userDetail.kyc_status} />
-                  {userDetail.is_banned && (
-                    <span className="text-[9px] font-bold bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase">Suspended</span>
-                  )}
-                </div>
-                <p className="text-xs text-text-tertiary">{userDetail.phone || '—'} • {userDetail.email || '—'}</p>
-                {(userDetail.city || profile?.city) && (
-                  <p className="text-xs text-text-secondary flex items-center gap-1 font-medium">
-                    <FiMapPin className="w-3 h-3 text-brand-orange" /> {userDetail.city || profile?.city}
-                  </p>
-                )}
+              <div className={`p-2.5 rounded-xl bg-surface-secondary flex-shrink-0 ${card.color}`}>
+                <card.icon className="w-5 h-5" />
               </div>
             </div>
+          ))}
+        </div>
+      )}
 
-            {/* Creator Profile & Bio */}
-            {profile && (
-              <div className="bg-surface-secondary/70 rounded-xl p-4 space-y-3 border border-border/60">
-                <h5 className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
-                  <FiFilm className="w-3.5 h-3.5 text-brand-pink" /> Portfolio & Experience
-                </h5>
+      {/* --- FILTER & SEARCH BAR --- */}
+      <div className="glass rounded-2xl border border-white/50 shadow-glass p-4 space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <FiFilter className="w-4 h-4 text-brand-pink" />
+            <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">Search & Filters</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={clearFilters}
+              className="px-3 py-1.5 rounded-lg border border-border text-[10px] font-bold text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-all flex items-center gap-1"
+            >
+              Clear Filters
+            </button>
+            <button
+              onClick={handleExport}
+              className="px-3 py-1.5 rounded-lg gradient-brand text-[10px] font-bold text-white shadow-premium flex items-center gap-1.5 transition-all hover:opacity-90"
+            >
+              <FiDownload className="w-3.5 h-3.5" /> Export Data (CSV)
+            </button>
+          </div>
+        </div>
 
-                {profile.bio && (
-                  <p className="text-xs text-text-secondary bg-surface p-2.5 rounded-lg italic border border-border/40">
-                    "{profile.bio}"
-                  </p>
-                )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Search bar */}
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+            <input
+              type="text"
+              placeholder="Search by bio, name, email, phone..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="w-full pl-10 pr-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink transition-all"
+            />
+          </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">Experience</span>
-                    <span className="font-bold text-text-primary">{profile.experienceYears || profile.experience || '—'} Years</span>
-                  </div>
-                  <div>
-                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">Languages</span>
-                    <span className="font-bold text-text-primary">
-                      {Array.isArray(profile.languages) ? profile.languages.join(', ') : profile.languages || '—'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">Availability</span>
-                    <span className={`inline-block font-bold text-[11px] px-2 py-0.5 rounded mt-0.5 ${
-                      profile.availabilityStatus === 'Available' || profile.availability === 'Available'
-                        ? 'bg-emerald-500/10 text-emerald-600'
-                        : 'bg-amber-500/10 text-amber-600'
-                    }`}>
-                      {profile.availabilityStatus || profile.availability || 'Available'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-text-tertiary text-[10px] font-bold uppercase block">Travel Available</span>
-                    <span className="font-bold text-text-primary">{profile.travelAvailable ? '✓ Yes' : 'No'}</span>
-                  </div>
-                </div>
+          {/* Account Status */}
+          <select
+            value={status}
+            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+            className="px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink transition-all"
+          >
+            <option value="">All Account Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Suspended">Suspended</option>
+            <option value="Inactive">Inactive</option>
+          </select>
 
-                {profile.categories && profile.categories.length > 0 && (
-                  <div>
-                    <span className="text-text-tertiary text-[10px] font-bold uppercase block mb-1.5">Categories</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {profile.categories.map((cat, idx) => (
-                        <span key={idx} className="text-[10px] font-bold bg-brand-pink/10 text-brand-pink px-2.5 py-0.5 rounded-full border border-brand-pink/20">
-                          {cat}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+          {/* KYC Status */}
+          <select
+            value={kycStatus}
+            onChange={(e) => { setKycStatus(e.target.value); setPage(1); }}
+            className="px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink transition-all"
+          >
+            <option value="">All KYC Statuses</option>
+            <option value="Verified">Verified Accounts</option>
+            <option value="Pending">Pending Approval</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Unverified">Unverified Accounts</option>
+          </select>
 
-            {/* Pricing Section */}
-            {pricing && typeof pricing === 'object' && (
-              <div className="bg-surface-secondary/70 rounded-xl p-4 space-y-2.5 border border-border/60">
-                <h5 className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
-                  <FiDollarSign className="w-3.5 h-3.5 text-emerald-500" /> Rates & Service Pricing
-                </h5>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {(pricing.oneReel || pricing.reel1) && (
-                    <div className="bg-surface p-2.5 rounded-lg border border-border/50 text-center">
-                      <span className="text-[9px] text-text-tertiary font-bold uppercase block">1 Reel Rate</span>
-                      <span className="text-xs font-black text-emerald-600">₹{Number(pricing.oneReel || pricing.reel1).toLocaleString('en-IN')}</span>
-                    </div>
-                  )}
-                  {(pricing.threeReels || pricing.reel3) && (
-                    <div className="bg-surface p-2.5 rounded-lg border border-border/50 text-center">
-                      <span className="text-[9px] text-text-tertiary font-bold uppercase block">3 Reels Package</span>
-                      <span className="text-xs font-black text-emerald-600">₹{Number(pricing.threeReels || pricing.reel3).toLocaleString('en-IN')}</span>
-                    </div>
-                  )}
-                  {(pricing.tenReels || pricing.reel10) && (
-                    <div className="bg-surface p-2.5 rounded-lg border border-border/50 text-center">
-                      <span className="text-[9px] text-text-tertiary font-bold uppercase block">10 Reels Package</span>
-                      <span className="text-xs font-black text-emerald-600">₹{Number(pricing.tenReels || pricing.reel10).toLocaleString('en-IN')}</span>
-                    </div>
-                  )}
-                  {pricing.hourlyRate && (
-                    <div className="bg-surface p-2.5 rounded-lg border border-border/50 text-center">
-                      <span className="text-[9px] text-text-tertiary font-bold uppercase block">Hourly Rate</span>
-                      <span className="text-xs font-black text-emerald-600">₹{Number(pricing.hourlyRate).toLocaleString('en-IN')} / hr</span>
-                    </div>
-                  )}
-                  {pricing.dayRate && (
-                    <div className="bg-surface p-2.5 rounded-lg border border-border/50 text-center">
-                      <span className="text-[9px] text-text-tertiary font-bold uppercase block">Day Rate</span>
-                      <span className="text-xs font-black text-emerald-600">₹{Number(pricing.dayRate).toLocaleString('en-IN')} / day</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+          {/* Sort selection */}
+          <select
+            value={sort}
+            onChange={(e) => { setSort(e.target.value); setPage(1); }}
+            className="px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink transition-all"
+          >
+            <option value="newest_first">Newest First</option>
+            <option value="oldest_first">Oldest First</option>
+            <option value="name_asc">Name (A-Z)</option>
+            <option value="name_desc">Name (Z-A)</option>
+            <option value="highest_earnings">Highest Earnings</option>
+            <option value="most_reels">Most Reels</option>
+            <option value="last_login">Last Login</option>
+          </select>
+        </div>
 
-            {/* General Metrics Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {[
-                ['Rating', userDetail.rating_avg ? `★ ${userDetail.rating_avg.toFixed(1)}` : '—'],
-                ['Trust Score', userDetail.trust_score || '—'],
-                ['Followers', userDetail.followersCount || 0],
-                ['Following', userDetail.followingCount || 0],
-                ['Wallet Credits', userDetail.wallet?.credits || 0],
-                ['City', userDetail.city || profile?.city || '—'],
-              ].map(([label, val]) => (
-                <div key={label} className="bg-surface-secondary/70 rounded-xl p-3 border border-border/50">
-                  <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block">{label}</span>
-                  <span className="text-xs font-black text-text-primary mt-0.5 block">{val}</span>
-                </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          {/* Registration Date range: from */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider">Registered From</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+              className="px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink transition-all"
+            />
+          </div>
+
+          {/* Registration Date range: to */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider">Registered To</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+              className="px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink transition-all"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* --- CREATORS TABLE --- */}
+      <div className="glass rounded-2xl border border-white/50 shadow-glass overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-surface-secondary/40">
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Creator</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Creator ID</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">KYC Verification</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Account Status</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Reels Published</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Joined / Last Login</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider text-right">Earnings</th>
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingCreators ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="border-b border-border/50 h-16 skeleton" />
+                ))
+              ) : creators.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-16 text-center text-xs text-text-tertiary">
+                    No creators found matching the criteria. Try refining filters.
+                  </td>
+                </tr>
+              ) : (
+                creators.map((c) => {
+                  const accountStatus = c.is_banned ? 'Suspended' : c.is_active ? 'Active' : 'Inactive';
+                  return (
+                    <tr key={c.id} className="border-b border-border/40 hover:bg-brand-pink/5 transition-colors">
+                      {/* Name / Contact */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          {c.profile_pic ? (
+                            <img src={c.profile_pic} alt={c.name} className="w-8 h-8 rounded-full object-cover border border-border" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-brand-pink/10 text-brand-pink flex items-center justify-center text-[11px] font-black">
+                              {(c.name || 'C')[0].toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-bold text-text-primary block text-xs leading-tight">{c.name || 'Unknown'}</span>
+                            <span className="text-[10px] text-text-tertiary mt-0.5 block">{c.phone || c.email || '—'}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* ID */}
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-[10px] text-text-secondary select-all">{c.id}</span>
+                      </td>
+
+                      {/* KYC status badge */}
+                      <td className="px-4 py-3">
+                        <AdminStatusBadge status={c.kyc_status || 'unverified'} />
+                      </td>
+
+                      {/* Account status badge */}
+                      <td className="px-4 py-3">
+                        <AdminStatusBadge status={accountStatus} />
+                      </td>
+
+                      {/* Reels count */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                          <span className="font-bold text-text-primary">{c.total_reels}</span>
+                          <span className="text-[10px] text-text-tertiary font-medium">clips</span>
+                        </div>
+                      </td>
+
+                      {/* Date values */}
+                      <td className="px-4 py-3 text-[10px] text-text-secondary">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="flex items-center gap-1">
+                            <FiCalendar className="w-3 h-3 text-text-tertiary" /> {new Date(c.created_at).toLocaleDateString()}
+                          </span>
+                          <span className="text-[9px] text-text-tertiary font-semibold flex items-center gap-1">
+                            <FiClock className="w-3 h-3 text-text-tertiary" /> {c.lastLoginAt ? new Date(c.lastLoginAt).toLocaleString() : 'Never logged in'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Spendings */}
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-xs font-black text-brand-pink">₹{(c.total_earnings || 0).toLocaleString('en-IN')}</span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => { setSelectedUserId(c.id); setModalType('view'); setActiveTab('overview'); }}
+                            className="p-2 rounded-lg hover:bg-brand-pink/10 text-text-tertiary hover:text-brand-pink transition-all"
+                            title="View Creator dossier"
+                          >
+                            <FiEye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedUserId(c.id);
+                              setNewPassword('');
+                              setModalType('reset-password');
+                            }}
+                            className="p-2 rounded-lg hover:bg-amber-500/10 text-text-tertiary hover:text-amber-500 transition-all"
+                            title="Reset Password"
+                          >
+                            <FiLock className="w-4 h-4" />
+                          </button>
+                          {c.kyc_status !== 'approved' && (
+                            <>
+                              <button
+                                onClick={() => handleAction('verify', c.id, c.name)}
+                                className="p-2 rounded-lg hover:bg-blue-500/10 text-text-tertiary hover:text-blue-500 transition-all"
+                                title="Approve KYC Credentials"
+                              >
+                                <FiCheckCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedUserId(c.id);
+                                  setRejectReason('');
+                                  setModalType('reject-kyc');
+                                }}
+                                className="p-2 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition-all"
+                                title="Reject KYC Documents"
+                              >
+                                <FiX className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                          {!c.is_banned ? (
+                            <button
+                              onClick={() => handleAction('suspend', c.id, c.name)}
+                              className="p-2 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition-all"
+                              title="Suspend Creator Profile"
+                            >
+                              <FiPauseCircle className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleAction('unban', c.id, c.name)}
+                              className="p-2 rounded-lg hover:bg-emerald-500/10 text-text-tertiary hover:text-emerald-500 transition-all"
+                              title="Activate/Unsuspend Profile"
+                            >
+                              <FiUserCheck className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleAction('delete', c.id, c.name)}
+                            className="p-2 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition-all"
+                            title="Delete Creator Profile"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* --- TABLE PAGINATION --- */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-surface-secondary/20">
+            <span className="text-[10px] text-text-tertiary font-medium">
+              Showing {(page - 1) * 10 + 1}–{Math.min(page * 10, totalItems)} of {totalItems} creator records
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-2 py-1 bg-surface border border-border rounded-lg text-xs font-bold text-text-secondary hover:bg-surface-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPage(i + 1)}
+                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                    page === i + 1
+                      ? 'bg-brand-pink text-white shadow-premium'
+                      : 'hover:bg-surface-tertiary text-text-secondary border border-border'
+                  }`}
+                >
+                  {i + 1}
+                </button>
               ))}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-2 py-1 bg-surface border border-border rounded-lg text-xs font-bold text-text-secondary hover:bg-surface-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                Next
+              </button>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* --- RESET PASSWORD MODAL --- */}
+      <AdminModal
+        isOpen={modalType === 'reset-password'}
+        onClose={() => { setModalType(null); setSelectedUserId(null); }}
+        title="Reset Creator Password"
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleResetPassword} className="space-y-4">
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">New Password</label>
+            <input
+              type="password"
+              placeholder="Min 6 characters"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink focus:ring-1 focus:ring-brand-pink/20 transition-all"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={resettingPw}
+            className="w-full py-2.5 rounded-xl gradient-brand text-white text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1.5"
+          >
+            {resettingPw ? 'Resetting...' : 'Confirm Reset Password'}
+          </button>
+        </form>
+      </AdminModal>
+
+      {/* --- REJECT KYC MODAL --- */}
+      <AdminModal
+        isOpen={modalType === 'reject-kyc'}
+        onClose={() => { setModalType(null); setSelectedUserId(null); }}
+        title="Reject KYC Documentation"
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleRejectKycSubmit} className="space-y-4">
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Reason for Rejection</label>
+            <textarea
+              placeholder="Specify mismatch or missing fields..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink focus:ring-1 focus:ring-brand-pink/20 min-h-[100px] transition-all"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={rejecting}
+            className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+          >
+            {rejecting ? 'Rejecting...' : 'Confirm KYC Rejection'}
+          </button>
+        </form>
+      </AdminModal>
+
+      {/* --- DETAILED VIEW MODAL --- */}
+      <AdminModal
+        isOpen={modalType === 'view'}
+        onClose={() => { setModalType(null); setSelectedUserId(null); }}
+        title="Creator Workspace dossiers"
+        maxWidth="max-w-5xl"
+      >
+        {loadingDetail || !creatorDetail ? (
+          <div className="py-24 text-center text-text-tertiary text-xs flex flex-col items-center justify-center gap-2">
+            <FiRefreshCw className="w-6 h-6 animate-spin text-brand-pink" />
+            Loading creator comprehensive profiles...
+          </div>
         ) : (
-          <div className="py-8 text-center text-text-tertiary text-xs">Loading creator details...</div>
+          <div className="flex flex-col gap-4">
+            {/* Modal Header Profile */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-secondary/40 p-4 rounded-2xl border border-border">
+              <div className="flex items-center gap-3">
+                {creatorDetail.profile.profile_pic ? (
+                  <img src={creatorDetail.profile.profile_pic} alt={creatorDetail.profile.name} className="w-12 h-12 rounded-full object-cover border border-border" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-brand-pink/10 text-brand-pink flex items-center justify-center text-base font-black">
+                    {(creatorDetail.profile.name || 'C')[0].toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h4 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                    {creatorDetail.profile.name}
+                    <AdminStatusBadge status={creatorDetail.profile.is_banned ? 'Suspended' : creatorDetail.profile.is_active ? 'Active' : 'Inactive'} />
+                  </h4>
+                  <p className="text-[10px] text-text-tertiary mt-1">
+                    ID: <span className="font-mono text-text-secondary select-all">{creatorDetail.profile.id}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick statistics */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-surface p-2 rounded-xl border border-border text-center min-w-[80px]">
+                  <span className="text-[9px] font-bold text-text-tertiary block">EARNINGS</span>
+                  <span className="text-xs font-black text-brand-pink mt-0.5 block">₹{creatorDetail.stats.total_earnings.toLocaleString()}</span>
+                </div>
+                <div className="bg-surface p-2 rounded-xl border border-border text-center min-w-[80px]">
+                  <span className="text-[9px] font-bold text-text-tertiary block">WALLET</span>
+                  <span className="text-xs font-black text-emerald-500 mt-0.5 block">₹{(creatorDetail.wallet.balance_inr_paise / 100).toLocaleString()}</span>
+                </div>
+                <div className="bg-surface p-2 rounded-xl border border-border text-center min-w-[80px]">
+                  <span className="text-[9px] font-bold text-text-tertiary block">REELS</span>
+                  <span className="text-xs font-black text-purple-500 mt-0.5 block">{creatorDetail.stats.total_reels} clips</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Tabs */}
+            <div className="flex border-b border-border overflow-x-auto gap-2">
+              {[
+                { id: 'overview', label: 'Overview & Profile', icon: FiShield },
+                { id: 'reels', label: 'Reels & Video Portfolio', icon: FiFilm },
+                { id: 'campaigns', label: 'Campaigns & Earnings', icon: FiDollarSign },
+                { id: 'reviews', label: 'Reviews Received', icon: FiStar },
+                { id: 'logs', label: 'Activity & Security Logs', icon: FiFileText },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition-all ${
+                    activeTab === tab.id
+                      ? 'border-brand-pink text-brand-pink bg-brand-pink/5'
+                      : 'border-transparent text-text-tertiary hover:text-text-secondary'
+                  }`}
+                >
+                  <tab.icon className="w-4.5 h-4.5" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content panel */}
+            <div className="min-h-[300px] overflow-y-auto max-h-[50vh] pr-2">
+              {/* TAB 1: OVERVIEW */}
+              {activeTab === 'overview' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Account Data details */}
+                  <div className="space-y-3">
+                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Profile Details</h5>
+                    {creatorDetail.profile.creatorProfile?.bio && (
+                      <p className="text-xs text-text-secondary bg-surface-secondary p-3 rounded-xl italic border border-border">
+                        "{creatorDetail.profile.creatorProfile.bio}"
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {[
+                        ['Email', creatorDetail.profile.email],
+                        ['Phone', creatorDetail.profile.phone],
+                        ['KYC verification', creatorDetail.profile.kyc_status.toUpperCase()],
+                        ['Wallet status', creatorDetail.wallet.is_frozen ? 'Frozen' : 'Active'],
+                        ['Availability', creatorDetail.profile.creatorProfile?.availabilityStatus || creatorDetail.profile.creatorProfile?.availability || 'Available'],
+                        ['Travel Status', creatorDetail.profile.creatorProfile?.travelAvailable ? 'Available' : 'Local Only'],
+                        ['Languages', Array.isArray(creatorDetail.profile.creatorProfile?.languages) ? creatorDetail.profile.creatorProfile.languages.join(', ') : creatorDetail.profile.creatorProfile?.languages || '—'],
+                        ['City', creatorDetail.profile.city || '—'],
+                        ['Registered on', new Date(creatorDetail.profile.created_at).toLocaleString()],
+                        ['Last login', creatorDetail.profile.lastLoginAt ? new Date(creatorDetail.profile.lastLoginAt).toLocaleString() : 'Never'],
+                        ['Last login IP', creatorDetail.profile.lastLoginIp || '—']
+                      ].map(([label, val]) => (
+                        <div key={label} className="bg-surface-secondary p-2.5 rounded-xl border border-border/50">
+                          <span className="text-[9px] font-bold text-text-tertiary uppercase block">{label}</span>
+                          <span className="text-xs text-text-primary font-semibold mt-0.5 block">{val}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Rates */}
+                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1 pt-2">Campaign Rates</h5>
+                    <div className="bg-surface-secondary p-3 rounded-xl border border-border text-xs text-text-secondary grid grid-cols-2 gap-2">
+                      <p><span className="font-bold text-text-primary">1 Reel:</span> ₹{(creatorDetail.profile.creatorProfile?.pricing?.oneReel || creatorDetail.profile.creatorProfile?.pricing?.reel1 || 0).toLocaleString()}</p>
+                      <p><span className="font-bold text-text-primary">3 Reels:</span> ₹{(creatorDetail.profile.creatorProfile?.pricing?.threeReels || creatorDetail.profile.creatorProfile?.pricing?.reel3 || 0).toLocaleString()}</p>
+                      <p><span className="font-bold text-text-primary">Hourly Rate:</span> ₹{(creatorDetail.profile.creatorProfile?.pricing?.hourlyRate || 0).toLocaleString()} / hr</p>
+                      <p><span className="font-bold text-text-primary">Day Rate:</span> ₹{(creatorDetail.profile.creatorProfile?.pricing?.dayRate || 0).toLocaleString()} / day</p>
+                    </div>
+                  </div>
+
+                  {/* Status Timeline */}
+                  <div className="space-y-3">
+                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Status Timeline</h5>
+                    <div className="space-y-2.5">
+                      {(creatorDetail?.timeline || []).length === 0 ? (
+                        <p className="text-xs text-text-tertiary py-6 text-center">No timeline activity logged.</p>
+                      ) : (
+                        (creatorDetail?.timeline || []).slice(0, 5).map((t, idx) => (
+                          <div key={t.id || idx} className="flex gap-2 text-xs">
+                            <div className="flex flex-col items-center">
+                              <div className="w-2.5 h-2.5 rounded-full bg-brand-pink mt-1 flex-shrink-0" />
+                              <div className="w-0.5 h-full bg-border" />
+                            </div>
+                            <div className="flex-1 bg-surface-secondary border border-border p-2.5 rounded-xl">
+                              <span className="text-[9px] font-bold text-text-tertiary block">{new Date(t.created_at).toLocaleString()}</span>
+                              <span className="font-bold text-text-primary block mt-0.5">{t.action.replace('USER_', '')}</span>
+                              <span className="text-text-secondary mt-0.5 block">{t.description}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: REELS & VIDEO PORTFOLIO */}
+              {activeTab === 'reels' && (
+                <div className="space-y-2">
+                  <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Published Reels</h5>
+                  <div className="overflow-x-auto max-h-[400px] border border-border rounded-xl">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-surface-secondary font-bold text-[10px] text-text-tertiary uppercase">
+                        <tr className="border-b border-border">
+                          <th className="p-2.5">Date Published</th>
+                          <th className="p-2.5">Caption</th>
+                          <th className="p-2.5 text-right">Views</th>
+                          <th className="p-2.5 text-right">Likes</th>
+                          <th className="p-2.5 text-right">Video</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(creatorDetail?.reels || []).length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-text-tertiary">No reels posted.</td>
+                          </tr>
+                        ) : (
+                          (creatorDetail?.reels || []).map(r => (
+                            <tr key={r.id} className="border-b border-border/40 hover:bg-surface-secondary/20">
+                              <td className="p-2">{new Date(r.created_at).toLocaleDateString()}</td>
+                              <td className="p-2 font-medium text-text-primary max-w-[200px] truncate" title={r.caption}>{r.caption || '—'}</td>
+                              <td className="p-2 text-right">{r.views.toLocaleString()}</td>
+                              <td className="p-2 text-right font-bold text-brand-pink">{r.likes.toLocaleString()}</td>
+                              <td className="p-2 text-right">
+                                <a href={r.videoUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-brand-pink hover:underline">
+                                  Play Video
+                                </a>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: CAMPAIGNS & EARNINGS */}
+              {activeTab === 'campaigns' && (
+                <div className="space-y-2">
+                  <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Campaign Contracts</h5>
+                  <div className="overflow-x-auto max-h-[400px] border border-border rounded-xl">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-surface-secondary font-bold text-[10px] text-text-tertiary uppercase">
+                        <tr className="border-b border-border">
+                          <th className="p-2.5">Date</th>
+                          <th className="p-2.5">Vendor</th>
+                          <th className="p-2.5">Project Title</th>
+                          <th className="p-2.5 text-right">Budget</th>
+                          <th className="p-2.5 text-right">Campaign Status</th>
+                          <th className="p-2.5 text-right">Payment</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(creatorDetail?.campaigns || []).length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="p-8 text-center text-text-tertiary">No contracts found.</td>
+                          </tr>
+                        ) : (
+                          (creatorDetail?.campaigns || []).map(c => (
+                            <tr key={c.id} className="border-b border-border/40 hover:bg-surface-secondary/20">
+                              <td className="p-2">{new Date(c.created_at).toLocaleDateString()}</td>
+                              <td className="p-2 font-bold text-text-primary">{c.vendor?.businessName || c.vendor?.name || 'Vendor'}</td>
+                              <td className="p-2">{c.title}</td>
+                              <td className="p-2 text-right font-extrabold text-emerald-500">₹{c.budget.toLocaleString()}</td>
+                              <td className="p-2 text-right capitalize">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  c.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                                }`}>
+                                  {c.status}
+                                </span>
+                              </td>
+                              <td className="p-2 text-right capitalize">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  c.payment_status === 'paid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                                }`}>
+                                  {c.payment_status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: REVIEWS RECEIVED */}
+              {activeTab === 'reviews' && (
+                <div className="space-y-3">
+                  <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Reviews Received</h5>
+                  <div className="space-y-2">
+                    {(creatorDetail?.reviews || []).length === 0 ? (
+                      <p className="text-xs text-text-tertiary py-8 text-center">No reviews received yet.</p>
+                    ) : (
+                      (creatorDetail?.reviews || []).map(r => (
+                        <div key={r.id} className="bg-surface-secondary border border-border p-3 rounded-xl text-xs space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-amber-500">{'★'.repeat(r.rating)}</span>
+                            <span className="text-[9px] text-text-tertiary">{new Date(r.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-text-secondary italic">"{r.comment}"</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: ACTIVITY & AUDIT LOGS */}
+              {activeTab === 'logs' && (
+                <div className="space-y-4">
+                  {/* Activity logs */}
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Activity Log</h5>
+                    <div className="overflow-x-auto max-h-[200px] border border-border rounded-xl">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-surface-secondary font-bold text-[10px] text-text-tertiary uppercase">
+                          <tr className="border-b border-border">
+                            <th className="p-2.5">Date</th>
+                            <th className="p-2.5">Action</th>
+                            <th className="p-2.5">Description</th>
+                            <th className="p-2.5">IP</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(creatorDetail?.activityLogs || []).length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="p-6 text-center text-text-tertiary">No activity logged.</td>
+                            </tr>
+                          ) : (
+                            (creatorDetail?.activityLogs || []).map(l => (
+                              <tr key={l.id} className="border-b border-border/40 hover:bg-surface-secondary/20">
+                                <td className="p-2 whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
+                                <td className="p-2 font-bold text-text-primary">{l.action}</td>
+                                <td className="p-2">{l.description}</td>
+                                <td className="p-2 font-mono text-[10px] text-text-tertiary">{l.ip}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Login history */}
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Login History</h5>
+                    <div className="overflow-x-auto max-h-[200px] border border-border rounded-xl">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-surface-secondary font-bold text-[10px] text-text-tertiary uppercase">
+                          <tr className="border-b border-border">
+                            <th className="p-2.5">Date</th>
+                            <th className="p-2.5">Type</th>
+                            <th className="p-2.5">IP Address</th>
+                            <th className="p-2.5">User Agent</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(creatorDetail?.loginHistory || []).length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="p-6 text-center text-text-tertiary">No login history recorded.</td>
+                            </tr>
+                          ) : (
+                            (creatorDetail?.loginHistory || []).map(l => (
+                              <tr key={l.id} className="border-b border-border/40 hover:bg-surface-secondary/20">
+                                <td className="p-2 whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
+                                <td className="p-2 font-bold text-text-primary">{l.action.replace('USER_', '')}</td>
+                                <td className="p-2 font-mono text-[10px] text-text-tertiary">{l.ip}</td>
+                                <td className="p-2 text-[10px] text-text-tertiary truncate max-w-[200px]" title={l.user_agent}>{l.user_agent}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </AdminModal>
     </div>
