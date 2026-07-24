@@ -70,6 +70,22 @@ class ReelRepository {
 
     pipeline.push({ $unwind: '$creatorDetails' });
 
+    // Lookup targetListing details
+    pipeline.push({
+      $lookup: {
+        from: 'listings',
+        localField: 'targetListing',
+        foreignField: '_id',
+        as: 'targetListingDetails',
+      },
+    });
+    pipeline.push({
+      $unwind: {
+        path: '$targetListingDetails',
+        preserveNullAndEmptyArrays: true
+      }
+    });
+
     // Project fields including basic creator profile
     pipeline.push({
       $project: {
@@ -88,6 +104,12 @@ class ReelRepository {
           name: '$creatorDetails.name',
           avatarUrl: '$creatorDetails.avatarUrl',
           activeRole: '$creatorDetails.activeRole',
+        },
+        targetListing: {
+          _id: '$targetListingDetails._id',
+          title: '$targetListingDetails.title',
+          images: '$targetListingDetails.images',
+          price: '$targetListingDetails.price',
         },
       },
     });

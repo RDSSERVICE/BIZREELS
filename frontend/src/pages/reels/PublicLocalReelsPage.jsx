@@ -22,6 +22,7 @@ import { toast } from 'react-hot-toast';
 import { useGetReelsFeedQuery } from '../../features/reels/reelsApi';
 import { useGetVendorListingsQuery } from '../../features/vendor/vendorApi';
 import Loader from '../../components/common/Loader';
+import { resolveMediaUrl } from '../../lib/api';
 
 const PublicLocalReelsPage = () => {
   const navigate = useNavigate();
@@ -209,7 +210,7 @@ const PublicLocalReelsPage = () => {
                   >
                     {/* Thumbnail / Video Preview */}
                     <img
-                      src={reel.thumbnailUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80'}
+                      src={resolveMediaUrl(reel.thumbnailUrl || reel.targetListing?.images?.[0]) || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80'}
                       alt={reel.caption || 'Vendor Reel'}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
                     />
@@ -237,7 +238,7 @@ const PublicLocalReelsPage = () => {
                       <div className="flex flex-col gap-2 z-10">
                         <div className="flex items-center gap-2">
                           <img
-                            src={reel.creator?.avatarUrl || 'https://via.placeholder.com/150'}
+                            src={resolveMediaUrl(reel.creator?.avatarUrl) || 'https://via.placeholder.com/150'}
                             alt={reel.creator?.name}
                             className="w-7 h-7 rounded-full object-cover border border-white/50"
                           />
@@ -305,7 +306,7 @@ const PublicLocalReelsPage = () => {
                     {/* Media Thumbnail */}
                     <div className="relative w-full h-44 bg-surface-tertiary overflow-hidden">
                       <img
-                        src={item.images?.[0] || 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=600&q=80'}
+                        src={resolveMediaUrl(item.images?.[0]) || 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=600&q=80'}
                         alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
