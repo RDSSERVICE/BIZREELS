@@ -2,6 +2,7 @@ import React from 'react';
 
 /**
  * AdminStatCard — Reusable statistic card for admin dashboard
+ * Responsive: adapts padding and font sizes for mobile
  */
 export default function AdminStatCard({ label, value, icon: Icon, color = 'purple', trend, testId }) {
   const colorMap = {
@@ -24,25 +25,25 @@ export default function AdminStatCard({ label, value, icon: Icon, color = 'purpl
 
   return (
     <div
-      className={`glass rounded-2xl p-5 border ${c.border} shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5 group`}
+      className={`glass rounded-xl sm:rounded-2xl p-4 sm:p-5 border ${c.border} shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5 group`}
       data-testid={testId}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+          <span className="text-[9px] sm:text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
             {label}
           </span>
-          <h4 className="text-2xl font-black text-text-primary mt-1 font-display truncate">
+          <h4 className="text-xl sm:text-2xl font-black text-text-primary mt-0.5 sm:mt-1 font-display truncate">
             {value}
           </h4>
           {trend !== undefined && (
-            <span className={`text-[10px] font-bold mt-1 inline-block ${trend >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+            <span className={`text-[9px] sm:text-[10px] font-bold mt-0.5 sm:mt-1 inline-block ${trend >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
               {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
             </span>
           )}
         </div>
-        <div className={`p-3 ${c.bg} ${c.text} rounded-2xl group-hover:scale-110 transition-transform duration-300`}>
-          {Icon && <Icon className="w-5 h-5" />}
+        <div className={`p-2.5 sm:p-3 ${c.bg} ${c.text} rounded-xl sm:rounded-2xl group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>
+          {Icon && <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
         </div>
       </div>
     </div>

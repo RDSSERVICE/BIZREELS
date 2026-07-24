@@ -10,6 +10,7 @@ const connectDB = async () => {
     }
     await mongoose.connect(uri, {
       dbName: config.dbName,
+      family: 4, // Force IPv4 to avoid slow DNS lookups (e.g. IPv6 / AAAA resolution delays on Windows)
     });
     logger.info(`MongoDB connected: ${mongoose.connection.host}/${config.dbName}`);
   } catch (error) {

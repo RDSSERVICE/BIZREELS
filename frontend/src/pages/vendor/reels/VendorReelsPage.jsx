@@ -8,6 +8,7 @@ import {
   FiChevronLeft, FiChevronRight, FiTrash2, FiFileText
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { api } from '../../../lib/api';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminModal from '../../../features/admin/components/AdminModal';
@@ -298,6 +299,44 @@ export default function VendorReelsPage() {
   // GO LIVE STATE
   const [liveTitle, setLiveTitle] = useState('Live Product Showcase & Q&A');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [activeStreamId, setActiveStreamId] = useState(null);
+
+  const handleToggleLiveStream = async () => {
+    if (isStreaming && activeStreamId) {
+      const toastId = toast.loading('Ending live stream...');
+      try {
+        await api.post(`/v1/live/${activeStreamId}/end`);
+        setIsStreaming(false);
+        setActiveStreamId(null);
+        toast.success('Live stream ended.', { id: toastId });
+      } catch (err) {
+        toast.error(err?.response?.data?.message || 'Failed to end live stream', { id: toastId });
+      }
+    } else {
+      if (!liveTitle.trim()) {
+        toast.error('Live title is required');
+        return;
+      }
+      const toastId = toast.loading('Starting live stream...');
+      try {
+        const res = await api.post('/v1/live', {
+          title: liveTitle.trim(),
+          description: 'Live Interactive Session'
+        });
+        const stream = res.data?.data?.stream || res.data?.stream || res.data;
+        const streamId = stream?._id || stream?.id;
+        if (streamId) {
+          setActiveStreamId(streamId);
+          setIsStreaming(true);
+          toast.success('🔴 Live stream started!', { id: toastId });
+        } else {
+          toast.error('Failed to retrieve live stream ID', { id: toastId });
+        }
+      } catch (err) {
+        toast.error(err?.response?.data?.message || 'Failed to start live stream', { id: toastId });
+      }
+    }
+  };
 
   // AI Ad Prompt State
   const [aiPrompt, setAiPrompt] = useState('');
@@ -526,13 +565,11 @@ export default function VendorReelsPage() {
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-16">
       {/* AI RESTRICTION NOTICE BANNER */}
-      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-700 font-medium">
-        <div className="flex items-center gap-2">
-          <FiShield className="w-5 h-5 text-amber-600 flex-shrink-0" />
-          <span>
-            <strong>AI Content Guard Active:</strong> Phone numbers, WhatsApp numbers, QR codes, emails, websites & social media handles are strictly blocked. Violations will result in vendor account blacklisting.
-          </span>
-        </div>
+      <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start sm:items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-amber-700 font-medium">
+        <FiShield className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+        <span className="leading-relaxed">
+          <strong>AI Content Guard Active:</strong> <span className="hidden sm:inline">Phone numbers, WhatsApp numbers, QR codes, emails, websites & social media handles are strictly blocked. Violations will result in vendor account blacklisting.</span><span className="sm:hidden">Contact info strictly blocked in posts.</span>
+        </span>
       </div>
 
       <AdminPageHeader
@@ -543,57 +580,57 @@ export default function VendorReelsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => { setWizardStep(1); setShowPostModal(true); }}
-            className="px-3.5 py-2.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium flex items-center gap-1.5"
+            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl gradient-brand text-white font-bold text-[11px] sm:text-xs shadow-premium flex items-center gap-1.5"
           >
-            <FiPlus size={15} /> 1. CREATE SERVICE REEL / POST
+            <FiPlus size={15} /> <span className="hidden sm:inline">CREATE SERVICE REEL / POST</span><span className="sm:hidden">CREATE REEL</span>
           </button>
           <button
             onClick={() => setShowBoostModal(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-amber-500 text-white font-bold text-xs shadow-sm flex items-center gap-1.5"
+            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-amber-500 text-white font-bold text-[11px] sm:text-xs shadow-sm flex items-center gap-1.5"
           >
-            <FiZap size={15} /> 2. BOOST POST
+            <FiZap size={15} /> <span className="hidden sm:inline">BOOST POST</span><span className="sm:hidden">BOOST</span>
           </button>
           <button
             onClick={() => setShowAiAdModal(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-brand-purple text-white font-bold text-xs flex items-center gap-1.5"
+            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-brand-purple text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5"
           >
-            <FiCpu size={15} /> 3. CREATE REELS (AI)
+            <FiCpu size={15} /> <span className="hidden sm:inline">CREATE REELS (AI)</span><span className="sm:hidden">AI REEL</span>
           </button>
           <button
             onClick={() => setShowLiveModal(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-red-600 text-white font-bold text-xs flex items-center gap-1.5"
+            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-red-600 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5"
           >
-            <FiRadio size={15} /> 5. GO LIVE
+            <FiRadio size={15} /> <span className="hidden sm:inline">GO LIVE</span><span className="sm:hidden">LIVE</span>
           </button>
         </div>
       </AdminPageHeader>
 
       {/* REAL-TIME REEL CATALOG STATS BANNER */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="glass p-4 rounded-2xl border border-brand-purple/20 text-center space-y-1">
-          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">TOTAL REELS</span>
-          <span className="text-2xl font-black text-brand-purple">{reelsList.length}</span>
-          <span className="text-[10px] text-text-secondary block">Catalog Posts</span>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-brand-purple/20 text-center space-y-0.5 sm:space-y-1">
+          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">TOTAL REELS</span>
+          <span className="text-xl sm:text-2xl font-black text-brand-purple">{reelsList.length}</span>
+          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Catalog Posts</span>
         </div>
-        <div className="glass p-4 rounded-2xl border border-emerald-500/20 text-center space-y-1">
-          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">PUBLISHED</span>
-          <span className="text-2xl font-black text-emerald-500">{publishedCount}</span>
-          <span className="text-[10px] text-text-secondary block">Live Feed</span>
+        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-center space-y-0.5 sm:space-y-1">
+          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">PUBLISHED</span>
+          <span className="text-xl sm:text-2xl font-black text-emerald-500">{publishedCount}</span>
+          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Live Feed</span>
         </div>
-        <div className="glass p-4 rounded-2xl border border-blue-500/20 text-center space-y-1">
-          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">SCHEDULED</span>
-          <span className="text-2xl font-black text-blue-500">{scheduledCount}</span>
-          <span className="text-[10px] text-text-secondary block">Upcoming</span>
+        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-500/20 text-center space-y-0.5 sm:space-y-1">
+          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">SCHEDULED</span>
+          <span className="text-xl sm:text-2xl font-black text-blue-500">{scheduledCount}</span>
+          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Upcoming</span>
         </div>
-        <div className="glass p-4 rounded-2xl border border-amber-500/20 text-center space-y-1">
-          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">DRAFTS</span>
-          <span className="text-2xl font-black text-amber-500">{draftCount}</span>
-          <span className="text-[10px] text-text-secondary block">Saved Drafts</span>
+        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-amber-500/20 text-center space-y-0.5 sm:space-y-1">
+          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">DRAFTS</span>
+          <span className="text-xl sm:text-2xl font-black text-amber-500">{draftCount}</span>
+          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Saved Drafts</span>
         </div>
-        <div className="glass p-4 rounded-2xl border border-violet-500/20 text-center space-y-1">
-          <span className="text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">TOTAL VIEWS</span>
-          <span className="text-2xl font-black text-violet-500">{reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()}</span>
-          <span className="text-[10px] text-text-secondary block">Customer Views</span>
+        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-violet-500/20 text-center space-y-0.5 sm:space-y-1 col-span-2 sm:col-span-1">
+          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">TOTAL VIEWS</span>
+          <span className="text-xl sm:text-2xl font-black text-violet-500">{reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()}</span>
+          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Customer Views</span>
         </div>
       </div>
 
@@ -669,11 +706,11 @@ export default function VendorReelsPage() {
           
           {/* STEP INDICATOR HEADER */}
           <div className="flex items-center justify-between border-b border-border pb-3 text-xs">
-            <span className="font-extrabold text-brand-purple uppercase tracking-wider">
+          <span className="font-extrabold text-brand-purple uppercase tracking-wider text-[10px] sm:text-xs">
               Step {wizardStep} of 4: {
-                wizardStep === 1 ? 'Content Type, Category & Purpose' :
-                wizardStep === 2 ? 'Select Service & Media' :
-                wizardStep === 3 ? 'Promotion & Target Audience' :
+                wizardStep === 1 ? 'Content & Category' :
+                wizardStep === 2 ? 'Service & Media' :
+                wizardStep === 3 ? 'Promotion & Audience' :
                 'Preview & Publish'
               }
             </span>
@@ -701,7 +738,7 @@ export default function VendorReelsPage() {
                 <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
                   1. Select Content Type *
                 </label>
-                <div className="grid grid-cols-3 gap-3">
+                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => setPostType('services')}
@@ -747,7 +784,7 @@ export default function VendorReelsPage() {
                   <FiLayers /> 2. Select Service Category (Dependent Dropdowns)
                 </h4>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
                       Service Category *
@@ -1409,12 +1446,24 @@ export default function VendorReelsPage() {
               </div>
             )}
           </div>
+          
+          {!isStreaming && (
+            <div className="text-left space-y-1">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block">Live Broadcast Title *</label>
+              <input
+                type="text"
+                required
+                value={liveTitle}
+                onChange={(e) => setLiveTitle(e.target.value)}
+                placeholder="e.g. Special Product Showcase"
+                className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple"
+              />
+            </div>
+          )}
+
           <button
-            onClick={() => {
-              setIsStreaming(!isStreaming);
-              toast.success(isStreaming ? 'Live stream ended.' : '🔴 LIVE Stream Started!');
-            }}
-            className={`w-full py-3 text-white font-bold text-xs rounded-xl ${isStreaming ? 'bg-gray-700' : 'bg-red-600'}`}
+            onClick={handleToggleLiveStream}
+            className={`w-full py-3 text-white font-bold text-xs rounded-xl transition ${isStreaming ? 'bg-gray-700 hover:bg-gray-800' : 'bg-red-600 hover:bg-red-700'}`}
           >
             {isStreaming ? 'End Live Stream' : 'Start Live Stream Now'}
           </button>

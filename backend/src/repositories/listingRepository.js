@@ -156,6 +156,7 @@ class ListingRepository {
           avatarUrl: '$vendorDetails.avatarUrl',
           businessName: '$vendorDetails.vendorProfile.businessName',
           rating: '$vendorDetails.vendorProfile.rating',
+          offers: '$vendorDetails.vendorProfile.offers',
         },
       },
     });

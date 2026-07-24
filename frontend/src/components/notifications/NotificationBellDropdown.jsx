@@ -125,7 +125,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-scale-in">
+        <div className="fixed inset-x-3 top-14 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 w-auto sm:w-80 md:w-96 bg-surface border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-scale-in max-h-[80vh] sm:max-h-none">
           {/* Panel Header */}
           <div className="p-4 border-b border-border bg-surface-tertiary flex items-center justify-between">
             <div className="flex items-center gap-2">

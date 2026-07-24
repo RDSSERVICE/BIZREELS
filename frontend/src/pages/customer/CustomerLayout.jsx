@@ -354,25 +354,25 @@ export default function CustomerLayout() {
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 glass border-b border-border px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 glass border-b border-border px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 hover:bg-surface-tertiary rounded-xl lg:hidden text-text-secondary"
+              className="p-2 hover:bg-surface-tertiary rounded-xl lg:hidden text-text-secondary flex-shrink-0"
             >
               {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
             </button>
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden" />
-              <h1 className="text-sm font-bold text-text-primary font-display">Customer Portal</h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden flex-shrink-0" />
+              <h1 className="text-sm font-bold text-text-primary font-display hidden md:block">Customer Portal</h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
             {/* Location Pill */}
-            <div className="hidden sm:flex items-center gap-2 glass border border-border px-3.5 py-1.5 rounded-full text-xs font-semibold text-text-secondary shadow-sm">
+            <div className="hidden md:flex items-center gap-2 glass border border-border px-3 py-1.5 rounded-full text-xs font-semibold text-text-secondary shadow-sm">
               <FiMapPin className="text-brand-orange shrink-0" size={15} />
-              <span className="truncate max-w-[140px] sm:max-w-[220px]">{displayLocation}</span>
+              <span className="truncate max-w-[120px] lg:max-w-[200px]">{displayLocation}</span>
               <button
                 onClick={handleGetCurrentLocation}
                 disabled={isLocating}
@@ -383,14 +383,24 @@ export default function CustomerLayout() {
               </button>
             </div>
 
+            {/* Mobile Location Button */}
+            <button
+              onClick={handleGetCurrentLocation}
+              disabled={isLocating}
+              className="md:hidden p-2 hover:bg-surface-tertiary rounded-xl text-text-secondary transition flex-shrink-0"
+              title="Set Location"
+            >
+              <FiMapPin size={18} className={`text-brand-orange ${isLocating ? 'animate-spin' : ''}`} />
+            </button>
+
             {/* Role Switcher */}
             <div className="relative">
               <button
                 onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-purple/10 border border-brand-purple/20 text-brand-purple hover:bg-brand-purple/20 transition text-xs font-bold"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-brand-purple/10 border border-brand-purple/20 text-brand-purple hover:bg-brand-purple/20 transition text-[11px] sm:text-xs font-bold"
               >
-                <FiShield className="text-brand-purple" size={14} />
-                <span className="capitalize">Customer</span>
+                <FiShield className="text-brand-purple flex-shrink-0" size={14} />
+                <span className="capitalize hidden sm:inline">Customer</span>
                 <FiChevronDown size={14} />
               </button>
 
@@ -439,7 +449,7 @@ export default function CustomerLayout() {
             {/* Profile */}
             <button
               onClick={() => navigate('/customer/settings')}
-              className="w-9 h-9 rounded-full bg-surface border border-border overflow-hidden hover:border-brand-purple transition shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-surface border border-border overflow-hidden hover:border-brand-purple transition shrink-0"
             >
               {profileUser.profile_pic ? (
                 <img src={profileUser.profile_pic} alt={profileUser.name || 'User'} className="w-full h-full object-cover" />

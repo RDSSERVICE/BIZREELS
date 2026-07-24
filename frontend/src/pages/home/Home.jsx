@@ -27,7 +27,7 @@ const Home = () => {
   return (
     <div className="overflow-x-hidden min-h-screen bg-surface-secondary">
       {/* ── HERO SECTION ────────────────────────────────────────── */}
-      <section className="relative px-6 py-20 md:py-32 flex flex-col items-center justify-center text-center overflow-hidden">
+      <section className="relative px-4 sm:px-6 py-16 sm:py-20 md:py-32 flex flex-col items-center justify-center text-center overflow-hidden">
         {/* Subtle background glow blobs */}
         <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-brand-purple/10 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-orange/10 rounded-full blur-[120px] pointer-events-none" />
@@ -48,7 +48,7 @@ const Home = () => {
 
           <motion.h1
             variants={itemVariants}
-            className="text-4xl sm:text-6xl font-black text-brand-navy leading-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-brand-navy leading-tight"
           >
             Unleash Local Commerce Through <span className="gradient-text font-black">Visual Reels</span>
           </motion.h1>
@@ -85,40 +85,40 @@ const Home = () => {
       </section>
 
       {/* ── METRICS COUNTERS (Premium visual band) ───────────────── */}
-      <section className="px-6 py-8 border-t border-b border-border bg-surface/30 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+      <section className="px-4 sm:px-6 py-6 sm:py-8 border-t border-b border-border bg-surface/30 backdrop-blur-md">
+        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-center">
           <div>
-            <h3 className="text-3xl font-black text-brand-purple">10k+</h3>
+            <h3 className="text-2xl sm:text-3xl font-black text-brand-purple">10k+</h3>
             <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider mt-1">Local Vendors</p>
           </div>
           <div>
-            <h3 className="text-3xl font-black text-brand-navy">5,000+</h3>
+            <h3 className="text-2xl sm:text-3xl font-black text-brand-navy">5,000+</h3>
             <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider mt-1">Active Creators</p>
           </div>
           <div>
-            <h3 className="text-3xl font-black text-brand-orange">₹2.5M+</h3>
+            <h3 className="text-2xl sm:text-3xl font-black text-brand-orange">₹2.5M+</h3>
             <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider mt-1">Paid in Escrow</p>
           </div>
           <div>
-            <h3 className="text-3xl font-black text-brand-pink">500k+</h3>
+            <h3 className="text-2xl sm:text-3xl font-black text-brand-pink">500k+</h3>
             <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider mt-1">Reels Watched</p>
           </div>
         </div>
       </section>
 
       {/* ── FOR BUSINESSES VS CREATORS (Dual Feature grids) ────────── */}
-      <section className="px-6 py-20 max-w-6xl mx-auto flex flex-col gap-16">
+      <section className="px-4 sm:px-6 py-14 sm:py-20 max-w-6xl mx-auto flex flex-col gap-12 sm:gap-16">
         <div className="text-center max-w-xl mx-auto flex flex-col gap-3">
           <h2 className="text-3xl font-black text-brand-navy">A Workspace Tailored For Everyone</h2>
           <p className="text-xs text-text-secondary">BizReels supports unified accounts. Swap seamlessly between being a customer, vendor, or content creator.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
           {/* For Local Businesses Card */}
           <motion.div
             whileHover={{ y: -5 }}
             transition={{ duration: 0.3 }}
-            className="glass p-8 rounded-premium border-white/50 shadow-glass flex flex-col gap-6"
+            className="glass p-5 sm:p-8 rounded-premium border-white/50 shadow-glass flex flex-col gap-4 sm:gap-6"
           >
             <div className="w-12 h-12 bg-brand-purple/10 text-brand-purple rounded-premium flex items-center justify-center">
               <FiBriefcase className="w-6 h-6" />
@@ -146,7 +146,7 @@ const Home = () => {
           <motion.div
             whileHover={{ y: -5 }}
             transition={{ duration: 0.3 }}
-            className="glass p-8 rounded-premium border-white/50 shadow-glass flex flex-col gap-6"
+            className="glass p-5 sm:p-8 rounded-premium border-white/50 shadow-glass flex flex-col gap-4 sm:gap-6"
           >
             <div className="w-12 h-12 bg-brand-orange/10 text-brand-orange rounded-premium flex items-center justify-center">
               <FiVideo className="w-6 h-6" />

@@ -1,10 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiMapPin, FiStar, FiShoppingBag, FiTool, FiMessageCircle, FiPackage, FiHeart, FiShare2, FiPhone, FiMessageSquare, FiShoppingCart } from 'react-icons/fi';
+import { FiSearch, FiMapPin, FiStar, FiShoppingBag, FiTool, FiMessageCircle, FiPackage, FiHeart, FiShare2, FiPhone, FiMessageSquare, FiShoppingCart, FiClock } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { api, resolveMediaUrl } from '../../../lib/api';
+
+function OfferCountdown({ validTill }) {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = +new Date(validTill) - +new Date();
+      if (difference <= 0) {
+        setTimeLeft('Expired');
+        return;
+      }
+
+      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((difference / 1000 / 60) % 60);
+      const seconds = Math.floor((difference / 1000) % 60);
+
+      let parts = [];
+      if (days > 0) parts.push(`${days}d`);
+      if (hours > 0 || days > 0) parts.push(`${hours}h`);
+      parts.push(`${minutes}m`);
+      parts.push(`${seconds}s`);
+
+      setTimeLeft(parts.join(' ') + ' left');
+    };
+
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [validTill]);
+
+  if (timeLeft === 'Expired') {
+    return <span className="text-red-500 font-bold text-[10px] uppercase bg-red-500/10 px-2 py-0.5 rounded shadow-sm">Expired</span>;
+  }
+
+  return (
+    <span className="text-brand-orange font-bold text-[10px] bg-brand-orange/10 border border-brand-orange/20 px-2 py-0.5 rounded flex items-center gap-1 w-fit animate-pulse">
+      <FiClock className="animate-spin-slow" /> {timeLeft}
+    </span>
+  );
+}
 
 export default function SearchListingsPage() {
   const navigate = useNavigate();
@@ -563,6 +604,133 @@ export default function SearchListingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Service Details Section */}
+            {selectedItem.type === 'service' && selectedItem.serviceDetails && (
+              <div className="pt-4 border-t border-border mt-3 space-y-4">
+                <span className="text-[10px] font-bold text-brand-purple uppercase block tracking-wider">Service Details & Availability:</span>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-surface-secondary p-4 rounded-2xl border border-border">
+                  <div>
+                    <span className="text-[10px] text-text-tertiary block">Service Location Type</span>
+                    <span className="text-xs font-bold text-text-primary">{selectedItem.serviceDetails.serviceType || 'On-site'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-text-tertiary block">Price Unit / Type</span>
+                    <span className="text-xs font-bold text-text-primary">{selectedItem.serviceDetails.priceType || 'Fixed Price'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-text-tertiary block">Min Order Value</span>
+                    <span className="text-xs font-bold text-emerald-600">₹{(selectedItem.serviceDetails.minOrderValue || 0).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-text-tertiary block">Standard Duration</span>
+                    <span className="text-xs font-bold text-text-primary">{selectedItem.serviceDetails.durationText || '1 Hour'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-text-tertiary block">Working Hours</span>
+                    <span className="text-xs font-bold text-text-primary">{selectedItem.serviceDetails.workingHours || '09:00 AM - 08:00 PM'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-text-tertiary block">Emergency Service (24x7)</span>
+                    <span className={`text-xs font-bold uppercase ${selectedItem.serviceDetails.emergencyService24x7 ? 'text-emerald-600' : 'text-text-tertiary'}`}>
+                      {selectedItem.serviceDetails.emergencyService24x7 ? 'Yes (24/7)' : 'No'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Additional availability highlights */}
+                <div className="flex flex-wrap gap-2">
+                  <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border ${selectedItem.serviceDetails.homeVisitAvailable ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-red-500/10 text-red-600 border-red-500/20'}`}>
+                    {selectedItem.serviceDetails.homeVisitAvailable ? '✓ Home Visit Available' : '✗ No Home Visits'}
+                  </span>
+                  {selectedItem.serviceDetails.maxTravelDistanceKm && (
+                    <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold border bg-blue-500/10 text-blue-600 border-blue-500/20">
+                      ↔ Max Travel Distance: {selectedItem.serviceDetails.maxTravelDistanceKm} km
+                    </span>
+                  )}
+                  <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border ${selectedItem.serviceDetails.advanceBookingRequired ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 'bg-slate-500/10 text-slate-600 border-slate-500/20'}`}>
+                    {selectedItem.serviceDetails.advanceBookingRequired ? '⚠ Advance Booking Required' : 'Instant Booking'}
+                  </span>
+                </div>
+
+                {/* Working Days */}
+                {selectedItem.serviceDetails.workingDays && selectedItem.serviceDetails.workingDays.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-text-tertiary block">Operational Days:</span>
+                    <div className="flex gap-1 flex-wrap">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                        const active = selectedItem.serviceDetails.workingDays.includes(day);
+                        return (
+                          <span key={day} className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${active ? 'bg-brand-purple text-white border-brand-purple' : 'bg-surface-tertiary text-text-tertiary border-border'}`}>
+                            {day}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Service Area & Location */}
+                {selectedItem.serviceDetails.serviceArea && (
+                  <div>
+                    <span className="text-[10px] text-text-tertiary block">Service Coverage Area</span>
+                    <p className="text-xs text-text-secondary">{selectedItem.serviceDetails.serviceArea}</p>
+                  </div>
+                )}
+
+                {/* Policies */}
+                {selectedItem.serviceDetails.policies && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/60">
+                    {selectedItem.serviceDetails.policies.cancellationPolicy && (
+                      <div className="bg-surface p-3 rounded-xl border border-border">
+                        <span className="text-[9px] font-bold text-brand-orange block uppercase">Cancellation Policy</span>
+                        <p className="text-[11px] text-text-secondary leading-relaxed mt-0.5">{selectedItem.serviceDetails.policies.cancellationPolicy}</p>
+                      </div>
+                    )}
+                    {selectedItem.serviceDetails.policies.refundPolicy && (
+                      <div className="bg-surface p-3 rounded-xl border border-border">
+                        <span className="text-[9px] font-bold text-emerald-600 block uppercase">Refund Policy</span>
+                        <p className="text-[11px] text-text-secondary leading-relaxed mt-0.5">{selectedItem.serviceDetails.policies.refundPolicy}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Active Offers Section */}
+            {((selectedItem.offers && selectedItem.offers.length > 0) || (selectedItem.vendor?.offers && selectedItem.vendor.offers.length > 0)) && (
+              <div className="pt-4 border-t border-border mt-3 space-y-2 bg-gradient-to-r from-brand-pink/5 via-brand-purple/5 to-transparent p-4 rounded-2xl border border-brand-purple/10">
+                <span className="text-[10px] font-bold text-brand-purple uppercase block tracking-wider">Active Deals & Limited-Time Offers:</span>
+                <div className="space-y-3">
+                  {[...(selectedItem.offers || []), ...(selectedItem.vendor?.offers || [])]
+                    .filter(off => off.is_active !== false)
+                    .map((off, idx) => (
+                      <div key={idx} className="flex justify-between items-start bg-surface p-3 rounded-xl border border-brand-pink/20 shadow-sm">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-brand-pink text-white rounded text-[10px] font-black uppercase">
+                              {off.discountPct}% OFF
+                            </span>
+                            <span className="text-xs font-bold text-text-primary">{off.title}</span>
+                          </div>
+                          <p className="text-[11px] text-text-secondary leading-relaxed">{off.description}</p>
+                          <div className="text-[10px] text-text-tertiary">
+                            Use Code: <strong className="text-brand-purple font-mono uppercase bg-brand-purple/5 px-1.5 py-0.5 rounded">{off.couponCode}</strong>
+                          </div>
+                        </div>
+                        {off.validTill && (
+                          <div className="shrink-0 flex flex-col items-end gap-1">
+                            <span className="text-[10px] text-text-tertiary">Expires: {new Date(off.validTill).toLocaleDateString()}</span>
+                            <OfferCountdown validTill={off.validTill} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
 
             {/* Reviews Section */}
             <div className="pt-4 border-t border-border space-y-3">

@@ -84,7 +84,7 @@ export default function VendorReelBoostPage() {
       {/* Pricing Plans */}
       <div>
         <h3 className="text-xs font-bold text-text-tertiary uppercase tracking-wider mb-3 px-1">Buy New Reel Boost Package</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {boostPlans.map((plan) => (
             <div
               key={plan.name}

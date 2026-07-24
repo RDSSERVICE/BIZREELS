@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FiBell, FiShield, FiMessageSquare, FiTrendingDown, FiTag } from 'react-icons/fi';
+import { FiBell, FiShield, FiMessageSquare, FiTrendingDown, FiTag, FiClock } from 'react-icons/fi';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import { api } from '../../../lib/api';
+import { getSocket } from '../../../lib/socket';
 
 const TABS = [
   { key: 'all', label: 'All Notifications', icon: FiBell },
@@ -12,6 +13,47 @@ const TABS = [
   { key: 'offers', label: 'New Offers', icon: FiTag },
 ];
 
+function OfferCountdown({ validTill }) {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = +new Date(validTill) - +new Date();
+      if (difference <= 0) {
+        setTimeLeft('Expired');
+        return;
+      }
+
+      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((difference / 1000 / 60) % 60);
+      const seconds = Math.floor((difference / 1000) % 60);
+
+      let parts = [];
+      if (days > 0) parts.push(`${days}d`);
+      if (hours > 0 || days > 0) parts.push(`${hours}h`);
+      parts.push(`${minutes}m`);
+      parts.push(`${seconds}s`);
+
+      setTimeLeft(parts.join(' ') + ' left');
+    };
+
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [validTill]);
+
+  if (timeLeft === 'Expired') {
+    return <span className="text-red-500 font-bold text-[10px] uppercase bg-red-500/10 px-2 py-0.5 rounded shadow-sm shrink-0">Expired</span>;
+  }
+
+  return (
+    <span className="text-brand-orange font-bold text-[10px] bg-brand-orange/10 border border-brand-orange/20 px-2 py-0.5 rounded flex items-center gap-1 w-fit animate-pulse shrink-0">
+      <FiClock className="animate-spin-slow" /> {timeLeft}
+    </span>
+  );
+}
+
 export default function CustomerNotificationsPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [notifications, setNotifications] = useState([]);
@@ -19,6 +61,17 @@ export default function CustomerNotificationsPage() {
 
   useEffect(() => {
     fetchNotifications();
+
+    const socket = getSocket();
+    if (socket) {
+      const handleNewNotification = (notif) => {
+        setNotifications((prev) => [notif, ...prev]);
+      };
+      socket.on('notification:new', handleNewNotification);
+      return () => {
+        socket.off('notification:new', handleNewNotification);
+      };
+    }
   }, []);
 
   const fetchNotifications = async () => {
@@ -76,7 +129,12 @@ export default function CustomerNotificationsPage() {
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-text-primary">{n.title}</h4>
-                  <span className="text-[10px] text-text-tertiary">{n.created_at ? new Date(n.created_at).toLocaleDateString() : n.date || 'Recent'}</span>
+                  <div className="flex items-center gap-2">
+                    {(n.type === 'offers' || n.type === 'offer') && (n.data?.validTill || n.validTill) && (
+                      <OfferCountdown validTill={n.data?.validTill || n.validTill} />
+                    )}
+                    <span className="text-[10px] text-text-tertiary">{n.created_at || n.createdAt ? new Date(n.created_at || n.createdAt).toLocaleDateString() : n.date || 'Recent'}</span>
+                  </div>
                 </div>
                 <p className="text-xs text-text-secondary">{n.body || n.message}</p>
               </div>

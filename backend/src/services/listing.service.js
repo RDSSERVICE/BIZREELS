@@ -66,7 +66,10 @@ class ListingService {
       stock: stock !== undefined ? Number(stock) : 1,
       labels: Array.isArray(labels) ? labels : [],
       offers: Array.isArray(offers) ? offers : [],
-      serviceDetails: serviceDetails || {},
+      serviceDetails: serviceDetails ? {
+        ...serviceDetails,
+        durationText: serviceDetails.durationText || serviceDetails.duration || '1 Hour'
+      } : {},
       discount,
       condition,
       status: data.status || 'published',

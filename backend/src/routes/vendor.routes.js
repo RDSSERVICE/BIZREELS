@@ -317,6 +317,9 @@ router.get('/me/offers', requireAuth, catchAsync(async (req, res) => {
 router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
   const { title, discountPct, couponCode, validTill, description } = req.body;
   if (!title) throw ApiError.badRequest('Offer title is required');
+  if (validTill && new Date(validTill) < new Date()) {
+    throw ApiError.badRequest('Offer validity date and time must be in the future');
+  }
 
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
@@ -340,6 +343,41 @@ router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
   await user.save();
+
+  // Notify all customers in real-time
+  try {
+    const notificationService = require('../services/notification.service');
+    const customers = await User.find({
+      roles: 'customer',
+      is_deleted: { $ne: true }
+    });
+
+    const vendorDisplayName = user.name || currentVp.businessName || 'a local vendor';
+    const notifyPromises = customers.map(cust =>
+      notificationService.create(
+        cust._id.toString(),
+        'offers',
+        `New Offer from ${vendorDisplayName}`,
+        `Get ${newOffer.discountPct}% OFF with code "${newOffer.couponCode}" for: ${newOffer.title}. Expiring on: ${new Date(newOffer.validTill).toLocaleString()}`,
+        {
+          offerId: newOffer.id,
+          vendorId: user._id.toString(),
+          vendorName: vendorDisplayName,
+          validTill: newOffer.validTill,
+          couponCode: newOffer.couponCode,
+          discountPct: newOffer.discountPct,
+          title: newOffer.title,
+          description: newOffer.description
+        },
+        '/customer/notifications'
+      )
+    );
+
+    // Send notifications concurrently
+    await Promise.all(notifyPromises);
+  } catch (err) {
+    console.error('Failed to notify customers about new offer:', err.message);
+  }
 
   res.json({ success: true, message: 'Dynamic offer published successfully!', data: newOffer, offers: currentOffers });
 }));

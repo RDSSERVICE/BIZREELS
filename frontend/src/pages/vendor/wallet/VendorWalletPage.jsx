@@ -162,16 +162,16 @@ export default function VendorWalletPage() {
       />
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="glass rounded-2xl p-6 border border-white/50 shadow-2xl max-w-md w-full space-y-5 bg-surface relative">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="glass rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 border border-white/50 shadow-2xl max-w-md w-full space-y-4 bg-surface relative max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
-                <FiDollarSign className="text-emerald-500" size={18} />
+              <h3 className="text-xs sm:text-sm font-bold text-text-primary flex items-center gap-2">
+                <FiDollarSign className="text-emerald-500" size={16} />
                 Recharge Vendor Wallet
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition"
+                className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition min-w-[32px] min-h-[32px] flex items-center justify-center"
               >
                 <FiX size={18} />
               </button>
@@ -179,7 +179,7 @@ export default function VendorWalletPage() {
 
             <form onSubmit={handleRechargeSubmit} className="space-y-4">
               <div>
-                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
+                <label className="text-[9px] sm:text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
                   Select or Enter Amount (₹)
                 </label>
                 <div className="grid grid-cols-3 gap-2 mb-3">
@@ -188,7 +188,7 @@ export default function VendorWalletPage() {
                       key={preset}
                       type="button"
                       onClick={() => setAmount(preset)}
-                      className={`py-2 rounded-xl border text-xs font-bold transition ${
+                      className={`py-2 rounded-xl border text-[11px] sm:text-xs font-bold transition ${
                         amount === preset
                           ? 'bg-brand-purple/10 border-brand-purple text-brand-purple shadow-sm'
                           : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
@@ -220,18 +220,18 @@ export default function VendorWalletPage() {
                 </span>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-3 pt-2 pb-safe">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-text-tertiary hover:text-text-primary transition"
+                  className="px-4 py-2 text-xs font-bold text-text-tertiary hover:text-text-primary transition min-h-[36px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 gradient-brand text-white text-xs font-bold rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-5 py-2 gradient-brand text-white text-xs font-bold rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5 disabled:opacity-50 min-h-[36px]"
                 >
                   {loading ? 'Processing...' : `Pay ₹${Number(amount || 0).toLocaleString('en-IN')} via Razorpay`}
                 </button>

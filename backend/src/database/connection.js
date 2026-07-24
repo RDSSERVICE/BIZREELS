@@ -26,6 +26,7 @@ const connectDB = async () => {
     heartbeatFrequencyMS: 10000,
     retryWrites: true,
     w: 'majority',
+    family: 4, // Force IPv4 to avoid slow DNS lookups (e.g. IPv6 / AAAA resolution delays on Windows)
   };
 
   // Connection lifecycle logging

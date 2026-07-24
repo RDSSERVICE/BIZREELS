@@ -73,23 +73,23 @@ export default function VendorDashboardPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       {/* Top Verification Status & Dialogue Banner */}
-      <div className="glass rounded-2xl p-4 sm:p-5 border border-border shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{badgeInfo.icon}</span>
-          <div>
+      <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 border border-border shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <span className="text-xl sm:text-2xl flex-shrink-0">{badgeInfo.icon}</span>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeInfo.color}`}>
+              <span className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold border ${badgeInfo.color}`}>
                 {badgeInfo.label}
               </span>
             </div>
-            <p className="text-xs text-text-secondary mt-1">
-              Verify your business to get more leads, higher boost ranking in reels, and maximum buyer trust!
+            <p className="text-[10px] sm:text-xs text-text-secondary mt-1 line-clamp-2">
+              Verify your business to get more leads, higher boost ranking, and maximum buyer trust!
             </p>
           </div>
         </div>
         <Link
           to="/vendor/verification"
-          className="px-4 py-2 rounded-xl gradient-brand text-white text-xs font-bold shadow-premium hover:opacity-90 transition flex-shrink-0 flex items-center gap-1.5"
+          className="w-full sm:w-auto px-3 sm:px-4 py-2 rounded-xl gradient-brand text-white text-[11px] sm:text-xs font-bold shadow-premium hover:opacity-90 transition flex-shrink-0 flex items-center justify-center gap-1.5"
         >
           <FiShield size={15} />
           <span>Open Verification Menu</span>
@@ -99,11 +99,11 @@ export default function VendorDashboardPage() {
       {/* CREDITS OVERVIEW & RATE CARD */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 glass rounded-3xl p-5 border border-amber-500/20 shadow-card bg-gradient-to-r from-amber-500/10 via-surface to-brand-purple/10 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
-              <FiDollarSign className="text-amber-500" /> VENDOR CREDIT WALLET (1 Credit = ₹1 INR)
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <h3 className="text-xs sm:text-sm font-bold text-text-primary font-display flex items-center gap-2">
+              <FiDollarSign className="text-amber-500" /> VENDOR CREDIT WALLET <span className="hidden sm:inline">(1 Credit = ₹1 INR)</span>
             </h3>
-            <Link to="/vendor/wallet" className="text-xs font-bold text-brand-purple hover:underline">
+            <Link to="/vendor/wallet" className="text-[10px] sm:text-xs font-bold text-brand-purple hover:underline">
               Manage Wallet & Topup →
             </Link>
           </div>
@@ -156,20 +156,20 @@ export default function VendorDashboardPage() {
         title="Vendor Overview Dashboard"
         subtitle="Real-time performance analytics across products, services, reels, and lead conversions"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             to="/vendor/reels"
-            className="px-4 py-2.5 rounded-xl bg-brand-purple text-white font-bold text-xs shadow-premium hover:bg-brand-purple/90 transition flex items-center gap-1.5"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-brand-purple text-white font-bold text-[11px] sm:text-xs shadow-premium hover:bg-brand-purple/90 transition flex items-center gap-1.5"
           >
             <FiVideo size={16} />
-            <span>1. POST REELS/IMAGE</span>
+            <span className="hidden sm:inline">1. POST REELS/IMAGE</span><span className="sm:hidden">POST REEL</span>
           </Link>
           <Link
             to="/vendor/boost"
-            className="px-4 py-2.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl gradient-brand text-white font-bold text-[11px] sm:text-xs shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
           >
             <FiZap size={16} />
-            <span>2. BOOST POST</span>
+            <span className="hidden sm:inline">2. BOOST POST</span><span className="sm:hidden">BOOST</span>
           </Link>
         </div>
       </AdminPageHeader>

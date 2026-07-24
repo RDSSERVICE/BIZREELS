@@ -234,36 +234,36 @@ export default function CreatorLayout() {
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 glass border-b border-border px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 glass border-b border-border px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 hover:bg-surface-tertiary rounded-xl lg:hidden text-text-secondary"
+              className="p-2 hover:bg-surface-tertiary rounded-xl lg:hidden text-text-secondary flex-shrink-0"
             >
               {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
             </button>
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden" />
-              <h1 className="text-sm font-bold text-text-primary font-display hidden sm:block">Creator Studio</h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden flex-shrink-0" />
+              <h1 className="text-sm font-bold text-text-primary font-display hidden md:block">Creator Studio</h1>
 
-              {/* Top Bar Status Badge */}
+              {/* Top Bar Status Badge — icon-only on very small screens */}
               <Link
                 to="/creator/verification"
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5 transition hover:opacity-80 ${badgeInfo.class}`}
+                className={`px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold border flex items-center gap-1 sm:gap-1.5 transition hover:opacity-80 flex-shrink-0 ${badgeInfo.class}`}
               >
                 <span>{badgeInfo.icon}</span>
-                <span>{badgeInfo.label}</span>
+                <span className="hidden sm:inline">{badgeInfo.label}</span>
               </Link>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
             <button
               onClick={handleSwitchToCustomer}
-              className="px-3 py-1.5 rounded-xl glass border border-border hover:bg-surface-tertiary text-text-secondary hover:text-text-primary text-xs font-bold flex items-center gap-1.5 transition"
+              className="px-2 sm:px-3 py-1.5 rounded-xl glass border border-border hover:bg-surface-tertiary text-text-secondary hover:text-text-primary text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 transition"
             >
-              <FiShield size={14} className="text-brand-purple" />
-              <span className="hidden sm:inline">Switch to Customer</span>
+              <FiShield size={14} className="text-brand-purple flex-shrink-0" />
+              <span className="hidden md:inline">Switch to Customer</span>
             </button>
 
             <NotificationBellDropdown role="creator" />
@@ -271,21 +271,21 @@ export default function CreatorLayout() {
             <img
               src={profileUser?.profile_pic || "/logo.png"}
               alt="Creator Profile"
-              className="w-8 h-8 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm flex-shrink-0"
             />
           </div>
         </header>
 
         {/* Verification Dialogue Banner (Show if not fully verified) */}
         {currentTier !== 'verified_creator' && currentTier !== 'pro_verified' && (
-          <div className="bg-gradient-to-r from-brand-purple via-brand-pink to-brand-orange text-white px-4 py-2 text-xs font-semibold flex items-center justify-between gap-3 shadow-md">
-            <div className="flex items-center gap-2 truncate">
-              <span className="text-base">🟢</span>
-              <span className="truncate">Verify your Creator profile & get up to 5x more brand offers, top marketplace ranking, and verified badge!</span>
+          <div className="bg-gradient-to-r from-brand-purple via-brand-pink to-brand-orange text-white px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold flex items-center justify-between gap-2 sm:gap-3 shadow-md">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm sm:text-base flex-shrink-0">🟢</span>
+              <span className="truncate text-[10px] sm:text-xs">Verify your Creator profile for 5x more brand offers & verified badge!</span>
             </div>
             <Link
               to="/creator/verification"
-              className="px-3 py-1 bg-white text-brand-purple rounded-lg font-bold text-[11px] hover:bg-white/90 transition flex-shrink-0 shadow-sm"
+              className="px-2.5 sm:px-3 py-1 bg-white text-brand-purple rounded-lg font-bold text-[10px] sm:text-[11px] hover:bg-white/90 transition flex-shrink-0 shadow-sm whitespace-nowrap"
             >
               Verify Now
             </Link>

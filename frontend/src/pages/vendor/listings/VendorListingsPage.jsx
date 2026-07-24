@@ -111,12 +111,25 @@ export default function VendorListingsPage() {
     }
   });
 
+  const getNextWeekDateString = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const getCurrentDateTimeString = () => {
+    const d = new Date();
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   // ── DYNAMIC OFFER FORM STATE ──
   const [offerForm, setOfferForm] = useState({
     title: '',
     discountPct: 15,
     couponCode: 'SAVE15',
-    validTill: '2026-12-31',
+    validTill: getNextWeekDateString(),
     description: 'Special seasonal promotion discount'
   });
 
@@ -359,7 +372,10 @@ export default function VendorListingsPage() {
         price: Number(serviceForm.price),
         actualPrice: Number(serviceForm.price),
         sellingPrice: Number(serviceForm.price),
-        serviceDetails: serviceForm,
+        serviceDetails: {
+          ...serviceForm,
+          durationText: serviceForm.duration || '1 Hour'
+        },
         images: serviceForm.coverImage ? [serviceForm.coverImage, ...serviceForm.galleryImages] : ['https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=500'],
         status: 'published'
       };
@@ -377,6 +393,9 @@ export default function VendorListingsPage() {
   const handleCreateOffer = async (e) => {
     e.preventDefault();
     if (!offerForm.title) return toast.error('Offer title is required');
+    if (new Date(offerForm.validTill) < new Date()) {
+      return toast.error('Offer valid till date must be in the future');
+    }
 
     const toastId = toast.loading('Publishing dynamic offer to database...');
     try {
@@ -434,32 +453,31 @@ export default function VendorListingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-16">
-      {/* SUBSCRIPTION PLAN UPGRADE BANNER */}
-      <div className="glass rounded-3xl p-6 border border-brand-purple/20 shadow-card bg-gradient-to-r from-brand-purple/10 via-surface to-brand-orange/10 relative overflow-hidden space-y-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-brand-purple text-white text-[10px] font-black uppercase rounded-full tracking-wider shadow-sm">
+      <div className="glass rounded-2xl sm:rounded-3xl border border-brand-purple/20 overflow-hidden shadow-premium bg-gradient-to-r from-brand-purple/5 via-surface to-brand-orange/5">
+        <div className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 sm:px-3 py-1 bg-brand-purple text-white text-[9px] sm:text-[10px] font-black uppercase rounded-full tracking-wider shadow-sm">
                 FREE PLAN ACTIVE
               </span>
-              <span className="text-xs font-bold text-text-secondary">Real-Time Database Sync</span>
+              <span className="text-[11px] sm:text-xs font-bold text-text-secondary">Real-Time Database Sync</span>
             </div>
-            <p className="text-xs text-text-secondary max-w-3xl leading-relaxed">
-              List your products so customers can easily search, discover, and connect with you for purchases, orders, or inquiries.
-              The Free Plan allows you to list a limited number of products, which are searchable by customers.
+            <p className="text-[11px] sm:text-xs text-text-secondary max-w-3xl leading-relaxed">
+              List your products so customers can easily search, discover, and connect with you.
+              <span className="hidden sm:inline"> The Free Plan allows you to list a limited number of products, which are searchable by customers.</span>
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] font-semibold text-text-primary">
-              <div className="flex items-center gap-1.5"><FiCheck className="text-emerald-500" /> List more products</div>
-              <div className="flex items-center gap-1.5"><FiCheck className="text-emerald-500" /> Increase searchable limit</div>
-              <div className="flex items-center gap-1.5"><FiCheck className="text-emerald-500" /> Product boost features</div>
-              <div className="flex items-center gap-1.5"><FiCheck className="text-emerald-500" /> Reach more customers</div>
+            <div className="grid grid-cols-2 gap-2 pt-1 text-[10px] sm:text-[11px] font-semibold text-text-primary">
+              <div className="flex items-center gap-1.5"><FiCheck className="text-emerald-500 flex-shrink-0" /> List more products</div>
+              <div className="flex items-center gap-1.5"><FiCheck className="text-emerald-500 flex-shrink-0" /> Increase search limit</div>
+              <div className="flex items-center gap-1.5"><FiCheck className="text-emerald-500 flex-shrink-0" /> Product boost features</div>
+              <div className="flex items-center gap-1.5"><FiCheck className="text-emerald-500 flex-shrink-0" /> Reach more customers</div>
             </div>
           </div>
           <button
             onClick={() => setShowSubscriptionModal(true)}
-            className="px-5 py-3 gradient-brand text-white font-bold text-xs rounded-2xl shadow-premium hover:opacity-90 transition flex-shrink-0 flex items-center gap-2"
+            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 gradient-brand text-white font-bold text-[11px] sm:text-xs rounded-xl sm:rounded-2xl shadow-premium hover:opacity-90 transition flex-shrink-0 flex items-center justify-center gap-2"
           >
-            <FiZap /> SHOW SUBSCRIPTION PLAN
+            <FiZap /> <span className="hidden sm:inline">SHOW SUBSCRIPTION PLAN</span><span className="sm:hidden">SUBSCRIPTION</span>
           </button>
         </div>
       </div>
@@ -469,18 +487,18 @@ export default function VendorListingsPage() {
         title="My Listing & Offer Center (Real-Time)"
         subtitle={`Live database catalog • Category Scope: ${registeredCat || 'All Categories'}`}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setShowOfferModal(true)}
-            className="px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 transition flex items-center gap-1.5 shadow-sm"
+            className="px-3 sm:px-4 py-2 bg-amber-500 text-white rounded-xl text-[11px] sm:text-xs font-bold hover:bg-amber-600 transition flex items-center gap-1.5 shadow-sm"
           >
-            <FiPercent /> Create Dynamic Offer
+            <FiPercent /> <span className="hidden sm:inline">Create Dynamic Offer</span><span className="sm:hidden">New Offer</span>
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition flex items-center gap-1.5 shadow-premium"
+            className="px-3 sm:px-4 py-2 gradient-brand text-white rounded-xl text-[11px] sm:text-xs font-bold hover:opacity-90 transition flex items-center gap-1.5 shadow-premium"
           >
-            <FiPlus className="w-4 h-4" /> Add Product / Service
+            <FiPlus className="w-4 h-4" /> <span className="hidden sm:inline">Add Product / Service</span><span className="sm:hidden">Add Product</span>
           </button>
         </div>
       </AdminPageHeader>
@@ -489,14 +507,14 @@ export default function VendorListingsPage() {
 
       {activeTab === 'offers' ? (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-surface p-4 rounded-2xl border border-border">
-            <div>
-              <h3 className="text-sm font-bold text-text-primary">Active Customer Offers & Deals (Live Database)</h3>
-              <p className="text-xs text-text-tertiary">Real-time dynamic discounts displayed to buyer search results & product pages</p>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-surface p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-border">
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-bold text-text-primary">Active Customer Offers & Deals</h3>
+              <p className="text-[10px] sm:text-xs text-text-tertiary">Real-time dynamic discounts for buyer search results</p>
             </div>
             <button
               onClick={() => setShowOfferModal(true)}
-              className="px-3.5 py-2 gradient-brand text-white text-xs font-bold rounded-xl"
+              className="px-3 sm:px-3.5 py-2 gradient-brand text-white text-[11px] sm:text-xs font-bold rounded-xl flex-shrink-0"
             >
               + Add Offer
             </button>
@@ -830,6 +848,27 @@ export default function VendorListingsPage() {
                       className="w-full p-2 bg-surface border rounded-xl text-xs"
                     />
                   </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary block mb-1">Duration *</label>
+                    <input
+                      type="text"
+                      required
+                      value={serviceForm.duration}
+                      onChange={(e) => setServiceForm({ ...serviceForm, duration: e.target.value })}
+                      placeholder="e.g. 1 Hour"
+                      className="w-full p-2 bg-surface border rounded-xl text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary block mb-1">Min Order Value (₹)</label>
+                    <input
+                      type="number"
+                      value={serviceForm.minOrderValue}
+                      onChange={(e) => setServiceForm({ ...serviceForm, minOrderValue: e.target.value })}
+                      placeholder="e.g. 500"
+                      className="w-full p-2 bg-surface border rounded-xl text-xs"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -844,6 +883,14 @@ export default function VendorListingsPage() {
                   <div>
                     <label className="text-[10px] font-bold text-text-tertiary block mb-1">City</label>
                     <input type="text" value={serviceForm.city} onChange={(e) => setServiceForm({ ...serviceForm, city: e.target.value })} className="w-full p-2 bg-surface border rounded-xl text-xs" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary block mb-1">State</label>
+                    <input type="text" value={serviceForm.state} onChange={(e) => setServiceForm({ ...serviceForm, state: e.target.value })} className="w-full p-2 bg-surface border rounded-xl text-xs" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary block mb-1">Pincode</label>
+                    <input type="text" value={serviceForm.pincode} onChange={(e) => setServiceForm({ ...serviceForm, pincode: e.target.value })} className="w-full p-2 bg-surface border rounded-xl text-xs" />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-text-tertiary block mb-1">Max Travel Distance (km)</label>
@@ -867,10 +914,33 @@ export default function VendorListingsPage() {
                     <input type="text" value={serviceForm.workingHours} onChange={(e) => setServiceForm({ ...serviceForm, workingHours: e.target.value })} className="w-full p-2 bg-surface border rounded-xl text-xs" />
                   </div>
                   <div className="flex items-center gap-4 pt-4">
-                    <label className="flex items-center gap-1.5 text-xs">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold">
                       <input type="checkbox" checked={serviceForm.emergencyService24x7} onChange={(e) => setServiceForm({ ...serviceForm, emergencyService24x7: e.target.checked })} />
                       Emergency Service (24×7)
                     </label>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[10px] font-bold text-text-tertiary block mb-1">Working Days</label>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                        const checked = serviceForm.workingDays.includes(day);
+                        return (
+                          <label key={day} className="flex items-center gap-1.5 text-xs cursor-pointer bg-surface border border-border px-2.5 py-1 rounded-xl">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const newDays = e.target.checked
+                                  ? [...serviceForm.workingDays, day]
+                                  : serviceForm.workingDays.filter(d => d !== day);
+                                setServiceForm({ ...serviceForm, workingDays: newDays });
+                              }}
+                            />
+                            {day}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -886,6 +956,24 @@ export default function VendorListingsPage() {
                   <div>
                     <label className="text-[10px] font-bold text-text-tertiary block mb-1">Refund Policy</label>
                     <textarea rows={2} value={serviceForm.policies.refundPolicy} onChange={(e) => setServiceForm({ ...serviceForm, policies: { ...serviceForm.policies, refundPolicy: e.target.value } })} className="w-full p-2 bg-surface border rounded-xl text-xs" />
+                  </div>
+                  <div className="col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold">
+                      <input type="checkbox" checked={serviceForm.advanceBookingRequired} onChange={(e) => setServiceForm({ ...serviceForm, advanceBookingRequired: e.target.checked })} />
+                      Booking Required
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold">
+                      <input type="checkbox" checked={serviceForm.contactSettings.chat} onChange={(e) => setServiceForm({ ...serviceForm, contactSettings: { ...serviceForm.contactSettings, chat: e.target.checked } })} />
+                      Enable Chat
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold">
+                      <input type="checkbox" checked={serviceForm.contactSettings.whatsapp} onChange={(e) => setServiceForm({ ...serviceForm, contactSettings: { ...serviceForm.contactSettings, whatsapp: e.target.checked } })} />
+                      Enable WhatsApp
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold">
+                      <input type="checkbox" checked={serviceForm.leadSettings.quoteRequest} onChange={(e) => setServiceForm({ ...serviceForm, leadSettings: { ...serviceForm.leadSettings, quoteRequest: e.target.checked } })} />
+                      Enable Quotes
+                    </label>
                   </div>
                 </div>
               </div>
@@ -914,6 +1002,10 @@ export default function VendorListingsPage() {
               <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Coupon Code</label>
               <input type="text" value={offerForm.couponCode} onChange={(e) => setOfferForm({ ...offerForm, couponCode: e.target.value })} className="w-full p-2.5 bg-surface border rounded-xl text-xs" />
             </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Offer Valid Till (Expiry Date & Time) *</label>
+            <input type="datetime-local" required min={getCurrentDateTimeString()} value={offerForm.validTill} onChange={(e) => setOfferForm({ ...offerForm, validTill: e.target.value })} className="w-full p-2.5 bg-surface border rounded-xl text-xs" />
           </div>
           <div>
             <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Offer Description</label>

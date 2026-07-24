@@ -81,7 +81,7 @@ const PublicLayout = () => {
 
       {/* Mobile Menu Panel */}
       {isMobileMenuOpen && (
-        <div className="md:hidden glass border-b border-border p-4 flex flex-col gap-4 animate-fade-in z-45">
+        <div className="md:hidden glass border-b border-border p-4 flex flex-col gap-4 animate-fade-in z-[45]">
           <div className="flex flex-col gap-3">
             {navLinks.map((link) => (
               <Link
@@ -138,7 +138,7 @@ const PublicLayout = () => {
 
       {/* ── Website Public Footer ─────────────────────────────── */}
       <footer className="glass border-t border-border py-12 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto" />
