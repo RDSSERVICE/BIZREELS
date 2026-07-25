@@ -117,8 +117,10 @@ router.patch('/me', requireAuth, catchAsync(async (req, res) => {
 router.get('/me/saved', requireAuth, catchAsync(async (req, res) => {
   const Listing = require('../models/Listing');
   const savedIds = req.user.customerProfile?.savedListings || [];
-  const listings = await Listing.find({ _id: { $in: savedIds }, is_deleted: { $ne: true } }).lean();
-  res.json({ saved: listings.map(l => ({ id: l._id.toString(), title: l.title, price: l.price, image: l.images?.[0] || '' })) });
+  const listings = await Listing.find({ _id: { $in: savedIds } })
+    .populate('vendor', 'name shopName')
+    .lean();
+  res.json({ saved: listings.map(l => ({ id: l._id.toString(), _id: l._id.toString(), title: l.title, price: l.price, type: l.type, images: l.images, vendor: l.vendor })) });
 }));
 
 router.post('/me/switch-role', requireAuth, catchAsync(async (req, res) => {

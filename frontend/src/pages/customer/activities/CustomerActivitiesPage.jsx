@@ -39,12 +39,12 @@ export default function CustomerActivitiesPage() {
   const { data: followingData } = useGetFollowingQuery(undefined, { pollingInterval: 5000 });
   const [unfollowUser] = useUnfollowUserMutation();
 
-  const savedListings = Array.isArray(savedData?.data) ? savedData.data : Array.isArray(savedData) ? savedData : [];
+  const savedListings = Array.isArray(savedData?.saved) ? savedData.saved : (Array.isArray(savedData?.data?.saved) ? savedData.data.saved : (Array.isArray(savedData?.data) ? savedData.data : (Array.isArray(savedData) ? savedData : [])));
   const savedProducts = savedListings.filter(item => item.type !== 'service');
   const savedServices = savedListings.filter(item => item.type === 'service');
 
-  const orders = Array.isArray(ordersData?.orders) ? ordersData.orders : Array.isArray(ordersData?.data) ? ordersData.data : Array.isArray(ordersData) ? ordersData : [];
-  const inquiries = Array.isArray(inquiriesData?.inquiries) ? inquiriesData.inquiries : Array.isArray(inquiriesData?.data) ? inquiriesData.data : Array.isArray(inquiriesData) ? inquiriesData : [];
+  const orders = Array.isArray(ordersData?.data?.orders) ? ordersData.data.orders : (Array.isArray(ordersData?.orders) ? ordersData.orders : (Array.isArray(ordersData?.data) ? ordersData.data : (Array.isArray(ordersData) ? ordersData : [])));
+  const inquiries = Array.isArray(inquiriesData?.data?.inquiries) ? inquiriesData.data.inquiries : (Array.isArray(inquiriesData?.inquiries) ? inquiriesData.inquiries : (Array.isArray(inquiriesData?.data) ? inquiriesData.data : (Array.isArray(inquiriesData) ? inquiriesData : [])));
   const quotes = Array.isArray(quotesData?.data?.quotes) ? quotesData.data.quotes : (Array.isArray(quotesData?.quotes) ? quotesData.quotes : (Array.isArray(quotesData?.data) ? quotesData.data : (Array.isArray(quotesData) ? quotesData : [])));
   
   const followings = followingData?.items || [];
