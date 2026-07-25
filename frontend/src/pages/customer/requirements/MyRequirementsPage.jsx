@@ -60,15 +60,16 @@ export default function MyRequirementsPage() {
   const [deleteRequirement] = useDeleteRequirementMutation();
   const [updateRequirement] = useUpdateRequirementMutation();
 
-  const rawList = data?.requirements || data?.data?.requirements || [];
-  const totalItems = data?.total || 0;
+  const rawList = Array.isArray(data?.data) ? data.data : (data?.requirements || data?.data?.requirements || []);
+  const totalItems = data?.meta?.total || data?.total || 0;
 
   // Selected requirement details query
   const { data: detailData, isFetching: isDetailLoading, refetch: refetchDetails } = useGetRequirementsQuery(
     activeReqId ? { search: activeReqId, limit: 1 } : skipSymbol
   );
   
-  const selectedReq = (detailData?.requirements || detailData?.data?.requirements || []).find(r => r._id === activeReqId || r.id === activeReqId);
+  const selectedReqList = Array.isArray(detailData?.data) ? detailData.data : (detailData?.requirements || detailData?.data?.requirements || []);
+  const selectedReq = selectedReqList.find(r => r._id === activeReqId || r.id === activeReqId);
 
   const { data: quotesData, isFetching: isQuotesLoading, refetch: refetchQuotes } = useGetQuotesForRequirementQuery(
     activeReqId,
@@ -363,7 +364,7 @@ export default function MyRequirementsPage() {
                 <div className="p-3 bg-surface-secondary rounded-xl">
                   <span className="text-text-tertiary block mb-1">Date Posted</span>
                   <strong className="text-sm font-bold text-text-primary">
-                    {selectedReq.createdAt ? new Date(selectedReq.createdAt).toLocaleDateString('en-IN') : 'Recent'}
+                    {(selectedReq.created_at || selectedReq.createdAt) ? new Date(selectedReq.created_at || selectedReq.createdAt).toLocaleDateString('en-IN') : 'Recent'}
                   </strong>
                 </div>
               </div>
@@ -912,7 +913,7 @@ export default function MyRequirementsPage() {
                   <div className="flex flex-wrap items-center gap-4">
                     <span className="flex items-center gap-1">
                       <FiClock size={12} />
-                      Posted: {req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-IN') : 'Recent'}
+                      Posted: {(req.created_at || req.createdAt) ? new Date(req.created_at || req.createdAt).toLocaleDateString('en-IN') : 'Recent'}
                     </span>
                     <span className="flex items-center gap-1 text-brand-purple font-bold">
                       <FiUser size={12} />
