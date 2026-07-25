@@ -411,9 +411,13 @@ class RequirementService {
     }
 
     const Quote = require('../models/Quote');
+    const updateData = { status };
+    if (status === 'accepted') {
+      updateData.paymentStatus = 'paid';
+    }
     const updatedQuote = await Quote.findByIdAndUpdate(
       quoteId,
-      { status },
+      updateData,
       { new: true }
     ).populate('vendor', 'name avatarUrl phone email vendorProfile');
 

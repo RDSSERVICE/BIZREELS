@@ -78,7 +78,7 @@ export default function MyRequirementsPage() {
 
   const [updateQuoteStatus] = useUpdateQuoteStatusMutation();
 
-  const quotesList = quotesData?.quotes || quotesData?.data || [];
+  const quotesList = quotesData?.data?.quotes || quotesData?.quotes || (Array.isArray(quotesData?.data) ? quotesData.data : []);
 
   // Reset page when tab/filters change
   useEffect(() => {

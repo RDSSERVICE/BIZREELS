@@ -192,6 +192,19 @@ jest.mock('../src/models/Quote', () => {
   };
 
   return {
+    create: jest.fn().mockImplementation((quoteData) => {
+      const mongoose = require('mongoose');
+      const id = new mongoose.Types.ObjectId().toString();
+      const quote = {
+        _id: id,
+        id,
+        status: 'pending',
+        paymentStatus: 'unpaid',
+        ...quoteData,
+      };
+      getMockDbLocal().quotes[id] = quote;
+      return quote;
+    }),
     findByIdAndUpdate: jest.fn().mockImplementation((id, update) => {
       const quote = getMockDbLocal().quotes[id.toString()];
       if (quote) {

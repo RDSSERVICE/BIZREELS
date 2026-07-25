@@ -45,7 +45,7 @@ export default function CustomerActivitiesPage() {
 
   const orders = Array.isArray(ordersData?.orders) ? ordersData.orders : Array.isArray(ordersData?.data) ? ordersData.data : Array.isArray(ordersData) ? ordersData : [];
   const inquiries = Array.isArray(inquiriesData?.inquiries) ? inquiriesData.inquiries : Array.isArray(inquiriesData?.data) ? inquiriesData.data : Array.isArray(inquiriesData) ? inquiriesData : [];
-  const quotes = Array.isArray(quotesData?.data) ? quotesData.data : Array.isArray(quotesData) ? quotesData : [];
+  const quotes = Array.isArray(quotesData?.data?.quotes) ? quotesData.data.quotes : (Array.isArray(quotesData?.quotes) ? quotesData.quotes : (Array.isArray(quotesData?.data) ? quotesData.data : (Array.isArray(quotesData) ? quotesData : [])));
   
   const followings = followingData?.items || [];
   const followingVendors = followings.filter(u => u.roles?.includes('vendor') && (u.name || '').toLowerCase().includes(followingSearch.toLowerCase()));
