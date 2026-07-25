@@ -12,7 +12,7 @@ const router = express.Router();
  * Requirements & Bidding Routes — /api/v1/requirements
  */
 
-// ── Lead Query & Details ──────────────────────────────────
+// ── Lead Query ──────────────────────────────────
 router.get(
   '/',
   authenticate,
@@ -21,12 +21,15 @@ router.get(
   requirementController.getRequirements
 );
 
+// ── Bids / Quotations List ─────────────────────────────────────
 router.get(
-  '/:id',
+  '/quotes',
   authenticate,
-  requirementValidation.idParam,
-  validate,
-  requirementController.getRequirementDetails
+  asyncHandler(async (req, res) => {
+    const Quote = require('../models/Quote');
+    const quotes = await Quote.find({ vendor: req.user._id }).sort({ createdAt: -1 }).lean();
+    return ApiResponse.ok(res, 'Quotations retrieved successfully.', { quotes: quotes.map(q => ({ id: q._id.toString(), requirement_id: q.requirement, price: q.price, status: q.status, notes: q.notes, created_at: q.createdAt })) });
+  })
 );
 
 // ── Buyer Custom Posts ────────────────────────────────────
@@ -37,6 +40,25 @@ router.post(
   requirementValidation.create,
   validate,
   requirementController.create
+);
+
+// ── Vendor submits new quotation bid ───────────────────────
+router.post(
+  '/quotes',
+  authenticate,
+  authorize('vendor', 'admin'),
+  requirementValidation.createQuote,
+  validate,
+  requirementController.createQuote
+);
+
+// ── Lead Details ──────────────────────────────────
+router.get(
+  '/:id',
+  authenticate,
+  requirementValidation.idParam,
+  validate,
+  requirementController.getRequirementDetails
 );
 
 router.put(
@@ -57,26 +79,7 @@ router.delete(
   requirementController.delete
 );
 
-// ── Bids / Quotations ─────────────────────────────────────
-router.post(
-  '/quotes',
-  authenticate,
-  authorize('vendor', 'admin'),
-  requirementValidation.createQuote,
-  validate,
-  requirementController.createQuote
-);
-
-router.get(
-  '/quotes',
-  authenticate,
-  asyncHandler(async (req, res) => {
-    const Quote = require('../models/Quote');
-    const quotes = await Quote.find({ vendor: req.user._id }).sort({ createdAt: -1 }).lean();
-    return ApiResponse.ok(res, 'Quotations retrieved successfully.', { quotes: quotes.map(q => ({ id: q._id.toString(), requirement_id: q.requirement, price: q.price, status: q.status, notes: q.notes, created_at: q.createdAt })) });
-  })
-);
-
+// ── Bids for specific Requirement ─────────────────────────
 router.get(
   '/:id/quotes',
   authenticate,
@@ -85,6 +88,7 @@ router.get(
   requirementController.getQuotes
 );
 
+// ── Settle/Update Quote Status ────────────────────────────
 router.patch(
   '/quotes/:quoteId',
   authenticate,
