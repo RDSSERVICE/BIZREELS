@@ -378,7 +378,7 @@ const AppLayout = () => {
             ${location.pathname === '/feed' ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
           `}
         >
-          <FiHome className="w-5.5 h-5.5" />
+          <FiHome className="w-[22px] h-[22px]" />
           <span className="text-[9px] font-bold mt-0.5">Home</span>
         </Link>
 
@@ -389,7 +389,7 @@ const AppLayout = () => {
             ${location.pathname === '/search' ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
           `}
         >
-          <FiSearch className="w-5.5 h-5.5" />
+          <FiSearch className="w-[22px] h-[22px]" />
           <span className="text-[9px] font-bold mt-0.5">Search</span>
         </Link>
 
@@ -496,7 +496,7 @@ const AppLayout = () => {
             ${location.pathname === '/chats' ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
           `}
         >
-          <FiMessageSquare className="w-5.5 h-5.5" />
+          <FiMessageSquare className="w-[22px] h-[22px]" />
           <span className="text-[9px] font-bold mt-0.5">Chat</span>
         </Link>
 
@@ -507,7 +507,7 @@ const AppLayout = () => {
             ${location.pathname.startsWith('/profile') ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
           `}
         >
-          <FiUser className="w-5.5 h-5.5" />
+          <FiUser className="w-[22px] h-[22px]" />
           <span className="text-[9px] font-bold mt-0.5">Account</span>
         </Link>
       </nav>

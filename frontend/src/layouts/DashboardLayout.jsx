@@ -21,7 +21,7 @@ const DashboardLayout = ({ children, tabs = [] }) => {
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto">
       {/* Dashboard Top Stats Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {/* Wallet Balance */}
         <div className="glass p-5 rounded-premium border-white/50 shadow-glass flex items-center justify-between">
           <div className="flex flex-col">

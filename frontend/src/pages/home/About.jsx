@@ -28,7 +28,7 @@ const About = () => {
   ];
 
   return (
-    <div className="overflow-x-hidden min-h-screen bg-surface-secondary py-16 px-6">
+    <div className="overflow-x-hidden min-h-screen bg-surface-secondary py-12 sm:py-16 px-4 sm:px-6">
       {/* ── HEADER BANNER ──────────────────────────────────────── */}
       <section className="max-w-4xl mx-auto text-center flex flex-col gap-6 mb-20 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-brand-purple/5 rounded-full blur-[100px] pointer-events-none" />

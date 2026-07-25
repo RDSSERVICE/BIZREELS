@@ -194,7 +194,7 @@ const ReelsFeed = () => {
                 </div>
 
                 {/* Overlaid Right Actions Sidebar - 10 Customer Action Buttons */}
-                <div className="absolute right-2 bottom-12 flex flex-col items-center gap-2 z-10 text-white max-h-[80vh] overflow-y-auto scrollbar-none py-2 px-1">
+                <div className="absolute right-2 bottom-12 flex flex-col items-center gap-1.5 sm:gap-2 z-10 text-white max-h-[80vh] overflow-y-auto scrollbar-none py-2 px-1">
                   {/* A. Saved */}
                   <button
                     onClick={() => {

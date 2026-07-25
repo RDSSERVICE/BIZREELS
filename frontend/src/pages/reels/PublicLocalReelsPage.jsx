@@ -80,8 +80,8 @@ const PublicLocalReelsPage = () => {
   return (
     <div className="min-h-screen bg-surface-secondary pb-16">
       {/* ── Page Hero Header ────────────────────────────────────────── */}
-      <section className="relative px-6 py-12 md:py-16 bg-gradient-to-b from-brand-purple/10 via-surface-secondary to-surface-secondary border-b border-border overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+      <section className="relative px-4 sm:px-6 py-10 md:py-16 bg-gradient-to-b from-brand-purple/10 via-surface-secondary to-surface-secondary border-b border-border overflow-hidden">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6 relative z-10">
           <div className="flex flex-col gap-3 text-center md:text-left max-w-xl">
             <span className="px-3 py-1 text-[11px] font-black bg-brand-purple/15 text-brand-purple rounded-full uppercase tracking-wider w-fit mx-auto md:mx-0 flex items-center gap-1.5">
               <FiVideo className="w-3.5 h-3.5" /> Hyper-Local Vendor Feed
@@ -107,7 +107,7 @@ const PublicLocalReelsPage = () => {
               </div>
               <button
                 onClick={() => navigate('/auth/login')}
-                className="w-full py-2 px-4 bg-brand-purple hover:bg-brand-purple-dark text-white text-xs font-bold rounded-premium transition-all shadow-md flex items-center justify-center gap-1.5"
+                className="w-full py-2 px-4 bg-brand-purple hover:bg-brand-purple-800 text-white text-xs font-bold rounded-premium transition-all shadow-md flex items-center justify-center gap-1.5"
               >
                 <span>Sign In Now</span>
                 <FiArrowRight className="w-3.5 h-3.5" />
@@ -118,11 +118,11 @@ const PublicLocalReelsPage = () => {
       </section>
 
       {/* ── Main Content Container ──────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col gap-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6 sm:gap-8">
         {/* Navigation Tabs & Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-border/80 pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/80 pb-4">
           {/* Main View Tabs (Vendor Reels vs Vendor Posts) */}
-          <div className="flex items-center gap-2 bg-surface p-1 rounded-premium border border-border shadow-sm">
+          <div className="flex items-center gap-2 bg-surface p-1 rounded-premium border border-border shadow-sm w-full sm:w-auto overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab('reels')}
               className={`px-5 py-2.5 rounded-lg text-xs font-black transition-all flex items-center gap-2 ${activeTab === 'reels'
@@ -157,7 +157,7 @@ const PublicLocalReelsPage = () => {
           </div>
 
           {/* Quick Filters */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => setActiveFilter('trending')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${activeFilter === 'trending'
@@ -195,7 +195,7 @@ const PublicLocalReelsPage = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                 {reels.map((reel) => (
                   <motion.div
                     key={reel._id}
@@ -290,7 +290,7 @@ const PublicLocalReelsPage = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                 {listings.map((item) => (
                   <motion.div
                     key={item._id}

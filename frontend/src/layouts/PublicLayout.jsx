@@ -20,7 +20,7 @@ const PublicLayout = () => {
   return (
     <div className="min-h-screen bg-surface-secondary flex flex-col font-sans">
       {/* ── Public Top Header Navbar ───────────────────────────── */}
-      <nav className="sticky top-0 z-50 w-full glass border-b border-border px-4 py-3 flex items-center justify-between">
+      <nav className="sticky top-0 z-50 w-full glass border-b border-border px-4 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2">
             <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto" />
@@ -137,8 +137,8 @@ const PublicLayout = () => {
       </main>
 
       {/* ── Website Public Footer ─────────────────────────────── */}
-      <footer className="glass border-t border-border py-12 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+      <footer className="glass border-t border-border py-10 sm:py-12 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto" />

@@ -2,16 +2,14 @@
 
 @import "tailwind.css";
 
-html,
-body,
-#root {
-    background-color: #000000;
-}
+/* ══════════════════════════════════════════════════════════
+   BizReels — Global Overrides (Light Theme Only)
+   Source of truth: styles/index.css design system
+   ══════════════════════════════════════════════════════════ */
 
 body {
     margin: 0;
     font-family: "Manrope", system-ui, sans-serif;
-    color: #ffffff;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -21,43 +19,39 @@ body {
     letter-spacing: -0.02em;
 }
 
+/* ── Brand gradient text ─────────────────────────────────── */
 .text-gradient-brand {
-    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #f97316 100%);
+    background: linear-gradient(135deg, #6D28D9 0%, #EC4899 50%, #F97316 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
+/* ── Brand gradient background ───────────────────────────── */
 .bg-gradient-brand {
-    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #f97316 100%);
+    background: linear-gradient(135deg, #6D28D9 0%, #EC4899 50%, #F97316 100%);
 }
 
+/* ── Brand CTA button ────────────────────────────────────── */
 .btn-brand {
-    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #f97316 100%);
+    background: linear-gradient(135deg, #6D28D9 0%, #EC4899 50%, #F97316 100%);
     color: #ffffff;
     transition:
         transform 150ms ease,
         box-shadow 150ms ease;
-    box-shadow: 0 8px 30px rgba(124, 58, 237, 0.25);
+    box-shadow: 0 8px 30px rgba(109, 40, 217, 0.25);
 }
 
 .btn-brand:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 40px rgba(124, 58, 237, 0.4);
+    box-shadow: 0 10px 40px rgba(109, 40, 217, 0.4);
 }
 
 .btn-brand:active {
     transform: translateY(0);
 }
 
-.glass {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-}
-
-/* Ambient brand glow — used as a decorative background layer */
+/* ── Ambient brand glow — decorative background layer ───── */
 .glow-brand::before {
     content: "";
     position: absolute;
@@ -65,12 +59,12 @@ body {
     background:
         radial-gradient(
             circle at 20% 30%,
-            rgba(124, 58, 237, 0.35) 0%,
+            rgba(109, 40, 217, 0.35) 0%,
             transparent 45%
         ),
         radial-gradient(
             circle at 80% 20%,
-            rgba(99, 102, 241, 0.3) 0%,
+            rgba(236, 72, 153, 0.3) 0%,
             transparent 45%
         ),
         radial-gradient(
@@ -83,62 +77,7 @@ body {
     pointer-events: none;
 }
 
-@layer base {
-    :root {
-        --background: 0 0% 0%;
-        --foreground: 0 0% 100%;
-        --card: 0 0% 7%;
-        --card-foreground: 0 0% 100%;
-        --popover: 0 0% 7%;
-        --popover-foreground: 0 0% 100%;
-        --primary: 263 83% 58%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 0 0% 12%;
-        --secondary-foreground: 0 0% 100%;
-        --muted: 0 0% 12%;
-        --muted-foreground: 0 0% 63%;
-        --accent: 0 0% 14%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 84% 60%;
-        --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 15%;
-        --input: 0 0% 12%;
-        --ring: 263 83% 58%;
-        --radius: 1rem;
-    }
-    .dark {
-        --background: 0 0% 0%;
-        --foreground: 0 0% 100%;
-        --card: 0 0% 7%;
-        --card-foreground: 0 0% 100%;
-        --popover: 0 0% 7%;
-        --popover-foreground: 0 0% 100%;
-        --primary: 263 83% 58%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 0 0% 12%;
-        --secondary-foreground: 0 0% 100%;
-        --muted: 0 0% 12%;
-        --muted-foreground: 0 0% 63%;
-        --accent: 0 0% 14%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 15%;
-        --input: 0 0% 12%;
-        --ring: 263 83% 58%;
-    }
-}
-
-@layer base {
-    * {
-        @apply border-border;
-    }
-    body {
-        @apply bg-background text-foreground;
-    }
-}
-
-/* Premium Page transition animation */
+/* ── Premium Page transition animation ───────────────────── */
 @keyframes pageEnter {
     from {
         opacity: 0;
@@ -154,7 +93,7 @@ body {
     animation: pageEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Pulse glow animation for active indicators */
+/* ── Pulse glow animation for active indicators ──────────── */
 @keyframes pulseGlow {
     0%, 100% {
         opacity: 0.6;
@@ -170,7 +109,7 @@ body {
     animation: pulseGlow 2s infinite ease-in-out;
 }
 
-/* Premium hover effects for lists and cards */
+/* ── Premium hover effects for lists and cards ───────────── */
 .hover-card-premium {
     transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
                 background-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -180,20 +119,19 @@ body {
 
 .hover-card-premium:hover {
     transform: translateY(-3px) scale(1.01);
-    background-color: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+    background-color: rgba(245, 243, 255, 0.6) !important;
+    border-color: rgba(109, 40, 217, 0.15) !important;
+    box-shadow: 0 12px 35px rgba(109, 40, 217, 0.1);
 }
 
 .hover-card-premium:active {
     transform: translateY(-1px) scale(1.005);
 }
 
-/* Active tap feedback helper */
+/* ── Active tap feedback helper ──────────────────────────── */
 .tap-feedback {
     transition: transform 100ms ease;
 }
 .tap-feedback:active {
     transform: scale(0.95);
 }
-

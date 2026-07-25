@@ -263,18 +263,7 @@ const Settings = () => {
   };
 
   const handleThemeToggle = () => {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
-    localStorage.setItem('theme', nextTheme);
-    
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.body.classList.add('bg-navy-dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.body.classList.remove('bg-navy-dark');
-    }
-    toast.success(`Switched to ${nextTheme} theme`);
+    toast.success('Light theme is the active design system.');
   };
 
   // Submit Profile update
@@ -336,11 +325,11 @@ const Settings = () => {
 
       {/* Main Settings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Navigation Sidebar */}
-        <div className="flex flex-col gap-2 md:col-span-1">
+        {/* Navigation Sidebar — horizontal scroll on mobile, vertical on desktop */}
+        <div className="flex md:flex-col gap-2 md:col-span-1 overflow-x-auto md:overflow-x-visible scrollbar-hide pb-2 md:pb-0 -mx-1 md:mx-0 px-1 md:px-0">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer
+            className={`flex items-center gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap flex-shrink-0
               ${activeTab === 'profile'
                 ? 'bg-brand-purple text-white shadow-premium'
                 : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
@@ -353,7 +342,7 @@ const Settings = () => {
 
           <button
             onClick={() => setActiveTab('mobile')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer
+            className={`flex items-center gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap flex-shrink-0
               ${activeTab === 'mobile'
                 ? 'bg-brand-purple text-white shadow-premium'
                 : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
@@ -366,7 +355,7 @@ const Settings = () => {
 
           <button
             onClick={() => setActiveTab('email')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer
+            className={`flex items-center gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap flex-shrink-0
               ${activeTab === 'email'
                 ? 'bg-brand-purple text-white shadow-premium'
                 : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
@@ -379,7 +368,7 @@ const Settings = () => {
 
           <button
             onClick={() => setActiveTab('privacy')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer
+            className={`flex items-center gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap flex-shrink-0
               ${activeTab === 'privacy'
                 ? 'bg-brand-purple text-white shadow-premium'
                 : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
@@ -392,7 +381,7 @@ const Settings = () => {
 
           <button
             onClick={() => setActiveTab('notifications')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer
+            className={`flex items-center gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap flex-shrink-0
               ${activeTab === 'notifications'
                 ? 'bg-brand-purple text-white shadow-premium'
                 : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
@@ -400,12 +389,12 @@ const Settings = () => {
             `}
           >
             <FiBell className="w-4 h-4" />
-            <span>Notification Settings</span>
+            <span>Notifications</span>
           </button>
 
           <button
             onClick={() => setActiveTab('language')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer
+            className={`flex items-center gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap flex-shrink-0
               ${activeTab === 'language'
                 ? 'bg-brand-purple text-white shadow-premium'
                 : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
@@ -418,7 +407,7 @@ const Settings = () => {
 
           <button
             onClick={() => setActiveTab('delete')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer
+            className={`flex items-center gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-premium text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap flex-shrink-0
               ${activeTab === 'delete'
                 ? 'bg-error text-white shadow-premium'
                 : 'text-error hover:bg-error/5'
@@ -431,7 +420,7 @@ const Settings = () => {
 
           <button
             onClick={handleLogoutAction}
-            className="flex items-center gap-3 px-4 py-3 rounded-premium text-xs font-bold transition-all text-left text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple cursor-pointer"
+            className="flex items-center gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-premium text-xs font-bold transition-all text-left text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple cursor-pointer whitespace-nowrap flex-shrink-0"
           >
             <FiLogOut className="w-4 h-4" />
             <span>Logout</span>
@@ -622,7 +611,7 @@ const Settings = () => {
                         <button
                           type="button"
                           onClick={handleVerifyMobileOtp}
-                          className="px-4 py-2 text-xs font-bold bg-brand-purple text-white hover:bg-brand-purple-dark rounded-premium transition-all h-10 cursor-pointer whitespace-nowrap"
+                          className="px-4 py-2 text-xs font-bold bg-brand-purple text-white hover:bg-brand-purple-800 rounded-premium transition-all h-10 cursor-pointer whitespace-nowrap"
                         >
                           Verify & Save
                         </button>

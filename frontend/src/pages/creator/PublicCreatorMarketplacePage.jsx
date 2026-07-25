@@ -102,8 +102,8 @@ const PublicCreatorMarketplacePage = () => {
   return (
     <div className="min-h-screen bg-surface-secondary pb-16">
       {/* ── Page Hero Banner ────────────────────────────────────────── */}
-      <section className="relative px-6 py-12 md:py-16 bg-gradient-to-b from-brand-purple/10 via-surface-secondary to-surface-secondary border-b border-border overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+      <section className="relative px-4 sm:px-6 py-10 md:py-16 bg-gradient-to-b from-brand-purple/10 via-surface-secondary to-surface-secondary border-b border-border overflow-hidden">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6 relative z-10">
           <div className="flex flex-col gap-3 text-center md:text-left max-w-xl">
             <span className="px-3 py-1 text-[11px] font-black bg-brand-orange/15 text-brand-orange rounded-full uppercase tracking-wider w-fit mx-auto md:mx-0 flex items-center gap-1.5">
               <FiAward className="w-3.5 h-3.5 text-brand-orange" /> Real-Time Live Marketplace
@@ -129,7 +129,7 @@ const PublicCreatorMarketplacePage = () => {
               </div>
               <button
                 onClick={() => navigate('/auth/register')}
-                className="w-full py-2 px-4 bg-brand-orange hover:bg-brand-orange-dark text-white text-xs font-bold rounded-premium transition-all shadow-md flex items-center justify-center gap-1.5"
+                className="w-full py-2 px-4 bg-brand-orange hover:bg-brand-orange-600 text-white text-xs font-bold rounded-premium transition-all shadow-md flex items-center justify-center gap-1.5"
               >
                 <span>Join Marketplace</span>
                 <FiArrowRight className="w-3.5 h-3.5" />
@@ -140,7 +140,7 @@ const PublicCreatorMarketplacePage = () => {
       </section>
 
       {/* ── Main Marketplace Body ───────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col gap-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6 sm:gap-8">
         {/* Search and Filters Bar */}
         <div className="glass p-5 rounded-premium border border-white/50 shadow-glass flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Search Box */}
@@ -205,7 +205,7 @@ const PublicCreatorMarketplacePage = () => {
             <p className="text-xs text-text-secondary">Try adjusting your search query or city/category filters.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {creators.map((creator) => (
               <motion.div
                 key={creator._id}
@@ -230,7 +230,7 @@ const PublicCreatorMarketplacePage = () => {
 
                   <div className="flex flex-col gap-1 flex-grow">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-black text-sm text-brand-navy group-hover:text-brand-purple transition-colors truncate max-w-[140px]">
+                      <h3 className="font-black text-sm text-brand-navy group-hover:text-brand-purple transition-colors truncate max-w-[160px] sm:max-w-[180px]">
                         {creator.name}
                       </h3>
                       <div className="flex items-center gap-1 bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full text-xs font-bold">
@@ -269,7 +269,7 @@ const PublicCreatorMarketplacePage = () => {
 
                   <button
                     onClick={() => handleConnectCreator(creator)}
-                    className="px-4 py-2 bg-brand-purple hover:bg-brand-purple-dark text-white font-bold text-xs rounded-premium transition-all shadow-md flex items-center gap-1.5 active:scale-95"
+                    className="px-4 py-2 bg-brand-purple hover:bg-brand-purple-800 text-white font-bold text-xs rounded-premium transition-all shadow-md flex items-center gap-1.5 active:scale-95"
                   >
                     <FiSend className="w-3.5 h-3.5" />
                     <span>Hire Creator</span>

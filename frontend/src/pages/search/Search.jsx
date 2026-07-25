@@ -335,7 +335,7 @@ const Search = () => {
 
                   {/* Proximity Location details */}
                   <div className="flex items-center justify-between mt-1 text-[10px] text-text-secondary">
-                    <span className="flex items-center gap-1 truncate max-w-[150px]">
+                    <span className="flex items-center gap-1 truncate max-w-[120px] sm:max-w-[150px]">
                       <FiMapPin className="text-brand-purple" /> {item.location?.address || 'Local storefront'}
                     </span>
                     {item.distance !== undefined && (
@@ -355,7 +355,7 @@ const Search = () => {
         <div className="flex flex-col gap-4">
           <h3 className="text-sm font-bold text-brand-navy uppercase tracking-wider px-2">Storefront Proximity</h3>
           
-          <div className="glass h-[420px] rounded-premium border-white/50 shadow-glass overflow-hidden relative flex items-center justify-center p-4">
+          <div className="glass h-[300px] lg:h-[420px] rounded-premium border-white/50 shadow-glass overflow-hidden relative flex items-center justify-center p-4">
             {/* Visual vector maps mockup */}
             <div className="absolute inset-0 bg-surface-tertiary flex flex-col p-4 opacity-80 justify-between select-none">
               <div className="grid grid-cols-6 grid-rows-6 h-full w-full gap-4 border border-dashed border-border pointer-events-none">

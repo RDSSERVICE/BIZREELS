@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSend, FiPaperclip, FiMic, FiPhone, FiVideo, FiMoreVertical, FiCircle, FiUser } from 'react-icons/fi';
+import { FiSend, FiPaperclip, FiMic, FiPhone, FiVideo, FiMoreVertical, FiCircle, FiUser, FiArrowLeft } from 'react-icons/fi';
 import { selectCurrentUser, selectAccessToken } from '../../features/auth/authSlice';
 import {
   useGetConversationsQuery,
@@ -186,7 +186,7 @@ const Chats = () => {
   return (
     <div className="glass h-[calc(100vh-140px)] rounded-premium border-white/50 shadow-glass overflow-hidden grid grid-cols-1 md:grid-cols-3">
       {/* ── Left side: Conversations thread list ────────────────── */}
-      <div className="border-r border-border flex flex-col h-full bg-surface-secondary/20">
+      <div className={`border-r border-border flex flex-col h-full bg-surface-secondary/20 ${activeConversationId ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-border flex flex-col gap-2">
           <h3 className="text-sm font-bold text-brand-navy uppercase tracking-wider font-display">
             Inbox Messages
@@ -273,7 +273,7 @@ const Chats = () => {
       </div>
 
       {/* ── Right side: Chat Screen window ──────────────────────── */}
-      <div className="md:col-span-2 flex flex-col h-full bg-white relative">
+      <div className={`md:col-span-2 flex flex-col h-full bg-white relative ${!activeConversationId ? 'hidden md:flex' : 'flex'}`}>
         {!activeConversationId ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-text-secondary select-none">
             <FiSend className="w-12 h-12 text-brand-purple/20 mb-2 rotate-45" />
@@ -285,6 +285,12 @@ const Chats = () => {
             {/* Header profile details */}
             <div className="p-4 border-b border-border flex justify-between items-center bg-surface-secondary/20">
               <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setActiveConversationId(null)}
+                  className="p-1.5 hover:bg-surface-tertiary rounded-full text-text-secondary md:hidden"
+                >
+                  <FiArrowLeft className="w-5 h-5" />
+                </button>
                 <img
                   src={activeChat.avatar || 'https://via.placeholder.com/150'}
                   alt={activeChat.name}

@@ -173,8 +173,8 @@ const Home = () => {
       </section>
 
       {/* ── INTEGRATED GEOLOCATION SHOWCASE SECTION ────────────── */}
-      <section className="px-6 py-20 bg-surface-tertiary/20 border-t border-border overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
+      <section className="px-4 sm:px-6 py-16 sm:py-20 bg-surface-tertiary/20 border-t border-border overflow-hidden">
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
           <div className="flex-1 flex flex-col gap-6">
             <span className="px-3.5 py-1 text-[10px] font-black bg-brand-orange/10 text-brand-orange rounded-full uppercase tracking-wider w-fit">
               Location Aware Platform
@@ -243,7 +243,7 @@ const Home = () => {
       </section>
 
       {/* ── FINAL CALL TO ACTION ─────────────────────────────────── */}
-      <section className="px-6 py-20 text-center relative overflow-hidden border-t border-border bg-gradient-to-br from-brand-purple/5 to-brand-orange/5">
+      <section className="px-4 sm:px-6 py-16 sm:py-20 text-center relative overflow-hidden border-t border-border bg-gradient-to-br from-brand-purple/5 to-brand-orange/5">
         <div className="max-w-2xl mx-auto flex flex-col items-center gap-6 z-10 relative">
           <h2 className="text-3xl sm:text-4xl font-black text-brand-navy leading-tight">Ready to Boost Your Business?</h2>
           <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
