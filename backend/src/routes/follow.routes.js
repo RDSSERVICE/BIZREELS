@@ -16,8 +16,8 @@ router.delete('/:user_id', requireAuth, catchAsync(async (req, res) => {
 }));
 
 router.get('/me/following', requireAuth, catchAsync(async (req, res) => {
-  const items = await followService.myFollowing(req.user._id.toString());
-  res.json({ items, count: items.length });
+  const result = await followService.myFollowing(req.user._id.toString(), req.query);
+  res.json({ items: result.items, count: result.total, total: result.total, data: result.items });
 }));
 
 router.get('/me/followers', requireAuth, catchAsync(async (req, res) => {

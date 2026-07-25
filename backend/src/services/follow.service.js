@@ -138,19 +138,78 @@ const followersCount = async (userId) => {
   return await Follow.countDocuments({ following_id: userId });
 };
 
-const myFollowing = async (followerId) => {
-  const follows = await Follow.find({ follower_id: followerId }).limit(500);
+const myFollowing = async (followerId, queryOptions = {}) => {
+  const { search, role, page = 1, limit = 10, sortBy } = queryOptions;
+
+  const follows = await Follow.find({ follower_id: followerId });
   const ids = follows.map(f => f.following_id);
   if (ids.length === 0) {
-    return [];
+    return { items: [], total: 0 };
   }
-  const users = await User.find({ _id: { $in: ids }, is_deleted: { $ne: true } }).limit(500);
-  return users.map(u => ({
+
+  const baseQuery = {
+    _id: { $in: ids },
+    is_deleted: { $ne: true }
+  };
+
+  if (role) {
+    baseQuery.roles = role;
+  }
+
+  if (queryOptions.businessType) {
+    baseQuery['vendorProfile.businessType'] = queryOptions.businessType;
+  } else if (queryOptions.excludeBusinessType) {
+    baseQuery['vendorProfile.businessType'] = { $ne: queryOptions.excludeBusinessType };
+  }
+
+  if (search) {
+    const searchRegex = new RegExp(search, 'i');
+    baseQuery.$or = [
+      { name: searchRegex },
+      { 'vendorProfile.shopName': searchRegex },
+      { 'vendorProfile.businessName': searchRegex },
+      { 'creatorProfile.name': searchRegex }
+    ];
+  }
+
+  let sort = { name: 1 };
+  if (sortBy) {
+    if (sortBy === 'latest') sort = { created_at: -1 };
+    else if (sortBy === 'oldest') sort = { created_at: 1 };
+    else if (sortBy === 'highest_rated') sort = { rating_avg: -1 };
+    else if (sortBy === 'most_popular') sort = { followersCount: -1 };
+  }
+
+  const total = await User.countDocuments(baseQuery);
+  const parsedPage = parseInt(page || 1, 10);
+  const parsedLimit = parseInt(limit || 10, 10);
+  const skip = (parsedPage - 1) * parsedLimit;
+
+  const users = await User.find(baseQuery)
+    .sort(sort)
+    .skip(skip)
+    .limit(parsedLimit)
+    .lean();
+
+  const items = users.map(u => ({
     id: u._id.toString(),
-    name: u.name,
-    profile_pic: u.profile_pic,
+    _id: u._id.toString(),
+    name: u.vendorProfile?.shopName || u.vendorProfile?.businessName || u.name || 'Verified Vendor',
+    profile_pic: u.profile_pic || u.avatarUrl,
+    avatarUrl: u.avatarUrl || u.profile_pic,
     roles: u.roles || [],
+    vendorProfile: u.vendorProfile,
+    creatorProfile: u.creatorProfile,
+    rating_avg: u.rating_avg || 0,
+    rating_count: u.rating_count || 0,
+    city: u.city,
+    followersCount: u.followersCount || 0,
+    is_subscribed_verified: u.is_subscribed_verified || false,
+    kyc_status: u.kyc_status || 'unverified',
+    is_active: u.is_active || false,
   }));
+
+  return { items, total };
 };
 
 const myFollowers = async (userId) => {

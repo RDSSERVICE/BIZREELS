@@ -6,5 +6,6 @@ const router = express.Router();
 
 router.post('/', authenticate, orderController.create);
 router.get('/', authenticate, orderController.getOrders);
+router.patch('/:id/cancel', authenticate, orderController.cancel);
 
 module.exports = router;

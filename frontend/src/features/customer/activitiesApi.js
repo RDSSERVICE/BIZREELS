@@ -8,7 +8,10 @@ const activitiesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // ── Orders ───────────────────────────────────────────
     getOrders: builder.query({
-      query: () => '/orders',
+      query: (params) => ({
+        url: '/orders',
+        params,
+      }),
       providesTags: ['Orders'],
     }),
     createOrder: builder.mutation({
@@ -19,10 +22,20 @@ const activitiesApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Orders', 'User'],
     }),
+    cancelOrder: builder.mutation({
+      query: (id) => ({
+        url: `/orders/${id}/cancel`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Orders'],
+    }),
 
     // ── Inquiries ────────────────────────────────────────
     getInquiries: builder.query({
-      query: () => '/inquiries',
+      query: (params) => ({
+        url: '/inquiries',
+        params,
+      }),
       providesTags: ['Chat'],
     }),
     createInquiry: builder.mutation({
@@ -30,6 +43,20 @@ const activitiesApi = apiSlice.injectEndpoints({
         url: '/inquiries',
         method: 'POST',
         body: data,
+      }),
+      invalidatesTags: ['Chat'],
+    }),
+    closeInquiry: builder.mutation({
+      query: (id) => ({
+        url: `/inquiries/${id}/close`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Chat'],
+    }),
+    deleteInquiry: builder.mutation({
+      query: (id) => ({
+        url: `/inquiries/${id}`,
+        method: 'DELETE',
       }),
       invalidatesTags: ['Chat'],
     }),
@@ -67,19 +94,36 @@ const activitiesApi = apiSlice.injectEndpoints({
     }),
     // ── Saved Listings ───────────────────────────────────
     getSavedListings: builder.query({
-      query: () => '/users/me/saved',
+      query: (params) => ({
+        url: '/users/me/saved',
+        params,
+      }),
       providesTags: ['User', 'Products'],
     }),
 
     // ── Quotes ────────────────────────────────────────────
     getQuotes: builder.query({
-      query: () => '/requirements/quotes',
+      query: (params) => ({
+        url: '/requirements/quotes',
+        params,
+      }),
       providesTags: ['Requirements'],
+    }),
+    updateQuoteStatus: builder.mutation({
+      query: ({ quoteId, status }) => ({
+        url: `/requirements/quotes/${quoteId}`,
+        method: 'PATCH',
+        body: { status },
+      }),
+      invalidatesTags: ['Requirements'],
     }),
 
     // ── Followings ────────────────────────────────────────
     getFollowing: builder.query({
-      query: () => '/follows/me/following',
+      query: (params) => ({
+        url: '/follows/me/following',
+        params,
+      }),
       providesTags: ['User'],
     }),
   }),
@@ -88,14 +132,18 @@ const activitiesApi = apiSlice.injectEndpoints({
 export const {
   useGetOrdersQuery,
   useCreateOrderMutation,
+  useCancelOrderMutation,
   useGetInquiriesQuery,
   useCreateInquiryMutation,
+  useCloseInquiryMutation,
+  useDeleteInquiryMutation,
   useSaveListingMutation,
   useUnsaveListingMutation,
   useFollowUserMutation,
   useUnfollowUserMutation,
   useGetSavedListingsQuery,
   useGetQuotesQuery,
+  useUpdateQuoteStatusMutation,
   useGetFollowingQuery,
 } = activitiesApi;
 

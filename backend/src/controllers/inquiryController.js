@@ -37,15 +37,105 @@ class InquiryController {
   });
 
   getInquiries = asyncHandler(async (req, res) => {
-    const inquiries = await Inquiry.find({
-      $or: [{ customer: req.user._id }, { vendor: req.user._id }]
-    })
-    .populate('customer', 'name email avatarUrl phone')
-    .populate('vendor', 'name email avatarUrl phone businessName')
-    .populate('listing', 'title images type category')
-    .sort({ createdAt: -1 });
+    const { search, status, page = 1, limit = 10 } = req.query;
 
-    return ApiResponse.ok(res, 'Inquiries retrieved successfully.', { inquiries });
+    const baseQuery = {
+      $or: [{ customer: req.user._id }, { vendor: req.user._id }],
+      isDeleted: { $ne: true }
+    };
+
+    if (status) {
+      baseQuery.status = status;
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      const matchedListings = await Listing.find({
+        $or: [{ title: searchRegex }, { category: searchRegex }]
+      }).select('_id');
+      const listingIds = matchedListings.map(l => l._id);
+
+      const User = require('../models/User');
+      const matchedUsers = await User.find({
+        $or: [{ name: searchRegex }, { 'vendorProfile.shopName': searchRegex }]
+      }).select('_id');
+      const userIds = matchedUsers.map(u => u._id);
+
+      baseQuery.$and = [
+        { $or: baseQuery.$or },
+        {
+          $or: [
+            { message: searchRegex },
+            { listing: { $in: listingIds } },
+            { vendor: { $in: userIds } },
+            { customer: { $in: userIds } }
+          ]
+        }
+      ];
+      delete baseQuery.$or;
+    }
+
+    const total = await Inquiry.countDocuments(baseQuery);
+    const parsedPage = parseInt(page, 10);
+    const parsedLimit = parseInt(limit, 10);
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const inquiries = await Inquiry.find(baseQuery)
+      .populate('customer', 'name email avatarUrl phone')
+      .populate('vendor', 'name email avatarUrl phone businessName vendorProfile')
+      .populate('listing', 'title images type category actualPrice sellingPrice price discount status')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parsedLimit);
+
+    return ApiResponse.paginated(res, 'Inquiries retrieved successfully.', inquiries, {
+      page: parsedPage,
+      limit: parsedLimit,
+      total,
+    });
+  });
+
+  close = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const inquiry = await Inquiry.findOne({
+      _id: id,
+      $or: [{ customer: req.user._id }, { vendor: req.user._id }]
+    });
+
+    if (!inquiry) {
+      throw ApiError.notFound('Inquiry not found');
+    }
+
+    inquiry.status = 'closed';
+    await inquiry.save();
+
+    // Socket updates
+    emitToUser(inquiry.customer.toString(), 'inquiry:updated', inquiry);
+    emitToUser(inquiry.vendor.toString(), 'inquiry:updated', inquiry);
+
+    return ApiResponse.ok(res, 'Inquiry closed successfully.', { inquiry });
+  });
+
+  delete = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const inquiry = await Inquiry.findOne({
+      _id: id,
+      $or: [{ customer: req.user._id }, { vendor: req.user._id }]
+    });
+
+    if (!inquiry) {
+      throw ApiError.notFound('Inquiry not found');
+    }
+
+    inquiry.isDeleted = true;
+    inquiry.deletedAt = new Date();
+    await inquiry.save();
+
+    // Socket updates
+    emitToUser(inquiry.customer.toString(), 'inquiry:deleted', { id });
+    emitToUser(inquiry.vendor.toString(), 'inquiry:deleted', { id });
+
+    return ApiResponse.ok(res, 'Inquiry deleted successfully.');
   });
 }
 

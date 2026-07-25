@@ -33,9 +33,18 @@ const inquirySchema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'replied', 'closed'],
-      default: 'pending',
+      enum: ['sent', 'viewed', 'replied', 'closed'],
+      default: 'sent',
       index: true,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {
@@ -44,5 +53,11 @@ const inquirySchema = new Schema(
 );
 
 inquirySchema.index({ createdAt: -1 });
+
+// Query middleware to exclude soft deleted entries
+inquirySchema.pre(/^find/, function () {
+  if (this.getOptions()?.includeSoftDeleted) return;
+  this.where({ isDeleted: { $ne: true } });
+});
 
 module.exports = mongoose.model('Inquiry', inquirySchema);

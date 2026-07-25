@@ -37,7 +37,7 @@ const orderSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'accepted', 'shipped', 'completed', 'cancelled'],
+      enum: ['pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'rejected', 'refunded'],
       default: 'pending',
       index: true,
     },
@@ -46,6 +46,15 @@ const orderSchema = new Schema(
       enum: ['unpaid', 'paid'],
       default: 'unpaid',
       index: true,
+    },
+    deliveryStatus: {
+      type: String,
+      enum: ['pending', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'],
+      default: 'pending',
+    },
+    expectedDeliveryDate: {
+      type: Date,
+      default: null,
     },
     address: {
       type: String,

@@ -117,10 +117,90 @@ router.patch('/me', requireAuth, catchAsync(async (req, res) => {
 router.get('/me/saved', requireAuth, catchAsync(async (req, res) => {
   const Listing = require('../models/Listing');
   const savedIds = req.user.customerProfile?.savedListings || [];
-  const listings = await Listing.find({ _id: { $in: savedIds } })
-    .populate('vendor', 'name shopName')
+
+  const { search, type, category, status, minPrice, maxPrice, sortBy, page = 1, limit = 10 } = req.query;
+
+  const baseQuery = {
+    _id: { $in: savedIds },
+    isDeleted: { $ne: true }
+  };
+
+  if (type) {
+    baseQuery.type = type;
+  }
+
+  if (category) {
+    baseQuery.category = category;
+  }
+
+  if (status) {
+    baseQuery.status = status;
+  }
+
+  if (minPrice || maxPrice) {
+    baseQuery.price = {};
+    if (minPrice) baseQuery.price.$gte = parseFloat(minPrice);
+    if (maxPrice) baseQuery.price.$lte = parseFloat(maxPrice);
+  }
+
+  if (search) {
+    const searchRegex = new RegExp(search, 'i');
+    const User = require('../models/User');
+    const matchedUsers = await User.find({
+      $or: [
+        { name: searchRegex },
+        { 'vendorProfile.shopName': searchRegex },
+        { 'vendorProfile.businessName': searchRegex }
+      ]
+    }).select('_id');
+    const userIds = matchedUsers.map(u => u._id);
+
+    baseQuery.$or = [
+      { title: searchRegex },
+      { category: searchRegex },
+      { vendor: { $in: userIds } }
+    ];
+  }
+
+  // Sort mapping
+  let sort = { updatedAt: -1 };
+  if (sortBy) {
+    if (sortBy === 'latest') sort = { createdAt: -1 };
+    else if (sortBy === 'oldest') sort = { createdAt: 1 };
+    else if (sortBy === 'price_low_high') sort = { price: 1 };
+    else if (sortBy === 'price_high_low') sort = { price: -1 };
+    else if (sortBy === 'highest_rated') sort = { rating: -1 };
+    else if (sortBy === 'most_popular') sort = { totalReviews: -1 };
+  }
+
+  const total = await Listing.countDocuments(baseQuery);
+  const parsedPage = parseInt(page, 10);
+  const parsedLimit = parseInt(limit, 10);
+  const skip = (parsedPage - 1) * parsedLimit;
+
+  const listings = await Listing.find(baseQuery)
+    .populate('vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+    .sort(sort)
+    .skip(skip)
+    .limit(parsedLimit)
     .lean();
-  res.json({ saved: listings.map(l => ({ id: l._id.toString(), _id: l._id.toString(), title: l.title, price: l.price, type: l.type, images: l.images, vendor: l.vendor })) });
+
+  const formatted = listings.map(l => ({
+    ...l,
+    id: l._id.toString(),
+    _id: l._id.toString()
+  }));
+
+  res.json({
+    success: true,
+    saved: formatted,
+    data: formatted,
+    pagination: {
+      page: parsedPage,
+      limit: parsedLimit,
+      total
+    }
+  });
 }));
 
 router.post('/me/switch-role', requireAuth, catchAsync(async (req, res) => {
