@@ -125,11 +125,10 @@ const PublicLocalReelsPage = () => {
           <div className="flex items-center gap-2 bg-surface p-1 rounded-premium border border-border shadow-sm">
             <button
               onClick={() => setActiveTab('reels')}
-              className={`px-5 py-2.5 rounded-lg text-xs font-black transition-all flex items-center gap-2 ${
-                activeTab === 'reels'
+              className={`px-5 py-2.5 rounded-lg text-xs font-black transition-all flex items-center gap-2 ${activeTab === 'reels'
                   ? 'bg-brand-purple text-white shadow-md'
                   : 'text-text-secondary hover:text-brand-navy hover:bg-surface-tertiary'
-              }`}
+                }`}
             >
               <FiVideo className="w-4 h-4" />
               <span>Vendor Reels</span>
@@ -142,11 +141,10 @@ const PublicLocalReelsPage = () => {
 
             <button
               onClick={() => setActiveTab('posts')}
-              className={`px-5 py-2.5 rounded-lg text-xs font-black transition-all flex items-center gap-2 ${
-                activeTab === 'posts'
+              className={`px-5 py-2.5 rounded-lg text-xs font-black transition-all flex items-center gap-2 ${activeTab === 'posts'
                   ? 'bg-brand-purple text-white shadow-md'
                   : 'text-text-secondary hover:text-brand-navy hover:bg-surface-tertiary'
-              }`}
+                }`}
             >
               <FiShoppingBag className="w-4 h-4" />
               <span>Vendor Posts & Listings</span>
@@ -162,21 +160,19 @@ const PublicLocalReelsPage = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveFilter('trending')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeFilter === 'trending'
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${activeFilter === 'trending'
                   ? 'bg-brand-purple/10 text-brand-purple border border-brand-purple/30'
                   : 'text-text-tertiary hover:text-text-secondary border border-transparent'
-              }`}
+                }`}
             >
               <FiTrendingUp className="w-3.5 h-3.5" /> Trending
             </button>
             <button
               onClick={() => setActiveFilter('all')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeFilter === 'all'
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${activeFilter === 'all'
                   ? 'bg-brand-purple/10 text-brand-purple border border-brand-purple/30'
                   : 'text-text-tertiary hover:text-text-secondary border border-transparent'
-              }`}
+                }`}
             >
               <FiGrid className="w-3.5 h-3.5" /> All Posts
             </button>
