@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminModal from '../../../features/admin/components/AdminModal';
+import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 import { useGetVendorLeadsQuery } from '../../../features/vendor/vendorApi';
 import {
   useGetRequirementsQuery,
