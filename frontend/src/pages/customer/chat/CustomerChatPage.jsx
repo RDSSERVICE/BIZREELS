@@ -176,7 +176,7 @@ export default function CustomerChatPage() {
       }).unwrap();
 
       const socket = getSocket();
-      const newConversationId = res.message?.conversationId || res.message?.conversation;
+      const newConversationId = res.data?.message?.conversationId || res.data?.message?.conversation || res.message?.conversationId || res.message?.conversation;
 
       if (socket && newConversationId) {
         socket.emit('send_message', { conversationId: newConversationId, text });
