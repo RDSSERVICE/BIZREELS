@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getSocket } from '../../../lib/socket';
 import { FiInbox, FiPackage, FiTool, FiCheckCircle, FiXCircle, FiAlertTriangle, FiEye } from 'react-icons/fi';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
@@ -29,7 +30,36 @@ export default function AdminRequirementsPage() {
     queryParams.type = activeTab;
   }
 
-  const { data, isFetching } = useListAdminRequirementsQuery(queryParams, { pollingInterval: 5000 });
+  const { data, isFetching, refetch } = useListAdminRequirementsQuery(queryParams, { pollingInterval: 5000 });
+
+  // Socket.IO real-time update listeners for Admin dashboard
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      if (typeof refetch === 'function') refetch();
+    };
+
+    socket.on('requirement:created', handleUpdate);
+    socket.on('requirement:updated', handleUpdate);
+    socket.on('requirement:deleted', handleUpdate);
+    socket.on('requirement:closed', handleUpdate);
+    socket.on('proposal:submitted', handleUpdate);
+    socket.on('proposal:accepted', handleUpdate);
+    socket.on('proposal:rejected', handleUpdate);
+
+    return () => {
+      socket.off('requirement:created', handleUpdate);
+      socket.off('requirement:updated', handleUpdate);
+      socket.off('requirement:deleted', handleUpdate);
+      socket.off('requirement:closed', handleUpdate);
+      socket.off('proposal:submitted', handleUpdate);
+      socket.off('proposal:accepted', handleUpdate);
+      socket.off('proposal:rejected', handleUpdate);
+    };
+  }, [refetch]);
+
   const items = data?.items || [];
 
   const columns = [

@@ -30,6 +30,13 @@ const statusStyles = {
   resolved:  'bg-blue-500/10 text-blue-600 border-blue-500/20',
   boosted:   'bg-brand-purple/10 text-brand-purple border-brand-purple/20',
   reported:  'bg-rose-500/10 text-rose-600 border-rose-500/20',
+  sent_to_vendors: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  vendors_notified: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  vendors_responded: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  receiving_proposals: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  proposal_accepted: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  proposal_rejected: 'bg-red-500/10 text-red-600 border-red-500/20',
+  closed:    'bg-slate-500/10 text-slate-500 border-slate-500/20',
 };
 
 export default function AdminStatusBadge({ status, className = '' }) {

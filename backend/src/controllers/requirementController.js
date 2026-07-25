@@ -9,19 +9,23 @@ const asyncHandler = require('../utils/asyncHandler');
 class RequirementController {
   // ── Create Requirement ──────────────────────────────────
   create = asyncHandler(async (req, res) => {
-    const { title, description, category, requirementType, budget, deadline, lat, lng, address } = req.body;
+    const { title, description, category, subcategory, requirementType, budget, quantity, deadline, lat, lng, address, city, state } = req.body;
     
     const requirement = await requirementService.createRequirement({
       customerId: req.user._id,
       title,
       description,
       category,
+      subcategory,
       requirementType,
       budget,
+      quantity,
       deadline,
       lat,
       lng,
       address,
+      city,
+      state,
     }, req);
 
     return ApiResponse.created(res, 'Requirement posted successfully.', { requirement });
@@ -43,22 +47,33 @@ class RequirementController {
 
   // ── Query Requirements (Leads lists) ────────────────────
   getRequirements = asyncHandler(async (req, res) => {
-    const { customerId, category, requirementType, status, lat, lng, distance, page = 1, limit = 10 } = req.query;
+    const { customerId, category, requirementType, status, lat, lng, distance, search, sortBy, page = 1, limit = 10 } = req.query;
 
     const userRoles = req.user?.roles || [];
     const activeRole = req.user?.current_role || req.user?.activeRole || 'customer';
 
-    // If customer role is querying without customerId filter, default to user's own requirements
-    const targetCustomerId = customerId || (activeRole === 'customer' || userRoles.includes('customer') ? req.user._id : undefined);
+    let targetCustomerId = customerId;
+    let targetVendorId = undefined;
+
+    if (activeRole === 'customer' || (!activeRole && userRoles.includes('customer'))) {
+      if (!targetCustomerId) {
+        targetCustomerId = req.user._id;
+      }
+    } else if (activeRole === 'vendor' || (!activeRole && userRoles.includes('vendor'))) {
+      targetVendorId = req.user._id;
+    }
 
     const result = await requirementService.queryRequirements({
       customerId: targetCustomerId,
+      vendorId: targetVendorId,
       category,
       requirementType,
       status,
       lat,
       lng,
       distance,
+      search,
+      sortBy,
       page,
       limit,
     });
@@ -73,7 +88,10 @@ class RequirementController {
   // ── Get Single Requirement details ──────────────────────
   getRequirementDetails = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const requirement = await requirementService.getRequirementDetails(id);
+    const userRoles = req.user?.roles || [];
+    const activeRole = req.user?.current_role || req.user?.activeRole || 'customer';
+
+    const requirement = await requirementService.getRequirementDetails(id, req.user._id, activeRole);
     return ApiResponse.ok(res, 'Requirement details retrieved.', { requirement });
   });
 

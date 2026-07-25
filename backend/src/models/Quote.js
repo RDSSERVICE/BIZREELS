@@ -44,6 +44,10 @@ const quoteSchema = new Schema(
       enum: ['unpaid', 'paid'],
       default: 'unpaid',
     },
+    attachments: {
+      type: [Schema.Types.Mixed],
+      default: [],
+    },
     isDeleted: {
       type: Boolean,
       default: false,

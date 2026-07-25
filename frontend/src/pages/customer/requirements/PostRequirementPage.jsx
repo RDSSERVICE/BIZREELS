@@ -10,9 +10,11 @@ export default function PostRequirementPage() {
   const [type, setType] = useState('product'); // 'product' | 'service'
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Electronics');
+  const [subcategory, setSubcategory] = useState('');
   const [budget, setBudget] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [city, setCity] = useState('');
+  const [state, setState] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,9 +32,11 @@ export default function PostRequirementPage() {
         requirementType: type,
         title,
         category,
+        subcategory,
         budget: Number(budget),
         quantity: Number(quantity),
         city,
+        state,
         description
       });
 
@@ -101,7 +105,7 @@ export default function PostRequirementPage() {
             />
           </div>
 
-          {/* Category & Budget */}
+          {/* Category & Subcategory */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Category</label>
@@ -121,6 +125,20 @@ export default function PostRequirementPage() {
             </div>
 
             <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Subcategory</label>
+              <input
+                type="text"
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+                placeholder="e.g. Laptops, Smartphones, Repairs"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+              />
+            </div>
+          </div>
+
+          {/* Budget & Quantity */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
               <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Max Budget (₹) *</label>
               <div className="relative">
                 <FiDollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
@@ -134,10 +152,7 @@ export default function PostRequirementPage() {
                 />
               </div>
             </div>
-          </div>
 
-          {/* Quantity & Location */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Quantity / Units</label>
               <input
@@ -148,16 +163,34 @@ export default function PostRequirementPage() {
                 className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
+          </div>
 
+          {/* Location details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Target City / Area</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Target City *</label>
               <div className="relative">
                 <FiMapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-orange" size={16} />
                 <input
                   type="text"
+                  required
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Mumbai, Bandra"
+                  placeholder="e.g. Phagwara, Delhi"
+                  className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Target State</label>
+              <div className="relative">
+                <FiMapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-purple" size={16} />
+                <input
+                  type="text"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder="e.g. Punjab, Maharashtra"
                   className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
                 />
               </div>

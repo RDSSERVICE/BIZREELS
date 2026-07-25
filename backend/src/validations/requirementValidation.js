@@ -18,6 +18,18 @@ const requirementValidation = {
       .notEmpty().withMessage('Category selection is required.'),
     body('budget')
       .isFloat({ min: 1 }).withMessage('Budget estimate must be a positive number.'),
+    body('quantity')
+      .optional()
+      .isInt({ min: 1 }).withMessage('Quantity must be a positive integer.'),
+    body('subcategory')
+      .optional()
+      .trim(),
+    body('city')
+      .optional()
+      .trim(),
+    body('state')
+      .optional()
+      .trim(),
     body('deadline')
       .optional()
       .isISO8601().toDate().withMessage('Fulfillment deadline must be a valid date.'),

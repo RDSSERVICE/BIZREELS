@@ -52,6 +52,19 @@ const requirementsApi = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Requirements', id: 'LIST' }],
     }),
 
+    // Update requirement brief
+    updateRequirement: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/requirements/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Requirements', id: 'LIST' },
+        { type: 'Requirements', id }
+      ],
+    }),
+
     // Fetch quotation bids for a specific requirement brief
     getQuotesForRequirement: builder.query({
       query: (requirementId) => `/requirements/${requirementId}/quotes`,
@@ -92,6 +105,7 @@ export const {
   useGetRequirementDetailsQuery,
   useCreateRequirementMutation,
   useDeleteRequirementMutation,
+  useUpdateRequirementMutation,
   useGetQuotesForRequirementQuery,
   useSubmitQuoteMutation,
   useUpdateQuoteStatusMutation,

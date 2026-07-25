@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
+import { Toaster as SonnerToaster } from './components/ui/sonner';
 import { useGetMeQuery } from './features/auth/authApi';
 import { setCredentials, logout, setLoading, selectAuthLoading } from './features/auth/authSlice';
 import AppRoutes from './routes';
@@ -74,6 +75,7 @@ function App() {
             },
           }}
         />
+        <SonnerToaster position="bottom-right" richColors />
         <AppRoutes />
       </BrowserRouter>
     </AuthProvider>

@@ -29,6 +29,11 @@ jest.spyOn(User, 'findById').mockImplementation((id) => {
   };
 });
 
+jest.spyOn(User, 'find').mockImplementation(() => {
+  const vendors = Object.values(getMockDb().users).filter(u => u.roles && u.roles.includes('vendor'));
+  return Promise.resolve(vendors);
+});
+
 // Mock RequirementRepository
 jest.mock('../src/repositories/requirementRepository', () => {
   const getMockDbLocal = () => {
@@ -54,6 +59,7 @@ jest.mock('../src/repositories/requirementRepository', () => {
         ...reqData,
         status: 'open',
       };
+      requirement.save = jest.fn().mockResolvedValue(requirement);
       getMockDbLocal().requirements[id] = requirement;
       return requirement;
     }),
@@ -210,6 +216,57 @@ jest.mock('../src/models/Notification', () => {
   };
 });
 
+// Mock Requirement model methods to prevent database calls
+jest.mock('../src/models/Requirement', () => {
+  const getMockDbLocal = () => {
+    if (!global.mockDb) {
+      global.mockDb = {
+        users: {},
+        listings: {},
+        requirements: {},
+        quotes: {},
+        reviews: {},
+        analytics: [],
+      };
+    }
+    return global.mockDb;
+  };
+
+  return {
+    findByIdAndUpdate: jest.fn().mockImplementation((id, update, options) => {
+      const req = getMockDbLocal().requirements[id.toString()];
+      if (req) {
+        if (update.$addToSet) {
+          for (const key of Object.keys(update.$addToSet)) {
+            req[key] = req[key] || [];
+            if (!req[key].some(val => val.toString() === update.$addToSet[key].toString())) {
+              req[key].push(update.$addToSet[key]);
+            }
+          }
+        }
+        if (update.$inc) {
+          for (const key of Object.keys(update.$inc)) {
+            req[key] = (req[key] || 0) + update.$inc[key];
+          }
+        }
+        for (const key of Object.keys(update)) {
+          if (!key.startsWith('$')) {
+            req[key] = update[key];
+          }
+        }
+      }
+      return req;
+    }),
+    findOneAndUpdate: jest.fn().mockImplementation((query, update, options) => {
+      const req = Object.values(getMockDbLocal().requirements).find(r => r._id === query._id);
+      if (req) {
+        Object.assign(req, update);
+      }
+      return req;
+    }),
+  };
+});
+
 describe('Requirements & Quoting Bidding API Suite', () => {
   let customerToken;
   let vendorToken;
@@ -247,6 +304,7 @@ describe('Requirements & Quoting Bidding API Suite', () => {
       email: 'testvendor@example.com',
       roles: ['vendor'],
       activeRole: 'vendor',
+      kyc_status: 'approved',
       walletBalance: 0,
       toObject: function() { return this; },
     };

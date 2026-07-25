@@ -574,18 +574,25 @@ router.get('/requirements', requireAuth, requireAdmin, catchAsync(async (req, re
   const q = { is_deleted: { $ne: true } };
   if (status) q.status = status;
   if (type) q.type = type;
-  const reqs = await Requirement.find(q).populate('customer_id', 'name phone').sort({ created_at: -1 }).limit(50);
+  const reqs = await Requirement.find(q)
+    .populate('customer', 'name phone email')
+    .populate('assignedVendorIds', 'name vendorProfile')
+    .sort({ created_at: -1 })
+    .limit(100);
   res.json({
     items: reqs.map(r => ({
       id: r._id.toString(),
       title: r.title,
-      type: r.type || 'product',
+      type: r.type || r.requirementType || 'product',
       category: r.category,
-      budget: r.budget || r.budget_inr || 0,
-      customer_name: r.customer_id?.name || 'Customer',
-      status: r.status || 'pending',
-      matches_count: r.proposals_count || r.matches_count || 0,
+      budget: r.budget || 0,
+      customer_name: r.customer?.name || 'Customer',
+      status: r.status || 'Pending',
+      matches_count: r.proposals_count || r.quotesCount || 0,
       created_at: r.created_at || r.createdAt,
+      total_vendors_matched: r.totalVendorsMatched || 0,
+      total_vendors_notified: r.totalVendorsNotified || 0,
+      assigned_vendors: r.assignedVendorIds ? r.assignedVendorIds.map(v => v.name) : []
     })),
   });
 }));
