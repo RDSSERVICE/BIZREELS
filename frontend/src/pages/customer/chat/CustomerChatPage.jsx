@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiMessageSquare, FiBriefcase, FiTool, FiSend, FiUser, FiCheck,
   FiSearch, FiPaperclip, FiPhoneCall, FiMoreVertical, FiClock, FiShield, FiPlusSquare
@@ -24,13 +24,24 @@ const TABS = [
 
 export default function CustomerChatPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryUserId = searchParams.get('userId');
+  const queryName = searchParams.get('name');
+  const queryAvatar = searchParams.get('avatar');
+
   const currentUser = useSelector(selectCurrentUser);
   const currentUserId = currentUser?._id || currentUser?.id;
   const [activeTab, setActiveTab] = useState('vendors');
   const [selectedThreadId, setSelectedThreadId] = useState(null);
   const [messageInput, setMessageInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [hasCheckedQuery, setHasCheckedQuery] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Reset check when queryUserId changes
+  useEffect(() => {
+    setHasCheckedQuery(false);
+  }, [queryUserId]);
 
   // RTK Query hooks with 3s polling for real-time sync
   const { data: convData, isFetching: isConvLoading, refetch: refetchConvs } = useGetConversationsQuery(undefined, { pollingInterval: 3000 });
@@ -39,7 +50,7 @@ export default function CustomerChatPage() {
   const conversationsList = convData?.data?.conversations || convData?.conversations || convData?.data || (Array.isArray(convData) ? convData : []);
 
   // Process live database threads
-  const liveThreads = conversationsList.map((c) => {
+  const baseThreads = conversationsList.map((c) => {
     const participants = c.participants || [];
     const other = participants.find((p) => (p._id || p.id || p) !== currentUserId) || {};
     const recipientId = other._id || other.id || (typeof other === 'string' ? other : null);
@@ -60,25 +71,51 @@ export default function CustomerChatPage() {
     };
   });
 
+  const hasExisting = baseThreads.some((t) => t.recipientId === queryUserId);
+  const liveThreads = [...baseThreads];
+
+  if (queryUserId && !hasExisting) {
+    liveThreads.unshift({
+      id: `temp-${queryUserId}`,
+      name: queryName || 'Vendor',
+      avatar: queryAvatar || null,
+      lastMessage: 'Start typing to begin conversation...',
+      time: 'Now',
+      unread: 0,
+      recipientId: queryUserId,
+      role: 'vendors',
+      isVirtual: true,
+    });
+  }
+
   const filteredThreads = liveThreads.filter((t) => {
     const matchesTab = activeTab === 'vendors' ? t.role !== 'service-providers' : t.role === 'service-providers';
     const matchesSearch = !searchTerm || t.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
-  // Auto-select first thread if none selected
+  // Auto-select thread based on query param or select first thread if none selected
   useEffect(() => {
-    if (!selectedThreadId && filteredThreads.length > 0) {
+    if (queryUserId && !hasCheckedQuery && liveThreads.length > 0) {
+      const targetThread = liveThreads.find((t) => t.recipientId === queryUserId);
+      if (targetThread) {
+        setSelectedThreadId(targetThread.id);
+        if (targetThread.role) {
+          setActiveTab(targetThread.role);
+        }
+        setHasCheckedQuery(true);
+      }
+    } else if (!queryUserId && !selectedThreadId && filteredThreads.length > 0) {
       setSelectedThreadId(filteredThreads[0].id);
     }
-  }, [filteredThreads, selectedThreadId]);
+  }, [queryUserId, hasCheckedQuery, liveThreads, filteredThreads, selectedThreadId]);
 
   const currentThread = filteredThreads.find((t) => t.id === selectedThreadId) || filteredThreads[0] || {};
 
-  // Fetch real message history for selected thread
+  // Fetch real message history for selected thread, skipping virtual ones
   const { data: msgData, isFetching: isMsgLoading, refetch: refetchMessages } = useGetMessagesQuery(
     { conversationId: selectedThreadId },
-    { skip: !selectedThreadId, pollingInterval: 3000 }
+    { skip: !selectedThreadId || String(selectedThreadId).startsWith('temp-'), pollingInterval: 3000 }
   );
 
   // Real-time Socket listeners
@@ -86,7 +123,9 @@ export default function CustomerChatPage() {
     const socket = getSocket();
     if (!socket) return;
 
-    if (selectedThreadId) {
+    const isTemp = selectedThreadId && String(selectedThreadId).startsWith('temp-');
+
+    if (selectedThreadId && !isTemp) {
       socket.emit('join_conversation', selectedThreadId);
       socket.emit('mark_seen', { conversationId: selectedThreadId });
     }
@@ -94,7 +133,7 @@ export default function CustomerChatPage() {
     const handleIncomingMessage = (msg) => {
       const msgConvId = msg.conversationId || msg.conversation || msg.conversation?._id;
       if (msgConvId === selectedThreadId) {
-        refetchMessages();
+        if (typeof refetchMessages === 'function') refetchMessages();
       }
       refetchConvs();
     };
@@ -104,7 +143,7 @@ export default function CustomerChatPage() {
     socket.on('message_alert', () => refetchConvs());
 
     return () => {
-      if (selectedThreadId) {
+      if (selectedThreadId && !isTemp) {
         socket.emit('leave_conversation', selectedThreadId);
       }
       socket.off('message', handleIncomingMessage);
@@ -131,17 +170,23 @@ export default function CustomerChatPage() {
     setMessageInput('');
 
     try {
-      await sendMessageApi({
+      const res = await sendMessageApi({
         recipientId: currentThread.recipientId,
         text,
       }).unwrap();
 
       const socket = getSocket();
-      if (socket && selectedThreadId) {
-        socket.emit('send_message', { conversationId: selectedThreadId, text });
+      const newConversationId = res.message?.conversationId || res.message?.conversation;
+
+      if (socket && newConversationId) {
+        socket.emit('send_message', { conversationId: newConversationId, text });
       }
 
-      refetchMessages();
+      if (newConversationId) {
+        setSelectedThreadId(newConversationId);
+      }
+
+      if (typeof refetchMessages === 'function') refetchMessages();
       refetchConvs();
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to send message');

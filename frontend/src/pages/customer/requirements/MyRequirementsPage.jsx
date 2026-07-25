@@ -507,7 +507,7 @@ export default function MyRequirementsPage() {
                             )}
 
                             <Link
-                              to="/customer/chat"
+                              to={`/customer/chat?userId=${q.vendor?._id || q.vendor?.id}&name=${encodeURIComponent(q.vendor?.name || '')}&avatar=${encodeURIComponent(q.vendor?.avatarUrl || '')}`}
                               className="px-3 py-1.5 glass border border-border text-xs font-semibold rounded-lg hover:text-brand-purple hover:border-brand-purple transition-all"
                             >
                               Chat
