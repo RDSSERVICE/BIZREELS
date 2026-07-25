@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
   FiMapPin, FiSearch, FiSliders, FiPlay, FiVolume2, FiVolumeX, FiCheck,
@@ -6,6 +7,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
+import { getSocket } from '../../../lib/socket';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
 import CommentsDrawer from '../../../components/ui/CommentsDrawer';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
@@ -116,6 +118,7 @@ function CustomerReelMedia({ reel, muted, setMuted }) {
 }
 
 export default function CustomerHomePage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('reels'); // 'reels' | 'images'
   const [reels, setReels] = useState([]);
   const [images, setImages] = useState([]);
@@ -137,6 +140,35 @@ export default function CustomerHomePage() {
     uploadDate: 'all',
     popularity: 'trending',
   });
+
+  const fetchFollowings = async () => {
+    try {
+      const res = await api.get('/v1/follow/me/following');
+      const items = res.data?.items || [];
+      const fmap = {};
+      items.forEach((item) => {
+        fmap[item.id || item._id] = true;
+      });
+      setFollowingMap(fmap);
+    } catch (e) {
+      console.warn('Failed to load followings list:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchFollowings();
+
+    const socket = getSocket();
+    if (socket) {
+      const handleFollowingUpdate = ({ vendorId, following }) => {
+        setFollowingMap((prev) => ({ ...prev, [vendorId]: following }));
+      };
+      socket.on('following_update', handleFollowingUpdate);
+      return () => {
+        socket.off('following_update', handleFollowingUpdate);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     fetchFeedData();
@@ -415,7 +447,10 @@ export default function CustomerHomePage() {
                 >
                   {/* Header */}
                   <div className="p-3.5 flex items-center justify-between glass border-b border-border">
-                    <div className="flex items-center gap-3">
+                    <div
+                      onClick={() => navigate(`/customer/vendor/${reel.creator?._id || reel.creator}`)}
+                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+                    >
                       <div className="w-9 h-9 rounded-full gradient-brand p-0.5">
                         <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-xs font-bold text-text-primary">
                           {typeof reel.creator === 'object' && reel.creator?.name ? reel.creator.name.charAt(0) : 'V'}
@@ -519,7 +554,12 @@ export default function CustomerHomePage() {
 
                   <div className="p-4 space-y-2">
                     <h4 className="font-bold text-sm text-text-primary font-display">{item.title}</h4>
-                    <p className="text-xs text-text-tertiary">By {typeof item.vendor === 'object' && item.vendor?.name ? item.vendor.name : 'Verified Vendor'}</p>
+                    <p
+                      onClick={() => navigate(`/customer/vendor/${item.vendor?._id || item.vendor}`)}
+                      className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition font-medium"
+                    >
+                      By {typeof item.vendor === 'object' && item.vendor?.name ? item.vendor.name : 'Verified Vendor'}
+                    </p>
 
                     <div className="flex items-center justify-between pt-2 border-t border-border">
                       <button

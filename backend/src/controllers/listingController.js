@@ -55,6 +55,7 @@ class ListingController {
     } = req.query;
 
     const result = await listingService.queryListings({
+      currentUserId: req.userId || null,
       vendor,
       type,
       category,

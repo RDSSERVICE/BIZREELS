@@ -447,10 +447,131 @@ router.get('/:user_id', optionalAuth, catchAsync(async (req, res) => {
     verified_badge: isSub && u.kyc_status === 'approved',
     rating_avg: u.rating_avg || 0.0,
     rating_count: u.rating_count || 0,
-    trust_score: u.trust_score || 0,
     city: u.city || null,
     avg_response_time_seconds: u.avg_response_time_seconds || null,
     chat_response_rate: u.chat_response_rate || 0.0,
+  });
+}));
+
+router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
+  const { user_id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(user_id)) {
+    throw ApiError.badRequest('Invalid user id');
+  }
+
+  const u = await User.findOne({ _id: user_id, is_deleted: { $ne: true } });
+  if (!u) {
+    throw ApiError.notFound('Vendor user not found');
+  }
+
+  const Reel = require('../models/Reel');
+  const Listing = require('../models/Listing');
+  const Review = require('../models/Review');
+
+  // Stats count
+  const postsCount = await Reel.countDocuments({ creator: user_id, isDeleted: { $ne: true } });
+  const productsCount = await Listing.countDocuments({ vendor: user_id, type: 'product', isDeleted: { $ne: true } });
+  const servicesCount = await Listing.countDocuments({ vendor: user_id, type: 'service', isDeleted: { $ne: true } });
+  const followersCount = await followService.followersCount(user_id);
+  
+  const followingIdsList = await followService.followingIds(user_id);
+  const followingCountVal = followingIdsList.length;
+
+  // Sum of views & likes on Reels
+  const reelStats = await Reel.aggregate([
+    { $match: { creator: new mongoose.Types.ObjectId(user_id), isDeleted: { $ne: true } } },
+    {
+      $group: {
+        _id: null,
+        likes: { $sum: '$likesCount' },
+        views: { $sum: '$views' }
+      }
+    }
+  ]);
+
+  // Sum of views & likes on Listings
+  const listingStats = await Listing.aggregate([
+    { $match: { vendor: new mongoose.Types.ObjectId(user_id), isDeleted: { $ne: true } } },
+    {
+      $group: {
+        _id: null,
+        views: { $sum: { $ifNull: ['$views', 0] } },
+        likes: { $sum: { $ifNull: ['$likesCount', 0] } }
+      }
+    }
+  ]);
+
+  const totalReelLikes = reelStats[0]?.likes || 0;
+  const totalReelViews = reelStats[0]?.views || 0;
+  const totalListingLikes = listingStats[0]?.likes || 0;
+  const totalListingViews = listingStats[0]?.views || 0;
+
+  const totalLikes = totalReelLikes + totalListingLikes;
+  const totalViews = totalReelViews + totalListingViews;
+
+  const reviewsCount = await Review.countDocuments({ targetUser: user_id, isDeleted: { $ne: true } });
+
+  // Get current viewer following status
+  const viewerId = req.userId || null;
+  let isFollowingViewer = false;
+  if (viewerId && viewerId !== user_id) {
+    isFollowingViewer = await followService.isFollowing(viewerId, user_id);
+  }
+
+  // Format vendorProfile fields with fallbacks
+  const vp = u.vendorProfile || {};
+
+  const isSub = !!u.is_subscribed_verified;
+  const verifiedBadge = isSub && u.kyc_status === 'approved';
+
+  res.json({
+    success: true,
+    data: {
+      id: u._id.toString(),
+      name: u.name,
+      profile_pic: u.profile_pic || u.avatarUrl || null,
+      cover_banner: vp.coverBanner || null,
+      roles: u.roles || [],
+      kyc_status: u.kyc_status || 'unverified',
+      is_subscribed_verified: isSub,
+      verified_badge: verifiedBadge,
+      rating_avg: u.rating_avg || 0.0,
+      rating_count: u.rating_count || 0,
+      trust_score: u.trust_score || 0,
+      city: u.city || vp.city || u.location?.city || null,
+      state: u.location?.state || null,
+      address: u.location?.address || vp.businessAddress || null,
+      joined_date: u.created_at,
+      online_status: 'online',
+
+      // Business Profile details
+      business_name: vp.businessName || vp.shopName || u.name,
+      description: vp.description || 'Verified vendor on BizReels.',
+      category: vp.category || 'Electronics',
+      subcategory: vp.subcategory || '',
+      business_hours: vp.businessHours || '9:00 AM - 9:00 PM (Mon-Sat)',
+      website: vp.website || '',
+      whatsapp: vp.whatsapp || u.phone || '',
+      socials: {
+        instagram: vp.instagram || '',
+        facebook: vp.facebook || '',
+      },
+
+      // Statistics
+      stats: {
+        posts: postsCount,
+        followers: followersCount,
+        following: followingCountVal,
+        likes: totalLikes,
+        views: totalViews,
+        reviews: reviewsCount,
+        products: productsCount,
+        services: servicesCount,
+      },
+
+      // Viewer state
+      viewer_following: isFollowingViewer,
+    }
   });
 }));
 

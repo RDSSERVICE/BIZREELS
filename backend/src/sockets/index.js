@@ -167,10 +167,24 @@ const emitToRole = (role, event, payload) => {
   }
 };
 
+const emitToRoom = (room, event, payload) => {
+  if (ioInstance) {
+    ioInstance.to(room).emit(event, payload);
+  }
+};
+
+const broadcast = (event, payload) => {
+  if (ioInstance) {
+    ioInstance.emit(event, payload);
+  }
+};
+
 module.exports = {
   initSockets,
   emitToUser,
   emitToConversation,
   emitToAdmin,
   emitToRole,
+  emitToRoom,
+  broadcast,
 };

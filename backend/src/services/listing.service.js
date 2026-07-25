@@ -169,6 +169,7 @@ class ListingService {
   }
 
   async queryListings({
+    currentUserId,
     vendor,
     type,
     category,
@@ -187,6 +188,7 @@ class ListingService {
   }) {
     const coordinates = lat && lng ? [parseFloat(lng), parseFloat(lat)] : null;
     return listingRepository.queryListings({
+      currentUserId,
       vendor,
       type,
       category,

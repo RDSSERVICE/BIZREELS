@@ -34,6 +34,7 @@ import CustomerChatPage from '../pages/customer/chat/CustomerChatPage';
 import CustomerSettingsPage from '../pages/customer/settings/CustomerSettingsPage';
 import BecomeVendorPage from '../pages/customer/become-vendor/BecomeVendorPage';
 import BecomeCreatorPage from '../pages/customer/become-creator/BecomeCreatorPage';
+import VendorProfilePage from '../pages/customer/vendor/VendorProfilePage';
 
 // Vendor Pages
 import VendorDashboardPage from '../pages/vendor/dashboard/VendorDashboardPage';
@@ -51,6 +52,7 @@ import VendorSettingsPage from '../pages/vendor/settings/VendorSettingsPage';
 import VendorHireCreatorPage from '../pages/vendor/hire-creator/VendorHireCreatorPage';
 import VendorVerificationPage from '../pages/vendor/verification/VendorVerificationPage';
 import VendorChatPage from '../pages/vendor/chat/VendorChatPage';
+import VendorFollowersPage from '../pages/vendor/followers/VendorFollowersPage';
 
 // Creator Pages
 import CreatorDashboardPage from '../pages/creator/dashboard/CreatorDashboardPage';
@@ -144,6 +146,7 @@ const AppRoutes = () => {
         <Route path="settings" element={<CustomerSettingsPage />} />
         <Route path="become-vendor" element={<BecomeVendorPage />} />
         <Route path="become-creator" element={<BecomeCreatorPage />} />
+        <Route path="vendor/:vendorId" element={<VendorProfilePage />} />
         <Route path="" element={<Navigate to="home" replace />} />
       </Route>
 
@@ -172,6 +175,7 @@ const AppRoutes = () => {
         <Route path="reviews" element={<VendorReviewsPage />} />
         <Route path="settings" element={<VendorSettingsPage />} />
         <Route path="chat" element={<VendorChatPage />} />
+        <Route path="followers" element={<VendorFollowersPage />} />
         <Route path="hire-creator" element={<VendorHireCreatorPage />} />
         <Route path="" element={<Navigate to="dashboard" replace />} />
       </Route>

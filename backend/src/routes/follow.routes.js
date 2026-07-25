@@ -20,4 +20,9 @@ router.get('/me/following', requireAuth, catchAsync(async (req, res) => {
   res.json({ items, count: items.length });
 }));
 
+router.get('/me/followers', requireAuth, catchAsync(async (req, res) => {
+  const items = await followService.myFollowers(req.user._id.toString());
+  res.json({ items, count: items.length });
+}));
+
 module.exports = router;

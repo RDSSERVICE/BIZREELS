@@ -447,9 +447,18 @@ export default function SearchListingsPage() {
                       </span>
                     </div>
                     <h4 className="font-bold text-sm text-text-primary line-clamp-2">{item.title}</h4>
-                    <p className="text-xs text-text-tertiary mt-1 flex items-center gap-1">
+                    <p
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const vendorId = vendorObj._id || vendorObj.id || item.vendor;
+                        if (vendorId) {
+                          navigate(`/customer/vendor/${vendorId}`);
+                        }
+                      }}
+                      className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition mt-1 flex items-center gap-1 font-medium"
+                    >
                       <FiMapPin size={12} className="text-brand-orange" />
-                      {vendorName} ({city})
+                      <span>{vendorName} ({city})</span>
                     </p>
                   </div>
 
@@ -483,7 +492,16 @@ export default function SearchListingsPage() {
                   {selectedItem.type || 'Product'} • {selectedItem.category || 'General'}
                 </span>
                 <h2 className="text-xl font-bold text-text-primary font-display mt-1">{selectedItem.title}</h2>
-                <p className="text-xs text-text-tertiary flex items-center gap-1 mt-0.5">
+                <p
+                  onClick={() => {
+                    const vendorId = selectedItem.vendor?._id || selectedItem.vendor?.id || selectedItem.vendor;
+                    if (vendorId) {
+                      setSelectedItem(null);
+                      navigate(`/customer/vendor/${vendorId}`);
+                    }
+                  }}
+                  className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition flex items-center gap-1 mt-0.5 font-medium"
+                >
                   <FiMapPin className="text-brand-orange" /> {(selectedItem.vendor?.shopName || selectedItem.vendor?.name || 'Verified Vendor')} ({selectedItem.city || 'Local Shop'})
                 </p>
               </div>

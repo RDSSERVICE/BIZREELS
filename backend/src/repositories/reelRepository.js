@@ -51,6 +51,30 @@ class ReelRepository {
       });
     } else {
       pipeline.push({ $match: match });
+    }
+
+    // Personalization sorting: followedCreator desc
+    let followedIds = [];
+    if (currentUserId) {
+      try {
+        const followService = require('../services/follow.service');
+        const ids = await followService.followingIds(currentUserId);
+        followedIds = ids.map(id => new mongoose.Types.ObjectId(id));
+      } catch (err) {
+        console.error('Error fetching followed IDs for reels feed:', err);
+      }
+    }
+
+    if (currentUserId && followedIds.length > 0) {
+      pipeline.push({
+        $addFields: {
+          followedCreator: {
+            $cond: [{ $in: ['$creator', followedIds] }, 1, 0]
+          }
+        }
+      });
+      pipeline.push({ $sort: { followedCreator: -1, createdAt: -1 } });
+    } else if (!coordinates) {
       pipeline.push({ $sort: { createdAt: -1 } });
     }
 

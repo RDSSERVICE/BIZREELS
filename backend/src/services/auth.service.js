@@ -532,54 +532,18 @@ class AuthService {
   }
 
   async followUser(userId, followId, req) {
-    if (userId.toString() === followId.toString()) {
-      throw ApiError.badRequest('You cannot follow yourself.');
-    }
-
+    const followService = require('./follow.service');
+    const result = await followService.follow(userId.toString(), followId.toString());
     const userToFollow = await authRepository.findUserById(followId);
-    if (!userToFollow) {
-      throw ApiError.notFound('User to follow not found.');
-    }
-
-    await require('../models/User').findByIdAndUpdate(userId, {
-      $addToSet: { following: followId }
-    });
-
-    await require('../models/User').findByIdAndUpdate(followId, {
-      $addToSet: { followers: userId },
-      $inc: { followersCount: 1 }
-    });
-
-    await require('../models/User').findByIdAndUpdate(userId, {
-      $inc: { followingCount: 1 }
-    });
-
-    await this._logAction(userId, 'USER_FOLLOW', 'User', followId, `Followed user ${userToFollow.name}`, req);
-
+    await this._logAction(userId, 'USER_FOLLOW', 'User', followId, `Followed user ${userToFollow ? userToFollow.name : ''}`, req);
     return this.getCurrentUser(userId);
   }
 
   async unfollowUser(userId, unfollowId, req) {
+    const followService = require('./follow.service');
+    const result = await followService.unfollow(userId.toString(), unfollowId.toString());
     const userToUnfollow = await authRepository.findUserById(unfollowId);
-    if (!userToUnfollow) {
-      throw ApiError.notFound('User to unfollow not found.');
-    }
-
-    await require('../models/User').findByIdAndUpdate(userId, {
-      $pull: { following: unfollowId }
-    });
-
-    await require('../models/User').findByIdAndUpdate(unfollowId, {
-      $pull: { followers: userId },
-      $inc: { followersCount: -1 }
-    });
-
-    await require('../models/User').findByIdAndUpdate(userId, {
-      $inc: { followingCount: -1 }
-    });
-
-    await this._logAction(userId, 'USER_UNFOLLOW', 'User', unfollowId, `Unfollowed user ${userToUnfollow.name}`, req);
-
+    await this._logAction(userId, 'USER_UNFOLLOW', 'User', unfollowId, `Unfollowed user ${userToUnfollow ? userToUnfollow.name : ''}`, req);
     return this.getCurrentUser(userId);
   }
 

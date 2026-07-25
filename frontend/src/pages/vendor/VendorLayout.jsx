@@ -51,6 +51,7 @@ const NAV_SECTIONS = [
     title: 'Engagement',
     items: [
       { name: 'Reviews', path: '/vendor/reviews', icon: FiStar },
+      { name: 'Followers', path: '/vendor/followers', icon: FiUserCheck },
       { name: 'Hire Creator', path: '/vendor/hire-creator', icon: FiUserCheck },
       { name: 'Settings', path: '/vendor/settings', icon: FiSettings },
     ],

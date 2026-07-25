@@ -3,6 +3,7 @@ const listingController = require('../controllers/listingController');
 const listingValidation = require('../validations/listingValidation');
 const validate = require('../middleware/validate');
 const { authenticate, authorize } = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ const router = express.Router();
  */
 
 // ── Public Search & Details ──────────────────────────────
-router.get('/', listingValidation.queryListings, validate, listingController.getListings);
+router.get('/', optionalAuth, listingValidation.queryListings, validate, listingController.getListings);
 router.get('/:id', listingValidation.idParam, validate, listingController.getListingDetails);
 router.post('/:id/save', authenticate, listingController.save);
 router.post('/:id/unsave', authenticate, listingController.unsave);

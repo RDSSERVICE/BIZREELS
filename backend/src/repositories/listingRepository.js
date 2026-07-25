@@ -35,6 +35,7 @@ class ListingRepository {
    * Complex query support for listings with pagination and aggregation.
    */
   async queryListings({
+    currentUserId,
     vendor,
     type,
     category,
@@ -101,6 +102,30 @@ class ListingRepository {
       });
     } else {
       pipeline.push({ $match: match });
+    }
+
+    // Personalization sorting: followedVendor desc
+    let followedIds = [];
+    if (currentUserId) {
+      try {
+        const followService = require('../services/follow.service');
+        const ids = await followService.followingIds(currentUserId);
+        followedIds = ids.map(id => new mongoose.Types.ObjectId(id));
+      } catch (err) {
+        console.error('Error fetching followed IDs for listing feed:', err);
+      }
+    }
+
+    if (currentUserId && followedIds.length > 0) {
+      pipeline.push({
+        $addFields: {
+          followedVendor: {
+            $cond: [{ $in: ['$vendor', followedIds] }, 1, 0]
+          }
+        }
+      });
+      pipeline.push({ $sort: { followedVendor: -1, isBoosted: -1, createdAt: -1 } });
+    } else if (!coordinates) {
       pipeline.push({ $sort: { isBoosted: -1, createdAt: -1 } });
     }
 

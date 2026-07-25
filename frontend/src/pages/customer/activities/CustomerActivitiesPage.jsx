@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FiActivity, FiBookmark, FiTool, FiPackage, FiMessageSquare,
-  FiDollarSign, FiUserCheck
+  FiDollarSign, FiUserCheck, FiSearch
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -28,7 +29,9 @@ const TABS = [
 ];
 
 export default function CustomerActivitiesPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('saved-products');
+  const [followingSearch, setFollowingSearch] = useState('');
   const { data: ordersData } = useGetOrdersQuery(undefined, { pollingInterval: 5000 });
   const { data: inquiriesData } = useGetInquiriesQuery(undefined, { pollingInterval: 5000 });
   const { data: savedData } = useGetSavedListingsQuery(undefined, { pollingInterval: 5000 });
@@ -45,8 +48,8 @@ export default function CustomerActivitiesPage() {
   const quotes = Array.isArray(quotesData?.data) ? quotesData.data : Array.isArray(quotesData) ? quotesData : [];
   
   const followings = followingData?.items || [];
-  const followingVendors = followings.filter(u => u.roles?.includes('vendor'));
-  const followingServices = followings.filter(u => !u.roles?.includes('vendor'));
+  const followingVendors = followings.filter(u => u.roles?.includes('vendor') && (u.name || '').toLowerCase().includes(followingSearch.toLowerCase()));
+  const followingServices = followings.filter(u => !u.roles?.includes('vendor') && (u.name || '').toLowerCase().includes(followingSearch.toLowerCase()));
 
   const handleUnfollow = async (userId) => {
     try {
@@ -212,21 +215,41 @@ export default function CustomerActivitiesPage() {
 
         {(activeTab === 'following-vendors' || activeTab === 'following-services') && (
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-text-primary font-display">Following List</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h3 className="text-sm font-bold text-text-primary font-display">Following List</h3>
+              
+              {/* Search Bar */}
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="text"
+                  value={followingSearch}
+                  onChange={(e) => setFollowingSearch(e.target.value)}
+                  placeholder="Search followed accounts..."
+                  className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple transition font-medium"
+                />
+                <FiSearch className="absolute left-3 top-2.5 text-text-tertiary" size={14} />
+              </div>
+            </div>
+
             {(activeTab === 'following-vendors' ? followingVendors : followingServices).length === 0 ? (
-              <p className="text-xs text-text-tertiary text-center py-6">Not following any {activeTab === 'following-vendors' ? 'vendors' : 'services'} yet.</p>
+              <p className="text-xs text-text-tertiary text-center py-6">
+                {followingSearch ? 'No matches found.' : `Not following any ${activeTab === 'following-vendors' ? 'vendors' : 'services'} yet.`}
+              </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {(activeTab === 'following-vendors' ? followingVendors : followingServices).map((v) => (
                   <div key={v._id || v.id} className="glass rounded-xl p-4 border border-white/30 flex justify-between items-center gap-3">
-                    <div className="flex items-center gap-3">
+                    <div
+                      onClick={() => navigate(`/customer/vendor/${v.id || v._id}`)}
+                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+                    >
                       <img
                         src={resolveMediaUrl(v.profile_pic || v.avatarUrl || 'https://via.placeholder.com/150')}
                         alt={v.name}
                         className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0"
                       />
                       <div>
-                        <h4 className="font-bold text-xs text-text-primary">{v.name}</h4>
+                        <h4 className="font-bold text-xs text-text-primary hover:text-brand-purple transition">{v.name}</h4>
                         <p className="text-[10px] text-text-tertiary capitalize">{v.roles?.join(', ') || 'Vendor'}</p>
                       </div>
                     </div>
