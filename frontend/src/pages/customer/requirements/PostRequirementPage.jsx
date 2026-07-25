@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { FiPlusCircle, FiShoppingBag, FiTool, FiDollarSign, FiMapPin } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
-import { api } from '../../../lib/api';
+import { useCreateRequirementMutation } from '../../../features/customer/requirementsApi';
 
 export default function PostRequirementPage() {
   const navigate = useNavigate();
+  const [createRequirement, { isLoading }] = useCreateRequirementMutation();
   const [type, setType] = useState('product'); // 'product' | 'service'
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Electronics');
@@ -16,7 +17,6 @@ export default function PostRequirementPage() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,9 +25,8 @@ export default function PostRequirementPage() {
       return;
     }
 
-    setLoading(true);
     try {
-      await api.post('/v1/requirements', {
+      await createRequirement({
         type,
         requirementType: type,
         title,
@@ -38,15 +37,13 @@ export default function PostRequirementPage() {
         city,
         state,
         description
-      });
+      }).unwrap();
 
       toast.success('Requirement posted successfully! Vendors will submit quotes soon.');
       navigate('/customer/my-requirements');
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Failed to post requirement';
+      const msg = err?.data?.message || err?.message || 'Failed to post requirement';
       toast.error(msg);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -212,10 +209,10 @@ export default function PostRequirementPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className="w-full py-3.5 rounded-xl gradient-brand font-bold text-xs text-white shadow-premium flex items-center justify-center gap-2 hover:opacity-90 transition"
           >
-            {loading ? 'Publishing Requirement...' : 'Post Requirement Now'}
+            {isLoading ? 'Publishing Requirement...' : 'Post Requirement Now'}
           </button>
         </form>
       </div>
