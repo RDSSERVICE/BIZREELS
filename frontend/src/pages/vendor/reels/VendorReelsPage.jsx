@@ -5,7 +5,7 @@ import {
   FiEye, FiHeart, FiShare2, FiUserCheck, FiRadio, FiZap, FiPlus,
   FiMapPin, FiTarget, FiAlertTriangle, FiCheckCircle, FiClock, FiCamera,
   FiImage, FiLayers, FiTag, FiUsers, FiDollarSign, FiSend, FiX, FiHelpCircle, FiCheck,
-  FiChevronLeft, FiChevronRight, FiTrash2, FiFileText
+  FiChevronLeft, FiChevronRight, FiTrash2, FiFileText, FiMic, FiMicOff
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
@@ -296,10 +296,57 @@ export default function VendorReelsPage() {
   const [boostBudget, setBoostBudget] = useState(499);
   const [boostDurationDays, setBoostDurationDays] = useState(3);
 
-  // GO LIVE STATE
+  // GO LIVE STATE & WEBCAM STREAM
   const [liveTitle, setLiveTitle] = useState('Live Product Showcase & Q&A');
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeStreamId, setActiveStreamId] = useState(null);
+  const [cameraError, setCameraError] = useState(null);
+  const liveVideoRef = React.useRef(null);
+  const mediaStreamRef = React.useRef(null);
+
+  // Initialize & Stop Camera Media Stream
+  const startCameraStream = async () => {
+    setCameraError(null);
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        mediaStreamRef.current = stream;
+        if (liveVideoRef.current) {
+          liveVideoRef.current.srcObject = stream;
+        }
+      } else {
+        setCameraError('Camera access is not supported on this browser.');
+      }
+    } catch (err) {
+      console.error('Camera access error:', err);
+      setCameraError('Could not access camera/microphone. Please check browser permissions.');
+      toast.error('Camera access permission denied or device busy');
+    }
+  };
+
+  const stopCameraStream = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (liveVideoRef.current) {
+      liveVideoRef.current.srcObject = null;
+    }
+  };
+
+  // Start/Stop stream when showLiveModal toggles
+  React.useEffect(() => {
+    if (showLiveModal) {
+      startCameraStream();
+    } else {
+      stopCameraStream();
+      setIsStreaming(false);
+      setActiveStreamId(null);
+    }
+    return () => {
+      stopCameraStream();
+    };
+  }, [showLiveModal]);
 
   const handleToggleLiveStream = async () => {
     if (isStreaming && activeStreamId) {
@@ -328,7 +375,7 @@ export default function VendorReelsPage() {
         if (streamId) {
           setActiveStreamId(streamId);
           setIsStreaming(true);
-          toast.success('🔴 Live stream started!', { id: toastId });
+          toast.success('🔴 Live stream started! Video broadcast active.', { id: toastId });
         } else {
           toast.error('Failed to retrieve live stream ID', { id: toastId });
         }
@@ -338,9 +385,59 @@ export default function VendorReelsPage() {
     }
   };
 
-  // AI Ad Prompt State
+  // AI Ad Prompt & Voice Speech Recognition State
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
+
+  const toggleVoiceRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      return toast.error('Voice input is not supported in this browser. Please type your prompt.');
+    }
+
+    if (isListeningVoice) {
+      setIsListeningVoice(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'hi-IN'; // Default Hindi/English voice dictation
+
+      recognition.onstart = () => {
+        setIsListeningVoice(true);
+        toast.success('🎙️ Listening... Speak your prompt now (Hindi/English)');
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript) {
+          setAiPrompt((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListeningVoice(false);
+        toast.error(`Voice dictation error: ${event.error}`);
+      };
+
+      recognition.onend = () => {
+        setIsListeningVoice(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      setIsListeningVoice(false);
+      toast.error('Failed to start voice recognition');
+    }
+  };
 
   // API QUERIES & MUTATIONS
   const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 3000 });
@@ -1413,13 +1510,28 @@ export default function VendorReelsPage() {
       <AdminModal isOpen={showAiAdModal} onClose={() => setShowAiAdModal(false)} title="3. Create Reels / AI Generator">
         <form onSubmit={handleGenerateAiAd} className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Product Offer / Promo Description *</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block">Product Offer / Promo Description *</label>
+              <button
+                type="button"
+                onClick={toggleVoiceRecording}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  isListeningVoice
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'bg-brand-purple/10 text-brand-purple hover:bg-brand-purple/20'
+                }`}
+                title="Speak to dictate description"
+              >
+                {isListeningVoice ? <FiMicOff size={14} /> : <FiMic size={14} />}
+                <span>{isListeningVoice ? 'Listening...' : 'Voice Dictate'}</span>
+              </button>
+            </div>
             <textarea
               rows={4}
               required
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="e.g. Create a 15-second promo reel for 20% discount on AC repair service..."
+              placeholder="Type or click 'Voice Dictate' to speak in Hindi/English... (e.g. Create a 15-second promo reel for 20% discount on AC repair service)"
               className="w-full p-3 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple"
             />
           </div>
@@ -1433,16 +1545,25 @@ export default function VendorReelsPage() {
       <AdminModal isOpen={showLiveModal} onClose={() => setShowLiveModal(false)} title="5. Go Live Interactive Console">
         <div className="space-y-4 text-center">
           <div className="aspect-video bg-black rounded-2xl relative flex items-center justify-center overflow-hidden border border-border">
-            {isStreaming ? (
-              <div className="text-white text-xs space-y-2 animate-pulse">
-                <span className="px-3 py-1 bg-red-600 rounded-full font-bold uppercase tracking-wider text-[10px]">🔴 LIVE STREAMING NOW</span>
-                <p className="text-sm font-bold">{liveTitle}</p>
-                <p className="text-[10px] text-gray-400">Simulated Viewers: 142</p>
+            <video
+              ref={liveVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+            />
+
+            {isStreaming && (
+              <div className="absolute top-3 left-3 bg-red-600/90 text-white text-[10px] font-black uppercase px-3 py-1 rounded-full animate-pulse backdrop-blur-sm border border-white/20 shadow-md">
+                🔴 LIVE BROADCASTING NOW
               </div>
-            ) : (
-              <div className="text-text-tertiary text-xs space-y-2">
-                <FiCamera size={32} className="mx-auto opacity-50" />
-                <p>Webcam preview ready. Click "Start Live Stream" to go live to customers.</p>
+            )}
+
+            {cameraError && (
+              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-4 text-center text-rose-400 text-xs space-y-2">
+                <FiCamera size={32} className="opacity-70" />
+                <p className="font-bold">{cameraError}</p>
+                <p className="text-[10px] text-text-tertiary">Please allow camera permissions in browser address bar.</p>
               </div>
             )}
           </div>
@@ -1463,7 +1584,10 @@ export default function VendorReelsPage() {
 
           <button
             onClick={handleToggleLiveStream}
-            className={`w-full py-3 text-white font-bold text-xs rounded-xl transition ${isStreaming ? 'bg-gray-700 hover:bg-gray-800' : 'bg-red-600 hover:bg-red-700'}`}
+            disabled={!!cameraError}
+            className={`w-full py-3 text-white font-bold text-xs rounded-xl transition ${
+              isStreaming ? 'bg-gray-700 hover:bg-gray-800' : 'bg-red-600 hover:bg-red-700'
+            } disabled:opacity-50`}
           >
             {isStreaming ? 'End Live Stream' : 'Start Live Stream Now'}
           </button>

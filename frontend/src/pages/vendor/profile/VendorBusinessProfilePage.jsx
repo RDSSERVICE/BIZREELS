@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
-  FiBriefcase, FiMapPin, FiGlobe, FiPhone, FiClock, FiFileText, FiSave, FiCheck, FiInstagram, FiFacebook, FiMessageCircle
+  FiBriefcase, FiMapPin, FiGlobe, FiPhone, FiClock, FiFileText, FiSave, FiCheck, FiInstagram, FiFacebook, FiMessageCircle, FiCamera, FiImage
 } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { setCredentials } from '../../../features/auth/authSlice';
-import { tokenStore } from '../../../lib/api';
+import api, { tokenStore, resolveMediaUrl } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
@@ -33,10 +33,14 @@ export default function VendorBusinessProfilePage() {
   const [whatsapp, setWhatsapp] = useState('');
   const [instagram, setInstagram] = useState('');
   const [facebook, setFacebook] = useState('');
+  const [profilePic, setProfilePic] = useState('');
+  const [coverBanner, setCoverBanner] = useState('');
+  const [uploadingPic, setUploadingPic] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (vendorProfile) {
+    if (vendorProfile || user) {
       setShopName(vendorProfile.shopName || user.name || '');
       setBusinessName(vendorProfile.businessName || '');
       setCategory(vendorProfile.category || 'Electronics');
@@ -49,8 +53,48 @@ export default function VendorBusinessProfilePage() {
       setWhatsapp(vendorProfile.whatsapp || user.phone || '');
       setInstagram(vendorProfile.instagram || '');
       setFacebook(vendorProfile.facebook || '');
+      setProfilePic(user.profile_pic || user.avatarUrl || '');
+      setCoverBanner(vendorProfile.coverBanner || '');
     }
   }, [vendorProfile, user]);
+
+  const handleFileUpload = async (e, setUrl, setUploading, label) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const toastId = toast.loading(`Uploading ${label}...`);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await api.post('/v1/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const url = res.data?.url || res.data?.data?.url || res.url;
+      if (url) {
+        setUrl(url);
+        toast.success(`${label} uploaded!`, { id: toastId });
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setUrl(reader.result);
+          toast.success(`${label} attached!`, { id: toastId });
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUrl(reader.result);
+        toast.success(`${label} attached!`, { id: toastId });
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -58,6 +102,8 @@ export default function VendorBusinessProfilePage() {
 
     try {
       const payload = {
+        profile_pic: profilePic || undefined,
+        avatarUrl: profilePic || undefined,
         vendorProfile: {
           ...vendorProfile,
           shopName,
@@ -72,6 +118,7 @@ export default function VendorBusinessProfilePage() {
           whatsapp,
           instagram,
           facebook,
+          coverBanner: coverBanner || '',
           updatedAt: new Date().toISOString()
         }
       };
@@ -95,6 +142,100 @@ export default function VendorBusinessProfilePage() {
       />
 
       <form onSubmit={handleSave} className="space-y-6">
+        {/* Profile Image & Cover Banner Upload Section */}
+        <div className="glass rounded-2xl p-6 sm:p-8 border border-white/50 shadow-card space-y-6">
+          <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2.5 border-b border-border pb-3">
+            <div className="p-2 rounded-xl bg-brand-purple/10 text-brand-purple">
+              <FiCamera className="w-4 h-4" />
+            </div>
+            <span>Profile Photo & Cover Banner</span>
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Vendor Profile Image */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+                Shop Logo / Profile Picture *
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-full border-2 border-brand-purple/40 overflow-hidden bg-surface-tertiary shrink-0 relative">
+                  {profilePic ? (
+                    <img src={resolveMediaUrl(profilePic)} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-text-tertiary text-2xl font-bold">
+                      {shopName ? shopName.charAt(0).toUpperCase() : 'V'}
+                    </div>
+                  )}
+                  {uploadingPic && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-[10px] font-bold">
+                      ...
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 flex-1">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-brand-purple/10 text-brand-purple text-xs font-bold rounded-xl hover:bg-brand-purple/20 transition cursor-pointer">
+                    <FiCamera size={14} />
+                    <span>Upload Logo / Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, setProfilePic, setUploadingPic, 'Profile Picture')}
+                    />
+                  </label>
+                  <p className="text-[10px] text-text-tertiary">Recommended: Square JPG or PNG (Max 5MB)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Cover Banner (Optional) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+                  Cover Banner <span className="text-emerald-500 font-semibold">(Optional)</span>
+                </label>
+                {coverBanner && (
+                  <button
+                    type="button"
+                    onClick={() => setCoverBanner('')}
+                    className="text-[10px] font-bold text-rose-500 hover:underline"
+                  >
+                    Remove Banner
+                  </button>
+                )}
+              </div>
+              <div className="relative rounded-2xl overflow-hidden border border-border h-24 bg-surface-tertiary">
+                {coverBanner ? (
+                  <img src={resolveMediaUrl(coverBanner)} alt="Cover Banner" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-cover-gradient flex items-center justify-center text-xs text-text-tertiary font-medium">
+                    No cover banner set (Will display dynamic gradient)
+                  </div>
+                )}
+                {uploadingBanner && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-[10px] font-bold">
+                    Uploading Banner...
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border text-text-primary text-xs font-bold rounded-xl hover:bg-surface-tertiary transition cursor-pointer">
+                  <FiImage size={14} />
+                  <span>{coverBanner ? 'Change Cover Banner' : 'Upload Cover Banner'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFileUpload(e, setCoverBanner, setUploadingBanner, 'Cover Banner')}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Basic Shop & Legal Details */}
         <div className="glass rounded-2xl p-6 sm:p-8 border border-white/50 shadow-card space-y-5">
           <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2.5 border-b border-border pb-3">
