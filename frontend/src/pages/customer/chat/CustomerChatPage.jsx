@@ -3,7 +3,8 @@ import { useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiMessageSquare, FiBriefcase, FiTool, FiSend, FiUser, FiCheck,
-  FiSearch, FiPaperclip, FiPhoneCall, FiMoreVertical, FiClock, FiShield, FiPlusSquare
+  FiSearch, FiPaperclip, FiPhoneCall, FiMoreVertical, FiClock, FiShield, FiPlusSquare,
+  FiTrash2, FiBellOff, FiInfo, FiExternalLink
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -14,7 +15,8 @@ import { selectCurrentUser } from '../../../features/auth/authSlice';
 import {
   useGetConversationsQuery,
   useGetMessagesQuery,
-  useSendMessageMutation
+  useSendMessageMutation,
+  useClearChatMutation
 } from '../../../features/chat/chatApi';
 
 const TABS = [
@@ -25,7 +27,7 @@ const TABS = [
 export default function CustomerChatPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const queryUserId = searchParams.get('userId');
+  const queryUserId = searchParams.get('userId') || searchParams.get('vendorId');
   const queryName = searchParams.get('name');
   const queryAvatar = searchParams.get('avatar');
 
@@ -36,7 +38,20 @@ export default function CustomerChatPage() {
   const [messageInput, setMessageInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [hasCheckedQuery, setHasCheckedQuery] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const messagesEndRef = useRef(null);
+  const menuRef = useRef(null);
+
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Reset check when queryUserId changes
   useEffect(() => {
@@ -46,6 +61,7 @@ export default function CustomerChatPage() {
   // RTK Query hooks with 3s polling for real-time sync
   const { data: convData, isFetching: isConvLoading, refetch: refetchConvs } = useGetConversationsQuery(undefined, { pollingInterval: 3000 });
   const [sendMessageApi, { isLoading: isSending }] = useSendMessageMutation();
+  const [clearChatApi, { isLoading: isClearing }] = useClearChatMutation();
 
   const conversationsList = convData?.data?.conversations || convData?.conversations || convData?.data || (Array.isArray(convData) ? convData : []);
 
@@ -190,6 +206,22 @@ export default function CustomerChatPage() {
       refetchConvs();
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to send message');
+    }
+  };
+
+  const handleClearChat = async () => {
+    if (!selectedThreadId || String(selectedThreadId).startsWith('temp-')) {
+      toast.error('No active messages to clear in this chat');
+      return;
+    }
+
+    try {
+      await clearChatApi(selectedThreadId).unwrap();
+      toast.success('Chat history cleared!');
+      if (typeof refetchMessages === 'function') refetchMessages();
+      refetchConvs();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to clear chat history');
     }
   };
 
@@ -351,19 +383,74 @@ export default function CustomerChatPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-text-tertiary">
+              <div className="flex items-center gap-2 text-text-tertiary relative" ref={menuRef}>
                 <button
                   onClick={() => toast.success('Calling feature coming soon')}
+                  title="Audio Call"
                   className="p-2 rounded-xl hover:bg-surface-tertiary hover:text-brand-purple transition"
                 >
                   <FiPhoneCall size={16} />
                 </button>
                 <button
-                  onClick={() => toast.success('More options')}
-                  className="p-2 rounded-xl hover:bg-surface-tertiary hover:text-brand-purple transition"
+                  onClick={() => setShowMenu((prev) => !prev)}
+                  title="More options"
+                  className={`p-2 rounded-xl hover:bg-surface-tertiary hover:text-brand-purple transition ${
+                    showMenu ? 'bg-surface-tertiary text-brand-purple' : ''
+                  }`}
                 >
                   <FiMoreVertical size={16} />
                 </button>
+
+                {showMenu && (
+                  <div className="absolute right-0 top-11 w-48 bg-surface/95 backdrop-blur-md border border-border rounded-2xl shadow-xl z-50 py-1.5 text-xs text-text-primary animate-fade-in">
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        if (currentThread.recipientId) {
+                          navigate(`/vendor/${currentThread.recipientId}`);
+                        } else {
+                          toast.error('Vendor profile unavailable');
+                        }
+                      }}
+                      className="w-full px-3.5 py-2.5 flex items-center gap-2.5 hover:bg-brand-purple/10 hover:text-brand-purple transition text-left font-medium"
+                    >
+                      <FiExternalLink size={14} />
+                      <span>View Vendor Profile</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        toast.success(`Notifications muted for ${currentThread.name || 'this conversation'}`);
+                      }}
+                      className="w-full px-3.5 py-2.5 flex items-center gap-2.5 hover:bg-brand-purple/10 hover:text-brand-purple transition text-left font-medium"
+                    >
+                      <FiBellOff size={14} />
+                      <span>Mute Notifications</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        toast.info(`Conversation Info: ${currentThread.name || 'Vendor'}`);
+                      }}
+                      className="w-full px-3.5 py-2.5 flex items-center gap-2.5 hover:bg-brand-purple/10 hover:text-brand-purple transition text-left font-medium"
+                    >
+                      <FiInfo size={14} />
+                      <span>Chat Details</span>
+                    </button>
+                    <div className="my-1 border-t border-border" />
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleClearChat();
+                      }}
+                      disabled={isClearing}
+                      className="w-full px-3.5 py-2.5 flex items-center gap-2.5 hover:bg-rose-500/10 text-rose-500 transition text-left font-medium disabled:opacity-50"
+                    >
+                      <FiTrash2 size={14} />
+                      <span>{isClearing ? 'Clearing...' : 'Clear Chat'}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

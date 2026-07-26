@@ -47,7 +47,7 @@ export default function MyRequirementsPage() {
   const [editQty, setEditQty] = useState('');
   const [editDesc, setEditDesc] = useState('');
 
-  // API Hooks
+  // API Hooks with polling for real-time views and bids update (3 minutes interval)
   const { data, isFetching, refetch } = useGetRequirementsQuery({
     search,
     status: statusFilter,
@@ -55,7 +55,7 @@ export default function MyRequirementsPage() {
     requirementType: activeTab !== 'all' ? activeTab : undefined,
     page,
     limit: 10
-  });
+  }, { pollingInterval: 180000 });
 
   const [deleteRequirement] = useDeleteRequirementMutation();
   const [updateRequirement] = useUpdateRequirementMutation();
@@ -141,10 +141,18 @@ export default function MyRequirementsPage() {
       if (typeof refetch === 'function') refetch();
     };
 
+    const handleReqViewed = ({ requirementId }) => {
+      if (activeReqId === requirementId) {
+        if (typeof refetchDetails === 'function') refetchDetails();
+      }
+      if (typeof refetch === 'function') refetch();
+    };
+
     socket.on('requirement:created', handleReqCreated);
     socket.on('requirement:updated', handleReqUpdated);
     socket.on('requirement:deleted', handleReqDeleted);
     socket.on('requirement:closed', handleReqClosed);
+    socket.on('requirement:viewed', handleReqViewed);
     socket.on('proposal:submitted', handleProposalSubmitted);
     socket.on('proposal:accepted', handleProposalAccepted);
     socket.on('proposal:rejected', handleProposalRejected);
@@ -154,6 +162,7 @@ export default function MyRequirementsPage() {
       socket.off('requirement:updated', handleReqUpdated);
       socket.off('requirement:deleted', handleReqDeleted);
       socket.off('requirement:closed', handleReqClosed);
+      socket.off('requirement:viewed', handleReqViewed);
       socket.off('proposal:submitted', handleProposalSubmitted);
       socket.off('proposal:accepted', handleProposalAccepted);
       socket.off('proposal:rejected', handleProposalRejected);
@@ -871,7 +880,10 @@ export default function MyRequirementsPage() {
             const reqId = req._id || req.id;
             const reqLoc = req.location || {};
             const locationText = typeof reqLoc === 'string' ? reqLoc : `${reqLoc.city || 'Local'}${reqLoc.state ? `, ${reqLoc.state}` : ''}`;
-            const expiryStr = req.expires_at ? new Date(req.expires_at).toLocaleDateString('en-IN') : 'N/A';
+            
+            const createdAtDate = (req.created_at || req.createdAt) ? new Date(req.created_at || req.createdAt) : new Date();
+            const rawExpiry = req.expires_at || req.deadline || new Date(createdAtDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+            const expiryStr = rawExpiry ? new Date(rawExpiry).toLocaleDateString('en-IN') : '30 Days';
 
             return (
               <div

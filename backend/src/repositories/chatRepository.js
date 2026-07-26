@@ -149,6 +149,14 @@ class ChatRepository {
       await session.endSession();
     }
   }
+
+  async clearChatMessages(conversationId) {
+    await Message.deleteMany({ conversation: conversationId });
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $unset: { lastMessage: 1 },
+    });
+    return true;
+  }
 }
 
 module.exports = new ChatRepository();

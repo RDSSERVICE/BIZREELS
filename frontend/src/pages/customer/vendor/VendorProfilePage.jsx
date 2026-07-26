@@ -158,7 +158,9 @@ export default function VendorProfilePage() {
       toast.success('Message delivered successfully!');
       setIsMessageModalOpen(false);
       setMessageText('');
-      navigate('/customer/chat');
+      const name = encodeURIComponent(vendorData?.shopName || vendorData?.name || 'Vendor');
+      const avatar = encodeURIComponent(vendorData?.logo || vendorData?.profile_pic || '');
+      navigate(`/customer/chat?vendorId=${vendorId}&name=${name}&avatar=${avatar}`);
     } catch (err) {
       toast.error('Failed to deliver message');
     } finally {

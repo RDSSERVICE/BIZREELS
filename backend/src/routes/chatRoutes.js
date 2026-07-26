@@ -11,5 +11,6 @@ const router = express.Router();
 router.get('/conversations', authenticate, chatController.getConversations);
 router.get('/:conversationId/messages', authenticate, chatController.getMessages);
 router.post('/messages', authenticate, chatController.sendMessage);
+router.delete('/:conversationId/clear', authenticate, chatController.clearChat);
 
 module.exports = router;

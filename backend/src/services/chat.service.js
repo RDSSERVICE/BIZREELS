@@ -98,6 +98,21 @@ class ChatService {
     return { ok: true };
   }
 
+  async clearChat(conversationId, userId) {
+    const conversation = await chatRepository.findConversationById(conversationId);
+    if (!conversation) {
+      throw ApiError.notFound('Conversation thread not found.');
+    }
+    const isParticipant = conversation.participants.some(
+      (p) => (p._id || p).toString() === userId.toString()
+    );
+    if (!isParticipant) {
+      throw ApiError.forbidden('You are not a participant in this conversation.');
+    }
+    await chatRepository.clearChatMessages(conversationId);
+    return { ok: true };
+  }
+
   async unreadTotal(userId) {
     return 0;
   }

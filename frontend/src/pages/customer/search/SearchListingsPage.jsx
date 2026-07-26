@@ -300,7 +300,9 @@ export default function SearchListingsPage() {
         text: `Hello! I am interested in your listing: "${item.title}". Could you share more details?`
       });
       toast.success(`Inquiry sent to ${vendorObj.name || vendorObj.shopName || 'Vendor'}! Redirecting to chat...`);
-      navigate('/customer/chat');
+      const vendorName = encodeURIComponent(vendorObj.shopName || vendorObj.name || 'Vendor');
+      const vendorAvatar = encodeURIComponent(vendorObj.avatarUrl || vendorObj.logo || '');
+      navigate(`/customer/chat?vendorId=${vendorId}&name=${vendorName}&avatar=${vendorAvatar}`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to send inquiry to vendor');
     } finally {

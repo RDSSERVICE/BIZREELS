@@ -31,6 +31,15 @@ const chatApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Chat'],
       // Optimistic update of chat details is handled inside frontend pages via websocket integration
     }),
+
+    // Clear chat history
+    clearChat: builder.mutation({
+      query: (conversationId) => ({
+        url: `/chat/${conversationId}/clear`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Chat'],
+    }),
   }),
 });
 
@@ -38,6 +47,7 @@ export const {
   useGetConversationsQuery,
   useGetMessagesQuery,
   useSendMessageMutation,
+  useClearChatMutation,
 } = chatApi;
 
 export default chatApi;

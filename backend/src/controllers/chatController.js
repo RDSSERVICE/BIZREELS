@@ -43,6 +43,13 @@ class ChatController {
 
     return ApiResponse.created(res, 'Message delivered.', { message });
   });
+
+  // ── Clear Chat History ──────────────────────────────────
+  clearChat = asyncHandler(async (req, res) => {
+    const { conversationId } = req.params;
+    await chatService.clearChat(conversationId, req.user._id);
+    return ApiResponse.ok(res, 'Chat history cleared successfully.');
+  });
 }
 
 module.exports = new ChatController();
