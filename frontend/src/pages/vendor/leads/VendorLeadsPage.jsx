@@ -13,7 +13,8 @@ import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadg
 import { useGetVendorLeadsQuery } from '../../../features/vendor/vendorApi';
 import {
   useGetRequirementsQuery,
-  useSubmitQuoteMutation
+  useSubmitQuoteMutation,
+  useGetRequirementDetailsQuery
 } from '../../../features/customer/requirementsApi';
 
 const TABS = [
@@ -54,6 +55,25 @@ export default function VendorLeadsPage() {
 
   // Requirement details modal states
   const [detailReq, setDetailReq] = useState(null);
+
+  // Query to fetch requirement details for recording views when a vendor views details or opens proposal modal
+  const [activeDetailId, setActiveDetailId] = useState(null);
+  const { data: detailFetched } = useGetRequirementDetailsQuery(activeDetailId, {
+    skip: !activeDetailId,
+  });
+
+  // Update activeDetailId when detailReq or proposalReq changes
+  useEffect(() => {
+    const id = detailReq?._id || detailReq?.id || proposalReq?._id || proposalReq?.id;
+    if (id) {
+      setActiveDetailId(id);
+    } else {
+      setActiveDetailId(null);
+    }
+  }, [detailReq, proposalReq]);
+
+  const displayReq = detailFetched?.data?.requirement || detailFetched?.requirement || detailReq;
+  const displayProposalReq = (proposalReq && (detailFetched?.data?.requirement || detailFetched?.requirement)) || proposalReq;
 
   // Socket.IO real-time update listeners
   useEffect(() => {
@@ -350,22 +370,22 @@ export default function VendorLeadsPage() {
       <AdminModal
         isOpen={!!proposalReq}
         onClose={() => setProposalReq(null)}
-        title={`Submit Proposal: ${proposalReq?.title || ''}`}
+        title={`Submit Proposal: ${displayProposalReq?.title || ''}`}
       >
-        {proposalReq && (
+        {proposalReq && displayProposalReq && (
           <form onSubmit={handleSubmitProposal} className="space-y-4 text-xs">
             <div className="bg-surface-secondary p-3.5 rounded-xl border border-border space-y-1.5">
               <div className="flex justify-between">
                 <span className="text-text-tertiary">Max Customer Budget:</span>
-                <strong className="text-emerald-600 font-bold">₹{(proposalReq.budget || 0).toLocaleString('en-IN')}</strong>
+                <strong className="text-emerald-600 font-bold">₹{(displayProposalReq.budget || 0).toLocaleString('en-IN')}</strong>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-tertiary">Required Quantity:</span>
-                <strong className="text-text-primary">{proposalReq.quantity || 1} units</strong>
+                <strong className="text-text-primary">{displayProposalReq.quantity || 1} units</strong>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-tertiary">Customer City:</span>
-                <strong className="text-text-primary">{proposalReq.location?.city || 'Local'}</strong>
+                <strong className="text-text-primary">{displayProposalReq.location?.city || 'Local'}</strong>
               </div>
             </div>
 
@@ -443,32 +463,32 @@ export default function VendorLeadsPage() {
         onClose={() => setDetailReq(null)}
         title="Requirement Lead Detail"
       >
-        {detailReq && (
+        {detailReq && displayReq && (
           <div className="space-y-4 text-xs">
             <div className="bg-surface-secondary p-4 rounded-xl space-y-2 border border-border">
               <div className="flex justify-between items-start">
-                <h4 className="font-bold text-sm text-text-primary">{detailReq.title}</h4>
-                <AdminStatusBadge status={detailReq.status || 'Pending'} />
+                <h4 className="font-bold text-sm text-text-primary">{displayReq.title}</h4>
+                <AdminStatusBadge status={displayReq.status || 'Pending'} />
               </div>
-              <p className="text-text-secondary leading-relaxed mt-2 whitespace-pre-wrap">{detailReq.description}</p>
+              <p className="text-text-secondary leading-relaxed mt-2 whitespace-pre-wrap">{displayReq.description}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-surface border border-border rounded-xl">
                 <span className="text-text-tertiary block mb-0.5">Budget Allocation</span>
-                <strong className="text-brand-purple text-sm">₹{(detailReq.budget || 0).toLocaleString('en-IN')}</strong>
+                <strong className="text-brand-purple text-sm">₹{(displayReq.budget || 0).toLocaleString('en-IN')}</strong>
               </div>
               <div className="p-3 bg-surface border border-border rounded-xl">
                 <span className="text-text-tertiary block mb-0.5">Quantity Requested</span>
-                <strong className="text-text-primary text-sm">{detailReq.quantity || 1} units</strong>
+                <strong className="text-text-primary text-sm">{displayReq.quantity || 1} units</strong>
               </div>
               <div className="p-3 bg-surface border border-border rounded-xl">
                 <span className="text-text-tertiary block mb-0.5">Delivery Target Location</span>
-                <strong className="text-text-primary text-sm">{detailReq.location?.city || 'Local'}, {detailReq.location?.state || 'Punjab'}</strong>
+                <strong className="text-text-primary text-sm">{displayReq.location?.city || 'Local'}, {displayReq.location?.state || 'Punjab'}</strong>
               </div>
               <div className="p-3 bg-surface border border-border rounded-xl">
                 <span className="text-text-tertiary block mb-0.5">Category & Type</span>
-                <strong className="text-text-primary text-sm capitalize">{detailReq.type || 'product'} — {detailReq.category}</strong>
+                <strong className="text-text-primary text-sm capitalize">{displayReq.type || 'product'} — {displayReq.category}</strong>
               </div>
             </div>
 
@@ -476,15 +496,15 @@ export default function VendorLeadsPage() {
               <h5 className="font-bold text-brand-navy">Customer Context Details</h5>
               <div className="flex justify-between">
                 <span className="text-text-secondary">Posted By:</span>
-                <strong className="text-text-primary">{detailReq.customer?.name || 'Client Buyer'}</strong>
+                <strong className="text-text-primary">{displayReq.customer?.name || 'Client Buyer'}</strong>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-secondary">Phone Details:</span>
-                <strong className="text-text-primary">{detailReq.customer?.phone || 'Hidden until bid accepted'}</strong>
+                <strong className="text-text-primary">{displayReq.customer?.phone || 'Hidden until bid accepted'}</strong>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-secondary">Email Reference:</span>
-                <strong className="text-text-primary">{detailReq.customer?.email || 'N/A'}</strong>
+                <strong className="text-text-primary">{displayReq.customer?.email || 'N/A'}</strong>
               </div>
             </div>
 
@@ -497,7 +517,7 @@ export default function VendorLeadsPage() {
               </button>
               <button
                 onClick={() => {
-                  const m = detailReq;
+                  const m = displayReq;
                   setDetailReq(null);
                   handleOpenProposalModal(m);
                 }}
