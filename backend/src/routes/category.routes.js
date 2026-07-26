@@ -38,11 +38,17 @@ router.get('/:slug', catchAsync(async (req, res) => {
 }));
 
 router.post('/', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { name, parent_id, icon_url, category_type } = req.body;
+  const { name, parent_id, icon_url, category_type, required_licenses } = req.body;
   if (!name) {
     throw ApiError.badRequest('name is required');
   }
-  const result = await categoryService.createCategory(name, parent_id || null, icon_url || null, category_type || null);
+  const result = await categoryService.createCategory(
+    name, 
+    parent_id || null, 
+    icon_url || null, 
+    category_type || null, 
+    required_licenses || []
+  );
   res.json(result);
 }));
 

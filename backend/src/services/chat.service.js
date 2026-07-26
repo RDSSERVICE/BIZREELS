@@ -61,11 +61,10 @@ class ChatService {
     });
 
     try {
-      const sender = await User.findById(senderId).select('name avatarUrl').lean();
-      const recipientUser = await User.findById(recipientId).select('roles').lean();
-      let actionUrl = '/customer/chat';
-      if (recipientUser && recipientUser.roles && recipientUser.roles.includes('vendor')) {
-        actionUrl = '/vendor/chat';
+      const sender = await User.findById(senderId).select('name activeRole avatarUrl').lean();
+      let actionUrl = '/vendor/chat';
+      if (sender && sender.activeRole === 'vendor') {
+        actionUrl = '/customer/chat';
       }
 
       const notifyRecord = await Notification.create({

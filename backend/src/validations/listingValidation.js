@@ -100,6 +100,26 @@ const listingValidation = {
       .optional({ checkFalsy: true })
       .isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude coordinates.'),
   ],
+
+  updateStock: [
+    param('id')
+      .isMongoId().withMessage('Invalid Listing ID.'),
+    body('stock')
+      .isInt({ min: 0 }).withMessage('Stock must be a non-negative integer.'),
+  ],
+
+  bulkUpdate: [
+    body('ids')
+      .isArray({ min: 1 }).withMessage('At least one Listing ID is required.'),
+    body('ids.*')
+      .isMongoId().withMessage('Invalid Listing ID format in list.'),
+    body('action')
+      .optional()
+      .isIn(['status', 'delete']).withMessage('Invalid bulk action.'),
+    body('status')
+      .optional()
+      .isIn(['published', 'draft', 'hidden', 'out_of_stock']).withMessage('Invalid status value.'),
+  ],
 };
 
 module.exports = listingValidation;

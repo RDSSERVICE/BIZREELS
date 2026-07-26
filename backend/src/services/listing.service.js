@@ -7,6 +7,21 @@ const logger = require('../utils/logger');
  * Coordinates product/service creation, location mapping, and sandbox AI content generation.
  */
 class ListingService {
+  async validateMediaLimits(images, videos) {
+    const { AppSettings } = require('../models/Admin');
+    const maxImagesSetting = await AppSettings.findOne({ key: 'max_listing_images' });
+    const maxVideosSetting = await AppSettings.findOne({ key: 'max_listing_videos' });
+    const maxImages = maxImagesSetting ? Number(maxImagesSetting.value) : 5;
+    const maxVideos = maxVideosSetting ? Number(maxVideosSetting.value) : 1;
+
+    if (images && images.length > maxImages) {
+      throw ApiError.badRequest(`Maximum allowed images per listing is ${maxImages}.`);
+    }
+    if (videos && videos.length > maxVideos) {
+      throw ApiError.badRequest(`Maximum allowed videos per listing is ${maxVideos}.`);
+    }
+  }
+
   async createListing(data, req) {
     const {
       vendorId,
@@ -33,6 +48,8 @@ class ListingService {
       lng,
       address,
     } = data;
+
+    await this.validateMediaLimits(images, videos);
 
     const location = {
       type: 'Point',
@@ -105,6 +122,10 @@ class ListingService {
     if (!isOwner && !isAdmin) {
       throw ApiError.forbidden('You are not authorized to update this listing.');
     }
+
+    const finalImages = updateData.images !== undefined ? updateData.images : listing.images;
+    const finalVideos = updateData.videos !== undefined ? updateData.videos : listing.videos;
+    await this.validateMediaLimits(finalImages, finalVideos);
 
     if (updateData.price !== undefined || updateData.salePrice !== undefined) {
       const price = updateData.price !== undefined ? updateData.price : listing.price;
@@ -266,6 +287,164 @@ class ListingService {
 
   async listListings(filters = {}) {
     return this.queryListings(filters);
+  }
+
+  async duplicateListing(id, vendorId, req) {
+    const original = await listingRepository.findListingById(id);
+    if (!original) {
+      throw ApiError.notFound('Listing not found.');
+    }
+
+    const isOwner = original.vendor?._id?.toString() === vendorId.toString() || original.vendor?.toString() === vendorId.toString();
+    if (!isOwner) {
+      throw ApiError.forbidden('You can only duplicate your own listings.');
+    }
+
+    const dupData = original.toObject ? original.toObject() : { ...original };
+    delete dupData._id;
+    delete dupData.__v;
+    delete dupData.createdAt;
+    delete dupData.updatedAt;
+    delete dupData.publishedAt;
+    dupData.title = `${dupData.title} (Copy)`;
+    dupData.status = 'draft';
+    dupData.views = 0;
+    dupData.uniqueVisitors = 0;
+    dupData.likes = 0;
+    dupData.saves_count = 0;
+    dupData.orders_count = 0;
+    dupData.shares = 0;
+    dupData.revenue = 0;
+    dupData.rating = 0;
+    dupData.totalReviews = 0;
+    dupData.vendor = vendorId;
+
+    const duplicated = await listingRepository.createListing(dupData);
+
+    // Emit socket event
+    try {
+      const { emitToUser } = require('../sockets');
+      emitToUser(vendorId.toString(), 'listing:created', duplicated);
+    } catch (err) { /* safe bypass */ }
+
+    await listingRepository.logListingAction({
+      userId: vendorId,
+      action: 'LISTING_DUPLICATE',
+      entityId: duplicated._id,
+      description: `Duplicated listing from: ${original.title}`,
+      ip: req?.ip || '127.0.0.1',
+      agent: req?.headers?.['user-agent'] || 'unknown',
+    });
+
+    return duplicated;
+  }
+
+  async bulkUpdateListings(ids, action, data, vendorId, req) {
+    const Listing = require('../models/Listing');
+    let updated = 0;
+
+    if (action === 'delete') {
+      const result = await Listing.updateMany(
+        { _id: { $in: ids }, vendor: vendorId },
+        { isDeleted: true, deletedAt: new Date() }
+      );
+      updated = result.modifiedCount || 0;
+    } else {
+      // Default: status update
+      const updateObj = {};
+      if (data.status) {
+        updateObj.status = data.status;
+        if (data.status === 'published') updateObj.publishedAt = new Date();
+      }
+      const result = await Listing.updateMany(
+        { _id: { $in: ids }, vendor: vendorId },
+        updateObj
+      );
+      updated = result.modifiedCount || 0;
+    }
+
+    // Emit socket events
+    try {
+      const { emitToUser, emitToRole } = require('../sockets');
+      emitToUser(vendorId.toString(), 'listing:bulk_updated', { ids, action, data });
+      emitToRole('customer', 'listings:updated', { vendorId: vendorId.toString() });
+    } catch (err) { /* safe bypass */ }
+
+    await listingRepository.logListingAction({
+      userId: vendorId,
+      action: 'LISTING_BULK_UPDATE',
+      entityId: ids[0],
+      description: `Bulk ${action} on ${ids.length} listings`,
+      ip: req?.ip || '127.0.0.1',
+      agent: req?.headers?.['user-agent'] || 'unknown',
+    });
+
+    return { message: `${updated} listing(s) updated successfully.`, updated };
+  }
+
+  async getListingAnalytics(id, vendorId) {
+    const listing = await listingRepository.findListingById(id);
+    if (!listing) {
+      throw ApiError.notFound('Listing not found.');
+    }
+
+    return {
+      views: listing.views || 0,
+      uniqueVisitors: listing.uniqueVisitors || 0,
+      likes: listing.likes || 0,
+      saves: listing.saves_count || 0,
+      shares: listing.shares || 0,
+      orders: listing.orders_count || 0,
+      revenue: listing.revenue || 0,
+      rating: listing.rating || 0,
+      totalReviews: listing.totalReviews || 0,
+      stock: listing.stock || 0,
+      status: listing.status || 'published',
+      conversionRate: listing.views > 0 ? ((listing.orders_count || 0) / listing.views * 100).toFixed(2) : '0.00',
+      ctr: listing.views > 0 ? ((listing.likes || 0) / listing.views * 100).toFixed(2) : '0.00',
+    };
+  }
+
+  async updateStock(id, vendorId, newStock, req) {
+    const listing = await listingRepository.findListingById(id);
+    if (!listing) {
+      throw ApiError.notFound('Listing not found.');
+    }
+
+    const isOwner = listing.vendor?._id?.toString() === vendorId.toString() || listing.vendor?.toString() === vendorId.toString();
+    if (!isOwner) {
+      throw ApiError.forbidden('You can only update stock for your own listings.');
+    }
+
+    const updateData = { stock: Number(newStock) };
+    // Auto out-of-stock detection
+    if (Number(newStock) <= 0) {
+      updateData.status = 'out_of_stock';
+    } else if (listing.status === 'out_of_stock') {
+      updateData.status = 'published'; // Restore when stock is replenished
+    }
+
+    const updated = await listingRepository.updateListing(id, listing.vendor?._id || vendorId, updateData);
+
+    // Emit socket events
+    try {
+      const { emitToUser, emitToRole } = require('../sockets');
+      emitToUser(vendorId.toString(), 'listing:stock_updated', { id, stock: newStock, status: updateData.status });
+      if (Number(newStock) <= 0) {
+        emitToRole('customer', 'listing:out_of_stock', { id });
+      }
+    } catch (err) { /* safe bypass */ }
+
+    await listingRepository.logListingAction({
+      userId: vendorId,
+      action: 'LISTING_STOCK_UPDATE',
+      entityId: id,
+      description: `Stock updated to ${newStock} for: ${listing.title}`,
+      ip: req?.ip || '127.0.0.1',
+      agent: req?.headers?.['user-agent'] || 'unknown',
+    });
+
+    return updated;
   }
 
   async getBySlug(slug) {

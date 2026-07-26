@@ -11,81 +11,20 @@ const Listing = require('../models/Listing');
 const ApiError = require('../utils/ApiError');
 
 const { KycDocument } = require('../models/Phase4');
+const Reel = require('../models/Reel');
+const Order = require('../models/Order');
+const { computeVendorVerification } = require('../utils/verification');
+
+async function fetchAndComputeStatus(user) {
+  const [productsCount, reelsCount, ordersCount] = await Promise.all([
+    Listing.countDocuments({ vendor: user._id, type: 'product', isDeleted: { $ne: true } }),
+    Reel.countDocuments({ creator: user._id, isDeleted: { $ne: true } }),
+    Order.countDocuments({ vendor: user._id })
+  ]);
+  return computeVendorVerification(user, { productsCount, reelsCount, ordersCount });
+}
 
 const router = express.Router();
-
-/**
- * Helper to compute vendor verification status & tier
- */
-function computeVendorVerification(user) {
-  const vp = user.vendorProfile || {};
-  const contactVerified = vp.contactVerified || {
-    mobile: !!user.phone,
-    whatsapp: false,
-    email: !!user.email,
-    website: false
-  };
-  const documents = vp.documents || {};
-  const paymentDetails = vp.paymentDetails || {};
-
-  const isDocPresent = (doc) => {
-    if (!doc) return false;
-    return !!(doc.docNumber || doc.frontUrl || doc.backUrl || doc.fileUrl || doc.status === 'approved');
-  };
-
-  const hasAadhaar = isDocPresent(documents.aadhaar);
-  const hasPan = isDocPresent(documents.pan);
-  const hasGst = isDocPresent(documents.gst);
-  const hasShopLicense = isDocPresent(documents.shopLicense);
-  const hasUdyam = isDocPresent(documents.udyamRegistration);
-  const hasDynamicDocs = Array.isArray(documents.dynamicDocs) && documents.dynamicDocs.length > 0;
-
-  let totalPoints = 0;
-  if (contactVerified.mobile) totalPoints += 15;
-  if (contactVerified.whatsapp) totalPoints += 10;
-  if (contactVerified.email) totalPoints += 15;
-  if (hasAadhaar) totalPoints += 20;
-  if (hasPan) totalPoints += 20;
-  if (hasGst || hasShopLicense || hasUdyam) totalPoints += 10;
-  if (hasDynamicDocs) totalPoints += 10;
-  if (paymentDetails.upiVerified || paymentDetails.upiId || (paymentDetails.bankAccount && (paymentDetails.ifscVerified || paymentDetails.ifscCode))) {
-    totalPoints += 10;
-  }
-
-  const completionPercentage = Math.min(100, totalPoints);
-  const isSubscribed = !!user.is_subscribed_verified;
-
-  let tier = 'unverified';
-  let badgeLabel = 'Unverified';
-  let badgeColor = '⚪';
-
-  if (hasPan || hasAadhaar || (hasGst && contactVerified.mobile && contactVerified.email)) {
-    if (isSubscribed) {
-      tier = 'premium_verified';
-      badgeLabel = 'Premium Verified';
-      badgeColor = '🔵';
-    } else {
-      tier = 'verified_vendor';
-      badgeLabel = 'Verified Vendor';
-      badgeColor = '🟢';
-    }
-  } else if (contactVerified.mobile || contactVerified.email || hasShopLicense || hasUdyam || paymentDetails.upiVerified || hasPan || hasAadhaar || hasDynamicDocs) {
-    tier = 'partially_verified';
-    badgeLabel = 'Partially Verified';
-    badgeColor = '🟡';
-  }
-
-  return {
-    completionPercentage,
-    tier,
-    badgeLabel,
-    badgeColor,
-    contactVerified,
-    documents,
-    paymentDetails,
-    isSubscribedVerified: isSubscribed
-  };
-}
 
 // ── VENDOR VERIFICATION ENDPOINTS ─────────────────────────────
 
@@ -93,9 +32,10 @@ router.get('/me/verification-status', requireAuth, catchAsync(async (req, res) =
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
   
-  const statusInfo = computeVendorVerification(user);
+  const statusInfo = await fetchAndComputeStatus(user);
   res.json({ success: true, ...statusInfo });
 }));
+
 
 router.post('/me/verify-contact', requireAuth, catchAsync(async (req, res) => {
   const { type, value } = req.body;
@@ -125,8 +65,10 @@ router.post('/me/verify-contact', requireAuth, catchAsync(async (req, res) => {
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
   
-  const statusInfo = computeVendorVerification(user);
-  user.vendorProfile.verificationStatus = statusInfo.tier;
+  const statusInfo = await fetchAndComputeStatus(user);
+  currentVp.verificationStatus = statusInfo.tier;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
   await user.save();
 
   res.json({ success: true, message: `${type} verified successfully!`, ...statusInfo });
@@ -151,7 +93,7 @@ router.post('/me/verify-document', requireAuth, catchAsync(async (req, res) => {
       frontUrl: frontUrl || currentDocs[docType]?.frontUrl || null,
       backUrl: backUrl || currentDocs[docType]?.backUrl || null,
       fileUrl: docFileUrl || currentDocs[docType]?.fileUrl || null,
-      status: 'approved',
+      status: 'pending',
       verifiedAt: now
     };
   } else {
@@ -163,7 +105,7 @@ router.post('/me/verify-document', requireAuth, catchAsync(async (req, res) => {
       docType,
       docNumber: docNumber || '',
       fileUrl: docFileUrl,
-      status: 'approved',
+      status: 'pending',
       verifiedAt: now
     });
     currentDocs.dynamicDocs = filtered;
@@ -180,22 +122,24 @@ router.post('/me/verify-document', requireAuth, catchAsync(async (req, res) => {
       doc_type: docName || docType,
       doc_number: docNumber || 'SUBMITTED',
       doc_url: docFileUrl || 'https://via.placeholder.com/400x600?text=Document+Attached',
-      status: 'approved',
+      status: 'pending',
     });
   } catch (err) {
     console.error('Error syncing KycDocument for admin:', err.message);
   }
 
-  const statusInfo = computeVendorVerification(user);
-  user.vendorProfile.verificationStatus = statusInfo.tier;
-  if (['verified_vendor', 'premium_verified'].includes(statusInfo.tier)) {
+  const statusInfo = await fetchAndComputeStatus(user);
+  currentVp.verificationStatus = statusInfo.tier;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
+  if (['verified_vendor', 'trusted_vendor', 'premium_vendor'].includes(statusInfo.tier)) {
     user.kyc_status = 'approved';
   } else {
     user.kyc_status = 'pending';
   }
   await user.save();
 
-  res.json({ success: true, message: `${docName || docType} submitted and verified successfully!`, ...statusInfo });
+  res.json({ success: true, message: `${docName || docType} submitted and pending verification!`, ...statusInfo });
 }));
 
 router.post('/me/verify-payment', requireAuth, catchAsync(async (req, res) => {
@@ -228,8 +172,10 @@ router.post('/me/verify-payment', requireAuth, catchAsync(async (req, res) => {
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
 
-  const statusInfo = computeVendorVerification(user);
-  user.vendorProfile.verificationStatus = statusInfo.tier;
+  const statusInfo = await fetchAndComputeStatus(user);
+  currentVp.verificationStatus = statusInfo.tier;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
   await user.save();
 
   res.json({ success: true, message: 'Payment details verified and updated successfully!', ...statusInfo });
@@ -380,6 +326,119 @@ router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
   }
 
   res.json({ success: true, message: 'Dynamic offer published successfully!', data: newOffer, offers: currentOffers });
+}));
+
+// ── Update Vendor Offer ──────────────────────────────────
+router.put('/me/offers/:offerId', requireAuth, catchAsync(async (req, res) => {
+  const { offerId } = req.params;
+  const { title, discountPct, discountValue, discountType, couponCode, validTill, description,
+          startTime, endTime, offerType, applicableProducts, applicableServices,
+          usageLimit, image, priority, minOrderAmount, maxDiscountLimit, status } = req.body;
+
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const currentVp = user.vendorProfile || {};
+  const currentOffers = Array.isArray(currentVp.offers) ? currentVp.offers : [];
+  const offerIndex = currentOffers.findIndex(o => o.id === offerId);
+  if (offerIndex === -1) throw ApiError.notFound('Offer not found');
+
+  const offer = currentOffers[offerIndex];
+  if (title !== undefined) offer.title = title;
+  if (discountPct !== undefined) offer.discountPct = Number(discountPct);
+  if (discountValue !== undefined) offer.discountValue = Number(discountValue);
+  if (discountType !== undefined) offer.discountType = discountType;
+  if (couponCode !== undefined) offer.couponCode = String(couponCode).trim().toUpperCase();
+  if (validTill !== undefined) offer.validTill = validTill;
+  if (description !== undefined) offer.description = description;
+  if (startTime !== undefined) offer.startTime = startTime;
+  if (endTime !== undefined) offer.endTime = endTime;
+  if (offerType !== undefined) offer.offerType = offerType;
+  if (applicableProducts !== undefined) offer.applicableProducts = applicableProducts;
+  if (applicableServices !== undefined) offer.applicableServices = applicableServices;
+  if (usageLimit !== undefined) offer.usageLimit = usageLimit;
+  if (image !== undefined) offer.image = image;
+  if (priority !== undefined) offer.priority = priority;
+  if (minOrderAmount !== undefined) offer.minOrderAmount = minOrderAmount;
+  if (maxDiscountLimit !== undefined) offer.maxDiscountLimit = maxDiscountLimit;
+  if (status !== undefined) offer.is_active = status === 'Active';
+  offer.updated_at = new Date().toISOString();
+
+  currentOffers[offerIndex] = offer;
+  currentVp.offers = currentOffers;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
+  await user.save();
+
+  res.json({ success: true, message: 'Offer updated successfully!', data: offer });
+}));
+
+// ── Delete Vendor Offer ──────────────────────────────────
+router.delete('/me/offers/:offerId', requireAuth, catchAsync(async (req, res) => {
+  const { offerId } = req.params;
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const currentVp = user.vendorProfile || {};
+  const currentOffers = Array.isArray(currentVp.offers) ? currentVp.offers : [];
+  const newOffers = currentOffers.filter(o => o.id !== offerId);
+  if (newOffers.length === currentOffers.length) throw ApiError.notFound('Offer not found');
+
+  currentVp.offers = newOffers;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
+  await user.save();
+
+  res.json({ success: true, message: 'Offer deleted successfully!' });
+}));
+
+// ── Duplicate Vendor Offer ───────────────────────────────
+router.post('/me/offers/:offerId/duplicate', requireAuth, catchAsync(async (req, res) => {
+  const { offerId } = req.params;
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const currentVp = user.vendorProfile || {};
+  const currentOffers = Array.isArray(currentVp.offers) ? currentVp.offers : [];
+  const original = currentOffers.find(o => o.id === offerId);
+  if (!original) throw ApiError.notFound('Offer not found');
+
+  const duplicate = {
+    ...original,
+    id: new mongoose.Types.ObjectId().toString(),
+    title: `${original.title} (Copy)`,
+    is_active: false,
+    created_at: new Date().toISOString()
+  };
+
+  currentOffers.unshift(duplicate);
+  currentVp.offers = currentOffers;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
+  await user.save();
+
+  res.json({ success: true, message: 'Offer duplicated successfully!', data: duplicate });
+}));
+
+// ── Toggle Offer Status ──────────────────────────────────
+router.patch('/me/offers/:offerId/status', requireAuth, catchAsync(async (req, res) => {
+  const { offerId } = req.params;
+  const { status } = req.body;
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const currentVp = user.vendorProfile || {};
+  const currentOffers = Array.isArray(currentVp.offers) ? currentVp.offers : [];
+  const offerIndex = currentOffers.findIndex(o => o.id === offerId);
+  if (offerIndex === -1) throw ApiError.notFound('Offer not found');
+
+  currentOffers[offerIndex].is_active = status === 'active' || status === 'Active';
+  currentOffers[offerIndex].updated_at = new Date().toISOString();
+  currentVp.offers = currentOffers;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
+  await user.save();
+  res.json({ success: true, message: `Offer ${currentOffers[offerIndex].is_active ? 'activated' : 'disabled'} successfully!`, data: currentOffers[offerIndex] });
 }));
 
 router.get('/ifsc-lookup/:ifsc', catchAsync(async (req, res) => {

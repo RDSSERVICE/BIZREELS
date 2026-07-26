@@ -46,6 +46,48 @@ const vendorApi = apiSlice.injectEndpoints({
       query: ({ id, status }) => ({ url: `/listings/${id}`, method: 'PATCH', body: { status } }),
       invalidatesTags: [{ type: 'Products', id: 'LIST' }],
     }),
+    duplicateListing: builder.mutation({
+      query: (id) => ({ url: `/listings/${id}/duplicate`, method: 'POST' }),
+      invalidatesTags: [{ type: 'Products', id: 'LIST' }, 'VendorDashboard'],
+    }),
+    bulkUpdateListings: builder.mutation({
+      query: (body) => ({ url: '/listings/bulk', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Products', id: 'LIST' }, 'VendorDashboard'],
+    }),
+    getListingAnalytics: builder.query({
+      query: (id) => `/listings/${id}/analytics`,
+      providesTags: (result, error, id) => [{ type: 'Products', id }],
+    }),
+    updateListingStock: builder.mutation({
+      query: ({ id, stock }) => ({ url: `/listings/${id}/stock`, method: 'PATCH', body: { stock } }),
+      invalidatesTags: [{ type: 'Products', id: 'LIST' }],
+    }),
+
+    // ── Vendor Offers ────────────────────────────────────────
+    getVendorOffers: builder.query({
+      query: () => '/vendors/me/offers',
+      providesTags: ['VendorOffers'],
+    }),
+    createVendorOffer: builder.mutation({
+      query: (body) => ({ url: '/vendors/me/offers', method: 'POST', body }),
+      invalidatesTags: ['VendorOffers', 'VendorDashboard'],
+    }),
+    updateVendorOffer: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/vendors/me/offers/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['VendorOffers'],
+    }),
+    deleteVendorOffer: builder.mutation({
+      query: (id) => ({ url: `/vendors/me/offers/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['VendorOffers', 'VendorDashboard'],
+    }),
+    duplicateVendorOffer: builder.mutation({
+      query: (id) => ({ url: `/vendors/me/offers/${id}/duplicate`, method: 'POST' }),
+      invalidatesTags: ['VendorOffers'],
+    }),
+    toggleOfferStatus: builder.mutation({
+      query: ({ id, status }) => ({ url: `/vendors/me/offers/${id}/status`, method: 'PATCH', body: { status } }),
+      invalidatesTags: ['VendorOffers'],
+    }),
 
     // ── Reels ───────────────────────────────────────────────
     getVendorReels: builder.query({
@@ -144,6 +186,16 @@ export const {
   useUpdateListingMutation,
   useDeleteListingMutation,
   useToggleListingVisibilityMutation,
+  useDuplicateListingMutation,
+  useBulkUpdateListingsMutation,
+  useGetListingAnalyticsQuery,
+  useUpdateListingStockMutation,
+  useGetVendorOffersQuery,
+  useCreateVendorOfferMutation,
+  useUpdateVendorOfferMutation,
+  useDeleteVendorOfferMutation,
+  useDuplicateVendorOfferMutation,
+  useToggleOfferStatusMutation,
   useGetVendorReelsQuery,
   useCreateReelMutation,
   useDeleteReelMutation,

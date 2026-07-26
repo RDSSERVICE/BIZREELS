@@ -13,9 +13,75 @@ const router = express.Router();
 
 // ── Public Search & Details ──────────────────────────────
 router.get('/', optionalAuth, listingValidation.queryListings, validate, listingController.getListings);
+
+// ── Dynamic Limits ────────────────────────────────────────
+router.get('/limits/media', async (req, res, next) => {
+  try {
+    const { AppSettings } = require('../models/Admin');
+    const maxImagesSetting = await AppSettings.findOne({ key: 'max_listing_images' });
+    const maxVideosSetting = await AppSettings.findOne({ key: 'max_listing_videos' });
+    res.json({
+      success: true,
+      maxImages: maxImagesSetting ? Number(maxImagesSetting.value) : 5,
+      maxVideos: maxVideosSetting ? Number(maxVideosSetting.value) : 1
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── AI Copy Generation ────────────────────────────────────
+router.post(
+  '/ai-copy',
+  authenticate,
+  authorize('vendor', 'creator', 'admin'),
+  listingController.generateAICopy
+);
+
+// ── Bulk Operations (must be before /:id) ─────────────────
+router.post(
+  '/bulk',
+  authenticate,
+  authorize('vendor', 'admin'),
+  listingValidation.bulkUpdate,
+  validate,
+  listingController.bulkUpdate
+);
+
+// ── Parameterized routes ──────────────────────────────────
 router.get('/:id', listingValidation.idParam, validate, listingController.getListingDetails);
 router.post('/:id/save', authenticate, listingController.save);
 router.post('/:id/unsave', authenticate, listingController.unsave);
+
+// ── Duplicate Listing ─────────────────────────────────────
+router.post(
+  '/:id/duplicate',
+  authenticate,
+  authorize('vendor', 'admin'),
+  listingValidation.idParam,
+  validate,
+  listingController.duplicate
+);
+
+// ── Analytics ─────────────────────────────────────────────
+router.get(
+  '/:id/analytics',
+  authenticate,
+  authorize('vendor', 'admin'),
+  listingValidation.idParam,
+  validate,
+  listingController.getAnalytics
+);
+
+// ── Stock Update ──────────────────────────────────────────
+router.patch(
+  '/:id/stock',
+  authenticate,
+  authorize('vendor', 'admin'),
+  listingValidation.updateStock,
+  validate,
+  listingController.updateStock
+);
 
 // ── Protected Vendor Operations ──────────────────────────
 router.post(
@@ -52,14 +118,6 @@ router.delete(
   listingValidation.idParam,
   validate,
   listingController.delete
-);
-
-// ── AI Copy Generation ────────────────────────────────────
-router.post(
-  '/ai-copy',
-  authenticate,
-  authorize('vendor', 'creator', 'admin'),
-  listingController.generateAICopy
 );
 
 module.exports = router;

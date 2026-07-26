@@ -94,6 +94,38 @@ class ListingController {
     return ApiResponse.ok(res, 'AI content synthesized.', copy);
   });
 
+  // ── Duplicate Listing ──────────────────────────────────
+  duplicate = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const duplicated = await listingService.duplicateListing(id, req.user._id, req);
+    return ApiResponse.created(res, 'Listing duplicated successfully.', { listing: duplicated });
+  });
+
+  // ── Bulk Update Listings ───────────────────────────────
+  bulkUpdate = asyncHandler(async (req, res) => {
+    const { ids, action, status } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return ApiResponse.badRequest(res, 'Listing IDs array is required.');
+    }
+    const result = await listingService.bulkUpdateListings(ids, action || 'status', { status }, req.user._id, req);
+    return ApiResponse.ok(res, result.message, { updated: result.updated });
+  });
+
+  // ── Get Listing Analytics ──────────────────────────────
+  getAnalytics = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const analytics = await listingService.getListingAnalytics(id, req.user._id);
+    return ApiResponse.ok(res, 'Listing analytics retrieved.', analytics);
+  });
+
+  // ── Update Stock ───────────────────────────────────────
+  updateStock = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { stock } = req.body;
+    const listing = await listingService.updateStock(id, req.user._id, stock, req);
+    return ApiResponse.ok(res, 'Stock updated successfully.', { listing });
+  });
+
   // ── Save Listing ────────────────────────────────────────
   save = asyncHandler(async (req, res) => {
     const { id } = req.params;

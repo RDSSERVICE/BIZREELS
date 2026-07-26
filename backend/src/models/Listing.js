@@ -75,6 +75,8 @@ const listingSchema = new Schema(
         priceAdjustment: { type: Number, default: 0 },
         sku: String,
         stock: { type: Number, default: -1 }, // -1 means infinite/unlimited
+        image: { type: String, default: null },
+        imageUrl: { type: String, default: null },
       },
     ],
     shortDescription: {
@@ -147,6 +149,85 @@ const listingSchema = new Schema(
         termsAndConditions: { type: String, default: 'Standard service agreement terms apply.' },
       },
     },
+    // Extended product fields
+    sku: {
+      type: String,
+      trim: true,
+      sparse: true,
+      index: true,
+    },
+    brand: {
+      type: String,
+      trim: true,
+    },
+    unit: {
+      type: String,
+      default: 'piece',
+    },
+    minOrderQty: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    warranty: {
+      type: String,
+      trim: true,
+    },
+    returnPolicy: {
+      type: String,
+      trim: true,
+    },
+    shippingDetails: {
+      weight: { type: String },
+      dimensions: { type: String },
+      freeShipping: { type: Boolean, default: false },
+      estimatedDays: { type: Number, default: 5 },
+    },
+    gst: {
+      type: String,
+      trim: true,
+    },
+    tags: {
+      type: [String],
+      default: [],
+      index: true,
+    },
+    // Engagement & analytics counters
+    views: {
+      type: Number,
+      default: 0,
+    },
+    uniqueVisitors: {
+      type: Number,
+      default: 0,
+    },
+    likes: {
+      type: Number,
+      default: 0,
+    },
+    saves_count: {
+      type: Number,
+      default: 0,
+    },
+    orders_count: {
+      type: Number,
+      default: 0,
+    },
+    shares: {
+      type: Number,
+      default: 0,
+    },
+    revenue: {
+      type: Number,
+      default: 0,
+    },
+    // Inventory management
+    lowStockThreshold: {
+      type: Number,
+      default: 5,
+    },
+    // Timestamps
+    publishedAt: Date,
     location: {
       type: {
         type: String,
@@ -179,7 +260,7 @@ const listingSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ['published', 'draft', 'hidden'],
+      enum: ['published', 'draft', 'hidden', 'out_of_stock'],
       default: 'published',
       index: true,
     },
@@ -200,6 +281,9 @@ listingSchema.index({ location: '2dsphere' });
 listingSchema.index({ category: 1, type: 1, isDeleted: 1 });
 listingSchema.index({ price: 1 });
 listingSchema.index({ rating: -1 });
+listingSchema.index({ views: -1 });
+listingSchema.index({ orders_count: -1 });
+listingSchema.index({ vendor: 1, status: 1, isDeleted: 1 });
 
 // Query middleware to exclude soft deleted entries
 listingSchema.pre(/^find/, function () {

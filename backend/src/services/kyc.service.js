@@ -111,7 +111,71 @@ const kycReview = async (kid, adminId, approve, reason = null) => {
   );
 
   const userId = doc.user_id.toString();
-  await User.updateOne({ _id: userId }, { $set: { kyc_status: newStatus } });
+  const user = await User.findById(userId);
+  if (user) {
+    user.kyc_status = newStatus;
+    if (user.vendorProfile) {
+      const docType = doc.doc_type;
+      const vp = user.vendorProfile || {};
+      const docs = vp.documents || {};
+      
+      if (['aadhaar', 'pan', 'gst', 'shopLicense', 'udyamRegistration'].includes(docType)) {
+        if (docs[docType]) {
+          docs[docType].status = newStatus;
+          docs[docType].verifiedAt = new Date();
+        } else {
+          docs[docType] = {
+            docNumber: doc.doc_number || '',
+            fileUrl: doc.doc_url || '',
+            status: newStatus,
+            verifiedAt: new Date()
+          };
+        }
+      } else {
+        if (!Array.isArray(docs.dynamicDocs)) {
+          docs.dynamicDocs = [];
+        }
+        const found = docs.dynamicDocs.find(d => d.docType === docType || d.docName === docType);
+        if (found) {
+          found.status = newStatus;
+          found.verifiedAt = new Date();
+        } else {
+          docs.dynamicDocs.push({
+            docName: docType,
+            docType: docType,
+            docNumber: doc.doc_number || '',
+            fileUrl: doc.doc_url || '',
+            status: newStatus,
+            verifiedAt: new Date()
+          });
+        }
+      }
+      
+      vp.documents = docs;
+      user.vendorProfile = vp;
+      user.markModified('vendorProfile');
+
+      // Re-calculate verification status
+      try {
+        const Listing = require('../models/Listing');
+        const Reel = require('../models/Reel');
+        const Order = require('../models/Order');
+        const { computeVendorVerification } = require('../utils/verification');
+
+        const [productsCount, reelsCount, ordersCount] = await Promise.all([
+          Listing.countDocuments({ vendor: userId, type: 'product', isDeleted: { $ne: true } }),
+          Reel.countDocuments({ creator: userId, isDeleted: { $ne: true } }),
+          Order.countDocuments({ vendor: userId })
+        ]);
+
+        const statusInfo = computeVendorVerification(user, { productsCount, reelsCount, ordersCount });
+        user.vendorProfile.verificationStatus = statusInfo.tier;
+      } catch (err) {
+        console.error('Error re-calculating verification status during KYC review:', err);
+      }
+    }
+    await user.save();
+  }
 
   await notificationService.create(
     userId,

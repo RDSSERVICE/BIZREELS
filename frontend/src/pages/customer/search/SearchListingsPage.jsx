@@ -736,7 +736,7 @@ export default function SearchListingsPage() {
                 )}
 
                 {/* Policies */}
-                {selectedItem.serviceDetails.policies && (
+                {selectedItem.serviceDetails?.policies && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/60">
                     {selectedItem.serviceDetails.policies.cancellationPolicy && (
                       <div className="bg-surface p-3 rounded-xl border border-border">
