@@ -12,6 +12,7 @@ const config = {
 
   // ── MongoDB ─────────────────────────────────────────────
   mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/bizreels',
+  dbName: process.env.DB_NAME || 'bizreels',
 
   // ── Redis ───────────────────────────────────────────────
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
