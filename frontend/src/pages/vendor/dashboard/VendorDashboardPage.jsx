@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
   FiPackage, FiTool, FiVideo, FiEye, FiUsers, FiInbox,
@@ -15,12 +15,71 @@ import {
   useGetVendorBoostsQuery,
   useGetVendorReelsQuery,
 } from '../../../features/vendor/vendorApi';
+import { getSocket } from '../../../lib/socket';
 
 export default function VendorDashboardPage() {
-  const { data: dashboardRes, isLoading } = useGetVendorDashboardQuery(undefined, { pollingInterval: 5000 });
-  const { data: leadsRes } = useGetVendorLeadsQuery(undefined, { pollingInterval: 5000 });
-  const { data: boostsRes } = useGetVendorBoostsQuery(undefined, { pollingInterval: 5000 });
-  const { data: reelsRes } = useGetVendorReelsQuery(undefined, { pollingInterval: 5000 });
+  const { data: dashboardRes, isLoading, refetch: refetchDashboard } = useGetVendorDashboardQuery(undefined, { pollingInterval: 5000 });
+  const { data: leadsRes, refetch: refetchLeads } = useGetVendorLeadsQuery(undefined, { pollingInterval: 5000 });
+  const { data: boostsRes, refetch: refetchBoosts } = useGetVendorBoostsQuery(undefined, { pollingInterval: 5000 });
+  const { data: reelsRes, refetch: refetchReels } = useGetVendorReelsQuery(undefined, { pollingInterval: 5000 });
+
+  // Socket.IO real-time update listeners for dashboard metrics
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleRefetchAll = () => {
+      if (typeof refetchDashboard === 'function') refetchDashboard();
+      if (typeof refetchLeads === 'function') refetchLeads();
+      if (typeof refetchBoosts === 'function') refetchBoosts();
+      if (typeof refetchReels === 'function') refetchReels();
+    };
+
+    // Events that affect vendor metrics (leads, listings, follows, proposals, orders)
+    socket.on('requirement:assigned', handleRefetchAll);
+    socket.on('vendor_notification:sent', handleRefetchAll);
+    socket.on('requirement:updated', handleRefetchAll);
+    socket.on('requirement:closed', handleRefetchAll);
+    socket.on('requirement:deleted', handleRefetchAll);
+    
+    socket.on('proposal:submitted', handleRefetchAll);
+    socket.on('proposal:accepted', handleRefetchAll);
+    socket.on('proposal:rejected', handleRefetchAll);
+    
+    socket.on('following_update', handleRefetchAll);
+    socket.on('notification:new', handleRefetchAll);
+    socket.on('notification', handleRefetchAll);
+    
+    socket.on('listing:created', handleRefetchAll);
+    socket.on('listing:bulk_updated', handleRefetchAll);
+    socket.on('listing:stock_updated', handleRefetchAll);
+    
+    socket.on('deal:updated', handleRefetchAll);
+    socket.on('order:updated', handleRefetchAll);
+
+    return () => {
+      socket.off('requirement:assigned', handleRefetchAll);
+      socket.off('vendor_notification:sent', handleRefetchAll);
+      socket.off('requirement:updated', handleRefetchAll);
+      socket.off('requirement:closed', handleRefetchAll);
+      socket.off('requirement:deleted', handleRefetchAll);
+      
+      socket.off('proposal:submitted', handleRefetchAll);
+      socket.off('proposal:accepted', handleRefetchAll);
+      socket.off('proposal:rejected', handleRefetchAll);
+      
+      socket.off('following_update', handleRefetchAll);
+      socket.off('notification:new', handleRefetchAll);
+      socket.off('notification', handleRefetchAll);
+      
+      socket.off('listing:created', handleRefetchAll);
+      socket.off('listing:bulk_updated', handleRefetchAll);
+      socket.off('listing:stock_updated', handleRefetchAll);
+      
+      socket.off('deal:updated', handleRefetchAll);
+      socket.off('order:updated', handleRefetchAll);
+    };
+  }, [refetchDashboard, refetchLeads, refetchBoosts, refetchReels]);
 
   const metrics = dashboardRes?.data || {};
   const leads = Array.isArray(leadsRes?.data) ? leadsRes.data : Array.isArray(leadsRes) ? leadsRes : [];
