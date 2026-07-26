@@ -47,8 +47,8 @@ const getEnvDefaults = () => {
     ai_content: {
       provider: (process.env.AI_PROVIDER || 'gemini').trim(),
       model: (process.env.AI_MODEL || 'gemini-2.5-flash').trim(),
-      api_key: (process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY || '').trim(),
-      enabled: process.env.AI_DEV_MODE !== 'true',
+      api_key: (process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '').trim(),
+      enabled: true,
     },
   };
 };

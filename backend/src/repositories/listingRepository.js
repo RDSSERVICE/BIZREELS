@@ -182,6 +182,10 @@ class ListingRepository {
           businessName: '$vendorDetails.vendorProfile.businessName',
           rating: '$vendorDetails.vendorProfile.rating',
           offers: '$vendorDetails.vendorProfile.offers',
+          location: '$vendorDetails.vendorProfile.location',
+          city: '$vendorDetails.vendorProfile.city',
+          pincode: '$vendorDetails.vendorProfile.pincode',
+          address: '$vendorDetails.vendorProfile.address',
         },
       },
     });

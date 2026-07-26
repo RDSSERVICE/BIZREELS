@@ -10,24 +10,25 @@ const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
 const DEFAULT_PROVIDER = 'gemini';
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-1.5-flash';
 const DEFAULT_DAILY_CAP = 100000;
 
 const DEFAULT_FEATURE_MODELS = {
-  title: 'gemini-2.5-flash',
-  category: 'gemini-2.5-flash',
-  price: 'gemini-2.5-pro',
-  match: 'gemini-2.5-flash',
-  demand: 'gemini-2.5-pro',
-  negotiate: 'gemini-2.5-pro',
+  title: 'gemini-1.5-flash',
+  category: 'gemini-1.5-flash',
+  price: 'gemini-1.5-pro',
+  match: 'gemini-1.5-flash',
+  demand: 'gemini-1.5-pro',
+  negotiate: 'gemini-1.5-pro',
+  listing: 'gemini-1.5-flash',
 };
 
 const getCfg = () => {
   const snap = settingsService.getIntegrationSync('ai_content');
-  const provider = (snap.provider || process.env.AI_PROVIDER || DEFAULT_PROVIDER).trim();
-  const model = (snap.model || process.env.AI_MODEL || DEFAULT_MODEL).trim();
-  const apiKey = (snap.api_key || '').trim() || (process.env.GOOGLE_AI_API_KEY || '').trim() || (process.env.GEMINI_API_KEY || '').trim();
-  const enabled = snap.enabled !== undefined ? !!snap.enabled : process.env.AI_DEV_MODE !== 'true';
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim() || (process.env.GOOGLE_AI_API_KEY || '').trim() || (snap.api_key || '').trim();
+  const provider = (process.env.AI_PROVIDER || snap.provider || DEFAULT_PROVIDER).trim();
+  const model = (process.env.AI_MODEL || snap.model || DEFAULT_MODEL).trim();
+  const enabled = snap.enabled !== undefined ? !!snap.enabled : true;
 
   return { provider, model, apiKey, enabled };
 };
@@ -93,7 +94,7 @@ const resolveModel = (feature) => {
   const provider = cfg.provider;
   const snap = settingsService.getIntegrationSync('ai_content') || {};
   const featureModels = snap.feature_models || {};
-  const model = (featureModels[feature] || '').trim() || DEFAULT_FEATURE_MODELS[feature] || cfg.model || 'gemini-2.5-flash';
+  const model = (featureModels[feature] || '').trim() || DEFAULT_FEATURE_MODELS[feature] || cfg.model || 'gemini-1.5-flash';
   return { provider, model };
 };
 
@@ -106,9 +107,7 @@ const callGeminiAPI = async (systemInstruction, prompt, featureName) => {
     throw new Error('AI is disabled by admin (enabled=false)');
   }
 
-  const { model } = resolveModel(featureName);
-  // standard gemini endpoint
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.apiKey}`;
+  let { model } = resolveModel(featureName);
 
   const payload = {
     contents: [
@@ -128,7 +127,20 @@ const callGeminiAPI = async (systemInstruction, prompt, featureName) => {
     };
   }
 
-  const response = await axios.post(url, payload, { timeout: 12000 });
+  let response;
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.apiKey}`;
+    response = await axios.post(url, payload, { timeout: 12000 });
+  } catch (err) {
+    if (err.response && err.response.status === 404 && model !== 'gemini-1.5-flash') {
+      logger.warn(`Model ${model} returned 404, falling back to gemini-1.5-flash...`);
+      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cfg.apiKey}`;
+      response = await axios.post(fallbackUrl, payload, { timeout: 12000 });
+    } else {
+      throw err;
+    }
+  }
+
   const rawText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!rawText) {
     throw new Error('Empty response from Gemini API');

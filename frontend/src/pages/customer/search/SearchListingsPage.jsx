@@ -420,6 +420,29 @@ export default function SearchListingsPage() {
               distStr = `${km.toFixed(1)} km`;
             } else if (item.distanceKm !== undefined && item.distanceKm !== null) {
               distStr = `${Number(item.distanceKm).toFixed(1)} km`;
+            } else if (coords) {
+              // Real-time distance calculation using Haversine formula
+              const itemCoords = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2)
+                ? item.location.coordinates
+                : (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2)
+                  ? vendorObj.location.coordinates
+                  : null;
+
+              if (itemCoords) {
+                const [targetLng, targetLat] = itemCoords;
+                const R = 6371; // Earth radius in km
+                const dLat = (targetLat - coords.lat) * (Math.PI / 180);
+                const dLng = (targetLng - coords.lng) * (Math.PI / 180);
+                const a =
+                  Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(coords.lat * (Math.PI / 180)) *
+                    Math.cos(targetLat * (Math.PI / 180)) *
+                    Math.sin(dLng / 2) *
+                    Math.sin(dLng / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                const calculatedKm = R * c;
+                distStr = `${calculatedKm.toFixed(1)} km`;
+              }
             }
 
             return (
@@ -460,7 +483,7 @@ export default function SearchListingsPage() {
                       className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition mt-1 flex items-center gap-1 font-medium"
                     >
                       <FiMapPin size={12} className="text-brand-orange" />
-                      <span>{vendorName} ({city})</span>
+                      <span>{vendorName} ({city}) {distStr !== 'Local' && <strong className="text-emerald-600 font-bold ml-1">• {distStr} away</strong>}</span>
                     </p>
                   </div>
 
@@ -505,6 +528,19 @@ export default function SearchListingsPage() {
                   className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition flex items-center gap-1 mt-0.5 font-medium"
                 >
                   <FiMapPin className="text-brand-orange" /> {(selectedItem.vendor?.shopName || selectedItem.vendor?.name || 'Verified Vendor')} ({selectedItem.city || 'Local Shop'})
+                  {coords && (selectedItem.location?.coordinates || selectedItem.vendor?.location?.coordinates) && (() => {
+                    const itemCoords = selectedItem.location?.coordinates || selectedItem.vendor?.location?.coordinates;
+                    if (Array.isArray(itemCoords) && itemCoords.length === 2) {
+                      const [targetLng, targetLat] = itemCoords;
+                      const R = 6371;
+                      const dLat = (targetLat - coords.lat) * (Math.PI / 180);
+                      const dLng = (targetLng - coords.lng) * (Math.PI / 180);
+                      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(coords.lat * (Math.PI / 180)) * Math.cos(targetLat * (Math.PI / 180)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                      return <strong className="text-emerald-600 font-bold ml-1.5">• {(R * c).toFixed(1)} km away from you</strong>;
+                    }
+                    return null;
+                  })()}
                 </p>
               </div>
               <button
