@@ -85,7 +85,7 @@ const Chats = () => {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      logger.info('Connected to chat sockets server.', { service: 'sockets' });
+      console.log('Connected to chat sockets server.');
     });
 
     // Real time incoming message alerts
