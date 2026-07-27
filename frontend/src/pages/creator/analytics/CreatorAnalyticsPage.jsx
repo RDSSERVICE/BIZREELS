@@ -13,7 +13,7 @@ const TABS = [
 
 export default function CreatorAnalyticsPage() {
   const [activeTab, setActiveTab] = useState('overview');
-  const { data, isFetching } = useGetCreatorDashboardQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useGetCreatorDashboardQuery(undefined, { pollingInterval: 300000 });
 
   const stats = data?.data || data || {};
 

@@ -58,8 +58,8 @@ export default function CustomerChatPage() {
     setHasCheckedQuery(false);
   }, [queryUserId]);
 
-  // RTK Query hooks with 3s polling for real-time sync
-  const { data: convData, isFetching: isConvLoading, refetch: refetchConvs } = useGetConversationsQuery(undefined, { pollingInterval: 3000 });
+  // RTK Query hooks with 5m polling for real-time sync
+  const { data: convData, isFetching: isConvLoading, refetch: refetchConvs } = useGetConversationsQuery(undefined, { pollingInterval: 300000 });
   const [sendMessageApi, { isLoading: isSending }] = useSendMessageMutation();
   const [clearChatApi, { isLoading: isClearing }] = useClearChatMutation();
 
@@ -131,7 +131,7 @@ export default function CustomerChatPage() {
   // Fetch real message history for selected thread, skipping virtual ones
   const { data: msgData, isFetching: isMsgLoading, refetch: refetchMessages } = useGetMessagesQuery(
     { conversationId: selectedThreadId },
-    { skip: !selectedThreadId || String(selectedThreadId).startsWith('temp-'), pollingInterval: 3000 }
+    { skip: !selectedThreadId || String(selectedThreadId).startsWith('temp-'), pollingInterval: 300000 }
   );
 
   // Real-time Socket listeners

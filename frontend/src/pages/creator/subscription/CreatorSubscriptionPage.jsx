@@ -6,7 +6,7 @@ import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadg
 import { useGetCreatorSubscriptionQuery } from '../../../features/creator/creatorApi';
 
 export default function CreatorSubscriptionPage() {
-  const { data } = useGetCreatorSubscriptionQuery(undefined, { pollingInterval: 10000 });
+  const { data } = useGetCreatorSubscriptionQuery(undefined, { pollingInterval: 300000 });
 
   const planName = data?.plan || 'Creator Pro Badge';
 

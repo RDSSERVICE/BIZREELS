@@ -22,7 +22,7 @@ export default function CreatorPortfolioPage() {
   const [titleInput, setTitleInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
 
-  const { data, isFetching } = useGetCreatorPortfolioQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useGetCreatorPortfolioQuery(undefined, { pollingInterval: 300000 });
   const [uploadReel, { isLoading: isUploadingReel }] = useUploadPortfolioReelMutation();
   const [uploadImage, { isLoading: isUploadingImage }] = useUploadPortfolioImageMutation();
   const [deleteItem] = useDeletePortfolioItemMutation();

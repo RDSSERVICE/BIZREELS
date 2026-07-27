@@ -44,7 +44,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000); // poll every 15s
+    const interval = setInterval(fetchNotifications, 300000); // poll every 5 min
 
     const socket = getSocket();
     const handleNewNotification = (notif) => {

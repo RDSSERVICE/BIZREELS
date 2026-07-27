@@ -5,7 +5,7 @@ import AdminPageHeader from '../../../features/admin/components/AdminPageHeader'
 import { useGetCreatorAvailabilityQuery, useUpdateCreatorAvailabilityMutation } from '../../../features/creator/creatorApi';
 
 export default function CreatorAvailabilityPage() {
-  const { data } = useGetCreatorAvailabilityQuery(undefined, { pollingInterval: 5000 });
+  const { data } = useGetCreatorAvailabilityQuery(undefined, { pollingInterval: 300000 });
   const [updateAvailability] = useUpdateCreatorAvailabilityMutation();
   const [status, setStatus] = useState('Available');
 

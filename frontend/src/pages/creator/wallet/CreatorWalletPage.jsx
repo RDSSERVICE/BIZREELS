@@ -7,8 +7,8 @@ import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import { useGetCreatorWalletQuery, useGetCreatorTransactionsQuery, useRequestPayoutMutation } from '../../../features/creator/creatorApi';
 
 export default function CreatorWalletPage() {
-  const { data: walletData } = useGetCreatorWalletQuery(undefined, { pollingInterval: 5000 });
-  const { data: txData, isFetching: isFetchingTx } = useGetCreatorTransactionsQuery(undefined, { pollingInterval: 5000 });
+  const { data: walletData } = useGetCreatorWalletQuery(undefined, { pollingInterval: 300000 });
+  const { data: txData, isFetching: isFetchingTx } = useGetCreatorTransactionsQuery(undefined, { pollingInterval: 300000 });
   const [requestPayout] = useRequestPayoutMutation();
 
   const balance = walletData?.balance ?? walletData?.walletBalance ?? 0;

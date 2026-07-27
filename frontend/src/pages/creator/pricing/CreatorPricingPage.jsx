@@ -5,7 +5,7 @@ import AdminPageHeader from '../../../features/admin/components/AdminPageHeader'
 import { useGetCreatorPricingQuery, useUpdateCreatorPricingMutation } from '../../../features/creator/creatorApi';
 
 export default function CreatorPricingPage() {
-  const { data, isFetching } = useGetCreatorPricingQuery(undefined, { pollingInterval: 10000 });
+  const { data, isFetching } = useGetCreatorPricingQuery(undefined, { pollingInterval: 300000 });
   const [updatePricing] = useUpdateCreatorPricingMutation();
 
   const [reel1, setReel1] = useState('500');
