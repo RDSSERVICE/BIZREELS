@@ -315,7 +315,7 @@ export default function VendorLeadsPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between text-[10px] text-text-tertiary gap-4">
+                    <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between text-[10px] text-text-tertiary gap-3 sm:gap-4">
                       <div className="flex flex-wrap items-center gap-4">
                         <span className="flex items-center gap-1">
                           <FiMapPin className="text-brand-orange" /> {locationText}
@@ -327,17 +327,17 @@ export default function VendorLeadsPage() {
                         <span>Date: <strong>{m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Recent'}</strong></span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                         <button
                           onClick={() => setDetailReq(m)}
-                          className="px-3 py-1.5 bg-surface border border-border text-text-secondary text-xs font-semibold rounded-lg hover:text-brand-purple transition flex items-center gap-1"
+                          className="px-2.5 sm:px-3 py-1.5 bg-surface border border-border text-text-secondary text-[11px] sm:text-xs font-semibold rounded-lg hover:text-brand-purple transition flex items-center gap-1"
                         >
                           <FiEye size={12} />
                           <span>View Detail</span>
                         </button>
                         <button
                           onClick={() => handleOpenProposalModal(m)}
-                          className="px-3.5 py-1.5 gradient-brand text-white text-xs font-bold rounded-lg shadow hover:opacity-95 transition flex items-center gap-1"
+                          className="px-2.5 sm:px-3.5 py-1.5 gradient-brand text-white text-[11px] sm:text-xs font-bold rounded-lg shadow hover:opacity-95 transition flex items-center gap-1"
                         >
                           <FiFileText size={12} />
                           <span>Submit Proposal</span>
@@ -473,7 +473,7 @@ export default function VendorLeadsPage() {
               <p className="text-text-secondary leading-relaxed mt-2 whitespace-pre-wrap">{displayReq.description}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="p-3 bg-surface border border-border rounded-xl">
                 <span className="text-text-tertiary block mb-0.5">Budget Allocation</span>
                 <strong className="text-brand-purple text-sm">₹{(displayReq.budget || 0).toLocaleString('en-IN')}</strong>
@@ -492,17 +492,17 @@ export default function VendorLeadsPage() {
               </div>
             </div>
 
-            <div className="bg-brand-purple/5 p-4 rounded-xl border border-brand-purple/10 space-y-1">
+            <div className="bg-brand-purple/5 p-3 sm:p-4 rounded-xl border border-brand-purple/10 space-y-1.5 sm:space-y-1">
               <h5 className="font-bold text-brand-navy">Customer Context Details</h5>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between gap-0.5 sm:gap-0">
                 <span className="text-text-secondary">Posted By:</span>
                 <strong className="text-text-primary">{displayReq.customer?.name || 'Client Buyer'}</strong>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between gap-0.5 sm:gap-0">
                 <span className="text-text-secondary">Phone Details:</span>
                 <strong className="text-text-primary">{displayReq.customer?.phone || 'Hidden until bid accepted'}</strong>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between gap-0.5 sm:gap-0">
                 <span className="text-text-secondary">Email Reference:</span>
                 <strong className="text-text-primary">{displayReq.customer?.email || 'N/A'}</strong>
               </div>

@@ -41,32 +41,30 @@ class VendorController {
     const usedCreditHistory = wallet?.lifetime_spent_credits || 15;
 
     return ApiResponse.ok(res, 'Vendor dashboard metrics loaded.', {
-      data: {
-        totalSales: req.user.walletBalance ? req.user.walletBalance * 2 : 0,
-        totalOrders: ordersCount,
-        activeListings: productsCount,
-        totalProducts: productsCount,
-        totalServices: servicesCount,
-        totalReels,
-        totalViews,
-        followers,
-        leadEnquiries: leadsCount,
-        walletBalance: availableCredits,
-        rating: req.user.rating_avg || 5.0,
-        credits: {
-          available: availableCredits,
-          deposited: depositedCredits,
-          earned: earnedCredits,
-          used: usedCreditHistory,
-        },
-        creditRates: {
-          productListing: 1,
-          reelPost: 1,
-          aiImage: 2,
-          aiVideo30s: 15,
-          reelBoost1Day: 10,
-          validLead: 1,
-        }
+      totalSales: req.user.walletBalance ? req.user.walletBalance * 2 : 0,
+      totalOrders: ordersCount,
+      activeListings: productsCount,
+      totalProducts: productsCount,
+      totalServices: servicesCount,
+      totalReels,
+      totalViews,
+      followers,
+      leadEnquiries: leadsCount,
+      walletBalance: availableCredits,
+      rating: req.user.rating_avg || 5.0,
+      credits: {
+        available: availableCredits,
+        deposited: depositedCredits,
+        earned: earnedCredits,
+        used: usedCreditHistory,
+      },
+      creditRates: {
+        productListing: 1,
+        reelPost: 1,
+        aiImage: 2,
+        aiVideo30s: 15,
+        reelBoost1Day: 10,
+        validLead: 1,
       }
     });
   });

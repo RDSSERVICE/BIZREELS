@@ -166,22 +166,22 @@ export default function AdminDashboard() {
           </div>
 
           {/* Active Users / Summary Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="glass rounded-2xl p-5 border border-white/50 shadow-card">
               <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Active Users (7d)</span>
-              <h4 className="text-2xl font-black text-text-primary mt-1 font-display">{fmt(ov.active_users_last_7d)}</h4>
+              <h4 className="text-xl sm:text-2xl font-black text-text-primary mt-1 font-display">{fmt(ov.active_users_last_7d)}</h4>
               <div className="mt-2 h-1 bg-surface-tertiary rounded-full overflow-hidden">
                 <div className="h-full gradient-brand rounded-full" style={{ width: `${Math.min(100, (ov.active_users_last_7d / (ov.total_users || 1)) * 100)}%` }} />
               </div>
             </div>
             <div className="glass rounded-2xl p-5 border border-white/50 shadow-card">
               <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Completed Deals</span>
-              <h4 className="text-2xl font-black text-emerald-600 mt-1 font-display">{fmt(ov.completed_deals)}</h4>
+              <h4 className="text-xl sm:text-2xl font-black text-emerald-600 mt-1 font-display">{fmt(ov.completed_deals)}</h4>
               <span className="text-[10px] text-text-tertiary">of {fmt(ov.total_deals)} total</span>
             </div>
             <div className="glass rounded-2xl p-5 border border-white/50 shadow-card">
               <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Platform GMV</span>
-              <h4 className="text-2xl font-black text-brand-purple mt-1 font-display">{fmtCurrency(ov.total_gmv_paise)}</h4>
+              <h4 className="text-xl sm:text-2xl font-black text-brand-purple mt-1 font-display">{fmtCurrency(ov.total_gmv_paise)}</h4>
               <span className="text-[10px] text-text-tertiary">all-time gross merchandise value</span>
             </div>
           </div>

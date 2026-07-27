@@ -69,7 +69,7 @@ export default function VendorOrdersPage() {
                 <p className="text-xs font-bold text-emerald-600 mt-1">Total: ₹{(o.total || o.total_price || 0).toLocaleString()}</p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <AdminStatusBadge status={o.status || 'new'} />
 
                 {(o.status === 'new' || !o.status) && (

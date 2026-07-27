@@ -265,26 +265,26 @@ const AdminLayout = () => {
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 glass border-b border-border px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 glass border-b border-border px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 hover:bg-surface-tertiary rounded-xl lg:hidden text-text-secondary"
+              className="p-2 hover:bg-surface-tertiary rounded-xl lg:hidden text-text-secondary flex-shrink-0"
             >
               {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
             </button>
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden" />
-              <h1 className="text-sm font-bold text-text-primary font-display">Admin Control Panel</h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden flex-shrink-0" />
+              <h1 className="text-sm font-bold text-text-primary font-display hidden md:block">Admin Control Panel</h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
             <NotificationBellDropdown role="admin" />
             <img
               src={user?.profile_pic || "/logo.png"}
               alt="Admin Profile Logo"
-              className="w-8 h-8 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm flex-shrink-0"
             />
           </div>
         </header>

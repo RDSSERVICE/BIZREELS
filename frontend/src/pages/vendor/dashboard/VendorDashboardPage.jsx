@@ -81,7 +81,9 @@ export default function VendorDashboardPage() {
     };
   }, [refetchDashboard, refetchLeads, refetchBoosts, refetchReels]);
 
-  const metrics = dashboardRes?.data || {};
+  // Safe unwrap: handles both old double-nested (data.data) and new flat (data) response shapes
+  const rawData = dashboardRes?.data;
+  const metrics = (rawData?.totalProducts !== undefined ? rawData : rawData?.data) || {};
   const leads = Array.isArray(leadsRes?.data) ? leadsRes.data : Array.isArray(leadsRes) ? leadsRes : [];
   const boosts = Array.isArray(boostsRes?.active) ? boostsRes.active : Array.isArray(boostsRes?.data) ? boostsRes.data : [];
   const reelsList = Array.isArray(reelsRes?.data) ? reelsRes.data : Array.isArray(reelsRes?.reels) ? reelsRes.reels : Array.isArray(reelsRes) ? reelsRes : [];
@@ -89,7 +91,7 @@ export default function VendorDashboardPage() {
   const realTimeReelsCount = Math.max(metrics.totalReels || 0, reelsList.length);
   const realTimeViewsCount = Math.max(metrics.totalViews || 0, reelsList.reduce((sum, r) => sum + (r.views || 0), 0));
 
-  const credits = metrics.credits || { available: 50, deposited: 100, earned: 25, used: 15 };
+  const credits = metrics.credits || { available: 0, deposited: 0, earned: 0, used: 0 };
   const creditRates = metrics.creditRates || {
     productListing: 1,
     reelPost: 1,
@@ -161,7 +163,7 @@ export default function VendorDashboardPage() {
 
       {/* CREDITS OVERVIEW & RATE CARD */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 glass rounded-3xl p-5 border border-amber-500/20 shadow-card bg-gradient-to-r from-amber-500/10 via-surface to-brand-purple/10 space-y-4">
+        <div className="lg:col-span-2 glass rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-amber-500/20 shadow-card bg-gradient-to-r from-amber-500/10 via-surface to-brand-purple/10 space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <h3 className="text-xs sm:text-sm font-bold text-text-primary font-display flex items-center gap-2">
               <FiDollarSign className="text-amber-500" /> VENDOR CREDIT WALLET <span className="hidden sm:inline">(1 Credit = ₹1 INR)</span>
@@ -195,7 +197,7 @@ export default function VendorDashboardPage() {
         </div>
 
         {/* DYNAMIC CREDIT RATES DISPLAY */}
-        <div className="glass rounded-3xl p-5 border border-white/10 shadow-card space-y-3">
+        <div className="glass rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-white/10 shadow-card space-y-3">
           <div className="flex items-center justify-between border-b border-border pb-2">
             <h4 className="text-xs font-bold text-text-primary font-display flex items-center gap-1.5">
               <FiZap className="text-amber-500" /> Credit Consumption Rates
@@ -238,7 +240,7 @@ export default function VendorDashboardPage() {
       </AdminPageHeader>
 
       {/* Overview Stat Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {stats.map((stat, idx) => (
           <AdminStatCard
             key={idx}
@@ -252,9 +254,9 @@ export default function VendorDashboardPage() {
       </div>
 
       {/* Quick Action Tables & Modules */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Enquiries */}
-        <div className="glass rounded-2xl p-5 border border-white/10 shadow-card space-y-4">
+        <div className="glass rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-white/10 shadow-card space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
               <FiInbox className="text-brand-orange" />
@@ -270,7 +272,7 @@ export default function VendorDashboardPage() {
               <p className="text-xs text-text-tertiary text-center py-4">No recent enquiries received.</p>
             ) : (
               leads.slice(0, 4).map((l, i) => (
-                <div key={l._id || i} className="glass p-3.5 rounded-xl border border-white/5 flex justify-between items-center text-xs">
+                <div key={l._id || i} className="glass p-3 sm:p-3.5 rounded-xl border border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs">
                   <div>
                     <h4 className="font-bold text-text-primary">{l.subject || l.message || 'Inquiry'}</h4>
                     <p className="text-[11px] text-text-tertiary">Customer: {l.customerName || l.customer?.name || 'Buyer'}</p>
@@ -285,7 +287,7 @@ export default function VendorDashboardPage() {
         </div>
 
         {/* Active Boosted Reels Status */}
-        <div className="glass rounded-2xl p-5 border border-white/10 shadow-card space-y-4">
+        <div className="glass rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-white/10 shadow-card space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
               <FiZap className="text-amber-500" />
@@ -301,7 +303,7 @@ export default function VendorDashboardPage() {
               <p className="text-xs text-text-tertiary text-center py-4">No active boosted reels. Boost a reel for high reach!</p>
             ) : (
               boosts.map((b, i) => (
-                <div key={b.id || i} className="glass p-3.5 rounded-xl border border-white/5 flex justify-between items-center text-xs">
+                <div key={b.id || i} className="glass p-3 sm:p-3.5 rounded-xl border border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs">
                   <div>
                     <h4 className="font-bold text-text-primary">{b.reelTitle || 'Boosted Promo Reel'}</h4>
                     <p className="text-[11px] text-text-tertiary">Plan: {b.plan || 'Boost Package'}</p>
