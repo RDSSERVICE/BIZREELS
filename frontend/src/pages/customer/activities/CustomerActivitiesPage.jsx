@@ -323,12 +323,31 @@ export default function CustomerActivitiesPage() {
     }
   };
 
-  const handleShare = (type, id, title) => {
+  const handleShare = async (type, id, title) => {
     const path = `/customer/${type}/${id}`;
     const url = `${window.location.origin}${path}`;
+    const shareData = {
+      title: title || 'BizReels Item',
+      text: `Check this out on BizReels!`,
+      url: url,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
-      toast.success('Link copied to clipboard!');
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link copied to clipboard!');
+      } catch (err) {
+        toast.error('Failed to copy link');
+      }
     } else {
       toast.success(`Share this link: ${url}`);
     }

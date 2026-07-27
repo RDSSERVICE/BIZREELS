@@ -169,10 +169,29 @@ export default function VendorProfilePage() {
   };
 
   // ── Share Profile Handling ─────────────────────────────────
-  const handleShareProfile = () => {
+  const handleShareProfile = async () => {
     const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success('🔗 Profile link copied to clipboard!');
+    const shareData = {
+      title: vendorData?.shopName || vendorData?.name || 'Vendor Profile',
+      text: `Check out ${vendorData?.shopName || vendorData?.name || 'this vendor'} on BizReels!`,
+      url: url,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('🔗 Profile link copied to clipboard!');
+    } catch (err) {
+      toast.error('Failed to copy profile link');
+    }
   };
 
   // ── Report Profile Handling ────────────────────────────────

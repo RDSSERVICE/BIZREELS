@@ -177,12 +177,28 @@ export default function SearchListingsPage() {
     }
   };
 
-  const handleShare = (item) => {
+  const handleShare = async (item) => {
+    const url = window.location.href;
+    const shareData = {
+      title: item.title || 'BizReels',
+      text: `Check out ${item.title} on BizReels!`,
+      url: url,
+    };
+
     if (navigator.share) {
-      navigator.share({ title: item.title, text: `Check out ${item.title} on BizReels!`, url: window.location.href });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
       toast.success('🔗 Link copied to clipboard!');
+    } catch (err) {
+      toast.error('Failed to copy link');
     }
   };
 

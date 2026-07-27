@@ -89,10 +89,30 @@ const ReelsFeed = () => {
     }
   };
 
-  const handleShare = (reel) => {
+  const handleShare = async (reel) => {
+    if (!reel?._id) return;
     const shareUrl = `${window.location.origin}/reels/${reel._id}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast.success('Link copied to clipboard!');
+    const shareData = {
+      title: reel.caption || 'BizReels',
+      text: reel.caption || 'Check out this reel on BizReels!',
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Link copied to clipboard!');
+    } catch (err) {
+      toast.error('Failed to copy link');
+    }
   };
 
   return (
