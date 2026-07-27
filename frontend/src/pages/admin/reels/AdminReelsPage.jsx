@@ -28,6 +28,10 @@ export default function AdminReelsPage() {
 
   const queryParams = {};
   if (activeTab === 'boosted') queryParams.is_boosted = 'true';
+  if (activeTab === 'trending') queryParams.is_trending = 'true';
+  if (activeTab === 'reported') queryParams.is_reported = 'true';
+  if (activeTab === 'deleted') queryParams.is_deleted = 'true';
+  if (activeTab === 'live') queryParams.is_live = 'true';
 
   const { data, isFetching } = useListAdminReelsQuery(queryParams, { pollingInterval: 5000 });
   const [takedownReel] = useTakedownReelMutation();
@@ -36,18 +40,33 @@ export default function AdminReelsPage() {
   const items = data?.items || [];
 
   const filteredItems = items.filter((item) => {
-    if (activeTab === 'deleted') return item.isDeleted;
-    if (activeTab === 'trending') return (item.views || 0) > 10;
-    return !item.isDeleted;
+    // 1. Tab check backup
+    if (activeTab === 'deleted') {
+      if (!item.isDeleted) return false;
+    } else {
+      if (item.isDeleted) return false;
+    }
+
+    // 2. Search local filter
+    if (search.trim()) {
+      const term = search.toLowerCase();
+      const captionMatch = (item.caption || '').toLowerCase().includes(term);
+      const creatorMatch = (item.creator_name || '').toLowerCase().includes(term);
+      if (!captionMatch && !creatorMatch) return false;
+    }
+
+    return true;
   });
 
   const handleTakedown = async (id) => {
-    if (!window.confirm('Delete/takedown this reel?')) return;
+    const isLive = activeTab === 'live';
+    const confirmMsg = isLive ? 'End this live broadcast stream?' : 'Delete/takedown this reel?';
+    if (!window.confirm(confirmMsg)) return;
     try {
       await takedownReel(id).unwrap();
-      toast.success('Reel taken down!');
+      toast.success(isLive ? 'Live stream ended!' : 'Reel taken down!');
     } catch (err) {
-      toast.error(err?.data?.message || 'Takedown failed');
+      toast.error(err?.data?.message || 'Action failed');
     }
   };
 
@@ -67,17 +86,30 @@ export default function AdminReelsPage() {
       render: (val, row) => (
         <div className="flex items-center gap-3">
           <div
-            onClick={() => setPlayReel(row)}
+            onClick={() => {
+              if (row.isLiveStream) {
+                toast.error('Cannot preview active live broadcast streams');
+              } else {
+                setPlayReel(row);
+              }
+            }}
             className="w-12 h-16 rounded-xl bg-black flex items-center justify-center text-white relative cursor-pointer group overflow-hidden border border-border flex-shrink-0"
           >
-            {row.thumbnailUrl ? (
+            {row.isLiveStream ? (
+              <div className="flex flex-col items-center justify-center gap-1 w-full h-full bg-red-500/10">
+                <FiTv className="w-5 h-5 text-red-500 animate-pulse" />
+                <span className="text-[7px] bg-red-500 text-white font-black px-1 rounded uppercase tracking-wider scale-90">Live</span>
+              </div>
+            ) : row.thumbnailUrl ? (
               <img src={row.thumbnailUrl} alt={val} className="w-full h-full object-cover" />
             ) : (
               <FiFilm className="w-5 h-5 opacity-70" />
             )}
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-all">
-              <FiPlay className="w-4 h-4 text-white fill-white" />
-            </div>
+            {!row.isLiveStream && (
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-all">
+                <FiPlay className="w-4 h-4 text-white fill-white" />
+              </div>
+            )}
           </div>
           <div className="min-w-0">
             <span className="font-bold text-text-primary block truncate max-w-[220px]">{val || 'No caption'}</span>
@@ -88,8 +120,12 @@ export default function AdminReelsPage() {
     },
     {
       key: 'views',
-      label: 'Views',
-      render: (val) => <span className="font-bold text-text-primary">{val ? val.toLocaleString() : '0'}</span>,
+      label: 'Views / Viewers',
+      render: (val, row) => (
+        <span className="font-bold text-text-primary">
+          {val ? val.toLocaleString() : '0'}{row.isLiveStream ? ' watching' : ''}
+        </span>
+      ),
     },
     {
       key: 'likesCount',
@@ -99,15 +135,15 @@ export default function AdminReelsPage() {
     {
       key: 'isBoosted',
       label: 'Boosted',
-      render: (val) => (
+      render: (val, row) => (
         <span className={`text-xs font-bold ${val ? 'text-amber-500' : 'text-text-tertiary'}`}>
-          {val ? '⚡ Boosted' : 'No'}
+          {row.isLiveStream ? 'N/A' : (val ? '⚡ Boosted' : 'No')}
         </span>
       ),
     },
     {
       key: 'createdAt',
-      label: 'Uploaded',
+      label: 'Uploaded / Started',
       render: (val) => <span className="text-text-tertiary">{val ? new Date(val).toLocaleDateString() : '—'}</span>,
     },
   ];
@@ -126,32 +162,36 @@ export default function AdminReelsPage() {
         columns={columns}
         data={filteredItems}
         loading={isFetching}
-        searchPlaceholder="Search reels by caption..."
+        searchPlaceholder="Search reels by caption or creator..."
         searchValue={search}
         onSearch={setSearch}
         emptyMessage="No reels found in this view."
         testId="reels-table"
         actions={(row) => (
           <>
-            <button
-              onClick={() => setPlayReel(row)}
-              className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition-all"
-              title="Play Video"
-            >
-              <FiPlay className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => handleToggleBoost(row.id)}
-              className={`p-1.5 rounded-lg transition-all ${row.isBoosted ? 'bg-amber-500/10 text-amber-500' : 'hover:bg-amber-500/10 text-text-tertiary hover:text-amber-500'}`}
-              title={row.isBoosted ? 'Remove Boost' : 'Boost Reel'}
-            >
-              <FiZap className="w-3.5 h-3.5" />
-            </button>
+            {!row.isLiveStream && (
+              <button
+                onClick={() => setPlayReel(row)}
+                className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition-all"
+                title="Play Video"
+              >
+                <FiPlay className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {!row.isLiveStream && (
+              <button
+                onClick={() => handleToggleBoost(row.id)}
+                className={`p-1.5 rounded-lg transition-all ${row.isBoosted ? 'bg-amber-500/10 text-amber-500' : 'hover:bg-amber-500/10 text-text-tertiary hover:text-amber-500'}`}
+                title={row.isBoosted ? 'Remove Boost' : 'Boost Reel'}
+              >
+                <FiZap className="w-3.5 h-3.5" />
+              </button>
+            )}
             {!row.isDeleted && (
               <button
                 onClick={() => handleTakedown(row.id)}
                 className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition-all"
-                title="Delete Reel"
+                title={row.isLiveStream ? "End Live Stream" : "Delete Reel"}
               >
                 <FiTrash2 className="w-3.5 h-3.5" />
               </button>

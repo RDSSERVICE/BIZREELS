@@ -493,11 +493,60 @@ router.post('/listings/:listing_id/restore', requireAuth, requireAdmin, catchAsy
 
 // ============================================================ REELS OPERATIONS
 router.get('/reels', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { status, is_boosted, is_trending } = req.query;
+  const { status, is_boosted, is_trending, is_reported, is_deleted, is_live } = req.query;
+
+  if (is_live === 'true') {
+    const LiveStream = require('../models/LiveStream');
+    const liveStreams = await LiveStream.find({ status: 'live' })
+      .populate('host', 'name phone')
+      .sort({ createdAt: -1 });
+
+    return res.json({
+      items: liveStreams.map(l => ({
+        id: l._id.toString(),
+        caption: l.title || 'Live Broadcast',
+        videoUrl: null,
+        thumbnailUrl: null,
+        creator_name: l.host?.name || 'Unknown',
+        views: l.viewersCount || 0,
+        likesCount: l.likesCount || 0,
+        commentsCount: 0,
+        isBoosted: false,
+        isDeleted: false,
+        isLiveStream: true,
+        createdAt: l.createdAt,
+      })),
+    });
+  }
+
   const Reel = require('../models/Reel');
   const q = {};
-  if (is_boosted !== undefined) q.isBoosted = is_boosted === 'true';
-  const reels = await Reel.find(q).populate('creator', 'name phone').sort({ createdAt: -1 }).limit(50);
+
+  let query = Reel.find(q);
+
+  if (is_deleted === 'true') {
+    query = query.setOptions({ includeSoftDeleted: true }).where({ isDeleted: true });
+  }
+
+  if (is_boosted === 'true') {
+    query = query.where({ isBoosted: true });
+  }
+
+  if (is_trending === 'true') {
+    query = query.where('views').gt(10);
+  }
+
+  if (is_reported === 'true') {
+    query = query.where({
+      $or: [
+        { 'aiModeration.passed': false },
+        { 'adminReview.status': 'pending' }
+      ]
+    });
+  }
+
+  const reels = await query.populate('creator', 'name phone').sort({ createdAt: -1 }).limit(50);
+
   res.json({
     items: reels.map(r => ({
       id: r._id.toString(),
@@ -517,7 +566,20 @@ router.get('/reels', requireAuth, requireAdmin, catchAsync(async (req, res) => {
 
 router.post('/reels/:reel_id/takedown', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const Reel = require('../models/Reel');
-  await Reel.updateOne({ _id: req.params.reel_id }, { $set: { isDeleted: true, deletedAt: new Date() } });
+  const LiveStream = require('../models/LiveStream');
+
+  const reelResult = await Reel.updateOne(
+    { _id: req.params.reel_id },
+    { $set: { isDeleted: true, deletedAt: new Date() } }
+  ).setOptions({ includeSoftDeleted: true });
+
+  if (reelResult.matchedCount === 0) {
+    await LiveStream.updateOne(
+      { _id: req.params.reel_id },
+      { $set: { status: 'ended' } }
+    );
+  }
+
   res.json({ ok: true });
 }));
 
