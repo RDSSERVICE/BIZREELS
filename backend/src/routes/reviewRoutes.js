@@ -15,6 +15,7 @@ router.get('/user/:userId', reviewValidation.queryReviews, validate, reviewContr
 router.get('/listing/:listingId', reviewValidation.queryReviews, validate, reviewController.getReviewsForListing);
 
 // ── Protected review creation & deletion ────────────────
+router.get('/', authenticate, reviewController.getReviewsForMe);
 router.post('/', authenticate, reviewValidation.create, validate, reviewController.create);
 router.delete('/:id', authenticate, reviewValidation.idParam, validate, reviewController.delete);
 

@@ -125,6 +125,53 @@ class WalletRepository {
       await session.endSession();
     }
   }
+
+  /**
+   * Safe request payout withdrawal with status: 'pending'
+   */
+  async requestWithdrawal(userId, amount) {
+    const session = await mongoose.startSession();
+    try {
+      let transaction;
+      let updatedUser;
+
+      await session.withTransaction(async () => {
+        const user = await User.findById(userId).session(session);
+        if (!user) throw new Error('User not found.');
+
+        if (user.walletBalance < amount) {
+          throw new Error('Insufficient wallet balance for withdrawal.');
+        }
+
+        // Create transaction history with status: 'pending'
+        const transRecord = await WalletTransaction.create(
+          [
+            {
+              user: userId,
+              type: 'withdrawal',
+              amount: Math.abs(amount),
+              status: 'pending',
+              referenceId: `pay_${Date.now()}`,
+              description: 'Payout withdrawal request.',
+            },
+          ],
+          { session }
+        );
+        transaction = transRecord[0];
+
+        // Update user balance (deduct the amount)
+        updatedUser = await User.findByIdAndUpdate(
+          userId,
+          { $inc: { walletBalance: -amount } },
+          { returnDocument: 'after', session }
+        );
+      });
+
+      return { transaction, user: updatedUser };
+    } finally {
+      await session.endSession();
+    }
+  }
 }
 
 module.exports = new WalletRepository();

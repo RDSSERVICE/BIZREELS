@@ -83,6 +83,14 @@ class WalletService {
     return this.getTransactions(userId);
   }
 
+  async requestPayout({ userId, amount }) {
+    if (!amount || amount <= 0) {
+      throw ApiError.badRequest('Payout amount must be positive.');
+    }
+    const result = await walletRepository.requestWithdrawal(userId, parseFloat(amount));
+    return result;
+  }
+
   async backfillAll() {
     return { ok: true };
   }

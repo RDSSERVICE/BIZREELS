@@ -22,7 +22,15 @@ export default function CreatorOrdersPage() {
   const { data, isFetching } = useGetCreatorOrdersQuery(undefined, { pollingInterval: 5000 });
   const [updateStatus] = useUpdateCreatorOrderStatusMutation();
 
-  const allOrders = Array.isArray(data?.data) ? data.data : Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+  const allOrders = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data)
+          ? data
+          : [];
 
   const filtered = allOrders.filter((o) => {
     const status = (o.status || '').toLowerCase();

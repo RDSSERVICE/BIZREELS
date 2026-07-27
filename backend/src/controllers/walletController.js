@@ -56,6 +56,19 @@ class WalletController {
       transaction: result.transaction,
     });
   });
+
+  // ── Request Payout ──────────────────────────────────────
+  requestPayout = asyncHandler(async (req, res) => {
+    const { amount } = req.body;
+    const result = await walletService.requestPayout({
+      userId: req.user._id,
+      amount,
+    });
+    return ApiResponse.ok(res, 'Payout withdrawal request submitted successfully.', {
+      walletBalance: result.user.walletBalance,
+      transaction: result.transaction,
+    });
+  });
 }
 
 module.exports = new WalletController();

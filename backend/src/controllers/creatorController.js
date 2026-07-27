@@ -17,15 +17,57 @@ class CreatorController {
     const userId = req.user._id;
     const userIdStr = userId.toString();
 
-    const [hireRequestsCount, pendingRequests, reels, totalOrders] = await Promise.all([
+    const [
+      hireRequestsCount,
+      pendingRequests,
+      reels,
+      totalOrders,
+      portfolioReelsCount,
+      portfolioImagesCount
+    ] = await Promise.all([
       HireRequest.countDocuments({ creator: userId }),
       HireRequest.countDocuments({ creator: userId, status: 'pending' }),
       Reel.find({ creator: userId }).select('views').lean(),
-      Order.countDocuments({ customer_id: userIdStr })
+      Order.countDocuments({ customer_id: userIdStr }),
+      Reel.countDocuments({ creator: userId }),
+      Listing.countDocuments({ vendor: userId })
     ]);
 
     const totalProjectsCount = hireRequestsCount + totalOrders;
     const totalViews = reels.reduce((acc, r) => acc + (r.views || 0), 0);
+
+    // Calculate active clients (unique vendors who have created a completed or accepted HireRequest)
+    const activeClientsCount = await HireRequest.distinct('vendor', {
+      creator: userId,
+      status: { $in: ['accepted', 'completed'] }
+    }).then(list => list.length);
+
+    // Calculate monthly earnings and last month earnings from WalletTransaction
+    const WalletTransaction = require('../models/WalletTransaction');
+    const startOfThisMonth = new Date();
+    startOfThisMonth.setDate(1);
+    startOfThisMonth.setHours(0, 0, 0, 0);
+
+    const startOfLastMonth = new Date();
+    startOfLastMonth.setMonth(startOfLastMonth.getMonth() - 1);
+    startOfLastMonth.setDate(1);
+    startOfLastMonth.setHours(0, 0, 0, 0);
+
+    const [thisMonthTx, lastMonthTx] = await Promise.all([
+      WalletTransaction.find({
+        user: userId,
+        type: 'deposit',
+        createdAt: { $gte: startOfThisMonth }
+      }).lean(),
+      WalletTransaction.find({
+        user: userId,
+        type: 'deposit',
+        createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth }
+      }).lean()
+    ]);
+
+    const monthlyEarnings = thisMonthTx.reduce((acc, tx) => acc + tx.amount, 0);
+    const lastMonthEarnings = lastMonthTx.reduce((acc, tx) => acc + tx.amount, 0);
 
     return ApiResponse.ok(res, 'Creator dashboard metrics loaded.', {
       totalProjects: totalProjectsCount,
@@ -33,7 +75,13 @@ class CreatorController {
       totalEarnings: req.user.walletBalance || 0,
       rating: req.user.rating_avg || 5.0,
       reviewCount: req.user.rating_count || 0,
-      portfolioViews: totalViews
+      portfolioViews: totalViews,
+      activeClients: activeClientsCount,
+      portfolioReels: portfolioReelsCount,
+      portfolioImages: portfolioImagesCount,
+      monthlyEarnings: monthlyEarnings,
+      lastMonthEarnings: lastMonthEarnings,
+      verificationStatus: req.user.creatorProfile?.verificationStatus || 'unverified'
     });
   });
 
@@ -169,10 +217,7 @@ class CreatorController {
 
     const allProjects = [...mappedHires, ...mappedOrders];
 
-    return ApiResponse.ok(res, 'Creator projects loaded.', {
-      data: allProjects,
-      orders: allProjects
-    });
+    return ApiResponse.ok(res, 'Creator projects loaded.', allProjects);
   });
 
   // ── Update Creator Order / Project Status ────────────────

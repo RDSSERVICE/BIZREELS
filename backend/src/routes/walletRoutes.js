@@ -13,5 +13,6 @@ router.get('/me', authenticate, walletController.getWallet);
 router.post('/recharge', authenticate, walletController.recharge);
 router.get('/transactions', authenticate, walletController.getTransactions);
 router.post('/subscribe', authenticate, walletController.purchaseSubscription);
+router.post('/payout', authenticate, walletController.requestPayout);
 
 module.exports = router;

@@ -65,6 +65,22 @@ class ReviewController {
     const result = await reviewService.deleteReview(id, req.user._id, req);
     return ApiResponse.ok(res, result.message);
   });
+
+  // ── Get Reviews for Authenticated User (Creator or Vendor) ────
+  getReviewsForMe = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 10 } = req.query;
+
+    const result = await reviewService.getReviewsForUser(req.user._id, {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+    });
+
+    return ApiResponse.paginated(res, 'Reviews retrieved.', result.reviews, {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      total: result.total,
+    });
+  });
 }
 
 module.exports = new ReviewController();

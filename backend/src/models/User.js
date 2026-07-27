@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema({
   is_subscribed_verified: { type: Boolean, default: false },
   rating_avg: { type: Number, default: 0 },
   rating_count: { type: Number, default: 0 },
+  walletBalance: { type: Number, default: 0 },
   trust_score: { type: Number, default: null },
   city: { type: String, default: null },
   // Phase 4b
