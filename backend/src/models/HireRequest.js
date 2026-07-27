@@ -43,7 +43,7 @@ const hireRequestSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'accepted', 'rejected', 'completed'],
+      enum: ['pending', 'accepted', 'rejected', 'completed', 'cancelled'],
       default: 'pending',
       index: true,
     },

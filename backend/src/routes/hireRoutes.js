@@ -11,5 +11,8 @@ const router = express.Router();
 router.post('/', authenticate, hireController.create);
 router.get('/', authenticate, hireController.getRequests);
 router.patch('/:id', authenticate, hireController.updateStatus);
+router.patch('/:id/edit', authenticate, hireController.edit);
+router.patch('/:id/cancel', authenticate, hireController.cancel);
+router.post('/campaign/:id/deliverable', authenticate, hireController.submitDeliverable);
 
 module.exports = router;

@@ -52,6 +52,7 @@ router.use('/inquiries', lazyLoad('./inquiryRoutes'));
 router.use('/leads', lazyLoad('./inquiryRoutes')); // Alias for leads/enquiries
 router.use('/users', lazyLoad('./user.routes'));
 router.use('/categories', lazyLoad('./category.routes'));
+router.use('/creator-marketplace', lazyLoad('./creatorMarketplaceRoutes'));
 
 // Subscription endpoint alias (lazy loaded controller)
 router.get('/subscription', authenticate, (req, res, next) => {

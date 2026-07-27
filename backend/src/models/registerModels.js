@@ -24,6 +24,7 @@ require('./Conversation');
 require('./Message');
 require('./Chat');
 require('./HireRequest');
+require('./Campaign');
 require('./Quote');
 require('./Offer');
 require('./Deal');

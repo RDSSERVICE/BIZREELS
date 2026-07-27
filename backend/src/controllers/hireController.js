@@ -8,16 +8,11 @@ const asyncHandler = require('../utils/asyncHandler');
  */
 class HireController {
   create = asyncHandler(async (req, res) => {
-    const { creatorId, title, description, budget, deliveryDays } = req.body;
-    const request = await hireService.createRequest({
+    const campaign = await hireService.createRequest({
+      ...req.body,
       vendorId: req.user._id,
-      creatorId,
-      title,
-      description,
-      budget,
-      deliveryDays,
     }, req);
-    return ApiResponse.created(res, 'Collaboration proposal sent successfully.', { hireRequest: request });
+    return ApiResponse.created(res, 'Collaboration proposal sent successfully.', { campaign });
   });
 
   getRequests = asyncHandler(async (req, res) => {
@@ -28,14 +23,33 @@ class HireController {
     } else {
       list = await hireService.getVendorRequests(req.user._id);
     }
-    return ApiResponse.ok(res, 'Hire requests retrieved.', { hireRequests: list });
+    return ApiResponse.ok(res, 'Hire requests and campaigns retrieved.', { hireRequests: list });
   });
 
   updateStatus = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     const result = await hireService.updateRequestStatus(id, status, req.user._id);
-    return ApiResponse.ok(res, `Request updated to ${status} successfully.`, { hireRequest: result });
+    return ApiResponse.ok(res, `Campaign updated to ${status} successfully.`, { campaign: result });
+  });
+
+  edit = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const campaign = await hireService.editRequest(id, req.body, req.user._id);
+    return ApiResponse.ok(res, 'Campaign proposal edited successfully.', { campaign });
+  });
+
+  cancel = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const campaign = await hireService.cancelRequest(id, req.user._id);
+    return ApiResponse.ok(res, 'Campaign proposal cancelled.', { campaign });
+  });
+
+  submitDeliverable = asyncHandler(async (req, res) => {
+    const { id } = req.params; // campaignId
+    const { url, type, caption } = req.body;
+    const campaign = await hireService.submitDeliverable(id, url, type, caption, req.user._id);
+    return ApiResponse.ok(res, 'Deliverable uploaded successfully.', { campaign });
   });
 }
 
