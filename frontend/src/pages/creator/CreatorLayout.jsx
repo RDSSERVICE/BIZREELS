@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import {
   FiVideo, FiUser, FiFilm, FiDollarSign, FiClock, FiCreditCard,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
-  FiBarChart2, FiBriefcase, FiStar
+  FiBarChart2, FiBriefcase, FiStar, FiMessageSquare
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
@@ -34,6 +34,7 @@ const NAV_SECTIONS = [
     title: 'Projects',
     items: [
       { name: 'My Orders', path: '/creator/orders', icon: FiBriefcase },
+      { name: 'Chats', path: '/creator/chat', icon: FiMessageSquare },
       { name: 'Reviews', path: '/creator/reviews', icon: FiStar },
       { name: 'Analytics', path: '/creator/analytics', icon: FiBarChart2 },
     ],

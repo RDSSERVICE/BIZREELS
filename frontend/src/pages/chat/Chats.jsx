@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiSend, FiPaperclip, FiMic, FiPhone, FiVideo, FiMoreVertical, FiCircle, FiUser, FiArrowLeft } from 'react-icons/fi';
 import { selectCurrentUser, selectAccessToken } from '../../features/auth/authSlice';
@@ -17,6 +18,8 @@ import { toast } from 'react-hot-toast';
 const Chats = () => {
   const user = useSelector(selectCurrentUser);
   const token = useSelector(selectAccessToken);
+  const [searchParams] = useSearchParams();
+  const queryUserId = searchParams.get('userId');
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
@@ -33,20 +36,41 @@ const Chats = () => {
     refetchOnMountOrArgChange: true,
   });
 
+  const isTemp = typeof activeConversationId === 'string' && activeConversationId.startsWith('temp-');
+
   const { data: msgHistoryRes, isLoading: isHistoryLoading, refetch: refetchHistory } = useGetMessagesQuery(
     { conversationId: activeConversationId },
-    { skip: !activeConversationId, refetchOnMountOrArgChange: true }
+    { skip: !activeConversationId || isTemp, refetchOnMountOrArgChange: true }
   );
 
   const [sendMessageApi] = useSendMessageMutation();
 
   const conversations = convsRes?.conversations || [];
-  
-  const filteredConversations = conversations.filter((c) => {
+
+  // Prepend temporary conversation thread if starting a chat with someone new
+  const hasExisting = conversations.some((c) =>
+    c.participants.some((p) => p._id === queryUserId)
+  );
+
+  const filteredConversations = [...conversations].filter((c) => {
     if (chatFilter === 'all') return true;
     const peer = c.participants.find((p) => p._id !== user?._id);
     return peer?.activeRole === chatFilter;
   });
+
+  if (queryUserId && !hasExisting) {
+    const queryName = searchParams.get('name') || 'New Client';
+    const queryAvatar = searchParams.get('avatar') || null;
+    filteredConversations.unshift({
+      _id: `temp-${queryUserId}`,
+      participants: [
+        { _id: user?._id, name: user?.name, avatarUrl: user?.avatarUrl },
+        { _id: queryUserId, name: queryName, avatarUrl: queryAvatar, activeRole: 'vendor' }
+      ],
+      lastMessage: { text: 'Start typing to begin messaging...' },
+      unreadCount: {}
+    });
+  }
 
   // ── Initialize Socket connection ────────────────────────
   useEffect(() => {
@@ -105,10 +129,24 @@ const Chats = () => {
 
   // Sync loaded history messages
   useEffect(() => {
-    if (msgHistoryRes) {
+    if (isTemp) {
+      setMessages([]);
+    } else if (msgHistoryRes) {
       setMessages(msgHistoryRes);
     }
-  }, [msgHistoryRes]);
+  }, [msgHistoryRes, isTemp]);
+
+  // Auto-select or pre-load conversation from query parameters on mount or when conversations load
+  useEffect(() => {
+    if (queryUserId && filteredConversations.length > 0 && !activeConversationId) {
+      const match = filteredConversations.find((c) =>
+        c.participants.some((p) => p._id === queryUserId)
+      );
+      if (match) {
+        setActiveConversationId(match._id);
+      }
+    }
+  }, [queryUserId, filteredConversations, activeConversationId]);
 
   // Auto-scroll to bottom of chats
   useEffect(() => {
@@ -152,21 +190,34 @@ const Chats = () => {
     e.preventDefault();
     if (!messageText.trim() || !activeConversationId) return;
 
-    const activeConv = conversations.find((c) => c._id === activeConversationId);
-    const recipient = activeConv?.participants.find((p) => p._id !== user._id);
-    if (!recipient) return;
+    let recipientId;
+    if (isTemp) {
+      recipientId = activeConversationId.replace('temp-', '');
+    } else {
+      const activeConv = filteredConversations.find((c) => c._id === activeConversationId);
+      const recipient = activeConv?.participants.find((p) => p._id !== user._id);
+      if (!recipient) return;
+      recipientId = recipient._id;
+    }
 
     try {
       setMessageText('');
-      if (socketRef.current) {
+      if (socketRef.current && !isTemp) {
         socketRef.current.emit('stop_typing', { conversationId: activeConversationId });
       }
       setIsTyping(false);
 
-      await sendMessageApi({
-        recipientId: recipient._id,
+      const res = await sendMessageApi({
+        recipientId,
         text: messageText,
       }).unwrap();
+
+      if (isTemp) {
+        const newConvId = res.message?.conversation || res.data?.message?.conversation || res.data?.conversationId || res.conversationId;
+        if (newConvId) {
+          setActiveConversationId(newConvId);
+        }
+      }
 
       refetchConvs();
     } catch (err) {

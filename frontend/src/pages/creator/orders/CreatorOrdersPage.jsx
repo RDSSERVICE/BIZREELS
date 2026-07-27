@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FiBriefcase, FiCheck, FiClock, FiX, FiInfo, FiDollarSign, FiTruck } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiBriefcase, FiCheck, FiClock, FiX, FiInfo, FiDollarSign, FiTruck, FiMessageSquare } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
@@ -17,11 +18,12 @@ const TABS = [
 ];
 
 export default function CreatorOrdersPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const { data, isFetching } = useGetCreatorOrdersQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useGetCreatorOrdersQuery(undefined, { pollingInterval: 300000 });
   const [updateStatus] = useUpdateCreatorOrderStatusMutation();
 
   const allOrders = Array.isArray(data?.data?.data)
@@ -131,6 +133,15 @@ export default function CreatorOrdersPage() {
               >
                 <FiInfo className="w-3.5 h-3.5" />
               </button>
+              {row.vendor_id && (
+                <button
+                  onClick={() => navigate(`/creator/chat?userId=${row.vendor_id}&name=${encodeURIComponent(row.vendor_name)}`)}
+                  className="p-1.5 rounded-lg hover:bg-brand-orange/10 text-text-tertiary hover:text-brand-orange transition-all"
+                  title="Chat with Client"
+                >
+                  <FiMessageSquare className="w-3.5 h-3.5" />
+                </button>
+              )}
               {(status === 'pending' || status === 'requested') && (
                 <>
                   <button
@@ -232,6 +243,15 @@ export default function CreatorOrdersPage() {
             )}
 
             {/* Modal Actions */}
+            {selectedOrder.vendor_id && (
+              <button
+                onClick={() => navigate(`/creator/chat?userId=${selectedOrder.vendor_id}&name=${encodeURIComponent(selectedOrder.vendor_name)}`)}
+                className="w-full py-3 bg-brand-orange/10 hover:bg-brand-orange/20 text-brand-orange rounded-xl font-bold transition-all text-center flex items-center justify-center gap-2 border border-brand-orange/20"
+              >
+                <FiMessageSquare /> Chat with Client
+              </button>
+            )}
+
             <div className="flex gap-2.5 pt-3 border-t border-border mt-3">
               {(selectedOrder.status === 'pending' || selectedOrder.status === 'requested') && (
                 <>
