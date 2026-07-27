@@ -58,6 +58,20 @@ class ListingService {
     if (lat && lng) {
       location.coordinates = [parseFloat(lng), parseFloat(lat)];
       location.address = address || '';
+    } else {
+      try {
+        const User = require('../models/User');
+        const vendor = await User.findById(vendorId);
+        if (vendor && vendor.location && Array.isArray(vendor.location.coordinates) && vendor.location.coordinates.length === 2 && (vendor.location.coordinates[0] !== 0 || vendor.location.coordinates[1] !== 0)) {
+          location.coordinates = vendor.location.coordinates;
+          location.address = address || vendor.location.address || '';
+          location.city = vendor.location.city || '';
+          location.state = vendor.location.state || '';
+          location.pincode = vendor.location.pincode || '';
+        }
+      } catch (err) {
+        logger.error('Error fetching vendor location for listing default:', err);
+      }
     }
 
     const effectiveBasePrice = price || actualPrice || sellingPrice || 0;
@@ -143,6 +157,23 @@ class ListingService {
         coordinates: [parseFloat(updateData.lng), parseFloat(updateData.lat)],
         address: updateData.address || listing.location?.address || '',
       };
+    } else if (!listing.location || !listing.location.coordinates || listing.location.coordinates[0] === 0) {
+      try {
+        const User = require('../models/User');
+        const vendor = await User.findById(listing.vendor?._id || vendorId);
+        if (vendor && vendor.location && Array.isArray(vendor.location.coordinates) && vendor.location.coordinates.length === 2 && (vendor.location.coordinates[0] !== 0 || vendor.location.coordinates[1] !== 0)) {
+          updateData.location = {
+            type: 'Point',
+            coordinates: vendor.location.coordinates,
+            address: updateData.address || vendor.location.address || listing.location?.address || '',
+            city: vendor.location.city || '',
+            state: vendor.location.state || '',
+            pincode: vendor.location.pincode || '',
+          };
+        }
+      } catch (err) {
+        logger.error('Error syncing vendor location for listing update:', err);
+      }
     }
 
     const updated = await listingRepository.updateListing(id, listing.vendor?._id || vendorId, updateData);

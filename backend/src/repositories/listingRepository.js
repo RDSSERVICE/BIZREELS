@@ -12,7 +12,7 @@ class ListingRepository {
   }
 
   async findListingById(id) {
-    return Listing.findById(id).populate('vendor', 'name avatarUrl activeRole phone email vendorProfile');
+    return Listing.findById(id).populate('vendor', 'name avatarUrl activeRole phone email vendorProfile location');
   }
 
   async updateListing(id, vendorId, updateData) {
@@ -179,13 +179,13 @@ class ListingRepository {
           _id: '$vendorDetails._id',
           name: '$vendorDetails.name',
           avatarUrl: '$vendorDetails.avatarUrl',
-          businessName: '$vendorDetails.vendorProfile.businessName',
+          businessName: { $ifNull: ['$vendorDetails.vendorProfile.businessName', '$vendorDetails.name'] },
           rating: '$vendorDetails.vendorProfile.rating',
           offers: '$vendorDetails.vendorProfile.offers',
-          location: '$vendorDetails.vendorProfile.location',
-          city: '$vendorDetails.vendorProfile.city',
-          pincode: '$vendorDetails.vendorProfile.pincode',
-          address: '$vendorDetails.vendorProfile.address',
+          location: '$vendorDetails.location',
+          city: { $ifNull: ['$vendorDetails.location.city', '$vendorDetails.city', '$vendorDetails.vendorProfile.city'] },
+          pincode: { $ifNull: ['$vendorDetails.location.pincode', '$vendorDetails.vendorProfile.pincode'] },
+          address: { $ifNull: ['$vendorDetails.location.address', '$vendorDetails.vendorProfile.address'] },
         },
       },
     });
