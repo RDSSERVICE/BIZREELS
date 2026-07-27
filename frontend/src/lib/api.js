@@ -143,10 +143,10 @@ export const mediaApi = {
   sign: (folder, resource_type) => api.post("/v1/media/sign", { folder, resource_type }),
   upload: (file, folder = "listings/misc", resource_type = "image", onProgress) => {
     const form = new FormData();
-    form.append("file", file);
+    form.append("image", file);
     form.append("folder", folder);
     form.append("resource_type", resource_type);
-    return api.post("/v1/media/upload", form, {
+    return api.post("/v1/upload/image", form, {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (evt) => {
         if (onProgress && evt.total) onProgress(Math.round((evt.loaded / evt.total) * 100));
