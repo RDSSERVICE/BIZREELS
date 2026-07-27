@@ -12,6 +12,16 @@ import {
   useRejectKycMutation,
 } from '../../../features/admin/adminApi';
 
+const formatAddress = (address) => {
+  if (!address) return '';
+  if (typeof address === 'string') return address;
+  if (typeof address === 'object') {
+    return address.fullAddress || 
+      [address.areaLocality, address.city, address.state, address.pincode].filter(Boolean).join(', ');
+  }
+  return '';
+};
+
 const TABS = [
   { key: 'all', label: 'All Requests', icon: FiShield },
   { key: 'vendor', label: 'Vendor KYC (PAN/Aadhaar/GST/Business)', icon: FiUserCheck },
@@ -267,7 +277,7 @@ export default function AdminKycPage() {
                     </div>
                     <div>
                       <span className="text-[10px] text-text-tertiary uppercase block">City / Address</span>
-                      <strong className="text-text-primary text-[11px] font-semibold">{activeGroup.user.vendorProfile.address || activeGroup.user.city || '—'}</strong>
+                      <strong className="text-text-primary text-[11px] font-semibold">{formatAddress(activeGroup.user.vendorProfile.address) || activeGroup.user.city || '—'}</strong>
                     </div>
                     {activeGroup.user.vendorProfile.website && (
                       <div className="col-span-2">

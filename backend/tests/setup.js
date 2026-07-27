@@ -23,6 +23,18 @@ mongoose.connect = jest.fn().mockResolvedValue({
   },
 });
 
+// Mock AppSettings model queries globally to prevent connection buffering timeouts
+const { AppSettings } = require('../src/models/Admin');
+jest.spyOn(AppSettings, 'findOne').mockImplementation((query) => {
+  if (query.key === 'max_listing_images') {
+    return Promise.resolve({ value: 5 });
+  }
+  if (query.key === 'max_listing_videos') {
+    return Promise.resolve({ value: 1 });
+  }
+  return Promise.resolve(null);
+});
+
 // Dynamic mock storage for unit test assertions
 global.mockDb = {
   users: {},

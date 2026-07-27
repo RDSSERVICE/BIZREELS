@@ -47,23 +47,25 @@ const startServer = async () => {
     const { initOfferScheduler } = require('./jobs/offerScheduler');
     initOfferScheduler();
 
+    let currentPort = config.port;
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
-        const fallbackPort = config.port + 1;
-        logger.warn(`Port ${config.port} is busy. Retrying on fallback port ${fallbackPort}...`);
-        server.listen(fallbackPort);
+        const oldPort = currentPort;
+        currentPort++;
+        logger.warn(`Port ${oldPort} is busy. Retrying on fallback port ${currentPort}...`);
+        server.listen(currentPort, '0.0.0.0');
       } else {
         logger.error('Server error:', err.message);
       }
     });
 
     // Start listening on 0.0.0.0 for universal local interface connectivity
-    server.listen(config.port, '0.0.0.0', () => {
+    server.listen(currentPort, '0.0.0.0', () => {
       logger.info(`
   ╔══════════════════════════════════════════════╗
   ║   🎬 BizReels API Server                    ║
   ║   Environment: ${config.env.padEnd(28)}║
-  ║   Port:        ${String(config.port).padEnd(28)}║
+  ║   Port:        ${String(currentPort).padEnd(28)}║
   ║   Status:      Running ✅                   ║
   ╚══════════════════════════════════════════════╝
       `, { service: 'server' });

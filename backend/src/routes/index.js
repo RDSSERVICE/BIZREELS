@@ -1,38 +1,25 @@
 const express = require('express');
-const authRoutes = require('./authRoutes');
-const reelRoutes = require('./reelRoutes');
-const listingRoutes = require('./listingRoutes');
-const requirementRoutes = require('./requirementRoutes');
-const chatRoutes = require('./chatRoutes');
-const walletRoutes = require('./walletRoutes');
-const hireRoutes = require('./hireRoutes');
-const liveRoutes = require('./liveRoutes');
-const notificationRoutes = require('./notificationRoutes');
-const reviewRoutes = require('./reviewRoutes');
-const analyticsRoutes = require('./analyticsRoutes');
-const orderRoutes = require('./orderRoutes');
-const inquiryRoutes = require('./inquiryRoutes');
-const adminRoutes = require('./admin.routes');
-const offerRoutes = require('./offer.routes');
-const reportRoutes = require('./report.routes');
-const kycRoutes = require('./kyc.routes');
-const userRoutes = require('./user.routes');
-const categoryRoutes = require('./category.routes');
-const vendorRoutes = require('./vendor.routes');
-const creatorRoutes = require('./creator.routes');
-const phase4Routes = require('./phase4.routes');
-const interactionRoutes = require('./interaction.routes');
-const followRoutes = require('./follow.routes');
-const walletController = require('../controllers/walletController');
-const vendorController = require('../controllers/vendorController');
 const { authenticate } = require('../middleware/auth');
-
 
 const router = express.Router();
 
 /**
+ * Lazy loading wrapper middleware.
+ * Requires the target router module dynamically on the first request.
+ */
+const lazyLoad = (modulePath) => {
+  let routerModule;
+  return (req, res, next) => {
+    if (!routerModule) {
+      routerModule = require(modulePath);
+    }
+    routerModule(req, res, next);
+  };
+};
+
+/**
  * API v1 Route Index
- * Central registration point for all v1 routes.
+ * Central registration point for all v1 routes (lazy loaded for fast server startup).
  */
 
 // Health check
@@ -45,54 +32,59 @@ router.get('/health', (req, res) => {
   });
 });
 
-const uploadRoutes = require('./upload.routes');
-const aiRoutes = require('./ai.routes');
+// Core Module routes (lazy loaded)
+router.use('/upload', lazyLoad('./upload.routes'));
+router.use('/ai', lazyLoad('./ai.routes'));
+router.use('/auth', lazyLoad('./authRoutes'));
+router.use('/reels', lazyLoad('./reelRoutes'));
+router.use('/listings', lazyLoad('./listingRoutes'));
+router.use('/requirements', lazyLoad('./requirementRoutes'));
+router.use('/chat', lazyLoad('./chatRoutes'));
+router.use('/wallet', lazyLoad('./walletRoutes'));
+router.use('/hires', lazyLoad('./hireRoutes'));
+router.use('/live', lazyLoad('./liveRoutes'));
+router.use('/notifications', lazyLoad('./notificationRoutes'));
+router.use('/offers', lazyLoad('./offer.routes'));
+router.use('/reviews', lazyLoad('./reviewRoutes'));
+router.use('/analytics', lazyLoad('./analyticsRoutes'));
+router.use('/orders', lazyLoad('./orderRoutes'));
+router.use('/inquiries', lazyLoad('./inquiryRoutes'));
+router.use('/leads', lazyLoad('./inquiryRoutes')); // Alias for leads/enquiries
+router.use('/users', lazyLoad('./user.routes'));
+router.use('/categories', lazyLoad('./category.routes'));
 
-// Core Module routes
-router.use('/upload', uploadRoutes);
-router.use('/ai', aiRoutes);
-router.use('/auth', authRoutes);
-router.use('/reels', reelRoutes);
-router.use('/listings', listingRoutes);
-router.use('/requirements', requirementRoutes);
-router.use('/chat', chatRoutes);
-router.use('/wallet', walletRoutes);
-router.use('/hires', hireRoutes);
-router.use('/live', liveRoutes);
-router.use('/notifications', notificationRoutes);
-router.use('/offers', offerRoutes);
-router.use('/reviews', reviewRoutes);
-router.use('/analytics', analyticsRoutes);
-router.use('/orders', orderRoutes);
-router.use('/inquiries', inquiryRoutes);
-router.use('/leads', inquiryRoutes); // Alias for leads/enquiries
-router.use('/users', userRoutes);
-router.use('/categories', categoryRoutes);
+// Subscription endpoint alias (lazy loaded controller)
+router.get('/subscription', authenticate, (req, res, next) => {
+  require('../controllers/walletController').getSubscription(req, res, next);
+});
 
-// Subscription endpoint alias
-router.get('/subscription', authenticate, walletController.getSubscription);
+// Boosts endpoint (lazy loaded controller)
+router.get('/boosts', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').getBoosts(req, res, next);
+});
 
-// Boosts endpoint
-router.get('/boosts', authenticate, vendorController.getBoosts);
+// Vendor Portal endpoints (lazy loaded controller)
+router.get('/vendor/dashboard', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').getDashboard(req, res, next);
+});
+router.get('/vendor/analytics', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').getAnalytics(req, res, next);
+});
 
-// Vendor Portal endpoints
-router.get('/vendor/dashboard', authenticate, vendorController.getDashboard);
-router.get('/vendor/analytics', authenticate, vendorController.getAnalytics);
-router.use('/vendors', vendorRoutes);
+router.use('/vendors', lazyLoad('./vendor.routes'));
 
 // Creator Studio endpoints
-router.use('/creator', creatorRoutes);
+router.use('/creator', lazyLoad('./creator.routes'));
 
 // Phase 4 routes (Payments, Subscriptions, KYC, Reviews, Trust Score)
-router.use('/', phase4Routes);
-router.use('/', interactionRoutes);
-router.use('/follow', followRoutes);
-router.use('/follows', followRoutes);
-
+router.use('/', lazyLoad('./phase4.routes'));
+router.use('/', lazyLoad('./interaction.routes'));
+router.use('/follow', lazyLoad('./follow.routes'));
+router.use('/follows', lazyLoad('./follow.routes'));
 
 // Admin module routes
-router.use('/admin', adminRoutes);
-router.use('/', reportRoutes);
-router.use('/', kycRoutes);
+router.use('/admin', lazyLoad('./admin.routes'));
+router.use('/', lazyLoad('./report.routes'));
+router.use('/', lazyLoad('./kyc.routes'));
 
 module.exports = router;

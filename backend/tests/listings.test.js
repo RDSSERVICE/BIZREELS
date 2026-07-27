@@ -4,6 +4,28 @@ const app = require('../src/app');
 const User = require('../src/models/User');
 const Listing = require('../src/models/Listing');
 
+// Mock connection logic locally for listings tests
+const connection = require('../src/database/connection');
+jest.spyOn(connection, 'connectDB').mockResolvedValue({
+  connection: { host: 'mock-host', name: 'mock-db' }
+});
+jest.spyOn(connection, 'disconnectDB').mockResolvedValue(true);
+mongoose.connect = jest.fn().mockResolvedValue({
+  connection: { host: 'mock-host', name: 'mock-db' }
+});
+
+// Mock AppSettings model queries to prevent buffering timeouts
+const { AppSettings } = require('../src/models/Admin');
+jest.spyOn(AppSettings, 'findOne').mockImplementation((query) => {
+  if (query.key === 'max_listing_images') {
+    return Promise.resolve({ value: 5 });
+  }
+  if (query.key === 'max_listing_videos') {
+    return Promise.resolve({ value: 1 });
+  }
+  return Promise.resolve(null);
+});
+
 const getMockDb = () => {
   if (!global.mockDb) {
     global.mockDb = {
