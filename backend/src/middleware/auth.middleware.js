@@ -30,10 +30,14 @@ const requireAuth = async (req, res, next) => {
       try {
         payload = jwt.verify(token, config.jwt.accessSecret);
       } catch (err2) {
-        if (err.name === 'TokenExpiredError' || err2.name === 'TokenExpiredError') {
-          throw ApiError.unauthorized('Access token expired');
+        try {
+          payload = jwt.verify(token, config.jwtSecret);
+        } catch (err3) {
+          if (err.name === 'TokenExpiredError' || err2.name === 'TokenExpiredError' || err3.name === 'TokenExpiredError') {
+            throw ApiError.unauthorized('Access token expired');
+          }
+          throw ApiError.unauthorized('Invalid access token');
         }
-        throw ApiError.unauthorized('Invalid access token');
       }
     }
 
@@ -43,7 +47,7 @@ const requireAuth = async (req, res, next) => {
     }
 
     const user = await User.findById(userId);
-    if (!user || user.is_active === false || user.isDeleted === true) {
+    if (!user || user.is_active === false || user.is_deleted === true) {
       throw ApiError.unauthorized('User not found or disabled');
     }
 
@@ -77,7 +81,11 @@ const optionalAuth = async (req, res, next) => {
       try {
         payload = jwt.verify(token, config.jwt.accessSecret);
       } catch {
-        payload = null;
+        try {
+          payload = jwt.verify(token, config.jwtSecret);
+        } catch {
+          payload = null;
+        }
       }
     }
     req.userId = payload ? (payload.sub || payload.userId) : null;
