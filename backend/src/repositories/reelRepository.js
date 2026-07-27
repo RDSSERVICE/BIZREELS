@@ -142,7 +142,7 @@ class ReelRepository {
     if (currentUserId) {
       pipeline.push({
         $lookup: {
-          from: 'reeelikes', // collection name in mongodb
+          from: 'reellikes', // collection name in mongodb
           let: { reelId: '$_id' },
           pipeline: [
             {

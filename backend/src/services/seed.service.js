@@ -93,19 +93,21 @@ const seedReels = async () => {
     }
 
     const listingData = {
-      vendor_id: vendorId,
-      type: s.type,
+      vendor: vendor._id,
+      type: s.type === 'service' ? 'service' : 'product',
       title: s.title,
       slug,
       description: `Sample ${s.title} — dev seed for reels demo.`,
-      category_id: catId,
+      category: cat.name || 'General',
       price: s.price,
-      offer_price: s.offer_price || null,
-      is_negotiable: true,
+      salePrice: s.offer_price || s.price,
+      actualPrice: s.price,
+      sellingPrice: s.offer_price || s.price,
+      condition: s.type === 'new_product' ? 'new' : s.type === 'old_product' ? 'used' : 'not_applicable',
       reel: {
         url: s.url,
         public_id: `samples/${slug}`,
-        thumbnail_url: null,
+        thumbnail_url: s.url.replace(/\.[^/.]+$/, '.jpg'),
         duration: s.duration,
       },
       location: {
@@ -113,27 +115,16 @@ const seedReels = async () => {
         city: s.city,
         state: s.state,
         pincode: s.pincode,
-        lat: 12.97,
-        lng: 77.59,
-        geo: { type: 'Point', coordinates: [77.59, 12.97] },
+        coordinates: [77.59, 12.97],
+        address: `${s.area}, ${s.city}`,
       },
       tags: ['seed', 'reel'],
-      status: 'active',
-      views_count: 0,
-      likes_count: 0,
-      saves_count: 0,
-      is_active: true,
-      is_deleted: false,
-      created_at: now,
-      updated_at: now,
+      status: 'published',
+      isDeleted: false,
     };
 
     if (s.type === 'new_product') {
       listingData.stock = 5;
-    } else if (s.type === 'old_product') {
-      listingData.condition = 'good';
-    } else if (s.type === 'service') {
-      listingData.service_charges_type = 'fixed';
     }
 
     await Listing.create(listingData);
