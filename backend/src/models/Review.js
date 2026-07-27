@@ -115,4 +115,4 @@ reviewSchema.post('save', async function () {
   }
 });
 
-module.exports = mongoose.model('Review', reviewSchema);
+module.exports = mongoose.models.Review || mongoose.model('Review', reviewSchema);
