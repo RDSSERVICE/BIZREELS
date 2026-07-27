@@ -6,7 +6,7 @@ import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import { useGetVendorReviewsQuery, useReplyToReviewMutation } from '../../../features/vendor/vendorApi';
 
 export default function VendorReviewsPage() {
-  const { data, isFetching } = useGetVendorReviewsQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useGetVendorReviewsQuery(undefined, { pollingInterval: 300000 });
   const [replyToReview] = useReplyToReviewMutation();
 
   const reviews = Array.isArray(data?.data) ? data.data : Array.isArray(data?.reviews) ? data.reviews : Array.isArray(data) ? data : [];

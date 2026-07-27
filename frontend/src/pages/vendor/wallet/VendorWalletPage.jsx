@@ -19,8 +19,8 @@ const loadRazorpayScript = () => {
 };
 
 export default function VendorWalletPage() {
-  const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, { pollingInterval: 5000 });
-  const { data: txData, isFetching: isFetchingTx, refetch: refetchTx } = useGetWalletTransactionsQuery(undefined, { pollingInterval: 5000 });
+  const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, { pollingInterval: 300000 });
+  const { data: txData, isFetching: isFetchingTx, refetch: refetchTx } = useGetWalletTransactionsQuery(undefined, { pollingInterval: 300000 });
   const [rechargeWallet] = useRechargeWalletMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);

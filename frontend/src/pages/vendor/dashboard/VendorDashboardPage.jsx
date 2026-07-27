@@ -18,10 +18,10 @@ import {
 import { getSocket } from '../../../lib/socket';
 
 export default function VendorDashboardPage() {
-  const { data: dashboardRes, isLoading, refetch: refetchDashboard } = useGetVendorDashboardQuery(undefined, { pollingInterval: 5000 });
-  const { data: leadsRes, refetch: refetchLeads } = useGetVendorLeadsQuery(undefined, { pollingInterval: 5000 });
-  const { data: boostsRes, refetch: refetchBoosts } = useGetVendorBoostsQuery(undefined, { pollingInterval: 5000 });
-  const { data: reelsRes, refetch: refetchReels } = useGetVendorReelsQuery(undefined, { pollingInterval: 5000 });
+  const { data: dashboardRes, isLoading, refetch: refetchDashboard } = useGetVendorDashboardQuery(undefined, { pollingInterval: 300000 });
+  const { data: leadsRes, refetch: refetchLeads } = useGetVendorLeadsQuery(undefined, { pollingInterval: 300000 });
+  const { data: boostsRes, refetch: refetchBoosts } = useGetVendorBoostsQuery(undefined, { pollingInterval: 300000 });
+  const { data: reelsRes, refetch: refetchReels } = useGetVendorReelsQuery(undefined, { pollingInterval: 300000 });
 
   // Socket.IO real-time update listeners for dashboard metrics
   useEffect(() => {

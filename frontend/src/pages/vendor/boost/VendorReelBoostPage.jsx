@@ -7,7 +7,7 @@ import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadg
 import { useGetVendorBoostsQuery, usePurchaseBoostMutation, useRenewBoostMutation } from '../../../features/vendor/vendorApi';
 
 export default function VendorReelBoostPage() {
-  const { data } = useGetVendorBoostsQuery(undefined, { pollingInterval: 5000 });
+  const { data } = useGetVendorBoostsQuery(undefined, { pollingInterval: 300000 });
   const [purchaseBoost] = usePurchaseBoostMutation();
   const [renewBoost] = useRenewBoostMutation();
 

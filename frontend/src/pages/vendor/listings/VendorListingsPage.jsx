@@ -87,12 +87,12 @@ export default function VendorListingsPage() {
   // RTK Query endpoints
   const { data: listingsData, isFetching: listingsFetching, refetch: refetchListings } = useGetVendorListingsQuery(
     vendorId ? { vendor: vendorId } : undefined,
-    { pollingInterval: 5000 }
+    { pollingInterval: 300000 }
   );
 
   const { data: offersData, isFetching: offersFetching, refetch: refetchOffers } = useGetVendorOffersQuery(
     undefined,
-    { pollingInterval: 5000 }
+    { pollingInterval: 300000 }
   );
 
   const [createListing] = useCreateListingMutation();

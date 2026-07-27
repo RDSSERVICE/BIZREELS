@@ -15,7 +15,7 @@ const TABS = [
 
 export default function VendorOrdersPage() {
   const [activeTab, setActiveTab] = useState('new');
-  const { data, isFetching } = useGetVendorOrdersQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useGetVendorOrdersQuery(undefined, { pollingInterval: 300000 });
   const [updateOrderStatus] = useUpdateOrderStatusMutation();
 
   const orders = Array.isArray(data?.data) ? data.data : Array.isArray(data?.orders) ? data.orders : Array.isArray(data) ? data : [];

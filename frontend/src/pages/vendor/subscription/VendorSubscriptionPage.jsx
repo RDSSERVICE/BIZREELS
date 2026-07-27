@@ -6,7 +6,7 @@ import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadg
 import { useGetVendorSubscriptionQuery, useChangeSubscriptionMutation } from '../../../features/vendor/vendorApi';
 
 export default function VendorSubscriptionPage() {
-  const { data, isFetching } = useGetVendorSubscriptionQuery(undefined, { pollingInterval: 10000 });
+  const { data, isFetching } = useGetVendorSubscriptionQuery(undefined, { pollingInterval: 300000 });
   const [changeSubscription] = useChangeSubscriptionMutation();
 
   const planName = data?.plan || 'Vendor Growth Pro Plan';

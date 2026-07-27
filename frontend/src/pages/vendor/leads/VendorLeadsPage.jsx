@@ -28,12 +28,12 @@ export default function VendorLeadsPage() {
   const [activeTab, setActiveTab] = useState('requirement-matches');
   
   // Leads & Enquiries Queries
-  const { data: leadsData, isFetching: isLeadsFetching } = useGetVendorLeadsQuery(undefined, { pollingInterval: 5000 });
+  const { data: leadsData, isFetching: isLeadsFetching } = useGetVendorLeadsQuery(undefined, { pollingInterval: 300000 });
   
   // Assigned Requirements Queries (role-aware: vendor gets assigned matches)
   const { data: reqsData, isFetching: isReqsFetching, refetch: refetchReqs } = useGetRequirementsQuery(
     { limit: 100 },
-    { pollingInterval: 4000 }
+    { pollingInterval: 300000 }
   );
 
   const [submitQuote, { isLoading: isSubmittingQuote }] = useSubmitQuoteMutation();

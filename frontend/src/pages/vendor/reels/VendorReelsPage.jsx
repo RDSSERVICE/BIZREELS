@@ -440,7 +440,7 @@ export default function VendorReelsPage() {
   };
 
   // API QUERIES & MUTATIONS
-  const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 3000 });
+  const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 300000 });
   const { data: listingsData } = useGetVendorListingsQuery(undefined);
   const [createReel, { isLoading: isPublishing }] = useCreateReelMutation();
   const [deleteReel] = useDeleteReelMutation();

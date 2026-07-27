@@ -5,7 +5,7 @@ import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import { useGetVendorAnalyticsQuery } from '../../../features/vendor/vendorApi';
 
 export default function VendorAnalyticsPage() {
-  const { data, isFetching } = useGetVendorAnalyticsQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useGetVendorAnalyticsQuery(undefined, { pollingInterval: 300000 });
 
   const analytics = data || {};
 
