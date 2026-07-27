@@ -51,4 +51,4 @@ analyticsSchema.index({ type: 1, createdAt: -1 });
 analyticsSchema.index({ targetId: 1, type: 1, createdAt: -1 });
 analyticsSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('Analytics', analyticsSchema);
+module.exports = mongoose.models.Analytics || mongoose.model('Analytics', analyticsSchema);

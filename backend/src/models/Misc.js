@@ -20,16 +20,8 @@ const reportSchema = new mongoose.Schema({
 
 reportSchema.index({ status: 1, _id: -1 });
 
-// Audit Log
-const auditLogSchema = new mongoose.Schema({
-  user_id: { type: String, required: true, index: true },
-  action: { type: String, required: true },
-  meta: { type: mongoose.Schema.Types.Mixed, default: {} },
-}, {
-  timestamps: { createdAt: 'created_at', updatedAt: false },
-});
-
-auditLogSchema.index({ created_at: 1 });
+// AuditLog — imported from canonical model file to avoid duplicate registration
+const AuditLog = require('./AuditLog');
 
 // Search History
 const searchHistorySchema = new mongoose.Schema({
@@ -101,7 +93,7 @@ const registerOrReuse = (name, schema, collection) =>
 
 module.exports = {
   Report: registerOrReuse('Report', reportSchema, 'reports'),
-  AuditLog: registerOrReuse('AuditLog', auditLogSchema, 'audit_logs'),
+  AuditLog: AuditLog,
   SearchHistory: registerOrReuse('SearchHistory', searchHistorySchema, 'search_history'),
   Referral: registerOrReuse('Referral', referralSchema, 'referrals'),
   ListingEvent: registerOrReuse('ListingEvent', listingEventSchema, 'listing_events'),

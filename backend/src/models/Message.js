@@ -57,4 +57,4 @@ messageSchema.pre(/^find/, function () {
   this.where({ isDeleted: { $ne: true } });
 });
 
-module.exports = mongoose.model('Message', messageSchema);
+module.exports = mongoose.models.Message || mongoose.model('Message', messageSchema);

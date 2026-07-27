@@ -18,5 +18,5 @@ const categorySchema = new mongoose.Schema({
 
 categorySchema.index({ is_deleted: 1 });
 
-module.exports = mongoose.model('Category', categorySchema, 'categories');
+module.exports = mongoose.models.Category || mongoose.model('Category', categorySchema, 'categories');
 

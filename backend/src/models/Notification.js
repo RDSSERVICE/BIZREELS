@@ -59,4 +59,4 @@ const notificationSchema = new Schema(
 // Indexes
 notificationSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('Notification', notificationSchema);
+module.exports = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);

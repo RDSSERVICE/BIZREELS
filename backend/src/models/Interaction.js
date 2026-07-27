@@ -10,4 +10,4 @@ const interactionSchema = new mongoose.Schema({
 
 interactionSchema.index({ user_id: 1, listing_id: 1, type: 1 }, { unique: true });
 
-module.exports = mongoose.model('Interaction', interactionSchema, 'interactions');
+module.exports = mongoose.models.Interaction || mongoose.model('Interaction', interactionSchema, 'interactions');

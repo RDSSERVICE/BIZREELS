@@ -46,4 +46,4 @@ const liveStreamSchema = new Schema(
 
 liveStreamSchema.index({ status: 1, createdAt: -1 });
 
-module.exports = mongoose.model('LiveStream', liveStreamSchema);
+module.exports = mongoose.models.LiveStream || mongoose.model('LiveStream', liveStreamSchema);

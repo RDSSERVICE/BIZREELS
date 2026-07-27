@@ -60,4 +60,4 @@ inquirySchema.pre(/^find/, function () {
   this.where({ isDeleted: { $ne: true } });
 });
 
-module.exports = mongoose.model('Inquiry', inquirySchema);
+module.exports = mongoose.models.Inquiry || mongoose.model('Inquiry', inquirySchema);

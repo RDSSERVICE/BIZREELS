@@ -19,6 +19,9 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
 
+    // Eagerly register all Mongoose models so populate() refs are always available
+    require('./models/registerModels');
+
     const mongoose = require('mongoose');
     const adminPhoneService = require('./services/admin-phone.service');
 

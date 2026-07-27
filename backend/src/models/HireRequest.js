@@ -61,4 +61,4 @@ const hireRequestSchema = new Schema(
 // Indexes
 hireRequestSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('HireRequest', hireRequestSchema);
+module.exports = mongoose.models.HireRequest || mongoose.model('HireRequest', hireRequestSchema);

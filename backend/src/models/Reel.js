@@ -159,4 +159,4 @@ reelSchema.pre(/^find/, function () {
   this.where({ isDeleted: { $ne: true } });
 });
 
-module.exports = mongoose.model('Reel', reelSchema);
+module.exports = mongoose.models.Reel || mongoose.model('Reel', reelSchema);

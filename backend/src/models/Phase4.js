@@ -1,45 +1,15 @@
 const mongoose = require('mongoose');
 
-// Review
-const reviewSchema = new mongoose.Schema({
-  reviewer_id: { type: String, required: true, index: true },
-  target_type: { type: String, enum: ['vendor', 'listing', 'service'], required: true },
-  target_id: { type: String, required: true },
-  listing_id: { type: String, default: null },
-  deal_id: { type: String, default: null },
-  rating: { type: Number, required: true, min: 1, max: 5 },
-  comment: { type: String, default: null },
-  images: { type: [mongoose.Schema.Types.Mixed], default: [] },
-  videos: { type: [mongoose.Schema.Types.Mixed], default: [] },
-  is_verified_purchase: { type: Boolean, default: false },
-  helpful_count: { type: Number, default: 0 },
-  reply: { type: mongoose.Schema.Types.Mixed, default: null },
-  is_active: { type: Boolean, default: true },
-  is_deleted: { type: Boolean, default: false },
-}, {
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
-});
+// ══════════════════════════════════════════════════════════════
+// Import canonical models (defined in their own files)
+// ══════════════════════════════════════════════════════════════
+const Review = require('./Review');
+const Notification = require('./Notification');
+const WalletTransaction = require('./WalletTransaction');
 
-reviewSchema.index({ target_type: 1, target_id: 1, _id: -1 });
-reviewSchema.index({ reviewer_id: 1, target_type: 1, target_id: 1 });
-
-// Notification
-const notificationSchema = new mongoose.Schema({
-  user_id: { type: String, required: true },
-  type: { type: String, required: true },
-  title: { type: String, required: true },
-  body: { type: String, default: null },
-  data: { type: mongoose.Schema.Types.Mixed, default: {} },
-  action_url: { type: String, default: null },
-  is_read: { type: Boolean, default: false },
-  read_at: { type: String, default: null },
-  is_deleted: { type: Boolean, default: false },
-}, {
-  timestamps: { createdAt: 'created_at', updatedAt: false },
-});
-
-notificationSchema.index({ user_id: 1, _id: -1 });
-notificationSchema.index({ user_id: 1, is_read: 1 });
+// ══════════════════════════════════════════════════════════════
+// Phase4-only models (not defined elsewhere)
+// ══════════════════════════════════════════════════════════════
 
 // Wallet
 const walletSchema = new mongoose.Schema({
@@ -55,7 +25,7 @@ const walletSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });
 
-// Wallet Transaction
+// Wallet Transaction (Phase4 variant)
 const walletTxnSchema = new mongoose.Schema({
   wallet_id: { type: String, required: true },
   user_id: { type: String, required: true },
@@ -128,10 +98,10 @@ const registerOrReuse = (name, schema, collection) =>
   mongoose.models[name] || mongoose.model(name, schema, collection);
 
 module.exports = {
-  Review: registerOrReuse('Review', reviewSchema, 'reviews'),
-  Notification: registerOrReuse('Notification', notificationSchema, 'notifications'),
+  Review,
+  Notification,
+  WalletTransaction,
   Wallet: registerOrReuse('Wallet', walletSchema, 'wallets'),
-  WalletTransaction: registerOrReuse('WalletTransaction', walletTxnSchema, 'wallet_transactions'),
   Payment: registerOrReuse('Payment', paymentSchema, 'payments'),
   PaymentTransaction: registerOrReuse('Payment', paymentSchema, 'payments'),
   Subscription: registerOrReuse('Subscription', subscriptionSchema, 'subscriptions'),

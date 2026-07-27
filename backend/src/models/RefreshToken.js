@@ -65,4 +65,4 @@ refreshTokenSchema.statics.revokeAllForUser = async function (userId) {
   );
 };
 
-module.exports = mongoose.model('RefreshToken', refreshTokenSchema);
+module.exports = mongoose.models.RefreshToken || mongoose.model('RefreshToken', refreshTokenSchema);

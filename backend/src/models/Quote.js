@@ -69,4 +69,4 @@ quoteSchema.pre(/^find/, function () {
   this.where({ isDeleted: { $ne: true } });
 });
 
-module.exports = mongoose.model('Quote', quoteSchema);
+module.exports = mongoose.models.Quote || mongoose.model('Quote', quoteSchema);

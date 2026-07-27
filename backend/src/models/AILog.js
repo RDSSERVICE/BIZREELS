@@ -50,4 +50,4 @@ const aiLogSchema = new Schema(
 aiLogSchema.index({ userId: 1, type: 1 });
 aiLogSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('AILog', aiLogSchema);
+module.exports = mongoose.models.AILog || mongoose.model('AILog', aiLogSchema);

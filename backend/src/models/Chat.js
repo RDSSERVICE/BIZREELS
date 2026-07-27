@@ -15,7 +15,7 @@ const chatThreadSchema = new mongoose.Schema({
 chatThreadSchema.index({ participants: 1, context_id: 1, thread_type: 1 });
 chatThreadSchema.index({ updated_at: -1 });
 
-const ChatThread = mongoose.model('ChatThread', chatThreadSchema, 'chat_threads');
+const ChatThread = mongoose.models.ChatThread || mongoose.model('ChatThread', chatThreadSchema, 'chat_threads');
 
 // Chat Message
 const chatMessageSchema = new mongoose.Schema({
@@ -38,6 +38,6 @@ const chatMessageSchema = new mongoose.Schema({
 chatMessageSchema.index({ thread_id: 1, _id: -1 });
 chatMessageSchema.index({ receiver_id: 1 });
 
-const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema, 'messages');
+const ChatMessage = mongoose.models.ChatMessage || mongoose.model('ChatMessage', chatMessageSchema, 'messages');
 
 module.exports = { ChatThread, ChatMessage };

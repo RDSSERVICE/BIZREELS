@@ -97,4 +97,4 @@ offerSchema.pre('save', function (next) {
 offerSchema.index({ targetRoles: 1, status: 1 });
 offerSchema.index({ startTime: 1, endTime: 1 });
 
-module.exports = mongoose.model('Offer', offerSchema);
+module.exports = mongoose.models.Offer || mongoose.model('Offer', offerSchema);

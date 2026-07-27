@@ -291,4 +291,4 @@ listingSchema.pre(/^find/, function () {
   this.where({ isDeleted: { $ne: true } });
 });
 
-module.exports = mongoose.model('Listing', listingSchema);
+module.exports = mongoose.models.Listing || mongoose.model('Listing', listingSchema);

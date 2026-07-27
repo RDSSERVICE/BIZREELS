@@ -73,4 +73,4 @@ otpSchema.methods.incrementAttempts = function () {
   return this.save();
 };
 
-module.exports = mongoose.model('OTP', otpSchema);
+module.exports = mongoose.models.OTP || mongoose.model('OTP', otpSchema);

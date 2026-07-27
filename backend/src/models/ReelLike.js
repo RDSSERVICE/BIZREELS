@@ -27,4 +27,4 @@ const reelLikeSchema = new Schema(
 reelLikeSchema.index({ userId: 1, reelId: 1 }, { unique: true });
 reelLikeSchema.index({ reelId: 1, createdAt: -1 });
 
-module.exports = mongoose.model('ReelLike', reelLikeSchema);
+module.exports = mongoose.models.ReelLike || mongoose.model('ReelLike', reelLikeSchema);

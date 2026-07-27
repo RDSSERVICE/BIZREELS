@@ -12,4 +12,4 @@ const proposalSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });
 
-module.exports = mongoose.model('Proposal', proposalSchema, 'proposals');
+module.exports = mongoose.models.Proposal || mongoose.model('Proposal', proposalSchema, 'proposals');

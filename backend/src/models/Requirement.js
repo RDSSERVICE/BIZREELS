@@ -44,4 +44,4 @@ requirementSchema.index({ is_deleted: 1, isDeleted: 1 });
 requirementSchema.index({ customer_id: 1, customer: 1 });
 requirementSchema.index({ title: 'text', description: 'text' }, { name: 'req_text' });
 
-module.exports = mongoose.model('Requirement', requirementSchema, 'requirements');
+module.exports = mongoose.models.Requirement || mongoose.model('Requirement', requirementSchema, 'requirements');
