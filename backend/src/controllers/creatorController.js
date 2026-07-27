@@ -28,7 +28,7 @@ class CreatorController {
       HireRequest.countDocuments({ creator: userId }),
       HireRequest.countDocuments({ creator: userId, status: 'pending' }),
       Reel.find({ creator: userId }).select('views').lean(),
-      Order.countDocuments({ customer_id: userIdStr }),
+      Order.countDocuments({ vendor: userId }),
       Reel.countDocuments({ creator: userId }),
       Listing.countDocuments({ vendor: userId })
     ]);
@@ -192,7 +192,7 @@ class CreatorController {
 
     const [hireRequests, orders] = await Promise.all([
       HireRequest.find({ creator: userId }).sort({ createdAt: -1 }).populate('vendor', 'name').lean(),
-      Order.find({ customer_id: userIdStr }).sort({ createdAt: -1 }).lean()
+      Order.find({ vendor: userId }).sort({ createdAt: -1 }).lean()
     ]);
 
     const mappedHires = hireRequests.map((h) => ({
@@ -232,7 +232,7 @@ class CreatorController {
       return ApiResponse.ok(res, `Project status updated to ${status}.`, { project: hire });
     }
 
-    let order = await Order.findOne({ _id: id });
+    let order = await Order.findOne({ _id: id, vendor: req.user._id });
     if (order) {
       order.status = status;
       await order.save();
