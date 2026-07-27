@@ -20,7 +20,7 @@ import {
   useBanUserMutation,
   useUnbanUserMutation,
   useSuspendUserMutation,
-  useDeleteUserMutation
+  useDeleteCustomerMutation
 } from '../../../features/admin/adminApi';
 
 export default function AdminCustomers() {
@@ -65,7 +65,7 @@ export default function AdminCustomers() {
   const [banUser] = useBanUserMutation();
   const [unbanUser] = useUnbanUserMutation();
   const [suspendUser] = useSuspendUserMutation();
-  const [deleteUser] = useDeleteUserMutation();
+  const [deleteCustomer] = useDeleteCustomerMutation();
 
   const customers = customerData?.items || [];
   const totalPages = customerData?.pages || 1;
@@ -93,9 +93,9 @@ export default function AdminCustomers() {
         await verifyAccount(userId).unwrap();
         toast.success(`Customer "${userName}" account is now verified`);
       } else if (action === 'delete') {
-        if (!window.confirm(`Soft delete customer "${userName}"? This marks account as deleted, hiding it from the system.`)) return;
-        await deleteUser(userId).unwrap();
-        toast.success(`Customer "${userName}" has been soft-deleted`);
+        if (!window.confirm(`Delete Customer role and data for "${userName}"? This will not delete other roles.`)) return;
+        await deleteCustomer(userId).unwrap();
+        toast.success(`Customer "${userName}" role and data deleted`);
       }
     } catch (err) {
       toast.error(err?.data?.message || 'Administrative action failed');

@@ -2294,6 +2294,772 @@ const getCreatorStats = async () => {
   };
 };
 
+const runInTransaction = async (operation) => {
+  let session;
+  try {
+    session = await mongoose.startSession();
+  } catch (e) {
+    const logger = require('../utils/logger');
+    logger.warn('Failed to start session. MongoDB might be running in standalone mode without replica set. Executing without transaction.');
+    return await operation(null);
+  }
+
+  try {
+    session.startTransaction();
+    const result = await operation(session);
+    await session.commitTransaction();
+    return result;
+  } catch (error) {
+    const logger = require('../utils/logger');
+    try {
+      await session.abortTransaction();
+    } catch (abortError) {
+      logger.error('Failed to abort transaction:', abortError);
+    }
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+const extractPublicId = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  if (!url.includes('cloudinary.com')) return null;
+  try {
+    const parts = url.split('/');
+    const uploadIndex = parts.indexOf('upload');
+    if (uploadIndex === -1) return null;
+    
+    let startIndex = uploadIndex + 1;
+    if (parts[startIndex].match(/^v\d+$/)) {
+      startIndex += 1;
+    }
+    
+    const publicIdWithExt = parts.slice(startIndex).join('/');
+    const dotIndex = publicIdWithExt.lastIndexOf('.');
+    if (dotIndex !== -1) {
+      return publicIdWithExt.substring(0, dotIndex);
+    }
+    return publicIdWithExt;
+  } catch (e) {
+    return null;
+  }
+};
+
+const deleteMediaFile = async (url) => {
+  if (!url || typeof url !== 'string') return;
+  const logger = require('../utils/logger');
+  
+  if (url.includes('cloudinary.com')) {
+    const publicId = extractPublicId(url);
+    if (publicId) {
+      const isVideo = url.includes('/video/') || url.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+      const resourceType = isVideo ? 'video' : 'image';
+      try {
+        const cloudinaryService = require('./cloudinary.service');
+        await cloudinaryService.destroy(publicId, resourceType);
+      } catch (err) {
+        logger.error(`Error deleting Cloudinary file ${publicId}:`, err);
+      }
+    }
+    return;
+  }
+  
+  if (url.startsWith('/api/uploads/') || url.startsWith('/uploads/')) {
+    try {
+      const relativePath = url.replace(/^\/api\//, '');
+      const path = require('path');
+      const absolutePath = path.resolve(__dirname, '..', '..', relativePath);
+      const fs = require('fs').promises;
+      await fs.unlink(absolutePath);
+    } catch (err) {
+      // Ignore if file doesn't exist
+    }
+  }
+};
+
+const recalculateUserRating = async (userId, session) => {
+  const logger = require('../utils/logger');
+  try {
+    const Review = mongoose.model('Review');
+    const User = mongoose.model('User');
+    
+    const userStats = await Review.aggregate([
+      { $match: { targetUser: new mongoose.Types.ObjectId(userId), isDeleted: false } },
+      {
+        $group: {
+          _id: '$targetUser',
+          avgRating: { $avg: '$rating' },
+          totalReviews: { $sum: 1 },
+        },
+      },
+    ]).session(session);
+
+    const targetUserDoc = await User.findById(userId).session(session);
+    if (targetUserDoc) {
+      const avgRating = userStats.length > 0 ? Math.round(userStats[0].avgRating * 10) / 10 : 0;
+      const totalReviews = userStats.length > 0 ? userStats[0].totalReviews : 0;
+
+      targetUserDoc.rating_avg = avgRating;
+      targetUserDoc.rating_count = totalReviews;
+
+      if (targetUserDoc.roles.includes('vendor') && targetUserDoc.vendorProfile) {
+        targetUserDoc.vendorProfile.rating = avgRating;
+        targetUserDoc.vendorProfile.totalReviews = totalReviews;
+      }
+      if (targetUserDoc.roles.includes('creator') && targetUserDoc.creatorProfile) {
+        targetUserDoc.creatorProfile.rating = avgRating;
+        targetUserDoc.creatorProfile.totalReviews = totalReviews;
+      }
+      targetUserDoc.markModified('vendorProfile');
+      targetUserDoc.markModified('creatorProfile');
+      await targetUserDoc.save({ session });
+    }
+  } catch (err) {
+    logger.error(`Error recalculating user rating for ${userId}:`, err);
+  }
+};
+
+const recalculateListingRating = async (listingId, session) => {
+  const logger = require('../utils/logger');
+  try {
+    const Review = mongoose.model('Review');
+    const Listing = mongoose.model('Listing');
+    
+    const listingStats = await Review.aggregate([
+      { $match: { targetListing: new mongoose.Types.ObjectId(listingId), isDeleted: false } },
+      {
+        $group: {
+          _id: '$targetListing',
+          avgRating: { $avg: '$rating' },
+          totalReviews: { $sum: 1 },
+        },
+      },
+    ]).session(session);
+
+    if (listingStats.length > 0) {
+      await Listing.findByIdAndUpdate(listingId, {
+        rating: Math.round(listingStats[0].avgRating * 10) / 10,
+        totalReviews: listingStats[0].totalReviews,
+      }, { session });
+    } else {
+      await Listing.findByIdAndUpdate(listingId, {
+        rating: 0,
+        totalReviews: 0,
+      }, { session });
+    }
+  } catch (err) {
+    logger.error(`Error recalculating listing rating for ${listingId}:`, err);
+  }
+};
+
+const cleanBaseUserAccount = async (userId, mediaUrlsToDelete, session) => {
+  const User = mongoose.model('User');
+  const Wallet = mongoose.model('Wallet');
+  const KycDocument = mongoose.model('KycDocument');
+  const RefreshToken = mongoose.model('RefreshToken');
+  const Follow = mongoose.model('Follow');
+  const SearchHistory = mongoose.model('SearchHistory');
+  const Notification = mongoose.model('Notification');
+
+  // Delete Wallet
+  await Wallet.deleteOne({ user_id: userId }).session(session);
+
+  // Delete KYC Documents and extract their file URLs
+  const kycDocs = await KycDocument.find({ user_id: userId }).session(session);
+  for (const doc of kycDocs) {
+    if (doc.doc_url) mediaUrlsToDelete.push(doc.doc_url);
+    if (doc.selfie_url) mediaUrlsToDelete.push(doc.selfie_url);
+  }
+  await KycDocument.deleteMany({ user_id: userId }).session(session);
+
+  // Delete RefreshTokens
+  await RefreshToken.deleteMany({ userId: new mongoose.Types.ObjectId(userId) }).session(session);
+
+  // Delete Follows and update count of followed/following users
+  const followerDocs = await Follow.find({ follower_id: userId }).session(session);
+  const followingDocs = await Follow.find({ following_id: userId }).session(session);
+
+  await Follow.deleteMany({ $or: [{ follower_id: userId }, { following_id: userId }] }).session(session);
+
+  // Pull from followers array and decrement followersCount for users this user followed
+  for (const fd of followerDocs) {
+    const followeeId = fd.following_id;
+    await User.updateOne(
+      { _id: followeeId },
+      { 
+        $pull: { followers: new mongoose.Types.ObjectId(userId) }, 
+        $inc: { followersCount: -1 } 
+      }
+    ).session(session);
+  }
+
+  // Pull from following array and decrement followingCount for users that followed this user
+  for (const fd of followingDocs) {
+    const followerId = fd.follower_id;
+    await User.updateOne(
+      { _id: followerId },
+      { 
+        $pull: { following: new mongoose.Types.ObjectId(userId) }, 
+        $inc: { followingCount: -1 } 
+      }
+    ).session(session);
+  }
+
+  // Delete SearchHistory, Notifications
+  await SearchHistory.deleteMany({ user_id: userId }).session(session);
+  await Notification.deleteMany({ recipient: { $in: [userId, new mongoose.Types.ObjectId(userId)] } }).session(session);
+
+  // Delete base User document
+  await User.deleteOne({ _id: userId }).session(session);
+};
+
+const deleteCustomer = async (userId) => {
+  const mediaUrlsToDelete = [];
+
+  const result = await runInTransaction(async (session) => {
+    const User = mongoose.model('User');
+    const user = await User.findById(userId).session(session);
+    if (!user) throw ApiError.notFound('Customer not found');
+
+    if (user.roles.includes('admin')) {
+      throw ApiError.forbidden('Cannot modify or delete an admin account');
+    }
+
+    // 1. Requirement, Quote, Proposal
+    const Requirement = mongoose.model('Requirement');
+    const Quote = mongoose.model('Quote');
+    const Proposal = mongoose.model('Proposal');
+
+    const requirements = await Requirement.find({ 
+      $or: [{ customer_id: userId }, { customer: new mongoose.Types.ObjectId(userId) }] 
+    }).session(session);
+
+    const requirementIds = requirements.map(r => r._id);
+    const requirementIdStrs = requirements.map(r => r._id.toString());
+
+    for (const req of requirements) {
+      if (req.photos && Array.isArray(req.photos)) {
+        for (const photo of req.photos) {
+          const url = typeof photo === 'string' ? photo : photo?.url;
+          if (url) mediaUrlsToDelete.push(url);
+        }
+      }
+      if (req.video) {
+        const url = typeof req.video === 'string' ? req.video : req.video?.url;
+        if (url) mediaUrlsToDelete.push(url);
+      }
+    }
+
+    // Quotes on requirements
+    const quotes = await Quote.find({ requirement: { $in: requirementIds } }).session(session);
+    for (const q of quotes) {
+      if (q.attachments && Array.isArray(q.attachments)) {
+        for (const att of q.attachments) {
+          const url = typeof att === 'string' ? att : att?.url;
+          if (url) mediaUrlsToDelete.push(url);
+        }
+      }
+    }
+    await Quote.deleteMany({ requirement: { $in: requirementIds } }).session(session);
+
+    // Proposals on requirements
+    const proposals = await Proposal.find({ requirement_id: { $in: requirementIdStrs } }).session(session);
+    for (const p of proposals) {
+      if (p.attachments && Array.isArray(p.attachments)) {
+        for (const att of p.attachments) {
+          const url = typeof att === 'string' ? att : att?.url;
+          if (url) mediaUrlsToDelete.push(url);
+        }
+      }
+    }
+    await Proposal.deleteMany({ requirement_id: { $in: requirementIdStrs } }).session(session);
+    await Requirement.deleteMany({ _id: { $in: requirementIds } }).session(session);
+
+    // 2. Bookings & Orders
+    const Order = mongoose.model('Order');
+    const Deal = mongoose.model('Deal');
+    await Order.deleteMany({ customer: new mongoose.Types.ObjectId(userId) }).session(session);
+    await Deal.deleteMany({ buyer_id: userId }).session(session);
+
+    // 3. Favorites / Saved Items
+    const Interaction = mongoose.model('Interaction');
+    await Interaction.deleteMany({ user_id: userId }).session(session);
+
+    // 4. Reviews
+    const Review = mongoose.model('Review');
+    const customerReviews = await Review.find({ author: new mongoose.Types.ObjectId(userId) }).session(session);
+    await Review.deleteMany({ author: new mongoose.Types.ObjectId(userId) }).session(session);
+
+    for (const rev of customerReviews) {
+      if (rev.targetUser) {
+        await recalculateUserRating(rev.targetUser, session);
+      }
+      if (rev.targetListing) {
+        await recalculateListingRating(rev.targetListing, session);
+      }
+    }
+
+    // 5. Notifications
+    const Notification = mongoose.model('Notification');
+    await Notification.deleteMany({ recipient: { $in: [userId, new mongoose.Types.ObjectId(userId)] } }).session(session);
+
+    // 6. Chats
+    const ChatThread = mongoose.model('ChatThread');
+    const ChatMessage = mongoose.model('ChatMessage');
+    const threads = await ChatThread.find({ participants: userId }).session(session);
+    const threadIds = threads.map(t => t._id.toString());
+
+    const messages = await ChatMessage.find({ thread_id: { $in: threadIds } }).session(session);
+    for (const msg of messages) {
+      if (msg.media) {
+        const url = typeof msg.media === 'string' ? msg.media : msg.media?.url;
+        if (url) mediaUrlsToDelete.push(url);
+      }
+    }
+    await ChatMessage.deleteMany({ thread_id: { $in: threadIds } }).session(session);
+    await ChatThread.deleteMany({ participants: userId }).session(session);
+
+    const Conversation = mongoose.model('Conversation');
+    const Message = mongoose.model('Message');
+    const conversations = await Conversation.find({ participants: new mongoose.Types.ObjectId(userId) }).session(session);
+    const conversationIds = conversations.map(c => c._id);
+
+    const conversationMessages = await Message.find({ conversation: { $in: conversationIds } }).session(session);
+    for (const msg of conversationMessages) {
+      if (msg.media && msg.media.url) {
+        mediaUrlsToDelete.push(msg.media.url);
+      }
+    }
+    await Message.deleteMany({ conversation: { $in: conversationIds } }).session(session);
+    await Conversation.deleteMany({ participants: new mongoose.Types.ObjectId(userId) }).session(session);
+
+    // 7. Transactions
+    const WalletTransaction = mongoose.model('WalletTransaction');
+    await WalletTransaction.deleteMany({ 
+      user: new mongoose.Types.ObjectId(userId), 
+      type: { $in: ['payment', 'refund'] } 
+    }).session(session);
+
+    // 8. Update User Roles
+    user.roles = user.roles.filter(r => r !== 'customer');
+    user.set('customerProfile', undefined);
+
+    if (user.activeRole === 'customer' || user.current_role === 'customer') {
+      user.activeRole = user.roles[0] || 'customer';
+      user.current_role = user.roles[0] || 'customer';
+    }
+
+    if (user.roles.length === 0) {
+      await cleanBaseUserAccount(userId, mediaUrlsToDelete, session);
+      return { ok: true, userDeleted: true };
+    } else {
+      user.markModified('roles');
+      user.markModified('customerProfile');
+      await user.save({ session });
+      return { ok: true, userDeleted: false };
+    }
+  });
+
+  // Perform media deletes out of transaction session
+  for (const url of mediaUrlsToDelete) {
+    await deleteMediaFile(url);
+  }
+
+  // Socket update
+  try {
+    const { emitToAdmin, emitToUser } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+    if (result.userDeleted) {
+      emitToUser(userId, 'user:deleted', {});
+    } else {
+      emitToUser(userId, 'user:role_deleted', { role: 'customer' });
+    }
+  } catch (err) {}
+
+  return result;
+};
+
+const deleteVendor = async (userId) => {
+  const mediaUrlsToDelete = [];
+
+  const result = await runInTransaction(async (session) => {
+    const User = mongoose.model('User');
+    const user = await User.findById(userId).session(session);
+    if (!user) throw ApiError.notFound('Vendor not found');
+
+    if (user.roles.includes('admin')) {
+      throw ApiError.forbidden('Cannot modify or delete an admin account');
+    }
+
+    // 1. Listings
+    const Listing = mongoose.model('Listing');
+    const Interaction = mongoose.model('Interaction');
+    const Review = mongoose.model('Review');
+
+    const listings = await Listing.find({ vendor: new mongoose.Types.ObjectId(userId) }).session(session);
+    const listingIds = listings.map(l => l._id);
+
+    for (const lst of listings) {
+      if (lst.images && Array.isArray(lst.images)) {
+        for (const img of lst.images) {
+          if (img) mediaUrlsToDelete.push(img);
+        }
+      }
+      if (lst.videos && Array.isArray(lst.videos)) {
+        for (const vid of lst.videos) {
+          if (vid) mediaUrlsToDelete.push(vid);
+        }
+      }
+      if (lst.variants && Array.isArray(lst.variants)) {
+        for (const v of lst.variants) {
+          if (v.image) mediaUrlsToDelete.push(v.image);
+          if (v.imageUrl) mediaUrlsToDelete.push(v.imageUrl);
+        }
+      }
+      if (lst.serviceDetails?.coverImage) {
+        mediaUrlsToDelete.push(lst.serviceDetails.coverImage);
+      }
+      if (lst.serviceDetails?.galleryImages && Array.isArray(lst.serviceDetails.galleryImages)) {
+        for (const img of lst.serviceDetails.galleryImages) {
+          if (img) mediaUrlsToDelete.push(img);
+        }
+      }
+    }
+
+    await Interaction.deleteMany({ listing_id: { $in: listingIds.map(id => id.toString()) } }).session(session);
+    await Review.deleteMany({ targetListing: { $in: listingIds } }).session(session);
+    await Listing.deleteMany({ vendor: new mongoose.Types.ObjectId(userId) }).session(session);
+
+    // 2. Analytics
+    const ListingEvent = mongoose.model('ListingEvent');
+    const ResponseEvent = mongoose.model('ResponseEvent');
+    await ListingEvent.deleteMany({ 
+      $or: [
+        { vendor_id: userId }, 
+        { listing_id: { $in: listingIds.map(id => id.toString()) } }
+      ] 
+    }).session(session);
+    await ResponseEvent.deleteMany({ sender_id: userId }).session(session);
+
+    // 3. Notifications
+    const Notification = mongoose.model('Notification');
+    await Notification.deleteMany({ recipient: { $in: [userId, new mongoose.Types.ObjectId(userId)] } }).session(session);
+
+    // 4. Chats
+    const ChatThread = mongoose.model('ChatThread');
+    const ChatMessage = mongoose.model('ChatMessage');
+    const threads = await ChatThread.find({ participants: userId }).session(session);
+    const threadIds = threads.map(t => t._id.toString());
+
+    const messages = await ChatMessage.find({ thread_id: { $in: threadIds } }).session(session);
+    for (const msg of messages) {
+      if (msg.media) {
+        const url = typeof msg.media === 'string' ? msg.media : msg.media?.url;
+        if (url) mediaUrlsToDelete.push(url);
+      }
+    }
+    await ChatMessage.deleteMany({ thread_id: { $in: threadIds } }).session(session);
+    await ChatThread.deleteMany({ participants: userId }).session(session);
+
+    const Conversation = mongoose.model('Conversation');
+    const Message = mongoose.model('Message');
+    const conversations = await Conversation.find({ participants: new mongoose.Types.ObjectId(userId) }).session(session);
+    const conversationIds = conversations.map(c => c._id);
+
+    const conversationMessages = await Message.find({ conversation: { $in: conversationIds } }).session(session);
+    for (const msg of conversationMessages) {
+      if (msg.media && msg.media.url) {
+        mediaUrlsToDelete.push(msg.media.url);
+      }
+    }
+    await Message.deleteMany({ conversation: { $in: conversationIds } }).session(session);
+    await Conversation.deleteMany({ participants: new mongoose.Types.ObjectId(userId) }).session(session);
+
+    // 5. Reviews of/by vendor
+    const vendorReviews = await Review.find({
+      $or: [{ targetUser: new mongoose.Types.ObjectId(userId) }, { author: new mongoose.Types.ObjectId(userId) }]
+    }).session(session);
+
+    await Review.deleteMany({
+      $or: [{ targetUser: new mongoose.Types.ObjectId(userId) }, { author: new mongoose.Types.ObjectId(userId) }]
+    }).session(session);
+
+    for (const rev of vendorReviews) {
+      if (rev.targetUser && rev.targetUser.toString() !== userId) {
+        await recalculateUserRating(rev.targetUser, session);
+      }
+      if (rev.targetListing) {
+        await recalculateListingRating(rev.targetListing, session);
+      }
+    }
+
+    // 6. Earnings & Payouts (WalletTransactions)
+    const WalletTransaction = mongoose.model('WalletTransaction');
+    if (user.roles.includes('creator')) {
+      await WalletTransaction.deleteMany({
+        user: new mongoose.Types.ObjectId(userId),
+        type: { $in: ['deposit', 'withdrawal'] },
+        ref_type: { $in: ['order', 'deal', 'listing'] }
+      }).session(session);
+    } else {
+      await WalletTransaction.deleteMany({
+        user: new mongoose.Types.ObjectId(userId),
+        type: { $in: ['deposit', 'withdrawal'] }
+      }).session(session);
+    }
+
+    // 7. Campaigns & Job Proposals
+    const Campaign = mongoose.model('Campaign');
+    const HireRequest = mongoose.model('HireRequest');
+    const Quote = mongoose.model('Quote');
+    const Proposal = mongoose.model('Proposal');
+
+    const vendorCampaigns = await Campaign.find({ vendor: new mongoose.Types.ObjectId(userId) }).session(session);
+    for (const camp of vendorCampaigns) {
+      if (camp.attachments && Array.isArray(camp.attachments)) {
+        for (const att of camp.attachments) {
+          if (att) mediaUrlsToDelete.push(att);
+        }
+      }
+      if (camp.submissionUrls && Array.isArray(camp.submissionUrls)) {
+        for (const sub of camp.submissionUrls) {
+          if (sub.url) mediaUrlsToDelete.push(sub.url);
+        }
+      }
+    }
+    await Campaign.deleteMany({ vendor: new mongoose.Types.ObjectId(userId) }).session(session);
+    await HireRequest.deleteMany({ vendor: new mongoose.Types.ObjectId(userId) }).session(session);
+
+    const vendorQuotes = await Quote.find({ vendor: new mongoose.Types.ObjectId(userId) }).session(session);
+    for (const q of vendorQuotes) {
+      if (q.attachments && Array.isArray(q.attachments)) {
+        for (const att of q.attachments) {
+          const url = typeof att === 'string' ? att : att?.url;
+          if (url) mediaUrlsToDelete.push(url);
+        }
+      }
+    }
+    await Quote.deleteMany({ vendor: new mongoose.Types.ObjectId(userId) }).session(session);
+
+    const vendorProposals = await Proposal.find({ vendor_id: userId }).session(session);
+    for (const p of vendorProposals) {
+      if (p.attachments && Array.isArray(p.attachments)) {
+        for (const att of p.attachments) {
+          const url = typeof att === 'string' ? att : att?.url;
+          if (url) mediaUrlsToDelete.push(url);
+        }
+      }
+    }
+    await Proposal.deleteMany({ vendor_id: userId }).session(session);
+
+    // 8. Update User Roles
+    user.roles = user.roles.filter(r => r !== 'vendor');
+    user.vendorProfile = null;
+
+    if (user.activeRole === 'vendor' || user.current_role === 'vendor') {
+      user.activeRole = user.roles[0] || 'customer';
+      user.current_role = user.roles[0] || 'customer';
+    }
+
+    if (user.roles.length === 0) {
+      await cleanBaseUserAccount(userId, mediaUrlsToDelete, session);
+      return { ok: true, userDeleted: true };
+    } else {
+      user.markModified('roles');
+      user.markModified('vendorProfile');
+      await user.save({ session });
+      return { ok: true, userDeleted: false };
+    }
+  });
+
+  // Perform media deletes out of transaction session
+  for (const url of mediaUrlsToDelete) {
+    await deleteMediaFile(url);
+  }
+
+  // Socket update
+  try {
+    const { emitToAdmin, emitToUser } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+    if (result.userDeleted) {
+      emitToUser(userId, 'user:deleted', {});
+    } else {
+      emitToUser(userId, 'user:role_deleted', { role: 'vendor' });
+    }
+  } catch (err) {}
+
+  return result;
+};
+
+const deleteCreator = async (userId) => {
+  const mediaUrlsToDelete = [];
+
+  const result = await runInTransaction(async (session) => {
+    const User = mongoose.model('User');
+    const user = await User.findById(userId).session(session);
+    if (!user) throw ApiError.notFound('Creator not found');
+
+    if (user.roles.includes('admin')) {
+      throw ApiError.forbidden('Cannot modify or delete an admin account');
+    }
+
+    // 1. Reels, Likes, Comments
+    const Reel = mongoose.model('Reel');
+    const ReelLike = mongoose.model('ReelLike');
+    const Comment = mongoose.model('Comment');
+
+    const reels = await Reel.find({ creator: new mongoose.Types.ObjectId(userId) }).session(session);
+    const reelIds = reels.map(r => r._id);
+
+    for (const r of reels) {
+      if (r.videoUrl) mediaUrlsToDelete.push(r.videoUrl);
+      if (r.thumbnailUrl) mediaUrlsToDelete.push(r.thumbnailUrl);
+      if (r.mediaUrls && Array.isArray(r.mediaUrls)) {
+        for (const url of r.mediaUrls) {
+          if (url) mediaUrlsToDelete.push(url);
+        }
+      }
+    }
+
+    await ReelLike.deleteMany({ $or: [{ userId: new mongoose.Types.ObjectId(userId) }, { reelId: { $in: reelIds } }] }).session(session);
+    await Comment.deleteMany({ $or: [{ userId: new mongoose.Types.ObjectId(userId) }, { reelId: { $in: reelIds } }] }).session(session);
+    await Reel.deleteMany({ creator: new mongoose.Types.ObjectId(userId) }).session(session);
+
+    // 2. Portfolio Listings
+    const Listing = mongoose.model('Listing');
+    const portfolioListings = await Listing.find({ 
+      vendor: new mongoose.Types.ObjectId(userId), 
+      category: 'Portfolio' 
+    }).session(session);
+
+    const portListingIds = portfolioListings.map(l => l._id);
+
+    for (const lst of portfolioListings) {
+      if (lst.images && Array.isArray(lst.images)) {
+        for (const img of lst.images) {
+          if (img) mediaUrlsToDelete.push(img);
+        }
+      }
+      if (lst.videos && Array.isArray(lst.videos)) {
+        for (const vid of lst.videos) {
+          if (vid) mediaUrlsToDelete.push(vid);
+        }
+      }
+    }
+    await Listing.deleteMany({ _id: { $in: portListingIds } }).session(session);
+
+    // 3. Campaigns & Job Proposals
+    const Campaign = mongoose.model('Campaign');
+    const HireRequest = mongoose.model('HireRequest');
+
+    const creatorCampaigns = await Campaign.find({ creator: new mongoose.Types.ObjectId(userId) }).session(session);
+    for (const camp of creatorCampaigns) {
+      if (camp.attachments && Array.isArray(camp.attachments)) {
+        for (const att of camp.attachments) {
+          if (att) mediaUrlsToDelete.push(att);
+        }
+      }
+      if (camp.submissionUrls && Array.isArray(camp.submissionUrls)) {
+        for (const sub of camp.submissionUrls) {
+          if (sub.url) mediaUrlsToDelete.push(sub.url);
+        }
+      }
+    }
+    await Campaign.deleteMany({ creator: new mongoose.Types.ObjectId(userId) }).session(session);
+    await HireRequest.deleteMany({ creator: new mongoose.Types.ObjectId(userId) }).session(session);
+
+    // 4. Notifications
+    const Notification = mongoose.model('Notification');
+    await Notification.deleteMany({ recipient: { $in: [userId, new mongoose.Types.ObjectId(userId)] } }).session(session);
+
+    // 5. Chats
+    const ChatThread = mongoose.model('ChatThread');
+    const ChatMessage = mongoose.model('ChatMessage');
+    const threads = await ChatThread.find({ participants: userId }).session(session);
+    const threadIds = threads.map(t => t._id.toString());
+
+    const messages = await ChatMessage.find({ thread_id: { $in: threadIds } }).session(session);
+    for (const msg of messages) {
+      if (msg.media) {
+        const url = typeof msg.media === 'string' ? msg.media : msg.media?.url;
+        if (url) mediaUrlsToDelete.push(url);
+      }
+    }
+    await ChatMessage.deleteMany({ thread_id: { $in: threadIds } }).session(session);
+    await ChatThread.deleteMany({ participants: userId }).session(session);
+
+    const Conversation = mongoose.model('Conversation');
+    const Message = mongoose.model('Message');
+    const conversations = await Conversation.find({ participants: new mongoose.Types.ObjectId(userId) }).session(session);
+    const conversationIds = conversations.map(c => c._id);
+
+    const conversationMessages = await Message.find({ conversation: { $in: conversationIds } }).session(session);
+    for (const msg of conversationMessages) {
+      if (msg.media && msg.media.url) {
+        mediaUrlsToDelete.push(msg.media.url);
+      }
+    }
+    await Message.deleteMany({ conversation: { $in: conversationIds } }).session(session);
+    await Conversation.deleteMany({ participants: new mongoose.Types.ObjectId(userId) }).session(session);
+
+    // 6. Earnings (WalletTransactions)
+    const WalletTransaction = mongoose.model('WalletTransaction');
+    if (user.roles.includes('vendor')) {
+      await WalletTransaction.deleteMany({
+        user: new mongoose.Types.ObjectId(userId),
+        type: { $in: ['deposit', 'withdrawal'] },
+        $or: [
+          { ref_type: { $in: ['campaign', 'hire', 'proposal'] } },
+          { description: { $regex: /(campaign|creator|hire|collaboration)/i } }
+        ]
+      }).session(session);
+    } else {
+      await WalletTransaction.deleteMany({
+        user: new mongoose.Types.ObjectId(userId),
+        type: { $in: ['deposit', 'withdrawal'] }
+      }).session(session);
+    }
+
+    // 7. Update User Roles
+    user.roles = user.roles.filter(r => r !== 'creator');
+    user.creatorProfile = null;
+
+    if (user.activeRole === 'creator' || user.current_role === 'creator') {
+      user.activeRole = user.roles[0] || 'customer';
+      user.current_role = user.roles[0] || 'customer';
+    }
+
+    if (user.roles.length === 0) {
+      await cleanBaseUserAccount(userId, mediaUrlsToDelete, session);
+      return { ok: true, userDeleted: true };
+    } else {
+      user.markModified('roles');
+      user.markModified('creatorProfile');
+      await user.save({ session });
+      return { ok: true, userDeleted: false };
+    }
+  });
+
+  // Perform media deletes out of transaction session
+  for (const url of mediaUrlsToDelete) {
+    await deleteMediaFile(url);
+  }
+
+  // Socket update
+  try {
+    const { emitToAdmin, emitToUser } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
+    if (result.userDeleted) {
+      emitToUser(userId, 'user:deleted', {});
+    } else {
+      emitToUser(userId, 'user:role_deleted', { role: 'creator' });
+    }
+  } catch (err) {}
+
+  return result;
+};
+
 module.exports = {
   listUsers,
   banUser,
@@ -2325,5 +3091,8 @@ module.exports = {
   listCreators,
   getCreatorProfileDetails,
   getCreatorStats,
+  deleteCustomer,
+  deleteVendor,
+  deleteCreator,
 };
 

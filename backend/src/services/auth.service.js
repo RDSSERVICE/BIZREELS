@@ -584,8 +584,10 @@ class AuthService {
 
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const updateData = {
+      is_deleted: true,
       isDeleted: true,
       deletedAt: new Date(),
+      is_active: false,
       isActive: false,
       email: user.email ? `deleted_${user.email}_${randomSuffix}` : undefined,
       phone: user.phone ? `deleted_${user.phone}_${randomSuffix}` : undefined,

@@ -9,12 +9,14 @@ import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { selectCurrentUser, setCredentials, logout } from '../../../features/auth/authSlice';
 import { api } from '../../../lib/api';
+import { useDeleteAccountMutation } from '../../../features/auth/authApi';
 
 export default function VendorSettingsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const currentUser = useSelector(selectCurrentUser);
   const vendorProfile = currentUser?.vendorProfile || {};
+  const [deleteAccountApi] = useDeleteAccountMutation();
 
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -105,11 +107,17 @@ export default function VendorSettingsPage() {
     }
   };
 
-  const handleDeleteShop = () => {
+  const handleDeleteShop = async () => {
     if (window.confirm('Are you sure you want to permanently delete your shop listing and vendor account?')) {
-      toast.success('Shop deletion request submitted');
-      dispatch(logout());
-      navigate('/auth/login');
+      const toastId = toast.loading('Deleting account...');
+      try {
+        await deleteAccountApi().unwrap();
+        toast.success('Your account and shop listing have been deleted.', { id: toastId });
+        dispatch(logout());
+        navigate('/auth/login');
+      } catch (err) {
+        toast.error(err?.data?.message || 'Failed to delete account.', { id: toastId });
+      }
     }
   };
 

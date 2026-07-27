@@ -5,10 +5,12 @@ import { logout } from '../auth/authSlice';
 import Button from '../../components/common/Button';
 import { FiSliders, FiBell, FiLock, FiTrash2, FiLogOut } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
+import { useDeleteAccountMutation } from '../auth/authApi';
 
 const CreatorSettingsTab = ({ user }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [deleteAccountApi] = useDeleteAccountMutation();
 
   // Settings states
   const [emailAlerts, setEmailAlerts] = useState(true);
@@ -21,12 +23,18 @@ const CreatorSettingsTab = ({ user }) => {
     toast.success('Creator preferences saved successfully!');
   };
 
-  const handleDeleteCreator = () => {
-    const confirmation = window.prompt('WARNING: This will permanently delete your Creator Profile and Portfolio! Type "DELETE" to confirm:');
+  const handleDeleteCreator = async () => {
+    const confirmation = window.prompt('WARNING: This will permanently delete your entire account! Type "DELETE" to confirm:');
     if (confirmation === 'DELETE') {
-      toast.success('Your creator profile has been deactivated.');
-      dispatch(logout());
-      navigate('/auth/login');
+      const toastId = toast.loading('Deleting account...');
+      try {
+        await deleteAccountApi().unwrap();
+        toast.success('Your account has been deleted.', { id: toastId });
+        dispatch(logout());
+        navigate('/auth/login');
+      } catch (err) {
+        toast.error(err?.data?.message || 'Failed to delete account.', { id: toastId });
+      }
     } else {
       toast.error('Deletion cancelled.');
     }

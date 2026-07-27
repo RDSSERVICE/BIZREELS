@@ -41,7 +41,7 @@ const authenticate = async (req, res, next) => {
       throw ApiError.unauthorized('User associated with this token no longer exists.');
     }
 
-    if (user.is_active === false || user.isDeleted) {
+    if (user.is_active === false || user.is_deleted === true || user.isActive === false || user.isDeleted === true) {
       throw ApiError.unauthorized('This account has been deactivated.');
     }
 

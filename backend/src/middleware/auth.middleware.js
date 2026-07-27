@@ -47,7 +47,7 @@ const requireAuth = async (req, res, next) => {
     }
 
     const user = await User.findById(userId);
-    if (!user || user.is_active === false || user.is_deleted === true) {
+    if (!user || user.is_active === false || user.is_deleted === true || user.isActive === false || user.isDeleted === true) {
       throw ApiError.unauthorized('User not found or disabled');
     }
 

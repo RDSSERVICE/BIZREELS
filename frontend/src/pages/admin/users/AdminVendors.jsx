@@ -20,7 +20,7 @@ import {
   useBanUserMutation,
   useUnbanUserMutation,
   useSuspendUserMutation,
-  useDeleteUserMutation,
+  useDeleteVendorMutation,
   useRejectKycMutation
 } from '../../../features/admin/adminApi';
 
@@ -66,7 +66,7 @@ export default function AdminVendors() {
   const [banUser] = useBanUserMutation();
   const [unbanUser] = useUnbanUserMutation();
   const [suspendUser] = useSuspendUserMutation();
-  const [deleteUser] = useDeleteUserMutation();
+  const [deleteVendor] = useDeleteVendorMutation();
 
   const vendors = vendorData?.items || [];
   const totalPages = vendorData?.pages || 1;
@@ -94,9 +94,9 @@ export default function AdminVendors() {
         await verifyAccount(userId).unwrap();
         toast.success(`Vendor "${userName}" KYC status is now verified`);
       } else if (action === 'delete') {
-        if (!window.confirm(`Soft delete vendor "${userName}"? This marks account as deleted, hiding it from the system.`)) return;
-        await deleteUser(userId).unwrap();
-        toast.success(`Vendor "${userName}" has been soft-deleted`);
+        if (!window.confirm(`Delete Vendor role and data for "${userName}"? This will not delete other roles.`)) return;
+        await deleteVendor(userId).unwrap();
+        toast.success(`Vendor "${userName}" role and data deleted`);
       }
     } catch (err) {
       toast.error(err?.data?.message || 'Administrative action failed');

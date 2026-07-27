@@ -66,6 +66,7 @@ import CreatorOrdersPage from '../pages/creator/orders/CreatorOrdersPage';
 import CreatorReviewsPage from '../pages/creator/reviews/CreatorReviewsPage';
 import CreatorAnalyticsPage from '../pages/creator/analytics/CreatorAnalyticsPage';
 import CreatorVerificationPage from '../pages/creator/verification/CreatorVerificationPage';
+import CreatorSettingsPage from '../pages/creator/settings/CreatorSettingsPage';
 import Chats from '../pages/chat/Chats';
 
 // Admin Pages
@@ -203,6 +204,7 @@ const AppRoutes = () => {
         <Route path="orders" element={<CreatorOrdersPage />} />
         <Route path="reviews" element={<CreatorReviewsPage />} />
         <Route path="analytics" element={<CreatorAnalyticsPage />} />
+        <Route path="settings" element={<CreatorSettingsPage />} />
         <Route path="chat" element={<Chats />} />
         <Route path="" element={<Navigate to="dashboard" replace />} />
       </Route>

@@ -113,6 +113,18 @@ const adminApi = apiSlice.injectEndpoints({
       query: (id) => ({ url: `/admin/users/${id}`, method: 'DELETE' }),
       invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
     }),
+    deleteCustomer: builder.mutation({
+      query: (id) => ({ url: `/admin/customers/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
+    }),
+    deleteVendor: builder.mutation({
+      query: (id) => ({ url: `/admin/vendors/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
+    }),
+    deleteCreator: builder.mutation({
+      query: (id) => ({ url: `/admin/creators/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
+    }),
     freezeWallet: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/freeze-wallet`, method: 'POST' }),
       invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }],
@@ -468,6 +480,9 @@ export const {
   useUnbanUserMutation,
   useSuspendUserMutation,
   useDeleteUserMutation,
+  useDeleteCustomerMutation,
+  useDeleteVendorMutation,
+  useDeleteCreatorMutation,
   useFreezeWalletMutation,
   useUnfreezeWalletMutation,
   useAddUserRoleMutation,

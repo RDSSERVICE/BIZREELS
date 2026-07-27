@@ -454,6 +454,24 @@ router.delete('/users/:user_id', requireAuth, requireAdmin, catchAsync(async (re
   res.json(result);
 }));
 
+// Delete customer role and customer data
+router.delete('/customers/:user_id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.deleteCustomer(req.params.user_id);
+  res.json(result);
+}));
+
+// Delete vendor role and vendor data
+router.delete('/vendors/:user_id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.deleteVendor(req.params.user_id);
+  res.json(result);
+}));
+
+// Delete creator role and creator data
+router.delete('/creators/:user_id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.deleteCreator(req.params.user_id);
+  res.json(result);
+}));
+
 // Login history
 router.get('/users/:user_id/login-history', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 20, 10)));

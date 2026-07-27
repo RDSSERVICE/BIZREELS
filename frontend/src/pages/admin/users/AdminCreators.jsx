@@ -20,7 +20,7 @@ import {
   useBanUserMutation,
   useUnbanUserMutation,
   useSuspendUserMutation,
-  useDeleteUserMutation,
+  useDeleteCreatorMutation,
   useRejectKycMutation
 } from '../../../features/admin/adminApi';
 
@@ -66,7 +66,7 @@ export default function AdminCreators() {
   const [banUser] = useBanUserMutation();
   const [unbanUser] = useUnbanUserMutation();
   const [suspendUser] = useSuspendUserMutation();
-  const [deleteUser] = useDeleteUserMutation();
+  const [deleteCreator] = useDeleteCreatorMutation();
 
   const creators = creatorData?.items || [];
   const totalPages = creatorData?.pages || 1;
@@ -94,9 +94,9 @@ export default function AdminCreators() {
         await verifyAccount(userId).unwrap();
         toast.success(`Creator "${userName}" KYC status is now verified`);
       } else if (action === 'delete') {
-        if (!window.confirm(`Soft delete creator "${userName}"? This marks account as deleted, hiding it from the system.`)) return;
-        await deleteUser(userId).unwrap();
-        toast.success(`Creator "${userName}" has been soft-deleted`);
+        if (!window.confirm(`Delete Creator role and data for "${userName}"? This will not delete other roles.`)) return;
+        await deleteCreator(userId).unwrap();
+        toast.success(`Creator "${userName}" role and data deleted`);
       }
     } catch (err) {
       toast.error(err?.data?.message || 'Administrative action failed');

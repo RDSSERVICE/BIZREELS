@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import {
   FiVideo, FiUser, FiFilm, FiDollarSign, FiClock, FiCreditCard,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
-  FiBarChart2, FiBriefcase, FiStar, FiMessageSquare
+  FiBarChart2, FiBriefcase, FiStar, FiMessageSquare, FiSettings
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
@@ -18,6 +18,7 @@ const NAV_SECTIONS = [
     title: 'Overview',
     items: [
       { name: 'Dashboard', path: '/creator/dashboard', icon: FiVideo },
+      { name: 'Settings', path: '/creator/settings', icon: FiSettings },
     ],
   },
   {

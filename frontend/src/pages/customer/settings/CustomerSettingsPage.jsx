@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   FiSettings, FiUser, FiLock, FiTrash2, FiLogOut, FiMapPin, FiRefreshCw, FiSave
 } from 'react-icons/fi';
-import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
+import { useGetMeQuery, useUpdateProfileMutation, useDeleteAccountMutation } from '../../../features/auth/authApi';
 import { setCredentials, logout } from '../../../features/auth/authSlice';
 import { locationApi, tokenStore } from '../../../lib/api';
 import toast from 'react-hot-toast';
@@ -19,6 +19,7 @@ export default function CustomerSettingsPage() {
     skip: !authUser && !tokenStore.getAccess(),
   });
   const [updateProfileApi] = useUpdateProfileMutation();
+  const [deleteAccountApi] = useDeleteAccountMutation();
 
   const user = profileRes?.data?.user || profileRes?.user || authUser || {};
 
@@ -172,11 +173,17 @@ export default function CustomerSettingsPage() {
     navigate('/auth/login');
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      dispatch(logout());
-      toast.success('Account deletion request submitted');
-      navigate('/auth/login');
+      const toastId = toast.loading('Deleting account...');
+      try {
+        await deleteAccountApi().unwrap();
+        toast.success('Your account has been deleted.', { id: toastId });
+        dispatch(logout());
+        navigate('/auth/login');
+      } catch (err) {
+        toast.error(err?.data?.message || 'Failed to delete account.', { id: toastId });
+      }
     }
   };
 
