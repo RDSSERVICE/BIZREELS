@@ -188,11 +188,10 @@ class CreatorController {
   // ── Get Creator Orders / Projects ────────────────────────
   getOrders = asyncHandler(async (req, res) => {
     const userId = req.user._id;
-    const userIdStr = userId.toString();
 
     const [hireRequests, orders] = await Promise.all([
       HireRequest.find({ creator: userId }).sort({ createdAt: -1 }).populate('vendor', 'name').lean(),
-      Order.find({ vendor: userId }).sort({ createdAt: -1 }).lean()
+      Order.find({ vendor: userId }).sort({ createdAt: -1 }).populate('customer', 'name').populate('listing', 'title').lean()
     ]);
 
     const mappedHires = hireRequests.map((h) => ({
@@ -202,17 +201,25 @@ class CreatorController {
       vendor_name: h.vendor?.name || 'Vendor Client',
       amount: h.budget || 0,
       status: h.status || 'pending',
-      created_at: h.createdAt
+      created_at: h.createdAt,
+      type: 'Collaboration',
+      deliveryDays: h.deliveryDays,
+      paymentStatus: h.paymentStatus || 'unpaid',
+      description: h.description || 'No campaign details provided.'
     }));
 
     const mappedOrders = orders.map((o) => ({
       _id: o._id.toString(),
       id: o._id.toString(),
-      title: o.items?.[0]?.title || 'Promo Reel Shoot',
-      vendor_name: 'Vendor Client',
-      amount: o.total_price || 0,
+      title: o.listing?.title || 'Promo Reel Shoot',
+      vendor_name: o.customer?.name || 'Vendor Client',
+      amount: o.price || 0,
       status: o.status || 'completed',
-      created_at: o.createdAt
+      created_at: o.createdAt,
+      type: 'Direct Purchase',
+      quantity: o.quantity || 1,
+      paymentStatus: o.paymentStatus || 'paid',
+      address: o.address || 'Local storefront pickup/delivery'
     }));
 
     const allProjects = [...mappedHires, ...mappedOrders];

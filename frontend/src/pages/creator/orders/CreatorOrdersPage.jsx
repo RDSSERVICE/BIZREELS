@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { FiBriefcase, FiCheck, FiClock, FiX } from 'react-icons/fi';
+import { FiBriefcase, FiCheck, FiClock, FiX, FiInfo, FiDollarSign, FiTruck } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
+import AdminModal from '../../../features/admin/components/AdminModal';
 import { useGetCreatorOrdersQuery, useUpdateCreatorOrderStatusMutation } from '../../../features/creator/creatorApi';
 
 const TABS = [
@@ -18,6 +19,7 @@ const TABS = [
 export default function CreatorOrdersPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const { data, isFetching } = useGetCreatorOrdersQuery(undefined, { pollingInterval: 5000 });
   const [updateStatus] = useUpdateCreatorOrderStatusMutation();
@@ -35,37 +37,40 @@ export default function CreatorOrdersPage() {
   const filtered = allOrders.filter((o) => {
     const status = (o.status || '').toLowerCase();
     if (activeTab === 'pending') return status === 'pending' || status === 'requested';
-    if (activeTab === 'active') return status === 'active' || status === 'in_progress' || status === 'accepted';
+    if (activeTab === 'active') return status === 'active' || status === 'in_progress' || status === 'accepted' || status === 'processing';
     if (activeTab === 'completed') return status === 'completed' || status === 'delivered';
     if (activeTab === 'cancelled') return status === 'cancelled' || status === 'rejected';
     return true;
   });
 
-  const handleAccept = async (id) => {
+  const handleUpdateStatus = async (id, statusLabel) => {
     try {
-      await updateStatus({ id, status: 'accepted' }).unwrap();
-      toast.success('Project accepted!');
+      await updateStatus({ id, status: statusLabel }).unwrap();
+      toast.success(`Project status updated to ${statusLabel}!`);
+      setSelectedOrder(null);
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to accept');
-    }
-  };
-
-  const handleComplete = async (id) => {
-    try {
-      await updateStatus({ id, status: 'completed' }).unwrap();
-      toast.success('Project marked as completed!');
-    } catch (err) {
-      toast.error(err?.data?.message || 'Failed to complete');
+      toast.error(err?.data?.message || 'Failed to update status');
     }
   };
 
   const columns = [
     {
+      key: 'type',
+      label: 'Type',
+      render: (val) => (
+        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border uppercase ${
+          val === 'Collaboration' ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' : 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+        }`}>
+          {val || 'Direct'}
+        </span>
+      ),
+    },
+    {
       key: 'title',
       label: 'Project',
       render: (val, row) => (
         <div>
-          <span className="font-bold text-text-primary block">{val || row.listing_title || 'Project'}</span>
+          <span className="font-bold text-text-primary block max-w-[200px] truncate">{val || row.listing_title || 'Project'}</span>
           <span className="text-[10px] text-text-tertiary">Client: {row.vendor_name || row.buyer_name || 'Vendor'}</span>
         </div>
       ),
@@ -74,6 +79,15 @@ export default function CreatorOrdersPage() {
       key: 'amount',
       label: 'Budget',
       render: (val, row) => <span className="font-bold text-emerald-600">₹{(val || row.final_amount || row.current_offer || 0).toLocaleString()}</span>,
+    },
+    {
+      key: 'paymentStatus',
+      label: 'Escrow Status',
+      render: (val) => (
+        <span className={`text-[10px] font-bold uppercase ${val === 'paid' ? 'text-emerald-600' : 'text-amber-500'}`}>
+          {val === 'paid' ? '● Secure Escrow' : '○ Pending Pay'}
+        </span>
+      ),
     },
     {
       key: 'status',
@@ -109,29 +123,152 @@ export default function CreatorOrdersPage() {
         actions={(row) => {
           const status = (row.status || '').toLowerCase();
           return (
-            <>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setSelectedOrder(row)}
+                className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition-all"
+                title="View Details"
+              >
+                <FiInfo className="w-3.5 h-3.5" />
+              </button>
               {(status === 'pending' || status === 'requested') && (
-                <button
-                  onClick={() => handleAccept(row.id || row._id)}
-                  className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-text-tertiary hover:text-emerald-500 transition-all"
-                  title="Accept Project"
-                >
-                  <FiCheck className="w-3.5 h-3.5" />
-                </button>
+                <>
+                  <button
+                    onClick={() => handleUpdateStatus(row.id || row._id, 'accepted')}
+                    className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-text-tertiary hover:text-emerald-500 transition-all"
+                    title="Accept Project"
+                  >
+                    <FiCheck className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(row.id || row._id, 'rejected')}
+                    className="p-1.5 rounded-lg hover:bg-error/10 text-text-tertiary hover:text-error transition-all"
+                    title="Reject Project"
+                  >
+                    <FiX className="w-3.5 h-3.5" />
+                  </button>
+                </>
               )}
-              {(status === 'active' || status === 'accepted' || status === 'in_progress') && (
+              {(status === 'active' || status === 'accepted' || status === 'in_progress' || status === 'processing') && (
                 <button
-                  onClick={() => handleComplete(row.id || row._id)}
-                  className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition-all"
+                  onClick={() => handleUpdateStatus(row.id || row._id, 'completed')}
+                  className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-text-tertiary hover:text-emerald-500 transition-all"
                   title="Mark Completed"
                 >
                   <FiCheck className="w-3.5 h-3.5" />
                 </button>
               )}
-            </>
+            </div>
           );
         }}
       />
+
+      {/* Details Dialog / Modal */}
+      {selectedOrder && (
+        <AdminModal
+          isOpen={!!selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+          title="Project Order Details"
+        >
+          <div className="space-y-5 text-xs">
+            <div className="flex justify-between items-start border-b border-border pb-3">
+              <div>
+                <h4 className="font-extrabold text-sm text-text-primary">{selectedOrder.title}</h4>
+                <p className="text-[10px] text-text-tertiary mt-0.5">
+                  Type: <strong className="text-brand-purple">{selectedOrder.type}</strong> • ID: {selectedOrder._id}
+                </p>
+              </div>
+              <AdminStatusBadge status={selectedOrder.status || 'pending'} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-surface-secondary p-3.5 rounded-xl border border-border flex items-center gap-3">
+                <FiDollarSign size={20} className="text-emerald-500 flex-shrink-0" />
+                <div>
+                  <span className="text-[9px] font-bold text-text-tertiary uppercase block">Budget / Price</span>
+                  <span className="font-black text-text-primary text-sm">₹{(selectedOrder.amount || 0).toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div className="bg-surface-secondary p-3.5 rounded-xl border border-border flex items-center gap-3">
+                <FiClock size={20} className="text-brand-purple flex-shrink-0" />
+                <div>
+                  <span className="text-[9px] font-bold text-text-tertiary uppercase block">Timeline / Delivery</span>
+                  <span className="font-black text-text-primary text-sm">
+                    {selectedOrder.deliveryDays ? `${selectedOrder.deliveryDays} Days` : 'Instant Delivery'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1 bg-surface-secondary p-4 rounded-xl border border-border">
+              <span className="text-[9px] font-bold text-text-tertiary uppercase block">Client / Vendor Details</span>
+              <p className="font-bold text-text-primary">{selectedOrder.vendor_name || 'Vendor Client'}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                  selectedOrder.paymentStatus === 'paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+                }`}>
+                  {selectedOrder.paymentStatus === 'paid' ? 'Secure Escrow Paid' : 'Pending Payment Escrow'}
+                </span>
+              </div>
+            </div>
+
+            {selectedOrder.description && (
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-text-tertiary uppercase block">Campaign Description & Requirements</span>
+                <p className="text-text-secondary leading-relaxed bg-surface p-3.5 rounded-xl border border-border whitespace-pre-line">
+                  {selectedOrder.description}
+                </p>
+              </div>
+            )}
+
+            {selectedOrder.type === 'Direct Purchase' && (
+              <div className="space-y-1 bg-surface-secondary p-3.5 rounded-xl border border-border">
+                <span className="text-[9px] font-bold text-text-tertiary uppercase block flex items-center gap-1">
+                  <FiTruck /> Shipping / Delivery Address
+                </span>
+                <p className="text-text-secondary">{selectedOrder.address}</p>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex gap-2.5 pt-3 border-t border-border mt-3">
+              {(selectedOrder.status === 'pending' || selectedOrder.status === 'requested') && (
+                <>
+                  <button
+                    onClick={() => handleUpdateStatus(selectedOrder._id, 'accepted')}
+                    className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all text-center"
+                  >
+                    Accept Collaboration
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(selectedOrder._id, 'rejected')}
+                    className="flex-1 py-3 bg-error/10 text-error rounded-xl font-bold hover:bg-error/20 transition-all text-center border border-error/20"
+                  >
+                    Decline
+                  </button>
+                </>
+              )}
+
+              {(selectedOrder.status === 'active' || selectedOrder.status === 'accepted' || selectedOrder.status === 'in_progress' || selectedOrder.status === 'processing') && (
+                <button
+                  onClick={() => handleUpdateStatus(selectedOrder._id, 'completed')}
+                  className="w-full py-3 gradient-brand text-white rounded-xl font-bold hover:opacity-90 transition-all text-center shadow-premium"
+                >
+                  Mark as Project Completed
+                </button>
+              )}
+
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="py-3 px-4 bg-surface border border-border rounded-xl font-bold text-text-secondary hover:bg-surface-tertiary transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </AdminModal>
+      )}
     </div>
   );
 }
