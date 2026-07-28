@@ -34,8 +34,8 @@ class WalletService {
     return result;
   }
 
-  async getTransactions(userId) {
-    return walletRepository.getTransactionsForUser(userId);
+  async getTransactions(userId, page = 1, limit = 50) {
+    return walletRepository.getTransactionsForUser(userId, page, limit);
   }
 
   async purchasePlan({ userId, plan }) {
@@ -120,8 +120,8 @@ class WalletService {
     return { ok: true };
   }
 
-  async listTransactions(userId) {
-    return this.getTransactions(userId);
+  async listTransactions(userId, limit = 50, page = 1) {
+    return this.getTransactions(userId, page, limit);
   }
 
   async requestPayout({ userId, amount }) {

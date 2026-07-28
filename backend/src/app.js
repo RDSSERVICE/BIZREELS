@@ -39,6 +39,21 @@ const app = express();
 
 app.use(requestPerformanceLogger);
 
+// Connection Keep-Alive & Cache-Control headers configuration
+app.use((req, res, next) => {
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Keep-Alive', 'timeout=65, max=1000');
+  
+  if (req.method === 'GET' && (req.url.startsWith('/uploads') || req.url.startsWith('/processed') || req.url.match(/\.(jpg|jpeg|png|gif|ico|css|js|woff|woff2)$/))) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  } else {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 // ══════════════════════════════════════════════════════════════
 // SECURITY MIDDLEWARE
 // ══════════════════════════════════════════════════════════════

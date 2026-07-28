@@ -183,11 +183,20 @@ class ReelService {
   }
 
   // ── Fetch Vendor Reels ────────────────────────────────────
-  async getVendorReels(userId) {
+  async getVendorReels(userId, page = 1, limit = 10) {
     const Reel = require('../models/Reel');
-    return Reel.find({ creator: userId, isDeleted: { $ne: true } })
-      .sort({ createdAt: -1 })
-      .lean();
+    const skip = (page - 1) * limit;
+
+    const [reels, total] = await Promise.all([
+      Reel.find({ creator: userId, isDeleted: { $ne: true } })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Reel.countDocuments({ creator: userId, isDeleted: { $ne: true } }),
+    ]);
+
+    return { reels, total };
   }
 
   // ── Fetch Feed ──────────────────────────────────────────

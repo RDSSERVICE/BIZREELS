@@ -11,9 +11,12 @@ class WalletRepository {
     return WalletTransaction.create(transactionData);
   }
 
-  async getTransactionsForUser(userId) {
+  async getTransactionsForUser(userId, page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
     return WalletTransaction.find({ user: userId })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
   }
 

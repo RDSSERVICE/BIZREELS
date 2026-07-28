@@ -212,8 +212,10 @@ class RequirementRepository {
       },
     });
 
-    const requirements = await Requirement.aggregate(pipeline);
-    const total = await Requirement.countDocuments(match);
+    const [requirements, total] = await Promise.all([
+      Requirement.aggregate(pipeline),
+      Requirement.countDocuments(match),
+    ]);
 
     return { requirements, total };
   }

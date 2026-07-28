@@ -122,8 +122,12 @@ class ReviewService {
     return { ok: true, reviewId, reply: replyText };
   }
 
-  async listReviews(targetId) {
-    return this.getReviewsForUser(targetId);
+  async listReviews(targetType, targetId, sort, cursor, limit = 20) {
+    const page = Math.max(1, parseInt(cursor || 1, 10));
+    if (targetType === 'listing' || targetType === 'product' || targetType === 'service') {
+      return this.getReviewsForListing(targetId, { page, limit });
+    }
+    return this.getReviewsForUser(targetId, { page, limit });
   }
 }
 

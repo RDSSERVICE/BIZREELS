@@ -112,7 +112,8 @@ router.get('/wallet/me', requireAuth, catchAsync(async (req, res) => {
 
 router.get('/wallet/me/transactions', requireAuth, catchAsync(async (req, res) => {
   const limit = Math.max(1, Math.min(200, parseInt(req.query.limit || 50, 10)));
-  const txns = await walletService.listTransactions(req.user._id.toString(), limit);
+  const page = Math.max(1, parseInt(req.query.page || 1, 10));
+  const txns = await walletService.listTransactions(req.user._id.toString(), limit, page);
   res.json({ items: txns });
 }));
 
@@ -217,7 +218,9 @@ router.post('/subscriptions/subscribe', requireAuth, catchAsync(async (req, res)
 }));
 
 router.get('/subscriptions/me', requireAuth, catchAsync(async (req, res) => {
-  const items = await subscriptionService.mySubs(req.user._id.toString());
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 50, 10)));
+  const page = Math.max(1, parseInt(req.query.page || 1, 10));
+  const items = await subscriptionService.mySubs(req.user._id.toString(), page, limit);
   res.json({ items });
 }));
 

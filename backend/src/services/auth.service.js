@@ -678,6 +678,8 @@ class AuthService {
     const userObj = user.toObject ? user.toObject() : { ...user };
     delete userObj.password;
     delete userObj.__v;
+    delete userObj.followers;
+    delete userObj.following;
     delete userObj.loginAttempts;
     delete userObj.lockUntil;
     return userObj;

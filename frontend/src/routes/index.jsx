@@ -11,98 +11,100 @@ import CreatorLayout from '../pages/creator/CreatorLayout';
 
 // Guards
 import { PrivateRoute, RoleRoute, PublicRoute, RequireAdmin } from './guards';
+import Loader from '../components/common/Loader';
 
 // Public & Auth Pages
-import Home from '../pages/home/Home';
-import About from '../pages/home/About';
-import PublicLocalReelsPage from '../pages/reels/PublicLocalReelsPage';
-import PublicCreatorMarketplacePage from '../pages/creator/PublicCreatorMarketplacePage';
-import Login from '../pages/auth/Login';
-import Register from '../pages/auth/Register';
-import ForgotPassword from '../pages/auth/ForgotPassword';
-import AuthCallback from '../pages/auth/AuthCallback';
-import DashboardRouter from '../pages/customer/DashboardRouter';
+const Home = React.lazy(() => import('../pages/home/Home'));
+const About = React.lazy(() => import('../pages/home/About'));
+const PublicLocalReelsPage = React.lazy(() => import('../pages/reels/PublicLocalReelsPage'));
+const PublicCreatorMarketplacePage = React.lazy(() => import('../pages/creator/PublicCreatorMarketplacePage'));
+const Login = React.lazy(() => import('../pages/auth/Login'));
+const Register = React.lazy(() => import('../pages/auth/Register'));
+const ForgotPassword = React.lazy(() => import('../pages/auth/ForgotPassword'));
+const AuthCallback = React.lazy(() => import('../pages/auth/AuthCallback'));
+const DashboardRouter = React.lazy(() => import('../pages/customer/DashboardRouter'));
 
 // Customer Pages
-import CustomerHomePage from '../pages/customer/home/CustomerHomePage';
-import PostRequirementPage from '../pages/customer/requirements/PostRequirementPage';
-import MyRequirementsPage from '../pages/customer/requirements/MyRequirementsPage';
-import SearchListingsPage from '../pages/customer/search/SearchListingsPage';
-import CustomerActivitiesPage from '../pages/customer/activities/CustomerActivitiesPage';
-import CustomerNotificationsPage from '../pages/customer/notifications/CustomerNotificationsPage';
-import CustomerChatPage from '../pages/customer/chat/CustomerChatPage';
-import CustomerSettingsPage from '../pages/customer/settings/CustomerSettingsPage';
-import BecomeVendorPage from '../pages/customer/become-vendor/BecomeVendorPage';
-import BecomeCreatorPage from '../pages/customer/become-creator/BecomeCreatorPage';
-import VendorProfilePage from '../pages/customer/vendor/VendorProfilePage';
+const CustomerHomePage = React.lazy(() => import('../pages/customer/home/CustomerHomePage'));
+const PostRequirementPage = React.lazy(() => import('../pages/customer/requirements/PostRequirementPage'));
+const MyRequirementsPage = React.lazy(() => import('../pages/customer/requirements/MyRequirementsPage'));
+const SearchListingsPage = React.lazy(() => import('../pages/customer/search/SearchListingsPage'));
+const CustomerActivitiesPage = React.lazy(() => import('../pages/customer/activities/CustomerActivitiesPage'));
+const CustomerNotificationsPage = React.lazy(() => import('../pages/customer/notifications/CustomerNotificationsPage'));
+const CustomerChatPage = React.lazy(() => import('../pages/customer/chat/CustomerChatPage'));
+const CustomerSettingsPage = React.lazy(() => import('../pages/customer/settings/CustomerSettingsPage'));
+const BecomeVendorPage = React.lazy(() => import('../pages/customer/become-vendor/BecomeVendorPage'));
+const BecomeCreatorPage = React.lazy(() => import('../pages/customer/become-creator/BecomeCreatorPage'));
+const VendorProfilePage = React.lazy(() => import('../pages/customer/vendor/VendorProfilePage'));
 
 // Vendor Pages
-import VendorDashboardPage from '../pages/vendor/dashboard/VendorDashboardPage';
-import VendorBusinessProfilePage from '../pages/vendor/profile/VendorBusinessProfilePage';
-import VendorListingsPage from '../pages/vendor/listings/VendorListingsPage';
-import VendorReelsPage from '../pages/vendor/reels/VendorReelsPage';
-import VendorReelBoostPage from '../pages/vendor/boost/VendorReelBoostPage';
-import VendorLeadsPage from '../pages/vendor/leads/VendorLeadsPage';
-import VendorOrdersPage from '../pages/vendor/orders/VendorOrdersPage';
-import VendorAnalyticsPage from '../pages/vendor/analytics/VendorAnalyticsPage';
-import VendorSubscriptionPage from '../pages/vendor/subscription/VendorSubscriptionPage';
-import VendorWalletPage from '../pages/vendor/wallet/VendorWalletPage';
-import VendorReviewsPage from '../pages/vendor/reviews/VendorReviewsPage';
-import VendorSettingsPage from '../pages/vendor/settings/VendorSettingsPage';
-import VendorHireCreatorPage from '../pages/vendor/hire-creator/VendorHireCreatorPage';
-import VendorVerificationPage from '../pages/vendor/verification/VendorVerificationPage';
-import VendorChatPage from '../pages/vendor/chat/VendorChatPage';
-import VendorFollowersPage from '../pages/vendor/followers/VendorFollowersPage';
+const VendorDashboardPage = React.lazy(() => import('../pages/vendor/dashboard/VendorDashboardPage'));
+const VendorBusinessProfilePage = React.lazy(() => import('../pages/vendor/profile/VendorBusinessProfilePage'));
+const VendorListingsPage = React.lazy(() => import('../pages/vendor/listings/VendorListingsPage'));
+const VendorReelsPage = React.lazy(() => import('../pages/vendor/reels/VendorReelsPage'));
+const VendorReelBoostPage = React.lazy(() => import('../pages/vendor/boost/VendorReelBoostPage'));
+const VendorLeadsPage = React.lazy(() => import('../pages/vendor/leads/VendorLeadsPage'));
+const VendorOrdersPage = React.lazy(() => import('../pages/vendor/orders/VendorOrdersPage'));
+const VendorAnalyticsPage = React.lazy(() => import('../pages/vendor/analytics/VendorAnalyticsPage'));
+const VendorSubscriptionPage = React.lazy(() => import('../pages/vendor/subscription/VendorSubscriptionPage'));
+const VendorWalletPage = React.lazy(() => import('../pages/vendor/wallet/VendorWalletPage'));
+const VendorReviewsPage = React.lazy(() => import('../pages/vendor/reviews/VendorReviewsPage'));
+const VendorSettingsPage = React.lazy(() => import('../pages/vendor/settings/VendorSettingsPage'));
+const VendorHireCreatorPage = React.lazy(() => import('../pages/vendor/hire-creator/VendorHireCreatorPage'));
+const VendorVerificationPage = React.lazy(() => import('../pages/vendor/verification/VendorVerificationPage'));
+const VendorChatPage = React.lazy(() => import('../pages/vendor/chat/VendorChatPage'));
+const VendorFollowersPage = React.lazy(() => import('../pages/vendor/followers/VendorFollowersPage'));
 
 // Creator Pages
-import CreatorDashboardPage from '../pages/creator/dashboard/CreatorDashboardPage';
-import CreatorProfilePage from '../pages/creator/profile/CreatorProfilePage';
-import CreatorPortfolioPage from '../pages/creator/portfolio/CreatorPortfolioPage';
-import CreatorPricingPage from '../pages/creator/pricing/CreatorPricingPage';
-import CreatorAvailabilityPage from '../pages/creator/availability/CreatorAvailabilityPage';
-import CreatorSubscriptionPage from '../pages/creator/subscription/CreatorSubscriptionPage';
-import CreatorWalletPage from '../pages/creator/wallet/CreatorWalletPage';
-import CreatorOrdersPage from '../pages/creator/orders/CreatorOrdersPage';
-import CreatorReviewsPage from '../pages/creator/reviews/CreatorReviewsPage';
-import CreatorAnalyticsPage from '../pages/creator/analytics/CreatorAnalyticsPage';
-import CreatorVerificationPage from '../pages/creator/verification/CreatorVerificationPage';
-import CreatorSettingsPage from '../pages/creator/settings/CreatorSettingsPage';
-import Chats from '../pages/chat/Chats';
+const CreatorDashboardPage = React.lazy(() => import('../pages/creator/dashboard/CreatorDashboardPage'));
+const CreatorProfilePage = React.lazy(() => import('../pages/creator/profile/CreatorProfilePage'));
+const CreatorPortfolioPage = React.lazy(() => import('../pages/creator/portfolio/CreatorPortfolioPage'));
+const CreatorPricingPage = React.lazy(() => import('../pages/creator/pricing/CreatorPricingPage'));
+const CreatorAvailabilityPage = React.lazy(() => import('../pages/creator/availability/CreatorAvailabilityPage'));
+const CreatorSubscriptionPage = React.lazy(() => import('../pages/creator/subscription/CreatorSubscriptionPage'));
+const CreatorWalletPage = React.lazy(() => import('../pages/creator/wallet/CreatorWalletPage'));
+const CreatorOrdersPage = React.lazy(() => import('../pages/creator/orders/CreatorOrdersPage'));
+const CreatorReviewsPage = React.lazy(() => import('../pages/creator/reviews/CreatorReviewsPage'));
+const CreatorAnalyticsPage = React.lazy(() => import('../pages/creator/analytics/CreatorAnalyticsPage'));
+const CreatorVerificationPage = React.lazy(() => import('../pages/creator/verification/CreatorVerificationPage'));
+const CreatorSettingsPage = React.lazy(() => import('../pages/creator/settings/CreatorSettingsPage'));
+const Chats = React.lazy(() => import('../pages/chat/Chats'));
 
 // Admin Pages
-import AdminLogin from '../pages/admin/AdminLogin';
-import AdminDashboard from '../pages/admin/AdminDashboard';
-import AdminConsole from '../pages/admin/AdminConsole';
-import AdminKycPage from '../pages/admin/kyc/AdminKycPage';
-import AdminListingsPage from '../pages/admin/listings/AdminListingsPage';
-import AdminReelsPage from '../pages/admin/reels/AdminReelsPage';
-import AdminBoostPage from '../pages/admin/boost/AdminBoostPage';
-import AdminCategoriesPage from '../pages/admin/categories/AdminCategoriesPage';
-import AdminLocationsPage from '../pages/admin/locations/AdminLocationsPage';
-import AdminRequirementsPage from '../pages/admin/requirements/AdminRequirementsPage';
-import AdminChatPage from '../pages/admin/chat/AdminChatPage';
-import AdminOrdersPage from '../pages/admin/orders/AdminOrdersPage';
-import AdminWalletPage from '../pages/admin/wallet/AdminWalletPage';
-import AdminSubscriptionsPage from '../pages/admin/subscriptions/AdminSubscriptionsPage';
-import AdminReviewsPage from '../pages/admin/reviews/AdminReviewsPage';
-import AdminAnalyticsPage from '../pages/admin/analytics/AdminAnalyticsPage';
-import AdminAiPage from '../pages/admin/ai/AdminAiPage';
-import AdminNotificationsPage from '../pages/admin/notifications/AdminNotificationsPage';
-import AdminOffersPage from '../pages/admin/offers/AdminOffersPage';
-import AdminCommissionPage from '../pages/admin/commission/AdminCommissionPage';
-import AdminCmsPage from '../pages/admin/cms/AdminCmsPage';
-import AdminAppSettingsPage from '../pages/admin/app-settings/AdminAppSettingsPage';
-import AdminSecurityPage from '../pages/admin/security/AdminSecurityPage';
-import AdminAuditPage from '../pages/admin/audit/AdminAuditPage';
-import AdminModerationPage from '../pages/admin/moderation/AdminModerationPage';
-import AdminFinancialReportsPage from '../pages/admin/reports/AdminFinancialReportsPage';
-import AdminCustomers from '../pages/admin/users/AdminCustomers';
-import AdminVendors from '../pages/admin/users/AdminVendors';
-import AdminCreators from '../pages/admin/users/AdminCreators';
+const AdminLogin = React.lazy(() => import('../pages/admin/AdminLogin'));
+const AdminDashboard = React.lazy(() => import('../pages/admin/AdminDashboard'));
+const AdminConsole = React.lazy(() => import('../pages/admin/AdminConsole'));
+const AdminKycPage = React.lazy(() => import('../pages/admin/kyc/AdminKycPage'));
+const AdminListingsPage = React.lazy(() => import('../pages/admin/listings/AdminListingsPage'));
+const AdminReelsPage = React.lazy(() => import('../pages/admin/reels/AdminReelsPage'));
+const AdminBoostPage = React.lazy(() => import('../pages/admin/boost/AdminBoostPage'));
+const AdminCategoriesPage = React.lazy(() => import('../pages/admin/categories/AdminCategoriesPage'));
+const AdminLocationsPage = React.lazy(() => import('../pages/admin/locations/AdminLocationsPage'));
+const AdminRequirementsPage = React.lazy(() => import('../pages/admin/requirements/AdminRequirementsPage'));
+const AdminChatPage = React.lazy(() => import('../pages/admin/chat/AdminChatPage'));
+const AdminOrdersPage = React.lazy(() => import('../pages/admin/orders/AdminOrdersPage'));
+const AdminWalletPage = React.lazy(() => import('../pages/admin/wallet/AdminWalletPage'));
+const AdminSubscriptionsPage = React.lazy(() => import('../pages/admin/subscriptions/AdminSubscriptionsPage'));
+const AdminReviewsPage = React.lazy(() => import('../pages/admin/reviews/AdminReviewsPage'));
+const AdminAnalyticsPage = React.lazy(() => import('../pages/admin/analytics/AdminAnalyticsPage'));
+const AdminAiPage = React.lazy(() => import('../pages/admin/ai/AdminAiPage'));
+const AdminNotificationsPage = React.lazy(() => import('../pages/admin/notifications/AdminNotificationsPage'));
+const AdminOffersPage = React.lazy(() => import('../pages/admin/offers/AdminOffersPage'));
+const AdminCommissionPage = React.lazy(() => import('../pages/admin/commission/AdminCommissionPage'));
+const AdminCmsPage = React.lazy(() => import('../pages/admin/cms/AdminCmsPage'));
+const AdminAppSettingsPage = React.lazy(() => import('../pages/admin/app-settings/AdminAppSettingsPage'));
+const AdminSecurityPage = React.lazy(() => import('../pages/admin/security/AdminSecurityPage'));
+const AdminAuditPage = React.lazy(() => import('../pages/admin/audit/AdminAuditPage'));
+const AdminModerationPage = React.lazy(() => import('../pages/admin/moderation/AdminModerationPage'));
+const AdminFinancialReportsPage = React.lazy(() => import('../pages/admin/reports/AdminFinancialReportsPage'));
+const AdminCustomers = React.lazy(() => import('../pages/admin/users/AdminCustomers'));
+const AdminVendors = React.lazy(() => import('../pages/admin/users/AdminVendors'));
+const AdminCreators = React.lazy(() => import('../pages/admin/users/AdminCreators'));
 
 const AppRoutes = () => {
   return (
-    <Routes>
+    <React.Suspense fallback={<Loader fullPage />}>
+      <Routes>
       {/* ── Public Landing Pages ───────────────────────────────── */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
@@ -258,7 +260,8 @@ const AppRoutes = () => {
 
       {/* ── Global Fallback ─────────────────────────────────── */}
       <Route path="*" element={<Navigate to="/customer/home" replace />} />
-    </Routes>
+      </Routes>
+    </React.Suspense>
   );
 };
 

@@ -190,8 +190,10 @@ class ListingRepository {
       },
     });
 
-    const listings = await Listing.aggregate(pipeline);
-    const total = await Listing.countDocuments(match);
+    const [listings, total] = await Promise.all([
+      Listing.aggregate(pipeline),
+      Listing.countDocuments(match),
+    ]);
 
     return { listings, total };
   }

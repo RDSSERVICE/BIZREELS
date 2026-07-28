@@ -5,6 +5,7 @@ import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { api, resolveMediaUrl } from '../../../lib/api';
+import OptimizedImage from '../../../components/common/OptimizedImage';
 
 function OfferCountdown({ validTill }) {
   const [timeLeft, setTimeLeft] = useState('');
@@ -468,7 +469,7 @@ export default function SearchListingsPage() {
                 onClick={() => setSelectedItem(item)}
               >
                 <div className="aspect-video bg-surface-tertiary relative overflow-hidden">
-                  <img src={imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                  <OptimizedImage src={imageUrl} alt={item.title} className="w-full h-full object-cover" width={400} />
                   <div className="absolute top-3 left-3 glass px-2.5 py-1 rounded-lg text-[10px] font-bold text-brand-purple uppercase border border-border flex items-center gap-1">
                     {isService ? <FiTool size={11} /> : <FiShoppingBag size={11} />}
                     {item.type || 'product'}
@@ -571,16 +572,17 @@ export default function SearchListingsPage() {
               {/* Media Preview */}
               <div className="space-y-3">
                 <div className="aspect-square rounded-2xl overflow-hidden bg-surface-tertiary border border-border">
-                  <img
+                  <OptimizedImage
                     src={resolveMediaUrl(selectedItem.images?.[0] || selectedItem.image || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f')}
                     alt={selectedItem.title}
                     className="w-full h-full object-cover"
+                    width={600}
                   />
                 </div>
                 {selectedItem.images?.length > 1 && (
                   <div className="flex gap-2 overflow-x-auto">
                     {selectedItem.images.map((img, idx) => (
-                      <img key={idx} src={resolveMediaUrl(img)} alt="" className="w-14 h-14 rounded-xl object-cover border border-border cursor-pointer" />
+                      <OptimizedImage key={idx} src={resolveMediaUrl(img)} alt="" className="w-14 h-14 rounded-xl object-cover border border-border cursor-pointer" width={100} />
                     ))}
                   </div>
                 )}

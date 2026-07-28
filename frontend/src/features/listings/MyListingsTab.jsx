@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiPlus, FiTrash2, FiCpu, FiEye, FiArchive, FiCheck, FiX, FiInfo } from 'react-icons/fi';
+import OptimizedImage from '../../components/common/OptimizedImage';
 import {
   useGetListingsQuery,
   useCreateListingMutation,
@@ -198,10 +199,11 @@ const MyListingsTab = ({ user }) => {
               className="glass rounded-2xl border border-white/50 shadow-glass flex flex-col overflow-hidden relative group hover:shadow-premium transition-all duration-300"
             >
               <div className="h-44 w-full bg-slate-100 relative overflow-hidden">
-                <img
+                <OptimizedImage
                   src={item.images?.[0] || 'https://via.placeholder.com/300?text=No+Image'}
                   alt={item.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  width={300}
                 />
                 <span className="absolute top-3 left-3 px-2.5 py-0.5 text-[9px] font-black uppercase text-white bg-brand-purple rounded-lg shadow-sm">
                   {item.type}

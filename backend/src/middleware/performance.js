@@ -8,10 +8,29 @@ const performanceLocalStorage = new AsyncLocalStorage();
  */
 const requestPerformanceLogger = (req, res, next) => {
   const start = process.hrtime();
+  const memStart = process.memoryUsage().heapUsed;
   
   const context = {
     dbQueryCount: 0,
     dbQueryTime: 0,
+  };
+
+  let responseSize = 0;
+  const oldWrite = res.write;
+  const oldEnd = res.end;
+
+  res.write = function (chunk, ...args) {
+    if (chunk) {
+      responseSize += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+    }
+    return oldWrite.apply(res, [chunk, ...args]);
+  };
+
+  res.end = function (chunk, ...args) {
+    if (chunk) {
+      responseSize += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+    }
+    return oldEnd.apply(res, [chunk, ...args]);
   };
 
   performanceLocalStorage.run(context, () => {
@@ -19,6 +38,10 @@ const requestPerformanceLogger = (req, res, next) => {
       const diff = process.hrtime(start);
       const durationMs = (diff[0] * 1e3 + diff[1] * 1e-6);
       
+      const memEnd = process.memoryUsage().heapUsed;
+      const heapUsedMB = memEnd / (1024 * 1024);
+      const heapDiffMB = (memEnd - memStart) / (1024 * 1024);
+
       const logPayload = {
         method: req.method,
         url: req.originalUrl || req.url,
@@ -26,17 +49,26 @@ const requestPerformanceLogger = (req, res, next) => {
         totalTimeMs: durationMs,
         dbQueryCount: context.dbQueryCount,
         dbQueryTimeMs: context.dbQueryTime,
+        responseSizeBytes: responseSize,
+        heapUsedMB: heapUsedMB,
+        heapDiffMB: heapDiffMB,
       };
+
+      const sizeStr = responseSize > 1024 * 1024
+        ? `${(responseSize / (1024 * 1024)).toFixed(2)} MB`
+        : responseSize > 1024
+          ? `${(responseSize / 1024).toFixed(2)} KB`
+          : `${responseSize} B`;
 
       if (durationMs > 500) {
         logger.warn(
-          `SLOW API WARNING: ${req.method} ${logPayload.url} took ${durationMs.toFixed(2)}ms [DB Queries: ${context.dbQueryCount}, DB Query Time: ${context.dbQueryTime.toFixed(2)}ms]`,
+          `SLOW API WARNING: ${req.method} ${logPayload.url} took ${durationMs.toFixed(2)}ms | Size: ${sizeStr} | Heap: ${heapUsedMB.toFixed(2)}MB (${heapDiffMB >= 0 ? '+' : ''}${heapDiffMB.toFixed(2)}MB) [DB Queries: ${context.dbQueryCount}, DB Query Time: ${context.dbQueryTime.toFixed(2)}ms]`,
           logPayload
         );
       } else {
         logger.info(
-          `${req.method} ${logPayload.url} took ${durationMs.toFixed(2)}ms`,
-          { durationMs }
+          `${req.method} ${logPayload.url} took ${durationMs.toFixed(2)}ms | Size: ${sizeStr} | Heap: ${heapUsedMB.toFixed(2)}MB`,
+          { durationMs, responseSizeBytes: responseSize, heapUsedMB }
         );
       }
     });

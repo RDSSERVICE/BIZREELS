@@ -74,6 +74,9 @@ const userSchema = new mongoose.Schema({
 
 userSchema.index({ is_deleted: 1 });
 userSchema.index({ 'location.coordinates': '2dsphere' });
+userSchema.index({ roles: 1 });
+userSchema.index({ city: 1 });
+userSchema.index({ activeRole: 1 });
 
 // Pre-validate hook to clean up empty/falsy sparse unique fields
 userSchema.pre('validate', function(next) {

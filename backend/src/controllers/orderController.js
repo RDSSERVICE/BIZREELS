@@ -92,15 +92,12 @@ class OrderController {
     // Search query mapping listing title, vendor name, or order ID
     if (search) {
       const searchRegex = new RegExp(search, 'i');
-      const matchedListings = await Listing.find({
-        $or: [{ title: searchRegex }, { category: searchRegex }]
-      }).select('_id').lean();
-      const listingIds = matchedListings.map(l => l._id);
-
       const User = require('../models/User');
-      const matchedUsers = await User.find({
-        $or: [{ name: searchRegex }, { 'vendorProfile.shopName': searchRegex }]
-      }).select('_id').lean();
+      const [matchedListings, matchedUsers] = await Promise.all([
+        Listing.find({ $or: [{ title: searchRegex }, { category: searchRegex }] }).select('_id').lean(),
+        User.find({ $or: [{ name: searchRegex }, { 'vendorProfile.shopName': searchRegex }] }).select('_id').lean()
+      ]);
+      const listingIds = matchedListings.map(l => l._id);
       const userIds = matchedUsers.map(u => u._id);
 
       const orConditions = [
@@ -129,19 +126,21 @@ class OrderController {
       else if (sortBy === 'price_high_low') sort = { price: -1 };
     }
 
-    const total = await Order.countDocuments(baseQuery);
     const parsedPage = parseInt(page, 10);
     const parsedLimit = parseInt(limit, 10);
     const skip = (parsedPage - 1) * parsedLimit;
 
-    const orders = await Order.find(baseQuery)
-      .populate('customer', 'name email avatarUrl phone')
-      .populate('vendor', 'name email avatarUrl phone businessName vendorProfile')
-      .populate('listing', 'title images type category actualPrice sellingPrice price discount stock status')
-      .sort(sort)
-      .skip(skip)
-      .limit(parsedLimit)
-      .lean();
+    const [total, orders] = await Promise.all([
+      Order.countDocuments(baseQuery),
+      Order.find(baseQuery)
+        .populate('customer', 'name email avatarUrl phone')
+        .populate('vendor', 'name email avatarUrl phone businessName vendorProfile')
+        .populate('listing', 'title images type category actualPrice sellingPrice price discount stock status')
+        .sort(sort)
+        .skip(skip)
+        .limit(parsedLimit)
+        .lean()
+    ]);
 
     return ApiResponse.paginated(res, 'Orders retrieved successfully.', orders, {
       page: parsedPage,

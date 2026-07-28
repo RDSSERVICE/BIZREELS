@@ -17,7 +17,7 @@ export function getSocket() {
 
   socket = io(BACKEND_URL, {
     path: '/socket.io',
-    transports: ['polling', 'websocket'],
+    transports: ['websocket'],
     withCredentials: true,
     auth: { token: token.startsWith('Bearer ') ? token : `Bearer ${token}` },
     reconnection: true,

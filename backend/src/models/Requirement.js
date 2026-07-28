@@ -44,6 +44,7 @@ requirementSchema.index({ is_deleted: 1, isDeleted: 1 });
 requirementSchema.index({ customer_id: 1, customer: 1 });
 requirementSchema.index({ assignedVendorIds: 1 });
 requirementSchema.index({ category: 1 });
+requirementSchema.index({ 'location.city': 1 });
 requirementSchema.index({ assignedVendorIds: 1, status: 1, isDeleted: 1 });
 requirementSchema.index({ title: 'text', description: 'text' }, { name: 'req_text' });
 

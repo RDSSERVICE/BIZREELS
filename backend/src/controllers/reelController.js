@@ -42,8 +42,14 @@ class ReelController {
 
   // ── Get My Reels (Vendor/Creator) ──────────────────────
   getMyReels = asyncHandler(async (req, res) => {
-    const reels = await reelService.getVendorReels(req.user._id);
-    return ApiResponse.ok(res, 'My reels fetched successfully.', reels);
+    const page = Math.max(1, parseInt(req.query.page || 1, 10));
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 10, 10)));
+    const { reels, total } = await reelService.getVendorReels(req.user._id, page, limit);
+    return ApiResponse.paginated(res, 'My reels fetched successfully.', reels, {
+      page,
+      limit,
+      total,
+    });
   });
 
   // ── Get Feed ────────────────────────────────────────────

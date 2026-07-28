@@ -103,8 +103,12 @@ const activateSubscriptionFromPayment = async (payment) => {
   return serializeSub(subDoc);
 };
 
-const mySubs = async (userId) => {
-  const docs = await Subscription.find({ user_id: userId }).sort({ _id: -1 }).limit(50);
+const mySubs = async (userId, page = 1, limit = 50) => {
+  const skip = (page - 1) * limit;
+  const docs = await Subscription.find({ user_id: userId })
+    .sort({ _id: -1 })
+    .skip(skip)
+    .limit(limit);
   return docs.map(serializeSub);
 };
 
