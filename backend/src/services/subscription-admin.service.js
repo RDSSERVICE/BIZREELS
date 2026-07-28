@@ -473,6 +473,12 @@ class SubscriptionAdminService {
 
   _emitUpdate(tags) {
     try {
+      if (tags && tags.includes('SubscriptionPlans')) {
+        const cache = require('../utils/cache');
+        cache.deleteCache('subscription:plans');
+      }
+    } catch (err) {}
+    try {
       const { emitToAdmin, emitToRole } = require('../sockets');
       emitToAdmin('admin:update', { tags });
       emitToRole('vendor', 'subscription:updated', { updated: true });

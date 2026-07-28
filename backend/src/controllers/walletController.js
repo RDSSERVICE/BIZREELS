@@ -1,6 +1,7 @@
 const walletService = require('../services/wallet.service');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
+const cache = require('../utils/cache');
 
 /**
  * WalletController
@@ -10,7 +11,7 @@ class WalletController {
   // ── Retrieve Wallet Balance ─────────────────────────────
   getWallet = asyncHandler(async (req, res) => {
     const { Wallet } = require('../models/Phase4');
-    const wallet = await Wallet.findOne({ user_id: req.user._id.toString() });
+    const wallet = await Wallet.findOne({ user_id: req.user._id.toString() }).lean();
     const credits = wallet ? wallet.credits : (req.user.walletBalance || 0);
     return ApiResponse.ok(res, 'Wallet details loaded.', {
       balance: credits,
@@ -38,11 +39,16 @@ class WalletController {
 
   // ── Retrieve Active Plans (For Vendors / Creators) ───────
   getPlans = asyncHandler(async (req, res) => {
+    const cacheKey = 'subscription:plans';
+    const cached = await cache.getCache(cacheKey);
+    if (cached) {
+      return ApiResponse.ok(res, 'Active subscription plans loaded.', { items: cached });
+    }
+
     const { SubscriptionPlan } = require('../models/Admin');
-    const plans = await SubscriptionPlan.find({ is_active: true, is_deleted: { $ne: true } }).sort({ price_inr: 1 });
+    const plans = await SubscriptionPlan.find({ is_active: true, is_deleted: { $ne: true } }).sort({ price_inr: 1 }).lean();
     
-    const mapped = plans.map(p => {
-      const obj = p.toObject ? p.toObject() : { ...p };
+    const mapped = plans.map(obj => {
       const role = obj.user_type || obj.target_role || 'vendor';
       return {
         id: (obj._id || obj.id).toString(),
@@ -65,6 +71,7 @@ class WalletController {
       };
     });
 
+    await cache.setCache(cacheKey, mapped, 86400); // 24 hours
     return ApiResponse.ok(res, 'Active subscription plans loaded.', { items: mapped });
   });
 
@@ -85,9 +92,20 @@ class WalletController {
   // ── Retrieve Transactions History ───────────────────────
   getTransactions = asyncHandler(async (req, res) => {
     const WalletTransactionV2 = require('../models/WalletTransactionV2.model');
-    const list = await WalletTransactionV2.find({ user_id: req.user._id.toString(), is_deleted: { $ne: true } })
-      .sort({ created_at: -1 })
-      .lean();
+    const page = Math.max(1, parseInt(req.query.page || 1, 10));
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 20, 10)));
+    const skip = (page - 1) * limit;
+
+    const query = { user_id: req.user._id.toString(), is_deleted: { $ne: true } };
+
+    const [list, total] = await Promise.all([
+      WalletTransactionV2.find(query)
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      WalletTransactionV2.countDocuments(query)
+    ]);
 
     const mapped = list.map(tx => ({
       id: tx._id.toString(),
@@ -99,7 +117,11 @@ class WalletController {
       createdAt: tx.created_at,
     }));
 
-    return ApiResponse.ok(res, 'Transactions ledger loaded.', { transactions: mapped });
+    return ApiResponse.paginated(res, 'Transactions ledger loaded.', mapped, {
+      page,
+      limit,
+      total,
+    });
   });
 
   // ── Purchase Plan ───────────────────────────────────────

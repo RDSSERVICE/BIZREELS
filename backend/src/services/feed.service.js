@@ -94,10 +94,10 @@ const buildFeed = async ({
       ];
       docs = await Listing.aggregate(pipeline);
     } catch (err) {
-      docs = await Listing.find(q).sort({ _id: -1 }).limit(poolSize);
+      docs = await Listing.find(q).sort({ _id: -1 }).limit(poolSize).lean();
     }
   } else {
-    docs = await Listing.find(q).sort({ _id: -1 }).limit(poolSize);
+    docs = await Listing.find(q).sort({ _id: -1 }).limit(poolSize).lean();
   }
 
   // Following set
@@ -149,7 +149,9 @@ const buildFeed = async ({
   const vendorIds = Array.from(new Set(resultItems.map(r => r.vendor_id).filter(Boolean)));
 
   if (vendorIds.length > 0) {
-    const vendors = await User.find({ _id: { $in: vendorIds } });
+    const vendors = await User.find({ _id: { $in: vendorIds } })
+      .select('name profile_pic avatarUrl')
+      .lean();
     const vmap = {};
     for (const v of vendors) {
       vmap[v._id.toString()] = v;

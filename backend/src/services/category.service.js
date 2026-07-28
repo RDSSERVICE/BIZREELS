@@ -103,7 +103,17 @@ const seedCategories = async () => {
   logger.info(`Seeded ${SEED_TREE.length} category groups`);
 };
 
+const cache = require('../utils/cache');
+
 const listCategories = async ({ parent_id = null, only_top_level = false, as_tree = false, category_type = null } = {}) => {
+  const version = await cache.getCache('categories:version') || 1;
+  const cacheKey = `categories:v${version}:${parent_id || 'null'}:${only_top_level}:${as_tree}:${category_type || 'null'}`;
+  
+  const cached = await cache.getCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const q = { is_deleted: { $ne: true }, is_active: true };
   if (only_top_level) {
     q.parent_id = null;
@@ -113,29 +123,32 @@ const listCategories = async ({ parent_id = null, only_top_level = false, as_tre
   if (category_type) {
     q.category_type = category_type;
   }
-  const docs = await Category.find(q).sort({ sort_order: 1, name: 1 });
+  const docs = await Category.find(q).sort({ sort_order: 1, name: 1 }).lean();
   const serialized = docs.map(serializeCategory);
-  if (!as_tree) {
-    return serialized;
-  }
-  // Build tree
-  const byParent = {};
-  for (const d of serialized) {
-    const pId = d.parent_id;
-    if (!byParent[pId]) {
-      byParent[pId] = [];
+  let result = serialized;
+  if (as_tree) {
+    // Build tree
+    const byParent = {};
+    for (const d of serialized) {
+      const pId = d.parent_id;
+      if (!byParent[pId]) {
+        byParent[pId] = [];
+      }
+      byParent[pId].push(d);
     }
-    byParent[pId].push(d);
+    const roots = byParent[null] || byParent['null'] || [];
+    for (const r of roots) {
+      r.children = byParent[r.id] || [];
+    }
+    result = roots;
   }
-  const roots = byParent[null] || byParent['null'] || [];
-  for (const r of roots) {
-    r.children = byParent[r.id] || [];
-  }
-  return roots;
+
+  await cache.setCache(cacheKey, result, 3600); // cache for 1 hour
+  return result;
 };
 
 const getBySlug = async (slug) => {
-  const doc = await Category.findOne({ slug, is_deleted: { $ne: true } });
+  const doc = await Category.findOne({ slug, is_deleted: { $ne: true } }).lean();
   if (!doc) return null;
   const result = serializeCategory(doc);
   // Attach children
@@ -143,13 +156,13 @@ const getBySlug = async (slug) => {
     parent_id: result.id,
     is_deleted: { $ne: true },
     is_active: true,
-  }).sort({ sort_order: 1 });
+  }).sort({ sort_order: 1 }).lean();
   result.children = children.map(serializeCategory);
   return result;
 };
 
 const getById = async (cid) => {
-  const doc = await Category.findOne({ _id: cid, is_deleted: { $ne: true } });
+  const doc = await Category.findOne({ _id: cid, is_deleted: { $ne: true } }).lean();
   return doc ? serializeCategory(doc) : null;
 };
 
@@ -157,14 +170,14 @@ const createCategory = async (name, parent_id = null, icon_url = null, category_
   const slugBase = slugify(name, { lower: true });
   let slug = slugBase;
   let i = 1;
-  while (await Category.findOne({ slug })) {
+  while (await Category.findOne({ slug }).lean()) {
     i++;
     slug = `${slugBase}-${i}`;
   }
   // If adding subcategory, inherit parent's category_type
   let resolvedType = category_type;
   if (parent_id && !resolvedType) {
-    const parent = await Category.findById(parent_id);
+    const parent = await Category.findById(parent_id).lean();
     if (parent) resolvedType = parent.category_type;
   }
   const doc = await Category.create({
@@ -175,6 +188,8 @@ const createCategory = async (name, parent_id = null, icon_url = null, category_
     category_type: resolvedType,
     required_licenses: Array.isArray(required_licenses) ? required_licenses : [],
   });
+  
+  await cache.incrCache('categories:version');
   return serializeCategory(doc);
 };
 
@@ -193,11 +208,14 @@ const updateCategory = async (cid, updates) => {
   if (!doc) {
     throw ApiError.notFound('Category not found');
   }
+  
+  await cache.incrCache('categories:version');
   return serializeCategory(doc);
 };
 
 const softDeleteCategory = async (cid) => {
   await Category.updateOne({ _id: cid }, { $set: { is_deleted: true } });
+  await cache.incrCache('categories:version');
 };
 
 module.exports = {

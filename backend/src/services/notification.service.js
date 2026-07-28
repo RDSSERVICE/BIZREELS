@@ -63,8 +63,22 @@ class NotificationService {
   }
 
   async listMine(userId, isRead = null, cursor = null, limit = 30) {
-    const notifs = await this.getNotifications(userId);
-    return { items: notifs || [], next_cursor: null, has_more: false };
+    const listLimit = Math.max(1, Math.min(100, parseInt(limit || 30, 10)));
+    const notifs = await notificationRepository.getNotificationsForUser(userId, {
+      isRead,
+      cursor,
+      limit: listLimit + 1
+    });
+
+    const hasMore = notifs.length > listLimit;
+    const items = notifs.slice(0, listLimit);
+    const nextCursor = hasMore && items.length > 0 ? items[items.length - 1]._id.toString() : null;
+
+    return {
+      items: items.map(n => ({ ...n, id: n._id.toString() })),
+      next_cursor: nextCursor,
+      has_more: hasMore,
+    };
   }
 
   async unreadCount(userId) {

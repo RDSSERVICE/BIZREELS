@@ -94,13 +94,13 @@ class OrderController {
       const searchRegex = new RegExp(search, 'i');
       const matchedListings = await Listing.find({
         $or: [{ title: searchRegex }, { category: searchRegex }]
-      }).select('_id');
+      }).select('_id').lean();
       const listingIds = matchedListings.map(l => l._id);
 
       const User = require('../models/User');
       const matchedUsers = await User.find({
         $or: [{ name: searchRegex }, { 'vendorProfile.shopName': searchRegex }]
-      }).select('_id');
+      }).select('_id').lean();
       const userIds = matchedUsers.map(u => u._id);
 
       const orConditions = [
@@ -140,7 +140,8 @@ class OrderController {
       .populate('listing', 'title images type category actualPrice sellingPrice price discount stock status')
       .sort(sort)
       .skip(skip)
-      .limit(parsedLimit);
+      .limit(parsedLimit)
+      .lean();
 
     return ApiResponse.paginated(res, 'Orders retrieved successfully.', orders, {
       page: parsedPage,

@@ -1,4 +1,26 @@
 const express = require('express');
+const mongoose = require('mongoose');
+const { requestPerformanceLogger, performanceLocalStorage } = require('./middleware/performance');
+
+// Register Mongoose Query Profiling Plugin BEFORE compiling any schemas/models
+mongoose.plugin((schema) => {
+  schema.pre(['find', 'findOne', 'countDocuments', 'aggregate', 'findOneAndUpdate', 'updateOne', 'updateMany', 'deleteOne', 'deleteMany'], function() {
+    this._queryStartTime = process.hrtime();
+  });
+  
+  schema.post(['find', 'findOne', 'countDocuments', 'aggregate', 'findOneAndUpdate', 'updateOne', 'updateMany', 'deleteOne', 'deleteMany'], function(res) {
+    if (this._queryStartTime) {
+      const diff = process.hrtime(this._queryStartTime);
+      const durationMs = (diff[0] * 1e3 + diff[1] * 1e-6);
+      const context = performanceLocalStorage.getStore();
+      if (context) {
+        context.dbQueryCount++;
+        context.dbQueryTime += durationMs;
+      }
+    }
+  });
+});
+
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -14,6 +36,8 @@ const ApiError = require('./utils/ApiError');
 const logger = require('./utils/logger');
 
 const app = express();
+
+app.use(requestPerformanceLogger);
 
 // ══════════════════════════════════════════════════════════════
 // SECURITY MIDDLEWARE

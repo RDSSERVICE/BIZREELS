@@ -7,6 +7,7 @@ const LeadBoostConfig = require('../models/LeadBoostConfig.model');
 const GSTConfig = require('../models/GSTConfig.model');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+const cache = require('../utils/cache');
 
 const DEFAULT_RATE = 5.0; // 5% default
 
@@ -91,13 +92,29 @@ class CommissionService {
   // ─── Configurations & Settings Getters ────────────────────
 
   async getFullConfig() {
-    const [configs, leadBoost, gst] = await Promise.all([
-      CommissionConfig.find({}),
-      LeadBoostConfig.findOne({ key: 'singleton' }) || LeadBoostConfig.create({ key: 'singleton' }),
-      GSTConfig.findOne({ key: 'singleton' }) || GSTConfig.create({ key: 'singleton' }),
+    const cacheKey = 'commission:fullconfig';
+    const cached = await cache.getCache(cacheKey);
+    if (cached) return cached;
+
+    const [configs, leadBoostDoc, gstDoc] = await Promise.all([
+      CommissionConfig.find({}).lean(),
+      LeadBoostConfig.findOne({ key: 'singleton' }),
+      GSTConfig.findOne({ key: 'singleton' }),
     ]);
 
-    return {
+    let leadBoost = leadBoostDoc ? (leadBoostDoc.toObject ? leadBoostDoc.toObject() : leadBoostDoc) : null;
+    if (!leadBoost) {
+      const created = await LeadBoostConfig.create({ key: 'singleton' });
+      leadBoost = created.toObject();
+    }
+
+    let gst = gstDoc ? (gstDoc.toObject ? gstDoc.toObject() : gstDoc) : null;
+    if (!gst) {
+      const created = await GSTConfig.create({ key: 'singleton' });
+      gst = created.toObject();
+    }
+
+    const result = {
       commissions: configs.map(c => ({
         id: c._id.toString(),
         config_type: c.config_type,
@@ -120,6 +137,9 @@ class CommissionService {
         tax_rules: gst.tax_rules,
       },
     };
+
+    await cache.setCache(cacheKey, result, 86400); // cache for 24h
+    return result;
   }
 
   // ─── Set Configurations (Admin) ───────────────────────────
@@ -368,6 +388,10 @@ class CommissionService {
   }
 
   _emitUpdate(tags) {
+    try {
+      const cache = require('../utils/cache');
+      cache.deleteCache('commission:fullconfig');
+    } catch (err) {}
     try {
       const { emitToAdmin } = require('../sockets');
       emitToAdmin('admin:update', { tags });

@@ -21,13 +21,51 @@ const overview = async (vendorId, rangeKey = '30d') => {
     evQ.created_at = { $gte: cutoff };
   }
 
-  // Event counts by type
-  const agg = await ListingEvent.aggregate([
-    { $match: evQ },
-    { $group: { _id: '$event_type', n: { $sum: 1 } } },
+  const chatQ = { ...evQ, event_type: 'chat_start', user_id: { $ne: null } };
+
+  // Step 1: Run all queries in parallel
+  const [
+    eventAgg,
+    uniqueChatters,
+    watchersAgg,
+    dealsAgg,
+    revAgg,
+    totalListings,
+    activeListings
+  ] = await Promise.all([
+    ListingEvent.aggregate([
+      { $match: evQ },
+      { $group: { _id: '$event_type', n: { $sum: 1 } } },
+    ]).catch(() => []),
+    ListingEvent.distinct('user_id', chatQ).catch(() => []),
+    Listing.aggregate([
+      { $match: { vendor_id: vendorId, is_deleted: { $ne: true } } },
+      { $project: { watchers_count: { $size: { $ifNull: ['$watchers', []] } } } },
+      { $group: { _id: null, total: { $sum: '$watchers_count' } } },
+    ]).catch(() => []),
+    Deal.aggregate([
+      { $match: { seller_id: vendorId } },
+      { $group: { _id: '$status', n: { $sum: 1 } } },
+    ]).catch(() => []),
+    Review.aggregate([
+      { $match: { target_type: 'vendor', target_id: vendorId, is_deleted: { $ne: true } } },
+      { $group: { _id: null, avg: { $avg: '$rating' }, n: { $sum: 1 } } },
+    ]).catch(() => []),
+    Listing.countDocuments({
+      vendor_id: vendorId,
+      is_deleted: { $ne: true },
+      is_takendown: { $ne: true },
+    }).catch(() => 0),
+    Listing.countDocuments({
+      vendor_id: vendorId,
+      is_deleted: { $ne: true },
+      is_takendown: { $ne: true },
+      status: 'active',
+    }).catch(() => 0)
   ]);
+
   const counts = {};
-  for (const row of agg) {
+  for (const row of eventAgg) {
     counts[row._id] = row.n;
   }
 
@@ -39,50 +77,16 @@ const overview = async (vendorId, rangeKey = '30d') => {
   const shares = counts.share || 0;
   const waClicks = counts.wa_click || 0;
 
-  // Unique buyers
-  const chatQ = { ...evQ, event_type: 'chat_start', user_id: { $ne: null } };
-  const uniqueChatters = await ListingEvent.distinct('user_id', chatQ);
   const uniqueChattersCount = uniqueChatters.length;
-
-  // Watchers count across vendor's active listings
-  const watchersAgg = await Listing.aggregate([
-    { $match: { vendor_id: vendorId, is_deleted: { $ne: true } } },
-    { $project: { watchers_count: { $size: { $ifNull: ['$watchers', []] } } } },
-    { $group: { _id: null, total: { $sum: '$watchers_count' } } },
-  ]);
   const totalWatchers = watchersAgg.length > 0 ? watchersAgg[0].total : 0;
   const totalLeads = uniqueChattersCount + totalWatchers;
 
-  // Deals by status
-  const dealsAgg = await Deal.aggregate([
-    { $match: { seller_id: vendorId } },
-    { $group: { _id: '$status', n: { $sum: 1 } } },
-  ]);
   const dealsByStatus = {};
   let totalDeals = 0;
   for (const row of dealsAgg) {
     dealsByStatus[row._id] = row.n;
     totalDeals += row.n;
   }
-
-  // Reviews summary
-  const revAgg = await Review.aggregate([
-    { $match: { target_type: 'vendor', target_id: vendorId, is_deleted: { $ne: true } } },
-    { $group: { _id: null, avg: { $avg: '$rating' }, n: { $sum: 1 } } },
-  ]);
-
-  // Listings summary
-  const totalListings = await Listing.countDocuments({
-    vendor_id: vendorId,
-    is_deleted: { $ne: true },
-    is_takendown: { $ne: true },
-  });
-  const activeListings = await Listing.countDocuments({
-    vendor_id: vendorId,
-    is_deleted: { $ne: true },
-    is_takendown: { $ne: true },
-    status: 'active',
-  });
 
   // Conversion rates
   const viewToChat = totalViews ? Math.round((chatsStarted / totalViews) * 100 * 10) / 10 : 0.0;

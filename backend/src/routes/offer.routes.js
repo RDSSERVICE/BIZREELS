@@ -10,6 +10,17 @@ const { activateOfferAndNotify } = require('../jobs/offerScheduler');
 
 const router = express.Router();
 
+// Auto-invalidate active offers cache on admin mutations
+router.use(async (req, res, next) => {
+  if (req.method !== 'GET' && req.path.includes('/admin')) {
+    try {
+      const cache = require('../utils/cache');
+      await cache.incrCache('offers:version');
+    } catch (err) {}
+  }
+  next();
+});
+
 // Middleware to check for Admin role
 const requireAdmin = (req, res, next) => {
   const roles = req.user.roles || [];
@@ -29,24 +40,21 @@ router.get('/active', requireAuth, catchAsync(async (req, res) => {
   // Use activeRole if available, fallback to roles array, default to 'customer'
   const userRoles = req.user.roles || [req.user.activeRole || 'customer'];
 
-  const offers = await Offer.find({
-    targetRoles: { $in: userRoles },
-    status: 'Active',
-    isDeleted: { $ne: true }
-  }).sort({ priority: -1, created_at: -1 });
+  const cache = require('../utils/cache');
+  const version = await cache.getCache('offers:version') || 1;
+  const rolesKey = [...userRoles].sort().join(',');
+  const cacheKey = `offers:active:v${version}:${rolesKey}`;
 
-  // Update viewsCount in analytics for all returned offers in background
-  if (offers.length > 0) {
-    const offerIds = offers.map(o => o._id);
-    await Offer.updateMany(
-      { _id: { $in: offerIds } },
-      { $inc: { 'analytics.viewsCount': 1 } }
-    );
-  }
+  let mappedOffers = await cache.getCache(cacheKey);
 
-  res.json({
-    success: true,
-    items: offers.map(o => ({
+  if (!mappedOffers) {
+    const offers = await Offer.find({
+      targetRoles: { $in: userRoles },
+      status: 'Active',
+      isDeleted: { $ne: true }
+    }).sort({ priority: -1, created_at: -1 }).lean();
+
+    mappedOffers = offers.map(o => ({
       id: o._id.toString(),
       title: o.title,
       description: o.description,
@@ -61,7 +69,23 @@ router.get('/active', requireAuth, catchAsync(async (req, res) => {
       applicableCategories: o.applicableCategories,
       applicableProducts: o.applicableProducts,
       applicableServices: o.applicableServices
-    }))
+    }));
+
+    await cache.setCache(cacheKey, mappedOffers, 1800); // cache active offers for 30 minutes
+
+    // Update viewsCount in analytics asynchronously in background
+    if (offers.length > 0) {
+      const offerIds = offers.map(o => o._id);
+      Offer.updateMany(
+        { _id: { $in: offerIds } },
+        { $inc: { 'analytics.viewsCount': 1 } }
+      ).catch(err => console.error('Non-blocking offer views count update failed:', err));
+    }
+  }
+
+  res.json({
+    success: true,
+    items: mappedOffers
   });
 }));
 

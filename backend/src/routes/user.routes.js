@@ -18,6 +18,9 @@ const router = express.Router();
 router.get('/', optionalAuth, catchAsync(async (req, res) => {
   const { role, city, category, search, excludeUserId } = req.query;
   const viewerId = req.userId || (req.user?._id ? req.user._id.toString() : null) || excludeUserId;
+  const page = Math.max(1, parseInt(req.query.page || 1, 10));
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 12, 10)));
+  const skip = (page - 1) * limit;
 
   const query = { is_deleted: { $ne: true } };
 
@@ -56,9 +59,14 @@ router.get('/', optionalAuth, catchAsync(async (req, res) => {
     ];
   }
 
-  const users = await User.find(query)
-    .select('name profile_pic avatarUrl city rating_avg rating_count creatorProfile created_at kyc_status is_subscribed_verified occupation roles current_role')
-    .lean();
+  const [users, total] = await Promise.all([
+    User.find(query)
+      .select('name profile_pic avatarUrl city rating_avg rating_count creatorProfile created_at kyc_status is_subscribed_verified occupation roles current_role')
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    User.countDocuments(query)
+  ]);
 
   const formatted = users.map(u => ({
     _id: u._id.toString(),
@@ -85,7 +93,13 @@ router.get('/', optionalAuth, catchAsync(async (req, res) => {
     success: true,
     count: formatted.length,
     users: formatted,
-    data: formatted
+    data: formatted,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
   });
 }));
 
@@ -286,6 +300,9 @@ router.get('/me/role-activity', requireAuth, catchAsync(async (req, res) => {
 router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
   const { city, category, search, excludeUserId } = req.query;
   const viewerId = req.userId || (req.user?._id ? req.user._id.toString() : null) || excludeUserId;
+  const page = Math.max(1, parseInt(req.query.page || 1, 10));
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 12, 10)));
+  const skip = (page - 1) * limit;
 
   const query = {
     $or: [{ roles: 'creator' }, { current_role: 'creator' }, { creatorProfile: { $ne: null } }],
@@ -317,9 +334,14 @@ router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
     ];
   }
 
-  const creators = await User.find(query)
-    .select('name profile_pic avatarUrl city rating_avg rating_count creatorProfile created_at kyc_status is_subscribed_verified occupation')
-    .lean();
+  const [creators, total] = await Promise.all([
+    User.find(query)
+      .select('name profile_pic avatarUrl city rating_avg rating_count creatorProfile created_at kyc_status is_subscribed_verified occupation')
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    User.countDocuments(query)
+  ]);
 
   res.json({
     success: true,
@@ -335,7 +357,13 @@ router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
       reviewsCount: c.rating_count || 12,
       pricing: c.creatorProfile?.pricing || { reel1: 800, reel3: 2000 },
       isVerified: c.kyc_status === 'approved' || c.is_subscribed_verified
-    }))
+    })),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
   });
 }));
 

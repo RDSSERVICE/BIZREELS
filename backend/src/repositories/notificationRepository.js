@@ -16,12 +16,26 @@ class NotificationRepository {
     return conditions;
   }
 
-  async getNotificationsForUser(userId) {
-    return Notification.find({
-      $or: this._getUserConditions(userId)
-    })
-      .sort({ createdAt: -1 })
-      .limit(100)
+  async getNotificationsForUser(userId, { isRead = null, cursor = null, limit = 30 } = {}) {
+    const query = { $or: this._getUserConditions(userId) };
+    
+    if (isRead !== null) {
+      query.$or = query.$or.map(cond => ({
+        ...cond,
+        $or: [{ isRead: isRead === true }, { is_read: isRead === true }]
+      }));
+    }
+    
+    if (cursor) {
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(cursor)) {
+        query._id = { $lt: new mongoose.Types.ObjectId(cursor) };
+      }
+    }
+
+    return Notification.find(query)
+      .sort({ _id: -1 })
+      .limit(limit)
       .lean();
   }
 

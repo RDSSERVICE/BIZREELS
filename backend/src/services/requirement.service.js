@@ -45,7 +45,7 @@ class RequirementService {
     const notificationService = require('./notification.service');
     const { emitToUser, emitToAdmin } = require('../sockets');
 
-    // Query active and approved vendors
+    // Query active and approved vendors (optimized with select and lean)
     const vendors = await User.find({
       roles: 'vendor',
       is_active: true,
@@ -54,7 +54,9 @@ class RequirementService {
         { kyc_status: 'approved' },
         { 'vendorProfile.verificationStatus': { $in: ['verified_vendor', 'premium_verified', 'approved'] } }
       ]
-    });
+    })
+    .select('_id vendorProfile.category vendorProfile.businessCategory vendorProfile.subcategory vendorProfile.subCategory vendorProfile.city vendorProfile.state vendorProfile.address vendorProfile.serviceArea vendorProfile.serviceAreas location')
+    .lean();
 
     const reqCategoryNormalized = (category || '').toLowerCase().trim();
     const reqSubcategoryNormalized = (subcategory || '').toLowerCase().trim();

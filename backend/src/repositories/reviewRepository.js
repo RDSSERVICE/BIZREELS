@@ -21,7 +21,8 @@ class ReviewRepository {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10))
-      .populate('author', 'name avatarUrl activeRole');
+      .populate('author', 'name avatarUrl activeRole')
+      .lean();
     const total = await Review.countDocuments(match);
     return { reviews, total };
   }
@@ -33,7 +34,8 @@ class ReviewRepository {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10))
-      .populate('author', 'name avatarUrl activeRole');
+      .populate('author', 'name avatarUrl activeRole')
+      .lean();
     const total = await Review.countDocuments(match);
     return { reviews, total };
   }

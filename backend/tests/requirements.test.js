@@ -31,7 +31,12 @@ jest.spyOn(User, 'findById').mockImplementation((id) => {
 
 jest.spyOn(User, 'find').mockImplementation(() => {
   const vendors = Object.values(getMockDb().users).filter(u => u.roles && u.roles.includes('vendor'));
-  return Promise.resolve(vendors);
+  const chain = {
+    select: jest.fn().mockReturnThis(),
+    lean: jest.fn().mockImplementation(() => Promise.resolve(vendors)),
+    then: jest.fn().mockImplementation((resolve) => resolve(vendors)),
+  };
+  return chain;
 });
 
 // Mock RequirementRepository

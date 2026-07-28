@@ -247,6 +247,7 @@ const analyticsOverview = async () => {
   }
   try { Order = require('../models/Order'); } catch (e) { Order = null; }
 
+  // Parallel fetch Step 1: Execute all primary counts and aggregations in parallel
   const [
     totalUsers,
     totalCustomers,
@@ -258,6 +259,23 @@ const analyticsOverview = async () => {
     completedDeals,
     pendingKycCount,
     totalOrders,
+    openReportsCount,
+    activeUsersLast7dAgg,
+    activeUsersPrev7dAgg,
+    todaysListings,
+    yesterdaysListings,
+    todaysDeals,
+    yesterdaysDeals,
+    gmvRes,
+    orderGmvRes,
+    totalWalletBalanceAgg,
+    subscriptionRevenueRes,
+    boostRevenueRes,
+    listingBoosts,
+    topVendorsAgg,
+    topCategoriesAgg,
+    topCitiesAgg,
+    reelsData
   ] = await Promise.all([
     User.countDocuments({ is_deleted: { $ne: true } }),
     User.countDocuments({ roles: 'customer', is_deleted: { $ne: true } }),
@@ -269,122 +287,74 @@ const analyticsOverview = async () => {
     Deal.countDocuments({ status: 'completed' }),
     KycDocument.countDocuments({ status: 'pending', is_deleted: { $ne: true } }),
     Deal.countDocuments({ is_deleted: { $ne: true } }),
-  ]);
-
-  const openReportsCount = await reportService.openCount();
-
-  // Active users last 7 days (distinct users from AuditLog)
-  const activeUsersLast7dAgg = await AuditLog.aggregate([
-    {
-      $match: {
-        $or: [
-          { createdAt: { $gte: new Date(sevenDaysAgo) } },
-          { created_at: { $gte: sevenDaysAgo } }
-        ]
+    reportService.openCount(),
+    AuditLog.aggregate([
+      {
+        $match: {
+          $or: [
+            { createdAt: { $gte: new Date(sevenDaysAgo) } },
+            { created_at: { $gte: sevenDaysAgo } }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: { $ifNull: ['$userId', '$user_id'] }
+        }
+      },
+      {
+        $count: 'count'
       }
-    },
-    {
-      $group: {
-        _id: { $ifNull: ['$userId', '$user_id'] }
+    ]),
+    AuditLog.aggregate([
+      {
+        $match: {
+          $or: [
+            {
+              $and: [
+                { createdAt: { $gte: new Date(fourteenDaysAgo) } },
+                { createdAt: { $lt: new Date(sevenDaysAgo) } }
+              ]
+            },
+            {
+              $and: [
+                { created_at: { $gte: fourteenDaysAgo } },
+                { created_at: { $lt: sevenDaysAgo } }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: { $ifNull: ['$userId', '$user_id'] }
+        }
+      },
+      {
+        $count: 'count'
       }
-    },
-    {
-      $count: 'count'
-    }
-  ]);
-  const activeUsersLast7d = activeUsersLast7dAgg[0]?.count || 0;
-
-  // Active users previous 7 days (distinct users from AuditLog)
-  const activeUsersPrev7dAgg = await AuditLog.aggregate([
-    {
-      $match: {
-        $or: [
-          {
-            $and: [
-              { createdAt: { $gte: new Date(fourteenDaysAgo) } },
-              { createdAt: { $lt: new Date(sevenDaysAgo) } }
-            ]
-          },
-          {
-            $and: [
-              { created_at: { $gte: fourteenDaysAgo } },
-              { created_at: { $lt: sevenDaysAgo } }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      $group: {
-        _id: { $ifNull: ['$userId', '$user_id'] }
-      }
-    },
-    {
-      $count: 'count'
-    }
-  ]);
-  const activeUsersPrev7d = activeUsersPrev7dAgg[0]?.count || 0;
-
-  // Today's upload counters
-  const todaysListings = await Listing.countDocuments({
-    createdAt: { $gte: new Date(todayStart) },
-    is_deleted: { $ne: true }
-  }).catch(() => 0);
-
-  const yesterdaysListings = await Listing.countDocuments({
-    createdAt: { $gte: new Date(yesterdayStart), $lt: new Date(todayStart) },
-    is_deleted: { $ne: true }
-  }).catch(() => 0);
-
-  let totalReels = 0;
-  let todaysReels = 0;
-  let yesterdaysReels = 0;
-  let activeBoosts = 0;
-
-  if (Reel) {
-    totalReels = await Reel.countDocuments({ isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || await Reel.countDocuments({}).catch(() => 0);
-    todaysReels = await Reel.countDocuments({ createdAt: { $gte: new Date(todayStart) }, isDeleted: { $ne: true } }).catch(() => 0);
-    yesterdaysReels = await Reel.countDocuments({ createdAt: { $gte: new Date(yesterdayStart), $lt: new Date(todayStart) }, isDeleted: { $ne: true } }).catch(() => 0);
-    activeBoosts = await Reel.countDocuments({ isBoosted: true, isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || 0;
-  }
-
-  // Active boosts from listings + reels
-  const listingBoosts = await Listing.countDocuments({ isBoosted: true, isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || 0;
-  activeBoosts += listingBoosts;
-
-  // Today's deals
-  const todaysDeals = await Deal.countDocuments({
-    created_at: { $gte: todayStart }
-  }).catch(() => 0);
-
-  const yesterdaysDeals = await Deal.countDocuments({
-    created_at: { $gte: yesterdayStart, $lt: todayStart }
-  }).catch(() => 0);
-
-  // GMV / Revenue
-  // Deals GMV (Completed)
-  const gmvRes = await Deal.aggregate([
-    { $match: { status: 'completed' } },
-    {
-      $group: {
-        _id: null,
-        gmv: {
-          $sum: {
-            $multiply: [
-              { $ifNull: ['$accepted_price', '$initial_offer'] },
-              { $ifNull: ['$quantity', 1] },
-            ],
+    ]),
+    Listing.countDocuments({ createdAt: { $gte: new Date(todayStart) }, is_deleted: { $ne: true } }).catch(() => 0),
+    Listing.countDocuments({ createdAt: { $gte: new Date(yesterdayStart), $lt: new Date(todayStart) }, is_deleted: { $ne: true } }).catch(() => 0),
+    Deal.countDocuments({ created_at: { $gte: todayStart } }).catch(() => 0),
+    Deal.countDocuments({ created_at: { $gte: yesterdayStart, $lt: todayStart } }).catch(() => 0),
+    Deal.aggregate([
+      { $match: { status: 'completed' } },
+      {
+        $group: {
+          _id: null,
+          gmv: {
+            $sum: {
+              $multiply: [
+                { $ifNull: ['$accepted_price', '$initial_offer'] },
+                { $ifNull: ['$quantity', 1] },
+              ],
+            },
           },
         },
       },
-    },
-  ]);
-  const dealGmvPaise = Math.round((gmvRes.length > 0 ? gmvRes[0].gmv : 0) * 100);
-
-  // Orders GMV (Paid)
-  let orderGmvPaise = 0;
-  if (Order) {
-    const orderGmvRes = await Order.aggregate([
+    ]).catch(() => []),
+    Order ? Order.aggregate([
       { $match: { paymentStatus: 'paid' } },
       {
         $group: {
@@ -396,69 +366,114 @@ const analyticsOverview = async () => {
           }
         }
       }
-    ]);
-    orderGmvPaise = Math.round((orderGmvRes.length > 0 ? orderGmvRes[0].gmv : 0) * 100);
-  }
-
-  const totalGmvPaise = dealGmvPaise + orderGmvPaise;
-
-  // Wallet balance (sum all wallet credits)
-  let totalWalletBalance = 0;
-  try {
-    const walletAgg = await Wallet.aggregate([
+    ]).catch(() => []) : Promise.resolve([]),
+    Wallet ? Wallet.aggregate([
       { $group: { _id: null, total_inr: { $sum: '$balance_inr_paise' } } }
-    ]);
-    totalWalletBalance = walletAgg.length > 0 ? (walletAgg[0].total_inr || 0) : 0;
-  } catch (e) { /* ignore */ }
-
-  // Subscription revenue
-  let subscriptionRevenue = 0;
-  if (Payment) {
-    try {
-      const subRevenueRes = await Payment.aggregate([
-        { $match: { status: 'captured', purpose: { $regex: /^verified_badge/ } } },
-        { $group: { _id: null, total: { $sum: '$amount_paise' } } }
-      ]);
-      subscriptionRevenue = subRevenueRes.length > 0 ? subRevenueRes[0].total : 0;
-    } catch (e) { /* ignore */ }
-  }
-
-  // Boost revenue
-  let boostRevenuePaise = 0;
-  if (Payment) {
-    try {
-      const boostRevenueRes = await Payment.aggregate([
-        { $match: { status: 'captured', purpose: 'listing_boost' } },
-        { $group: { _id: null, total: { $sum: '$amount_paise' } } }
-      ]);
-      boostRevenuePaise = boostRevenueRes.length > 0 ? boostRevenueRes[0].total : 0;
-    } catch (e) { /* ignore */ }
-  }
-
-  // Dynamic Top Performers & Analytics
-  // Top Vendors: Aggregate sales and deal counts from completed Deals
-  const topVendorsAgg = await Deal.aggregate([
-    { $match: { status: 'completed' } },
-    {
-      $group: {
-        _id: '$seller_id',
-        salesSum: {
-          $sum: {
-            $multiply: [
-              { $ifNull: ['$accepted_price', '$initial_offer'] },
-              { $ifNull: ['$quantity', 1] },
-            ],
+    ]).catch(() => []) : Promise.resolve([]),
+    Payment ? Payment.aggregate([
+      { $match: { status: 'captured', purpose: { $regex: /^verified_badge/ } } },
+      { $group: { _id: null, total: { $sum: '$amount_paise' } } }
+    ]).catch(() => []) : Promise.resolve([]),
+    Payment ? Payment.aggregate([
+      { $match: { status: 'captured', purpose: 'listing_boost' } },
+      { $group: { _id: null, total: { $sum: '$amount_paise' } } }
+    ]).catch(() => []) : Promise.resolve([]),
+    Listing.countDocuments({ isBoosted: true, isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || Promise.resolve(0),
+    Deal.aggregate([
+      { $match: { status: 'completed' } },
+      {
+        $group: {
+          _id: '$seller_id',
+          salesSum: {
+            $sum: {
+              $multiply: [
+                { $ifNull: ['$accepted_price', '$initial_offer'] },
+                { $ifNull: ['$quantity', 1] },
+              ],
+            },
+          },
+          ordersCount: { $sum: 1 },
+        },
+      },
+      { $sort: { salesSum: -1 } },
+      { $limit: 5 }
+    ]).catch(() => []),
+    Listing.aggregate([
+      { $match: { is_deleted: { $ne: true } } },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]).catch(() => []),
+    User.aggregate([
+      { $match: { is_deleted: { $ne: true }, city: { $ne: null } } },
+      { $group: { _id: '$city', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]).catch(() => []),
+    Reel ? Promise.all([
+      Reel.countDocuments({ isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || Reel.countDocuments({}).catch(() => 0),
+      Reel.countDocuments({ createdAt: { $gte: new Date(todayStart) }, isDeleted: { $ne: true } }).catch(() => 0),
+      Reel.countDocuments({ createdAt: { $gte: new Date(yesterdayStart), $lt: new Date(todayStart) }, isDeleted: { $ne: true } }).catch(() => 0),
+      Reel.countDocuments({ isBoosted: true, isDeleted: { $ne: true } }).setOptions({ includeSoftDeleted: true }).catch(() => 0) || 0,
+      Reel.aggregate([
+        { $match: { isDeleted: { $ne: true } } },
+        {
+          $group: {
+            _id: '$creator',
+            viewsSum: { $sum: '$views' },
+            reelsCount: { $sum: 1 },
           },
         },
-        ordersCount: { $sum: 1 },
-      },
-    },
-    { $sort: { salesSum: -1 } },
-    { $limit: 5 }
+        { $sort: { viewsSum: -1 } },
+        { $limit: 5 }
+      ]).catch(() => [])
+    ]) : Promise.resolve([0, 0, 0, 0, []])
   ]);
 
+  const activeUsersLast7d = activeUsersLast7dAgg[0]?.count || 0;
+  const activeUsersPrev7d = activeUsersPrev7dAgg[0]?.count || 0;
+
+  let [
+    totalReels,
+    todaysReels,
+    yesterdaysReels,
+    activeBoosts,
+    topCreatorsAgg
+  ] = reelsData;
+
+  activeBoosts = (activeBoosts || 0) + (listingBoosts || 0);
+
+  const dealGmvPaise = Math.round((gmvRes.length > 0 ? gmvRes[0].gmv : 0) * 100);
+  const orderGmvPaise = Math.round((orderGmvRes.length > 0 ? orderGmvRes[0].gmv : 0) * 100);
+  const totalGmvPaise = dealGmvPaise + orderGmvPaise;
+  const totalWalletBalance = totalWalletBalanceAgg.length > 0 ? (totalWalletBalanceAgg[0].total_inr || 0) : 0;
+  const subscriptionRevenue = subscriptionRevenueRes.length > 0 ? subscriptionRevenueRes[0].total : 0;
+  const boostRevenuePaise = boostRevenueRes.length > 0 ? boostRevenueRes[0].total : 0;
+
   const topVendorIds = topVendorsAgg.map(v => v._id);
-  const vendorUsers = await User.find({ _id: { $in: topVendorIds }, is_deleted: { $ne: true } });
+  const topCreatorIds = topCreatorsAgg.map(c => c._id);
+
+  // Parallel fetch Step 2: Retrieve top user profiles and fallbacks in parallel
+  const [
+    vendorUsers,
+    creatorUsers,
+    remainingVendors,
+    remainingCreators
+  ] = await Promise.all([
+    topVendorIds.length > 0 ? User.find({ _id: { $in: topVendorIds }, is_deleted: { $ne: true } }).lean() : Promise.resolve([]),
+    topCreatorIds.length > 0 ? User.find({ _id: { $in: topCreatorIds }, is_deleted: { $ne: true } }).lean() : Promise.resolve([]),
+    topVendorsAgg.length < 5 ? User.find({
+      roles: 'vendor',
+      _id: { $not: { $in: topVendorIds } },
+      is_deleted: { $ne: true }
+    }).sort({ rating_avg: -1, created_at: -1 }).limit(5 - topVendorsAgg.length).lean() : Promise.resolve([]),
+    Reel && topCreatorsAgg.length < 5 ? User.find({
+      roles: 'creator',
+      _id: { $nin: topCreatorIds },
+      is_deleted: { $ne: true }
+    }).sort({ rating_avg: -1, created_at: -1 }).limit(5 - topCreatorsAgg.length).lean() : Promise.resolve([])
+  ]);
+
   const vendorUserMap = {};
   vendorUsers.forEach(u => {
     vendorUserMap[u._id.toString()] = u;
@@ -474,86 +489,39 @@ const analyticsOverview = async () => {
     };
   });
 
-  if (topVendors.length < 5) {
-    const remainingVendors = await User.find({
-      roles: 'vendor',
-      _id: { $not: { $in: topVendorIds } },
-      is_deleted: { $ne: true }
-    })
-      .sort({ rating_avg: -1, created_at: -1 })
-      .limit(5 - topVendors.length);
-
-    remainingVendors.forEach(v => {
-      topVendors.push({
-        name: v.name || 'Vendor',
-        sales: '₹0',
-        orders: 0,
-        rating: v.rating_avg || 0,
-      });
+  remainingVendors.forEach(v => {
+    topVendors.push({
+      name: v.name || 'Vendor',
+      sales: '₹0',
+      orders: 0,
+      rating: v.rating_avg || 0,
     });
-  }
+  });
 
-  // Top Creators: Aggregate views and reel counts from Reels
-  let topCreators = [];
-  let topCreatorIds = [];
-  if (Reel) {
-    const topCreatorsAgg = await Reel.aggregate([
-      { $match: { isDeleted: { $ne: true } } },
-      {
-        $group: {
-          _id: '$creator',
-          viewsSum: { $sum: '$views' },
-          reelsCount: { $sum: 1 },
-        },
-      },
-      { $sort: { viewsSum: -1 } },
-      { $limit: 5 }
-    ]);
+  const creatorUserMap = {};
+  creatorUsers.forEach(u => {
+    creatorUserMap[u._id.toString()] = u;
+  });
 
-    topCreatorIds = topCreatorsAgg.map(c => c._id);
-    const creatorUsers = await User.find({ _id: { $in: topCreatorIds }, is_deleted: { $ne: true } });
-    const creatorUserMap = {};
-    creatorUsers.forEach(u => {
-      creatorUserMap[u._id.toString()] = u;
+  let topCreators = topCreatorsAgg.map(item => {
+    const user = creatorUserMap[item._id.toString()];
+    return {
+      name: user?.name || 'Creator',
+      views: item.viewsSum >= 1000 ? `${(item.viewsSum / 1000).toFixed(1)}K` : `${item.viewsSum}`,
+      reels: item.reelsCount || 0,
+      rating: user?.rating_avg || 0,
+    };
+  });
+
+  remainingCreators.forEach(c => {
+    topCreators.push({
+      name: c.name || 'Creator',
+      views: '0',
+      reels: 0,
+      rating: c.rating_avg || 0,
     });
+  });
 
-    topCreators = topCreatorsAgg.map(item => {
-      const user = creatorUserMap[item._id.toString()];
-      return {
-        name: user?.name || 'Creator',
-        views: item.viewsSum >= 1000 ? `${(item.viewsSum / 1000).toFixed(1)}K` : `${item.viewsSum}`,
-        reels: item.reelsCount || 0,
-        rating: user?.rating_avg || 0,
-      };
-    });
-  }
-
-  if (topCreators.length < 5) {
-    const remainingCreators = await User.find({
-      roles: 'creator',
-      _id: { $nin: topCreatorIds },
-      is_deleted: { $ne: true }
-    })
-      .sort({ rating_avg: -1, created_at: -1 })
-      .limit(5 - topCreators.length);
-
-    remainingCreators.forEach(c => {
-      topCreators.push({
-        name: c.name || 'Creator',
-        views: '0',
-        reels: 0,
-        rating: c.rating_avg || 0,
-      });
-    });
-  }
-
-  // Top Categories
-  const topCategoriesAgg = await Listing.aggregate([
-    { $match: { is_deleted: { $ne: true } } },
-    { $group: { _id: '$category', count: { $sum: 1 } } },
-    { $sort: { count: -1 } },
-    { $limit: 5 }
-  ]);
   const totalListingsCount = totalListings || 1;
   const topCategories = topCategoriesAgg.map(cat => ({
     name: cat._id || 'General',
@@ -561,13 +529,6 @@ const analyticsOverview = async () => {
     listings: cat.count,
   }));
 
-  // Top Cities
-  const topCitiesAgg = await User.aggregate([
-    { $match: { is_deleted: { $ne: true }, city: { $ne: null } } },
-    { $group: { _id: '$city', count: { $sum: 1 } } },
-    { $sort: { count: -1 } },
-    { $limit: 5 }
-  ]);
   const totalUsersCount = totalUsers || 1;
   const topCities = topCitiesAgg.map(city => ({
     city: city._id || 'Other',
