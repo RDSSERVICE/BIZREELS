@@ -683,7 +683,55 @@ const suspendUser = async (userId) => {
 };
 
 const deleteUser = async (userId) => {
-  return await flipUser(userId, { is_deleted: true, is_active: false });
+  const result = await flipUser(userId, { is_deleted: true, isDeleted: true, is_active: false, isActive: false });
+
+  // Cascade delete all user-related data
+  try {
+    const Reel = require('../models/Reel');
+    const Listing = require('../models/Listing');
+    const Comment = require('../models/Comment');
+    const ReelLike = require('../models/ReelLike');
+    const Requirement = require('../models/Requirement');
+    const Review = require('../models/Review');
+    const Offer = require('../models/Offer');
+    const Inquiry = require('../models/Inquiry');
+    const HireRequest = require('../models/HireRequest');
+    const Follow = require('../models/Follow');
+    const Conversation = require('../models/Conversation');
+    const Message = require('../models/Message');
+    const RefreshToken = require('../models/RefreshToken');
+    const Order = require('../models/Order');
+    const Deal = require('../models/Deal');
+    const Notification = require('../models/Notification');
+    const Proposal = require('../models/Proposal');
+    const Quote = require('../models/Quote');
+
+    // Execute deleteMany calls in parallel
+    await Promise.all([
+      Reel.deleteMany({ creator: userId }),
+      Listing.deleteMany({ vendor: userId }),
+      Comment.deleteMany({ user: userId }),
+      ReelLike.deleteMany({ user: userId }),
+      Requirement.deleteMany({ customer: userId }),
+      Review.deleteMany({ $or: [{ author: userId }, { targetUser: userId }] }),
+      Offer.deleteMany({ $or: [{ userId: userId }, { createdBy: userId }] }),
+      Inquiry.deleteMany({ $or: [{ customer: userId }, { vendor: userId }] }),
+      HireRequest.deleteMany({ $or: [{ vendor: userId }, { creator: userId }] }),
+      Follow.deleteMany({ $or: [{ follower_id: userId.toString() }, { following_id: userId.toString() }] }),
+      Conversation.deleteMany({ participants: userId }),
+      Message.deleteMany({ sender: userId }),
+      RefreshToken.deleteMany({ user: userId }),
+      Order.deleteMany({ $or: [{ customer: userId }, { vendor: userId }] }),
+      Deal.deleteMany({ $or: [{ buyer_id: userId.toString() }, { seller_id: userId.toString() }] }),
+      Notification.deleteMany({ $or: [{ recipient: userId }, { sender: userId }, { recipient: userId.toString() }, { sender: userId.toString() }] }),
+      Proposal.deleteMany({ vendor_id: userId }),
+      Quote.deleteMany({ vendor: userId })
+    ]);
+  } catch (err) {
+    console.error('Error cascading deletion for user ' + userId + ' in admin deleteUser:', err);
+  }
+
+  return result;
 };
 
 const getLoginHistory = async (userId, limit = 20) => {
