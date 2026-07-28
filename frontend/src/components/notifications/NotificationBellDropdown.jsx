@@ -19,13 +19,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
   // Fetch unread count & list
   const fetchNotifications = async () => {
     try {
-      const [countRes, listRes] = await Promise.all([
-        api.get('/v1/notifications/me/unread-count').catch(() => api.get('/v1/notifications/unread-count')),
-        api.get('/v1/notifications/me').catch(() => api.get('/v1/notifications'))
-      ]);
-
-      const count = countRes?.data?.data?.count ?? countRes?.data?.count ?? countRes?.count ?? 0;
-      setUnreadCount(Number(count) || 0);
+      const listRes = await api.get('/v1/notifications/me').catch(() => api.get('/v1/notifications'));
 
       const itemsData = listRes?.data?.data || listRes?.data;
       const rawList = Array.isArray(itemsData?.items)
@@ -37,6 +31,10 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
         : [];
 
       setNotifications(rawList);
+      
+      // Calculate unread count in-memory to save database lookups and prevent concurrency peaks
+      const unreadCountVal = rawList.filter(n => !n.isRead).length;
+      setUnreadCount(unreadCountVal);
     } catch (err) {
       console.warn('Failed to load notifications:', err);
     }

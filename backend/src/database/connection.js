@@ -52,7 +52,7 @@ const connectDB = async () => {
   const options = {
     dbName: process.env.DB_NAME || 'bizreels',
     maxPoolSize: 10,
-    minPoolSize: 2,
+    minPoolSize: 10,
     socketTimeoutMS: 45000,
     connectTimeoutMS: 30000,
     serverSelectionTimeoutMS: 10000,

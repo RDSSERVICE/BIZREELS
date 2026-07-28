@@ -414,26 +414,51 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
   const { ChatMessage } = require('../models/Chat');
   const uid = req.user._id.toString();
 
-  // Run Mongoose queries in parallel (all using direct single/compound index prefixes)
+  // Run consolidated Mongoose queries in parallel (reducing database hits and avoiding connection storms)
   const [
-    savedSaves,
-    savedReels,
-    savedImages,
-    clickToCalled,
-    whatsappContacted,
-    chatInquiries,
+    interactionCounts,
     unreadNotifications,
     unreadChat
   ] = await Promise.all([
-    Interaction.find({ user_id: uid, type: 'save' }).select('listing_id').lean(),
-    Interaction.countDocuments({ user_id: uid, type: 'save_reel' }),
-    Interaction.countDocuments({ user_id: uid, type: 'save_image' }),
-    Interaction.countDocuments({ user_id: uid, type: 'click_to_call' }),
-    Interaction.countDocuments({ user_id: uid, type: 'whatsapp_contact' }),
-    Interaction.countDocuments({ user_id: uid, type: 'chat_inquiry' }),
+    Interaction.aggregate([
+      { $match: { user_id: uid } },
+      {
+        $group: {
+          _id: '$type',
+          count: { $sum: 1 },
+          listingIds: { $push: '$listing_id' }
+        }
+      }
+    ]),
     Notification.countDocuments({ recipient: uid, isRead: false }).catch(() => 0),
     ChatMessage.countDocuments({ receiver_id: uid, read_at: null, is_deleted: { $ne: true } }).catch(() => 0)
   ]);
+
+  const counts = {
+    save: 0,
+    save_reel: 0,
+    save_image: 0,
+    click_to_call: 0,
+    whatsapp_contact: 0,
+    chat_inquiry: 0
+  };
+
+  let savedSaves = [];
+
+  interactionCounts.forEach(item => {
+    if (item._id in counts) {
+      counts[item._id] = item.count;
+    }
+    if (item._id === 'save') {
+      savedSaves = (item.listingIds || []).filter(Boolean).map(id => ({ listing_id: id }));
+    }
+  });
+
+  const savedReels = counts.save_reel;
+  const savedImages = counts.save_image;
+  const clickToCalled = counts.click_to_call;
+  const whatsappContacted = counts.whatsapp_contact;
+  const chatInquiries = counts.chat_inquiry;
 
   let savedServices = 0;
   let actualSavedProducts = 0;

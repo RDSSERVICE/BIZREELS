@@ -7,6 +7,15 @@ import AdminPageHeader from '../../../features/admin/components/AdminPageHeader'
 import { api, resolveMediaUrl } from '../../../lib/api';
 import OptimizedImage from '../../../components/common/OptimizedImage';
 
+const DISTANCE_VALUES = [
+  { value: 'all', label: 'Anywhere' },
+  { value: '2', label: '2 km' },
+  { value: '5', label: '5 km' },
+  { value: '10', label: '10 km' },
+  { value: '20', label: '20 km' },
+  { value: '50', label: '50 km' }
+];
+
 function OfferCountdown({ validTill }) {
   const [timeLeft, setTimeLeft] = useState('');
 
@@ -68,6 +77,21 @@ export default function SearchListingsPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
   const [reviewsList, setReviewsList] = useState([]);
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [deliveryType, setDeliveryType] = useState([]);
+  const [condition, setCondition] = useState('all');
+  const [sellerType, setSellerType] = useState('all');
+  const [minRating, setMinRating] = useState('all');
+  const [hasOffers, setHasOffers] = useState(false);
+  const [openNow, setOpenNow] = useState(false);
+  const [shopName, setShopName] = useState('');
+
+  const toggleDeliveryType = (type) => {
+    setDeliveryType((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
 
   // Fetch coordinates on mount
   useEffect(() => {
@@ -271,7 +295,7 @@ export default function SearchListingsPage() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, type, category, maxPrice, distance, coords, condition, sellerType, minRating, hasOffers, shopName, openNow]);
+  }, [query, type, category, maxPrice, distance, coords, condition, sellerType, minRating, hasOffers, shopName, openNow, deliveryType]);
 
   const fetchListings = async () => {
     setLoading(true);
