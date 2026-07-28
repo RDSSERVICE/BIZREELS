@@ -37,6 +37,35 @@ const CATEGORIES_DATA = {
   'Education & Coaching': ['Tuition Classes', 'Computer Training', 'Language Institutes', 'Music & Arts']
 };
 
+// Time translation helpers
+const format24to12 = (timeStr) => {
+  if (!timeStr) return '';
+  if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let hour = parseInt(parts[0], 10);
+  const min = parts[1];
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  hour = hour ? hour : 12;
+  return `${hour.toString().padStart(2, '0')}:${min} ${ampm}`;
+};
+
+const format12to24 = (timeStr) => {
+  if (!timeStr) return '09:00';
+  if (!timeStr.includes('AM') && !timeStr.includes('PM')) return timeStr;
+  const parts = timeStr.trim().split(/\s+/);
+  if (parts.length < 2) return '09:00';
+  const ampm = parts[1].toUpperCase();
+  const timeSplit = parts[0].split(':');
+  if (timeSplit.length < 2) return '09:00';
+  let hour = parseInt(timeSplit[0], 10);
+  const min = timeSplit[1];
+  if (ampm === 'PM' && hour < 12) hour += 12;
+  if (ampm === 'AM' && hour === 12) hour = 0;
+  return `${hour.toString().padStart(2, '0')}:${min}`;
+};
+
 export default function BecomeVendorPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -91,6 +120,16 @@ export default function BecomeVendorPage() {
   const [closingTime, setClosingTime] = useState('09:00 PM');
   const [weeklyOff, setWeeklyOff] = useState('Sunday');
   const [open24x7, setOpen24x7] = useState(false);
+
+  const toggleWeeklyOffDay = (day) => {
+    let currentDays = weeklyOff === 'None' ? [] : weeklyOff.split(', ').filter(Boolean);
+    if (currentDays.includes(day)) {
+      currentDays = currentDays.filter(d => d !== day);
+    } else {
+      currentDays = [...currentDays, day];
+    }
+    setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
+  };
 
   // 7. Terms Declaration
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -241,6 +280,9 @@ export default function BecomeVendorPage() {
             minOrderPrice: Number(serviceMinOrder) || 0
           }
         },
+        businessHours: open24x7
+          ? 'Open 24/7'
+          : `${openingTime} - ${closingTime} (Off: ${weeklyOff})`,
         businessTiming: {
           openingTime: open24x7 ? '00:00 AM' : openingTime,
           closingTime: open24x7 ? '11:59 PM' : closingTime,
@@ -845,51 +887,67 @@ export default function BecomeVendorPage() {
           </div>
 
           {!open24x7 && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">Opening Time</label>
-                <div className="relative">
-                  <FiClock className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
-                  <input
-                    type="text"
-                    value={openingTime}
-                    onChange={(e) => setOpeningTime(e.target.value)}
-                    placeholder="e.g. 09:00 AM"
-                    className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-                  />
+            <div className="space-y-4 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">Opening Time</label>
+                  <div className="relative">
+                    <FiClock className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                    <input
+                      type="time"
+                      value={format12to24(openingTime)}
+                      onChange={(e) => setOpeningTime(format24to12(e.target.value))}
+                      className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">Closing Time</label>
+                  <div className="relative">
+                    <FiClock className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                    <input
+                      type="time"
+                      value={format12to24(closingTime)}
+                      onChange={(e) => setClosingTime(format24to12(e.target.value))}
+                      className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">Closing Time</label>
-                <div className="relative">
-                  <FiClock className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
-                  <input
-                    type="text"
-                    value={closingTime}
-                    onChange={(e) => setClosingTime(e.target.value)}
-                    placeholder="e.g. 09:00 PM"
-                    className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-                  />
+                <label className="block text-xs font-semibold text-text-secondary mb-2">Weekly Off Days</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                    const isSelected = weeklyOff !== 'None' && weeklyOff.split(', ').includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleWeeklyOffDay(day)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                          isSelected
+                            ? 'bg-red-500/10 text-red-500 border-red-500/30'
+                            : 'bg-surface hover:bg-surface-tertiary text-text-secondary border-border cursor-pointer'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setWeeklyOff('None')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                      weeklyOff === 'None'
+                        ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                        : 'bg-surface hover:bg-surface-tertiary text-text-secondary border-border cursor-pointer'
+                    }`}
+                  >
+                    Open All Days (No Off)
+                  </button>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">Weekly Off</label>
-                <select
-                  value={weeklyOff}
-                  onChange={(e) => setWeeklyOff(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-                >
-                  <option value="None">None (Open All Days)</option>
-                  <option value="Sunday">Sunday</option>
-                  <option value="Monday">Monday</option>
-                  <option value="Tuesday">Tuesday</option>
-                  <option value="Wednesday">Wednesday</option>
-                  <option value="Thursday">Thursday</option>
-                  <option value="Friday">Friday</option>
-                  <option value="Saturday">Saturday</option>
-                </select>
               </div>
             </div>
           )}

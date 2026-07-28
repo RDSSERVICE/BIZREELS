@@ -9,6 +9,35 @@ import api, { tokenStore, resolveMediaUrl } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
+// Time translation helpers
+const format24to12 = (timeStr) => {
+  if (!timeStr) return '';
+  if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let hour = parseInt(parts[0], 10);
+  const min = parts[1];
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  hour = hour ? hour : 12;
+  return `${hour.toString().padStart(2, '0')}:${min} ${ampm}`;
+};
+
+const format12to24 = (timeStr) => {
+  if (!timeStr) return '09:00';
+  if (!timeStr.includes('AM') && !timeStr.includes('PM')) return timeStr;
+  const parts = timeStr.trim().split(/\s+/);
+  if (parts.length < 2) return '09:00';
+  const ampm = parts[1].toUpperCase();
+  const timeSplit = parts[0].split(':');
+  if (timeSplit.length < 2) return '09:00';
+  let hour = parseInt(timeSplit[0], 10);
+  const min = timeSplit[1];
+  if (ampm === 'PM' && hour < 12) hour += 12;
+  if (ampm === 'AM' && hour === 12) hour = 0;
+  return `${hour.toString().padStart(2, '0')}:${min}`;
+};
+
 export default function VendorBusinessProfilePage() {
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state) => state.auth);
@@ -39,6 +68,22 @@ export default function VendorBusinessProfilePage() {
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Business Timing states
+  const [open24x7, setOpen24x7] = useState(false);
+  const [openingTime, setOpeningTime] = useState('09:00 AM');
+  const [closingTime, setClosingTime] = useState('09:00 PM');
+  const [weeklyOff, setWeeklyOff] = useState('Sunday');
+
+  const toggleWeeklyOffDay = (day) => {
+    let currentDays = weeklyOff === 'None' ? [] : weeklyOff.split(', ').filter(Boolean);
+    if (currentDays.includes(day)) {
+      currentDays = currentDays.filter(d => d !== day);
+    } else {
+      currentDays = [...currentDays, day];
+    }
+    setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
+  };
+
   useEffect(() => {
     if (vendorProfile || user) {
       setShopName(vendorProfile.shopName || user.name || '');
@@ -55,6 +100,19 @@ export default function VendorBusinessProfilePage() {
       setFacebook(vendorProfile.facebook || '');
       setProfilePic(user.profile_pic || user.avatarUrl || '');
       setCoverBanner(vendorProfile.coverBanner || '');
+
+      const timing = vendorProfile.businessTiming || {};
+      setOpen24x7(!!timing.open24x7);
+      setOpeningTime(timing.openingTime || '09:00 AM');
+      setClosingTime(timing.closingTime || '09:00 PM');
+      setWeeklyOff(timing.weeklyOff || 'Sunday');
+
+      // Legacy fallback
+      if (!vendorProfile.businessTiming && vendorProfile.businessHours) {
+        if (vendorProfile.businessHours.toLowerCase().includes('24/7')) {
+          setOpen24x7(true);
+        }
+      }
     }
   }, [vendorProfile, user]);
 
@@ -101,6 +159,10 @@ export default function VendorBusinessProfilePage() {
     setLoading(true);
 
     try {
+      const hoursStr = open24x7
+        ? 'Open 24/7'
+        : `${openingTime} - ${closingTime} (Off: ${weeklyOff})`;
+
       const payload = {
         profile_pic: profilePic || undefined,
         avatarUrl: profilePic || undefined,
@@ -112,7 +174,13 @@ export default function VendorBusinessProfilePage() {
           description,
           gst,
           pan,
-          businessHours,
+          businessHours: hoursStr,
+          businessTiming: {
+            openingTime: open24x7 ? '00:00 AM' : openingTime,
+            closingTime: open24x7 ? '11:59 PM' : closingTime,
+            weeklyOff: open24x7 ? 'None' : weeklyOff,
+            open24x7
+          },
           businessAddress: address,
           website,
           whatsapp,
@@ -285,15 +353,91 @@ export default function VendorBusinessProfilePage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Business Hours</label>
-              <input
-                type="text"
-                value={businessHours}
-                onChange={(e) => setBusinessHours(e.target.value)}
-                placeholder="e.g. 9:00 AM - 9:00 PM (Mon-Sat)"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
-              />
+            <div className="sm:col-span-2 border-t border-border pt-4 mt-2">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider">Business Timing & Hours</h4>
+                  <p className="text-[10px] text-text-tertiary mt-0.5">Select opening/closing times and weekly off days</p>
+                </div>
+                
+                {/* 24x7 Toggle */}
+                <div className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-xl border border-border">
+                  <span className="text-[10px] font-bold text-text-primary uppercase">Open 24×7</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={open24x7}
+                      onChange={(e) => setOpen24x7(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-surface-tertiary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                  </label>
+                </div>
+              </div>
+
+              {!open24x7 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Opening Time</label>
+                    <div className="relative">
+                      <FiClock className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                      <input
+                        type="time"
+                        value={format12to24(openingTime)}
+                        onChange={(e) => setOpeningTime(format24to12(e.target.value))}
+                        className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Closing Time</label>
+                    <div className="relative">
+                      <FiClock className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                      <input
+                        type="time"
+                        value={format12to24(closingTime)}
+                        onChange={(e) => setClosingTime(format24to12(e.target.value))}
+                        className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-2">
+                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">Weekly Off Days</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                    const isSelected = weeklyOff !== 'None' && weeklyOff.split(', ').includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleWeeklyOffDay(day)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                          isSelected
+                            ? 'bg-red-500/10 text-red-500 border-red-500/30'
+                            : 'bg-surface hover:bg-surface-tertiary text-text-secondary border-border cursor-pointer'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setWeeklyOff('None')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                      weeklyOff === 'None'
+                        ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                        : 'bg-surface hover:bg-surface-tertiary text-text-secondary border-border cursor-pointer'
+                    }`}
+                  >
+                    Open All Days (No Off)
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div>

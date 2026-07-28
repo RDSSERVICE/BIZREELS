@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FiCpu, FiUploadCloud, FiPlus, FiX, FiImage, FiTag
+  FiCpu, FiUploadCloud, FiPlus, FiX, FiImage, FiTag, FiRefreshCw
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
@@ -68,6 +68,21 @@ export default function ProductFormModal({
   const [variantPriceAdj, setVariantPriceAdj] = useState('');
   const [variantImageUrl, setVariantImageUrl] = useState('');
   const [variantUploading, setVariantUploading] = useState(false);
+
+  const generateSKU = () => {
+    const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const ts = Date.now().toString().slice(-4);
+    const skuCode = `SKU-${rand}-${ts}`;
+    updateForm('sku', skuCode);
+    toast.success('SKU Code Auto-Generated!');
+  };
+
+  const generateVariantSKU = () => {
+    const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const ts = Date.now().toString().slice(-4);
+    setVariantSku(`SKU-VAR-${rand}-${ts}`);
+    toast.success('Variant SKU Auto-Generated!');
+  };
 
   // Dynamic limits state
   const [maxLimits, setMaxLimits] = useState({ maxImages: 5, maxVideos: 1 });
@@ -386,7 +401,23 @@ export default function ProductFormModal({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div>
             <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">SKU</label>
-            <input type="text" value={form.sku} onChange={(e) => updateForm('sku', e.target.value)} placeholder="SKU-001" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                value={form.sku}
+                onChange={(e) => updateForm('sku', e.target.value)}
+                placeholder="SKU-001"
+                className="w-full p-2.5 pr-10 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+              />
+              <button
+                type="button"
+                onClick={generateSKU}
+                title="Auto-Generate SKU"
+                className="absolute right-2 p-1.5 rounded-lg hover:bg-brand-purple/10 text-brand-purple transition-all cursor-pointer"
+              >
+                <FiRefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
           <div>
             <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Unit</label>
@@ -529,7 +560,23 @@ export default function ProductFormModal({
               <input type="text" placeholder="Value (e.g. Black, 256 GB)" value={variantValue} onChange={(e) => setVariantValue(e.target.value)} className="p-2 bg-surface border border-border rounded-xl text-xs" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder="SKU (Optional)" value={variantSku} onChange={(e) => setVariantSku(e.target.value)} className="p-2 bg-surface border border-border rounded-xl text-xs" />
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  placeholder="SKU (Optional)"
+                  value={variantSku}
+                  onChange={(e) => setVariantSku(e.target.value)}
+                  className="w-full p-2 pr-8 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+                />
+                <button
+                  type="button"
+                  onClick={generateVariantSKU}
+                  title="Auto-Generate SKU"
+                  className="absolute right-1.5 p-1 rounded hover:bg-brand-purple/10 text-brand-purple transition-all cursor-pointer"
+                >
+                  <FiRefreshCw className="w-3 h-3" />
+                </button>
+              </div>
               <input type="number" placeholder="Price Adjustment (Optional)" value={variantPriceAdj} onChange={(e) => setVariantPriceAdj(e.target.value)} className="p-2 bg-surface border border-border rounded-xl text-xs" />
             </div>
             <div className="flex items-center justify-between gap-2 pt-1">
