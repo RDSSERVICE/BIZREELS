@@ -58,6 +58,12 @@ router.use('/creator-marketplace', lazyLoad('./creatorMarketplaceRoutes'));
 router.get('/subscription', authenticate, (req, res, next) => {
   require('../controllers/walletController').getSubscription(req, res, next);
 });
+router.get('/subscription/plans', authenticate, (req, res, next) => {
+  require('../controllers/walletController').getPlans(req, res, next);
+});
+router.post('/subscription/change', authenticate, (req, res, next) => {
+  require('../controllers/walletController').purchaseSubscription(req, res, next);
+});
 
 // Boosts endpoint (lazy loaded controller)
 router.get('/boosts', authenticate, (req, res, next) => {

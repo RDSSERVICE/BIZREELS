@@ -68,7 +68,7 @@ class WalletRepository {
   /**
    * Safe purchase of a premium business or creator subscription using wallet credits.
    */
-  async purchaseSubscription(userId, plan, cost, durationDays, boostCredits) {
+  async purchaseSubscription(userId, planId, planName, planType, billingCycle, cost, durationDays, boostCredits) {
     const session = await mongoose.startSession();
     try {
       let transaction;
@@ -90,7 +90,7 @@ class WalletRepository {
               type: 'payment',
               amount: cost,
               status: 'completed',
-              description: `Subscribed to ${plan.toUpperCase()} plan`,
+              description: `Subscribed to ${planName} plan`,
             },
           ],
           { session }
@@ -108,7 +108,7 @@ class WalletRepository {
             $inc: { walletBalance: -cost },
             $set: {
               subscription: {
-                plan,
+                plan: planName,
                 startedAt: new Date(),
                 expiresAt,
                 boostCredits,
@@ -118,7 +118,48 @@ class WalletRepository {
           },
           { returnDocument: 'after', session }
         );
+
+        // Manage UserSubscription records
+        const UserSubscription = require('../models/UserSubscription.model');
+        
+        // 1. Deactivate existing active subscriptions
+        await UserSubscription.updateMany(
+          { user_id: userId.toString(), status: 'active' },
+          { $set: { status: 'cancelled', cancelled_at: new Date(), cancelled_reason: 'Upgraded/Changed subscription' } },
+          { session }
+        );
+
+        // 2. Create the new UserSubscription document
+        const userRole = user.current_role || (user.roles && user.roles[0]) || 'vendor';
+        await UserSubscription.create(
+          [
+            {
+              user_id: userId.toString(),
+              user_name: user.name || '',
+              user_role: userRole,
+              plan_id: planId,
+              plan_name: planName,
+              plan_type: planType || 'basic',
+              billing_cycle: billingCycle || 'monthly',
+              start_date: new Date(),
+              expiry_date: expiresAt,
+              auto_renewal: false,
+              status: 'active',
+              original_amount: cost,
+              paid_amount: cost,
+              payment_method: 'wallet',
+            },
+          ],
+          { session }
+        );
       });
+
+      // Emit socket notification for real-time update
+      try {
+        const { emitToRole, emitToUser } = require('../sockets');
+        emitToUser(userId.toString(), 'subscription:updated', { updated: true });
+        emitToRole('admin', 'subscription:updated', { updated: true });
+      } catch (err) {}
 
       return { transaction, user: updatedUser };
     } finally {

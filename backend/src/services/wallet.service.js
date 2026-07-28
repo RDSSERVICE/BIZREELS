@@ -39,18 +39,59 @@ class WalletService {
   }
 
   async purchasePlan({ userId, plan }) {
-    const activePlan = plan.toLowerCase();
-    if (!PLANS[activePlan]) {
-      throw ApiError.badRequest(`Invalid subscription plan: "${plan}".`);
+    const mongoose = require('mongoose');
+    const { SubscriptionPlan } = require('../models/Admin');
+
+    let planId = null;
+    let planName = '';
+    let planType = 'basic';
+    let billingCycle = 'monthly';
+    let cost = 0;
+    let durationDays = 30;
+    let boostCredits = 0;
+
+    let planDoc = null;
+    if (mongoose.Types.ObjectId.isValid(plan)) {
+      planDoc = await SubscriptionPlan.findById(plan);
+    }
+    if (!planDoc) {
+      planDoc = await SubscriptionPlan.findOne({
+        title: { $regex: new RegExp(`^${plan}$`, 'i') },
+        is_deleted: { $ne: true }
+      });
     }
 
-    const { cost, durationDays, boostCredits } = PLANS[activePlan];
+    if (planDoc) {
+      planId = planDoc._id.toString();
+      planName = planDoc.title;
+      planType = planDoc.plan_type || 'basic';
+      billingCycle = planDoc.billing_cycle || 'monthly';
+      cost = planDoc.price_inr;
+      durationDays = planDoc.duration_days || 30;
+      boostCredits = planDoc.ai_credits || 0;
+    } else {
+      const activePlan = plan.toLowerCase();
+      if (!PLANS[activePlan]) {
+        throw ApiError.badRequest(`Invalid subscription plan: "${plan}".`);
+      }
+      const legacyPlan = PLANS[activePlan];
+      planId = `static_${activePlan}`;
+      planName = plan;
+      planType = 'basic';
+      billingCycle = 'monthly';
+      cost = legacyPlan.cost;
+      durationDays = legacyPlan.durationDays || 30;
+      boostCredits = legacyPlan.boostCredits || 0;
+    }
 
-    logger.info(`Processing subscription to plan "${plan.toUpperCase()}" for user: ${userId}`, { service: 'subscription' });
+    logger.info(`Processing subscription to plan "${planName}" for user: ${userId} (Cost: ₹${cost})`, { service: 'subscription' });
 
     const result = await walletRepository.purchaseSubscription(
       userId,
-      activePlan,
+      planId,
+      planName,
+      planType,
+      billingCycle,
       cost,
       durationDays,
       boostCredits
