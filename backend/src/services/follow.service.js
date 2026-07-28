@@ -141,55 +141,79 @@ const followersCount = async (userId) => {
 const myFollowing = async (followerId, queryOptions = {}) => {
   const { search, role, page = 1, limit = 10, sortBy } = queryOptions;
 
-  const follows = await Follow.find({ follower_id: followerId });
-  const ids = follows.map(f => f.following_id);
-  if (ids.length === 0) {
-    return { items: [], total: 0 };
-  }
-
-  const baseQuery = {
-    _id: { $in: ids },
-    is_deleted: { $ne: true }
-  };
+  const pipeline = [
+    { $match: { follower_id: followerId } },
+    {
+      $addFields: {
+        followingObjId: {
+          $cond: {
+            if: { $eq: [{ $type: '$following_id' }, 'string'] },
+            then: { $toObjectId: '$following_id' },
+            else: '$following_id'
+          }
+        }
+      }
+    },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'followingObjId',
+        foreignField: '_id',
+        as: 'userDetails'
+      }
+    },
+    { $unwind: '$userDetails' },
+    { $match: { 'userDetails.is_deleted': { $ne: true } } }
+  ];
 
   if (role) {
-    baseQuery.roles = role;
+    pipeline.push({ $match: { 'userDetails.roles': role } });
   }
 
   if (queryOptions.businessType) {
-    baseQuery['vendorProfile.businessType'] = queryOptions.businessType;
+    pipeline.push({ $match: { 'userDetails.vendorProfile.businessType': queryOptions.businessType } });
   } else if (queryOptions.excludeBusinessType) {
-    baseQuery['vendorProfile.businessType'] = { $ne: queryOptions.excludeBusinessType };
+    pipeline.push({ $match: { 'userDetails.vendorProfile.businessType': { $ne: queryOptions.excludeBusinessType } } });
   }
 
   if (search) {
     const searchRegex = new RegExp(search, 'i');
-    baseQuery.$or = [
-      { name: searchRegex },
-      { 'vendorProfile.shopName': searchRegex },
-      { 'vendorProfile.businessName': searchRegex },
-      { 'creatorProfile.name': searchRegex }
-    ];
+    pipeline.push({
+      $match: {
+        $or: [
+          { 'userDetails.name': searchRegex },
+          { 'userDetails.vendorProfile.shopName': searchRegex },
+          { 'userDetails.vendorProfile.businessName': searchRegex },
+          { 'userDetails.creatorProfile.name': searchRegex }
+        ]
+      }
+    });
   }
 
-  let sort = { name: 1 };
+  let sortField = 'userDetails.name';
+  let sortDir = 1;
   if (sortBy) {
-    if (sortBy === 'latest') sort = { created_at: -1 };
-    else if (sortBy === 'oldest') sort = { created_at: 1 };
-    else if (sortBy === 'highest_rated') sort = { rating_avg: -1 };
-    else if (sortBy === 'most_popular') sort = { followersCount: -1 };
+    if (sortBy === 'latest') { sortField = 'created_at'; sortDir = -1; }
+    else if (sortBy === 'oldest') { sortField = 'created_at'; sortDir = 1; }
+    else if (sortBy === 'highest_rated') { sortField = 'userDetails.rating_avg'; sortDir = -1; }
+    else if (sortBy === 'most_popular') { sortField = 'userDetails.followersCount'; sortDir = -1; }
   }
+  pipeline.push({ $sort: { [sortField]: sortDir } });
 
-  const total = await User.countDocuments(baseQuery);
   const parsedPage = parseInt(page || 1, 10);
   const parsedLimit = parseInt(limit || 10, 10);
   const skip = (parsedPage - 1) * parsedLimit;
 
-  const users = await User.find(baseQuery)
-    .sort(sort)
-    .skip(skip)
-    .limit(parsedLimit)
-    .lean();
+  pipeline.push({
+    $facet: {
+      metadata: [{ $count: 'total' }],
+      data: [{ $skip: skip }, { $limit: parsedLimit }]
+    }
+  });
+
+  const results = await Follow.aggregate(pipeline);
+  const total = results[0]?.metadata[0]?.total || 0;
+  const users = (results[0]?.data || []).map(item => item.userDetails);
 
   const items = users.map(u => ({
     id: u._id.toString(),

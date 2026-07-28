@@ -36,6 +36,7 @@ const CustomerSettingsPage = React.lazy(() => import('../pages/customer/settings
 const BecomeVendorPage = React.lazy(() => import('../pages/customer/become-vendor/BecomeVendorPage'));
 const BecomeCreatorPage = React.lazy(() => import('../pages/customer/become-creator/BecomeCreatorPage'));
 const VendorProfilePage = React.lazy(() => import('../pages/customer/vendor/VendorProfilePage'));
+const InterestSelectionPage = React.lazy(() => import('../pages/customer/onboarding/InterestSelectionPage'));
 
 // Vendor Pages
 const VendorDashboardPage = React.lazy(() => import('../pages/vendor/dashboard/VendorDashboardPage'));
@@ -151,6 +152,7 @@ const AppRoutes = () => {
         <Route path="become-vendor" element={<BecomeVendorPage />} />
         <Route path="become-creator" element={<BecomeCreatorPage />} />
         <Route path="vendor/:vendorId" element={<VendorProfilePage />} />
+        <Route path="choose-interests" element={<InterestSelectionPage />} />
         <Route path="" element={<Navigate to="home" replace />} />
       </Route>
 

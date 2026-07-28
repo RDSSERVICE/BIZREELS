@@ -55,8 +55,8 @@ class RequirementService {
         { 'vendorProfile.verificationStatus': { $in: ['verified_vendor', 'premium_verified', 'approved'] } }
       ]
     })
-    .select('_id vendorProfile.category vendorProfile.businessCategory vendorProfile.subcategory vendorProfile.subCategory vendorProfile.city vendorProfile.state vendorProfile.address vendorProfile.serviceArea vendorProfile.serviceAreas location')
-    .lean();
+      .select('_id vendorProfile.category vendorProfile.businessCategory vendorProfile.subcategory vendorProfile.subCategory vendorProfile.city vendorProfile.state vendorProfile.address vendorProfile.serviceArea vendorProfile.serviceAreas location')
+      .lean();
 
     const reqCategoryNormalized = (category || '').toLowerCase().trim();
     const reqSubcategoryNormalized = (subcategory || '').toLowerCase().trim();
@@ -71,12 +71,12 @@ class RequirementService {
       const vCategory = (vendor.vendorProfile?.category || '').toLowerCase().trim();
       const vCategory2 = (vendor.vendorProfile?.businessCategory || '').toLowerCase().trim();
       const categoryMatches = (
-        vCategory.includes(reqCategoryNormalized) || 
+        vCategory.includes(reqCategoryNormalized) ||
         reqCategoryNormalized.includes(vCategory && vCategory.length > 2 ? vCategory : 'xyz_no_match') ||
-        vCategory2.includes(reqCategoryNormalized) || 
+        vCategory2.includes(reqCategoryNormalized) ||
         reqCategoryNormalized.includes(vCategory2 && vCategory2.length > 2 ? vCategory2 : 'xyz_no_match')
       );
-      
+
       if (!categoryMatches) continue;
 
       // 2. Subcategory Check (optional, only check if both have specified)
@@ -94,7 +94,7 @@ class RequirementService {
       const vState = (vendor.location?.state || vendor.vendorProfile?.location?.state || vendor.vendorProfile?.state || '').toLowerCase().trim();
       const vAddress = (vendor.location?.address || vendor.vendorProfile?.location?.address || '').toLowerCase().trim();
       const vServiceArea = (vendor.vendorProfile?.serviceArea || vendor.vendorProfile?.serviceAreas || '').toLowerCase().trim();
-      
+
       let locationMatches = true;
       if (reqCity || reqState || reqArea) {
         locationMatches = (
@@ -291,7 +291,7 @@ class RequirementService {
           },
           { new: true }
         );
-        
+
         const { emitToUser } = require('../sockets');
         emitToUser(requirement.customer._id.toString(), 'requirement:viewed', {
           requirementId: id,

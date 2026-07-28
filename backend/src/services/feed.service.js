@@ -23,7 +23,7 @@ const getScore = (listing, distKm, followingSet, now) => {
       if (now - c < 24 * 60 * 60 * 1000) {
         s += 20;
       }
-    } catch {}
+    } catch { }
   }
   // Proximity (linear 30->0)
   if (distKm !== null && distKm !== undefined) {
@@ -49,7 +49,7 @@ const getScore = (listing, distKm, followingSet, now) => {
       if (bexp > now) {
         s += 25;
       }
-    } catch {}
+    } catch { }
   }
   return s;
 };

@@ -267,7 +267,7 @@ export default function BecomeCreatorPage() {
       // 3. Switch active role to 'creator'
       try {
         await api.post('/v1/users/me/switch-role', { role: 'creator' });
-      } catch (e) {}
+      } catch (e) { }
 
       dispatch(setCredentials({
         user: {
@@ -574,11 +574,10 @@ export default function BecomeCreatorPage() {
                   type="button"
                   key={cat}
                   onClick={() => toggleArrayItem(cat, selectedCategories, setSelectedCategories)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${
-                    selected
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${selected
                       ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
                       : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
-                  }`}
+                    }`}
                 >
                   {selected ? '✓ ' : '+ '} {cat}
                 </button>
@@ -605,11 +604,10 @@ export default function BecomeCreatorPage() {
                   type="button"
                   key={skill}
                   onClick={() => toggleArrayItem(skill, selectedSkills, setSelectedSkills)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                    selected
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${selected
                       ? 'bg-brand-pink text-white border-brand-pink shadow-sm'
                       : 'bg-surface border-border text-text-secondary hover:border-brand-pink/40'
-                  }`}
+                    }`}
                 >
                   {selected ? '✓ ' : '+ '} {skill}
                 </button>
@@ -636,11 +634,10 @@ export default function BecomeCreatorPage() {
                   type="button"
                   key={lang}
                   onClick={() => toggleArrayItem(lang, selectedLanguages, setSelectedLanguages)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                    selected
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${selected
                       ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
                       : 'bg-surface border-border text-text-secondary hover:border-emerald-500/40'
-                  }`}
+                    }`}
                 >
                   {selected ? '✓ ' : '+ '} {lang}
                 </button>
@@ -666,11 +663,10 @@ export default function BecomeCreatorPage() {
                 <div
                   key={exp}
                   onClick={() => setExperience(exp)}
-                  className={`cursor-pointer p-3 rounded-2xl border text-center font-bold text-xs transition-all ${
-                    selected
+                  className={`cursor-pointer p-3 rounded-2xl border text-center font-bold text-xs transition-all ${selected
                       ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
                       : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
-                  }`}
+                    }`}
                 >
                   {exp}
                 </div>
@@ -797,11 +793,10 @@ export default function BecomeCreatorPage() {
                     type="button"
                     key={wt}
                     onClick={() => toggleArrayItem(wt, workTypes, setWorkTypes)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                      selected
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${selected
                         ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
                         : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
-                    }`}
+                      }`}
                   >
                     {selected ? '✓ ' : '+ '} {wt}
                   </button>

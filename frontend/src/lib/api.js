@@ -77,7 +77,12 @@ api.interceptors.request.use((config) => {
   const access = tokenStore.getAccess();
   if (access) {
     config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${access}`;
+    if (typeof config.headers.set === 'function') {
+      config.headers.set('Authorization', `Bearer ${access}`);
+    } else {
+      config.headers['Authorization'] = `Bearer ${access}`;
+      config.headers.Authorization = `Bearer ${access}`;
+    }
   }
   return config;
 });

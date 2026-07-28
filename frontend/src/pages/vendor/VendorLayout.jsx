@@ -179,11 +179,10 @@ export default function VendorLayout() {
                           key={item.path}
                           to={item.path}
                           onClick={onItemClick}
-                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 mb-0.5 ${
-                            isActive
+                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 mb-0.5 ${isActive
                               ? 'bg-brand-purple text-white shadow-premium'
                               : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-2.5">
                             <Icon className="w-4 h-4 flex-shrink-0" />
@@ -250,7 +249,7 @@ export default function VendorLayout() {
     <div className="min-h-screen bg-surface-secondary flex">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-surface border-r border-border fixed top-0 bottom-0 left-0 z-30">
-        <SidebarContent onItemClick={() => {}} />
+        <SidebarContent onItemClick={() => { }} />
       </aside>
 
       {/* Mobile Sidebar */}
@@ -285,7 +284,7 @@ export default function VendorLayout() {
             <div className="flex items-center gap-2 min-w-0">
               <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden flex-shrink-0" />
               <h1 className="text-sm font-bold text-text-primary font-display hidden md:block">Vendor Portal</h1>
-              
+
               {/* Top Bar Status Badge — icon-only on very small screens */}
               <Link
                 to="/vendor/verification"
@@ -301,11 +300,10 @@ export default function VendorLayout() {
             {/* Shop Status Toggle */}
             <button
               onClick={handleToggleShopStatus}
-              className={`px-2 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 border transition ${
-                isShopClosed
+              className={`px-2 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 border transition ${isShopClosed
                   ? 'bg-error/10 text-error border-error/20'
                   : 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-              }`}
+                }`}
             >
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isShopClosed ? 'bg-error' : 'bg-emerald-500 animate-pulse'}`} />
               <span className="hidden sm:inline">{isShopClosed ? 'Shop Closed' : 'Shop Open'}</span>

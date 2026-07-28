@@ -52,7 +52,12 @@ const userSchema = new mongoose.Schema({
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   // Profiles
   customerProfile: {
-    savedListings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }]
+    savedListings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }],
+    interests: [{
+      category: { type: String },
+      subcategory: { type: String, default: null }
+    }],
+    interestsSelectedAt: { type: Date, default: null }
   },
   vendorProfile: { type: mongoose.Schema.Types.Mixed, default: null },
   creatorProfile: { type: mongoose.Schema.Types.Mixed, default: null },
@@ -79,7 +84,7 @@ userSchema.index({ city: 1 });
 userSchema.index({ activeRole: 1 });
 
 // Pre-validate hook to clean up empty/falsy sparse unique fields
-userSchema.pre('validate', function(next) {
+userSchema.pre('validate', function (next) {
   if (!this.phone) this.phone = undefined;
   if (!this.email) this.email = undefined;
   if (!this.referral_code) this.referral_code = undefined;
@@ -87,19 +92,19 @@ userSchema.pre('validate', function(next) {
 });
 
 // Pre-save hook to hash password if modified
-userSchema.pre('save', async function() {
+userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
 // Instance method to check if user is locked
-userSchema.methods.isLocked = function() {
+userSchema.methods.isLocked = function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 };
 
 // Instance method to compare passwords
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };

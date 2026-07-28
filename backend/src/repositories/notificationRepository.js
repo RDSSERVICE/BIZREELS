@@ -6,24 +6,11 @@ const Notification = require('../models/Notification');
  * Access layer for in-app client alerts.
  */
 class NotificationRepository {
-  _getUserConditions(userId) {
-    const uIdStr = userId.toString();
-    const conditions = [{ recipient: userId }, { recipient: uIdStr }, { user_id: uIdStr }];
-    if (mongoose.Types.ObjectId.isValid(uIdStr)) {
-      const objId = new mongoose.Types.ObjectId(uIdStr);
-      conditions.push({ recipient: objId }, { user_id: objId });
-    }
-    return conditions;
-  }
-
   async getNotificationsForUser(userId, { isRead = null, cursor = null, limit = 30 } = {}) {
-    const query = { $or: this._getUserConditions(userId) };
+    const query = { recipient: userId.toString() };
     
     if (isRead !== null) {
-      query.$or = query.$or.map(cond => ({
-        ...cond,
-        $or: [{ isRead: isRead === true }, { is_read: isRead === true }]
-      }));
+      query.isRead = isRead;
     }
     
     if (cursor) {
@@ -41,8 +28,8 @@ class NotificationRepository {
 
   async unreadCount(userId) {
     return Notification.countDocuments({
-      $or: this._getUserConditions(userId),
-      $and: [{ isRead: { $ne: true } }, { is_read: { $ne: true } }]
+      recipient: userId.toString(),
+      isRead: false
     });
   }
 
@@ -62,23 +49,23 @@ class NotificationRepository {
 
   async markAllAsRead(userId) {
     return Notification.updateMany(
-      { $or: this._getUserConditions(userId) },
-      { isRead: true, is_read: true }
+      { recipient: userId.toString(), isRead: false },
+      { isRead: true }
     );
   }
 
   async markAsRead(notificationId, userId) {
     return Notification.findOneAndUpdate(
-      { _id: notificationId, $or: this._getUserConditions(userId) },
-      { isRead: true, is_read: true },
-      { new: true }
+      { _id: notificationId, recipient: userId.toString() },
+      { isRead: true },
+      { returnDocument: 'after' }
     );
   }
 
   async deleteNotification(notificationId, userId) {
     return Notification.findOneAndDelete({
       _id: notificationId,
-      $or: this._getUserConditions(userId)
+      recipient: userId.toString()
     });
   }
 }

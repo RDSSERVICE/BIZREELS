@@ -367,6 +367,263 @@ router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
   });
 }));
 
+// ── Interest Selection (Post-Login) ────────────────────────────────────
+router.get('/me/interests', requireAuth, catchAsync(async (req, res) => {
+  const user = req.user;
+  res.json({
+    success: true,
+    interests: user.customerProfile?.interests || [],
+    interestsSelectedAt: user.customerProfile?.interestsSelectedAt || null,
+  });
+}));
+
+router.patch('/me/interests', requireAuth, catchAsync(async (req, res) => {
+  const { interests } = req.body;
+  if (!Array.isArray(interests) || interests.length < 5) {
+    throw ApiError.badRequest('Please select at least 5 interests');
+  }
+  if (interests.length > 15) {
+    throw ApiError.badRequest('Maximum 15 interests allowed');
+  }
+  const cleanedInterests = interests.map(i => ({
+    category: String(i.category || '').trim(),
+    subcategory: i.subcategory ? String(i.subcategory).trim() : null,
+  })).filter(i => i.category);
+
+  const updated = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        'customerProfile.interests': cleanedInterests,
+        'customerProfile.interestsSelectedAt': new Date(),
+      }
+    },
+    { returnDocument: 'after' }
+  );
+  res.json({
+    success: true,
+    interests: updated.customerProfile?.interests || [],
+    interestsSelectedAt: updated.customerProfile?.interestsSelectedAt,
+  });
+}));
+
+// ── Activity Counts (Analytics for Activities Dashboard) ───────────────
+router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
+  const Interaction = require('../models/Interaction');
+  const Notification = require('../models/Notification');
+  const { ChatMessage } = require('../models/Chat');
+  const uid = req.user._id.toString();
+
+  // Run Mongoose queries in parallel (all using direct single/compound index prefixes)
+  const [
+    savedSaves,
+    savedReels,
+    savedImages,
+    clickToCalled,
+    whatsappContacted,
+    chatInquiries,
+    unreadNotifications,
+    unreadChat
+  ] = await Promise.all([
+    Interaction.find({ user_id: uid, type: 'save' }).select('listing_id').lean(),
+    Interaction.countDocuments({ user_id: uid, type: 'save_reel' }),
+    Interaction.countDocuments({ user_id: uid, type: 'save_image' }),
+    Interaction.countDocuments({ user_id: uid, type: 'click_to_call' }),
+    Interaction.countDocuments({ user_id: uid, type: 'whatsapp_contact' }),
+    Interaction.countDocuments({ user_id: uid, type: 'chat_inquiry' }),
+    Notification.countDocuments({ recipient: uid, isRead: false }).catch(() => 0),
+    ChatMessage.countDocuments({ receiver_id: uid, read_at: null, is_deleted: { $ne: true } }).catch(() => 0)
+  ]);
+
+  let savedServices = 0;
+  let actualSavedProducts = 0;
+
+  if (savedSaves.length > 0) {
+    const listingIds = savedSaves.map(s => s.listing_id).filter(Boolean);
+    if (listingIds.length > 0) {
+      const Listing = require('../models/Listing');
+      savedServices = await Listing.countDocuments({
+        _id: { $in: listingIds },
+        type: 'service',
+        isDeleted: { $ne: true }
+      }).catch(() => 0);
+    }
+    actualSavedProducts = savedSaves.length - savedServices;
+  }
+
+  const total = actualSavedProducts + savedServices + savedReels + savedImages + clickToCalled + whatsappContacted + chatInquiries;
+
+  res.json({
+    success: true,
+    savedProducts: Math.max(0, actualSavedProducts),
+    savedServices,
+    savedReels,
+    savedImages,
+    clickToCalled,
+    whatsappContacted,
+    chatInquiries,
+    total,
+    unreadNotifications,
+    unreadChat,
+  });
+}));
+
+// ── GET Activities List ────────────────────────────────────────────────
+router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
+  const { type, search, sortBy, page = 1, limit = 6 } = req.query;
+  const uid = req.user._id.toString();
+  const pageNum = parseInt(page, 10);
+  const limitNum = parseInt(limit, 10);
+  const skip = (pageNum - 1) * limitNum;
+
+  const Interaction = require('../models/Interaction');
+  const Listing = require('../models/Listing');
+  const Reel = require('../models/Reel');
+  const User = require('../models/User');
+
+  let results = [];
+  let total = 0;
+
+  if (type === 'saved-products' || type === 'saved-services') {
+    const listingType = type === 'saved-products' ? 'product' : 'service';
+    const inters = await Interaction.find({ user_id: uid, type: 'save', listing_id: { $ne: null } }).select('listing_id');
+    const listingIds = inters.map(i => i.listing_id);
+
+    const query = { _id: { $in: listingIds }, type: listingType, isDeleted: { $ne: true } };
+    if (search) {
+      query.title = { $regex: new RegExp(search, 'i') };
+    }
+
+    let sort = { createdAt: -1 };
+    if (sortBy === 'price_low_high') sort = { price: 1 };
+    else if (sortBy === 'price_high_low') sort = { price: -1 };
+
+    total = await Listing.countDocuments(query);
+    const listings = await Listing.find(query)
+      .populate('vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    results = listings.map(l => ({ ...l, id: l._id.toString() }));
+  } 
+  else if (type === 'saved-reels') {
+    const inters = await Interaction.find({ user_id: uid, type: 'save_reel', reel_id: { $ne: null } }).select('reel_id');
+    const reelIds = inters.map(i => i.reel_id);
+
+    const query = { _id: { $in: reelIds }, isDeleted: { $ne: true } };
+    if (search) {
+      query.caption = { $regex: new RegExp(search, 'i') };
+    }
+
+    total = await Reel.countDocuments(query);
+    const reels = await Reel.find(query)
+      .populate('creator', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    results = reels.map(r => ({ ...r, id: r._id.toString() }));
+  }
+  else if (type === 'saved-images') {
+    const inters = await Interaction.find({ user_id: uid, type: 'save_image', listing_id: { $ne: null } }).select('listing_id');
+    const listingIds = inters.map(i => i.listing_id);
+
+    const query = { _id: { $in: listingIds }, isDeleted: { $ne: true } };
+    if (search) {
+      query.title = { $regex: new RegExp(search, 'i') };
+    }
+
+    total = await Listing.countDocuments(query);
+    const listings = await Listing.find(query)
+      .populate('vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    results = listings.map(l => ({ ...l, id: l._id.toString() }));
+  }
+  else if (['click-to-called', 'whatsapp-contacted', 'chat-inquiries'].includes(type)) {
+    const interactionType = type === 'click-to-called' ? 'click_to_call' : 
+                            type === 'whatsapp-contacted' ? 'whatsapp_contact' : 'chat_inquiry';
+    
+    const query = { user_id: uid, type: interactionType };
+    total = await Interaction.countDocuments(query);
+    const inters = await Interaction.find(query)
+      .sort({ created_at: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    const targetUserIds = inters.map(i => i.target_user_id).filter(Boolean);
+    const targetUsers = await User.find({ _id: { $in: targetUserIds } })
+      .select('name avatarUrl profile_pic roles vendorProfile rating_avg rating_count phone')
+      .lean();
+    
+    const userMap = {};
+    targetUsers.forEach(u => {
+      userMap[u._id.toString()] = u;
+    });
+
+    results = inters.map(i => {
+      const vendor = userMap[i.target_user_id] || {};
+      return {
+        _id: i._id.toString(),
+        id: i._id.toString(),
+        createdAt: i.created_at,
+        type: i.type,
+        metadata: i.metadata,
+        vendor: {
+          id: vendor._id?.toString(),
+          _id: vendor._id?.toString(),
+          name: vendor.name || 'Verified Vendor',
+          avatarUrl: vendor.avatarUrl || vendor.profile_pic,
+          vendorProfile: vendor.vendorProfile,
+          phone: vendor.phone,
+        }
+      };
+    });
+  }
+
+  res.json({
+    success: true,
+    data: results,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total
+    }
+  });
+}));
+
+// ── Track Interaction (Click-to-Call, WhatsApp, etc.) ──────────────────
+router.post('/me/track-interaction', requireAuth, catchAsync(async (req, res) => {
+  const Interaction = require('../models/Interaction');
+  const { type, listingId, reelId, targetUserId, metadata } = req.body;
+  const uid = req.user._id.toString();
+
+  const allowedTypes = ['click_to_call', 'whatsapp_contact', 'chat_inquiry', 'save_reel', 'save_image'];
+  if (!allowedTypes.includes(type)) {
+    throw ApiError.badRequest('Invalid interaction type');
+  }
+
+  const interactionData = {
+    user_id: uid,
+    type,
+    listing_id: listingId || null,
+    reel_id: reelId || null,
+    target_user_id: targetUserId || null,
+    metadata: metadata || null,
+  };
+
+  await Interaction.create(interactionData);
+
+  res.json({ success: true, message: 'Interaction tracked' });
+}));
+
 router.get('/:userId', catchAsync(async (req, res) => {
   const { userId } = req.params;
   const u = await User.findOne({ _id: userId, is_deleted: { $ne: true } });
@@ -379,13 +636,13 @@ router.get('/:userId', catchAsync(async (req, res) => {
   let followers = 0;
   try {
     followers = await followService.followersCount(userId);
-  } catch (err) {}
+  } catch (err) { }
 
   let tier = null;
   try {
     const ts = await trustService.getTrustScore(userId);
     tier = ts.tier;
-  } catch (err) {}
+  } catch (err) { }
 
   res.json({
     id: u._id.toString(),

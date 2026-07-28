@@ -104,8 +104,9 @@ class ListingRepository {
       pipeline.push({ $match: match });
     }
 
-    // Personalization sorting: followedVendor desc
+    // Personalization sorting: followedVendor desc, user interests match
     let followedIds = [];
+    let interestCategories = [];
     if (currentUserId) {
       try {
         const followService = require('../services/follow.service');
@@ -114,17 +115,29 @@ class ListingRepository {
       } catch (err) {
         console.error('Error fetching followed IDs for listing feed:', err);
       }
+      try {
+        const User = require('../models/User');
+        const user = await User.findById(currentUserId).select('customerProfile.interests');
+        if (user && user.customerProfile && Array.isArray(user.customerProfile.interests)) {
+          interestCategories = user.customerProfile.interests.map(i => i.category);
+        }
+      } catch (err) {
+        console.error('Error fetching user interests for listing feed:', err);
+      }
     }
 
-    if (currentUserId && followedIds.length > 0) {
+    if (currentUserId) {
       pipeline.push({
         $addFields: {
           followedVendor: {
             $cond: [{ $in: ['$vendor', followedIds] }, 1, 0]
+          },
+          interestMatch: {
+            $cond: [{ $in: ['$category', interestCategories] }, 1, 0]
           }
         }
       });
-      pipeline.push({ $sort: { followedVendor: -1, isBoosted: -1, createdAt: -1 } });
+      pipeline.push({ $sort: { followedVendor: -1, interestMatch: -1, isBoosted: -1, createdAt: -1 } });
     } else if (!coordinates) {
       pipeline.push({ $sort: { isBoosted: -1, createdAt: -1 } });
     }
@@ -150,7 +163,6 @@ class ListingRepository {
       $project: {
         type: 1,
         title: 1,
-        description: 1,
         shortDescription: 1,
         category: 1,
         subcategory: 1,

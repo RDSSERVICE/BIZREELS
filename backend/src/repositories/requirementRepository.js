@@ -14,9 +14,13 @@ class RequirementRepository {
     const location = data.location || {
       area: data.address || 'Local',
       city: data.city || 'Delhi',
+      district: data.district || '',
       state: data.state || '',
       pincode: data.pincode || '110001',
     };
+    // Ensure district/state on location object
+    if (!location.district && data.district) location.district = data.district;
+    if (!location.state && data.state) location.state = data.state;
     const docData = {
       customer_id: custId,
       customer: custId && mongoose.Types.ObjectId.isValid(custId) ? new mongoose.Types.ObjectId(custId) : null,
@@ -33,7 +37,11 @@ class RequirementRepository {
       budget_min: data.budget_min || 0,
       quantity: data.quantity || 1,
       deadline: data.deadline || null,
+      photos: data.photos || [],
+      video: data.video || null,
       location,
+      targetDistance: data.targetDistance || null,
+      otherConditions: data.otherConditions || null,
       status: 'Pending',
       is_active: true,
       is_deleted: false,
@@ -147,7 +155,7 @@ class RequirementRepository {
       });
     } else {
       pipeline.push({ $match: match });
-      
+
       // Determine sort order
       let sort = { createdAt: -1 };
       if (sortBy) {
@@ -272,7 +280,7 @@ class RequirementRepository {
         ipAddress: ip,
         userAgent: agent,
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 }
 

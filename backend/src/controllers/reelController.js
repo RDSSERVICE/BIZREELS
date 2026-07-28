@@ -128,6 +128,53 @@ class ReelController {
     const result = await reelService.deleteReel(id, req.user._id, req);
     return ApiResponse.ok(res, result.message);
   });
+
+  // ── Save Reel ───────────────────────────────────────────
+  saveReel = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userModel = require('../models/User');
+    const Interaction = require('../models/Interaction');
+    const Reel = require('../models/Reel');
+
+    const reel = await Reel.findById(id);
+    if (!reel) {
+      return ApiResponse.error(res, 'Reel not found', 404);
+    }
+
+    const user = await userModel.findByIdAndUpdate(
+      req.user._id,
+      { $addToSet: { 'customerProfile.savedListings': id } },
+      { returnDocument: 'after' }
+    ).select('-password -__v');
+
+    const existing = await Interaction.findOne({ user_id: req.user._id.toString(), reel_id: id, type: 'save_reel' });
+    if (!existing) {
+      await Interaction.create({
+        user_id: req.user._id.toString(),
+        reel_id: id,
+        type: 'save_reel',
+      });
+    }
+
+    return ApiResponse.ok(res, 'Reel saved successfully.', { user, active: true });
+  });
+
+  // ── Unsave Reel ─────────────────────────────────────────
+  unsaveReel = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userModel = require('../models/User');
+    const Interaction = require('../models/Interaction');
+
+    const user = await userModel.findByIdAndUpdate(
+      req.user._id,
+      { $pull: { 'customerProfile.savedListings': id } },
+      { returnDocument: 'after' }
+    ).select('-password -__v');
+
+    await Interaction.deleteOne({ user_id: req.user._id.toString(), reel_id: id, type: 'save_reel' });
+
+    return ApiResponse.ok(res, 'Reel unsaved successfully.', { user, active: false });
+  });
 }
 
 module.exports = new ReelController();

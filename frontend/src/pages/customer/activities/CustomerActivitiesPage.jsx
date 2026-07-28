@@ -4,8 +4,10 @@ import {
   FiActivity, FiBookmark, FiTool, FiPackage, FiMessageSquare,
   FiDollarSign, FiUserCheck, FiSearch, FiCalendar, FiMapPin, FiStar,
   FiChevronRight, FiClock, FiTrash2, FiExternalLink, FiShare2, FiRefreshCw,
-  FiShoppingBag, FiInfo, FiTruck, FiAlertCircle, FiXCircle, FiCheckCircle, FiPhone
+  FiShoppingBag, FiInfo, FiTruck, FiAlertCircle, FiXCircle, FiCheckCircle, FiPhone,
+  FiVideo, FiImage
 } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
@@ -27,16 +29,6 @@ import {
 import { resolveMediaUrl, api } from '../../../lib/api';
 import { getSocket } from '../../../lib/socket';
 
-const TABS = [
-  { key: 'saved-products', label: 'Saved Products', icon: FiBookmark },
-  { key: 'saved-services', label: 'Saved Services', icon: FiTool },
-  { key: 'my-orders', label: 'My Orders Request', icon: FiPackage },
-  { key: 'inquiries', label: 'Inquiry History', icon: FiMessageSquare },
-  { key: 'quotes', label: 'Quotes Received', icon: FiDollarSign },
-  { key: 'following-vendors', label: 'Following Vendors', icon: FiUserCheck },
-  { key: 'following-services', label: 'Following Service Providers', icon: FiUserCheck },
-];
-
 const CATEGORIES = [
   'Electronics & IT', 'Fashion & Apparel', 'Restaurant & Food', 'Services & Repairs',
   'Furniture & Home Decor', 'Automobile & Parts', 'Grocery & Daily Essentials',
@@ -46,7 +38,46 @@ const CATEGORIES = [
 export default function CustomerActivitiesPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('saved-products');
-  
+
+  // Activity Counts
+  const [counts, setCounts] = useState({
+    savedProducts: 0,
+    savedServices: 0,
+    savedReels: 0,
+    savedImages: 0,
+    clickToCalled: 0,
+    whatsappContacted: 0,
+    chatInquiries: 0,
+    total: 0
+  });
+
+  const [customActivities, setCustomActivities] = useState({ data: [], pagination: { page: 1, limit: 6, total: 0 } });
+  const [customLoading, setCustomLoading] = useState(false);
+
+  const fetchCounts = async () => {
+    try {
+      const res = await api.get('/v1/users/me/activity-counts');
+      if (res.data) setCounts(res.data);
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchCounts();
+  }, [activeTab]);
+
+  const dynamicTabs = [
+    { key: 'saved-products', label: 'Saved Products', icon: FiBookmark, count: counts.savedProducts },
+    { key: 'saved-services', label: 'Saved Services', icon: FiTool, count: counts.savedServices },
+    { key: 'saved-reels', label: 'Saved Reels', icon: FiVideo, count: counts.savedReels },
+    { key: 'saved-images', label: 'Saved Images', icon: FiImage, count: counts.savedImages },
+    { key: 'click-to-called', label: 'Click to Called', icon: FiPhone, count: counts.clickToCalled },
+    { key: 'whatsapp-contacted', label: 'WhatsApp', icon: FaWhatsapp, count: counts.whatsappContacted },
+    { key: 'chat-inquiries', label: 'Chat/Inquiry', icon: FiMessageSquare, count: counts.chatInquiries },
+    { key: 'my-orders', label: 'My Orders Request', icon: FiPackage },
+    { key: 'quotes', label: 'Quotes Received', icon: FiDollarSign },
+    { key: 'following-vendors', label: 'Following Vendors', icon: FiUserCheck },
+  ];
+
   // Search & Filter State
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
@@ -64,7 +95,7 @@ export default function CustomerActivitiesPage() {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewListingId, setReviewListingId] = useState('');
   const [reviewVendorId, setReviewVendorId] = useState('');
-  
+
   const [selectedService, setSelectedService] = useState(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingDate, setBookingDate] = useState('');
@@ -75,18 +106,50 @@ export default function CustomerActivitiesPage() {
   // Destructive confirmations
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null });
 
+  const isCustomTab = [
+    'saved-products',
+    'saved-services',
+    'saved-reels',
+    'saved-images',
+    'click-to-called',
+    'whatsapp-contacted',
+    'chat-inquiries'
+  ].includes(activeTab);
+
+  useEffect(() => {
+    if (!isCustomTab) return;
+    const fetchActivities = async () => {
+      setCustomLoading(true);
+      try {
+        const params = new URLSearchParams({
+          type: activeTab,
+          page: page.toString(),
+          limit: '6'
+        });
+        if (search) params.append('search', search);
+        if (sortBy) params.append('sortBy', sortBy);
+
+        const res = await api.get(`/v1/users/me/activities?${params.toString()}`);
+        if (res.data) {
+          setCustomActivities({
+            data: res.data.data || [],
+            pagination: res.data.pagination || { page, limit: 6, total: 0 }
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setCustomLoading(false);
+      }
+    };
+    fetchActivities();
+  }, [activeTab, page, search, sortBy, isCustomTab]);
+
   // RTK Queries
-  const skipSaved = activeTab !== 'saved-products' && activeTab !== 'saved-services';
-  const { data: savedData, isLoading: savedLoading, refetch: refetchSaved } = useGetSavedListingsQuery({
-    search,
-    type: activeTab === 'saved-products' ? 'product' : 'service',
-    category,
-    minPrice,
-    maxPrice,
-    sortBy,
-    page,
-    limit: 6
-  }, { skip: skipSaved, refetchOnMountOrArgChange: true });
+  const skipSaved = true; // Use activities endpoint instead of RTK query for saved-products/saved-services
+  const savedData = null;
+  const savedLoading = false;
+  const refetchSaved = () => {};
 
   const skipOrders = activeTab !== 'my-orders';
   const { data: ordersData, isLoading: ordersLoading, refetch: refetchOrders } = useGetOrdersQuery({
@@ -164,7 +227,7 @@ export default function CustomerActivitiesPage() {
     socket.on('proposal:rejected', handleRefetch);
     socket.on('following_update', handleRefetch);
     socket.on('connect', handleRefetch);
-    
+
     socket.on('notification:new', (notif) => {
       toast.success(notif.title || 'New activity update received');
       handleRefetch();
@@ -203,6 +266,11 @@ export default function CustomerActivitiesPage() {
     try {
       await unsaveListing(listingId).unwrap();
       toast.success('Removed from saved items');
+      fetchCounts();
+      setCustomActivities(prev => ({
+        ...prev,
+        data: prev.data.filter(item => item.id !== listingId && item._id !== listingId)
+      }));
     } catch (err) {
       toast.error('Failed to remove item');
     }
@@ -495,21 +563,44 @@ export default function CustomerActivitiesPage() {
     printWindow.document.close();
   };
 
+  const handleRemoveSavedReel = async (id) => {
+    try {
+      await api.post(`/v1/reels/${id}/unsave`);
+      toast.success('Removed from saved reels');
+      fetchCounts();
+      setCustomActivities(prev => ({
+        ...prev,
+        data: prev.data.filter(item => item.id !== id && item._id !== id)
+      }));
+    } catch {
+      toast.error('Failed to unsave reel');
+    }
+  };
+
+  const handleRemoveSavedImage = async (id) => {
+    try {
+      await api.post(`/v1/listings/${id}/unsave-image`);
+      toast.success('Removed from saved images');
+      fetchCounts();
+      setCustomActivities(prev => ({
+        ...prev,
+        data: prev.data.filter(item => item.id !== id && item._id !== id)
+      }));
+    } catch {
+      toast.error('Failed to unsave image');
+    }
+  };
+
   // Get current active state datasets & loading
   const getActiveTabState = () => {
+    if (isCustomTab) {
+      return {
+        data: customActivities.data || [],
+        loading: customLoading,
+        pagination: customActivities.pagination
+      };
+    }
     switch (activeTab) {
-      case 'saved-products':
-        return {
-          data: savedData?.saved || [],
-          loading: savedLoading,
-          pagination: savedData?.pagination
-        };
-      case 'saved-services':
-        return {
-          data: savedData?.saved || [],
-          loading: savedLoading,
-          pagination: savedData?.pagination
-        };
       case 'my-orders':
         return {
           data: ordersData?.orders || [],
@@ -577,7 +668,7 @@ export default function CustomerActivitiesPage() {
         subtitle="Manage your saved bookmark listings, order requests, inquiries, quote biddings, and followed seller communities"
       />
 
-      <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={handleTabChange} />
+      <AdminTabBar tabs={dynamicTabs} activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* FILTER & CONTROL BAR */}
       <div className="glass rounded-2xl p-4 border border-white/40 shadow-card flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -694,7 +785,7 @@ export default function CustomerActivitiesPage() {
 
       {/* CARDS DISPLAY CONTAINER */}
       <div className="glass rounded-2xl p-6 border border-white/50 shadow-card min-h-[400px] flex flex-col justify-between">
-        
+
         {loading ? (
           /* SKELETON LOADING GRID */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
@@ -732,14 +823,14 @@ export default function CustomerActivitiesPage() {
         ) : (
           /* ACTIVE TABS CONTENT */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
+
             {/* SAVED PRODUCTS */}
             {activeTab === 'saved-products' && data.map((p) => {
               const hasDiscount = p.discount > 0 || (p.actualPrice && p.sellingPrice && p.actualPrice > p.sellingPrice);
               const origPrice = p.actualPrice || p.price || 0;
               const salePrice = p.sellingPrice || p.salePrice || p.price || 0;
               const inStock = p.stock > 0;
-              
+
               return (
                 <div key={p.id} className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300 hover:-translate-y-1 group">
                   <div className="flex gap-4">
@@ -758,7 +849,7 @@ export default function CustomerActivitiesPage() {
                       <span className="text-[9px] uppercase tracking-wider text-brand-purple font-bold">{p.category}</span>
                       <h4 className="font-bold text-xs text-text-primary truncate mb-0.5">{p.title}</h4>
                       <p className="text-[10px] text-text-tertiary truncate">By <span className="font-semibold text-text-secondary cursor-pointer hover:underline" onClick={() => navigate(`/customer/vendor/${p.vendor?.id || p.vendor?._id}`)}>{p.vendor?.vendorProfile?.shopName || p.vendor?.name || 'Verified Vendor'}</span></p>
-                      
+
                       {/* Rating */}
                       <div className="flex items-center gap-1 mt-1 text-[10px] text-yellow-500 font-bold">
                         <FiStar size={11} fill="currentColor" />
@@ -772,7 +863,7 @@ export default function CustomerActivitiesPage() {
                         {hasDiscount && (
                           <>
                             <span className="text-[10px] text-text-tertiary line-through">₹{origPrice.toLocaleString()}</span>
-                            <span className="text-[9px] px-1 bg-red-500/10 text-red-500 rounded font-bold">{p.discount || Math.round(((origPrice - salePrice)/origPrice)*100)}% Off</span>
+                            <span className="text-[9px] px-1 bg-red-500/10 text-red-500 rounded font-bold">{p.discount || Math.round(((origPrice - salePrice) / origPrice) * 100)}% Off</span>
                           </>
                         )}
                       </div>
@@ -794,7 +885,7 @@ export default function CustomerActivitiesPage() {
                       <FiTrash2 size={11} /> Remove
                     </button>
                   </div>
-                  
+
                   <div className="flex justify-between items-center text-[9px] text-text-tertiary border-t border-border/50 pt-2">
                     <span>Saved: {new Date(p.updatedAt).toLocaleDateString()}</span>
                     <div className="flex items-center gap-2">
@@ -810,7 +901,7 @@ export default function CustomerActivitiesPage() {
             {activeTab === 'saved-services' && data.map((s) => {
               const coverImg = s.serviceDetails?.coverImage || s.images?.[0] || 'https://via.placeholder.com/300';
               const activeStatus = s.status === 'published';
-              
+
               return (
                 <div key={s.id} className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300 hover:-translate-y-1 group">
                   <div className="flex gap-4">
@@ -829,7 +920,7 @@ export default function CustomerActivitiesPage() {
                       <span className="text-[9px] uppercase tracking-wider text-brand-purple font-bold">{s.category}</span>
                       <h4 className="font-bold text-xs text-text-primary truncate mb-0.5">{s.title}</h4>
                       <p className="text-[10px] text-text-tertiary truncate">By <span className="font-semibold text-text-secondary cursor-pointer hover:underline" onClick={() => navigate(`/customer/vendor/${s.vendor?.id || s.vendor?._id}`)}>{s.vendor?.vendorProfile?.shopName || s.vendor?.name || 'Service Provider'}</span></p>
-                      
+
                       {/* Rating */}
                       <div className="flex items-center gap-1 mt-1 text-[10px] text-yellow-500 font-bold">
                         <FiStar size={11} fill="currentColor" />
@@ -841,7 +932,7 @@ export default function CustomerActivitiesPage() {
                         <FiMapPin size={10} />
                         <span className="truncate">{s.serviceDetails?.serviceArea || 'Local'}</span>
                       </div>
-                      
+
                       <p className="text-xs font-bold text-brand-purple mt-2">Starting: ₹{(s.price || 0).toLocaleString()}</p>
                     </div>
                   </div>
@@ -861,7 +952,7 @@ export default function CustomerActivitiesPage() {
                       <FiTrash2 size={11} /> Remove
                     </button>
                   </div>
-                  
+
                   <div className="flex justify-between items-center text-[9px] text-text-tertiary border-t border-border/50 pt-2">
                     <span>Saved: {new Date(s.updatedAt).toLocaleDateString()}</span>
                     <div className="flex items-center gap-2">
@@ -873,13 +964,143 @@ export default function CustomerActivitiesPage() {
               );
             })}
 
+            {/* SAVED REELS */}
+            {activeTab === 'saved-reels' && data.map((r) => (
+              <div key={r.id} className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300 hover:-translate-y-1 group">
+                <div className="flex gap-4">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/10 border border-border flex-shrink-0 relative">
+                    {r.thumbnailUrl ? (
+                      <img
+                        src={resolveMediaUrl(r.thumbnailUrl)}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-brand-purple/20 flex items-center justify-center">
+                        <FiVideo size={24} className="text-brand-purple" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[9px] uppercase tracking-wider text-brand-purple font-bold">{r.category || 'Reel'}</span>
+                    <h4 className="font-bold text-xs text-text-primary truncate mb-0.5">{r.caption || 'Video Reel'}</h4>
+                    <p className="text-[10px] text-text-tertiary truncate">By <span className="font-semibold text-text-secondary">{r.creator?.vendorProfile?.shopName || r.creator?.name || 'Creator'}</span></p>
+                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-text-tertiary">
+                      <span>👁️ {r.views || 0} views</span>
+                      <span>❤️ {r.likesCount || 0} likes</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    onClick={() => navigate(`/customer/home?reel=${r.id}`)}
+                    className="py-2 gradient-brand text-white rounded-xl text-[10px] font-bold shadow-premium hover:opacity-95 transition flex items-center justify-center gap-1"
+                  >
+                    <FiExternalLink size={11} /> Watch Reel
+                  </button>
+                  <button
+                    onClick={() => handleRemoveSavedReel(r.id)}
+                    className="py-2 glass border border-border text-text-secondary hover:text-error hover:bg-error-light/10 rounded-xl text-[10px] font-semibold transition flex items-center justify-center gap-1"
+                  >
+                    <FiTrash2 size={11} /> Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* SAVED IMAGES */}
+            {activeTab === 'saved-images' && data.map((img) => {
+              const coverImg = img.images?.[0] || 'https://via.placeholder.com/300';
+              return (
+                <div key={img.id} className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300 hover:-translate-y-1 group">
+                  <div className="flex gap-4">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/10 border border-border flex-shrink-0 relative">
+                      <img
+                        src={resolveMediaUrl(coverImg)}
+                        alt={img.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[9px] uppercase tracking-wider text-brand-purple font-bold">{img.category || 'Listing'}</span>
+                      <h4 className="font-bold text-xs text-text-primary truncate mb-0.5">{img.title}</h4>
+                      <p className="text-[10px] text-text-tertiary truncate">By <span className="font-semibold text-text-secondary">{img.vendor?.vendorProfile?.shopName || img.vendor?.name || 'Vendor'}</span></p>
+                      <p className="text-xs font-bold text-brand-purple mt-2">₹{(img.price || 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <button
+                      onClick={() => navigate(`/customer/search?search=${img.title}`)}
+                      className="py-2 gradient-brand text-white rounded-xl text-[10px] font-bold shadow-premium hover:opacity-95 transition flex items-center justify-center gap-1"
+                    >
+                      <FiExternalLink size={11} /> View Listing
+                    </button>
+                    <button
+                      onClick={() => handleRemoveSavedImage(img.id)}
+                      className="py-2 glass border border-border text-text-secondary hover:text-error hover:bg-error-light/10 rounded-xl text-[10px] font-semibold transition flex items-center justify-center gap-1"
+                    >
+                      <FiTrash2 size={11} /> Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* INTERACTION LOGS (CALL, WHATSAPP, INQUIRY) */}
+            {['click-to-called', 'whatsapp-contacted', 'chat-inquiries'].includes(activeTab) && data.map((item) => (
+              <div key={item.id} className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-shrink-0">
+                    <img
+                      src={resolveMediaUrl(item.vendor?.avatarUrl || 'https://via.placeholder.com/150')}
+                      alt=""
+                      className="w-12 h-12 rounded-full object-cover border border-border"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-xs text-text-primary hover:text-brand-purple cursor-pointer truncate" onClick={() => navigate(`/customer/vendor/${item.vendor?.id}`)}>
+                      {item.vendor?.vendorProfile?.shopName || item.vendor?.name || 'Verified Vendor'}
+                    </h4>
+                    <span className="text-[9px] uppercase font-bold text-brand-purple tracking-wider truncate">
+                      {activeTab === 'click-to-called' ? '📞 Click to Call Log' : activeTab === 'whatsapp-contacted' ? '💬 WhatsApp Contact Log' : '✉️ Chat Inquiry Log'}
+                    </span>
+                    <div className="flex items-center gap-1 text-[10px] text-text-tertiary mt-1">
+                      <FiClock size={10} />
+                      <span>{new Date(item.createdAt).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {item.vendor?.phone ? (
+                    <a
+                      href={`tel:${item.vendor.phone}`}
+                      className="py-2 gradient-brand text-white rounded-xl text-[10px] font-bold shadow-premium hover:opacity-95 transition flex items-center justify-center gap-1"
+                    >
+                      <FiPhone size={11} /> Call Again
+                    </a>
+                  ) : (
+                    <div className="py-2 bg-surface-tertiary text-text-tertiary text-center rounded-xl text-[10px] font-bold">
+                      No Phone
+                    </div>
+                  )}
+                  <button
+                    onClick={() => navigate(`/customer/chat?vendorId=${item.vendor?.id || item.vendor?._id}`)}
+                    className="py-2 glass border border-border text-text-secondary hover:text-brand-purple rounded-xl text-[10px] font-semibold transition flex items-center justify-center gap-1"
+                  >
+                    <FiMessageSquare size={11} /> Chat Direct
+                  </button>
+                </div>
+              </div>
+            ))}
+
             {/* MY ORDERS REQUEST */}
             {activeTab === 'my-orders' && data.map((o) => {
               const itemTitle = o.listing?.title || o.item || 'Order Request Item';
               const isService = o.listing?.type === 'service' || (o.address || '').includes('[Scheduled:');
               const isCancelAllowed = o.status === 'pending';
               const canReview = o.status === 'delivered' || o.status === 'completed';
-              
+
               return (
                 <div key={o._id} className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300">
                   <div>
@@ -926,7 +1147,7 @@ export default function CustomerActivitiesPage() {
                       >
                         <FiClock size={11} /> Track Order
                       </button>
-                      
+
                       {isCancelAllowed ? (
                         <button
                           onClick={() => handleCancelOrder(o._id, itemTitle)}
@@ -963,7 +1184,7 @@ export default function CustomerActivitiesPage() {
             {/* INQUIRY HISTORY */}
             {activeTab === 'inquiries' && data.map((inq) => {
               const isClosed = inq.status === 'closed';
-              
+
               return (
                 <div key={inq._id} className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300">
                   <div>
@@ -974,7 +1195,7 @@ export default function CustomerActivitiesPage() {
 
                     <h4 className="font-bold text-xs text-text-primary truncate">{inq.listing?.title || 'Listing Enquiry'}</h4>
                     <p className="text-[10px] text-text-tertiary">Seller: <span className="font-semibold text-text-secondary">{inq.vendor?.vendorProfile?.shopName || inq.vendor?.name || 'Vendor'}</span></p>
-                    
+
                     <div className="p-3 bg-surface-secondary/40 rounded-xl border border-border/60 mt-3">
                       <p className="text-[10px] text-text-secondary italic line-clamp-3">"{inq.message}"</p>
                     </div>
@@ -992,7 +1213,7 @@ export default function CustomerActivitiesPage() {
                     >
                       <FiMessageSquare size={11} /> Continue Chat
                     </button>
-                    
+
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleCloseInquiry(inq._id)}
@@ -1018,7 +1239,7 @@ export default function CustomerActivitiesPage() {
               const isPending = q.status === 'pending';
               const reqTitle = q.requirement?.title || 'Requirement Quotation Proposal';
               const shopName = q.vendor?.vendorProfile?.shopName || q.vendor?.vendorProfile?.businessName || q.vendor?.name || 'Seller';
-              
+
               return (
                 <div key={q.id} className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300">
                   <div>
@@ -1241,7 +1462,7 @@ export default function CustomerActivitiesPage() {
                   const currentIdx = getStepStatusIndex(selectedOrder.status);
                   const isCompleted = idx <= currentIdx;
                   const isCurrent = idx === currentIdx;
-                  
+
                   return (
                     <div key={step.key} className="flex gap-4 items-start relative">
                       <div className={`w-3.5 h-3.5 rounded-full border-2 z-10 flex items-center justify-center ${isCompleted ? 'bg-brand-purple border-brand-purple text-white shadow-md' : 'bg-surface border-border'}`}>

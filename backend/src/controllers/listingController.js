@@ -132,17 +132,17 @@ class ListingController {
     const userModel = require('../models/User');
     const Interaction = require('../models/Interaction');
     const Listing = require('../models/Listing');
-    
+
     const user = await userModel.findByIdAndUpdate(
       req.user._id,
       { $addToSet: { 'customerProfile.savedListings': id } },
       { returnDocument: 'after' }
     ).select('-password -__v')
-    .populate({
-      path: 'customerProfile.savedListings',
-      populate: { path: 'vendor', select: 'name businessName activeRole avatarUrl' }
-    })
-    .populate('following', 'name avatarUrl activeRole roles vendorProfile creatorProfile');
+      .populate({
+        path: 'customerProfile.savedListings',
+        populate: { path: 'vendor', select: 'name businessName activeRole avatarUrl' }
+      })
+      .populate('following', 'name avatarUrl activeRole roles vendorProfile creatorProfile');
 
     // Sync with Interaction collection and Listing saves_count
     const existing = await Interaction.findOne({ user_id: req.user._id.toString(), listing_id: id, type: 'save' });
@@ -156,7 +156,7 @@ class ListingController {
     }
 
     const updatedListing = await Listing.findById(id);
-    return ApiResponse.ok(res, 'Listing saved successfully.', { 
+    return ApiResponse.ok(res, 'Listing saved successfully.', {
       user,
       active: true,
       count: updatedListing ? (updatedListing.saves_count || 0) : 0
@@ -175,11 +175,11 @@ class ListingController {
       { $pull: { 'customerProfile.savedListings': id } },
       { returnDocument: 'after' }
     ).select('-password -__v')
-    .populate({
-      path: 'customerProfile.savedListings',
-      populate: { path: 'vendor', select: 'name businessName activeRole avatarUrl' }
-    })
-    .populate('following', 'name avatarUrl activeRole roles vendorProfile creatorProfile');
+      .populate({
+        path: 'customerProfile.savedListings',
+        populate: { path: 'vendor', select: 'name businessName activeRole avatarUrl' }
+      })
+      .populate('following', 'name avatarUrl activeRole roles vendorProfile creatorProfile');
 
     // Sync with Interaction collection and Listing saves_count
     const existing = await Interaction.findOne({ user_id: req.user._id.toString(), listing_id: id, type: 'save' });
@@ -189,7 +189,65 @@ class ListingController {
     }
 
     const updatedListing = await Listing.findById(id);
-    return ApiResponse.ok(res, 'Listing unsaved successfully.', { 
+    return ApiResponse.ok(res, 'Listing unsaved successfully.', {
+      user,
+      active: false,
+      count: updatedListing ? (updatedListing.saves_count || 0) : 0
+    });
+  });
+
+  // ── Save Image Post ──────────────────────────────────────
+  saveImage = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userModel = require('../models/User');
+    const Interaction = require('../models/Interaction');
+    const Listing = require('../models/Listing');
+
+    const user = await userModel.findByIdAndUpdate(
+      req.user._id,
+      { $addToSet: { 'customerProfile.savedListings': id } },
+      { returnDocument: 'after' }
+    ).select('-password -__v');
+
+    const existing = await Interaction.findOne({ user_id: req.user._id.toString(), listing_id: id, type: 'save_image' });
+    if (!existing) {
+      await Interaction.create({
+        user_id: req.user._id.toString(),
+        listing_id: id,
+        type: 'save_image',
+      });
+      await Listing.updateOne({ _id: id }, { $inc: { saves_count: 1 } });
+    }
+
+    const updatedListing = await Listing.findById(id);
+    return ApiResponse.ok(res, 'Image post saved successfully.', {
+      user,
+      active: true,
+      count: updatedListing ? (updatedListing.saves_count || 0) : 0
+    });
+  });
+
+  // ── Unsave Image Post ────────────────────────────────────
+  unsaveImage = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userModel = require('../models/User');
+    const Interaction = require('../models/Interaction');
+    const Listing = require('../models/Listing');
+
+    const user = await userModel.findByIdAndUpdate(
+      req.user._id,
+      { $pull: { 'customerProfile.savedListings': id } },
+      { returnDocument: 'after' }
+    ).select('-password -__v');
+
+    const existing = await Interaction.findOne({ user_id: req.user._id.toString(), listing_id: id, type: 'save_image' });
+    if (existing) {
+      await Interaction.deleteOne({ _id: existing._id });
+      await Listing.updateOne({ _id: id }, { $inc: { saves_count: -1 } });
+    }
+
+    const updatedListing = await Listing.findById(id);
+    return ApiResponse.ok(res, 'Image post unsaved successfully.', {
       user,
       active: false,
       count: updatedListing ? (updatedListing.saves_count || 0) : 0

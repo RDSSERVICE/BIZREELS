@@ -271,7 +271,7 @@ export default function SearchListingsPage() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, type, category, maxPrice, distance, coords]);
+  }, [query, type, category, maxPrice, distance, coords, condition, sellerType, minRating, hasOffers, shopName, openNow]);
 
   const fetchListings = async () => {
     setLoading(true);
@@ -282,6 +282,13 @@ export default function SearchListingsPage() {
       if (query.trim()) params.append('search', query.trim());
       if (maxPrice < 200000) params.append('maxPrice', maxPrice);
       if (distance && distance !== 'all') params.append('distance', distance);
+      if (condition !== 'all') params.append('condition', condition);
+      if (sellerType !== 'all') params.append('sellerType', sellerType);
+      if (minRating !== 'all') params.append('minRating', minRating);
+      if (hasOffers) params.append('has_offer', 'true');
+      if (shopName.trim()) params.append('shopName', shopName.trim());
+      if (openNow) params.append('openNow', 'true');
+      if (deliveryType.length > 0) params.append('deliveryType', deliveryType.join(','));
       if (coords) {
         params.append('lat', coords.lat);
         params.append('lng', coords.lng);
@@ -337,6 +344,7 @@ export default function SearchListingsPage() {
 
       {/* Search & Filter Header Container */}
       <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-4">
+        {/* Top Search Row */}
         <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
@@ -350,6 +358,7 @@ export default function SearchListingsPage() {
           </div>
 
           <div className="flex gap-2">
+            {/* A. Products / Services tab */}
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
@@ -360,21 +369,20 @@ export default function SearchListingsPage() {
               <option value="service">Services Only</option>
             </select>
 
+            {/* B. Distance */}
             <select
               value={distance}
               onChange={(e) => setDistance(e.target.value)}
               className="bg-surface border border-border rounded-xl px-4 py-2.5 text-xs text-brand-purple font-semibold focus:outline-none focus:border-brand-purple"
             >
-              <option value="all">All Distances</option>
-              <option value="5">Within 5 km</option>
-              <option value="25">Within 25 km</option>
-              <option value="50">Within 50 km</option>
-              <option value="100">Within 100 km</option>
+              {DISTANCE_VALUES.map(d => (
+                <option key={d.value} value={d.value}>{d.value === 'all' ? '📍 Anywhere' : `Within ${d.label}`}</option>
+              ))}
             </select>
           </div>
         </div>
 
-        {/* Filters Row */}
+        {/* Row 2: Category & Price */}
         <div className="flex flex-wrap items-center justify-between pt-3 border-t border-border gap-4 text-xs text-text-secondary">
           <div className="flex items-center gap-3">
             <span className="font-semibold text-text-primary">Category:</span>
@@ -389,7 +397,11 @@ export default function SearchListingsPage() {
                 { name: 'Fashion' },
                 { name: 'Furniture' },
                 { name: 'Services' },
-                { name: 'Automobile' }
+                { name: 'Automobile' },
+                { name: 'Grocery' },
+                { name: 'Healthcare' },
+                { name: 'Restaurant' },
+                { name: 'Education' },
               ]).map(cat => (
                 <option key={cat._id || cat.id || cat.name} value={cat.name}>
                   {cat.name}
@@ -410,7 +422,133 @@ export default function SearchListingsPage() {
               className="accent-brand-purple cursor-pointer w-32"
             />
           </div>
+
+          {/* Advanced filters toggle */}
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition border ${
+              showAdvanced
+                ? 'bg-brand-purple text-white border-brand-purple'
+                : 'bg-surface-tertiary text-text-secondary border-border hover:border-brand-purple/40'
+            }`}
+          >
+            {showAdvanced ? '▲ Hide Filters' : '▼ Advanced Filters'}
+          </button>
         </div>
+
+        {/* Advanced Filters Panel */}
+        {showAdvanced && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-3 border-t border-border animate-fade-in">
+            {/* C. Delivery Type */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Delivery Type</label>
+              <div className="flex flex-wrap gap-1.5">
+                {['Home Delivery', 'Shop Pickup', 'Courier Available', 'COD Available'].map(dt => (
+                  <button
+                    key={dt}
+                    onClick={() => toggleDeliveryType(dt)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition border ${
+                      deliveryType.includes(dt)
+                        ? 'bg-brand-purple text-white border-brand-purple'
+                        : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
+                    }`}
+                  >
+                    {dt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* D. Product Type / Condition */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Product Condition</label>
+              <select
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
+                className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+              >
+                <option value="all">All Conditions</option>
+                <option value="new">New</option>
+                <option value="used">Old / Used</option>
+                <option value="refurbished">Refurbished</option>
+              </select>
+            </div>
+
+            {/* E. Seller / Vendor Type */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Seller Type</label>
+              <select
+                value={sellerType}
+                onChange={(e) => setSellerType(e.target.value)}
+                className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+              >
+                <option value="all">All Sellers</option>
+                <option value="verified">✅ Verified Vendor</option>
+                <option value="gst_verified">📋 GST Verified</option>
+                <option value="local">📍 Local Seller</option>
+              </select>
+            </div>
+
+            {/* F. Rating */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Minimum Rating</label>
+              <select
+                value={minRating}
+                onChange={(e) => setMinRating(e.target.value)}
+                className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+              >
+                <option value="all">Any Rating</option>
+                <option value="4">⭐ 4+ Stars</option>
+                <option value="3">⭐ 3+ Stars</option>
+                <option value="2">⭐ 2+ Stars</option>
+                <option value="1">⭐ 1+ Star</option>
+              </select>
+            </div>
+
+            {/* H. Offers */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Offers & Discounts</label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasOffers}
+                  onChange={(e) => setHasOffers(e.target.checked)}
+                  className="accent-brand-purple w-4 h-4 rounded"
+                />
+                <span className="text-xs text-text-primary font-semibold">Show items with offers only</span>
+              </label>
+            </div>
+
+            {/* J. Shop Availability */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Shop Availability</label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={openNow}
+                  onChange={(e) => setOpenNow(e.target.checked)}
+                  className="accent-emerald-500 w-4 h-4 rounded"
+                />
+                <span className="text-xs text-text-primary font-semibold">🟢 Open Now</span>
+              </label>
+            </div>
+
+            {/* K. Shop Name */}
+            <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Search by Shop Name</label>
+              <div className="relative">
+                <FiShoppingBag className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={14} />
+                <input
+                  type="text"
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                  placeholder="e.g. Kumar Electronics, Sharma Services..."
+                  className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Grid Results */}
@@ -449,9 +587,9 @@ export default function SearchListingsPage() {
               const a =
                 Math.sin(dLat / 2) * Math.sin(dLat / 2) +
                 Math.cos(coords.lat * (Math.PI / 180)) *
-                  Math.cos(targetLat * (Math.PI / 180)) *
-                  Math.sin(dLng / 2) *
-                  Math.sin(dLng / 2);
+                Math.cos(targetLat * (Math.PI / 180)) *
+                Math.sin(dLng / 2) *
+                Math.sin(dLng / 2);
               const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
               const calculatedKm = R * c;
               distStr = `${calculatedKm.toFixed(1)} km`;
@@ -683,7 +821,7 @@ export default function SearchListingsPage() {
             {selectedItem.type === 'service' && selectedItem.serviceDetails && (
               <div className="pt-4 border-t border-border mt-3 space-y-4">
                 <span className="text-[10px] font-bold text-brand-purple uppercase block tracking-wider">Service Details & Availability:</span>
-                
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-surface-secondary p-4 rounded-2xl border border-border">
                   <div>
                     <span className="text-[10px] text-text-tertiary block">Service Location Type</span>
@@ -809,7 +947,7 @@ export default function SearchListingsPage() {
             {/* Reviews Section */}
             <div className="pt-4 border-t border-border space-y-3">
               <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider">Customer Reviews & Ratings</h4>
-              
+
               <form onSubmit={handleAddReview} className="flex gap-2 items-center">
                 <select value={reviewRating} onChange={e => setReviewRating(Number(e.target.value))} className="bg-surface-tertiary border border-border rounded-xl px-3 py-2 text-xs font-bold text-amber-500">
                   <option value={5}>⭐⭐⭐⭐⭐ (5)</option>

@@ -10,7 +10,7 @@ class RequirementController {
   // ── Create Requirement ──────────────────────────────────
   create = asyncHandler(async (req, res) => {
     const { title, description, category, subcategory, requirementType, budget, quantity, deadline, lat, lng, address, city, state } = req.body;
-    
+
     const requirement = await requirementService.createRequirement({
       customerId: req.user._id,
       title,

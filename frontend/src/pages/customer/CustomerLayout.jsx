@@ -39,6 +39,42 @@ export default function CustomerLayout() {
     }
   }, [roles, currentRole, navigate]);
 
+  // Redirect to interest selection if not completed yet
+  useEffect(() => {
+    if (
+      profileUser &&
+      profileUser._id &&
+      !profileUser.customerProfile?.interestsSelectedAt &&
+      !location.pathname.includes('choose-interests') &&
+      !location.pathname.includes('become-vendor') &&
+      !location.pathname.includes('become-creator') &&
+      !location.pathname.includes('settings')
+    ) {
+      navigate('/customer/choose-interests', { replace: true });
+    }
+  }, [profileUser, location.pathname, navigate]);
+
+  // Activity counts for sidebar badges
+  const [activityCounts, setActivityCounts] = useState({ total: 0, unreadNotifications: 0, unreadChat: 0 });
+
+  useEffect(() => {
+    const fetchActivityCounts = async () => {
+      try {
+        const res = await api.get('/v1/users/me/activity-counts');
+        const data = res.data || {};
+        setActivityCounts({
+          total: data.total || 0,
+          unreadNotifications: data.unreadNotifications || 0,
+          unreadChat: data.unreadChat || 0,
+        });
+      } catch {}
+    };
+    fetchActivityCounts();
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchActivityCounts, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
@@ -202,10 +238,10 @@ export default function CustomerLayout() {
       icon: FiVideo,
       highlight: !(roles.includes('creator') && profileUser?.creatorProfile?.displayName)
     },
-    { label: 'Activities', path: '/customer/activities', icon: FiActivity },
+    { label: 'Activities', path: '/customer/activities', icon: FiActivity, badge: activityCounts.total || 0 },
     { label: 'My Requirements', path: '/customer/my-requirements', icon: FiFileText },
-    { label: 'Notifications', path: '/customer/notifications', icon: FiBell },
-    { label: 'Chat', path: '/customer/chat', icon: FiMessageSquare },
+    { label: 'Notifications', path: '/customer/notifications', icon: FiBell, badge: activityCounts.unreadNotifications || 0 },
+    { label: 'Chat', path: '/customer/chat', icon: FiMessageSquare, badge: activityCounts.unreadChat || 0 },
     { label: 'Settings', path: '/customer/settings', icon: FiSettings },
   ];
 
@@ -285,11 +321,10 @@ export default function CustomerLayout() {
                           key={item.path}
                           to={item.path}
                           onClick={handleClick}
-                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 mb-0.5 ${
-                            isActive
-                              ? 'bg-brand-purple text-white shadow-premium'
-                              : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
-                          }`}
+                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 mb-0.5 ${isActive
+                            ? 'bg-brand-purple text-white shadow-premium'
+                            : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
+                            }`}
                         >
                           <div className="flex items-center gap-2.5">
                             <Icon className="w-4 h-4 flex-shrink-0" />
@@ -298,6 +333,15 @@ export default function CustomerLayout() {
                           {item.highlight && (
                             <span className="gradient-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
                               NEW
+                            </span>
+                          )}
+                          {item.badge > 0 && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${
+                              isActive
+                                ? 'bg-white/20 text-white'
+                                : 'bg-brand-purple/10 text-brand-purple'
+                            }`}>
+                              {item.badge > 99 ? '99+' : item.badge}
                             </span>
                           )}
                         </Link>
@@ -344,7 +388,7 @@ export default function CustomerLayout() {
     <div className="min-h-screen bg-surface-secondary flex">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-surface border-r border-border fixed top-0 bottom-0 left-0 z-30">
-        <SidebarContent onItemClick={() => {}} />
+        <SidebarContent onItemClick={() => { }} />
       </aside>
 
       {/* Mobile Sidebar */}

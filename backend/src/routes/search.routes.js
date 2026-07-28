@@ -22,6 +22,13 @@ router.get('/', optionalAuth, catchAsync(async (req, res) => {
   const cursor = req.query.cursor || null;
   const limit = Math.max(1, Math.min(50, parseInt(req.query.limit || 20, 10)));
 
+  // Extended filter params
+  const deliveryType = req.query.deliveryType || null;
+  const sellerType = req.query.sellerType || null;
+  const minRating = req.query.minRating ? parseFloat(req.query.minRating) : null;
+  const openNow = req.query.openNow === 'true' ? true : null;
+  const shopName = req.query.shopName || null;
+
   const result = await searchService.searchListings({
     q,
     category_id,
@@ -39,6 +46,12 @@ router.get('/', optionalAuth, catchAsync(async (req, res) => {
     cursor,
     limit,
     userId: req.userId || null,
+    // Extended filters
+    deliveryType,
+    sellerType,
+    minRating,
+    openNow,
+    shopName,
   });
 
   res.json(result);

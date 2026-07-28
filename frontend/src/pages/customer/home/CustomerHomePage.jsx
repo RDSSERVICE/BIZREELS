@@ -11,6 +11,8 @@ import { getSocket } from '../../../lib/socket';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
 import CommentsDrawer from '../../../components/ui/CommentsDrawer';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
+import ReelFullscreenViewer from '../../../components/feed/ReelFullscreenViewer';
+import ImageFullscreenViewer from '../../../components/feed/ImageFullscreenViewer';
 
 /**
  * CustomerReelMedia Component
@@ -105,9 +107,8 @@ function CustomerReelMedia({ reel, muted, setMuted }) {
             {mediaList.map((_, idx) => (
               <span
                 key={idx}
-                className={`h-1.5 rounded-full transition-all ${
-                  currentIndex === idx ? 'w-4 bg-brand-purple' : 'w-1.5 bg-white/60'
-                }`}
+                className={`h-1.5 rounded-full transition-all ${currentIndex === idx ? 'w-4 bg-brand-purple' : 'w-1.5 bg-white/60'
+                  }`}
               />
             ))}
           </div>
@@ -129,6 +130,12 @@ export default function CustomerHomePage() {
   const [muted, setMuted] = useState(true);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [selectedReelId, setSelectedReelId] = useState(null);
+
+  // Fullscreen viewer state
+  const [reelViewerOpen, setReelViewerOpen] = useState(false);
+  const [reelViewerStartIndex, setReelViewerStartIndex] = useState(0);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageViewerStartIndex, setImageViewerStartIndex] = useState(0);
 
   // Home Feed Search & Filter State
   const [filters, setFilters] = useState({
@@ -184,23 +191,23 @@ export default function CustomerHomePage() {
         const items = Array.isArray(data.data?.reels)
           ? data.data.reels
           : Array.isArray(data.data)
-          ? data.data
-          : Array.isArray(data.reels)
-          ? data.reels
-          : Array.isArray(data)
-          ? data
-          : [];
+            ? data.data
+            : Array.isArray(data.reels)
+              ? data.reels
+              : Array.isArray(data)
+                ? data
+                : [];
         setReels(items);
       } else {
         const items = Array.isArray(data.data?.listings)
           ? data.data.listings
           : Array.isArray(data.data)
-          ? data.data
-          : Array.isArray(data.listings)
-          ? data.listings
-          : Array.isArray(data)
-          ? data
-          : [];
+            ? data.data
+            : Array.isArray(data.listings)
+              ? data.listings
+              : Array.isArray(data)
+                ? data
+                : [];
         setImages(items);
       }
     } catch (err) {
@@ -230,10 +237,18 @@ export default function CustomerHomePage() {
     const isSaved = !!savedMap[id];
     setSavedMap((prev) => ({ ...prev, [id]: !isSaved }));
     try {
-      if (isSaved) {
-        await api.post(`/v1/listings/${id}/unsave`);
+      if (activeTab === 'reels') {
+        if (isSaved) {
+          await api.post(`/v1/reels/${id}/unsave`);
+        } else {
+          await api.post(`/v1/reels/${id}/save`);
+        }
       } else {
-        await api.post(`/v1/listings/${id}/save`);
+        if (isSaved) {
+          await api.post(`/v1/listings/${id}/unsave-image`);
+        } else {
+          await api.post(`/v1/listings/${id}/save-image`);
+        }
       }
       toast.success(!isSaved ? 'Saved to activities' : 'Removed from saved');
     } catch (err) {
@@ -418,11 +433,10 @@ export default function CustomerHomePage() {
       <div className="flex justify-center border-b border-border">
         <button
           onClick={() => setActiveTab('reels')}
-          className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${
-            activeTab === 'reels'
-              ? 'border-brand-purple text-brand-purple'
-              : 'border-transparent text-text-tertiary hover:text-text-primary'
-          }`}
+          className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${activeTab === 'reels'
+            ? 'border-brand-purple text-brand-purple'
+            : 'border-transparent text-text-tertiary hover:text-text-primary'
+            }`}
         >
           <FiPlay size={16} />
           <span>Reels Feed</span>
@@ -430,11 +444,10 @@ export default function CustomerHomePage() {
 
         <button
           onClick={() => setActiveTab('images')}
-          className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${
-            activeTab === 'images'
-              ? 'border-brand-purple text-brand-purple'
-              : 'border-transparent text-text-tertiary hover:text-text-primary'
-          }`}
+          className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${activeTab === 'images'
+            ? 'border-brand-purple text-brand-purple'
+            : 'border-transparent text-text-tertiary hover:text-text-primary'
+            }`}
         >
           <FiBookmark size={16} />
           <span>Image Feed</span>
@@ -489,18 +502,26 @@ export default function CustomerHomePage() {
 
                     <button
                       onClick={() => handleFollow(reel.creator?._id || reel.creator)}
-                      className={`px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition ${
-                        isFollowing
-                          ? 'bg-surface-tertiary text-text-secondary border border-border'
-                          : 'gradient-brand text-white shadow-premium'
-                      }`}
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition ${isFollowing
+                        ? 'bg-surface-tertiary text-text-secondary border border-border'
+                        : 'gradient-brand text-white shadow-premium'
+                        }`}
                     >
                       {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
                     </button>
                   </div>
 
-                  {/* Reel Media Carousel Viewport */}
-                  <CustomerReelMedia reel={reel} muted={muted} setMuted={setMuted} />
+                  {/* Reel Media Carousel Viewport — Click to open fullscreen */}
+                  <div
+                    onClick={() => {
+                      const idx = processedReels.findIndex(r => r._id === reel._id);
+                      setReelViewerStartIndex(idx >= 0 ? idx : 0);
+                      setReelViewerOpen(true);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <CustomerReelMedia reel={reel} muted={muted} setMuted={setMuted} />
+                  </div>
 
                   {/* Action Bar */}
                   <div className="p-4 glass space-y-3">
@@ -508,9 +529,8 @@ export default function CustomerHomePage() {
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => handleLike(reel._id)}
-                          className={`flex items-center gap-1.5 text-xs font-semibold transition ${
-                            isLiked ? 'text-brand-pink' : 'text-text-secondary hover:text-brand-pink'
-                          }`}
+                          className={`flex items-center gap-1.5 text-xs font-semibold transition ${isLiked ? 'text-brand-pink' : 'text-text-secondary hover:text-brand-pink'
+                            }`}
                         >
                           <FiHeart size={20} className={isLiked ? 'fill-brand-pink' : ''} />
                           <span>{(reel.likesCount || 0) + (isLiked ? 1 : 0)}</span>
@@ -543,7 +563,7 @@ export default function CustomerHomePage() {
                       </button>
                     </div>
 
-                    <p className="text-xs text-text-secondary leading-relaxed">{reel.caption}</p>
+                    <p className="text-xs text-text-secondary leading-relaxed line-clamp-1 opacity-60">{reel.category || ''} {reel.subcategory ? '• ' + reel.subcategory : ''}</p>
                   </div>
                 </div>
               );
@@ -563,7 +583,13 @@ export default function CustomerHomePage() {
               const isSaved = savedMap[item._id];
 
               return (
-                <div key={item._id} className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card">
+                <div key={item._id} className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card cursor-pointer hover:-translate-y-1 transition-all duration-300"
+                  onClick={() => {
+                    const idx = processedImages.findIndex(i => i._id === item._id);
+                    setImageViewerStartIndex(idx >= 0 ? idx : 0);
+                    setImageViewerOpen(true);
+                  }}
+                >
                   <div className="aspect-square bg-surface-tertiary relative overflow-hidden">
                     <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
                     <div className="absolute top-3 right-3 glass px-3 py-1 rounded-full text-xs font-bold text-emerald-600 border border-border">
@@ -609,6 +635,36 @@ export default function CustomerHomePage() {
         onClose={() => setIsCommentsOpen(false)}
         reelId={selectedReelId}
       />
+
+      {/* Fullscreen Reel Viewer */}
+      {reelViewerOpen && processedReels.length > 0 && (
+        <ReelFullscreenViewer
+          reels={processedReels}
+          startIndex={reelViewerStartIndex}
+          onClose={() => setReelViewerOpen(false)}
+          onLike={handleLike}
+          onSave={handleSave}
+          onFollow={handleFollow}
+          likedMap={likedMap}
+          savedMap={savedMap}
+          followingMap={followingMap}
+        />
+      )}
+
+      {/* Fullscreen Image Viewer */}
+      {imageViewerOpen && processedImages.length > 0 && (
+        <ImageFullscreenViewer
+          images={processedImages}
+          startIndex={imageViewerStartIndex}
+          onClose={() => setImageViewerOpen(false)}
+          onLike={handleLike}
+          onSave={handleSave}
+          onFollow={handleFollow}
+          likedMap={likedMap}
+          savedMap={savedMap}
+          followingMap={followingMap}
+        />
+      )}
     </div>
   );
 }

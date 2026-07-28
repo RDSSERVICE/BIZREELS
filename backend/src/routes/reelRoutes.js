@@ -53,4 +53,7 @@ router.post('/:id/like', authenticate, reelValidation.idParam, validate, reelCon
 router.post('/:id/comments', authenticate, reelValidation.comment, validate, reelController.addComment);
 router.delete('/comments/:commentId', authenticate, reelValidation.commentParam, validate, reelController.deleteComment);
 
+router.post('/:id/save', authenticate, reelController.saveReel);
+router.post('/:id/unsave', authenticate, reelController.unsaveReel);
+
 module.exports = router;
