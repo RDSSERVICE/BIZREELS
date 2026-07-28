@@ -144,7 +144,7 @@ class AuthController {
 
   // ── Get Current User ───────────────────────────────────
   getMe = asyncHandler(async (req, res) => {
-    const user = await authService.getCurrentUser(req.user._id);
+    const user = authService.serializeUser(req.user);
 
     return ApiResponse.ok(res, 'User profile fetched.', { user });
   });
