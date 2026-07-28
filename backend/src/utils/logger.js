@@ -29,7 +29,7 @@ const logger = winston.createLogger({
 
     // File transport: all logs
     new winston.transports.File({
-      filename: path.join(__dirname, '../logs/combined.log'),
+      filename: path.join(__dirname, '../../logs/combined.log'),
       format: fileFormat,
       maxsize: 5 * 1024 * 1024, // 5MB
       maxFiles: 5,
@@ -38,7 +38,7 @@ const logger = winston.createLogger({
 
     // File transport: errors only
     new winston.transports.File({
-      filename: path.join(__dirname, '../logs/error.log'),
+      filename: path.join(__dirname, '../../logs/error.log'),
       level: 'error',
       format: fileFormat,
       maxsize: 5 * 1024 * 1024,
@@ -50,14 +50,14 @@ const logger = winston.createLogger({
   // Prevent unhandled exceptions from crashing silently
   exceptionHandlers: [
     new winston.transports.File({
-      filename: path.join(__dirname, '../logs/exceptions.log'),
+      filename: path.join(__dirname, '../../logs/exceptions.log'),
       format: fileFormat,
     }),
   ],
 
   rejectionHandlers: [
     new winston.transports.File({
-      filename: path.join(__dirname, '../logs/rejections.log'),
+      filename: path.join(__dirname, '../../logs/rejections.log'),
       format: fileFormat,
     }),
   ],

@@ -42,8 +42,28 @@ const initSockets = (server) => {
         return next(new Error('Access denied. No token provided.'));
       }
 
-      const decoded = jwt.verify(token, config.jwt.accessSecret);
-      const user = await User.findById(decoded.userId)
+      let decoded;
+      try {
+        const { decodeAccessToken } = require('../utils/jwt.utils');
+        decoded = decodeAccessToken(token);
+      } catch (err) {
+        try {
+          decoded = jwt.verify(token, config.jwt.accessSecret);
+        } catch (err2) {
+          try {
+            decoded = jwt.verify(token, config.jwtSecret);
+          } catch (err3) {
+            return next(new Error('Authentication failed. Invalid token.'));
+          }
+        }
+      }
+
+      const userId = decoded.userId || decoded.sub;
+      if (!userId) {
+        return next(new Error('Authentication failed. Invalid token payload.'));
+      }
+
+      const user = await User.findById(userId)
         .select('name avatarUrl activeRole roles')
         .lean();
 

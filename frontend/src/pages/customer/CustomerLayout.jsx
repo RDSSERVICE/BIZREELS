@@ -149,12 +149,26 @@ export default function CustomerLayout() {
 
     try {
       const res = await switchRoleApi({ role: targetRole }).unwrap();
-      dispatch(setCredentials({ user: res.user || res.data?.user }));
+      const updatedUser = res.user || res.data?.user || res;
+      dispatch(setCredentials({ user: updatedUser }));
       toast.success(`Switched role to ${targetRole.toUpperCase()}`);
-      if (targetRole === 'vendor') navigate('/vendor/dashboard');
-      else if (targetRole === 'creator') navigate('/creator/dashboard');
-      else if (targetRole === 'admin') navigate('/admin/dashboard');
-      else navigate('/customer/home');
+      if (targetRole === 'vendor') {
+        if (updatedUser?.vendorProfile?.shopName) {
+          navigate('/vendor/dashboard');
+        } else {
+          navigate('/customer/become-vendor');
+        }
+      } else if (targetRole === 'creator') {
+        if (updatedUser?.creatorProfile?.displayName) {
+          navigate('/creator/dashboard');
+        } else {
+          navigate('/customer/become-creator');
+        }
+      } else if (targetRole === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/customer/home');
+      }
     } catch (err) {
       toast.error('Failed to switch role');
     }
@@ -177,16 +191,16 @@ export default function CustomerLayout() {
     { label: 'Post Requirement', path: '/customer/post-requirement', icon: FiPlusSquare },
     { label: 'Search Listings', path: '/customer/search', icon: FiSearch },
     {
-      label: roles.includes('vendor') ? 'Vendor Portal' : 'Become a Vendor',
-      path: roles.includes('vendor') ? '/vendor/dashboard' : '/customer/become-vendor',
+      label: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? 'Vendor Portal' : 'Become a Vendor',
+      path: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? '/vendor/dashboard' : '/customer/become-vendor',
       icon: FiBriefcase,
-      highlight: !roles.includes('vendor')
+      highlight: !(roles.includes('vendor') && profileUser?.vendorProfile?.shopName)
     },
     {
-      label: roles.includes('creator') ? 'Creator Portal' : 'Become a Creator',
-      path: roles.includes('creator') ? '/creator/dashboard' : '/customer/become-creator',
+      label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? 'Creator Portal' : 'Become a Creator',
+      path: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? '/creator/dashboard' : '/customer/become-creator',
       icon: FiVideo,
-      highlight: !roles.includes('creator')
+      highlight: !(roles.includes('creator') && profileUser?.creatorProfile?.displayName)
     },
     { label: 'Activities', path: '/customer/activities', icon: FiActivity },
     { label: 'My Requirements', path: '/customer/my-requirements', icon: FiFileText },

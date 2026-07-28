@@ -86,7 +86,7 @@ export default function CustomerActivitiesPage() {
     sortBy,
     page,
     limit: 6
-  }, { skip: skipSaved });
+  }, { skip: skipSaved, refetchOnMountOrArgChange: true });
 
   const skipOrders = activeTab !== 'my-orders';
   const { data: ordersData, isLoading: ordersLoading, refetch: refetchOrders } = useGetOrdersQuery({
@@ -95,7 +95,7 @@ export default function CustomerActivitiesPage() {
     sortBy,
     page,
     limit: 6
-  }, { skip: skipOrders });
+  }, { skip: skipOrders, refetchOnMountOrArgChange: true });
 
   const skipInquiries = activeTab !== 'inquiries';
   const { data: inquiriesData, isLoading: inquiriesLoading, refetch: refetchInquiries } = useGetInquiriesQuery({
@@ -103,7 +103,7 @@ export default function CustomerActivitiesPage() {
     status,
     page,
     limit: 6
-  }, { skip: skipInquiries });
+  }, { skip: skipInquiries, refetchOnMountOrArgChange: true });
 
   const skipQuotes = activeTab !== 'quotes';
   const { data: quotesData, isLoading: quotesLoading, refetch: refetchQuotes } = useGetQuotesQuery({
@@ -112,7 +112,7 @@ export default function CustomerActivitiesPage() {
     sortBy,
     page,
     limit: 6
-  }, { skip: skipQuotes });
+  }, { skip: skipQuotes, refetchOnMountOrArgChange: true });
 
   const skipFollowingVendors = activeTab !== 'following-vendors';
   const { data: followingVendorsData, isLoading: followingVendorsLoading, refetch: refetchFollowingVendors } = useGetFollowingQuery({
@@ -122,7 +122,7 @@ export default function CustomerActivitiesPage() {
     sortBy,
     page,
     limit: 6
-  }, { skip: skipFollowingVendors });
+  }, { skip: skipFollowingVendors, refetchOnMountOrArgChange: true });
 
   const skipFollowingServices = activeTab !== 'following-services';
   const { data: followingServicesData, isLoading: followingServicesLoading, refetch: refetchFollowingServices } = useGetFollowingQuery({
@@ -132,7 +132,7 @@ export default function CustomerActivitiesPage() {
     sortBy,
     page,
     limit: 6
-  }, { skip: skipFollowingServices });
+  }, { skip: skipFollowingServices, refetchOnMountOrArgChange: true });
 
   // Mutations
   const [unsaveListing] = useUnsaveListingMutation();

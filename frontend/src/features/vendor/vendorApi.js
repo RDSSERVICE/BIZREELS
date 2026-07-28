@@ -172,6 +172,10 @@ const vendorApi = apiSlice.injectEndpoints({
       query: () => '/subscription',
       providesTags: ['Subscription'],
     }),
+    getSubscriptionPlans: builder.query({
+      query: () => '/subscription/plans',
+      providesTags: ['Subscription'],
+    }),
     changeSubscription: builder.mutation({
       query: (body) => ({ url: '/subscription/change', method: 'POST', body }),
       invalidatesTags: ['Subscription', 'User'],
@@ -213,6 +217,7 @@ export const {
   useGetWalletTransactionsQuery,
   useRechargeWalletMutation,
   useGetVendorSubscriptionQuery,
+  useGetSubscriptionPlansQuery,
   useChangeSubscriptionMutation,
 } = vendorApi;
 

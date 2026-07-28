@@ -204,14 +204,41 @@ const adminApi = apiSlice.injectEndpoints({
       providesTags: ['Requirements'],
     }),
 
-    // ---- Wallet Manual Operations ----
+    // ---- Wallet Management (Complete Module) ----
+    getWalletStats: builder.query({
+      query: () => '/admin/wallet/stats',
+      providesTags: ['AdminWalletStats'],
+    }),
+    searchWalletUsers: builder.query({
+      query: (q) => ({ url: '/admin/wallet/user-search', params: { q } }),
+    }),
+    listWalletTransactions: builder.query({
+      query: (params = {}) => ({ url: '/admin/wallet/transactions', params }),
+      providesTags: ['AdminWalletTransactions'],
+    }),
     manualCreditWallet: builder.mutation({
       query: (body) => ({ url: '/admin/wallet/manual-credit', method: 'POST', body }),
-      invalidatesTags: ['AdminTransactions', 'AdminOverview'],
+      invalidatesTags: ['AdminWalletTransactions', 'AdminWalletStats', 'AdminTransactions', 'AdminOverview'],
     }),
     manualDebitWallet: builder.mutation({
       query: (body) => ({ url: '/admin/wallet/manual-debit', method: 'POST', body }),
-      invalidatesTags: ['AdminTransactions', 'AdminOverview'],
+      invalidatesTags: ['AdminWalletTransactions', 'AdminWalletStats', 'AdminTransactions', 'AdminOverview'],
+    }),
+    listWalletRecharges: builder.query({
+      query: (params = {}) => ({ url: '/admin/wallet/recharges', params }),
+      providesTags: ['AdminRecharges'],
+    }),
+    listWalletRefunds: builder.query({
+      query: (params = {}) => ({ url: '/admin/wallet/refunds', params }),
+      providesTags: ['AdminRefunds'],
+    }),
+    approveRefund: builder.mutation({
+      query: ({ id, remarks }) => ({ url: `/admin/wallet/refunds/${id}/approve`, method: 'POST', body: { remarks } }),
+      invalidatesTags: ['AdminRefunds', 'AdminWalletTransactions', 'AdminWalletStats', 'AdminOverview'],
+    }),
+    rejectRefund: builder.mutation({
+      query: ({ id, remarks }) => ({ url: `/admin/wallet/refunds/${id}/reject`, method: 'POST', body: { remarks } }),
+      invalidatesTags: ['AdminRefunds'],
     }),
 
     // ---- Reviews ----
@@ -265,14 +292,7 @@ const adminApi = apiSlice.injectEndpoints({
 
 
     // ---- Coupons & Offers ----
-    listCoupons: builder.query({
-      query: () => '/admin/coupons',
-      providesTags: ['Coupons'],
-    }),
-    createCoupon: builder.mutation({
-      query: (body) => ({ url: '/admin/coupons', method: 'POST', body }),
-      invalidatesTags: ['Coupons'],
-    }),
+    // Legacy coupon endpoints removed (moved to subscription-based Coupon Management)
 
     // ---- New Offers Management System ----
     listOffers: builder.query({
@@ -404,6 +424,30 @@ const adminApi = apiSlice.injectEndpoints({
       query: (id) => ({ url: `/admin/commissions/${id}/mark-paid`, method: 'POST' }),
       invalidatesTags: ['AdminCommissions'],
     }),
+    getCommissionConfig: builder.query({
+      query: () => '/admin/commission/config',
+      providesTags: ['CommissionConfig', 'LeadBoostConfig', 'GSTConfig'],
+    }),
+    updateCommissionConfig: builder.mutation({
+      query: (body) => ({ url: '/admin/commission/config', method: 'POST', body }),
+      invalidatesTags: ['CommissionConfig', 'CommissionHistory', 'CommissionAnalytics'],
+    }),
+    updateLeadBoostConfig: builder.mutation({
+      query: (body) => ({ url: '/admin/commission/lead-boost', method: 'POST', body }),
+      invalidatesTags: ['LeadBoostConfig', 'CommissionHistory'],
+    }),
+    updateGSTConfig: builder.mutation({
+      query: (body) => ({ url: '/admin/commission/gst', method: 'POST', body }),
+      invalidatesTags: ['GSTConfig', 'CommissionHistory'],
+    }),
+    listCommissionHistory: builder.query({
+      query: (params = {}) => ({ url: '/admin/commission/history', params }),
+      providesTags: ['CommissionHistory'],
+    }),
+    getCommissionAnalytics: builder.query({
+      query: (params = {}) => ({ url: '/admin/commission/analytics', params }),
+      providesTags: ['CommissionAnalytics'],
+    }),
     listAdminAuditLog: builder.query({
       query: (params = {}) => ({ url: '/admin/audit-log', params }),
       providesTags: ['AdminAuditLog'],
@@ -423,9 +467,9 @@ const adminApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Categories'],
     }),
 
-    // ---- Subscription Plans (Admin CRUD) ----
+    // ---- Subscription Plans (Admin CRUD & Operations) ----
     listSubscriptionPlans: builder.query({
-      query: () => '/admin/subscription/plans',
+      query: (params = {}) => ({ url: '/admin/subscription/plans', params }),
       providesTags: ['SubscriptionPlans'],
     }),
     createSubscriptionPlan: builder.mutation({
@@ -439,6 +483,74 @@ const adminApi = apiSlice.injectEndpoints({
     deleteSubscriptionPlan: builder.mutation({
       query: (id) => ({ url: `/admin/subscription/plans/${id}`, method: 'DELETE' }),
       invalidatesTags: ['SubscriptionPlans'],
+    }),
+    activateSubscriptionPlan: builder.mutation({
+      query: (id) => ({ url: `/admin/subscription/plans/${id}/activate`, method: 'POST' }),
+      invalidatesTags: ['SubscriptionPlans'],
+    }),
+    deactivateSubscriptionPlan: builder.mutation({
+      query: (id) => ({ url: `/admin/subscription/plans/${id}/deactivate`, method: 'POST' }),
+      invalidatesTags: ['SubscriptionPlans'],
+    }),
+    archiveSubscriptionPlan: builder.mutation({
+      query: (id) => ({ url: `/admin/subscription/plans/${id}/archive`, method: 'POST' }),
+      invalidatesTags: ['SubscriptionPlans'],
+    }),
+    duplicateSubscriptionPlan: builder.mutation({
+      query: (id) => ({ url: `/admin/subscription/plans/${id}/duplicate`, method: 'POST' }),
+      invalidatesTags: ['SubscriptionPlans'],
+    }),
+
+    // ---- User Subscriptions ----
+    listUserSubscriptions: builder.query({
+      query: (params = {}) => ({ url: '/admin/subscription/user-subscriptions', params }),
+      providesTags: ['UserSubscriptions'],
+    }),
+    cancelUserSubscription: builder.mutation({
+      query: ({ id, reason }) => ({ url: `/admin/subscription/user-subscriptions/${id}/cancel`, method: 'POST', body: { reason } }),
+      invalidatesTags: ['UserSubscriptions', 'AdminOverview'],
+    }),
+    extendUserSubscription: builder.mutation({
+      query: ({ id, days }) => ({ url: `/admin/subscription/user-subscriptions/${id}/extend`, method: 'POST', body: { days } }),
+      invalidatesTags: ['UserSubscriptions'],
+    }),
+    renewUserSubscription: builder.mutation({
+      query: (id) => ({ url: `/admin/subscription/user-subscriptions/${id}/renew`, method: 'POST' }),
+      invalidatesTags: ['UserSubscriptions', 'AdminOverview'],
+    }),
+
+    // ---- Coupon Management ----
+    listCoupons: builder.query({
+      query: (params = {}) => ({ url: '/admin/subscription/coupons', params }),
+      providesTags: ['Coupons'],
+    }),
+    createCoupon: builder.mutation({
+      query: (body) => ({ url: '/admin/subscription/coupons', method: 'POST', body }),
+      invalidatesTags: ['Coupons'],
+    }),
+    updateCoupon: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/admin/subscription/coupons/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['Coupons'],
+    }),
+    deleteCoupon: builder.mutation({
+      query: (id) => ({ url: `/admin/subscription/coupons/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Coupons'],
+    }),
+    toggleCoupon: builder.mutation({
+      query: (id) => ({ url: `/admin/subscription/coupons/${id}/toggle`, method: 'POST' }),
+      invalidatesTags: ['Coupons'],
+    }),
+
+    // ---- Invoices ----
+    listSubscriptionInvoices: builder.query({
+      query: (params = {}) => ({ url: '/admin/subscription/invoices', params }),
+      providesTags: ['SubscriptionInvoices'],
+    }),
+
+    // ---- Revenue Analytics ----
+    getSubscriptionRevenue: builder.query({
+      query: () => '/admin/subscription/revenue',
+      providesTags: ['FinancialReports'],
     }),
 
     // ---- Financial Reports (Real Aggregation) ----
@@ -503,6 +615,14 @@ export const {
   useListAdminRequirementsQuery,
   useManualCreditWalletMutation,
   useManualDebitWalletMutation,
+  useGetWalletStatsQuery,
+  useSearchWalletUsersQuery,
+  useLazySearchWalletUsersQuery,
+  useListWalletTransactionsQuery,
+  useListWalletRechargesQuery,
+  useListWalletRefundsQuery,
+  useApproveRefundMutation,
+  useRejectRefundMutation,
   useListAdminReviewsQuery,
   useDeleteAdminReviewMutation,
   useGetCmsPagesQuery,
@@ -511,8 +631,6 @@ export const {
   useUpdateAppSettingsMutation,
   useGetAdminSecurityLogsQuery,
   useSendBroadcastNotificationMutation,
-  useListCouponsQuery,
-  useCreateCouponMutation,
 
   useListOffersQuery,
   useCreateOfferMutation,
@@ -540,6 +658,12 @@ export const {
   useGetCommissionSummaryQuery,
   useSetGlobalCommissionRateMutation,
   useMarkCommissionPaidMutation,
+  useGetCommissionConfigQuery,
+  useUpdateCommissionConfigMutation,
+  useUpdateLeadBoostConfigMutation,
+  useUpdateGSTConfigMutation,
+  useListCommissionHistoryQuery,
+  useGetCommissionAnalyticsQuery,
   useListAdminAuditLogQuery,
   useUpdateAdminProfileMutation,
   useChangeAdminPasswordMutation,
@@ -551,6 +675,21 @@ export const {
   useCreateSubscriptionPlanMutation,
   useUpdateSubscriptionPlanMutation,
   useDeleteSubscriptionPlanMutation,
+  useActivateSubscriptionPlanMutation,
+  useDeactivateSubscriptionPlanMutation,
+  useArchiveSubscriptionPlanMutation,
+  useDuplicateSubscriptionPlanMutation,
+  useListUserSubscriptionsQuery,
+  useCancelUserSubscriptionMutation,
+  useExtendUserSubscriptionMutation,
+  useRenewUserSubscriptionMutation,
+  useListCouponsQuery,
+  useCreateCouponMutation,
+  useUpdateCouponMutation,
+  useDeleteCouponMutation,
+  useToggleCouponMutation,
+  useListSubscriptionInvoicesQuery,
+  useGetSubscriptionRevenueQuery,
   useGetFinancialReportQuery,
   useGetLocationRadiusQuery,
   useUpdateLocationRadiusMutation,

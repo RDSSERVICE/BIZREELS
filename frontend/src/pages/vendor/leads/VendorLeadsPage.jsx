@@ -136,13 +136,21 @@ export default function VendorLeadsPage() {
       toast.success('Requirement saved successfully!');
     }
     setSavedIds(updated);
-    localStorage.setItem('vendor_saved_requirements', JSON.stringify(updated));
+    try {
+      localStorage.setItem('vendor_saved_requirements', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to save vendor requirements in localStorage:', e);
+    }
   };
 
   const handleMarkNotInterested = (id) => {
     const updated = [...ignoredIds, id];
     setIgnoredIds(updated);
-    localStorage.setItem('vendor_ignored_requirements', JSON.stringify(updated));
+    try {
+      localStorage.setItem('vendor_ignored_requirements', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to save ignored requirements in localStorage:', e);
+    }
     toast.success('Requirement marked as Not Interested');
   };
 

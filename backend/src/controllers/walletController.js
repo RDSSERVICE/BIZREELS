@@ -9,18 +9,63 @@ const asyncHandler = require('../utils/asyncHandler');
 class WalletController {
   // ── Retrieve Wallet Balance ─────────────────────────────
   getWallet = asyncHandler(async (req, res) => {
+    const { Wallet } = require('../models/Phase4');
+    const wallet = await Wallet.findOne({ user_id: req.user._id.toString() });
+    const credits = wallet ? wallet.credits : (req.user.walletBalance || 0);
     return ApiResponse.ok(res, 'Wallet details loaded.', {
-      balance: req.user.walletBalance || 0,
-      walletBalance: req.user.walletBalance || 0,
+      balance: credits,
+      walletBalance: credits,
+      balance_inr_paise: wallet ? wallet.balance_inr_paise : 0,
     });
   });
 
   // ── Retrieve Active Subscription ───────────────────────
   getSubscription = asyncHandler(async (req, res) => {
+    const UserSubscription = require('../models/UserSubscription.model');
+    const activeSub = await UserSubscription.findOne({
+      user_id: req.user._id.toString(),
+      status: 'active',
+      is_deleted: { $ne: true }
+    }).lean();
+
+    const planName = activeSub ? activeSub.plan_name : 'Free Member';
+
     return ApiResponse.ok(res, 'Subscription details loaded.', {
-      subscription: req.user.subscription || { plan: 'Free', status: 'active' },
-      plan: req.user.subscription?.plan || 'Free',
+      subscription: activeSub || { planName, status: 'active' },
+      plan: planName,
     });
+  });
+
+  // ── Retrieve Active Plans (For Vendors / Creators) ───────
+  getPlans = asyncHandler(async (req, res) => {
+    const { SubscriptionPlan } = require('../models/Admin');
+    const plans = await SubscriptionPlan.find({ is_active: true, is_deleted: { $ne: true } }).sort({ price_inr: 1 });
+    
+    const mapped = plans.map(p => {
+      const obj = p.toObject ? p.toObject() : { ...p };
+      const role = obj.user_type || obj.target_role || 'vendor';
+      return {
+        id: (obj._id || obj.id).toString(),
+        title: obj.title,
+        description: obj.description,
+        plan_type: obj.plan_type || 'basic',
+        user_type: role,
+        target_role: role,
+        billing_cycle: obj.billing_cycle,
+        price_inr: obj.price_inr,
+        duration_days: obj.duration_days || 30,
+        features_list: obj.features_list || (obj.features ? obj.features.split(',').map(f => f.trim()) : []),
+        product_limit: obj.product_limit,
+        service_limit: obj.service_limit,
+        reels_limit: obj.reels_limit,
+        leads_limit: obj.leads_limit,
+        ai_credits: obj.ai_credits || 0,
+        is_active: obj.is_active !== false,
+        is_archived: obj.is_archived || false,
+      };
+    });
+
+    return ApiResponse.ok(res, 'Active subscription plans loaded.', { items: mapped });
   });
 
   // ── Recharge Wallet ─────────────────────────────────────
@@ -39,8 +84,22 @@ class WalletController {
 
   // ── Retrieve Transactions History ───────────────────────
   getTransactions = asyncHandler(async (req, res) => {
-    const list = await walletService.getTransactions(req.user._id);
-    return ApiResponse.ok(res, 'Transactions ledger loaded.', { transactions: list });
+    const WalletTransactionV2 = require('../models/WalletTransactionV2.model');
+    const list = await WalletTransactionV2.find({ user_id: req.user._id.toString(), is_deleted: { $ne: true } })
+      .sort({ created_at: -1 })
+      .lean();
+
+    const mapped = list.map(tx => ({
+      id: tx._id.toString(),
+      _id: tx.transaction_id,
+      title: tx.transaction_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      description: tx.admin_remarks || tx.notes || tx.transaction_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      type: tx.credit_debit === 'credit' ? 'credit' : 'debit',
+      amount: tx.amount,
+      createdAt: tx.created_at,
+    }));
+
+    return ApiResponse.ok(res, 'Transactions ledger loaded.', { transactions: mapped });
   });
 
   // ── Purchase Plan ───────────────────────────────────────

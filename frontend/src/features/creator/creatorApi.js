@@ -80,6 +80,10 @@ const creatorApi = apiSlice.injectEndpoints({
       query: () => '/subscription',
       providesTags: ['Subscription'],
     }),
+    getSubscriptionPlans: builder.query({
+      query: () => '/subscription/plans',
+      providesTags: ['Subscription'],
+    }),
   }),
 });
 
@@ -99,6 +103,7 @@ export const {
   useGetCreatorTransactionsQuery,
   useRequestPayoutMutation,
   useGetCreatorSubscriptionQuery,
+  useGetSubscriptionPlansQuery,
 } = creatorApi;
 
 export default creatorApi;

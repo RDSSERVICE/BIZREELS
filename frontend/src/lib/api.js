@@ -8,28 +8,65 @@ const ACCESS_KEY = "bizreels_access_token";
 const REFRESH_KEY = "bizreels_refresh_token";
 const USER_KEY = "bizreels_user";
 
+const safeSetItem = (key, value) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    console.error(`localStorage setItem failed for key "${key}":`, e);
+    if (e.name === 'QuotaExceededError' || e.code === 22 || e.number === -2147024882) {
+      try {
+        console.warn('Quota exceeded. Clearing non-essential items from localStorage...');
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k !== ACCESS_KEY && k !== REFRESH_KEY && k !== USER_KEY && k !== 'accessToken' && k !== 'refreshToken' && k !== 'user') {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        localStorage.setItem(key, value);
+        console.log(`Successfully set key "${key}" after clearing non-essential items.`);
+      } catch (retryError) {
+        console.error('Failed to write to localStorage even after cleaning:', retryError);
+      }
+    }
+  }
+};
+
 export const tokenStore = {
-  getAccess: () => localStorage.getItem(ACCESS_KEY) || localStorage.getItem("accessToken"),
-  getRefresh: () => localStorage.getItem(REFRESH_KEY) || localStorage.getItem("refreshToken"),
+  getAccess: () => {
+    try { return localStorage.getItem(ACCESS_KEY) || localStorage.getItem("accessToken"); } catch { return null; }
+  },
+  getRefresh: () => {
+    try { return localStorage.getItem(REFRESH_KEY) || localStorage.getItem("refreshToken"); } catch { return null; }
+  },
   getUser: () => {
-    const raw = localStorage.getItem(USER_KEY) || localStorage.getItem("user");
-    try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+    try {
+      const raw = localStorage.getItem(USER_KEY) || localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
   },
   set: ({ access_token, refresh_token, accessToken, refreshToken, user }) => {
     const access = access_token || accessToken;
     const refresh = refresh_token || refreshToken;
-    if (access) localStorage.setItem(ACCESS_KEY, access);
-    if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
-    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
+    if (access) safeSetItem(ACCESS_KEY, access);
+    if (refresh) safeSetItem(REFRESH_KEY, refresh);
+    if (user) safeSetItem(USER_KEY, JSON.stringify(user));
   },
-  setUser: (user) => localStorage.setItem(USER_KEY, JSON.stringify(user)),
+  setUser: (user) => safeSetItem(USER_KEY, JSON.stringify(user)),
   clear: () => {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+    try {
+      localStorage.removeItem(ACCESS_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+    } catch (e) {
+      console.error('Failed to clear tokens from localStorage:', e);
+    }
   },
 };
 

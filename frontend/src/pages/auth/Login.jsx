@@ -50,7 +50,12 @@ const Login = () => {
       if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        const targetPath = (from && from !== '/feed' && from !== '/auth/login') ? from : getRoleDashboard(activeRole);
+        let targetPath = (from && from !== '/feed' && from !== '/auth/login') ? from : getRoleDashboard(activeRole);
+        if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
+          targetPath = '/customer/become-vendor';
+        } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
+          targetPath = '/customer/become-creator';
+        }
         navigate(targetPath, { replace: true });
       }
     } catch (err) {
@@ -100,7 +105,12 @@ const Login = () => {
       if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        const targetPath = (from && from !== '/feed' && from !== '/auth/login') ? from : getRoleDashboard(activeRole);
+        let targetPath = (from && from !== '/feed' && from !== '/auth/login') ? from : getRoleDashboard(activeRole);
+        if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
+          targetPath = '/customer/become-vendor';
+        } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
+          targetPath = '/customer/become-creator';
+        }
         navigate(targetPath, { replace: true });
       }
     } catch (err) {

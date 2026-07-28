@@ -47,7 +47,13 @@ const AuthCallback = () => {
       );
       toast.success('Successfully logged in with Google!');
       const activeRole = user?.activeRole || user?.current_role || (user?.roles || [])[0] || 'customer';
-      navigate(getRoleDashboard(activeRole), { replace: true });
+      let targetPath = getRoleDashboard(activeRole);
+      if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
+        targetPath = '/customer/become-vendor';
+      } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
+        targetPath = '/customer/become-creator';
+      }
+      navigate(targetPath, { replace: true });
     }
 
     if (tokenReady && error) {

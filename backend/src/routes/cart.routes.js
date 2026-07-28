@@ -98,7 +98,8 @@ router.get('/me', requireAuth, catchAsync(async (req, res) => {
 }));
 
 router.post('/me/add', requireAuth, catchAsync(async (req, res) => {
-  const { listing_id, quantity = 1, variant_selection } = req.body;
+  const listing_id = req.body.listing_id || req.body.listingId;
+  const { quantity = 1, variant_selection } = req.body;
   if (!listing_id || !mongoose.Types.ObjectId.isValid(listing_id)) {
     throw ApiError.badRequest('Invalid listing id');
   }

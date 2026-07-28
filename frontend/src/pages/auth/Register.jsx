@@ -38,7 +38,13 @@ const Register = () => {
       toast.success('Registration successful! Welcome to BizReels.');
       const user = res.data?.user || res.data;
       const activeRole = user?.activeRole || user?.current_role || data.role || 'customer';
-      navigate(getRoleDashboard(activeRole), { replace: true });
+      let targetPath = getRoleDashboard(activeRole);
+      if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
+        targetPath = '/customer/become-vendor';
+      } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
+        targetPath = '/customer/become-creator';
+      }
+      navigate(targetPath, { replace: true });
     } catch (err) {
       toast.error(err?.data?.message || 'Registration failed. Please check details.');
     }

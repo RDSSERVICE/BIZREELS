@@ -52,14 +52,31 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
+  // Check if vendor/creator profile is incomplete before allowing dashboard access
+  const isAccessingVendor = allowedRoles.includes('vendor');
+  if (isAccessingVendor && !user?.vendorProfile?.shopName) {
+    return <Navigate to="/customer/become-vendor" replace />;
+  }
+
+  const isAccessingCreator = allowedRoles.includes('creator');
+  if (isAccessingCreator && !user?.creatorProfile?.displayName) {
+    return <Navigate to="/customer/become-creator" replace />;
+  }
+
   const hasAllowedRole = allowedRoles.some(r => r === activeRole || userRoles.includes(r));
 
   if (!hasAllowedRole) {
     if (userRoles.includes('vendor')) {
-      return <Navigate to="/vendor/dashboard" replace />;
+      if (user?.vendorProfile?.shopName) {
+        return <Navigate to="/vendor/dashboard" replace />;
+      }
+      return <Navigate to="/customer/become-vendor" replace />;
     }
     if (userRoles.includes('creator')) {
-      return <Navigate to="/creator/dashboard" replace />;
+      if (user?.creatorProfile?.displayName) {
+        return <Navigate to="/creator/dashboard" replace />;
+      }
+      return <Navigate to="/customer/become-creator" replace />;
     }
     return <Navigate to="/customer/home" replace />;
   }

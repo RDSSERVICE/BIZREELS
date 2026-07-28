@@ -60,9 +60,17 @@ export default function RoleSwitcherChip() {
     setSwitching(true);
     try {
       const { data } = await userApi.switchRole(role);
-      updateLocalUser(data.user || { ...user, current_role: role });
+      const updatedUser = data.user || { ...user, current_role: role };
+      updateLocalUser(updatedUser);
       toast.success(`Switched to ${ROLE_META[role]?.label || role} panel`);
-      navigate(homeForRole(role), { replace: true });
+      
+      let targetPath = homeForRole(role);
+      if (role === 'vendor' && !updatedUser?.vendorProfile?.shopName) {
+        targetPath = '/customer/become-vendor';
+      } else if (role === 'creator' && !updatedUser?.creatorProfile?.displayName) {
+        targetPath = '/customer/become-creator';
+      }
+      navigate(targetPath, { replace: true });
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Role switch failed");
     } finally {

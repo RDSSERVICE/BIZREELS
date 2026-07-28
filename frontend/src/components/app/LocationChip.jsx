@@ -18,12 +18,20 @@ export function useUserLocation() {
         try {
           const { data } = await locationApi.reverseGeocode(lat, lng);
           const next = { lat, lng, city: data.city, state: data.state };
-          localStorage.setItem(LS_KEY, JSON.stringify(next));
+          try {
+            localStorage.setItem(LS_KEY, JSON.stringify(next));
+          } catch (e) {
+            console.error('Failed to save location in localStorage:', e);
+          }
           setLoc(next);
           resolve(next);
         } catch {
           const next = { lat, lng, city: null, state: null };
-          localStorage.setItem(LS_KEY, JSON.stringify(next));
+          try {
+            localStorage.setItem(LS_KEY, JSON.stringify(next));
+          } catch (e) {
+            console.error('Failed to save location in localStorage:', e);
+          }
           setLoc(next);
           resolve(next);
         }

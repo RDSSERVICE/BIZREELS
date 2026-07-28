@@ -50,6 +50,10 @@ const startServer = async () => {
     const { initOfferScheduler } = require('./jobs/offerScheduler');
     initOfferScheduler();
 
+    // Start Subscription cron job
+    const { initSubscriptionCron } = require('./jobs/subscription.cron');
+    initSubscriptionCron();
+
     let currentPort = config.port;
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {

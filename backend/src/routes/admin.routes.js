@@ -677,34 +677,239 @@ router.get('/requirements', requireAuth, requireAdmin, catchAsync(async (req, re
   });
 }));
 
-// ============================================================ WALLET MANUAL CREDIT/DEBIT
-router.post('/wallet/manual-credit', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { user_id, amount_credits, reason } = req.body;
-  if (!user_id || !amount_credits) throw ApiError.badRequest('user_id and amount_credits required');
-  const walletService = require('../services/wallet.service');
-  const w = await walletService.getOrCreate(user_id);
-  const updated = await walletService.creditWallet(user_id, amount_credits, 'credits', reason || 'Admin Manual Credit', 'admin_credit', req.user._id.toString());
-  
-  try {
-    const { emitToAdmin } = require('../sockets');
-    emitToAdmin('admin:update', { tags: ['AdminTransactions', 'AdminOverview'] });
-  } catch (err) {}
+// ============================================================ WALLET MANAGEMENT (Complete Module)
+const walletAdminService = require('../services/wallet-admin.service');
 
-  res.json({ ok: true, wallet: updated });
+// Wallet Stats
+router.get('/wallet/stats', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const stats = await walletAdminService.getWalletStats();
+  res.json(stats);
 }));
 
-router.post('/wallet/manual-debit', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { user_id, amount_credits, reason } = req.body;
-  if (!user_id || !amount_credits) throw ApiError.badRequest('user_id and amount_credits required');
-  const walletService = require('../services/wallet.service');
-  const updated = await walletService.debitWallet(user_id, amount_credits, 'credits', reason || 'Admin Manual Debit', 'admin_debit', req.user._id.toString());
+// User Search (for manual credit/debit)
+router.get('/wallet/user-search', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { q } = req.query;
+  const users = await walletAdminService.searchUsers(q, 20);
+  res.json({ items: users });
+}));
+
+// Transaction History (paginated, filterable)
+router.get('/wallet/transactions', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await walletAdminService.listTransactions({
+    page: req.query.page,
+    limit: Math.min(100, parseInt(req.query.limit || 25)),
+    search: req.query.search,
+    user_id: req.query.user_id,
+    transaction_id: req.query.transaction_id,
+    reference_id: req.query.reference_id,
+    user_role: req.query.user_role,
+    status: req.query.status,
+    transaction_type: req.query.transaction_type,
+    credit_debit: req.query.credit_debit,
+    from_date: req.query.from_date,
+    to_date: req.query.to_date,
+    sort_by: req.query.sort_by,
+    sort_order: req.query.sort_order,
+  });
+  res.json(result);
+}));
+
+// Export Transactions CSV
+router.get('/wallet/transactions/export/csv', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const items = await walletAdminService.exportTransactions(req.query, 'csv');
+  const headers = ['transaction_id', 'reference_id', 'user_id', 'user_name', 'user_role', 'transaction_type', 'credit_debit', 'amount', 'previous_balance', 'updated_balance', 'payment_method', 'source', 'status', 'admin_remarks', 'created_at'];
   
+  const escapeCSVField = (val) => {
+    if (val === null || val === undefined) return '';
+    let str = String(val);
+    if (str && ['=', '+', '-', '@'].includes(str[0])) str = "'" + str;
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) return `"${str.replace(/"/g, '""')}"`;
+    return str;
+  };
+
+  let csv = headers.join(',') + '\n';
+  for (const item of items) {
+    csv += headers.map(h => escapeCSVField(item[h])).join(',') + '\n';
+  }
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename=wallet_transactions_${Date.now()}.csv`);
+  res.send(csv);
+}));
+
+// Export Transactions Excel
+router.get('/wallet/transactions/export/excel', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const XLSX = require('xlsx');
+  const items = await walletAdminService.exportTransactions(req.query, 'excel');
+  
+  const ws = XLSX.utils.json_to_sheet(items.map(item => ({
+    'Transaction ID': item.transaction_id,
+    'Reference ID': item.reference_id || '',
+    'User ID': item.user_id,
+    'User Name': item.user_name || '',
+    'User Role': item.user_role,
+    'Type': item.transaction_type,
+    'Credit/Debit': item.credit_debit,
+    'Amount': item.amount,
+    'Previous Balance': item.previous_balance,
+    'Updated Balance': item.updated_balance,
+    'Payment Method': item.payment_method || '',
+    'Source': item.source || '',
+    'Status': item.status,
+    'Admin Remarks': item.admin_remarks || '',
+    'Date': item.created_at || '',
+  })));
+  
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename=wallet_transactions_${Date.now()}.xlsx`);
+  res.send(buf);
+}));
+
+// Manual Credit (Enhanced)
+router.post('/wallet/manual-credit', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { user_id, amount, amount_credits, reason, category, notes } = req.body;
+  const creditAmount = amount || amount_credits;
+  if (!user_id || !creditAmount) throw ApiError.badRequest('user_id and amount are required');
+
+  const result = await walletAdminService.manualCredit({
+    user_id,
+    amount: parseInt(creditAmount),
+    reason: reason || 'Admin Manual Credit',
+    category,
+    notes,
+    admin_id: req.user._id.toString(),
+  });
+
+  // Audit log
   try {
-    const { emitToAdmin } = require('../sockets');
-    emitToAdmin('admin:update', { tags: ['AdminTransactions', 'AdminOverview'] });
+    const { AuditLog } = require('../models/Misc');
+    await AuditLog.create({
+      userId: req.user._id,
+      action: 'ADMIN_ACTION',
+      entity: 'Wallet',
+      entityId: user_id,
+      description: `Manual credit of ${creditAmount} credits to user ${user_id}`,
+      metadata: { amount: creditAmount, reason, category },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
   } catch (err) {}
 
-  res.json({ ok: true, wallet: updated });
+  res.json({ ok: true, ...result });
+}));
+
+// Manual Debit (Enhanced)
+router.post('/wallet/manual-debit', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { user_id, amount, amount_credits, reason, notes } = req.body;
+  const debitAmount = amount || amount_credits;
+  if (!user_id || !debitAmount) throw ApiError.badRequest('user_id and amount are required');
+
+  const result = await walletAdminService.manualDebit({
+    user_id,
+    amount: parseInt(debitAmount),
+    reason: reason || 'Admin Manual Debit',
+    notes,
+    admin_id: req.user._id.toString(),
+  });
+
+  // Audit log
+  try {
+    const { AuditLog } = require('../models/Misc');
+    await AuditLog.create({
+      userId: req.user._id,
+      action: 'ADMIN_ACTION',
+      entity: 'Wallet',
+      entityId: user_id,
+      description: `Manual debit of ${debitAmount} credits from user ${user_id}`,
+      metadata: { amount: debitAmount, reason },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  } catch (err) {}
+
+  res.json({ ok: true, ...result });
+}));
+
+// Recharge History
+router.get('/wallet/recharges', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await walletAdminService.listRecharges({
+    page: req.query.page,
+    limit: Math.min(100, parseInt(req.query.limit || 25)),
+    search: req.query.search,
+    status: req.query.status,
+    from_date: req.query.from_date,
+    to_date: req.query.to_date,
+  });
+  res.json(result);
+}));
+
+// Refund List
+router.get('/wallet/refunds', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await walletAdminService.listRefunds({
+    page: req.query.page,
+    limit: Math.min(100, parseInt(req.query.limit || 25)),
+    status: req.query.status,
+    search: req.query.search,
+    from_date: req.query.from_date,
+    to_date: req.query.to_date,
+  });
+  res.json(result);
+}));
+
+// Approve Refund
+router.post('/wallet/refunds/:id/approve', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await walletAdminService.approveRefund(
+    req.params.id,
+    req.user._id.toString(),
+    req.body.remarks
+  );
+
+  // Audit log
+  try {
+    const { AuditLog } = require('../models/Misc');
+    await AuditLog.create({
+      userId: req.user._id,
+      action: 'PAYMENT_REFUND',
+      entity: 'RefundRequest',
+      entityId: req.params.id,
+      description: `Approved refund ${result.refund_id}`,
+      metadata: { remarks: req.body.remarks },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  } catch (err) {}
+
+  res.json(result);
+}));
+
+// Reject Refund
+router.post('/wallet/refunds/:id/reject', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await walletAdminService.rejectRefund(
+    req.params.id,
+    req.user._id.toString(),
+    req.body.remarks
+  );
+
+  // Audit log
+  try {
+    const { AuditLog } = require('../models/Misc');
+    await AuditLog.create({
+      userId: req.user._id,
+      action: 'PAYMENT_REFUND',
+      entity: 'RefundRequest',
+      entityId: req.params.id,
+      description: `Rejected refund ${result.refund_id}`,
+      metadata: { remarks: req.body.remarks },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  } catch (err) {}
+
+  res.json(result);
 }));
 
 // ============================================================ REVIEWS MODERATION
@@ -1174,15 +1379,67 @@ router.get('/orders', requireAuth, requireAdmin, catchAsync(async (req, res) => 
   });
 }));
 
-// ============================================================ COMMISSIONS
+// ============================================================ COMMISSION & TAXES (Complete Module)
+
+router.get('/commission/config', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const config = await commissionService.getFullConfig();
+  res.json(config);
+}));
+
+router.post('/commission/config', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { config_type, category_id, rate, reason } = req.body;
+  const config = await commissionService.updateCommissionConfig({
+    config_type,
+    category_id,
+    rate: parseFloat(rate),
+    reason,
+    admin_id: req.user._id.toString(),
+    admin_name: req.user.name || 'Admin',
+    ip: req.ip,
+  });
+  res.json({ ok: true, config });
+}));
+
+router.post('/commission/lead-boost', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { reason, ...data } = req.body;
+  const config = await commissionService.updateLeadBoostConfig(data, {
+    reason,
+    admin_id: req.user._id.toString(),
+    admin_name: req.user.name || 'Admin',
+    ip: req.ip,
+  });
+  res.json({ ok: true, config });
+}));
+
+router.post('/commission/gst', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { reason, ...data } = req.body;
+  const config = await commissionService.updateGSTConfig(data, {
+    reason,
+    admin_id: req.user._id.toString(),
+    admin_name: req.user.name || 'Admin',
+    ip: req.ip,
+  });
+  res.json({ ok: true, config });
+}));
+
+router.get('/commission/history', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const history = await commissionService.getAuditTrail(req.query);
+  res.json(history);
+}));
+
+router.get('/commission/analytics', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const analytics = await commissionService.getAnalytics(parseInt(req.query.period_days || 30));
+  res.json(analytics);
+}));
+
 router.get('/commissions', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const { status, vendor_id } = req.query;
   const limit = Math.max(1, Math.min(200, parseInt(req.query.limit || 50, 10)));
-
   const result = await commissionService.listCommissions(status, vendor_id, limit);
   res.json(result);
 }));
 
+// Legacy compatibility routes
 router.get('/commissions/summary', requireAuth, requireAdmin, catchAsync(async (req, res) => {
   const periodDays = Math.max(1, Math.min(365, parseInt(req.query.period_days || 30, 10)));
   const result = await commissionService.summary(periodDays);
@@ -1199,11 +1456,6 @@ router.post('/commissions/rate/category', requireAuth, requireAdmin, catchAsync(
   const { category_id, rate } = req.body;
   const result = await commissionService.setCategoryRate(category_id, parseFloat(rate));
   res.json(result);
-}));
-
-router.post('/commissions/:cid/mark-paid', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const result = await commissionService.markPaid(req.params.cid);
-  res.json(result || { error: 'not found' });
 }));
 
 // ============================================================ AUDIT LOGS
@@ -1254,45 +1506,114 @@ router.get('/audit-log', requireAuth, requireAdmin, catchAsync(async (req, res) 
 }));
 
 
-// ============================================================ SUBSCRIPTION PLANS
+// ============================================================ SUBSCRIPTION & BILLING (Complete Module)
+const subscriptionAdminService = require('../services/subscription-admin.service');
+
+// ─── Plan CRUD ───
 router.get('/subscription/plans', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { SubscriptionPlan } = require('../models/Admin');
-  const plans = await SubscriptionPlan.find({ is_deleted: { $ne: true } }).sort({ price_inr: 1 });
-  res.json({
-    items: plans.map(p => ({
-      id: p._id.toString(),
-      title: p.title,
-      description: p.description,
-      billing_cycle: p.billing_cycle,
-      price_inr: p.price_inr,
-      features: p.features,
-      target_role: p.target_role,
-      max_listings: p.max_listings,
-      priority_ranking: p.priority_ranking,
-      verified_badge: p.verified_badge,
-      is_active: p.is_active,
-      created_at: p.created_at,
-    })),
-  });
+  const result = await subscriptionAdminService.listPlans(req.query);
+  res.json(result);
 }));
 
 router.post('/subscription/plans', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { SubscriptionPlan } = require('../models/Admin');
-  const plan = await SubscriptionPlan.create(req.body);
+  const plan = await subscriptionAdminService.createPlan(req.body);
   res.json({ ok: true, plan });
 }));
 
 router.patch('/subscription/plans/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { SubscriptionPlan } = require('../models/Admin');
-  const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, { $set: req.body }, { returnDocument: 'after' });
-  if (!plan) throw ApiError.notFound('Plan not found');
+  const plan = await subscriptionAdminService.updatePlan(req.params.id, req.body);
   res.json({ ok: true, plan });
 }));
 
 router.delete('/subscription/plans/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { SubscriptionPlan } = require('../models/Admin');
-  await SubscriptionPlan.updateOne({ _id: req.params.id }, { $set: { is_deleted: true } });
+  await subscriptionAdminService.deletePlan(req.params.id);
   res.json({ ok: true });
+}));
+
+router.post('/subscription/plans/:id/activate', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  await subscriptionAdminService.activatePlan(req.params.id);
+  res.json({ ok: true });
+}));
+
+router.post('/subscription/plans/:id/deactivate', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  await subscriptionAdminService.deactivatePlan(req.params.id);
+  res.json({ ok: true });
+}));
+
+router.post('/subscription/plans/:id/archive', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  await subscriptionAdminService.archivePlan(req.params.id);
+  res.json({ ok: true });
+}));
+
+router.post('/subscription/plans/:id/duplicate', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const plan = await subscriptionAdminService.duplicatePlan(req.params.id);
+  res.json({ ok: true, plan });
+}));
+
+// ─── User Subscriptions ───
+router.get('/subscription/user-subscriptions', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await subscriptionAdminService.listUserSubscriptions(req.query);
+  res.json(result);
+}));
+
+router.post('/subscription/user-subscriptions/:id/cancel', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await subscriptionAdminService.cancelSubscription(req.params.id, req.user._id.toString(), req.body.reason);
+  res.json(result);
+}));
+
+router.post('/subscription/user-subscriptions/:id/extend', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await subscriptionAdminService.extendSubscription(req.params.id, parseInt(req.body.days), req.user._id.toString());
+  res.json(result);
+}));
+
+router.post('/subscription/user-subscriptions/:id/renew', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await subscriptionAdminService.renewSubscription(req.params.id, req.user._id.toString());
+  res.json(result);
+}));
+
+// ─── Coupon Management ───
+router.get('/subscription/coupons', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await subscriptionAdminService.listCoupons(req.query);
+  res.json(result);
+}));
+
+router.post('/subscription/coupons', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const coupon = await subscriptionAdminService.createCoupon(req.body);
+  res.json({ ok: true, coupon });
+}));
+
+router.patch('/subscription/coupons/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const coupon = await subscriptionAdminService.updateCoupon(req.params.id, req.body);
+  res.json({ ok: true, coupon });
+}));
+
+router.delete('/subscription/coupons/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  await subscriptionAdminService.deleteCoupon(req.params.id);
+  res.json({ ok: true });
+}));
+
+router.post('/subscription/coupons/:id/toggle', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await subscriptionAdminService.toggleCoupon(req.params.id);
+  res.json(result);
+}));
+
+// ─── Invoices ───
+router.get('/subscription/invoices', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await subscriptionAdminService.listInvoices(req.query);
+  res.json(result);
+}));
+
+router.get('/subscription/invoices/:id/pdf', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const pdfBuffer = await subscriptionAdminService.generateInvoicePDF(req.params.id);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename=invoice_${req.params.id}.pdf`);
+  res.send(pdfBuffer);
+}));
+
+// ─── Revenue Analytics ───
+router.get('/subscription/revenue', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await subscriptionAdminService.getRevenueSummary();
+  res.json(result);
 }));
 
 // ============================================================ FINANCIAL REPORTS AGGREGATION
