@@ -13,6 +13,7 @@ const requestPerformanceLogger = (req, res, next) => {
   const context = {
     dbQueryCount: 0,
     dbQueryTime: 0,
+    dbCommandTime: 0,
   };
 
   let responseSize = 0;
@@ -42,6 +43,10 @@ const requestPerformanceLogger = (req, res, next) => {
       const heapUsedMB = memEnd / (1024 * 1024);
       const heapDiffMB = (memEnd - memStart) / (1024 * 1024);
 
+      const dbCommandMs = context.dbCommandTime || 0;
+      const dbWaitMs = Math.max(0, context.dbQueryTime - dbCommandMs);
+      const appTimeMs = Math.max(0, durationMs - context.dbQueryTime);
+
       const logPayload = {
         method: req.method,
         url: req.originalUrl || req.url,
@@ -49,6 +54,9 @@ const requestPerformanceLogger = (req, res, next) => {
         totalTimeMs: durationMs,
         dbQueryCount: context.dbQueryCount,
         dbQueryTimeMs: context.dbQueryTime,
+        dbCommandTimeMs: dbCommandMs,
+        dbWaitTimeMs: dbWaitMs,
+        appTimeMs: appTimeMs,
         responseSizeBytes: responseSize,
         heapUsedMB: heapUsedMB,
         heapDiffMB: heapDiffMB,
@@ -60,15 +68,17 @@ const requestPerformanceLogger = (req, res, next) => {
           ? `${(responseSize / 1024).toFixed(2)} KB`
           : `${responseSize} B`;
 
+      const metricsStr = `[Total: ${durationMs.toFixed(2)}ms | DB Execution: ${dbCommandMs.toFixed(2)}ms | DB Wait/RTT: ${dbWaitMs.toFixed(2)}ms | App: ${appTimeMs.toFixed(2)}ms]`;
+
       if (durationMs > 500) {
         logger.warn(
-          `SLOW API WARNING: ${req.method} ${logPayload.url} took ${durationMs.toFixed(2)}ms | Size: ${sizeStr} | Heap: ${heapUsedMB.toFixed(2)}MB (${heapDiffMB >= 0 ? '+' : ''}${heapDiffMB.toFixed(2)}MB) [DB Queries: ${context.dbQueryCount}, DB Query Time: ${context.dbQueryTime.toFixed(2)}ms]`,
+          `SLOW API WARNING: ${req.method} ${logPayload.url} took ${durationMs.toFixed(2)}ms | Size: ${sizeStr} | Heap: ${heapUsedMB.toFixed(2)}MB (${heapDiffMB >= 0 ? '+' : ''}${heapDiffMB.toFixed(2)}MB) ${metricsStr} [DB Queries: ${context.dbQueryCount}]`,
           logPayload
         );
       } else {
         logger.info(
-          `${req.method} ${logPayload.url} took ${durationMs.toFixed(2)}ms | Size: ${sizeStr} | Heap: ${heapUsedMB.toFixed(2)}MB`,
-          { durationMs, responseSizeBytes: responseSize, heapUsedMB }
+          `${req.method} ${logPayload.url} took ${durationMs.toFixed(2)}ms | Size: ${sizeStr} | Heap: ${heapUsedMB.toFixed(2)}MB ${metricsStr}`,
+          { durationMs, responseSizeBytes: responseSize, heapUsedMB, ...logPayload }
         );
       }
     });

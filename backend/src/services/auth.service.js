@@ -692,20 +692,18 @@ class AuthService {
     return parseInt(match[1], 10) * units[match[2]];
   }
 
-  async _logAction(userId, action, entity, entityId, description, req) {
-    try {
-      await authRepository.createAuditLog({
-        userId,
-        action,
-        entity,
-        entityId,
-        description,
-        ipAddress: req?.ip,
-        userAgent: req?.headers?.['user-agent'],
-      });
-    } catch (error) {
-      logger.error('Failed to create audit log:', { error: error.message, service: 'audit' });
-    }
+  _logAction(userId, action, entity, entityId, description, req) {
+    authRepository.createAuditLog({
+      userId,
+      action,
+      entity,
+      entityId,
+      description,
+      ipAddress: req?.ip,
+      userAgent: req?.headers?.['user-agent'],
+    }).catch((error) => {
+      logger.error('Failed to create audit log asynchronously:', { error: error.message, service: 'audit' });
+    });
   }
 }
 

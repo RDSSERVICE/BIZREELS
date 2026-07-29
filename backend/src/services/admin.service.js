@@ -291,10 +291,7 @@ const analyticsOverview = async () => {
     AuditLog.aggregate([
       {
         $match: {
-          $or: [
-            { createdAt: { $gte: new Date(sevenDaysAgo) } },
-            { created_at: { $gte: sevenDaysAgo } }
-          ]
+          createdAt: { $gte: new Date(sevenDaysAgo) }
         }
       },
       {
@@ -309,20 +306,10 @@ const analyticsOverview = async () => {
     AuditLog.aggregate([
       {
         $match: {
-          $or: [
-            {
-              $and: [
-                { createdAt: { $gte: new Date(fourteenDaysAgo) } },
-                { createdAt: { $lt: new Date(sevenDaysAgo) } }
-              ]
-            },
-            {
-              $and: [
-                { created_at: { $gte: fourteenDaysAgo } },
-                { created_at: { $lt: sevenDaysAgo } }
-              ]
-            }
-          ]
+          createdAt: {
+            $gte: new Date(fourteenDaysAgo),
+            $lt: new Date(sevenDaysAgo)
+          }
         }
       },
       {
@@ -1165,9 +1152,7 @@ const getCustomerProfileDetails = async (userId) => {
     }
   }
 
-  const auditLogs = await AuditLog.find({
-    $or: [{ userId: userId }, { user_id: userIdStr }]
-  }).sort({ createdAt: -1, created_at: -1 });
+  const auditLogs = await AuditLog.find({ userId }).sort({ createdAt: -1 });
 
   const loginHistory = auditLogs
     .filter(log => ['USER_LOGIN', 'login', 'login_failed'].includes(log.action))
@@ -1700,9 +1685,7 @@ const getVendorProfileDetails = async (userId) => {
     .sort({ createdAt: -1 });
 
   // Logs & timeline
-  const auditLogs = await AuditLog.find({
-    $or: [{ userId: userId }, { user_id: userIdStr }]
-  }).sort({ createdAt: -1, created_at: -1 });
+  const auditLogs = await AuditLog.find({ userId }).sort({ createdAt: -1 });
 
   const timeline = auditLogs
     .filter(log => [
@@ -2146,9 +2129,7 @@ const getCreatorProfileDetails = async (userId) => {
     .sort({ created_at: -1 });
 
   // Logs & timeline
-  const auditLogs = await AuditLog.find({
-    $or: [{ userId: userId }, { user_id: userIdStr }]
-  }).sort({ createdAt: -1, created_at: -1 });
+  const auditLogs = await AuditLog.find({ userId }).sort({ createdAt: -1 });
 
   const timeline = auditLogs
     .filter(log => [

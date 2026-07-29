@@ -144,7 +144,16 @@ class AuthController {
 
   // ── Get Current User ───────────────────────────────────
   getMe = asyncHandler(async (req, res) => {
-    const user = authService.serializeUser(req.user);
+    const User = require('../models/User');
+    const userWithProfiles = await User.findById(req.user._id)
+      .select('-password -__v')
+      .lean();
+
+    if (!userWithProfiles) {
+      return res.status(401).json({ success: false, message: 'User associated with this token no longer exists.' });
+    }
+
+    const user = authService.serializeUser(userWithProfiles);
 
     return ApiResponse.ok(res, 'User profile fetched.', { user });
   });

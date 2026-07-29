@@ -5,6 +5,17 @@ const logger = require('../utils/logger');
 
 let isConnecting = false;
 let reconnectInterval = null;
+const commandContextMap = new Map();
+
+// Periodic cleanup of command context map to prevent any potential memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [reqId, entry] of commandContextMap.entries()) {
+    if (now - entry.timestamp > 60000) {
+      commandContextMap.delete(reqId);
+    }
+  }
+}, 60000).unref();
 
 /**
  * Starts a safe background reconnect process if disconnected.
@@ -51,8 +62,8 @@ const startBackgroundReconnect = (options) => {
 const connectDB = async () => {
   const options = {
     dbName: process.env.DB_NAME || 'bizreels',
-    maxPoolSize: 5,
-    minPoolSize: 1,
+    maxPoolSize: 100,
+    minPoolSize: 10,
     socketTimeoutMS: 45000,
     connectTimeoutMS: 10000,
     serverSelectionTimeoutMS: 10000,
@@ -60,6 +71,7 @@ const connectDB = async () => {
     heartbeatFrequencyMS: 10000,
     retryWrites: true,
     w: 'majority',
+    monitorCommands: true,
   };
 
   // Disable query buffering globally so the app fails fast when database is offline
@@ -83,6 +95,45 @@ const connectDB = async () => {
         reconnectInterval = null;
       }
     });
+
+    mongoose.connection.on('connected', () => {
+      try {
+        const client = mongoose.connection.getClient();
+        if (client && client.listenerCount('commandStarted') === 0) {
+          const { performanceLocalStorage } = require('../middleware/performance');
+
+          client.on('commandStarted', (event) => {
+            const context = performanceLocalStorage.getStore();
+            if (context) {
+              context.timestamp = Date.now();
+              commandContextMap.set(event.requestId, context);
+            }
+          });
+
+          client.on('commandSucceeded', (event) => {
+            const context = commandContextMap.get(event.requestId);
+            if (context) {
+              if (event.duration !== undefined) {
+                context.dbCommandTime = (context.dbCommandTime || 0) + event.duration;
+              }
+              commandContextMap.delete(event.requestId);
+            }
+          });
+
+          client.on('commandFailed', (event) => {
+            const context = commandContextMap.get(event.requestId);
+            if (context) {
+              if (event.duration !== undefined) {
+                context.dbCommandTime = (context.dbCommandTime || 0) + event.duration;
+              }
+              commandContextMap.delete(event.requestId);
+            }
+          });
+        }
+      } catch (err) {
+        logger.error(`Failed to register telemetry on connection: ${err.message}`, { service: 'database' });
+      }
+    });
   }
 
   // Initial connection retry loop (up to 5 attempts)
@@ -97,6 +148,7 @@ const connectDB = async () => {
         service: 'database',
         dbName: conn.connection.name,
       });
+
       return conn;
     } catch (error) {
       retryCount++;

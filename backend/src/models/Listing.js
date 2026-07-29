@@ -285,6 +285,30 @@ listingSchema.index({ views: -1 });
 listingSchema.index({ orders_count: -1 });
 listingSchema.index({ vendor: 1, status: 1, isDeleted: 1 });
 
+// Helper to recursively check for base64 data strings safely
+const hasBase64 = (obj) => {
+  if (!obj) return false;
+  try {
+    const str = typeof obj === 'object' ? JSON.stringify(obj) : String(obj);
+    return /data:[^;]+;base64,/.test(str);
+  } catch (err) {
+    return false;
+  }
+};
+
+// Pre-validate hook to block base64 strings in listing fields
+listingSchema.pre('validate', function (next) {
+  if (
+    hasBase64(this.images) ||
+    hasBase64(this.videos) ||
+    hasBase64(this.variants) ||
+    hasBase64(this.serviceDetails)
+  ) {
+    return next(new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.'));
+  }
+  if (typeof next === 'function') next();
+});
+
 // Query middleware to exclude soft deleted entries
 listingSchema.pre(/^find/, function () {
   if (this.getOptions()?.includeSoftDeleted) return;

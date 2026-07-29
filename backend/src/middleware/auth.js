@@ -34,7 +34,7 @@ const authenticate = async (req, res, next) => {
 
     const userId = decoded.userId || decoded.sub;
     const user = await User.findById(userId)
-      .select('-password -__v')
+      .select('-password -__v -creatorProfile -vendorProfile -customerProfile -followers -following')
       .lean();
 
     if (!user) {
