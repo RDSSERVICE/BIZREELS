@@ -94,6 +94,25 @@ const kycDocSchema = new mongoose.Schema({
   timestamps: false,
 });
 
+// Helper to recursively check for base64 data strings safely
+const hasBase64 = (obj) => {
+  if (!obj) return false;
+  try {
+    const str = typeof obj === 'object' ? JSON.stringify(obj) : String(obj);
+    return /data:[^;]+;base64,/.test(str);
+  } catch (err) {
+    return false;
+  }
+};
+
+// Pre-validate hook to block base64 strings in KYC Documents
+kycDocSchema.pre('validate', function (next) {
+  if (hasBase64(this.doc_url) || hasBase64(this.selfie_url)) {
+    return next(new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.'));
+  }
+  if (typeof next === 'function') next();
+});
+
 const registerOrReuse = (name, schema, collection) =>
   mongoose.models[name] || mongoose.model(name, schema, collection);
 

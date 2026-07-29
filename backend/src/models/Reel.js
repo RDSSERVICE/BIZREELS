@@ -153,6 +153,25 @@ reelSchema.index({ creator: 1, createdAt: -1 });
 reelSchema.index({ hashtags: 1, createdAt: -1 });
 reelSchema.index({ isDeleted: 1, status: 1, createdAt: -1 });
 
+// Helper to recursively check for base64 data strings safely
+const hasBase64 = (obj) => {
+  if (!obj) return false;
+  try {
+    const str = typeof obj === 'object' ? JSON.stringify(obj) : String(obj);
+    return /data:[^;]+;base64,/.test(str);
+  } catch (err) {
+    return false;
+  }
+};
+
+// Pre-validate hook to block base64 strings in Reels
+reelSchema.pre('validate', function (next) {
+  if (hasBase64(this.videoUrl) || hasBase64(this.thumbnailUrl) || hasBase64(this.mediaUrls)) {
+    return next(new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.'));
+  }
+  if (typeof next === 'function') next();
+});
+
 // Query middleware to exclude soft-deleted reels by default
 reelSchema.pre(/^find/, function () {
   if (this.getOptions()?.includeSoftDeleted) return;
