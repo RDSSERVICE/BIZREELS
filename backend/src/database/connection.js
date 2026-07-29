@@ -6,6 +6,7 @@ const logger = require('../utils/logger');
 let isConnecting = false;
 let reconnectInterval = null;
 const commandContextMap = new Map();
+let dbOptions = null;
 
 // Periodic cleanup of command context map to prevent any potential memory leaks
 setInterval(() => {
@@ -55,12 +56,71 @@ const startBackgroundReconnect = (options) => {
   }, 10000);
 };
 
+// Register connection lifecycle listeners globally at module load time
+mongoose.connection.on('error', (err) => {
+  logger.error(`MongoDB connection error: ${err.message}`, { service: 'database' });
+});
+
+mongoose.connection.on('disconnected', () => {
+  logger.warn('MongoDB connection lost. Reconnecting...', { service: 'database' });
+  if (dbOptions) {
+    startBackgroundReconnect(dbOptions);
+  }
+});
+
+mongoose.connection.on('reconnected', () => {
+  logger.info('MongoDB connection re-established.', { service: 'database' });
+  if (reconnectInterval) {
+    clearInterval(reconnectInterval);
+    reconnectInterval = null;
+  }
+});
+
+mongoose.connection.on('connected', () => {
+  try {
+    const client = mongoose.connection.getClient();
+    if (client && client.listenerCount('commandStarted') === 0) {
+      const { performanceLocalStorage } = require('../middleware/performance');
+
+      client.on('commandStarted', (event) => {
+        const context = performanceLocalStorage.getStore();
+        if (context) {
+          context.timestamp = Date.now();
+          commandContextMap.set(event.requestId, context);
+        }
+      });
+
+      client.on('commandSucceeded', (event) => {
+        const context = commandContextMap.get(event.requestId);
+        if (context) {
+          if (event.duration !== undefined) {
+            context.dbCommandTime = (context.dbCommandTime || 0) + event.duration;
+          }
+          commandContextMap.delete(event.requestId);
+        }
+      });
+
+      client.on('commandFailed', (event) => {
+        const context = commandContextMap.get(event.requestId);
+        if (context) {
+          if (event.duration !== undefined) {
+            context.dbCommandTime = (context.dbCommandTime || 0) + event.duration;
+          }
+          commandContextMap.delete(event.requestId);
+        }
+      });
+    }
+  } catch (err) {
+    logger.error(`Failed to register telemetry on connection: ${err.message}`, { service: 'database' });
+  }
+});
+
 /**
  * Connect to MongoDB Atlas with production-grade options.
  * Includes auto-reconnect, connection pooling, and graceful shutdown.
  */
 const connectDB = async () => {
-  const options = {
+  dbOptions = {
     dbName: process.env.DB_NAME || 'bizreels',
     maxPoolSize: 100,
     minPoolSize: 10,
@@ -77,65 +137,6 @@ const connectDB = async () => {
   // Enable query buffering globally to smooth out transient database reconnects
   mongoose.set('bufferCommands', true);
 
-  // Register connection lifecycle listeners only once
-  if (mongoose.connection.listenerCount('error') === 0) {
-    mongoose.connection.on('error', (err) => {
-      logger.error(`MongoDB connection error: ${err.message}`, { service: 'database' });
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      logger.warn('MongoDB connection lost. Reconnecting...', { service: 'database' });
-      startBackgroundReconnect(options);
-    });
-
-    mongoose.connection.on('reconnected', () => {
-      logger.info('MongoDB connection re-established.', { service: 'database' });
-      if (reconnectInterval) {
-        clearInterval(reconnectInterval);
-        reconnectInterval = null;
-      }
-    });
-
-    mongoose.connection.on('connected', () => {
-      try {
-        const client = mongoose.connection.getClient();
-        if (client && client.listenerCount('commandStarted') === 0) {
-          const { performanceLocalStorage } = require('../middleware/performance');
-
-          client.on('commandStarted', (event) => {
-            const context = performanceLocalStorage.getStore();
-            if (context) {
-              context.timestamp = Date.now();
-              commandContextMap.set(event.requestId, context);
-            }
-          });
-
-          client.on('commandSucceeded', (event) => {
-            const context = commandContextMap.get(event.requestId);
-            if (context) {
-              if (event.duration !== undefined) {
-                context.dbCommandTime = (context.dbCommandTime || 0) + event.duration;
-              }
-              commandContextMap.delete(event.requestId);
-            }
-          });
-
-          client.on('commandFailed', (event) => {
-            const context = commandContextMap.get(event.requestId);
-            if (context) {
-              if (event.duration !== undefined) {
-                context.dbCommandTime = (context.dbCommandTime || 0) + event.duration;
-              }
-              commandContextMap.delete(event.requestId);
-            }
-          });
-        }
-      } catch (err) {
-        logger.error(`Failed to register telemetry on connection: ${err.message}`, { service: 'database' });
-      }
-    });
-  }
-
   // Initial connection retry loop (up to 5 attempts)
   const maxRetries = 5;
   let retryCount = 0;
@@ -143,7 +144,7 @@ const connectDB = async () => {
   while (retryCount < maxRetries) {
     try {
       logger.info(`Connecting to MongoDB Atlas (Attempt ${retryCount + 1}/${maxRetries})...`, { service: 'database' });
-      const conn = await mongoose.connect(config.mongoUri, options);
+      const conn = await mongoose.connect(config.mongoUri, dbOptions);
       logger.info(`MongoDB Connected: ${conn.connection.host}`, {
         service: 'database',
         dbName: conn.connection.name,
@@ -172,7 +173,7 @@ const connectDB = async () => {
     return conn;
   } catch (localErr) {
     logger.error(`Local MongoDB connection failed (${localErr.message}). Starting background reconnect worker...`, { service: 'database' });
-    startBackgroundReconnect(options);
+    startBackgroundReconnect(dbOptions);
     return null;
   }
 };
