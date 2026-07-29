@@ -51,16 +51,15 @@ const startBackgroundReconnect = (options) => {
 const connectDB = async () => {
   const options = {
     dbName: process.env.DB_NAME || 'bizreels',
-    maxPoolSize: 10,
-    minPoolSize: 10,
+    maxPoolSize: 5,
+    minPoolSize: 1,
     socketTimeoutMS: 45000,
-    connectTimeoutMS: 30000,
+    connectTimeoutMS: 10000,
     serverSelectionTimeoutMS: 10000,
     maxIdleTimeMS: 30000,
     heartbeatFrequencyMS: 10000,
     retryWrites: true,
     w: 'majority',
-    family: 4, // Force IPv4 to avoid slow DNS lookups (e.g. IPv6 / AAAA resolution delays on Windows)
   };
 
   // Disable query buffering globally so the app fails fast when database is offline
