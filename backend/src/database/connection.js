@@ -74,8 +74,8 @@ const connectDB = async () => {
     monitorCommands: true,
   };
 
-  // Disable query buffering globally so the app fails fast when database is offline
-  mongoose.set('bufferCommands', false);
+  // Enable query buffering globally to smooth out transient database reconnects
+  mongoose.set('bufferCommands', true);
 
   // Register connection lifecycle listeners only once
   if (mongoose.connection.listenerCount('error') === 0) {
