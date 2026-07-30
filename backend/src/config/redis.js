@@ -37,34 +37,39 @@ class MemoryOtpStore {
 
 let redisClient;
 let isRedisConnected = false;
+const redisEnabled = process.env.REDIS_ENABLED !== 'false';
 
-try {
-  redisClient = new Redis(config.redisUrl, {
-    maxRetriesPerRequest: 2,
-    enableOfflineQueue: false,
-    retryStrategy(times) {
-      if (times > 3) {
-        logger.warn('Redis connection threshold exceeded. Using in-memory fallback store.');
-        return null;
+if (redisEnabled) {
+  try {
+    redisClient = new Redis(config.redisUrl, {
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+      retryStrategy(times) {
+        if (times > 1) {
+          logger.info('Redis server not detected on localhost. Safely fell back to MemoryOtpStore.');
+          return null;
+        }
+        return 100;
+      },
+      connectTimeout: 1000,
+    });
+
+    redisClient.on('connect', () => {
+      isRedisConnected = true;
+      logger.info('Connected to Redis server successfully.', { service: 'redis' });
+    });
+
+    redisClient.on('error', (err) => {
+      if (isRedisConnected) {
+        logger.info('Redis connection lost, safely fell back to MemoryOtpStore.');
       }
-      return Math.min(times * 50, 2000);
-    },
-    connectTimeout: 2000,
-  });
-
-  redisClient.on('connect', () => {
-    isRedisConnected = true;
-    logger.info('Connected to Redis server successfully.', { service: 'redis' });
-  });
-
-  redisClient.on('error', (err) => {
-    if (isRedisConnected) {
-      logger.warn('Redis error occurred, falling back to memory store:', err.message);
-    }
-    isRedisConnected = false;
-  });
-} catch (err) {
-  logger.warn('Redis initialization skipped. Using in-memory store.');
+      isRedisConnected = false;
+    });
+  } catch (err) {
+    logger.info('Redis initialization skipped. Using in-memory store.');
+  }
+} else {
+  logger.info('Redis connection is disabled via .env. Using MemoryOtpStore directly.');
 }
 
 const memoryStore = new MemoryOtpStore();
