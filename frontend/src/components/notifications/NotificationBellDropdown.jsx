@@ -95,10 +95,26 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
 
     if (notif.actionUrl || notif.action_url) {
       let target = notif.actionUrl || notif.action_url;
-      if (role === 'vendor' && (target === '/customer/notifications' || target === '/notifications')) {
-        target = '/vendor/notifications';
-      } else if (role === 'creator' && (target === '/customer/notifications' || target === '/notifications')) {
-        target = '/creator/notifications';
+      if (role === 'vendor') {
+        if (target.startsWith('/wallet')) {
+          target = '/vendor/wallet';
+        } else if (target.startsWith('/subscription') || target.startsWith('/subscriptions')) {
+          target = '/vendor/subscription';
+        } else if (target.startsWith('/chat')) {
+          target = '/vendor/chat';
+        } else if (target === '/notifications' || target.startsWith('/customer/notifications')) {
+          target = '/vendor/notifications';
+        }
+      } else if (role === 'creator') {
+        if (target.startsWith('/wallet')) {
+          target = '/creator/wallet';
+        } else if (target.startsWith('/subscription') || target.startsWith('/subscriptions')) {
+          target = '/creator/subscription';
+        } else if (target.startsWith('/chat')) {
+          target = '/creator/chat';
+        } else if (target === '/notifications' || target.startsWith('/customer/notifications')) {
+          target = '/creator/notifications';
+        }
       }
       navigate(target);
     }
