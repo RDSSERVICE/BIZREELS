@@ -8,11 +8,16 @@ export default function ReferralCard() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    referralApi.mine().then(({ data }) => setData(data)).catch(() => {});
+    referralApi.mine()
+      .then((res) => {
+        setData(res.data?.data || res.data);
+      })
+      .catch(() => {});
   }, []);
 
   if (!data) return null;
-  const code = data.referral_code;
+  const code = data.referral_code || '';
+  const summary = data.summary || { credited: 0, pending: 0, credits_earned: 0 };
   const shareText = `Join BizReels using code ${code} and get ₹100 in credits! Discover trusted local vendors, chat & negotiate deals right in India. https://bizreels.app`;
 
   const copy = async () => {
@@ -46,9 +51,9 @@ export default function ReferralCard() {
           <div className="font-heading text-2xl font-bold tracking-widest" data-testid="referral-code">{code}</div>
         </div>
         <div className="text-right text-xs text-white/70">
-          <div><span className="font-heading font-bold text-white">{data.summary.credited}</span> credited</div>
-          <div><span className="font-heading font-bold text-white">{data.summary.pending}</span> pending</div>
-          <div className="text-yellow-300 mt-1">+{data.summary.credits_earned} credits earned</div>
+          <div><span className="font-heading font-bold text-white">{summary.credited}</span> credited</div>
+          <div><span className="font-heading font-bold text-white">{summary.pending}</span> pending</div>
+          <div className="text-yellow-300 mt-1">+{summary.credits_earned} credits earned</div>
         </div>
       </div>
       <div className="flex gap-2">
