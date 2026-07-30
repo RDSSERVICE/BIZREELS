@@ -183,6 +183,7 @@ const AppRoutes = () => {
         <Route path="chat" element={<VendorChatPage />} />
         <Route path="followers" element={<VendorFollowersPage />} />
         <Route path="hire-creator" element={<VendorHireCreatorPage />} />
+        <Route path="notifications" element={<CustomerNotificationsPage />} />
         <Route path="" element={<Navigate to="dashboard" replace />} />
       </Route>
 
@@ -210,6 +211,7 @@ const AppRoutes = () => {
         <Route path="analytics" element={<CreatorAnalyticsPage />} />
         <Route path="settings" element={<CreatorSettingsPage />} />
         <Route path="chat" element={<Chats />} />
+        <Route path="notifications" element={<CustomerNotificationsPage />} />
         <Route path="" element={<Navigate to="dashboard" replace />} />
       </Route>
 

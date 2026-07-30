@@ -94,7 +94,13 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
     setIsOpen(false);
 
     if (notif.actionUrl || notif.action_url) {
-      navigate(notif.actionUrl || notif.action_url);
+      let target = notif.actionUrl || notif.action_url;
+      if (role === 'vendor' && (target === '/customer/notifications' || target === '/notifications')) {
+        target = '/vendor/notifications';
+      } else if (role === 'creator' && (target === '/customer/notifications' || target === '/notifications')) {
+        target = '/creator/notifications';
+      }
+      navigate(target);
     }
   };
 
@@ -117,7 +123,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
     }
   };
 
-  const viewAllPath = role === 'admin' ? '/admin/notifications' : role === 'vendor' ? '/vendor/leads' : role === 'creator' ? '/creator/orders' : '/customer/notifications';
+  const viewAllPath = role === 'admin' ? '/admin/notifications' : role === 'vendor' ? '/vendor/notifications' : role === 'creator' ? '/creator/notifications' : '/customer/notifications';
 
   return (
     <div className="relative" ref={dropdownRef}>
