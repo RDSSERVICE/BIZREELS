@@ -49,9 +49,9 @@ export default function VendorWalletPage() {
     setLoading(true);
     try {
       // 1. Try Razorpay Order endpoint first
-      const res = await api.post('/v1/payments/order', { amountPaise: numAmount * 100, purpose: 'wallet_topup' }).catch(() => null);
+      const res = await api.post('/v1/payments/order', { amount_paise: numAmount * 100, purpose: 'wallet_topup' }).catch(() => null);
 
-      if (res?.data?.ok && res?.data?.razorpay_order_id) {
+      if (res?.data?.razorpay_order_id) {
         const sdkLoaded = await loadRazorpayScript();
         if (sdkLoaded && window.Razorpay) {
           const options = {
