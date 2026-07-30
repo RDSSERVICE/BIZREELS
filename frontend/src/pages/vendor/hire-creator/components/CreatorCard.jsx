@@ -15,6 +15,12 @@ export default function CreatorCard({ creator, onSelectDetails, onSelectHire }) 
   const reelsCount = creator.totalReels || 0;
   const campaignsCount = creator.totalCampaigns || 0;
 
+  const languagesList = Array.isArray(creator.languages) 
+    ? creator.languages 
+    : (typeof creator.languages === 'string' 
+      ? creator.languages.split(',') 
+      : []);
+
   const formatCount = (num) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
@@ -87,9 +93,9 @@ export default function CreatorCard({ creator, onSelectDetails, onSelectHire }) 
 
         {/* Languages & Tags */}
         <div className="flex flex-wrap gap-1 mt-3">
-          {creator.languages?.split(',').map((l, i) => (
+          {languagesList.map((l, i) => (
             <span key={i} className="text-[9px] font-bold bg-white/40 border border-white/50 text-text-secondary px-2 py-0.5 rounded-full uppercase tracking-wider">
-              {l.trim()}
+              {String(l).trim()}
             </span>
           ))}
           {creator.availabilityStatus === 'Available' && (
