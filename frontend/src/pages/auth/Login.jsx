@@ -50,7 +50,14 @@ const Login = () => {
       if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        let targetPath = (from && from !== '/feed' && from !== '/auth/login') ? from : getRoleDashboard(activeRole);
+        let targetPath = getRoleDashboard(activeRole);
+        if (from && from !== '/feed' && from !== '/auth/login') {
+          if (activeRole === 'customer' && !from.startsWith('/vendor') && !from.startsWith('/creator')) {
+            targetPath = from;
+          } else if (from.startsWith(`/${activeRole}`)) {
+            targetPath = from;
+          }
+        }
         if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
           targetPath = '/customer/become-vendor';
         } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
@@ -105,7 +112,14 @@ const Login = () => {
       if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        let targetPath = (from && from !== '/feed' && from !== '/auth/login') ? from : getRoleDashboard(activeRole);
+        let targetPath = getRoleDashboard(activeRole);
+        if (from && from !== '/feed' && from !== '/auth/login') {
+          if (activeRole === 'customer' && !from.startsWith('/vendor') && !from.startsWith('/creator')) {
+            targetPath = from;
+          } else if (from.startsWith(`/${activeRole}`)) {
+            targetPath = from;
+          }
+        }
         if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
           targetPath = '/customer/become-vendor';
         } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
