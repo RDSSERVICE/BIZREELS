@@ -146,27 +146,41 @@ class CreatorMarketplaceController {
       {
         $lookup: {
           from: 'reels',
-          let: { creatorId: '$_id' },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$creator', '$$creatorId'] }, isDeleted: { $ne: true } } }
-          ],
+          localField: '_id',
+          foreignField: 'creator',
           as: 'reelsList'
         }
       },
       {
         $lookup: {
           from: 'campaigns',
-          let: { creatorId: '$_id' },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$creator', '$$creatorId'] }, status: 'completed' } }
-          ],
+          localField: '_id',
+          foreignField: 'creator',
           as: 'campaignsList'
         }
       },
       {
         $addFields: {
-          totalReelsCount: { $size: '$reelsList' },
-          totalCampaignsCount: { $size: '$campaignsList' }
+          activeReelsList: {
+            $filter: {
+              input: '$reelsList',
+              as: 'reel',
+              cond: { $ne: ['$$reel.isDeleted', true] }
+            }
+          },
+          completedCampaignsList: {
+            $filter: {
+              input: '$campaignsList',
+              as: 'camp',
+              cond: { $eq: ['$$camp.status', 'completed'] }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          totalReelsCount: { $size: '$activeReelsList' },
+          totalCampaignsCount: { $size: '$completedCampaignsList' }
         }
       }
     ];
@@ -255,6 +269,13 @@ class CreatorMarketplaceController {
 
   // ── Get Distinct Cities ──────────────────────────────────
   getCities = asyncHandler(async (req, res) => {
+    const cache = require('../utils/cache');
+    const cacheKey = 'creator-marketplace:cities';
+    const cached = await cache.getCache(cacheKey);
+    if (cached) {
+      return ApiResponse.ok(res, 'Distinct creator cities loaded.', cached);
+    }
+
     const list = await User.distinct('city', {
       $or: [
         { roles: 'creator' },
@@ -264,11 +285,20 @@ class CreatorMarketplaceController {
       is_deleted: { $ne: true },
       city: { $ne: null, $ne: '' }
     });
+
+    await cache.setCache(cacheKey, list, 86400); // cache for 24h
     return ApiResponse.ok(res, 'Distinct creator cities loaded.', list);
   });
 
   // ── Get Distinct Categories ──────────────────────────────
   getCategories = asyncHandler(async (req, res) => {
+    const cache = require('../utils/cache');
+    const cacheKey = 'creator-marketplace:categories';
+    const cached = await cache.getCache(cacheKey);
+    if (cached) {
+      return ApiResponse.ok(res, 'Distinct creator categories loaded.', cached);
+    }
+
     const list = await User.distinct('creatorProfile.category', {
       $or: [
         { roles: 'creator' },
@@ -280,6 +310,8 @@ class CreatorMarketplaceController {
     });
     // Add default fallbacks if database distinct list is empty
     const items = list.length > 0 ? list : ['Fashion', 'Electronics', 'Furniture', 'Restaurant', 'Beauty', 'Fitness', 'Automotive', 'Travel'];
+
+    await cache.setCache(cacheKey, items, 86400); // cache for 24h
     return ApiResponse.ok(res, 'Distinct creator categories loaded.', items);
   });
 
