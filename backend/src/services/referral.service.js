@@ -181,6 +181,7 @@ const getVendorDashboard = async (userId) => {
     summary: {
       total: items.length,
       successful: credited,
+      credited,
       pending,
       credits_earned: earned,
       reward_per_referral: config.referrer_reward,

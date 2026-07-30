@@ -55,6 +55,11 @@ router.use('/users', lazyLoad('./user.routes'));
 router.use('/categories', lazyLoad('./category.routes'));
 router.use('/creator-marketplace', lazyLoad('./creatorMarketplaceRoutes'));
 
+// Referrals endpoint alias for backward compatibility (lazy loaded controller)
+router.get(['/users/me/referrals', '/users/me/referrals/'], authenticate, (req, res, next) => {
+  require('../controllers/referral.controller').getDashboard(req, res, next);
+});
+
 // Subscription endpoint alias (lazy loaded controller)
 router.get('/subscription', authenticate, (req, res, next) => {
   require('../controllers/walletController').getSubscription(req, res, next);
