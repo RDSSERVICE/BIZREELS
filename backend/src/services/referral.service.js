@@ -2,17 +2,19 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { Referral } = require('../models/Misc');
 const Listing = require('../models/Listing');
-const Deal = require('../models/Deal');
-const walletService = require('./wallet.service');
+const { getReferralConfig } = require('./referral/referral.config.service');
+const { runAllChecks } = require('./referral/referral.fraud.service');
+const { tryAwardOnEvent } = require('./referral/referral.reward.service');
 const notificationService = require('./notification.service');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
-const REFERRER_REWARD = 200;
-const REFERRED_REWARD = 100;
 const CODE_LEN = 6;
 const CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
+/**
+ * Generate a unique referral code.
+ */
 const newUniqueCode = async () => {
   for (let i = 0; i < 10; i++) {
     let code = '';
@@ -21,11 +23,9 @@ const newUniqueCode = async () => {
       code += CODE_ALPHABET[idx];
     }
     const exists = await User.findOne({ referral_code: code }, { _id: 1 });
-    if (!exists) {
-      return code;
-    }
+    if (!exists) return code;
   }
-  // Fallback: longer length
+  // Fallback: longer code
   let fallbackCode = '';
   for (let c = 0; c < CODE_LEN + 2; c++) {
     const idx = crypto.randomInt(0, CODE_ALPHABET.length);
@@ -34,14 +34,15 @@ const newUniqueCode = async () => {
   return fallbackCode;
 };
 
+/**
+ * Ensure a user has a referral code, create one if not.
+ */
 const ensureCode = async (userId) => {
   const u = await User.findById(userId, { referral_code: 1 });
-  if (!u) {
-    throw ApiError.notFound('User not found');
-  }
-  if (u.referral_code) {
-    return u.referral_code;
-  }
+  if (!u) throw ApiError.notFound('User not found');
+
+  if (u.referral_code) return u.referral_code;
+
   const code = await newUniqueCode();
   await User.updateOne(
     { _id: userId, referral_code: { $exists: false } },
@@ -51,130 +52,164 @@ const ensureCode = async (userId) => {
   return fresh.referral_code || code;
 };
 
-const claimOnSignup = async (newUserId, code) => {
+/**
+ * Claim a referral code during signup — with fraud checks.
+ */
+const claimOnSignup = async (newUserId, code, ipAddress) => {
   if (!code) return null;
+
   const cleanCode = String(code).trim().toUpperCase();
-  if (cleanCode.length < 4 || cleanCode.length > 16) {
-    return null;
-  }
+  if (cleanCode.length < 4 || cleanCode.length > 16) return null;
+
   const referrer = await User.findOne({ referral_code: cleanCode, is_deleted: { $ne: true } });
   if (!referrer) return null;
-  if (referrer._id.toString() === newUserId) return null;
 
-  // Check unique referral per referred user
-  const existing = await Referral.findOne({ referred_user_id: newUserId });
-  if (existing) return null;
+  // Run all fraud checks
+  const fraudResult = await runAllChecks({
+    referrerId: referrer._id.toString(),
+    referredId: newUserId,
+    ipAddress,
+  });
+
+  if (!fraudResult.passed) {
+    logger.warn(`Referral claim blocked: ${fraudResult.reason}`, { service: 'referral', newUserId, code: cleanCode });
+    return null;
+  }
+
+  const config = await getReferralConfig();
+  if (!config.is_active) return null;
+
+  // Get names for dashboard display
+  const referredUser = await User.findById(newUserId).select('name').lean();
 
   const doc = await Referral.create({
     referrer_id: referrer._id.toString(),
     referred_user_id: newUserId,
+    referrer_name: referrer.name || null,
+    referred_name: referredUser?.name || null,
     code_used: cleanCode,
     status: 'pending',
-    referrer_reward: REFERRER_REWARD,
-    referred_reward: REFERRED_REWARD,
+    referrer_reward: config.referrer_reward,
+    referred_reward: config.referred_reward,
+    ip_address: ipAddress || null,
   });
+
+  // If eligibility is 'registration', award immediately
+  if (config.eligibility_event === 'registration') {
+    await tryAwardOnEvent(newUserId, 'registration');
+  }
+
+  // Emit real-time event to referrer
+  try {
+    const { emitToUser } = require('../sockets');
+    emitToUser(referrer._id.toString(), 'referral:new_signup', {
+      referred_name: referredUser?.name || 'New User',
+      status: 'pending',
+    });
+  } catch (err) {}
 
   return doc.toObject();
 };
 
-const awardPending = async (referredUserId, event) => {
-  const ref = await Referral.findOne({ referred_user_id: referredUserId, status: 'pending' });
-  if (!ref) return;
-
-  try {
-    await walletService.earnCredits(
-      ref.referrer_id,
-      ref.referrer_reward,
-      'Referral reward',
-      'referral',
-      ref.referred_user_id
-    );
-    await walletService.earnCredits(
-      ref.referred_user_id,
-      ref.referred_reward,
-      'Referral bonus',
-      'referral',
-      ref.referrer_id
-    );
-    await Referral.updateOne(
-      { _id: ref._id },
-      { $set: { status: 'credited', credited_at: new Date().toISOString(), trigger_event: event } }
-    );
-
-    // Notify both users
-    await notificationService.create(
-      ref.referrer_id,
-      'reward',
-      `+${ref.referrer_reward} referral credits!`,
-      'A friend you referred just joined the action.',
-      {},
-      '/wallet'
-    );
-    await notificationService.create(
-      ref.referred_user_id,
-      'reward',
-      `+${ref.referred_reward} bonus credits!`,
-      'Referral bonus unlocked.',
-      {},
-      '/wallet'
-    );
-  } catch (err) {
-    logger.error('referral award failed:', err.message);
-  }
-};
-
+/**
+ * Auto-award when a vendor creates their first listing.
+ */
 const maybeAwardOnListing = async (vendorId) => {
-  const count = await Listing.countDocuments({ vendor_id: vendorId, is_deleted: { $ne: true } });
-  if (count === 1) {
-    await awardPending(vendorId, 'first_listing');
-  }
+  await tryAwardOnEvent(vendorId, 'first_listing');
 };
 
+/**
+ * Auto-award when a user completes their first deal.
+ */
 const maybeAwardOnDealComplete = async (userId) => {
-  const completed = await Deal.countDocuments({
-    $or: [{ buyer_id: userId }, { seller_id: userId }],
-    status: 'completed',
-  });
-  if (completed === 1) {
-    await awardPending(userId, 'first_deal_complete');
-  }
+  await tryAwardOnEvent(userId, 'first_deal');
 };
 
-const listMyReferrals = async (userId) => {
-  const docs = await Referral.find({ referrer_id: userId }).sort({ _id: -1 }).limit(100);
-  const ids = docs.map(d => d.referred_user_id);
-  const users = ids.length > 0 ? await User.find({ _id: { $in: ids } }, { name: 1, phone: 1 }) : [];
-  const umap = {};
-  for (const u of users) {
-    umap[u._id.toString()] = u;
-  }
+/**
+ * Auto-award when KYC is approved.
+ */
+const maybeAwardOnKYC = async (userId) => {
+  await tryAwardOnEvent(userId, 'kyc_approved');
+};
 
-  const items = [];
-  for (const d of docs) {
-    const u = umap[d.referred_user_id] || {};
+/**
+ * Get vendor referral dashboard data.
+ */
+const getVendorDashboard = async (userId) => {
+  const uid = userId.toString();
+  const code = await ensureCode(userId);
+  const config = await getReferralConfig();
+
+  const docs = await Referral.find({ referrer_id: uid, is_deleted: { $ne: true } })
+    .sort({ _id: -1 })
+    .limit(100)
+    .lean();
+
+  const referredIds = docs.map(d => d.referred_user_id);
+  const users = referredIds.length > 0
+    ? await User.find({ _id: { $in: referredIds } }).select('name phone').lean()
+    : [];
+
+  const userMap = {};
+  users.forEach(u => { userMap[u._id.toString()] = u; });
+
+  const items = docs.map(d => {
+    const u = userMap[d.referred_user_id] || {};
     const ph = u.phone || '';
-    const maskedPhone = ph ? ph.slice(0, 2) + '****' + ph.slice(-2) : null;
-    items.push({
+    return {
       id: d._id.toString(),
       referred_user_id: d.referred_user_id,
-      referred_name: u.name || null,
-      referred_phone_masked: maskedPhone,
+      referred_name: d.referred_name || u.name || null,
+      referred_phone_masked: ph ? ph.slice(0, 2) + '****' + ph.slice(-2) : null,
       code_used: d.code_used,
       status: d.status,
-      referrer_reward: d.referrer_reward,
-      referred_reward: d.referred_reward,
+      referrer_reward: d.referrer_reward || config.referrer_reward,
+      referred_reward: d.referred_reward || config.referred_reward,
       created_at: d.created_at,
       credited_at: d.credited_at || null,
-    });
-  }
+    };
+  });
 
   const credited = items.filter(x => x.status === 'credited').length;
   const pending = items.filter(x => x.status === 'pending').length;
   const earned = items.filter(x => x.status === 'credited').reduce((sum, x) => sum + x.referrer_reward, 0);
 
   return {
+    referral_code: code,
+    referral_link: `${process.env.CLIENT_URL || 'https://bizreels.in'}/register?ref=${code}`,
     items,
-    summary: { total: items.length, credited, pending, credits_earned: earned },
+    summary: {
+      total: items.length,
+      successful: credited,
+      pending,
+      credits_earned: earned,
+      reward_per_referral: config.referrer_reward,
+      bonus_per_referred: config.referred_reward,
+    },
+  };
+};
+
+/**
+ * Get referral link for sharing.
+ */
+const getReferralLink = async (userId) => {
+  const code = await ensureCode(userId);
+  const baseUrl = process.env.CLIENT_URL || 'https://bizreels.in';
+  return {
+    referral_code: code,
+    referral_link: `${baseUrl}/register?ref=${code}`,
+    share_text: `Join BizReels and grow your business! Use my referral code ${code} to get bonus credits. ${baseUrl}/register?ref=${code}`,
+  };
+};
+
+/**
+ * List my referrals (user-facing).
+ */
+const listMyReferrals = async (userId) => {
+  const dashboard = await getVendorDashboard(userId);
+  return {
+    items: dashboard.items,
+    summary: dashboard.summary,
   };
 };
 
@@ -183,5 +218,8 @@ module.exports = {
   claimOnSignup,
   maybeAwardOnListing,
   maybeAwardOnDealComplete,
+  maybeAwardOnKYC,
+  getVendorDashboard,
+  getReferralLink,
   listMyReferrals,
 };

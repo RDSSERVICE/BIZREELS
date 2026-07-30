@@ -414,19 +414,45 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
   const { ChatMessage } = require('../models/Chat');
   const uid = req.user._id.toString();
 
-  // Run consolidated Mongoose queries in parallel (reducing database hits and avoiding connection storms)
+  // Run queries in parallel. Consolidation via $facet reduces DB RTT and load.
   const [
-    interactionCounts,
+    aggResultArray,
     unreadNotifications,
     unreadChat
   ] = await Promise.all([
     Interaction.aggregate([
       { $match: { user_id: uid } },
       {
-        $group: {
-          _id: '$type',
-          count: { $sum: 1 },
-          listingIds: { $push: '$listing_id' }
+        $facet: {
+          byType: [
+            { $group: { _id: '$type', count: { $sum: 1 } } }
+          ],
+          savedServices: [
+            { $match: { type: 'save', listing_id: { $ne: null } } },
+            {
+              $addFields: {
+                listingObjId: {
+                  $cond: {
+                    if: { $regexMatch: { input: '$listing_id', regex: '^[0-9a-fA-F]{24}$' } },
+                    then: { $toObjectId: '$listing_id' },
+                    else: null
+                  }
+                }
+              }
+            },
+            { $match: { listingObjId: { $ne: null } } },
+            {
+              $lookup: {
+                from: 'listings',
+                localField: 'listingObjId',
+                foreignField: '_id',
+                as: 'listing'
+              }
+            },
+            { $unwind: '$listing' },
+            { $match: { 'listing.type': 'service', 'listing.isDeleted': { $ne: true } } },
+            { $count: 'count' }
+          ]
         }
       }
     ]),
@@ -443,14 +469,11 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
     chat_inquiry: 0
   };
 
-  let savedSaves = [];
+  const aggResult = aggResultArray[0] || { byType: [], savedServices: [] };
 
-  interactionCounts.forEach(item => {
+  aggResult.byType.forEach(item => {
     if (item._id in counts) {
       counts[item._id] = item.count;
-    }
-    if (item._id === 'save') {
-      savedSaves = (item.listingIds || []).filter(Boolean).map(id => ({ listing_id: id }));
     }
   });
 
@@ -460,21 +483,8 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
   const whatsappContacted = counts.whatsapp_contact;
   const chatInquiries = counts.chat_inquiry;
 
-  let savedServices = 0;
-  let actualSavedProducts = 0;
-
-  if (savedSaves.length > 0) {
-    const listingIds = savedSaves.map(s => s.listing_id).filter(Boolean);
-    if (listingIds.length > 0) {
-      const Listing = require('../models/Listing');
-      savedServices = await Listing.countDocuments({
-        _id: { $in: listingIds },
-        type: 'service',
-        isDeleted: { $ne: true }
-      }).catch(() => 0);
-    }
-    actualSavedProducts = savedSaves.length - savedServices;
-  }
+  const savedServices = aggResult.savedServices[0]?.count || 0;
+  const actualSavedProducts = Math.max(0, counts.save - savedServices);
 
   const total = actualSavedProducts + savedServices + savedReels + savedImages + clickToCalled + whatsappContacted + chatInquiries;
 
@@ -523,13 +533,16 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
     if (sortBy === 'price_low_high') sort = { price: 1 };
     else if (sortBy === 'price_high_low') sort = { price: -1 };
 
-    total = await Listing.countDocuments(query);
-    const listings = await Listing.find(query)
-      .populate('vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
-      .sort(sort)
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
+    const [totalCount, listings] = await Promise.all([
+      Listing.countDocuments(query),
+      Listing.find(query)
+        .populate('vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNum)
+        .lean()
+    ]);
+    total = totalCount;
 
     results = listings.map(l => ({ ...l, id: l._id.toString() }));
   } 
@@ -542,13 +555,16 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
       query.caption = { $regex: new RegExp(search, 'i') };
     }
 
-    total = await Reel.countDocuments(query);
-    const reels = await Reel.find(query)
-      .populate('creator', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
+    const [totalCount, reels] = await Promise.all([
+      Reel.countDocuments(query),
+      Reel.find(query)
+        .populate('creator', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean()
+    ]);
+    total = totalCount;
 
     results = reels.map(r => ({ ...r, id: r._id.toString() }));
   }
@@ -561,13 +577,16 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
       query.title = { $regex: new RegExp(search, 'i') };
     }
 
-    total = await Listing.countDocuments(query);
-    const listings = await Listing.find(query)
-      .populate('vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
+    const [totalCount, listings] = await Promise.all([
+      Listing.countDocuments(query),
+      Listing.find(query)
+        .populate('vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean()
+    ]);
+    total = totalCount;
 
     results = listings.map(l => ({ ...l, id: l._id.toString() }));
   }
@@ -576,12 +595,15 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
                             type === 'whatsapp-contacted' ? 'whatsapp_contact' : 'chat_inquiry';
     
     const query = { user_id: uid, type: interactionType };
-    total = await Interaction.countDocuments(query);
-    const inters = await Interaction.find(query)
-      .sort({ created_at: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
+    const [totalCount, inters] = await Promise.all([
+      Interaction.countDocuments(query),
+      Interaction.find(query)
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean()
+    ]);
+    total = totalCount;
 
     const targetUserIds = inters.map(i => i.target_user_id).filter(Boolean);
     const targetUsers = await User.find({ _id: { $in: targetUserIds } })

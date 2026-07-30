@@ -41,6 +41,7 @@ let isRedisConnected = false;
 try {
   redisClient = new Redis(config.redisUrl, {
     maxRetriesPerRequest: 2,
+    enableOfflineQueue: false,
     retryStrategy(times) {
       if (times > 3) {
         logger.warn('Redis connection threshold exceeded. Using in-memory fallback store.');

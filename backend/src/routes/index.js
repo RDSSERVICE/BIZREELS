@@ -89,6 +89,8 @@ router.use('/', lazyLoad('./phase4.routes'));
 router.use('/', lazyLoad('./interaction.routes'));
 router.use('/follow', lazyLoad('./follow.routes'));
 router.use('/follows', lazyLoad('./follow.routes'));
+router.use('/subscriptions', lazyLoad('./subscription.routes'));
+router.use('/referrals', lazyLoad('./referral.routes'));
 
 // Admin module routes
 router.use('/admin', lazyLoad('./admin.routes'));

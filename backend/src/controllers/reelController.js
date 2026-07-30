@@ -77,10 +77,11 @@ class ReelController {
     });
   });
 
-  // ── Increment View ──────────────────────────────────────
+  // ── Increment View + Track ──────────────────────────────
   viewReel = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const reel = await reelService.viewReel(id);
+    const { watchDuration } = req.body;
+    const reel = await reelService.viewReel(id, req.user?._id, watchDuration);
     return ApiResponse.ok(res, 'View registered.', { reel });
   });
 

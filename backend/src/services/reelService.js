@@ -147,24 +147,15 @@ class ReelService {
 
     // Deduct 1 credit from vendor wallet
     try {
-      const { Wallet, WalletTransaction } = require('../models/Phase4');
-      const wallet = await Wallet.findOne({ user_id: userId.toString() });
-      if (wallet) {
-        wallet.credits = Math.max(0, wallet.credits - 1);
-        wallet.lifetime_spent_credits = (wallet.lifetime_spent_credits || 0) + 1;
-        await wallet.save();
-        await WalletTransaction.create({
-          wallet_id: wallet._id.toString(),
-          user_id: userId.toString(),
-          type: 'debit',
-          bucket: 'credits',
-          amount: 1,
-          balance_after: wallet.credits,
-          reason: '1 Reel / Image Post published',
-          ref_type: 'reel',
-          ref_id: reel._id.toString(),
-        });
-      }
+      const walletService = require('./wallet.service');
+      await walletService.debit({
+        userId,
+        amount: 1,
+        transactionType: 'publish_post',
+        reason: '1 Reel / Image Post published',
+        source: 'reel',
+        meta: { reel_id: reel._id.toString() },
+      });
     } catch (err) {
       logger.error('Error updating wallet credits for reel publish:', err);
     }
@@ -199,8 +190,29 @@ class ReelService {
     return { reels, total };
   }
 
-  // ── Fetch Feed ──────────────────────────────────────────
+  // ── Fetch Feed (Recommendation Engine) ──────────────────
   async getFeed({ currentUserId, creatorId, hashtags, lat, lng, distance, page, limit }) {
+    // Use recommendation engine for authenticated users with no specific filters
+    if (currentUserId && !creatorId && (!hashtags || hashtags.length === 0)) {
+      try {
+        const recommendationService = require('./recommendation.service');
+        return await recommendationService.getRecommendedFeed(currentUserId, page, limit);
+      } catch (err) {
+        logger.warn('Recommendation engine fallback to basic feed', { error: err.message });
+      }
+    }
+
+    // For filtered queries or unauthenticated users, use basic feed
+    if (!currentUserId && !creatorId && (!hashtags || hashtags.length === 0)) {
+      try {
+        const recommendationService = require('./recommendation.service');
+        return await recommendationService.getGenericFeed(page, limit);
+      } catch (err) {
+        logger.warn('Generic recommendation fallback to basic feed', { error: err.message });
+      }
+    }
+
+    // Fallback: basic repository feed (for filtered queries)
     const coordinates = lat && lng ? [parseFloat(lng), parseFloat(lat)] : null;
     return reelRepository.getReelsFeed({
       currentUserId,
@@ -213,12 +225,23 @@ class ReelService {
     });
   }
 
-  // ── Increment View ──────────────────────────────────────
-  async viewReel(id) {
+  // ── Increment View + Track for Recommendations ─────────
+  async viewReel(id, userId, watchDuration) {
     const updated = await reelRepository.incrementViews(id);
     if (!updated) {
       throw ApiError.notFound('Reel not found.');
     }
+
+    // Track view for recommendation engine
+    if (userId) {
+      try {
+        const recommendationService = require('./recommendation.service');
+        await recommendationService.trackView(userId, id, watchDuration || 0);
+      } catch (err) {
+        // Non-critical — don't break the main flow
+      }
+    }
+
     return updated;
   }
 

@@ -75,18 +75,20 @@ class InquiryController {
       delete baseQuery.$or;
     }
 
-    const total = await Inquiry.countDocuments(baseQuery);
     const parsedPage = parseInt(page, 10);
     const parsedLimit = parseInt(limit, 10);
     const skip = (parsedPage - 1) * parsedLimit;
 
-    const inquiries = await Inquiry.find(baseQuery)
-      .populate('customer', 'name email avatarUrl phone')
-      .populate('vendor', 'name email avatarUrl phone businessName vendorProfile')
-      .populate('listing', 'title images type category actualPrice sellingPrice price discount status')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parsedLimit);
+    const [total, inquiries] = await Promise.all([
+      Inquiry.countDocuments(baseQuery),
+      Inquiry.find(baseQuery)
+        .populate('customer', 'name email avatarUrl phone')
+        .populate('vendor', 'name email avatarUrl phone businessName vendorProfile')
+        .populate('listing', 'title images type category actualPrice sellingPrice price discount status')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parsedLimit)
+    ]);
 
     return ApiResponse.paginated(res, 'Inquiries retrieved successfully.', inquiries, {
       page: parsedPage,

@@ -4,29 +4,35 @@ const asyncHandler = require('../utils/asyncHandler');
 const cache = require('../utils/cache');
 
 /**
- * WalletController
- * Handles requests for wallet deposits, transactions audits, and plans upgrades.
+ * WalletController — Production-Grade
+ * Handles wallet balance, transactions, plans, and payouts with real-time updates.
  */
 class WalletController {
-  // ── Retrieve Wallet Balance ─────────────────────────────
+
+  // ── Get Wallet Balance ──────────────────────────────────
   getWallet = asyncHandler(async (req, res) => {
-    const { Wallet } = require('../models/Phase4');
-    const wallet = await Wallet.findOne({ user_id: req.user._id.toString() }).lean();
-    const credits = wallet ? wallet.credits : (req.user.walletBalance || 0);
+    const balance = await walletService.getBalance(req.user._id);
     return ApiResponse.ok(res, 'Wallet details loaded.', {
-      balance: credits,
-      walletBalance: credits,
-      balance_inr_paise: wallet ? wallet.balance_inr_paise : 0,
+      balance: balance.credits,
+      walletBalance: balance.credits,
+      balance_inr_paise: balance.balance_inr_paise,
+      is_frozen: balance.is_frozen,
     });
   });
 
-  // ── Retrieve Active Subscription ───────────────────────
+  // ── Quick Balance Check ─────────────────────────────────
+  getBalance = asyncHandler(async (req, res) => {
+    const balance = await walletService.getBalance(req.user._id);
+    return ApiResponse.ok(res, 'Balance fetched.', { balance: balance.credits });
+  });
+
+  // ── Get Active Subscription ─────────────────────────────
   getSubscription = asyncHandler(async (req, res) => {
     const UserSubscription = require('../models/UserSubscription.model');
     const activeSub = await UserSubscription.findOne({
       user_id: req.user._id.toString(),
       status: 'active',
-      is_deleted: { $ne: true }
+      is_deleted: { $ne: true },
     }).lean();
 
     const planName = activeSub ? activeSub.plan_name : 'Free Member';
@@ -37,7 +43,7 @@ class WalletController {
     });
   });
 
-  // ── Retrieve Active Plans (For Vendors / Creators) ───────
+  // ── Get Available Plans ─────────────────────────────────
   getPlans = asyncHandler(async (req, res) => {
     const cacheKey = 'subscription:plans';
     const cached = await cache.getCache(cacheKey);
@@ -47,7 +53,7 @@ class WalletController {
 
     const { SubscriptionPlan } = require('../models/Admin');
     const plans = await SubscriptionPlan.find({ is_active: true, is_deleted: { $ne: true } }).sort({ price_inr: 1 }).lean();
-    
+
     const mapped = plans.map(obj => {
       const role = obj.user_type || obj.target_role || 'vendor';
       return {
@@ -71,7 +77,7 @@ class WalletController {
       };
     });
 
-    await cache.setCache(cacheKey, mapped, 86400); // 24 hours
+    await cache.setCache(cacheKey, mapped, 86400);
     return ApiResponse.ok(res, 'Active subscription plans loaded.', { items: mapped });
   });
 
@@ -84,34 +90,23 @@ class WalletController {
       referenceId,
     });
     return ApiResponse.ok(res, 'Wallet recharged successfully.', {
-      walletBalance: result.user.walletBalance,
+      walletBalance: result.wallet.credits,
       transaction: result.transaction,
     });
   });
 
-  // ── Retrieve Transactions History ───────────────────────
+  // ── Get Transactions History ────────────────────────────
   getTransactions = asyncHandler(async (req, res) => {
-    const WalletTransactionV2 = require('../models/WalletTransactionV2.model');
     const page = Math.max(1, parseInt(req.query.page || 1, 10));
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 20, 10)));
-    const skip = (page - 1) * limit;
 
-    const query = { user_id: req.user._id.toString(), is_deleted: { $ne: true } };
+    const result = await walletService.getTransactions(req.user._id, page, limit);
 
-    const [list, total] = await Promise.all([
-      WalletTransactionV2.find(query)
-        .sort({ created_at: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      WalletTransactionV2.countDocuments(query)
-    ]);
-
-    const mapped = list.map(tx => ({
-      id: tx._id.toString(),
+    const mapped = result.items.map(tx => ({
+      id: tx.id,
       _id: tx.transaction_id,
       title: tx.transaction_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      description: tx.admin_remarks || tx.notes || tx.transaction_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      description: tx.admin_remarks || tx.transaction_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
       type: tx.credit_debit === 'credit' ? 'credit' : 'debit',
       amount: tx.amount,
       createdAt: tx.created_at,
@@ -120,18 +115,21 @@ class WalletController {
     return ApiResponse.paginated(res, 'Transactions ledger loaded.', mapped, {
       page,
       limit,
-      total,
+      total: result.total,
     });
   });
 
   // ── Purchase Plan ───────────────────────────────────────
   purchaseSubscription = asyncHandler(async (req, res) => {
     const plan = req.body.plan || req.body.planId;
+    if (!plan) {
+      return ApiResponse.ok(res, 'Plan is required.', null);
+    }
     const result = await walletService.purchasePlan({
       userId: req.user._id,
       plan,
     });
-    return ApiResponse.ok(res, `Subscribed to ${plan.toUpperCase()} plan successfully.`, {
+    return ApiResponse.ok(res, `Subscribed to plan successfully.`, {
       subscription: result.user.subscription,
       walletBalance: result.user.walletBalance,
       transaction: result.transaction,
@@ -146,7 +144,7 @@ class WalletController {
       amount,
     });
     return ApiResponse.ok(res, 'Payout withdrawal request submitted successfully.', {
-      walletBalance: result.user.walletBalance,
+      walletBalance: result.wallet.credits,
       transaction: result.transaction,
     });
   });

@@ -38,11 +38,24 @@ const searchHistorySchema = new mongoose.Schema({
 const referralSchema = new mongoose.Schema({
   referrer_id: { type: String, required: true, index: true },
   referred_user_id: { type: String, required: true, unique: true },
-  status: { type: String, default: 'pending' },
+  referrer_name: { type: String, default: null },
+  referred_name: { type: String, default: null },
+  code_used: { type: String, default: null, index: true },
+  status: { type: String, enum: ['pending', 'credited', 'rejected', 'expired'], default: 'pending', index: true },
   reward_given: { type: Boolean, default: false },
+  referrer_reward: { type: Number, default: 0 },
+  referred_reward: { type: Number, default: 0 },
+  credited_at: { type: String, default: null },
+  trigger_event: { type: String, default: null },
+  ip_address: { type: String, default: null },
+  admin_remarks: { type: String, default: null },
+  is_deleted: { type: Boolean, default: false },
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });
+
+referralSchema.index({ referrer_id: 1, status: 1 });
+referralSchema.index({ referrer_id: 1, created_at: -1 });
 
 // Listing Event (analytics)
 const listingEventSchema = new mongoose.Schema({

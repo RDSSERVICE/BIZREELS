@@ -14,6 +14,7 @@ class VendorController {
   getDashboard = asyncHandler(async (req, res) => {
     const userId = req.user._id;
     const { Wallet } = require('../models/Phase4');
+    const referralService = require('../services/referral.service');
 
     const [
       productsCount,
@@ -21,14 +22,16 @@ class VendorController {
       reels,
       ordersCount,
       leadsCount,
-      wallet
+      wallet,
+      referralInfo
     ] = await Promise.all([
       Listing.countDocuments({ vendor: userId, type: 'product', isDeleted: { $ne: true } }),
       Listing.countDocuments({ vendor: userId, type: 'service', isDeleted: { $ne: true } }),
-      Reel.find({ $or: [{ creator: userId }, { creator: userId.toString() }], isDeleted: { $ne: true } }).select('views status').lean(),
-      Order.countDocuments({ vendor_id: userId.toString() }),
+      Reel.find({ creator: userId, isDeleted: { $ne: true } }).select('views status').lean(),
+      Order.countDocuments({ vendor: userId }),
       Inquiry.countDocuments({ vendor: userId }),
-      Wallet.findOne({ user_id: userId.toString() }).lean()
+      Wallet.findOne({ user_id: userId.toString() }).lean(),
+      referralService.getVendorDashboard(userId).catch(() => null)
     ]);
 
     const totalReels = reels.length;
@@ -58,6 +61,13 @@ class VendorController {
         earned: earnedCredits,
         used: usedCreditHistory,
       },
+      referral: referralInfo ? {
+        code: referralInfo.referral_code,
+        link: referralInfo.referral_link,
+        totalReferrals: referralInfo.summary.total,
+        successfulReferrals: referralInfo.summary.successful,
+        creditsEarned: referralInfo.summary.credits_earned
+      } : null,
       creditRates: {
         productListing: 1,
         reelPost: 1,

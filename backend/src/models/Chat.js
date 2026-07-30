@@ -37,6 +37,7 @@ const chatMessageSchema = new mongoose.Schema({
 
 chatMessageSchema.index({ thread_id: 1, _id: -1 });
 chatMessageSchema.index({ receiver_id: 1 });
+chatMessageSchema.index({ receiver_id: 1, read_at: 1, is_deleted: 1 });
 
 const ChatMessage = mongoose.models.ChatMessage || mongoose.model('ChatMessage', chatMessageSchema, 'messages');
 

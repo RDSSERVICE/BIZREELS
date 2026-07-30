@@ -103,7 +103,7 @@ class WalletAdminService {
     };
   }
 
-  // ─── Manual Credit ────────────────────────────────────────
+  // ─── Manual Credit (Transaction-Safe) ─────────────────────
   async manualCredit({ user_id, amount, reason, category, notes, admin_id }) {
     if (!user_id) throw ApiError.badRequest('User ID is required');
     if (!amount || amount <= 0) throw ApiError.badRequest('Amount must be positive');
@@ -112,60 +112,69 @@ class WalletAdminService {
     const user = await User.findById(user_id).lean();
     if (!user) throw ApiError.notFound('User not found');
 
-    const wallet = await this.getOrCreateWallet(user_id);
-    if (wallet.is_frozen) throw ApiError.badRequest('User wallet is frozen');
+    const session = await mongoose.startSession();
+    let txn, updatedBalance;
 
-    const previousBalance = wallet.credits || 0;
-    const updatedBalance = previousBalance + amount;
+    try {
+      await session.withTransaction(async () => {
+        const wallet = await this.getOrCreateWallet(user_id);
+        if (wallet.is_frozen) throw ApiError.badRequest('User wallet is frozen');
 
-    // Update wallet
-    await Wallet.updateOne(
-      { user_id },
-      {
-        $inc: { credits: amount, lifetime_earned_credits: amount },
-        $set: { updated_at: new Date().toISOString() },
-      }
-    );
+        const previousBalance = wallet.credits || 0;
+        updatedBalance = previousBalance + amount;
 
-    // Update User.walletBalance for backward compatibility
-    await User.updateOne({ _id: user_id }, { $inc: { walletBalance: amount } });
+        // Atomic wallet update
+        await Wallet.updateOne(
+          { user_id },
+          {
+            $inc: { credits: amount, lifetime_earned_credits: amount },
+            $set: { updated_at: new Date().toISOString() },
+          },
+          { session }
+        );
 
-    // Create transaction record
-    const txn = await WalletTransactionV2.create({
-      user_id,
-      user_name: user.name || 'Unknown',
-      user_role: user.current_role || user.roles?.[0] || 'customer',
-      transaction_type: 'manual_credit',
-      credit_debit: 'credit',
-      amount,
-      previous_balance: previousBalance,
-      updated_balance: updatedBalance,
-      payment_method: 'manual',
-      source: 'admin_panel',
-      status: 'completed',
-      admin_id,
-      admin_remarks: reason,
-      category: category || 'manual',
-      notes,
-    });
+        // Sync User.walletBalance
+        await User.updateOne({ _id: user_id }, { $inc: { walletBalance: amount } }, { session });
 
-    // Emit real-time events
-    this._emitWalletUpdate(user_id, 'wallet:updated', {
-      action: 'credit',
-      amount,
-      new_balance: updatedBalance,
-      reason,
-    });
+        // Create transaction record
+        const txnArr = await WalletTransactionV2.create([{
+          user_id,
+          user_name: user.name || 'Unknown',
+          user_role: user.current_role || user.roles?.[0] || 'customer',
+          transaction_type: 'manual_credit',
+          credit_debit: 'credit',
+          amount,
+          previous_balance: previousBalance,
+          updated_balance: updatedBalance,
+          payment_method: 'manual',
+          source: 'admin_panel',
+          status: 'completed',
+          admin_id,
+          admin_remarks: reason,
+          category: category || 'manual',
+          notes,
+        }], { session });
+        txn = txnArr[0];
+      });
 
-    // Notify user
-    this._notifyUser(user_id, 'wallet_credit', `₹${amount} credits added to your wallet`, reason);
+      // Emit real-time events AFTER commit
+      this._emitWalletUpdate(user_id, 'wallet:updated', {
+        action: 'credit',
+        amount,
+        new_balance: updatedBalance,
+        reason,
+      });
 
-    logger.info(`Admin manual credit: ${amount} credits to user ${user_id} by admin ${admin_id}`, { service: 'wallet-admin' });
+      this._notifyUser(user_id, 'wallet_credit', `₹${amount} credits added to your wallet`, reason);
+      logger.info(`Admin manual credit: ${amount} credits to user ${user_id} by admin ${admin_id}`, { service: 'wallet-admin' });
 
-    return { transaction: this._serializeTxn(txn), wallet: { credits: updatedBalance } };
+      return { transaction: this._serializeTxn(txn), wallet: { credits: updatedBalance } };
+    } finally {
+      await session.endSession();
+    }
   }
 
-  // ─── Manual Debit ─────────────────────────────────────────
+  // ─── Manual Debit (Transaction-Safe) ──────────────────────
   async manualDebit({ user_id, amount, reason, notes, admin_id }) {
     if (!user_id) throw ApiError.badRequest('User ID is required');
     if (!amount || amount <= 0) throw ApiError.badRequest('Amount must be positive');
@@ -174,60 +183,68 @@ class WalletAdminService {
     const user = await User.findById(user_id).lean();
     if (!user) throw ApiError.notFound('User not found');
 
-    const wallet = await this.getOrCreateWallet(user_id);
-    if (wallet.is_frozen) throw ApiError.badRequest('User wallet is frozen');
+    const session = await mongoose.startSession();
+    let txn, updatedBalance;
 
-    const previousBalance = wallet.credits || 0;
-    if (amount > previousBalance) {
-      throw ApiError.badRequest(`Cannot debit ${amount} credits. User only has ${previousBalance} credits.`);
+    try {
+      await session.withTransaction(async () => {
+        const wallet = await this.getOrCreateWallet(user_id);
+        if (wallet.is_frozen) throw ApiError.badRequest('User wallet is frozen');
+
+        const previousBalance = wallet.credits || 0;
+        if (amount > previousBalance) {
+          throw ApiError.badRequest(`Cannot debit ${amount} credits. User only has ${previousBalance} credits.`);
+        }
+        updatedBalance = previousBalance - amount;
+
+        // Atomic wallet update
+        await Wallet.updateOne(
+          { user_id },
+          {
+            $inc: { credits: -amount, lifetime_spent_credits: amount },
+            $set: { updated_at: new Date().toISOString() },
+          },
+          { session }
+        );
+
+        // Sync User.walletBalance
+        await User.updateOne({ _id: user_id }, { $inc: { walletBalance: -amount } }, { session });
+
+        // Create transaction record
+        const txnArr = await WalletTransactionV2.create([{
+          user_id,
+          user_name: user.name || 'Unknown',
+          user_role: user.current_role || user.roles?.[0] || 'customer',
+          transaction_type: 'manual_debit',
+          credit_debit: 'debit',
+          amount,
+          previous_balance: previousBalance,
+          updated_balance: updatedBalance,
+          payment_method: 'manual',
+          source: 'admin_panel',
+          status: 'completed',
+          admin_id,
+          admin_remarks: reason,
+          notes,
+        }], { session });
+        txn = txnArr[0];
+      });
+
+      // Emit real-time events AFTER commit
+      this._emitWalletUpdate(user_id, 'wallet:updated', {
+        action: 'debit',
+        amount,
+        new_balance: updatedBalance,
+        reason,
+      });
+
+      this._notifyUser(user_id, 'wallet_debit', `₹${amount} credits deducted from your wallet`, reason);
+      logger.info(`Admin manual debit: ${amount} credits from user ${user_id} by admin ${admin_id}`, { service: 'wallet-admin' });
+
+      return { transaction: this._serializeTxn(txn), wallet: { credits: updatedBalance } };
+    } finally {
+      await session.endSession();
     }
-
-    const updatedBalance = previousBalance - amount;
-
-    // Update wallet
-    await Wallet.updateOne(
-      { user_id },
-      {
-        $inc: { credits: -amount, lifetime_spent_credits: amount },
-        $set: { updated_at: new Date().toISOString() },
-      }
-    );
-
-    // Update User.walletBalance for backward compatibility
-    await User.updateOne({ _id: user_id }, { $inc: { walletBalance: -amount } });
-
-    // Create transaction record
-    const txn = await WalletTransactionV2.create({
-      user_id,
-      user_name: user.name || 'Unknown',
-      user_role: user.current_role || user.roles?.[0] || 'customer',
-      transaction_type: 'manual_debit',
-      credit_debit: 'debit',
-      amount,
-      previous_balance: previousBalance,
-      updated_balance: updatedBalance,
-      payment_method: 'manual',
-      source: 'admin_panel',
-      status: 'completed',
-      admin_id,
-      admin_remarks: reason,
-      notes,
-    });
-
-    // Emit real-time events
-    this._emitWalletUpdate(user_id, 'wallet:updated', {
-      action: 'debit',
-      amount,
-      new_balance: updatedBalance,
-      reason,
-    });
-
-    // Notify user
-    this._notifyUser(user_id, 'wallet_debit', `₹${amount} credits deducted from your wallet`, reason);
-
-    logger.info(`Admin manual debit: ${amount} credits from user ${user_id} by admin ${admin_id}`, { service: 'wallet-admin' });
-
-    return { transaction: this._serializeTxn(txn), wallet: { credits: updatedBalance } };
   }
 
   // ─── List Transactions (Paginated, Filterable) ────────────
