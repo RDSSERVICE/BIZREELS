@@ -98,16 +98,11 @@ export default function VendorWalletPage() {
           setLoading(false);
           return;
         }
+      } else {
+        throw new Error('Payment gateway initialization failed. Please check your credentials or try again later.');
       }
-
-      // 2. Direct fallback recharge mutation
-      await rechargeWallet({ amount: numAmount }).unwrap();
-      toast.success(`Successfully recharged ₹${numAmount.toLocaleString('en-IN')}!`);
-      setIsModalOpen(false);
-      if (refetchWallet) refetchWallet();
-      if (refetchTx) refetchTx();
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to recharge wallet');
+      toast.error(err?.data?.message || err?.message || 'Failed to recharge wallet');
     } finally {
       setLoading(false);
     }
