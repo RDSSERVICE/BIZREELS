@@ -71,6 +71,9 @@ const verifyWebhookSignature = (bodyBytes, signature) => {
 };
 
 const publicKeyId = () => {
+  if (isDevMode()) {
+    return 'rzp_test_dev_mock';
+  }
   const { keyId } = getCreds();
   return keyId || 'rzp_test_dev_mock';
 };

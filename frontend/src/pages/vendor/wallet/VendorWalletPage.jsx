@@ -52,6 +52,21 @@ export default function VendorWalletPage() {
       const res = await api.post('/v1/payments/order', { amount_paise: numAmount * 100, purpose: 'wallet_topup' }).catch(() => null);
 
       if (res?.data?.razorpay_order_id) {
+        if (res.data.dev_mode || res.data.razorpay_order_id.startsWith('order_dev_')) {
+          toast.success('Simulation Mode: Processing mock payment...');
+          try {
+            await api.post('/v1/payments/dev/simulate-success', { payment_id: res.data.payment_id });
+            toast.success(`Mock Payment Successful! Added ₹${numAmount.toLocaleString('en-IN')} to wallet.`);
+            setIsModalOpen(false);
+            if (refetchWallet) refetchWallet();
+            if (refetchTx) refetchTx();
+          } catch (err) {
+            toast.error('Mock payment simulation failed');
+          }
+          setLoading(false);
+          return;
+        }
+
         const sdkLoaded = await loadRazorpayScript();
         if (sdkLoaded && window.Razorpay) {
           const options = {
