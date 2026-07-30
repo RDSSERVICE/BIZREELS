@@ -33,8 +33,11 @@ export default function ReferralCard() {
   };
 
   return (
-    <div className="glass rounded-3xl p-5" data-testid="referral-card">
-      <div className="flex items-center gap-2 text-xs text-white/60 uppercase tracking-wider font-semibold mb-2">
+    <div className="rounded-2xl sm:rounded-3xl p-5 bg-gradient-to-br from-brand-purple via-brand-pink/90 to-brand-orange/80 border border-white/10 text-white shadow-premium flex flex-col justify-between relative overflow-hidden" data-testid="referral-card">
+      <div className="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4">
+        <Users className="w-24 h-24" />
+      </div>
+      <div className="flex items-center gap-2 text-xs text-white/80 uppercase tracking-wider font-extrabold mb-2 relative z-10">
         <Users className="h-3 w-3" /> Refer & Earn
       </div>
       <div className="flex items-center justify-between gap-3 mb-3">
