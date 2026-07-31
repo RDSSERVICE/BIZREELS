@@ -229,9 +229,17 @@ export default function SearchListingsPage() {
 
   const handleWhatsApp = (item) => {
     const vendorObj = item.vendor || item.vendorId || {};
-    const phone = vendorObj.phone || vendorObj.whatsappNumber || '919876543210';
+    const phone = vendorObj.phone || vendorObj.vendorProfile?.whatsapp || vendorObj.vendorProfile?.whatsappNumber || vendorObj.whatsappNumber || '';
+    if (!phone) {
+      toast.error('WhatsApp number not available for this vendor');
+      return;
+    }
     const text = encodeURIComponent(`Hi! I am interested in your item: "${item.title}". Please send more details.`);
-    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${text}`, '_blank');
+    let formattedPhone = phone.replace(/[^0-9]/g, '');
+    if (formattedPhone.length === 10) {
+      formattedPhone = '91' + formattedPhone;
+    }
+    window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
   };
 
   const handleCallRequest = async (item) => {
@@ -357,6 +365,43 @@ export default function SearchListingsPage() {
       setInquiringId(null);
     }
   };
+
+  // Calculate selected item distance formatted text
+  let detailDistStr = '';
+  if (selectedItem) {
+    const vendorObj = selectedItem.vendor || selectedItem.vendorId || {};
+    const vendorCoords = (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
+      ? vendorObj.location.coordinates
+      : null;
+    const itemCoords = (selectedItem.location && Array.isArray(selectedItem.location.coordinates) && selectedItem.location.coordinates.length === 2 && (selectedItem.location.coordinates[0] !== 0 || selectedItem.location.coordinates[1] !== 0))
+      ? selectedItem.location.coordinates
+      : null;
+
+    const targetCoords = vendorCoords || itemCoords;
+
+    if (coords && targetCoords) {
+      const [targetLng, targetLat] = targetCoords;
+      const R = 6371; // Earth radius in km
+      const dLat = (targetLat - coords.lat) * (Math.PI / 180);
+      const dLng = (targetLng - coords.lng) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(coords.lat * (Math.PI / 180)) *
+        Math.cos(targetLat * (Math.PI / 180)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const calculatedKm = R * c;
+      detailDistStr = `${calculatedKm.toFixed(1)} km away from you`;
+    } else if (selectedItem.distance !== undefined && selectedItem.distance !== null) {
+      const km = selectedItem.distance / 1000;
+      detailDistStr = `${km.toFixed(1)} km away from you`;
+    } else if (selectedItem.distanceKm !== undefined && selectedItem.distanceKm !== null) {
+      detailDistStr = `${Number(selectedItem.distanceKm).toFixed(1)} km away from you`;
+    } else {
+      detailDistStr = 'Nearby';
+    }
+  }
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
@@ -707,19 +752,7 @@ export default function SearchListingsPage() {
                   className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition flex items-center gap-1 mt-0.5 font-medium"
                 >
                   <FiMapPin className="text-brand-orange" /> {(selectedItem.vendor?.shopName || selectedItem.vendor?.name || 'Verified Vendor')} ({selectedItem.city || 'Local Shop'})
-                  {coords && (selectedItem.location?.coordinates || selectedItem.vendor?.location?.coordinates) && (() => {
-                    const itemCoords = selectedItem.location?.coordinates || selectedItem.vendor?.location?.coordinates;
-                    if (Array.isArray(itemCoords) && itemCoords.length === 2) {
-                      const [targetLng, targetLat] = itemCoords;
-                      const R = 6371;
-                      const dLat = (targetLat - coords.lat) * (Math.PI / 180);
-                      const dLng = (targetLng - coords.lng) * (Math.PI / 180);
-                      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(coords.lat * (Math.PI / 180)) * Math.cos(targetLat * (Math.PI / 180)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-                      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                      return <strong className="text-emerald-600 font-bold ml-1.5">• {(R * c).toFixed(1)} km away from you</strong>;
-                    }
-                    return null;
-                  })()}
+                  {detailDistStr && <strong className="text-emerald-600 font-bold ml-1.5">• {detailDistStr}</strong>}
                 </p>
               </div>
               <button

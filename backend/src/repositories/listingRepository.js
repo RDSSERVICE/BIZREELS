@@ -205,6 +205,8 @@ class ListingRepository {
           _id: '$vendorDetails._id',
           name: '$vendorDetails.name',
           avatarUrl: '$vendorDetails.avatarUrl',
+          phone: '$vendorDetails.phone',
+          vendorProfile: '$vendorDetails.vendorProfile',
           businessName: { $ifNull: ['$vendorDetails.vendorProfile.businessName', '$vendorDetails.name'] },
           rating: '$vendorDetails.vendorProfile.rating',
           offers: '$vendorDetails.vendorProfile.offers',
