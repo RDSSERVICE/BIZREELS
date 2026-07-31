@@ -163,6 +163,10 @@ export default function PostRequirementPage() {
     }
   };
 
+  const removePhoto = (index) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleTypeChange = (newType) => {
     setType(newType);
     setTitle('');
