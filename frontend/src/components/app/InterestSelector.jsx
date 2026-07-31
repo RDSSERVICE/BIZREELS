@@ -1,60 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
-  Check, ChevronRight, Laptop, Shirt, Utensils, Wrench, Sofa, 
-  Car, ShoppingCart, Heart, Building2, GraduationCap, FolderOpen 
-} from 'lucide-react';
+  FiCheck, FiChevronRight, FiShoppingBag, FiCoffee, FiTool,
+  FiTruck, FiShoppingCart, FiHeart, FiHome, FiBookOpen, FiFolder 
+} from 'react-icons/fi';
+import { FaCouch, FaLaptop } from 'react-icons/fa';
 import { api } from '../../lib/api';
 
 const DEFAULT_CATEGORIES = [
   {
     name: 'Electronics & IT',
-    icon: Laptop,
+    icon: FaLaptop,
     subs: ['Laptops', 'Smartphones', 'Tablets', 'Cameras', 'Computer Accessories', 'Printers', 'Networking', 'Software']
   },
   {
     name: 'Fashion & Apparel',
-    icon: Shirt,
+    icon: FiShoppingBag,
     subs: ['Men\'s Wear', 'Women\'s Wear', 'Kids\' Wear', 'Footwear', 'Jewellery', 'Watches', 'Bags & Wallets', 'Ethnic Wear']
   },
   {
     name: 'Restaurant & Food',
-    icon: Utensils,
+    icon: FiCoffee,
     subs: ['Fast Food', 'Fine Dining', 'Bakery & Sweets', 'Beverages', 'Catering', 'Cloud Kitchen', 'Street Food', 'Organic Food']
   },
   {
     name: 'Services & Repairs',
-    icon: Wrench,
+    icon: FiTool,
     subs: ['AC Repair', 'Plumbing', 'Electrician', 'Carpentry', 'Painting', 'Pest Control', 'Appliance Repair', 'Cleaning']
   },
   {
     name: 'Furniture & Home Decor',
-    icon: Sofa,
+    icon: FaCouch,
     subs: ['Sofas', 'Beds', 'Tables', 'Wardrobes', 'Lighting', 'Curtains', 'Wall Art', 'Kitchenware']
   },
   {
     name: 'Automobile & Parts',
-    icon: Car,
+    icon: FiTruck,
     subs: ['Cars', 'Bikes', 'Spare Parts', 'Tyres', 'Car Accessories', 'Service Center', 'EV', 'Commercial Vehicles']
   },
   {
     name: 'Grocery & Daily Essentials',
-    icon: ShoppingCart,
+    icon: FiShoppingCart,
     subs: ['Fruits & Vegetables', 'Dairy', 'Snacks', 'Beverages', 'Personal Care', 'Baby Care', 'Pet Supplies', 'Stationery']
   },
   {
     name: 'Healthcare & Beauty',
-    icon: Heart,
+    icon: FiHeart,
     subs: ['Pharmacy', 'Skin Care', 'Hair Care', 'Fitness', 'Dental', 'Ayurveda', 'Salon & Spa', 'Eye Care']
   },
   {
     name: 'Real Estate & Construction',
-    icon: Building2,
+    icon: FiHome,
     subs: ['Residential', 'Commercial', 'Plots', 'Rentals', 'Building Materials', 'Interior Design', 'Architecture', 'Labour']
   },
   {
     name: 'Education & Coaching',
-    icon: GraduationCap,
+    icon: FiBookOpen,
     subs: ['School Tuition', 'Competitive Exams', 'Skill Development', 'Language Classes', 'Music & Art', 'IT Training', 'MBA Coaching', 'Online Courses']
   },
 ];
@@ -64,37 +65,37 @@ const getCategoryIcon = (categoryName, defaultIcon) => {
   const iconStr = typeof defaultIcon === 'string' ? defaultIcon : '';
 
   if (name.includes('electronic') || name.includes('it') || iconStr === '💻' || iconStr === '📱') {
-    return Laptop;
+    return FaLaptop;
   }
   if (name.includes('fashion') || name.includes('apparel') || name.includes('wear') || iconStr === '👗') {
-    return Shirt;
+    return FiShoppingBag;
   }
   if (name.includes('restaurant') || name.includes('food') || iconStr === '🍕' || iconStr === '🍲') {
-    return Utensils;
+    return FiCoffee;
   }
   if (name.includes('service') || name.includes('repair') || iconStr === '🔧' || iconStr === '🛠️') {
-    return Wrench;
+    return FiTool;
   }
   if (name.includes('furniture') || name.includes('decor') || iconStr === '🛋️' || iconStr === '🪑') {
-    return Sofa;
+    return FaCouch;
   }
   if (name.includes('automobile') || name.includes('car') || name.includes('vehicle') || name.includes('bike') || iconStr === '🚗' || iconStr === '🏍️') {
-    return Car;
+    return FiTruck;
   }
   if (name.includes('grocery') || name.includes('essential') || iconStr === '🛒') {
-    return ShoppingCart;
+    return FiShoppingCart;
   }
   if (name.includes('healthcare') || name.includes('beauty') || name.includes('salon') || name.includes('fitness') || name.includes('health') || iconStr === '💊' || iconStr === '💇' || iconStr === '🏋️') {
-    return Heart;
+    return FiHeart;
   }
   if (name.includes('real estate') || name.includes('construction') || name.includes('property') || iconStr === '🏗️' || iconStr === '🏠' || iconStr === '🏢') {
-    return Building2;
+    return FiHome;
   }
   if (name.includes('education') || name.includes('coaching') || iconStr === '📚') {
-    return GraduationCap;
+    return FiBookOpen;
   }
   
-  return FolderOpen;
+  return FiFolder;
 };
 
 export default function InterestSelector({ selected = [], setSelected }) {
@@ -164,7 +165,7 @@ export default function InterestSelector({ selected = [], setSelected }) {
         const isExpanded = expandedCategory === cat.name;
         const count = categorySelectedCount(cat.name);
         const isCatSelected = selected.some(s => s.category === cat.name);
-        const IconComponent = cat.icon || FolderOpen;
+        const IconComponent = cat.icon || FiFolder;
 
         return (
           <div
@@ -202,10 +203,10 @@ export default function InterestSelector({ selected = [], setSelected }) {
               <div className="flex items-center gap-2">
                 {isCatSelected && (
                   <div className="w-5 h-5 rounded-full gradient-brand flex items-center justify-center shadow-sm">
-                    <Check className="text-white" size={10} />
+                    <FiCheck className="text-white" size={10} />
                   </div>
                 )}
-                <ChevronRight
+                <FiChevronRight
                   className={`text-text-tertiary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
                   size={12}
                 />
@@ -239,7 +240,7 @@ export default function InterestSelector({ selected = [], setSelected }) {
                               : 'bg-surface-secondary text-text-secondary border-border hover:border-brand-purple/40 hover:text-brand-purple'
                           }`}
                         >
-                          {subSelected && <Check className="inline mr-1" size={8} />}
+                          {subSelected && <FiCheck className="inline mr-1" size={8} />}
                           {sub}
                         </button>
                       );
