@@ -9,52 +9,52 @@ import { api } from '../../lib/api';
 const DEFAULT_CATEGORIES = [
   {
     name: 'Electronics & IT',
-    icon: '💻',
+    icon: Laptop,
     subs: ['Laptops', 'Smartphones', 'Tablets', 'Cameras', 'Computer Accessories', 'Printers', 'Networking', 'Software']
   },
   {
     name: 'Fashion & Apparel',
-    icon: '👗',
+    icon: Shirt,
     subs: ['Men\'s Wear', 'Women\'s Wear', 'Kids\' Wear', 'Footwear', 'Jewellery', 'Watches', 'Bags & Wallets', 'Ethnic Wear']
   },
   {
     name: 'Restaurant & Food',
-    icon: '🍕',
+    icon: Utensils,
     subs: ['Fast Food', 'Fine Dining', 'Bakery & Sweets', 'Beverages', 'Catering', 'Cloud Kitchen', 'Street Food', 'Organic Food']
   },
   {
     name: 'Services & Repairs',
-    icon: '🔧',
+    icon: Wrench,
     subs: ['AC Repair', 'Plumbing', 'Electrician', 'Carpentry', 'Painting', 'Pest Control', 'Appliance Repair', 'Cleaning']
   },
   {
     name: 'Furniture & Home Decor',
-    icon: '🛋️',
+    icon: Sofa,
     subs: ['Sofas', 'Beds', 'Tables', 'Wardrobes', 'Lighting', 'Curtains', 'Wall Art', 'Kitchenware']
   },
   {
     name: 'Automobile & Parts',
-    icon: '🚗',
+    icon: Car,
     subs: ['Cars', 'Bikes', 'Spare Parts', 'Tyres', 'Car Accessories', 'Service Center', 'EV', 'Commercial Vehicles']
   },
   {
     name: 'Grocery & Daily Essentials',
-    icon: '🛒',
+    icon: ShoppingCart,
     subs: ['Fruits & Vegetables', 'Dairy', 'Snacks', 'Beverages', 'Personal Care', 'Baby Care', 'Pet Supplies', 'Stationery']
   },
   {
     name: 'Healthcare & Beauty',
-    icon: '💊',
+    icon: Heart,
     subs: ['Pharmacy', 'Skin Care', 'Hair Care', 'Fitness', 'Dental', 'Ayurveda', 'Salon & Spa', 'Eye Care']
   },
   {
     name: 'Real Estate & Construction',
-    icon: '🏗️',
+    icon: Building2,
     subs: ['Residential', 'Commercial', 'Plots', 'Rentals', 'Building Materials', 'Interior Design', 'Architecture', 'Labour']
   },
   {
     name: 'Education & Coaching',
-    icon: '📚',
+    icon: GraduationCap,
     subs: ['School Tuition', 'Competitive Exams', 'Skill Development', 'Language Classes', 'Music & Art', 'IT Training', 'MBA Coaching', 'Online Courses']
   },
 ];
@@ -111,7 +111,7 @@ export default function InterestSelector({ selected = [], setSelected }) {
             .filter(c => !c.parent_id && c.is_active !== false)
             .map(c => ({
               name: c.name,
-              icon: c.icon_url || '📦',
+              icon: getCategoryIcon(c.name, c.icon_url),
               dbId: c._id,
               subs: (c.children || []).map(sub => sub.name),
             }));
@@ -164,7 +164,7 @@ export default function InterestSelector({ selected = [], setSelected }) {
         const isExpanded = expandedCategory === cat.name;
         const count = categorySelectedCount(cat.name);
         const isCatSelected = selected.some(s => s.category === cat.name);
-        const IconComponent = getCategoryIcon(cat.name, cat.icon);
+        const IconComponent = cat.icon || FolderOpen;
 
         return (
           <div
