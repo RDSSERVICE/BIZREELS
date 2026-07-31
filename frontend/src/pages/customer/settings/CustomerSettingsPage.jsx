@@ -140,13 +140,12 @@ export default function CustomerSettingsPage() {
     );
   };
 
+  const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'interests', 'security'
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (selectedInterests.length < 5) {
-      toast.error('Please select at least 5 interests to personalize your feed');
-      return;
-    }
     setSaving(true);
+    const toastId = toast.loading('Saving profile changes...');
 
     try {
       const payload = {
@@ -170,15 +169,30 @@ export default function CustomerSettingsPage() {
       };
 
       const res = await updateProfileApi(payload).unwrap();
-
-      // Save interests
-      await api.patch('/v1/users/me/interests', { interests: selectedInterests });
-
       dispatch(setCredentials({ user: res.user || res.data?.user }));
-      toast.success('Settings, profile, and interests updated successfully!');
+      toast.success('Profile settings updated successfully!', { id: toastId });
     } catch (err) {
       const msg = err?.response?.data?.message || err?.data?.message || 'Failed to update profile settings';
-      toast.error(msg);
+      toast.error(msg, { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveInterests = async (e) => {
+    e.preventDefault();
+    if (selectedInterests.length < 5) {
+      toast.error('Please select at least 5 interests to personalize your feed');
+      return;
+    }
+    setSaving(true);
+    const toastId = toast.loading('Updating your feed interests...');
+    try {
+      await api.patch('/v1/users/me/interests', { interests: selectedInterests });
+      toast.success('Your feed interests have been updated successfully!', { id: toastId });
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.data?.message || 'Failed to update interests';
+      toast.error(msg, { id: toastId });
     } finally {
       setSaving(false);
     }
@@ -212,232 +226,302 @@ export default function CustomerSettingsPage() {
         subtitle="Manage your profile information, location autofill, preferences, and account security"
       />
 
-      <form onSubmit={handleSaveProfile} className="space-y-6">
-        {/* Profile Info Section */}
-        <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
-          <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2 border-b border-border pb-3">
-            <FiUser className="text-brand-purple" />
-            <span>Personal Information</span>
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Name *</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Gender</label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              >
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Occupation</label>
-              <input
-                type="text"
-                value={occupation}
-                onChange={(e) => setOccupation(e.target.value)}
-                placeholder="e.g. Business Owner / Software Engineer"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Date of Birth (Optional)</label>
-              <input
-                type="date"
-                value={dob}
-                onChange={(e) => setDob(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Preferred Language</label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              >
-                <option value="English">English</option>
-                <option value="Hindi">Hindi (हिंदी)</option>
-                <option value="Marathi">Marathi (मराठी)</option>
-                <option value="Gujarati">Gujarati (ગુજરાતી)</option>
-                <option value="Tamil">Tamil (தமிழ்)</option>
-                <option value="Bengali">Bengali (বাংলা)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Mobile Number</label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Address & Geolocation Autofill Section */}
-        <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
-              <FiMapPin className="text-brand-orange" />
-              <span>Address & Location (Autofill Enabled)</span>
-            </h3>
-
-            <button
-              type="button"
-              onClick={handleAutofillLocation}
-              disabled={isLocating}
-              className="flex items-center gap-1.5 px-3 py-1.5 glass border border-border text-brand-purple hover:bg-brand-purple/10 rounded-xl text-xs font-bold transition"
-            >
-              <FiRefreshCw size={13} className={isLocating ? 'animate-spin' : ''} />
-              <span>Use Current Location</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State</label>
-              <input
-                type="text"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                placeholder="e.g. Maharashtra"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District</label>
-              <input
-                type="text"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                placeholder="e.g. Mumbai Suburban"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City</label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Mumbai"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Street Address</label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="e.g. Flat 402, Sunshine Heights, Bandra West"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Pincode</label>
-              <input
-                type="text"
-                value={pincode}
-                onChange={(e) => setPincode(e.target.value)}
-                placeholder="e.g. 400050"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Interests Selection Section */}
-        <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
-              <FiGrid className="text-brand-purple" />
-              <span>Personalized Feed Interests</span>
-            </h3>
-            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
-              selectedInterests.length >= 5
-                ? 'bg-brand-purple/10 text-brand-purple'
-                : 'bg-error/10 text-error'
-            }`}>
-              {selectedInterests.length} Selected (Min 5)
-            </span>
-          </div>
-
-          <p className="text-[11px] text-text-tertiary">
-            Select at least 5 interests. We will personalize your Reels & Marketplace feed based on these categories and subcategories. Click on a category to expand it and select specific subcategories.
-          </p>
-
-          <InterestSelector selected={selectedInterests} setSelected={setSelectedInterests} />
-        </div>
-
-        {/* Save Settings Button */}
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full py-3.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
-        >
-          <FiSave size={16} />
-          <span>{saving ? 'Saving Changes...' : 'Save Profile & Settings'}</span>
-        </button>
-      </form>
-
-      {/* Security & Account Management */}
-      <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-4">
-        <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2 border-b border-border pb-3">
-          <FiLock className="text-amber-500" />
-          <span>Account Security & Actions</span>
-        </h3>
-
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+        {/* Sidebar Navigation */}
+        <div className="col-span-12 md:col-span-3 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none">
           <button
-            onClick={handleLogout}
-            className="flex-1 py-2.5 glass border border-border text-text-secondary font-bold text-xs rounded-xl hover:bg-surface-tertiary transition flex items-center justify-center gap-2"
+            type="button"
+            onClick={() => setActiveTab('profile')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition duration-200 border-l-4 whitespace-nowrap md:w-full ${
+              activeTab === 'profile'
+                ? 'bg-brand-purple/10 text-brand-purple border-brand-purple shadow-sm'
+                : 'bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text-primary border-transparent'
+            }`}
           >
-            <FiLogOut size={16} />
-            <span>Logout Account</span>
+            <FiUser size={16} />
+            <span>Profile & Address</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setActiveTab('interests')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition duration-200 border-l-4 whitespace-nowrap md:w-full ${
+              activeTab === 'interests'
+                ? 'bg-brand-purple/10 text-brand-purple border-brand-purple shadow-sm'
+                : 'bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text-primary border-transparent'
+            }`}
+          >
+            <FiGrid size={16} />
+            <span>Feed Interests</span>
           </button>
 
           <button
-            onClick={handleDeleteAccount}
-            className="flex-1 py-2.5 bg-error/10 text-error border border-error/20 rounded-xl text-xs font-bold hover:bg-error/20 transition flex items-center justify-center gap-2"
+            type="button"
+            onClick={() => setActiveTab('security')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition duration-200 border-l-4 whitespace-nowrap md:w-full ${
+              activeTab === 'security'
+                ? 'bg-brand-purple/10 text-brand-purple border-brand-purple shadow-sm'
+                : 'bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text-primary border-transparent'
+            }`}
           >
-            <FiTrash2 size={16} />
-            <span>Delete Account</span>
+            <FiLock size={16} />
+            <span>Account Security</span>
           </button>
+        </div>
+
+        {/* Active Tab Panel */}
+        <div className="col-span-12 md:col-span-9 space-y-6">
+          {activeTab === 'profile' && (
+            <form onSubmit={handleSaveProfile} className="space-y-6">
+              {/* Profile Info Section */}
+              <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
+                <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2 border-b border-border pb-3">
+                  <FiUser className="text-brand-purple" />
+                  <span>Personal Information</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Gender</label>
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Occupation</label>
+                    <input
+                      type="text"
+                      value={occupation}
+                      onChange={(e) => setOccupation(e.target.value)}
+                      placeholder="e.g. Business Owner / Software Engineer"
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Date of Birth (Optional)</label>
+                    <input
+                      type="date"
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Preferred Language</label>
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    >
+                      <option value="English">English</option>
+                      <option value="Hindi">Hindi (हिंदी)</option>
+                      <option value="Marathi">Marathi (मराठी)</option>
+                      <option value="Gujarati">Gujarati (ગુજરાતી)</option>
+                      <option value="Tamil">Tamil (தமிழ்)</option>
+                      <option value="Bengali">Bengali (বাংলা)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Mobile Number</label>
+                    <input
+                      type="text"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Address & Geolocation Autofill Section */}
+              <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
+                    <FiMapPin className="text-brand-orange" />
+                    <span>Address & Location (Autofill Enabled)</span>
+                  </h3>
+
+                  <button
+                    type="button"
+                    onClick={handleAutofillLocation}
+                    disabled={isLocating}
+                    className="flex items-center gap-1.5 px-3 py-1.5 glass border border-border text-brand-purple hover:bg-brand-purple/10 rounded-xl text-xs font-bold transition"
+                  >
+                    <FiRefreshCw size={13} className={isLocating ? 'animate-spin' : ''} />
+                    <span>Use Current Location</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State</label>
+                    <input
+                      type="text"
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      placeholder="e.g. Maharashtra"
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District</label>
+                    <input
+                      type="text"
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      placeholder="e.g. Mumbai Suburban"
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City</label>
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="e.g. Mumbai"
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Street Address</label>
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="e.g. Flat 402, Sunshine Heights, Bandra West"
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Pincode</label>
+                    <input
+                      type="text"
+                      value={pincode}
+                      onChange={(e) => setPincode(e.target.value)}
+                      placeholder="e.g. 400050"
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Settings Button */}
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full py-3.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
+              >
+                <FiSave size={16} />
+                <span>{saving ? 'Saving Changes...' : 'Save Profile Details'}</span>
+              </button>
+            </form>
+          )}
+
+          {activeTab === 'interests' && (
+            <form onSubmit={handleSaveInterests} className="space-y-6">
+              {/* Interests Selection Section */}
+              <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
+                    <FiGrid className="text-brand-purple" />
+                    <span>Personalized Feed Interests</span>
+                  </h3>
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                    selectedInterests.length >= 5
+                      ? 'bg-brand-purple/10 text-brand-purple'
+                      : 'bg-error/10 text-error'
+                  }`}>
+                    {selectedInterests.length} Selected (Min 5)
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-text-tertiary">
+                  Select at least 5 interests. We will personalize your Reels & Marketplace feed based on these categories and subcategories. Click on a category to expand it and select specific subcategories.
+                </p>
+
+                <InterestSelector selected={selectedInterests} setSelected={setSelectedInterests} />
+              </div>
+
+              {/* Update Interests Button */}
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full py-3.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
+              >
+                <FiSave size={16} />
+                <span>{saving ? 'Updating Interests...' : 'Update Feed Interests'}</span>
+              </button>
+            </form>
+          )}
+
+          {activeTab === 'security' && (
+            <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
+              <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2 border-b border-border pb-3">
+                <FiLock className="text-amber-500" />
+                <span>Account Security & Actions</span>
+              </h3>
+
+              <p className="text-[11px] text-text-tertiary">
+                Manage your account session and membership. Warning: Deleting your account will remove all your data, reels history, and marketplace activity permanently.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex-1 py-2.5 glass border border-border text-text-secondary font-bold text-xs rounded-xl hover:bg-surface-tertiary transition flex items-center justify-center gap-2"
+                >
+                  <FiLogOut size={16} />
+                  <span>Logout Account</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  className="flex-1 py-2.5 bg-error/10 text-error border border-error/20 rounded-xl text-xs font-bold hover:bg-error/20 transition flex items-center justify-center gap-2"
+                >
+                  <FiTrash2 size={16} />
+                  <span>Delete Account</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

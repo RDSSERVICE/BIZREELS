@@ -134,13 +134,24 @@ export default function InterestSelector({ selected = [], setSelected }) {
   };
 
   const toggleSelection = (category, subcategory = null) => {
-    const exists = isSelected(category, subcategory);
-    if (exists) {
-      setSelected(prev =>
-        prev.filter(s => !(s.category === category && s.subcategory === (subcategory || null)))
-      );
+    if (subcategory === null) {
+      const isCatSelected = selected.some(s => s.category === category && !s.subcategory);
+      if (isCatSelected) {
+        // Deselect the category and all of its subcategories
+        setSelected(prev => prev.filter(s => s.category !== category));
+      } else {
+        // Select the parent category itself (catch-all)
+        setSelected(prev => [...prev, { category, subcategory: null }]);
+      }
     } else {
-      setSelected(prev => [...prev, { category, subcategory: subcategory || null }]);
+      const exists = isSelected(category, subcategory);
+      if (exists) {
+        setSelected(prev =>
+          prev.filter(s => !(s.category === category && s.subcategory === subcategory))
+        );
+      } else {
+        setSelected(prev => [...prev, { category, subcategory }]);
+      }
     }
   };
 
@@ -149,9 +160,6 @@ export default function InterestSelector({ selected = [], setSelected }) {
       setExpandedCategory(null);
     } else {
       setExpandedCategory(categoryName);
-      if (!selected.some(s => s.category === categoryName && !s.subcategory)) {
-        toggleSelection(categoryName);
-      }
     }
   };
 
@@ -182,11 +190,17 @@ export default function InterestSelector({ selected = [], setSelected }) {
               className="p-4 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                  isCatSelected 
-                    ? 'gradient-brand text-white shadow-premium' 
-                    : 'bg-white/5 text-text-secondary border border-white/10 group-hover:bg-brand-purple/10 group-hover:text-brand-purple group-hover:border-brand-purple/20'
-                }`}>
+                <div 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSelection(cat.name);
+                  }}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                    isCatSelected 
+                      ? 'gradient-brand text-white shadow-premium' 
+                      : 'bg-white/5 text-text-secondary border border-white/10 group-hover:bg-brand-purple/10 group-hover:text-brand-purple group-hover:border-brand-purple/20'
+                  }`}
+                >
                   <IconComponent size={18} />
                 </div>
                 <div>
@@ -201,11 +215,20 @@ export default function InterestSelector({ selected = [], setSelected }) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {isCatSelected && (
-                  <div className="w-5 h-5 rounded-full gradient-brand flex items-center justify-center shadow-sm">
-                    <FiCheck className="text-white" size={10} />
-                  </div>
-                )}
+                {/* Interactive Checkbox */}
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSelection(cat.name);
+                  }}
+                  className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${
+                    isCatSelected
+                      ? 'bg-brand-purple border-brand-purple text-white shadow-sm'
+                      : 'border-white/20 bg-transparent text-transparent hover:border-brand-purple/40'
+                  }`}
+                >
+                  <FiCheck size={10} className={isCatSelected ? 'scale-100' : 'scale-0'} />
+                </div>
                 <FiChevronRight
                   className={`text-text-tertiary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
                   size={12}
