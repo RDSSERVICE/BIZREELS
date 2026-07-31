@@ -116,8 +116,31 @@ export default function PostRequirementPage() {
       return;
     }
 
+    // Video duration validation (Max 30 seconds)
+    const checkDuration = (file) => {
+      return new Promise((resolve, reject) => {
+        const videoElement = document.createElement('video');
+        videoElement.preload = 'metadata';
+        videoElement.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(videoElement.src);
+          resolve(videoElement.duration);
+        };
+        videoElement.onerror = () => {
+          reject(new Error('Failed to load video metadata.'));
+        };
+        videoElement.src = URL.createObjectURL(file);
+      });
+    };
+
     setUploading(true);
     try {
+      const duration = await checkDuration(file);
+      if (duration > 30) {
+        toast.error('Video is too long. Maximum allowed duration is 30 seconds.');
+        setUploading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'requirements');
@@ -132,7 +155,8 @@ export default function PostRequirementPage() {
         toast.success('Video uploaded successfully');
       }
     } catch (err) {
-      toast.error('Failed to upload video');
+      console.error(err);
+      toast.error(err?.message || 'Failed to upload video');
     } finally {
       setUploading(false);
     }
