@@ -7,7 +7,7 @@ import {
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { useCreateRequirementMutation } from '../../../features/customer/requirementsApi';
-import { api } from '../../../lib/api';
+import { api, resolveMediaUrl } from '../../../lib/api';
 
 const DISTANCE_OPTIONS = [
   { value: '', label: 'No distance limit' },
@@ -304,7 +304,7 @@ export default function PostRequirementPage() {
             <div className="flex flex-wrap gap-3 mb-3">
               {photos.map((url, i) => (
                 <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border group">
-                  <img src={url} alt={`Sample ${i + 1}`} className="w-full h-full object-cover" />
+                  <img src={resolveMediaUrl(url)} alt={`Sample ${i + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removePhoto(i)}
@@ -316,7 +316,7 @@ export default function PostRequirementPage() {
               ))}
               {video && (
                 <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-brand-purple/30 bg-black">
-                  <video src={video} className="w-full h-full object-cover" muted />
+                  <video src={resolveMediaUrl(video)} className="w-full h-full object-cover" muted />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                     <FiVideo className="text-white" size={16} />
                   </div>

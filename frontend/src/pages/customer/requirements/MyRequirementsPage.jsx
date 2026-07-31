@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getSocket } from '../../../lib/socket';
+import { resolveMediaUrl } from '../../../lib/api';
 import {
   FiFileText, FiPlus, FiShoppingBag, FiTool, FiClock, FiMessageSquare,
   FiTrash2, FiEye, FiCheck, FiX, FiSearch, FiSliders, FiArrowLeft,
@@ -395,12 +396,12 @@ export default function MyRequirementsPage() {
                         {selectedReq.photos.map((url, idx) => (
                           <a
                             key={idx}
-                            href={url}
+                            href={resolveMediaUrl(url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="aspect-square rounded-xl overflow-hidden border border-border hover:border-brand-purple transition bg-surface flex items-center justify-center"
                           >
-                            <img src={url} alt={`Requirement attachment ${idx + 1}`} className="w-full h-full object-cover" />
+                            <img src={resolveMediaUrl(url)} alt={`Requirement attachment ${idx + 1}`} className="w-full h-full object-cover" />
                           </a>
                         ))}
                       </div>
@@ -413,7 +414,7 @@ export default function MyRequirementsPage() {
                       <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Reference Video</label>
                       <div className="rounded-xl overflow-hidden border border-border bg-surface-tertiary flex items-center justify-center">
                         <video
-                          src={selectedReq.video}
+                          src={resolveMediaUrl(selectedReq.video)}
                           controls
                           className="max-h-[160px] w-full object-contain"
                         />

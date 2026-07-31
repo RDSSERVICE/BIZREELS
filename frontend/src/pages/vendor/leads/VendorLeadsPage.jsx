@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSocket } from '../../../lib/socket';
+import { resolveMediaUrl } from '../../../lib/api';
 import {
   FiInbox, FiShoppingBag, FiTool, FiFileText, FiMessageCircle,
   FiPhone, FiClock, FiMapPin, FiCheck, FiSliders, FiDollarSign,
@@ -512,12 +513,12 @@ export default function VendorLeadsPage() {
                         {displayReq.photos.map((url, idx) => (
                           <a
                             key={idx}
-                            href={url}
+                            href={resolveMediaUrl(url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="aspect-square rounded-lg overflow-hidden border border-border hover:border-brand-purple transition bg-surface flex items-center justify-center"
                           >
-                            <img src={url} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
+                            <img src={resolveMediaUrl(url)} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
                           </a>
                         ))}
                       </div>
@@ -529,7 +530,7 @@ export default function VendorLeadsPage() {
                       <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider block">Reference Video</span>
                       <div className="rounded-lg overflow-hidden border border-border bg-surface-tertiary">
                         <video
-                          src={displayReq.video}
+                          src={resolveMediaUrl(displayReq.video)}
                           controls
                           className="max-h-[120px] w-full object-contain"
                         />

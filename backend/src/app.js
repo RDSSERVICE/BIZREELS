@@ -114,6 +114,11 @@ const processedDir = path.isAbsolute(config.uploadProcessedDir)
   ? config.uploadProcessedDir
   : path.resolve(__dirname, '..', config.uploadProcessedDir);
 
+const uploadsDir = path.resolve(__dirname, '..', 'uploads');
+app.use('/uploads', express.static(uploadsDir));
+app.use('/api/uploads', express.static(uploadsDir));
+app.use('/api/v1/uploads', express.static(uploadsDir));
+
 app.use('/uploads/processed', express.static(processedDir));
 app.use('/api/v1/uploads/processed', express.static(processedDir));
 
