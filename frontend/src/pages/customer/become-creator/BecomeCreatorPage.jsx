@@ -4,9 +4,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   FiVideo, FiUser, FiCamera, FiDollarSign, FiMapPin, FiGlobe,
   FiArrowRight, FiCheck, FiMail, FiPhone, FiMessageSquare, FiUploadCloud,
-  FiCalendar, FiAward, FiClock, FiInstagram, FiYoutube, FiFacebook,
+  FiCalendar, FiAward, FiClock,
   FiCompass, FiLayers, FiScissors
 } from 'react-icons/fi';
+import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { useAddRoleMutation } from '../../../features/auth/authApi';
 import { setCredentials, selectCurrentUser } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
@@ -78,6 +79,7 @@ export default function BecomeCreatorPage() {
 
   // 6. Languages
   const [selectedLanguages, setSelectedLanguages] = useState(['Hindi', 'English']);
+  const [otherLanguage, setOtherLanguage] = useState('');
 
   // 7. Experience
   const [experience, setExperience] = useState('1–3 Years');
@@ -132,6 +134,76 @@ export default function BecomeCreatorPage() {
       handlePincodeLookup(pincode);
     }
   }, [pincode]);
+
+  const detectLiveLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      setLiveLocation(false);
+      return;
+    }
+
+    const toastId = toast.loading('Detecting your live location...');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        let resolvedCity = '';
+        let resolvedDistrict = '';
+        let resolvedState = '';
+        let resolvedPincode = '';
+        let resolvedArea = '';
+
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const addr = data.address || {};
+
+            resolvedCity = addr.city || addr.town || addr.village || addr.suburb || '';
+            resolvedDistrict = addr.state_district || addr.county || addr.city_district || '';
+            resolvedState = addr.state || '';
+            resolvedPincode = addr.postcode || '';
+            resolvedArea = addr.suburb || addr.neighbourhood || addr.road || resolvedCity || '';
+          }
+        } catch (err) {
+          console.warn('Nominatim reverse geocode failed, using backend fallback', err);
+        }
+
+        if (!resolvedCity && !resolvedState) {
+          try {
+            const backendGeo = await api.post('/v1/location/reverse-geocode', { lat: latitude, lng: longitude });
+            const geoData = backendGeo.data || {};
+            resolvedCity = geoData.city || '';
+            resolvedState = geoData.state || '';
+            resolvedDistrict = geoData.area || '';
+            resolvedPincode = geoData.pincode || '';
+            resolvedArea = geoData.area || '';
+          } catch (e) {
+            console.warn('Backend reverseGeocode fallback failed', e);
+          }
+        }
+
+        if (resolvedCity || resolvedState) {
+          setCity(resolvedCity);
+          setDistrict(resolvedDistrict || resolvedCity);
+          setStateName(resolvedState);
+          setPincode(resolvedPincode);
+          setAreaLocality(resolvedArea || resolvedCity);
+          setLiveLocation(true);
+          toast.success(`Location auto-fetched: ${resolvedCity || resolvedArea}, ${resolvedState}`, { id: toastId });
+        } else {
+          setLiveLocation(true);
+          toast.success(`Coordinates captured: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, { id: toastId });
+        }
+      },
+      (error) => {
+        setLiveLocation(false);
+        toast.error(error.message || 'Permission denied or failed to detect location', { id: toastId });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const toggleArrayItem = (item, array, setArray) => {
     if (array.includes(item)) {
@@ -193,6 +265,10 @@ export default function BecomeCreatorPage() {
       toast.error('Valid 6-digit PIN code required');
       return;
     }
+    if (selectedLanguages.includes('Others') && !otherLanguage.trim()) {
+      toast.error('Please specify your other language(s)');
+      return;
+    }
     if (!ageConfirmed) {
       toast.error('Must be 18 years or older to register as a Creator');
       return;
@@ -204,6 +280,13 @@ export default function BecomeCreatorPage() {
 
     setLoading(true);
     try {
+      let finalLanguages = [...selectedLanguages];
+      if (finalLanguages.includes('Others') && otherLanguage.trim()) {
+        finalLanguages = finalLanguages.filter(l => l !== 'Others');
+        const customLangs = otherLanguage.split(',').map(l => l.trim()).filter(Boolean);
+        finalLanguages = [...finalLanguages, ...customLangs];
+      }
+
       const creatorProfileData = {
         name: fullName,
         displayName: displayName || fullName,
@@ -225,7 +308,7 @@ export default function BecomeCreatorPage() {
         },
         categories: selectedCategories,
         skills: selectedSkills,
-        languages: selectedLanguages,
+        languages: finalLanguages,
         experience,
         pricing: {
           reelPrice: Number(reelPrice) || 0,
@@ -468,7 +551,14 @@ export default function BecomeCreatorPage() {
                 <input
                   type="checkbox"
                   checked={liveLocation}
-                  onChange={(e) => setLiveLocation(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    if (checked) {
+                      detectLiveLocation();
+                    } else {
+                      setLiveLocation(false);
+                    }
+                  }}
                   className="sr-only peer"
                 />
                 <div className="w-9 h-5 bg-surface-tertiary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
@@ -644,6 +734,21 @@ export default function BecomeCreatorPage() {
               );
             })}
           </div>
+
+          {selectedLanguages.includes('Others') && (
+            <div className="mt-3 max-w-md animate-fade-in space-y-1">
+              <label className="block text-xs font-semibold text-text-secondary">Specify Other Language(s) *</label>
+              <input
+                type="text"
+                required
+                value={otherLanguage}
+                onChange={(e) => setOtherLanguage(e.target.value)}
+                placeholder="e.g. Gujarati, Spanish, French"
+                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
+              />
+              <span className="text-[10px] text-text-tertiary">Use commas to separate multiple languages</span>
+            </div>
+          )}
         </div>
 
         {/* SECTION 7: EXPERIENCE */}
@@ -835,7 +940,7 @@ export default function BecomeCreatorPage() {
             <div>
               <label className="block text-xs font-semibold text-text-secondary mb-1">Instagram Profile Link</label>
               <div className="relative">
-                <FiInstagram className="absolute left-3 top-3 text-pink-500 w-4 h-4" />
+                <FaInstagram className="absolute left-3 top-[13px] text-[#E1306C] w-4 h-4" />
                 <input
                   type="url"
                   value={instagramLink}
@@ -849,7 +954,7 @@ export default function BecomeCreatorPage() {
             <div>
               <label className="block text-xs font-semibold text-text-secondary mb-1">YouTube Channel Link</label>
               <div className="relative">
-                <FiYoutube className="absolute left-3 top-3 text-red-500 w-4 h-4" />
+                <FaYoutube className="absolute left-3 top-[13px] text-[#FF0000] w-4 h-4" />
                 <input
                   type="url"
                   value={youtubeLink}
@@ -863,7 +968,7 @@ export default function BecomeCreatorPage() {
             <div>
               <label className="block text-xs font-semibold text-text-secondary mb-1">Facebook / Other Link</label>
               <div className="relative">
-                <FiFacebook className="absolute left-3 top-3 text-blue-600 w-4 h-4" />
+                <FaFacebook className="absolute left-3 top-[13px] text-[#1877F2] w-4 h-4" />
                 <input
                   type="url"
                   value={facebookLink}
