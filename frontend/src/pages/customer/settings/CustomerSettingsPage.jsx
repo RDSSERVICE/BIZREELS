@@ -2,13 +2,106 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
-  FiSettings, FiUser, FiLock, FiTrash2, FiLogOut, FiMapPin, FiRefreshCw, FiSave
+  FiSettings, FiUser, FiLock, FiTrash2, FiLogOut, FiMapPin, FiRefreshCw, FiSave,
+  FiGrid, FiChevronRight, FiCheck, FiCpu, FiShoppingBag, FiCoffee, FiTool,
+  FiSliders, FiTruck, FiShoppingCart, FiHeart, FiHome, FiBookOpen, FiBox
 } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation, useDeleteAccountMutation } from '../../../features/auth/authApi';
 import { setCredentials, logout } from '../../../features/auth/authSlice';
-import { locationApi, tokenStore } from '../../../lib/api';
+import { api, locationApi, tokenStore } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+
+const DEFAULT_CATEGORIES = [
+  {
+    name: 'Electronics & IT',
+    icon: '💻',
+    subs: ['Laptops', 'Smartphones', 'Tablets', 'Cameras', 'Computer Accessories', 'Printers', 'Networking', 'Software']
+  },
+  {
+    name: 'Fashion & Apparel',
+    icon: '👗',
+    subs: ['Men\'s Wear', 'Women\'s Wear', 'Kids\' Wear', 'Footwear', 'Jewellery', 'Watches', 'Bags & Wallets', 'Ethnic Wear']
+  },
+  {
+    name: 'Restaurant & Food',
+    icon: '🍕',
+    subs: ['Fast Food', 'Fine Dining', 'Bakery & Sweets', 'Beverages', 'Catering', 'Cloud Kitchen', 'Street Food', 'Organic Food']
+  },
+  {
+    name: 'Services & Repairs',
+    icon: '🔧',
+    subs: ['AC Repair', 'Plumbing', 'Electrician', 'Carpentry', 'Painting', 'Pest Control', 'Appliance Repair', 'Cleaning']
+  },
+  {
+    name: 'Furniture & Home Decor',
+    icon: '🛋️',
+    subs: ['Sofas', 'Beds', 'Tables', 'Wardrobes', 'Lighting', 'Curtains', 'Wall Art', 'Kitchenware']
+  },
+  {
+    name: 'Automobile & Parts',
+    icon: '🚗',
+    subs: ['Cars', 'Bikes', 'Spare Parts', 'Tyres', 'Car Accessories', 'Service Center', 'EV', 'Commercial Vehicles']
+  },
+  {
+    name: 'Grocery & Daily Essentials',
+    icon: '🛒',
+    subs: ['Fruits & Vegetables', 'Dairy', 'Snacks', 'Beverages', 'Personal Care', 'Baby Care', 'Pet Supplies', 'Stationery']
+  },
+  {
+    name: 'Healthcare & Beauty',
+    icon: '💊',
+    subs: ['Pharmacy', 'Skin Care', 'Hair Care', 'Fitness', 'Dental', 'Ayurveda', 'Salon & Spa', 'Eye Care']
+  },
+  {
+    name: 'Real Estate & Construction',
+    icon: '🏗️',
+    subs: ['Residential', 'Commercial', 'Plots', 'Rentals', 'Building Materials', 'Interior Design', 'Architecture', 'Labour']
+  },
+  {
+    name: 'Education & Coaching',
+    icon: '📚',
+    subs: ['School Tuition', 'Competitive Exams', 'Skill Development', 'Language Classes', 'Music & Art', 'IT Training', 'MBA Coaching', 'Online Courses']
+  },
+];
+
+const getCategoryIcon = (categoryName, defaultIcon) => {
+  const name = (categoryName || '').toLowerCase();
+  const iconStr = typeof defaultIcon === 'string' ? defaultIcon : '';
+
+  if (name.includes('electronic') || name.includes('it') || iconStr === '💻' || iconStr === '📱') {
+    return FiCpu;
+  }
+  if (name.includes('fashion') || name.includes('apparel') || name.includes('wear') || iconStr === '👗') {
+    return FiShoppingBag;
+  }
+  if (name.includes('restaurant') || name.includes('food') || iconStr === '🍕' || iconStr === '🍲') {
+    return FiCoffee;
+  }
+  if (name.includes('service') || name.includes('repair') || iconStr === '🔧' || iconStr === '🛠️') {
+    return FiTool;
+  }
+  if (name.includes('furniture') || name.includes('decor') || iconStr === '🛋️' || iconStr === '🪑') {
+    return FiSliders;
+  }
+  if (name.includes('automobile') || name.includes('car') || name.includes('vehicle') || name.includes('bike') || iconStr === '🚗' || iconStr === '🏍️') {
+    return FiTruck;
+  }
+  if (name.includes('grocery') || name.includes('essential') || iconStr === '🛒') {
+    return FiShoppingCart;
+  }
+  if (name.includes('healthcare') || name.includes('beauty') || name.includes('salon') || name.includes('fitness') || name.includes('health') || iconStr === '💊' || iconStr === '💇' || iconStr === '🏋️') {
+    return FiHeart;
+  }
+  if (name.includes('real estate') || name.includes('construction') || name.includes('property') || iconStr === '🏗️' || iconStr === '🏠' || iconStr === '🏢') {
+    return FiHome;
+  }
+  if (name.includes('education') || name.includes('coaching') || iconStr === '📚') {
+    return FiBookOpen;
+  }
+  
+  return FiBox;
+};
 
 export default function CustomerSettingsPage() {
   const navigate = useNavigate();
@@ -41,6 +134,11 @@ export default function CustomerSettingsPage() {
   const [isLocating, setIsLocating] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Interests state
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [selectedInterests, setSelectedInterests] = useState([]);
+  const [expandedCategory, setExpandedCategory] = useState(null);
+
   useEffect(() => {
     if (user) {
       setName(user.name || '');
@@ -51,6 +149,10 @@ export default function CustomerSettingsPage() {
       setDob(user.dob || '');
       setLanguage(user.language || 'English');
 
+      if (user.customerProfile && Array.isArray(user.customerProfile.interests)) {
+        setSelectedInterests(user.customerProfile.interests);
+      }
+
       const loc = user.location || {};
       setState(loc.state || '');
       setDistrict(loc.district || '');
@@ -59,6 +161,64 @@ export default function CustomerSettingsPage() {
       setPincode(loc.pincode || '');
     }
   }, [user]);
+
+  // Load categories from database on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await api.get('/v1/categories?tree=true');
+        const items = res.data?.items || [];
+        if (items.length > 0) {
+          const formatted = items
+            .filter(c => !c.parent_id && c.is_active !== false)
+            .map(c => ({
+              name: c.name,
+              icon: c.icon_url || '📦',
+              dbId: c._id,
+              subs: (c.children || []).map(sub => sub.name),
+            }));
+          if (formatted.length >= 5) {
+            setCategories(formatted);
+          }
+        }
+      } catch (err) {
+        // Fall back to DEFAULT_CATEGORIES
+      }
+    };
+    loadCategories();
+  }, []);
+
+  const isSelected = (category, subcategory) => {
+    return selectedInterests.some(
+      s => s.category === category && s.subcategory === (subcategory || null)
+    );
+  };
+
+  const toggleSelection = (category, subcategory = null) => {
+    const exists = isSelected(category, subcategory);
+    if (exists) {
+      setSelectedInterests(prev =>
+        prev.filter(s => !(s.category === category && s.subcategory === (subcategory || null)))
+      );
+    } else {
+      setSelectedInterests(prev => [...prev, { category, subcategory: subcategory || null }]);
+    }
+  };
+
+  const toggleCategory = (categoryName) => {
+    if (expandedCategory === categoryName) {
+      setExpandedCategory(null);
+    } else {
+      setExpandedCategory(categoryName);
+      if (!selectedInterests.some(s => s.category === categoryName && !s.subcategory)) {
+        toggleSelection(categoryName);
+      }
+    }
+  };
+
+  const categorySelectedCount = (categoryName) => {
+    return selectedInterests.filter(s => s.category === categoryName).length;
+  };
 
   // Handle Geolocation Autofill
   const handleAutofillLocation = () => {
@@ -134,6 +294,10 @@ export default function CustomerSettingsPage() {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    if (selectedInterests.length < 5) {
+      toast.error('Please select at least 5 interests to personalize your feed');
+      return;
+    }
     setSaving(true);
 
     try {
@@ -158,10 +322,15 @@ export default function CustomerSettingsPage() {
       };
 
       const res = await updateProfileApi(payload).unwrap();
+
+      // Save interests
+      await api.patch('/v1/users/me/interests', { interests: selectedInterests });
+
       dispatch(setCredentials({ user: res.user || res.data?.user }));
-      toast.success('Settings and profile updated successfully!');
+      toast.success('Settings, profile, and interests updated successfully!');
     } catch (err) {
-      toast.error('Failed to update profile settings');
+      const msg = err?.response?.data?.message || err?.data?.message || 'Failed to update profile settings';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -361,6 +530,111 @@ export default function CustomerSettingsPage() {
                 className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Interests Selection Section */}
+        <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
+              <FiGrid className="text-brand-purple" />
+              <span>Personalized Feed Interests</span>
+            </h3>
+            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+              selectedInterests.length >= 5
+                ? 'bg-brand-purple/10 text-brand-purple'
+                : 'bg-error/10 text-error'
+            }`}>
+              {selectedInterests.length} Selected (Min 5)
+            </span>
+          </div>
+
+          <p className="text-[11px] text-text-tertiary">
+            Select at least 5 interests. We will personalize your Reels & Marketplace feed based on these categories and subcategories. Click on a category to expand it and select specific subcategories.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {categories.map((cat, idx) => {
+              const isExpanded = expandedCategory === cat.name;
+              const count = categorySelectedCount(cat.name);
+              const isCatSelected = selectedInterests.some(s => s.category === cat.name);
+              const IconComponent = getCategoryIcon(cat.name, cat.icon);
+
+              return (
+                <div
+                  key={cat.name}
+                  className={`rounded-2xl border overflow-hidden transition-all duration-300 cursor-pointer group ${
+                    isCatSelected
+                      ? 'border-brand-purple/50 bg-brand-purple/5 shadow-premium'
+                      : 'border-white/10 hover:border-brand-purple/30 bg-white/5 shadow-card'
+                  }`}
+                >
+                  {/* Category Header */}
+                  <div
+                    onClick={() => toggleCategory(cat.name)}
+                    className="p-4 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                        isCatSelected 
+                          ? 'gradient-brand text-white shadow-premium' 
+                          : 'bg-white/5 text-text-secondary border border-white/10 group-hover:bg-brand-purple/10 group-hover:text-brand-purple group-hover:border-brand-purple/20'
+                      }`}>
+                        <IconComponent size={18} />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-text-primary group-hover:text-brand-purple transition-colors">
+                          {cat.name}
+                        </h4>
+                        {count > 0 && (
+                          <span className="text-[8px] font-bold text-brand-purple bg-brand-purple/10 px-1.5 py-0.5 rounded-full">
+                            {count} selected
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isCatSelected && (
+                        <div className="w-5 h-5 rounded-full gradient-brand flex items-center justify-center shadow-sm">
+                          <FiCheck className="text-white" size={10} />
+                        </div>
+                      )}
+                      <FiChevronRight
+                        className={`text-text-tertiary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
+                        size={12}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Subcategories */}
+                  {isExpanded && cat.subs && cat.subs.length > 0 && (
+                    <div className="px-4 pb-4 pt-0 flex flex-wrap gap-1.5">
+                      {cat.subs.map((sub) => {
+                        const subSelected = isSelected(cat.name, sub);
+                        return (
+                          <button
+                            key={sub}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSelection(cat.name, sub);
+                            }}
+                            className={`px-2.5 py-1 rounded-full text-[9px] font-bold transition-all duration-200 border ${
+                              subSelected
+                                ? 'bg-brand-purple text-white border-brand-purple shadow-sm scale-105'
+                                : 'bg-surface-secondary text-text-secondary border-border hover:border-brand-purple/40 hover:text-brand-purple'
+                            }`}
+                          >
+                            {subSelected && <FiCheck className="inline mr-1" size={8} />}
+                            {sub}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
