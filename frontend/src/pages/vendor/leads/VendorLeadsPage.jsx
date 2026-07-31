@@ -500,6 +500,46 @@ export default function VendorLeadsPage() {
               </div>
             </div>
 
+            {/* Media Attachments for Vendor */}
+            {((displayReq.photos && displayReq.photos.length > 0) || displayReq.video) && (
+              <div className="p-4 bg-surface border border-border rounded-xl space-y-3">
+                <h5 className="font-bold text-brand-navy">Requirement Media & Attachments</h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {displayReq.photos && displayReq.photos.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider block">Photos</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {displayReq.photos.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="aspect-square rounded-lg overflow-hidden border border-border hover:border-brand-purple transition bg-surface flex items-center justify-center"
+                          >
+                            <img src={url} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {displayReq.video && (
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider block">Reference Video</span>
+                      <div className="rounded-lg overflow-hidden border border-border bg-surface-tertiary">
+                        <video
+                          src={displayReq.video}
+                          controls
+                          className="max-h-[120px] w-full object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="bg-brand-purple/5 p-3 sm:p-4 rounded-xl border border-brand-purple/10 space-y-1.5 sm:space-y-1">
               <h5 className="font-bold text-brand-navy">Customer Context Details</h5>
               <div className="flex flex-col sm:flex-row justify-between gap-0.5 sm:gap-0">

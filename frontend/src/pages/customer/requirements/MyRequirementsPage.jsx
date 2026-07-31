@@ -379,6 +379,51 @@ export default function MyRequirementsPage() {
               </div>
             </div>
 
+            {/* Attachments Card */}
+            {((selectedReq.photos && selectedReq.photos.length > 0) || selectedReq.video) && (
+              <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-4">
+                <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
+                  <span>Requirement Media & Attachments</span>
+                </h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Images Grid */}
+                  {selectedReq.photos && selectedReq.photos.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Photos</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {selectedReq.photos.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="aspect-square rounded-xl overflow-hidden border border-border hover:border-brand-purple transition bg-surface flex items-center justify-center"
+                          >
+                            <img src={url} alt={`Requirement attachment ${idx + 1}`} className="w-full h-full object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Video Player */}
+                  {selectedReq.video && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Reference Video</label>
+                      <div className="rounded-xl overflow-hidden border border-border bg-surface-tertiary flex items-center justify-center">
+                        <video
+                          src={selectedReq.video}
+                          controls
+                          className="max-h-[160px] w-full object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Proposals Comparison List */}
             <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-4">
               <div className="flex justify-between items-center pb-2 border-b border-border/50">
