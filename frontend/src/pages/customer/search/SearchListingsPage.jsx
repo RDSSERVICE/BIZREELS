@@ -847,27 +847,27 @@ export default function SearchListingsPage() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 pt-1">
+                  <div className="grid grid-cols-3 gap-3 pt-2">
                     <button
                       onClick={() => handleCallRequest(selectedItem)}
-                      className="py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-xs font-bold text-blue-500 hover:bg-blue-500/20 flex items-center justify-center gap-1.5"
+                      className="py-3 rounded-2xl bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/20 text-[11px] sm:text-xs font-bold text-blue-600 transition-all duration-200 flex items-center justify-center gap-1.5 shadow-sm hover:scale-[1.01] active:scale-[0.99]"
                     >
-                      <FiPhone className="w-4 h-4 text-blue-500" />
-                      <span>Call Request</span>
+                      <FiPhone className="w-4 h-4 text-blue-600" />
+                      <span className="truncate">Call Request</span>
                     </button>
                     <button
                       onClick={() => handleInquire(selectedItem)}
-                      className="py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs font-bold text-purple-500 hover:bg-purple-500/20 flex items-center justify-center gap-1.5"
+                      className="py-3 rounded-2xl bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/20 text-[11px] sm:text-xs font-bold text-purple-600 transition-all duration-200 flex items-center justify-center gap-1.5 shadow-sm hover:scale-[1.01] active:scale-[0.99]"
                     >
-                      <FiMessageSquare className="w-4 h-4 text-purple-500" />
-                      <span>Chat / Inquiry</span>
+                      <FiMessageSquare className="w-4 h-4 text-purple-600" />
+                      <span className="truncate">Chat / Inquiry</span>
                     </button>
                     <button
                       onClick={() => handleOrderRequest(selectedItem)}
-                      className="py-2.5 rounded-xl gradient-brand text-white text-xs font-bold shadow-premium hover:opacity-90 flex items-center justify-center gap-1.5"
+                      className="py-3 rounded-2xl gradient-brand text-white text-[11px] sm:text-xs font-bold shadow-premium hover:brightness-105 transition-all duration-200 flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99]"
                     >
                       <FiShoppingCart className="w-4 h-4 text-white" />
-                      <span>Order Request</span>
+                      <span className="truncate">Order Request</span>
                     </button>
                   </div>
                 </div>

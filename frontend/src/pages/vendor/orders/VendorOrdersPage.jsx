@@ -7,20 +7,20 @@ import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadg
 import { useGetVendorOrdersQuery, useUpdateOrderStatusMutation } from '../../../features/vendor/vendorApi';
 
 const TABS = [
-  { key: 'new', label: 'New Orders', icon: FiClock },
+  { key: 'pending', label: 'New Orders', icon: FiClock },
   { key: 'accepted', label: 'Accepted' },
   { key: 'completed', label: 'Completed', icon: FiCheckCircle },
   { key: 'cancelled', label: 'Cancelled', icon: FiX },
 ];
 
 export default function VendorOrdersPage() {
-  const [activeTab, setActiveTab] = useState('new');
+  const [activeTab, setActiveTab] = useState('pending');
   const { data, isFetching } = useGetVendorOrdersQuery(undefined, { pollingInterval: 300000 });
   const [updateOrderStatus] = useUpdateOrderStatusMutation();
 
   const orders = Array.isArray(data?.data) ? data.data : Array.isArray(data?.orders) ? data.orders : Array.isArray(data) ? data : [];
 
-  const filtered = orders.filter((o) => (o.status || 'new') === activeTab);
+  const filtered = orders.filter((o) => (o.status || 'pending') === activeTab);
 
   const handleStatusChange = async (id, newStatus) => {
     try {
@@ -58,21 +58,17 @@ export default function VendorOrdersPage() {
                   <span className="font-bold text-xs text-brand-purple">{o._id || o.id}</span>
                   <span className="text-[10px] text-text-tertiary">• {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : o.date || 'Today'}</span>
                 </div>
-                <h4 className="font-bold text-sm text-text-primary mt-1">{o.customer || o.items?.[0]?.title || 'Customer Order'}</h4>
+                <h4 className="font-bold text-sm text-text-primary mt-1">Order from: {o.customer?.name || 'Customer'}</h4>
                 <p className="text-xs text-text-secondary mt-0.5 font-medium">
-                  {Array.isArray(o.items)
-                    ? o.items.map(i => `${i.title || i.name || 'Item'} (x${i.quantity || i.qty || 1})`).join(', ')
-                    : typeof o.items === 'object' && o.items !== null
-                    ? o.items.title || o.items.name || 'Custom Order Item'
-                    : o.items || 'Standard Order Details'}
+                  Listing: {o.listing?.title || 'Standard Order Details'} (x{o.quantity || 1})
                 </p>
-                <p className="text-xs font-bold text-emerald-600 mt-1">Total: ₹{(o.total || o.total_price || 0).toLocaleString()}</p>
+                <p className="text-xs font-bold text-emerald-600 mt-1">Total: ₹{(o.price || 0).toLocaleString()}</p>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                <AdminStatusBadge status={o.status || 'new'} />
+                <AdminStatusBadge status={o.status || 'pending'} />
 
-                {(o.status === 'new' || !o.status) && (
+                {(o.status === 'pending' || o.status === 'new' || !o.status) && (
                   <>
                     <button
                       onClick={() => handleStatusChange(o._id || o.id, 'accepted')}
