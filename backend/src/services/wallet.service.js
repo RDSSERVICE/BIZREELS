@@ -362,6 +362,121 @@ class WalletService {
     }
   }
 
+  // ─── Purchase Plan Direct (Razorpay — no wallet debit) ────
+  async purchasePlanDirect({ userId, planId, paymentId, razorpayPaymentId }) {
+    const { SubscriptionPlan } = require('../models/Admin');
+    const UserSubscription = require('../models/UserSubscription.model');
+
+    let planDoc = null;
+    if (mongoose.Types.ObjectId.isValid(planId)) {
+      planDoc = await SubscriptionPlan.findById(planId);
+    }
+    if (!planDoc) {
+      planDoc = await SubscriptionPlan.findOne({
+        title: { $regex: new RegExp(`^${planId}$`, 'i') },
+        is_deleted: { $ne: true },
+        is_active: true,
+      });
+    }
+    if (!planDoc) {
+      throw ApiError.badRequest(`Invalid subscription plan: "${planId}".`);
+    }
+
+    const uid = userId.toString();
+    const cost = planDoc.price_inr;
+    const durationDays = planDoc.duration_days || 30;
+    const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+
+    const session = await mongoose.startSession();
+    let txn;
+
+    try {
+      await session.withTransaction(async () => {
+        // Create transaction record (no wallet debit — paid via Razorpay)
+        const user = await User.findById(userId).select('name current_role roles').session(session).lean();
+        const txnArr = await WalletTransactionV2.create([{
+          user_id: uid,
+          user_name: user?.name || 'Unknown',
+          user_role: user?.current_role || user?.roles?.[0] || 'customer',
+          transaction_type: 'subscription_purchase',
+          credit_debit: 'debit',
+          amount: cost,
+          previous_balance: 0,
+          updated_balance: 0,
+          payment_method: 'razorpay',
+          source: 'subscription_direct',
+          status: 'completed',
+          reference_id: `sub_direct_${planDoc._id}_${Date.now()}`,
+          admin_remarks: `Subscribed to ${planDoc.title} via Razorpay`,
+          meta: {
+            plan_id: planDoc._id.toString(),
+            plan_name: planDoc.title,
+            duration_days: durationDays,
+            payment_id: paymentId || null,
+            razorpay_payment_id: razorpayPaymentId || null,
+          },
+        }], { session });
+        txn = txnArr[0];
+
+        // Deactivate existing active subscriptions
+        await UserSubscription.updateMany(
+          { user_id: uid, status: 'active' },
+          { $set: { status: 'cancelled', cancelled_at: new Date(), cancelled_reason: 'New plan purchased' } },
+          { session }
+        );
+
+        // Create new subscription record
+        const userRole = user?.current_role || user?.roles?.[0] || 'vendor';
+        await UserSubscription.create([{
+          user_id: uid,
+          user_name: user?.name || '',
+          user_role: userRole === 'customer' ? 'vendor' : userRole,
+          plan_id: planDoc._id.toString(),
+          plan_name: planDoc.title,
+          plan_type: planDoc.plan_type || 'basic',
+          billing_cycle: planDoc.billing_cycle || 'monthly',
+          start_date: new Date(),
+          expiry_date: expiresAt,
+          auto_renewal: false,
+          status: 'active',
+          original_amount: cost,
+          paid_amount: cost,
+          payment_method: 'razorpay',
+          payment_id: razorpayPaymentId || paymentId || null,
+        }], { session });
+
+        // Update user subscription flag
+        await User.updateOne(
+          { _id: userId },
+          {
+            $set: {
+              is_subscribed_verified: true,
+              subscription: {
+                plan: planDoc.title,
+                startedAt: new Date(),
+                expiresAt,
+                boostCredits: planDoc.ai_credits || 0,
+                autoRenew: false,
+              },
+            },
+          },
+          { session }
+        );
+      });
+
+      // Emit real-time events AFTER commit
+      this._emitSubscriptionUpdate(uid);
+
+      logger.info(`Direct subscription purchase: ${planDoc.title} by user ${uid} (₹${cost} via Razorpay)`, { service: 'wallet' });
+      return {
+        transaction: this._serializeTxn(txn),
+        user: { subscription: { plan: planDoc.title, expiresAt } },
+      };
+    } finally {
+      await session.endSession();
+    }
+  }
+
   // ─── Get Transactions (Paginated) ────────────────────────
   async getTransactions(userId, page = 1, limit = 50) {
     const uid = userId.toString();

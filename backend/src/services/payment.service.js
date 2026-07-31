@@ -91,6 +91,18 @@ const applySuccess = async (payment, razorpayPaymentId, signature) => {
     await walletService.depositInr(userId, updated.amount_paise, 'Wallet top-up', updated._id.toString(), razorpayPaymentId);
   } else if (['verified_badge_monthly', 'verified_badge_yearly'].includes(purpose)) {
     subscriptionOut = await subscriptionService.activateSubscriptionFromPayment(updated);
+  } else if (purpose === 'subscription_plan') {
+    // Direct subscription purchase via Razorpay
+    const planId = updated.notes?.plan_id || updated.ref_id;
+    if (planId) {
+      const result = await walletService.purchasePlanDirect({
+        userId,
+        planId,
+        paymentId: updated._id.toString(),
+        razorpayPaymentId,
+      });
+      subscriptionOut = result.user?.subscription || null;
+    }
   } else if (purpose === 'listing_boost') {
     try {
       const boostService = require('./boost.service');

@@ -475,7 +475,11 @@ class SubscriptionAdminService {
     try {
       if (tags && tags.includes('SubscriptionPlans')) {
         const cache = require('../utils/cache');
+        // Clear all role-specific cache variants
         cache.deleteCache('subscription:plans');
+        cache.deleteCache('subscription:plans:all');
+        cache.deleteCache('subscription:plans:vendor');
+        cache.deleteCache('subscription:plans:creator');
       }
     } catch (err) {}
     try {

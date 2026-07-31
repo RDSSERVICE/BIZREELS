@@ -173,11 +173,15 @@ const vendorApi = apiSlice.injectEndpoints({
       providesTags: ['Subscription'],
     }),
     getSubscriptionPlans: builder.query({
-      query: () => '/subscription/plans',
-      providesTags: ['Subscription'],
+      query: (params = {}) => ({ url: '/subscription/plans', params: { role: 'vendor', ...params } }),
+      providesTags: ['Subscription', 'SubscriptionPlans'],
     }),
     changeSubscription: builder.mutation({
       query: (body) => ({ url: '/subscription/change', method: 'POST', body }),
+      invalidatesTags: ['Subscription', 'User'],
+    }),
+    purchaseSubscriptionRazorpay: builder.mutation({
+      query: (body) => ({ url: '/subscription/purchase-razorpay', method: 'POST', body }),
       invalidatesTags: ['Subscription', 'User'],
     }),
   }),
@@ -219,6 +223,7 @@ export const {
   useGetVendorSubscriptionQuery,
   useGetSubscriptionPlansQuery,
   useChangeSubscriptionMutation,
+  usePurchaseSubscriptionRazorpayMutation,
 } = vendorApi;
 
 export default vendorApi;

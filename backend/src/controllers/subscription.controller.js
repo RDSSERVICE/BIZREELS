@@ -56,35 +56,53 @@ class SubscriptionController {
 
   // ── Get Available Plans ─────────────────────────────────
   getPlans = asyncHandler(async (req, res) => {
-    const cacheKey = 'subscription:plans';
+    const role = (req.query.role || '').toLowerCase().trim();
+    const cacheKey = role ? `subscription:plans:${role}` : 'subscription:plans:all';
     const cached = await cache.getCache(cacheKey);
     if (cached) {
       return ApiResponse.ok(res, 'Plans loaded.', { items: cached });
     }
 
-    const plans = await SubscriptionPlan.find({ is_active: true, is_deleted: { $ne: true } }).sort({ price_inr: 1 }).lean();
+    const query = { is_active: true, is_deleted: { $ne: true }, is_archived: { $ne: true } };
+    if (role && role !== 'all') {
+      query.$or = [
+        { user_type: role },
+        { target_role: role },
+        { user_type: 'all' },
+        { target_role: 'all' },
+      ];
+    }
+
+    const plans = await SubscriptionPlan.find(query).sort({ sort_order: 1, price_inr: 1 }).lean();
     const mapped = plans.map(obj => {
-      const role = obj.user_type || obj.target_role || 'vendor';
+      const userType = obj.user_type || obj.target_role || 'vendor';
       return {
         id: (obj._id || obj.id).toString(),
         title: obj.title,
         description: obj.description,
         plan_type: obj.plan_type || 'basic',
-        user_type: role,
+        user_type: userType,
+        target_role: obj.target_role || userType,
         billing_cycle: obj.billing_cycle,
         price_inr: obj.price_inr,
         duration_days: obj.duration_days || 30,
-        features_list: obj.features_list || [],
+        features_list: obj.features_list || (obj.features ? obj.features.split(',').map(f => f.trim()) : []),
+        features: obj.features || '',
         product_limit: obj.product_limit,
         service_limit: obj.service_limit,
         reels_limit: obj.reels_limit,
         leads_limit: obj.leads_limit,
         ai_credits: obj.ai_credits || 0,
+        verified_badge: obj.verified_badge !== false,
+        priority_support: obj.priority_support || false,
+        analytics_access: obj.analytics_access || false,
+        priority_ranking: obj.priority_ranking || false,
+        discount_percentage: obj.discount_percentage || 0,
         is_active: obj.is_active !== false,
       };
     });
 
-    await cache.setCache(cacheKey, mapped, 86400);
+    await cache.setCache(cacheKey, mapped, 300);
     return ApiResponse.ok(res, 'Plans loaded.', { items: mapped });
   });
 

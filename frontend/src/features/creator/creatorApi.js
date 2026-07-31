@@ -81,8 +81,12 @@ const creatorApi = apiSlice.injectEndpoints({
       providesTags: ['Subscription'],
     }),
     getSubscriptionPlans: builder.query({
-      query: () => '/subscription/plans',
-      providesTags: ['Subscription'],
+      query: (params = {}) => ({ url: '/subscription/plans', params: { role: 'creator', ...params } }),
+      providesTags: ['Subscription', 'SubscriptionPlans'],
+    }),
+    purchaseSubscriptionRazorpay: builder.mutation({
+      query: (body) => ({ url: '/subscription/purchase-razorpay', method: 'POST', body }),
+      invalidatesTags: ['Subscription', 'User'],
     }),
   }),
 });
@@ -104,6 +108,7 @@ export const {
   useRequestPayoutMutation,
   useGetCreatorSubscriptionQuery,
   useGetSubscriptionPlansQuery,
+  usePurchaseSubscriptionRazorpayMutation,
 } = creatorApi;
 
 export default creatorApi;

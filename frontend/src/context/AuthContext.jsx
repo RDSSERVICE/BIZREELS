@@ -109,9 +109,11 @@ export function AuthProvider({ children }) {
     };
 
     const onWalletUpdated = (wData) => {
+      refreshMe();
+
       if (!window.location.pathname.includes("/wallet")) {
         toast.message("Wallet updated!", {
-          description: `Balance: ₹${(wData.balance_inr_paise / 100).toLocaleString("en-IN")} (${wData.credits} credits)`,
+          description: `Balance: ₹${((wData.balance_inr_paise || (wData.new_balance * 100)) / 100).toLocaleString("en-IN")}`,
           action: {
             label: "View",
             onClick: () => {
@@ -122,16 +124,22 @@ export function AuthProvider({ children }) {
       }
     };
 
+    const onSubscriptionUpdated = () => {
+      refreshMe();
+    };
+
     s.on("message:new", onMessageNew);
     s.on("deal:updated", onDealUpdated);
     s.on("notification:new", onNotificationNew);
     s.on("wallet:updated", onWalletUpdated);
+    s.on("subscription:updated", onSubscriptionUpdated);
 
     return () => {
       s.off("message:new", onMessageNew);
       s.off("deal:updated", onDealUpdated);
       s.off("notification:new", onNotificationNew);
       s.off("wallet:updated", onWalletUpdated);
+      s.off("subscription:updated", onSubscriptionUpdated);
     };
   }, [user]);
 
