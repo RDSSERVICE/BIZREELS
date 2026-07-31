@@ -210,6 +210,8 @@ class RequirementRepository {
         created_at: 1,
         updated_at: 1,
         distance: 1,
+        photos: 1,
+        video: 1,
         customer: {
           _id: '$customerDetails._id',
           name: '$customerDetails.name',

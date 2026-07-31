@@ -12,7 +12,10 @@ const logger = require('../utils/logger');
  */
 class RequirementService {
   async createRequirement(
-    { customerId, title, description, category, subcategory, requirementType, budget, quantity, deadline, lat, lng, address, city, state, pincode },
+    {
+      customerId, title, description, category, subcategory, requirementType, budget, quantity, deadline,
+      lat, lng, address, city, state, pincode, district, targetDistance, otherConditions, photos, video
+    },
     req
   ) {
     const location = {
@@ -20,6 +23,7 @@ class RequirementService {
       coordinates: [0, 0],
       area: address || 'Local',
       city: city || 'Delhi',
+      district: district || null,
       state: state || '',
       pincode: pincode || '110001',
     };
@@ -38,6 +42,10 @@ class RequirementService {
       quantity: parseInt(quantity || 1, 10),
       deadline: deadline ? new Date(deadline) : null,
       location,
+      targetDistance: targetDistance ? parseFloat(targetDistance) : null,
+      otherConditions,
+      photos,
+      video,
     });
 
     // ── Auto Identify Matching Vendors ──
