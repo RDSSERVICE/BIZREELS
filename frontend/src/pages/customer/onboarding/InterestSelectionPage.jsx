@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiCheck, FiChevronRight, FiGrid, FiStar, FiZap } from 'react-icons/fi';
+import { 
+  FiCheck, 
+  FiChevronRight, 
+  FiGrid, 
+  FiStar, 
+  FiZap,
+  FiCpu,
+  FiShoppingBag,
+  FiCoffee,
+  FiTool,
+  FiSliders,
+  FiTruck,
+  FiShoppingCart,
+  FiHeart,
+  FiHome,
+  FiBookOpen,
+  FiBox
+} from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
 import { useGetMeQuery } from '../../../features/auth/authApi';
@@ -62,6 +79,45 @@ const DEFAULT_CATEGORIES = [
     subs: ['School Tuition', 'Competitive Exams', 'Skill Development', 'Language Classes', 'Music & Art', 'IT Training', 'MBA Coaching', 'Online Courses']
   },
 ];
+
+// Helper to map category name/emoji to premium Feather Icon components
+const getCategoryIcon = (categoryName, defaultIcon) => {
+  const name = (categoryName || '').toLowerCase();
+  const iconStr = typeof defaultIcon === 'string' ? defaultIcon : '';
+
+  if (name.includes('electronic') || name.includes('it') || iconStr === '💻' || iconStr === '📱') {
+    return FiCpu;
+  }
+  if (name.includes('fashion') || name.includes('apparel') || name.includes('wear') || iconStr === '👗') {
+    return FiShoppingBag;
+  }
+  if (name.includes('restaurant') || name.includes('food') || iconStr === '🍕' || iconStr === '🍲') {
+    return FiCoffee;
+  }
+  if (name.includes('service') || name.includes('repair') || iconStr === '🔧' || iconStr === '🛠️') {
+    return FiTool;
+  }
+  if (name.includes('furniture') || name.includes('decor') || iconStr === '🛋️' || iconStr === '🪑') {
+    return FiSliders;
+  }
+  if (name.includes('automobile') || name.includes('car') || name.includes('vehicle') || name.includes('bike') || iconStr === '🚗' || iconStr === '🏍️') {
+    return FiTruck;
+  }
+  if (name.includes('grocery') || name.includes('essential') || iconStr === '🛒') {
+    return FiShoppingCart;
+  }
+  if (name.includes('healthcare') || name.includes('beauty') || name.includes('salon') || name.includes('fitness') || name.includes('health') || iconStr === '💊' || iconStr === '💇' || iconStr === '🏋️') {
+    return FiHeart;
+  }
+  if (name.includes('real estate') || name.includes('construction') || name.includes('property') || iconStr === '🏗️' || iconStr === '🏠' || iconStr === '🏢') {
+    return FiHome;
+  }
+  if (name.includes('education') || name.includes('coaching') || iconStr === '📚') {
+    return FiBookOpen;
+  }
+  
+  return FiBox; // Default fallback
+};
 
 export default function InterestSelectionPage() {
   const navigate = useNavigate();
@@ -244,7 +300,18 @@ export default function InterestSelectionPage() {
                 className="p-4 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{cat.icon}</span>
+                  {(() => {
+                    const IconComponent = getCategoryIcon(cat.name, cat.icon);
+                    return (
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                        isCatSelected 
+                          ? 'gradient-brand text-white shadow-premium' 
+                          : 'bg-white/5 text-text-secondary border border-white/10 group-hover:bg-brand-purple/10 group-hover:text-brand-purple group-hover:border-brand-purple/20'
+                      }`}>
+                        <IconComponent size={20} />
+                      </div>
+                    );
+                  })()}
                   <div>
                     <h3 className="text-xs font-bold text-text-primary group-hover:text-brand-purple transition-colors">
                       {cat.name}
