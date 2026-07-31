@@ -44,7 +44,7 @@ const getCloudinarySDK = () => {
   return cloudinary;
 };
 
-const ALLOWED_FOLDER_PREFIXES = ['users/', 'listings/', 'uploads/'];
+const ALLOWED_FOLDER_PREFIXES = ['users/', 'listings/', 'uploads/', 'requirements'];
 
 const validateFolder = (folder) => {
   if (!folder) {

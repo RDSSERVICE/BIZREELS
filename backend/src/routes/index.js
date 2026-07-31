@@ -34,6 +34,7 @@ router.get('/health', (req, res) => {
 
 // Core Module routes (lazy loaded)
 router.use('/upload', lazyLoad('./upload.routes'));
+router.use('/media', lazyLoad('./media.routes'));
 router.use('/cart', lazyLoad('./cart.routes'));
 router.use('/ai', lazyLoad('./ai.routes'));
 router.use('/auth', lazyLoad('./authRoutes'));

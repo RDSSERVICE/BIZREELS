@@ -63,10 +63,22 @@ export default function PostRequirementPage() {
       return;
     }
 
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
     setUploading(true);
     const uploaded = [];
 
     for (const file of files) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast.error(`${file.name} is not a supported format. Please use JPG, PNG or WebP.`);
+        continue;
+      }
+      if (file.size > MAX_SIZE) {
+        toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+        continue;
+      }
+
       try {
         const formData = new FormData();
         formData.append('file', file);
@@ -92,6 +104,18 @@ export default function PostRequirementPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+    const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error('Unsupported video format. Please use MP4, MOV or WebM.');
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      toast.error('Video is too large. Maximum size is 50MB.');
+      return;
+    }
+
     setUploading(true);
     try {
       const formData = new FormData();
@@ -105,7 +129,7 @@ export default function PostRequirementPage() {
       const url = res.data?.url || res.data?.secure_url || res.data?.data?.url;
       if (url) {
         setVideo(url);
-        toast.success('Video uploaded');
+        toast.success('Video uploaded successfully');
       }
     } catch (err) {
       toast.error('Failed to upload video');
