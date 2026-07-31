@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
-  FiCheck, FiChevronRight, FiCpu, FiShoppingBag, FiCoffee, FiTool,
-  FiSliders, FiTruck, FiShoppingCart, FiHeart, FiHome, FiBookOpen, FiBox
-} from 'react-icons/fi';
+  Check, ChevronRight, Laptop, Shirt, Utensils, Wrench, Sofa, 
+  Car, ShoppingCart, Heart, Building2, GraduationCap, FolderOpen 
+} from 'lucide-react';
 import { api } from '../../lib/api';
 
 const DEFAULT_CATEGORIES = [
@@ -64,37 +64,37 @@ const getCategoryIcon = (categoryName, defaultIcon) => {
   const iconStr = typeof defaultIcon === 'string' ? defaultIcon : '';
 
   if (name.includes('electronic') || name.includes('it') || iconStr === '💻' || iconStr === '📱') {
-    return FiCpu;
+    return Laptop;
   }
   if (name.includes('fashion') || name.includes('apparel') || name.includes('wear') || iconStr === '👗') {
-    return FiShoppingBag;
+    return Shirt;
   }
   if (name.includes('restaurant') || name.includes('food') || iconStr === '🍕' || iconStr === '🍲') {
-    return FiCoffee;
+    return Utensils;
   }
   if (name.includes('service') || name.includes('repair') || iconStr === '🔧' || iconStr === '🛠️') {
-    return FiTool;
+    return Wrench;
   }
   if (name.includes('furniture') || name.includes('decor') || iconStr === '🛋️' || iconStr === '🪑') {
-    return FiSliders;
+    return Sofa;
   }
   if (name.includes('automobile') || name.includes('car') || name.includes('vehicle') || name.includes('bike') || iconStr === '🚗' || iconStr === '🏍️') {
-    return FiTruck;
+    return Car;
   }
   if (name.includes('grocery') || name.includes('essential') || iconStr === '🛒') {
-    return FiShoppingCart;
+    return ShoppingCart;
   }
   if (name.includes('healthcare') || name.includes('beauty') || name.includes('salon') || name.includes('fitness') || name.includes('health') || iconStr === '💊' || iconStr === '💇' || iconStr === '🏋️') {
-    return FiHeart;
+    return Heart;
   }
   if (name.includes('real estate') || name.includes('construction') || name.includes('property') || iconStr === '🏗️' || iconStr === '🏠' || iconStr === '🏢') {
-    return FiHome;
+    return Building2;
   }
   if (name.includes('education') || name.includes('coaching') || iconStr === '📚') {
-    return FiBookOpen;
+    return GraduationCap;
   }
   
-  return FiBox;
+  return FolderOpen;
 };
 
 export default function InterestSelector({ selected = [], setSelected }) {
@@ -202,10 +202,10 @@ export default function InterestSelector({ selected = [], setSelected }) {
               <div className="flex items-center gap-2">
                 {isCatSelected && (
                   <div className="w-5 h-5 rounded-full gradient-brand flex items-center justify-center shadow-sm">
-                    <FiCheck className="text-white" size={10} />
+                    <Check className="text-white" size={10} />
                   </div>
                 )}
-                <FiChevronRight
+                <ChevronRight
                   className={`text-text-tertiary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
                   size={12}
                 />
@@ -239,7 +239,7 @@ export default function InterestSelector({ selected = [], setSelected }) {
                               : 'bg-surface-secondary text-text-secondary border-border hover:border-brand-purple/40 hover:text-brand-purple'
                           }`}
                         >
-                          {subSelected && <FiCheck className="inline mr-1" size={8} />}
+                          {subSelected && <Check className="inline mr-1" size={8} />}
                           {sub}
                         </button>
                       );
