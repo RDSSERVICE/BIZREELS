@@ -106,7 +106,7 @@ class ListingRepository {
 
     // Personalization sorting: followedVendor desc, user interests match
     let followedIds = [];
-    let interestCategories = [];
+    let interestCond = 0;
     if (currentUserId) {
       try {
         const followService = require('../services/follow.service');
@@ -117,9 +117,25 @@ class ListingRepository {
       }
       try {
         const User = require('../models/User');
-        const user = await User.findById(currentUserId).select('customerProfile.interests');
-        if (user && user.customerProfile && Array.isArray(user.customerProfile.interests)) {
-          interestCategories = user.customerProfile.interests.map(i => i.category);
+        const user = await User.findById(currentUserId).select('customerProfile.interests').lean();
+        if (user && user.customerProfile && Array.isArray(user.customerProfile.interests) && user.customerProfile.interests.length > 0) {
+          const orConditions = user.customerProfile.interests.map(i => {
+            if (!i.subcategory) {
+              // Only category selected: match any subcategory under this category
+              return { $eq: ['$category', i.category] };
+            } else {
+              // Both category and subcategory must match
+              return {
+                $and: [
+                  { $eq: ['$category', i.category] },
+                  { $eq: ['$subcategory', i.subcategory] }
+                ]
+              };
+            }
+          });
+          interestCond = {
+            $cond: [{ $or: orConditions }, 1, 0]
+          };
         }
       } catch (err) {
         console.error('Error fetching user interests for listing feed:', err);
@@ -132,9 +148,7 @@ class ListingRepository {
           followedVendor: {
             $cond: [{ $in: ['$vendor', followedIds] }, 1, 0]
           },
-          interestMatch: {
-            $cond: [{ $in: ['$category', interestCategories] }, 1, 0]
-          }
+          interestMatch: interestCond
         }
       });
       pipeline.push({ $sort: { followedVendor: -1, interestMatch: -1, isBoosted: -1, createdAt: -1 } });

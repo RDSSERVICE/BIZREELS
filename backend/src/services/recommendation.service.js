@@ -42,11 +42,13 @@ class RecommendationService {
     const viewedIds = recentViews.map(v => v.reel_id);
 
     // 2. Get user interests
+    let interests = [];
     let interestCategories = [];
     try {
       const user = await User.findById(userId).select('customerProfile.interests').lean();
       if (user?.customerProfile?.interests) {
-        interestCategories = user.customerProfile.interests.map(i => i.category).filter(Boolean);
+        interests = user.customerProfile.interests;
+        interestCategories = interests.map(i => i.category).filter(Boolean);
       }
     } catch (err) {}
 
@@ -66,7 +68,7 @@ class RecommendationService {
     // 5. Build main recommendation pipeline
     const mainReels = await this._getMainReels({
       excludeIds: viewedIds,
-      interestCategories,
+      interests,
       followedIds,
       limit: mainPoolSize,
       skip: (pageNum - 1) * limitNum,
@@ -104,7 +106,7 @@ class RecommendationService {
   /**
    * Main recommendations — scored by engagement, interest match, trending, freshness.
    */
-  async _getMainReels({ excludeIds, interestCategories, followedIds, limit, skip }) {
+  async _getMainReels({ excludeIds, interests, followedIds, limit, skip }) {
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
@@ -117,6 +119,27 @@ class RecommendationService {
 
     if (excludeIds.length > 0) {
       matchStage._id = { $nin: excludeIds };
+    }
+
+    let interestCond = 0;
+    if (Array.isArray(interests) && interests.length > 0) {
+      const orConditions = interests.map(i => {
+        if (!i.subcategory) {
+          // Only category selected: match any subcategory under this category
+          return { $eq: ['$category', i.category] };
+        } else {
+          // Both category and subcategory must match
+          return {
+            $and: [
+              { $eq: ['$category', i.category] },
+              { $eq: ['$subcategory', i.subcategory] }
+            ]
+          };
+        }
+      });
+      interestCond = {
+        $cond: [{ $or: orConditions }, 20, 0]
+      };
     }
 
     const pipeline = [
@@ -152,9 +175,7 @@ class RecommendationService {
             $divide: ['$engagementScore', { $sqrt: '$ageHours' }],
           },
           // Interest match bonus
-          interestMatch: interestCategories.length > 0
-            ? { $cond: [{ $in: ['$category', interestCategories] }, 20, 0] }
-            : { $literal: 0 },
+          interestMatch: interestCond,
           // Followed creator boost
           followedCreator: followedIds.length > 0
             ? { $cond: [{ $in: ['$creator', followedIds] }, 15, 0] }
