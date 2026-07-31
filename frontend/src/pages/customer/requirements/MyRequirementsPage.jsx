@@ -275,7 +275,10 @@ export default function MyRequirementsPage() {
   // Render detail view if a requirement ID is selected
   if (activeReqId && selectedReq) {
     const reqLoc = selectedReq.location || {};
-    const locationText = typeof reqLoc === 'string' ? reqLoc : `${reqLoc.city || 'Local'}${reqLoc.state ? `, ${reqLoc.state}` : ''}`;
+    const isRemote = reqLoc.area === 'Remote' || (reqLoc.city === 'Online' && reqLoc.state === 'Remote');
+    const locationText = isRemote 
+      ? 'Remote (Online)' 
+      : (typeof reqLoc === 'string' ? reqLoc : `${reqLoc.city || 'Local'}${reqLoc.state ? `, ${reqLoc.state}` : ''}`);
     
     // Timeline steps completion checks
     const hasNotified = (selectedReq.totalVendorsNotified || 0) > 0;
@@ -362,8 +365,12 @@ export default function MyRequirementsPage() {
                   <strong className="text-sm font-bold text-brand-purple">₹{(selectedReq.budget || 0).toLocaleString('en-IN')}</strong>
                 </div>
                 <div className="p-3 bg-surface-secondary rounded-xl">
-                  <span className="text-text-tertiary block mb-1">Quantity Requested</span>
-                  <strong className="text-sm font-bold text-text-primary">{selectedReq.quantity || 1} Units</strong>
+                  <span className="text-text-tertiary block mb-1">
+                    {selectedReq.requirementType === 'service' || selectedReq.type === 'service' ? 'Required Scope' : 'Quantity Requested'}
+                  </span>
+                  <strong className="text-sm font-bold text-text-primary">
+                    {selectedReq.quantity || 1} {selectedReq.requirementType === 'service' || selectedReq.type === 'service' ? 'Deliverables/Days' : 'Units'}
+                  </strong>
                 </div>
                 <div className="p-3 bg-surface-secondary rounded-xl">
                   <span className="text-text-tertiary block mb-1">Target Location</span>
@@ -925,7 +932,10 @@ export default function MyRequirementsPage() {
           {rawList.map((req) => {
             const reqId = req._id || req.id;
             const reqLoc = req.location || {};
-            const locationText = typeof reqLoc === 'string' ? reqLoc : `${reqLoc.city || 'Local'}${reqLoc.state ? `, ${reqLoc.state}` : ''}`;
+            const isRemote = reqLoc.area === 'Remote' || (reqLoc.city === 'Online' && reqLoc.state === 'Remote');
+            const locationText = isRemote 
+              ? 'Remote (Online)' 
+              : (typeof reqLoc === 'string' ? reqLoc : `${reqLoc.city || 'Local'}${reqLoc.state ? `, ${reqLoc.state}` : ''}`);
             
             const createdAtDate = (req.created_at || req.createdAt) ? new Date(req.created_at || req.createdAt) : new Date();
             const rawExpiry = req.expires_at || req.deadline || new Date(createdAtDate.getTime() + 30 * 24 * 60 * 60 * 1000);

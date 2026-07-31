@@ -287,7 +287,10 @@ export default function VendorLeadsPage() {
               {requirementMatches.map((m) => {
                 const reqId = m._id || m.id;
                 const location = m.location || {};
-                const locationText = typeof location === 'string' ? location : `${location.city || 'Local'}${location.state ? `, ${location.state}` : ''}`;
+                const isRemote = location.area === 'Remote' || (location.city === 'Online' && location.state === 'Remote');
+                const locationText = isRemote 
+                  ? 'Remote (Online)' 
+                  : (typeof location === 'string' ? location : `${location.city || 'Local'}${location.state ? `, ${location.state}` : ''}`);
                 const isSaved = savedIds.includes(reqId);
 
                 return (
@@ -320,7 +323,9 @@ export default function VendorLeadsPage() {
                         <span className="text-xs font-black text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                           Budget: ₹{(m.budget || 0).toLocaleString('en-IN')}
                         </span>
-                        <span className="text-[10px] text-text-tertiary block mt-1">Requested Qty: <strong>{m.quantity || 1}</strong></span>
+                        <span className="text-[10px] text-text-tertiary block mt-1">
+                          {m.type === 'service' || m.requirementType === 'service' ? 'Service Scope' : 'Requested Qty'}: <strong>{m.quantity || 1} {m.type === 'service' || m.requirementType === 'service' ? 'deliverables/days' : 'units'}</strong>
+                        </span>
                       </div>
                     </div>
 
@@ -488,12 +493,20 @@ export default function VendorLeadsPage() {
                 <strong className="text-brand-purple text-sm">₹{(displayReq.budget || 0).toLocaleString('en-IN')}</strong>
               </div>
               <div className="p-3 bg-surface border border-border rounded-xl">
-                <span className="text-text-tertiary block mb-0.5">Quantity Requested</span>
-                <strong className="text-text-primary text-sm">{displayReq.quantity || 1} units</strong>
+                <span className="text-text-tertiary block mb-0.5">
+                  {displayReq.type === 'service' || displayReq.requirementType === 'service' ? 'Service Scope' : 'Quantity Requested'}
+                </span>
+                <strong className="text-text-primary text-sm">
+                  {displayReq.quantity || 1} {displayReq.type === 'service' || displayReq.requirementType === 'service' ? 'deliverables/days' : 'units'}
+                </strong>
               </div>
               <div className="p-3 bg-surface border border-border rounded-xl">
-                <span className="text-text-tertiary block mb-0.5">Delivery Target Location</span>
-                <strong className="text-text-primary text-sm">{displayReq.location?.city || 'Local'}, {displayReq.location?.state || 'Punjab'}</strong>
+                <span className="text-text-tertiary block mb-0.5">
+                  {displayReq.type === 'service' || displayReq.requirementType === 'service' ? 'Service Location' : 'Delivery Target Location'}
+                </span>
+                <strong className="text-text-primary text-sm">
+                  {displayReq.location?.area === 'Remote' ? 'Remote (Online)' : `${displayReq.location?.city || 'Local'}, ${displayReq.location?.state || 'Punjab'}`}
+                </strong>
               </div>
               <div className="p-3 bg-surface border border-border rounded-xl">
                 <span className="text-text-tertiary block mb-0.5">Category & Type</span>

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FiPlusCircle, FiShoppingBag, FiTool, FiDollarSign, FiMapPin,
-  FiUpload, FiImage, FiVideo, FiX, FiFileText, FiTarget, FiAlertCircle
+  FiPlusCircle, FiShoppingBag, FiTool
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { useCreateRequirementMutation } from '../../../features/customer/requirementsApi';
 import { api, resolveMediaUrl } from '../../../lib/api';
+import ProductRequirementForm from './ProductRequirementForm';
+import ServiceRequirementForm from './ServiceRequirementForm';
 
 const DISTANCE_OPTIONS = [
   { value: '', label: 'No distance limit' },
@@ -162,12 +163,26 @@ export default function PostRequirementPage() {
     }
   };
 
-  const removePhoto = (index) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+  const handleTypeChange = (newType) => {
+    setType(newType);
+    setTitle('');
+    setCategory(newType === 'service' ? 'Services' : 'Electronics');
+    setSubcategory('');
+    setBudget('');
+    setQuantity('1');
+    setState('');
+    setDistrict('');
+    setCity('');
+    setPincode('');
+    setTargetDistance('');
+    setDescription('');
+    setOtherConditions('');
+    setPhotos([]);
+    setVideo(null);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, customConditions) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!title || !budget || !description) {
       toast.error('Please fill all required fields');
       return;
@@ -188,7 +203,7 @@ export default function PostRequirementPage() {
         pincode,
         targetDistance: targetDistance ? Number(targetDistance) : null,
         description,
-        otherConditions: otherConditions || null,
+        otherConditions: customConditions || otherConditions || null,
         photos,
         video,
       }).unwrap();
@@ -223,288 +238,78 @@ export default function PostRequirementPage() {
       />
 
       <div className="glass rounded-2xl p-6 border border-white/50 shadow-card max-w-2xl mx-auto w-full space-y-6">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Requirement Type Selector */}
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">Requirement Type</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setType('product')}
-                className={`flex items-center justify-center gap-2 p-3.5 rounded-xl border text-xs font-bold transition ${type === 'product'
-                    ? 'bg-brand-purple/10 border-brand-purple text-brand-purple shadow-sm'
-                    : 'glass border-border text-text-secondary hover:border-brand-purple/40'
-                  }`}
-              >
-                <FiShoppingBag size={18} />
-                <span>Product Requirement</span>
-              </button>
+        {/* Requirement Type Selector */}
+        <div>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">Requirement Type</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => handleTypeChange('product')}
+              className={`flex items-center justify-center gap-2 p-3.5 rounded-xl border text-xs font-bold transition ${type === 'product'
+                  ? 'bg-brand-purple/10 border-brand-purple text-brand-purple shadow-sm'
+                  : 'glass border-border text-text-secondary hover:border-brand-purple/40'
+                }`}
+            >
+              <FiShoppingBag size={18} />
+              <span>Product Requirement</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setType('service')}
-                className={`flex items-center justify-center gap-2 p-3.5 rounded-xl border text-xs font-bold transition ${type === 'service'
-                    ? 'bg-brand-orange/10 border-brand-orange text-brand-orange shadow-sm'
-                    : 'glass border-border text-text-secondary hover:border-brand-orange/40'
-                  }`}
-              >
-                <FiTool size={18} />
-                <span>Service Requirement</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleTypeChange('service')}
+              className={`flex items-center justify-center gap-2 p-3.5 rounded-xl border text-xs font-bold transition ${type === 'service'
+                  ? 'bg-brand-orange/10 border-brand-orange text-brand-orange shadow-sm'
+                  : 'glass border-border text-text-secondary hover:border-brand-orange/40'
+                }`}
+            >
+              <FiTool size={18} />
+              <span>Service Requirement</span>
+            </button>
           </div>
+        </div>
 
-          {/* Title */}
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Requirement Title *</label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Need 5 Laptops for office / AC Repair Service"
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-            />
-          </div>
-
-          {/* Category & Subcategory */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              >
-                {categories.length > 0
-                  ? categories.map(cat => <option key={cat._id || cat.name} value={cat.name}>{cat.name}</option>)
-                  : defaultCategories.map(cat => <option key={cat.name} value={cat.name}>{cat.label}</option>)
-                }
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Subcategory</label>
-              <input
-                type="text"
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-                placeholder="e.g. Laptops, Smartphones, Repairs"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-          </div>
-
-          {/* Sample Image/Video Upload */}
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">
-              <FiImage className="inline mr-1" size={12} />
-              Sample Images / Video (Optional)
-            </label>
-            <div className="flex flex-wrap gap-3 mb-3">
-              {photos.map((url, i) => (
-                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border group">
-                  <img src={resolveMediaUrl(url)} alt={`Sample ${i + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(i)}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                  >
-                    <FiX size={10} />
-                  </button>
-                </div>
-              ))}
-              {video && (
-                <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-brand-purple/30 bg-black">
-                  <video src={resolveMediaUrl(video)} className="w-full h-full object-cover" muted />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <FiVideo className="text-white" size={16} />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setVideo(null)}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center"
-                  >
-                    <FiX size={10} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed text-xs font-semibold cursor-pointer transition ${
-                uploading ? 'border-border text-text-tertiary' : 'border-brand-purple/30 text-brand-purple hover:bg-brand-purple/5'
-              }`}>
-                <FiUpload size={14} />
-                <span>{uploading ? 'Uploading...' : `Add Images (${photos.length}/5)`}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  disabled={uploading || photos.length >= 5}
-                  className="hidden"
-                />
-              </label>
-              {!video && (
-                <label className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed text-xs font-semibold cursor-pointer transition ${
-                  uploading ? 'border-border text-text-tertiary' : 'border-brand-orange/30 text-brand-orange hover:bg-brand-orange/5'
-                }`}>
-                  <FiVideo size={14} />
-                  <span>{uploading ? '...' : 'Add Video'}</span>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={handleVideoUpload}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
-          </div>
-
-          {/* Approximate Budget & Quantity */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Approximate Budget (₹) *</label>
-              <div className="relative">
-                <FiDollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
-                <input
-                  type="number"
-                  required
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  placeholder="e.g. 50000"
-                  className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Quantity / Units</label>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="1"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-          </div>
-
-          {/* Target Location Details */}
-          <div className="glass rounded-xl p-4 border border-border/50 space-y-4">
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
-              <FiTarget size={12} className="text-brand-orange" />
-              Target Location
-            </label>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State</label>
-                <div className="relative">
-                  <FiMapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-purple" size={14} />
-                  <input
-                    type="text"
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    placeholder="e.g. Punjab, Maharashtra"
-                    className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District</label>
-                <input
-                  type="text"
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  placeholder="e.g. Kapurthala, Pune"
-                  className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City *</label>
-                <div className="relative">
-                  <FiMapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-orange" size={14} />
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="e.g. Phagwara, Delhi"
-                    className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Pin Code</label>
-                <input
-                  type="text"
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                  placeholder="e.g. 144401"
-                  maxLength={6}
-                  className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-                />
-              </div>
-            </div>
-
-            {/* Distance Selector */}
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Within Distance</label>
-              <select
-                value={targetDistance}
-                onChange={(e) => setTargetDistance(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-              >
-                {DISTANCE_OPTIONS.map(d => (
-                  <option key={d.value} value={d.value}>{d.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Detailed Description *</label>
-            <textarea
-              required
-              rows={4}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your exact specifications, preferred brands, delivery timeline, or additional preferences..."
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-            />
-          </div>
-
-          {/* Any Other Condition */}
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1 flex items-center gap-1.5">
-              <FiAlertCircle size={12} className="text-brand-orange" />
-              Any Other Condition (Optional)
-            </label>
-            <textarea
-              rows={3}
-              value={otherConditions}
-              onChange={(e) => setOtherConditions(e.target.value)}
-              placeholder="e.g. Must be ISI certified, delivery within 3 days, warranty required, specific color/model preferred..."
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading || uploading}
-            className="w-full py-3.5 rounded-xl gradient-brand font-bold text-xs text-white shadow-premium flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60"
-          >
-            {isLoading ? 'Publishing Requirement...' : 'Post Requirement Now'}
-          </button>
-        </form>
+        {type === 'product' ? (
+          <ProductRequirementForm
+            title={title} setTitle={setTitle}
+            category={category} setCategory={setCategory}
+            subcategory={subcategory} setSubcategory={setSubcategory}
+            budget={budget} setBudget={setBudget}
+            quantity={quantity} setQuantity={setQuantity}
+            state={state} setState={setState}
+            district={district} setDistrict={setDistrict}
+            city={city} setCity={setCity}
+            pincode={pincode} setPincode={setPincode}
+            targetDistance={targetDistance} setTargetDistance={setTargetDistance}
+            description={description} setDescription={setDescription}
+            otherConditions={otherConditions} setOtherConditions={setOtherConditions}
+            photos={photos} video={video} uploading={uploading}
+            handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload}
+            removePhoto={removePhoto} setVideo={setVideo}
+            resolveMediaUrl={resolveMediaUrl} categories={categories}
+            defaultCategories={defaultCategories} isLoading={isLoading}
+            onSubmit={handleSubmit}
+          />
+        ) : (
+          <ServiceRequirementForm
+            title={title} setTitle={setTitle}
+            category={category} setCategory={setCategory}
+            subcategory={subcategory} setSubcategory={setSubcategory}
+            budget={budget} setBudget={setBudget}
+            quantity={quantity} setQuantity={setQuantity}
+            state={state} setState={setState}
+            district={district} setDistrict={setDistrict}
+            city={city} setCity={setCity}
+            pincode={pincode} setPincode={setPincode}
+            description={description} setDescription={setDescription}
+            otherConditions={otherConditions} setOtherConditions={setOtherConditions}
+            photos={photos} video={video} uploading={uploading}
+            handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload}
+            removePhoto={removePhoto} setVideo={setVideo}
+            resolveMediaUrl={resolveMediaUrl} categories={categories}
+            defaultCategories={defaultCategories} isLoading={isLoading}
+            onSubmit={handleSubmit}
+          />
+        )}
       </div>
     </div>
   );
