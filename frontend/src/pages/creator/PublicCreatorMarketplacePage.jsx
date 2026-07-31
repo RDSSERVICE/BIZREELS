@@ -13,7 +13,8 @@ import {
   FiLock,
   FiArrowRight,
   FiCompass,
-  FiAward
+  FiAward,
+  FiShield
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
@@ -102,34 +103,43 @@ const PublicCreatorMarketplacePage = () => {
   return (
     <div className="min-h-screen bg-surface-secondary pb-16">
       {/* ── Page Hero Banner ────────────────────────────────────────── */}
-      <section className="relative px-4 sm:px-6 py-10 md:py-16 bg-gradient-to-b from-brand-purple/10 via-surface-secondary to-surface-secondary border-b border-border overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6 relative z-10">
-          <div className="flex flex-col gap-3 text-center md:text-left max-w-xl">
-            <span className="px-3 py-1 text-[11px] font-black bg-brand-orange/15 text-brand-orange rounded-full uppercase tracking-wider w-fit mx-auto md:mx-0 flex items-center gap-1.5">
-              <FiAward className="w-3.5 h-3.5 text-brand-orange" /> Real-Time Live Marketplace
+      <section className="relative px-4 sm:px-6 lg:px-8 py-10 sm:py-14 md:py-16 overflow-hidden">
+        {/* BG decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-b from-brand-orange/[0.04] via-transparent to-transparent" />
+          <div className="absolute top-[15%] left-[10%] w-[250px] h-[250px] bg-brand-orange/[0.06] rounded-full blur-[100px]" />
+          <div className="absolute bottom-[10%] right-[15%] w-[200px] h-[200px] bg-brand-purple/[0.05] rounded-full blur-[80px]" />
+        </div>
+
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative z-10">
+          <div className="flex flex-col gap-4 text-center md:text-left max-w-xl">
+            <span className="px-3.5 py-1.5 text-[11px] font-bold bg-brand-orange/[0.08] text-brand-orange rounded-full uppercase tracking-widest w-fit mx-auto md:mx-0 flex items-center gap-2 border border-brand-orange/[0.12]">
+              <FiAward className="w-3.5 h-3.5" /> Real-Time Live Marketplace
             </span>
-            <h1 className="text-3xl md:text-5xl font-black text-brand-navy leading-tight">
+            <h1 className="text-[1.75rem] leading-[1.2] sm:text-[2.25rem] md:text-[2.75rem] lg:text-[3.25rem] font-black text-brand-navy">
               Creator <span className="gradient-text">Marketplace</span>
             </h1>
-            <p className="text-xs md:text-sm text-text-secondary leading-relaxed">
-              Discover real-time verified local content creators, video directors, & reel influencers. Connect directly to scale your brand presence.
+            <p className="text-sm sm:text-base text-text-secondary leading-relaxed">
+              Discover real-time verified local content creators, video directors,
+              & reel influencers. Connect directly to scale your brand presence.
             </p>
           </div>
 
           {!isAuthenticated && (
-            <div className="glass p-5 rounded-premium border-white/40 shadow-glass flex flex-col items-center gap-3 max-w-xs text-center">
-              <div className="w-10 h-10 rounded-full bg-brand-orange/10 text-brand-orange flex items-center justify-center">
-                <FiLock className="w-5 h-5" />
+            <div className="bg-white rounded-2xl p-5 border border-border/60 shadow-card flex flex-col items-center gap-3 w-full max-w-xs text-center">
+              <div className="w-11 h-11 rounded-xl bg-brand-orange/[0.08] text-brand-orange flex items-center justify-center">
+                <FiShield className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-brand-navy">Guest Marketplace View</h3>
-                <p className="text-[11px] text-text-tertiary mt-0.5">
+                <h3 className="text-[13px] font-bold text-brand-navy">Guest Marketplace View</h3>
+                <p className="text-xs text-text-tertiary mt-1 leading-relaxed">
                   Sign in or create a business account to send hire requests & negotiate reel deals.
                 </p>
               </div>
               <button
                 onClick={() => navigate('/auth/register')}
-                className="w-full py-2 px-4 bg-brand-orange hover:bg-brand-orange-600 text-white text-xs font-bold rounded-premium transition-all shadow-md flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 px-4 bg-brand-orange hover:bg-brand-orange-600 text-white text-[13px] font-bold rounded-xl transition-all duration-200 shadow-sm flex items-center justify-center gap-2 active:scale-[0.98]"
+                data-testid="marketplace-join"
               >
                 <span>Join Marketplace</span>
                 <FiArrowRight className="w-3.5 h-3.5" />
@@ -140,9 +150,9 @@ const PublicCreatorMarketplacePage = () => {
       </section>
 
       {/* ── Main Marketplace Body ───────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6 sm:gap-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-5 sm:gap-6">
         {/* Search and Filters Bar */}
-        <div className="glass p-5 rounded-premium border border-white/50 shadow-glass flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-border/60 shadow-card flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
           {/* Search Box */}
           <div className="relative w-full md:w-80">
             <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary w-4 h-4" />
@@ -151,43 +161,43 @@ const PublicCreatorMarketplacePage = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by creator name or niche..."
-              className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-premium text-xs text-text-primary focus:outline-none focus:border-brand-purple transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-surface-tertiary/50 border border-border/40 rounded-xl text-[13px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple/50 focus:bg-white transition-all duration-200"
+              data-testid="creator-search"
             />
           </div>
 
-          {/* Category Dropdown & City Dropdown */}
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* Category & City Dropdowns */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-surface border border-border rounded-premium px-3.5 py-2.5 text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer flex-1 md:flex-none"
+              className="bg-surface-tertiary/50 border border-border/40 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-text-primary focus:outline-none focus:border-brand-purple/50 cursor-pointer transition-all duration-200 w-full sm:w-auto"
+              data-testid="category-filter"
             >
               {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
+                <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
 
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="bg-surface border border-border rounded-premium px-3.5 py-2.5 text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer flex-1 md:flex-none"
+              className="bg-surface-tertiary/50 border border-border/40 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-text-primary focus:outline-none focus:border-brand-purple/50 cursor-pointer transition-all duration-200 w-full sm:w-auto"
+              data-testid="city-filter"
             >
               {CITIES.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
+                <option key={city} value={city}>{city}</option>
               ))}
             </select>
           </div>
         </div>
 
         {/* Creators Grid Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-black text-brand-navy flex items-center gap-2">
-            <FiVideo className="text-brand-purple" /> Verified Creators (Real-Time Database)
-            <span className="text-xs font-bold text-brand-purple bg-brand-purple/10 px-2.5 py-0.5 rounded-full">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <h2 className="text-base sm:text-lg font-black text-brand-navy flex items-center gap-2 flex-wrap">
+            <FiVideo className="text-brand-purple w-5 h-5" />
+            <span>Verified Creators</span>
+            <span className="text-xs font-bold text-brand-purple bg-brand-purple/[0.08] px-2.5 py-0.5 rounded-full border border-brand-purple/[0.12]">
               {creators.length} Live
             </span>
           </h2>
@@ -199,41 +209,48 @@ const PublicCreatorMarketplacePage = () => {
             <Loader size="lg" />
           </div>
         ) : creators.length === 0 ? (
-          <div className="glass p-12 rounded-premium text-center flex flex-col items-center gap-3 max-w-md mx-auto">
-            <FiCompass className="w-12 h-12 text-text-tertiary" />
+          <div className="bg-white rounded-2xl p-10 sm:p-14 text-center flex flex-col items-center gap-4 max-w-md mx-auto border border-border/60 shadow-card">
+            <div className="w-14 h-14 rounded-2xl bg-surface-tertiary flex items-center justify-center">
+              <FiCompass className="w-7 h-7 text-text-tertiary" />
+            </div>
             <h3 className="text-base font-bold text-brand-navy">No Creators Found</h3>
-            <p className="text-xs text-text-secondary">Try adjusting your search query or city/category filters.</p>
+            <p className="text-[13px] text-text-secondary leading-relaxed">
+              Try adjusting your search query or city/category filters.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {creators.map((creator) => (
               <motion.div
                 key={creator._id}
-                whileHover={{ y: -6 }}
+                whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="glass rounded-premium p-6 border border-white/50 shadow-glass flex flex-col justify-between gap-5 hover:shadow-xl transition-all group"
+                className="bg-white rounded-2xl p-5 sm:p-6 border border-border/60 shadow-card flex flex-col justify-between gap-4 sm:gap-5 hover:shadow-card-hover transition-all duration-300 group"
               >
                 {/* Top Creator Info Header */}
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <div className="relative shrink-0">
-                    <img
-                      src={creator.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
-                      alt={creator.name}
-                      className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-purple/30 group-hover:border-brand-purple transition-all shadow-md"
-                    />
+                    {/* Avatar with gradient ring */}
+                    <div className="p-[2px] rounded-2xl bg-gradient-to-br from-brand-purple via-brand-pink to-brand-orange">
+                      <img
+                        src={creator.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
+                        alt={creator.name}
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-[14px] object-cover bg-white"
+                      />
+                    </div>
                     {creator.isVerified && (
-                      <span className="absolute -bottom-1 -right-1 bg-brand-purple text-white p-1 rounded-full text-[10px] shadow" title="Verified Creator">
+                      <span className="absolute -bottom-1 -right-1 bg-brand-purple text-white p-1 rounded-full shadow-sm" title="Verified Creator">
                         <FiCheckCircle className="w-3 h-3" />
                       </span>
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1 flex-grow">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-black text-sm text-brand-navy group-hover:text-brand-purple transition-colors truncate max-w-[160px] sm:max-w-[180px]">
+                  <div className="flex flex-col gap-1 flex-grow min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-bold text-sm text-brand-navy group-hover:text-brand-purple transition-colors duration-200 truncate">
                         {creator.name}
                       </h3>
-                      <div className="flex items-center gap-1 bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                      <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-0.5 rounded-lg text-xs font-bold flex-shrink-0 border border-amber-100">
                         <FiStar className="w-3 h-3 fill-amber-500" />
                         <span>{creator.rating || '4.9'}</span>
                         <span className="text-[10px] text-text-tertiary">({creator.reviewsCount || 0})</span>
@@ -245,31 +262,33 @@ const PublicCreatorMarketplacePage = () => {
                     </span>
 
                     <span className="text-[11px] text-text-tertiary flex items-center gap-1 mt-0.5">
-                      <FiMapPin className="w-3 h-3 text-brand-orange" /> {creator.city || 'India'}
+                      <FiMapPin className="w-3 h-3 text-brand-orange flex-shrink-0" />
+                      <span className="truncate">{creator.city || 'India'}</span>
                     </span>
                   </div>
                 </div>
 
                 {/* Bio & Specialties */}
-                <p className="text-xs text-text-secondary leading-relaxed line-clamp-2">
+                <p className="text-[13px] text-text-secondary leading-relaxed line-clamp-2">
                   {creator.bio || 'Verified short-form video creator & brand ambassador on BizReels.'}
                 </p>
 
                 {/* Pricing & Connect Footer */}
-                <div className="pt-4 border-t border-border/60 flex items-center justify-between">
-                  <div>
+                <div className="pt-4 border-t border-border/40 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary block">
                       Starting Package
                     </span>
                     <span className="text-sm font-black text-brand-navy">
                       ₹{creator.pricing?.reel1 ? creator.pricing.reel1.toLocaleString('en-IN') : '800'}
-                      <span className="text-[10px] font-normal text-text-tertiary"> / Reel</span>
+                      <span className="text-[10px] font-normal text-text-tertiary ml-0.5">/ Reel</span>
                     </span>
                   </div>
 
                   <button
                     onClick={() => handleConnectCreator(creator)}
-                    className="px-4 py-2 bg-brand-purple hover:bg-brand-purple-800 text-white font-bold text-xs rounded-premium transition-all shadow-md flex items-center gap-1.5 active:scale-95"
+                    className="px-4 py-2.5 bg-brand-purple hover:bg-brand-purple-800 text-white font-bold text-xs rounded-xl transition-all duration-200 shadow-sm flex items-center gap-1.5 active:scale-[0.97] flex-shrink-0"
+                    data-testid={`hire-${creator._id}`}
                   >
                     <FiSend className="w-3.5 h-3.5" />
                     <span>Hire Creator</span>
