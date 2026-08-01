@@ -89,17 +89,30 @@ export default function VendorBusinessProfilePage() {
       setShopName(vendorProfile.shopName || user.name || '');
       setBusinessName(vendorProfile.businessName || '');
       setCategory(vendorProfile.category || 'Electronics');
-      setDescription(vendorProfile.description || '');
+      setDescription(vendorProfile.description || vendorProfile.businessDescription || '');
       setGst(vendorProfile.gst || '');
       setPan(vendorProfile.pan || '');
       setBusinessHours(vendorProfile.businessHours || '9:00 AM - 9:00 PM (Mon-Sat)');
-      setAddress(vendorProfile.businessAddress || user.location?.address || '');
+      
+      let addressStr = vendorProfile.businessAddress || '';
+      if (!addressStr && vendorProfile.address) {
+        if (typeof vendorProfile.address === 'string') {
+          addressStr = vendorProfile.address;
+        } else if (typeof vendorProfile.address === 'object') {
+          addressStr = vendorProfile.address.fullAddress || vendorProfile.address.address || '';
+        }
+      }
+      if (!addressStr && user.location?.address) {
+        addressStr = user.location.address;
+      }
+      setAddress(addressStr);
+
       setWebsite(vendorProfile.website || '');
       setWhatsapp(vendorProfile.whatsapp || user.phone || '');
       setInstagram(vendorProfile.instagram || '');
       setFacebook(vendorProfile.facebook || '');
-      setProfilePic(user.profile_pic || user.avatarUrl || '');
-      setCoverBanner(vendorProfile.coverBanner || '');
+      setProfilePic(user.profile_pic || user.avatarUrl || vendorProfile.shopLogo || '');
+      setCoverBanner(vendorProfile.coverBanner || vendorProfile.shopCoverImage || '');
 
       const timing = vendorProfile.businessTiming || {};
       setOpen24x7(!!timing.open24x7);
@@ -187,6 +200,8 @@ export default function VendorBusinessProfilePage() {
           instagram,
           facebook,
           coverBanner: coverBanner || '',
+          shopLogo: profilePic || vendorProfile.shopLogo || '',
+          shopCoverImage: coverBanner || vendorProfile.shopCoverImage || '',
           updatedAt: new Date().toISOString()
         }
       };
