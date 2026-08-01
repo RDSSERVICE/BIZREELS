@@ -1,45 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiUsers, FiCopy, FiShare2, FiGift, FiAward, FiClock, FiCheckCircle } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
-import { useGetVendorDashboardQuery } from '../../../features/vendor/vendorApi';
+import { api } from '../../../lib/api';
 
 export default function VendorReferralPage() {
-  const { data: dashboardRes, isLoading } = useGetVendorDashboardQuery(undefined, {
-    pollingInterval: 300000,
+  const [data, setData] = useState({
+    referral_code: '',
+    referral_link: '',
+    items: [],
+    summary: {
+      total: 0,
+      successful: 0,
+      credited: 0,
+      pending: 0,
+      credits_earned: 0,
+      reward_per_referral: 200,
+      bonus_per_referred: 100,
+    }
   });
+  const [loading, setLoading] = useState(true);
 
-  const rawData = dashboardRes?.data;
-  const metrics = (rawData?.totalProducts !== undefined ? rawData : rawData?.data) || {};
-  const referral = metrics.referral || {
-    code: '',
-    link: '',
-    totalReferrals: 0,
-    successfulReferrals: 0,
-    creditsEarned: 0
-  };
-  const items = referral.items || [];
+  useEffect(() => {
+    const fetchReferrals = async () => {
+      try {
+        const res = await api.get('/v1/users/me/referrals');
+        if (res.data?.success || res.success) {
+          const payload = res.data?.data || res.data || res;
+          setData({
+            referral_code: payload.referral_code || '',
+            referral_link: payload.referral_link || '',
+            items: payload.items || [],
+            summary: {
+              total: Number(payload.summary?.total ?? 0),
+              successful: Number(payload.summary?.successful ?? 0),
+              credited: Number(payload.summary?.credited ?? 0),
+              pending: Number(payload.summary?.pending ?? 0),
+              credits_earned: Number(payload.summary?.credits_earned ?? 0),
+              reward_per_referral: Number(payload.summary?.reward_per_referral ?? 200),
+              bonus_per_referred: Number(payload.summary?.bonus_per_referred ?? 100),
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load referrals:', err);
+        toast.error('Failed to load referral stats from server');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReferrals();
+  }, []);
 
   const handleCopyCode = () => {
-    if (!referral.code) return;
-    navigator.clipboard.writeText(referral.code);
+    if (!data.referral_code) return;
+    navigator.clipboard.writeText(data.referral_code);
     toast.success('Referral code copied to clipboard!');
   };
 
   const handleCopyLink = () => {
-    if (!referral.link) return;
-    navigator.clipboard.writeText(referral.link);
+    if (!data.referral_link) return;
+    navigator.clipboard.writeText(data.referral_link);
     toast.success('Referral link copied to clipboard!');
   };
 
   const handleShare = async () => {
-    if (!referral.link) return;
+    if (!data.referral_link) return;
     if (navigator.share) {
       try {
         await navigator.share({
           title: 'Join BizReels',
-          text: `Join BizReels and grow your business! Use my referral code ${referral.code} to get bonus credits.`,
-          url: referral.link,
+          text: `Join BizReels and grow your business! Use my referral code ${data.referral_code} to get bonus credits.`,
+          url: data.referral_link,
         });
       } catch (err) {
         // user cancelled share
@@ -65,9 +97,11 @@ export default function VendorReferralPage() {
             <div className="inline-flex p-2.5 rounded-xl bg-brand-purple/10 text-brand-purple">
               <FiGift className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-black text-text-primary font-display">Invite Vendors & Earn 200 Credits</h3>
+            <h3 className="text-base font-black text-text-primary font-display">
+              Invite Vendors & Earn {data.summary.reward_per_referral} Credits
+            </h3>
             <p className="text-[11px] text-text-secondary leading-relaxed max-w-lg">
-              Share your unique referral link or code with shop owners and business firms. When they register using your code, they immediately receive **100 bonus credits**; once they list their first products/reels, you receive **200 bonus credits** directly into your credit wallet!
+              Share your unique referral link or code with shop owners and business firms. When they register using your code, they immediately receive **{data.summary.bonus_per_referred} bonus credits**; once they list their first products/reels, you receive **{data.summary.reward_per_referral} bonus credits** directly into your credit wallet!
             </p>
           </div>
 
@@ -76,7 +110,7 @@ export default function VendorReferralPage() {
             <div className="bg-surface/50 border border-border p-4 rounded-2xl flex flex-col justify-between gap-3">
               <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Your Invite Code</span>
               <div className="flex items-center justify-between gap-2 bg-surface px-3 py-2.5 rounded-xl border border-border">
-                <span className="text-sm font-black tracking-widest text-text-primary font-display">{referral.code || 'SCUPVV'}</span>
+                <span className="text-sm font-black tracking-widest text-text-primary font-display">{data.referral_code || '------'}</span>
                 <button onClick={handleCopyCode} className="text-brand-purple p-1 hover:bg-brand-purple/10 rounded-lg transition">
                   <FiCopy className="w-4 h-4" />
                 </button>
@@ -115,21 +149,19 @@ export default function VendorReferralPage() {
           <div className="space-y-3.5">
             <div className="flex items-center justify-between p-3 rounded-2xl bg-surface border border-border">
               <span className="text-[11px] font-bold text-text-secondary">Total Referrals</span>
-              <span className="text-sm font-black text-text-primary">{referral.totalReferrals}</span>
+              <span className="text-sm font-black text-text-primary">{data.summary.total}</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-2xl bg-surface border border-border">
               <span className="text-[11px] font-bold text-text-secondary">KYC/Listing Completed</span>
-              <span className="text-sm font-black text-emerald-500">{referral.successfulReferrals}</span>
+              <span className="text-sm font-black text-emerald-500">{data.summary.successful}</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-2xl bg-surface border border-border">
               <span className="text-[11px] font-bold text-text-secondary">Pending Activation</span>
-              <span className="text-sm font-black text-amber-500">
-                {Math.max(0, referral.totalReferrals - referral.successfulReferrals)}
-              </span>
+              <span className="text-sm font-black text-amber-500">{data.summary.pending}</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-brand-purple/10 to-brand-pink/5 border border-brand-purple/20">
               <span className="text-[11px] font-bold text-brand-purple">Total Credits Earned</span>
-              <span className="text-sm font-black text-brand-purple">₹{referral.creditsEarned}</span>
+              <span className="text-sm font-black text-brand-purple">₹{data.summary.credits_earned}</span>
             </div>
           </div>
         </div>
@@ -141,11 +173,11 @@ export default function VendorReferralPage() {
           <FiUsers className="text-brand-purple" /> Referral Signup History
         </h3>
 
-        {isLoading ? (
+        {loading ? (
           <div className="text-center text-xs text-text-tertiary py-8">
             Loading activity history...
           </div>
-        ) : items.length === 0 ? (
+        ) : data.items.length === 0 ? (
           <div className="text-center text-xs text-text-tertiary py-8 border border-dashed border-border rounded-2xl bg-surface/30">
             No referred signups recorded yet. Start sharing your code to earn free credits!
           </div>
@@ -162,7 +194,7 @@ export default function VendorReferralPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50 text-text-secondary font-medium">
-                {items.map((item) => (
+                {data.items.map((item) => (
                   <tr key={item.id} className="hover:bg-brand-purple/5 transition-all">
                     <td className="py-3.5 px-4 font-bold text-text-primary">{item.referred_name || 'Anonymous User'}</td>
                     <td className="py-3.5 px-4 text-text-tertiary font-mono">{item.referred_phone_masked || 'N/A'}</td>

@@ -206,12 +206,11 @@ const getReferralLink = async (userId) => {
   };
 };
 
-/**
- * List my referrals (user-facing).
- */
 const listMyReferrals = async (userId) => {
   const dashboard = await getVendorDashboard(userId);
   return {
+    referral_code: dashboard.referral_code,
+    referral_link: dashboard.referral_link,
     items: dashboard.items,
     summary: dashboard.summary,
   };
