@@ -7,6 +7,7 @@ import {
 import { Link } from 'react-router-dom';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import SubscriptionStatusCard from '../../../components/subscription/SubscriptionStatusCard';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import ReferralCard from '../../../components/app/ReferralCard';
@@ -135,6 +136,9 @@ export default function VendorDashboardPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
+      {/* Subscription Status Card */}
+      <SubscriptionStatusCard user={currentUser} />
+
       {/* Top Verification Status & Dialogue Banner */}
       <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 border border-border shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">

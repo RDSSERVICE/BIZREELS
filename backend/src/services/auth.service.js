@@ -75,7 +75,7 @@ class AuthService {
   // REGISTRATION
   // ══════════════════════════════════════════════════════════
 
-  async registerWithEmail({ name, email, phone, password, role }, req) {
+  async registerWithEmail({ name, email, phone, password, role, referralCode }, req) {
     const cleanEmail = (typeof email === 'string' && email.trim()) ? email.trim().toLowerCase() : undefined;
     const cleanPhone = (typeof phone === 'string' && phone.trim()) ? phone.trim() : undefined;
 
@@ -115,6 +115,16 @@ class AuthService {
     await this._logAction(user._id, 'USER_REGISTER', 'User', user._id, 'Email registration', req);
 
     logger.info(`New user registered: ${email}`, { service: 'auth', userId: user._id });
+
+    // Claim referral code if present
+    if (referralCode) {
+      try {
+        const referralService = require('./referral.service');
+        await referralService.claimOnSignup(user._id, referralCode, req.ip || '127.0.0.1');
+      } catch (err) {
+        logger.error(`Failed to process referral code ${referralCode} for user ${user._id}: ${err.message}`, { service: 'referral' });
+      }
+    }
 
     try {
       const { emitToAdmin } = require('../sockets');
@@ -248,6 +258,18 @@ class AuthService {
           current_role: 'customer',
         });
         await this._logAction(user._id, 'USER_REGISTER', 'User', user._id, 'Mobile OTP registration', req);
+
+        // Claim referral code if present
+        const referralCode = req.body?.referralCode || req.body?.ref;
+        if (referralCode) {
+          try {
+            const referralService = require('./referral.service');
+            await referralService.claimOnSignup(user._id, referralCode, req.ip || '127.0.0.1');
+          } catch (err) {
+            logger.error(`Failed to process referral code ${referralCode} for user ${user._id} during phone OTP signup: ${err.message}`, { service: 'referral' });
+          }
+        }
+
         try {
           const { emitToAdmin } = require('../sockets');
           emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
@@ -301,6 +323,17 @@ class AuthService {
         activeRole: 'customer',
       });
       await this._logAction(user._id, 'USER_REGISTER', 'User', user._id, 'OTP registration', req);
+
+      // Claim referral code if present
+      const referralCode = req.body?.referralCode || req.body?.ref;
+      if (referralCode) {
+        try {
+          const referralService = require('./referral.service');
+          await referralService.claimOnSignup(user._id, referralCode, req.ip || '127.0.0.1');
+        } catch (err) {
+          logger.error(`Failed to process referral code ${referralCode} for user ${user._id} during email OTP signup: ${err.message}`, { service: 'referral' });
+        }
+      }
     }
 
     const tokens = await this.generateTokenPair(user, req);

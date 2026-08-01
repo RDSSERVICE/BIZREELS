@@ -39,6 +39,7 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pdfkit": "^0.19.1",
+    "razorpay": "^2.9.8",
     "sharp": "^0.35.3",
     "slugify": "^1.6.9",
     "socket.io": "^4.8.3",
@@ -49,5 +50,8 @@
   "devDependencies": {
     "jest": "^30.4.2",
     "supertest": "^7.2.2"
+  },
+  "overrides": {
+    "glob": "^13.0.6"
   }
 }

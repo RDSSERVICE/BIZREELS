@@ -308,7 +308,7 @@ export const walletApi = {
 export const paymentApi = {
   order: (body) => api.post("/v1/payments/order", body),
   verify: (body) => api.post("/v1/payments/verify", body),
-  simulate: (payment_id) => api.post(`/v1/payments/dev/simulate-success?payment_id=${payment_id}`),
+  simulate: (payment_id) => api.post('/v1/payments/dev/simulate-success', { payment_id }),
   mine: () => api.get("/v1/payments/me"),
 };
 export const subApi = {

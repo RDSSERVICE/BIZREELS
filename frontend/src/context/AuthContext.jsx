@@ -2,10 +2,13 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 import { tokenStore, userApi, authApi } from "@/lib/api";
 import { getSocket, disconnectSocket } from "@/lib/socket";
 import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import { updateUser, setCredentials } from "../features/auth/authSlice";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const dispatch = useDispatch();
   const [user, setUser] = useState(() => tokenStore.getUser());
   const [loading, setLoading] = useState(!!tokenStore.getAccess());
 
@@ -19,6 +22,7 @@ export function AuthProvider({ children }) {
       const { data } = await userApi.me();
       tokenStore.setUser(data.user);
       setUser(data.user);
+      dispatch(updateUser(data.user));
       return data.user;
     } catch (e) {
       tokenStore.clear();
@@ -27,7 +31,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     refreshMe();
@@ -41,6 +45,11 @@ export function AuthProvider({ children }) {
       user: data.user,
     });
     setUser(data.user);
+    dispatch(setCredentials({
+      user: data.user,
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+    }));
   };
 
   const logout = async () => {

@@ -4,6 +4,7 @@ const reelValidation = require('../validations/reelValidation');
 const validate = require('../middleware/validate');
 const upload = require('../middleware/upload');
 const { authenticate } = require('../middleware/auth');
+const { checkSubscriptionLimit } = require('../middleware/subscription');
 
 const router = express.Router();
 
@@ -40,6 +41,7 @@ router.get('/:id/comments', reelValidation.idParam, validate, reelController.get
 router.post(
   '/',
   authenticate,
+  checkSubscriptionLimit('reels'),
   upload.single('video'),
   reelValidation.publish,
   validate,

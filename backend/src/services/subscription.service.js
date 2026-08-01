@@ -132,10 +132,104 @@ const hasActiveVerifiedSub = async (userId) => {
   return !!sub;
 };
 
+const reconcileUserSubscription = async (userId) => {
+  const User = require('../models/User');
+  const UserSubscription = require('../models/UserSubscription.model');
+
+  const now = new Date();
+  let activeSub = await UserSubscription.findOne({
+    user_id: userId,
+    status: 'active',
+    is_deleted: { $ne: true }
+  });
+
+  const user = await User.findById(userId);
+  if (!user) return null;
+
+  if (activeSub) {
+    if (new Date(activeSub.expiry_date) < now) {
+      await UserSubscription.updateOne(
+        { _id: activeSub._id },
+        { $set: { status: 'expired' } }
+      );
+
+      try {
+        await notificationService.create(
+          userId,
+          'subscription',
+          'Subscription Expired',
+          `Your ${activeSub.plan_name} subscription has expired. Renew to keep premium benefits.`,
+          {},
+          '/subscriptions'
+        );
+        const { emitToUser, emitToAdmin } = require('../sockets');
+        emitToUser(userId, 'subscription:expired', { plan: activeSub.plan_name, expired_at: now.toISOString() });
+        emitToUser(userId, 'subscription:updated', { updated: true });
+        emitToAdmin('admin:update', { tags: ['UserSubscriptions', 'AdminOverview'] });
+      } catch (err) {}
+
+      user.is_subscribed_verified = false;
+      user.subscription = {
+        plan: 'Free Member',
+        plan_id: null,
+        startedAt: null,
+        expiresAt: null,
+        boostCredits: 0,
+        autoRenew: false,
+        status: 'inactive'
+      };
+      await User.updateOne({ _id: userId }, { $set: { is_subscribed_verified: false, subscription: user.subscription } });
+    } else {
+      const shouldUpdate =
+        !user.is_subscribed_verified ||
+        !user.subscription ||
+        user.subscription.plan !== activeSub.plan_name ||
+        user.subscription.plan_id !== activeSub.plan_id ||
+        user.subscription.status !== 'active';
+
+      if (shouldUpdate) {
+        user.is_subscribed_verified = true;
+        user.subscription = {
+          plan: activeSub.plan_name,
+          plan_id: activeSub.plan_id,
+          startedAt: activeSub.start_date,
+          expiresAt: activeSub.expiry_date,
+          boostCredits: user.subscription?.boostCredits || 0,
+          autoRenew: activeSub.auto_renewal || false,
+          status: 'active'
+        };
+        await User.updateOne({ _id: userId }, { $set: { is_subscribed_verified: true, subscription: user.subscription } });
+      }
+    }
+  } else {
+    const hasVerifiedSub = await hasActiveVerifiedSub(userId);
+    const shouldUpdate =
+      user.is_subscribed_verified !== hasVerifiedSub ||
+      (user.subscription && user.subscription.plan !== 'Free Member' && !hasVerifiedSub);
+
+    if (shouldUpdate) {
+      user.is_subscribed_verified = hasVerifiedSub;
+      user.subscription = {
+        plan: 'Free Member',
+        plan_id: null,
+        startedAt: null,
+        expiresAt: null,
+        boostCredits: 0,
+        autoRenew: false,
+        status: 'inactive'
+      };
+      await User.updateOne({ _id: userId }, { $set: { is_subscribed_verified: hasVerifiedSub, subscription: user.subscription } });
+    }
+  }
+
+  return user;
+};
+
 module.exports = {
   createSubOrder,
   activateSubscriptionFromPayment,
   mySubs,
   cancelSub,
   hasActiveVerifiedSub,
+  reconcileUserSubscription,
 };

@@ -4,6 +4,7 @@ import Button from '../../components/common/Button';
 import { toast } from 'react-hot-toast';
 import { useGetSubscriptionPlansQuery, useChangeSubscriptionMutation, usePurchaseSubscriptionRazorpayMutation } from '../vendor/vendorApi';
 import { api } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 import { getSocket } from '../../lib/socket';
 
 const loadRazorpayScript = () => {
@@ -18,6 +19,7 @@ const loadRazorpayScript = () => {
 };
 
 const SubscriptionTab = ({ user, refetchUser }) => {
+  const { refreshMe } = useAuth();
   const currentRole = user?.current_role || user?.roles?.[0] || 'vendor';
   const roleParam = currentRole === 'creator' ? 'creator' : 'vendor';
 
@@ -51,72 +53,103 @@ const SubscriptionTab = ({ user, refetchUser }) => {
 
   // Razorpay-based subscription purchase
   const handleRazorpayPurchase = async (plan) => {
+    if (user?.subscription?.plan && user.subscription.plan.toLowerCase() === plan.title.toLowerCase() && user.subscription.status === 'active') {
+      toast.error(`You are already subscribed to the ${plan.title} plan.`);
+      return;
+    }
+
     if (!window.confirm(`Subscribe to ${plan.title} for ₹${plan.price_inr?.toLocaleString('en-IN')}/${plan.billing_cycle}?`)) return;
 
     try {
       // 1. Create Razorpay order via backend
-      const res = await api.post('/v1/subscription/purchase-razorpay', { plan_id: plan.id }).catch(() => null);
+      const res = await api.post('/v1/subscription/purchase-razorpay', { plan_id: plan.id });
 
-      if (res?.data?.data?.razorpay_order_id) {
-        const orderData = res.data.data;
+      const orderData = res?.data?.data;
+      if (!orderData?.razorpay_order_id) {
+        console.error('[BizReels] Subscription order response missing razorpay_order_id:', res?.data);
+        toast.error('Failed to create payment order. Please try again.');
+        return;
+      }
 
-        // Dev mode — auto-simulate success
-        if (orderData.dev_mode || orderData.razorpay_order_id.startsWith('order_dev_')) {
-          toast.success('Processing subscription...');
+      console.log('[BizReels] Subscription order created:', {
+        order_id: orderData.razorpay_order_id,
+        amount_paise: orderData.amount_paise,
+        plan: plan.title,
+      });
+
+      // 2. Load Razorpay SDK
+      const sdkLoaded = await loadRazorpayScript();
+      if (!sdkLoaded || !window.Razorpay) {
+        console.error('[BizReels] Razorpay SDK failed to load. window.Razorpay =', window.Razorpay);
+        toast.error('Payment gateway could not be loaded. Please check your internet connection and try again.');
+        return;
+      }
+
+      // 3. Open Razorpay checkout
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount_paise,
+        currency: 'INR',
+        name: 'BizReels Subscription',
+        description: `${plan.title} - ${plan.billing_cycle}`,
+        order_id: orderData.razorpay_order_id,
+        handler: async (response) => {
           try {
-            await api.post('/v1/payments/dev/simulate-success', { payment_id: orderData.payment_id });
+            await api.post('/v1/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
             toast.success(`Successfully subscribed to ${plan.title}!`);
+            await refreshMe();
             if (refetchUser) refetchUser();
             refetchPlans();
           } catch (err) {
-            toast.error('Subscription activation failed');
+            console.error('[BizReels] Subscription payment verification failed:', err);
+            toast.error('Payment was received but verification failed. Please contact support.');
           }
-          return;
-        }
+        },
+        modal: {
+          ondismiss: () => {
+            console.log('[BizReels] Razorpay modal dismissed by user');
+            toast('Payment cancelled.', { icon: '⚠️' });
+          },
+        },
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+          contact: user?.phone || '',
+        },
+        theme: { color: '#7C3AED' },
+      };
 
-        // Production — open Razorpay checkout
-        const sdkLoaded = await loadRazorpayScript();
-        if (sdkLoaded && window.Razorpay) {
-          const options = {
-            key: orderData.key_id || 'rzp_test_mockKey',
-            amount: orderData.amount_paise,
-            currency: 'INR',
-            name: 'BizReels Subscription',
-            description: `${plan.title} - ${plan.billing_cycle}`,
-            order_id: orderData.razorpay_order_id,
-            handler: async (response) => {
-              try {
-                await api.post('/v1/payments/verify', {
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                });
-                toast.success(`Successfully subscribed to ${plan.title}!`);
-                if (refetchUser) refetchUser();
-                refetchPlans();
-              } catch (err) {
-                toast.error('Payment verification failed');
-              }
-            },
-            modal: { ondismiss: () => {} },
-            theme: { color: '#7C3AED' },
-          };
-          const rzp = new window.Razorpay(options);
-          rzp.open();
-          return;
-        }
-      }
+      const rzp = new window.Razorpay(options);
 
-      // Fallback: wallet purchase
-      toast.error('Payment gateway unavailable. Trying wallet payment...');
-      await handleWalletPurchase(plan);
+      rzp.on('payment.failed', (response) => {
+        console.error('[BizReels] Razorpay payment failed:', {
+          code: response.error?.code,
+          description: response.error?.description,
+          source: response.error?.source,
+          step: response.error?.step,
+          reason: response.error?.reason,
+        });
+        toast.error(response.error?.description || 'Payment failed. Please try again.');
+      });
+
+      rzp.open();
     } catch (err) {
+      console.error('[BizReels] Subscription purchase error:', err);
       toast.error(err?.response?.data?.message || err?.message || 'Subscription purchase failed');
     }
   };
 
   // Wallet-based purchase (fallback)
   const handleWalletPurchase = async (plan) => {
+    if (user?.subscription?.plan && user.subscription.plan.toLowerCase() === plan.title.toLowerCase() && user.subscription.status === 'active') {
+      toast.error(`You are already subscribed to the ${plan.title} plan.`);
+      return;
+    }
+
     if (walletBalance < plan.price_inr) {
       return toast.error('Insufficient wallet balance. Please recharge your wallet first.');
     }
@@ -124,6 +157,7 @@ const SubscriptionTab = ({ user, refetchUser }) => {
       try {
         await changeSubscription({ plan: plan.id }).unwrap();
         toast.success(`Successfully subscribed to ${plan.title}!`);
+        await refreshMe();
         if (refetchUser) refetchUser();
       } catch (err) {
         toast.error(err?.data?.message || 'Subscription purchase failed.');

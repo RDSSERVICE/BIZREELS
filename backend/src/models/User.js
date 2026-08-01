@@ -21,6 +21,15 @@ const userSchema = new mongoose.Schema({
   is_test_data: { type: Boolean, default: false },
   // Phase 4a
   is_subscribed_verified: { type: Boolean, default: false },
+  subscription: {
+    plan: { type: String, default: 'Free Member' },
+    plan_id: { type: String, default: null },
+    startedAt: { type: Date, default: null },
+    expiresAt: { type: Date, default: null },
+    boostCredits: { type: Number, default: 0 },
+    autoRenew: { type: Boolean, default: false },
+    status: { type: String, default: 'inactive' }
+  },
   rating_avg: { type: Number, default: 0 },
   rating_count: { type: Number, default: 0 },
   walletBalance: { type: Number, default: 0 },

@@ -54,6 +54,10 @@ const startServer = async () => {
     const { initSubscriptionCron } = require('./jobs/subscription.cron');
     initSubscriptionCron();
 
+    // Log Razorpay configuration status
+    const razorpayService = require('./services/razorpay.service');
+    razorpayService.logConfigStatus();
+
     let currentPort = config.port;
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {

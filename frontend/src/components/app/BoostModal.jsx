@@ -4,12 +4,30 @@ import { Rocket, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { boostApi, paymentApi } from "@/lib/api";
+import { api } from "@/lib/api";
 
 const PLANS = [
   { days: 3,  credits: 300,  paise: 9900,  label: "3 days",  hint: "Try it out" },
   { days: 7,  credits: 600,  paise: 19900, label: "7 days",  hint: "Most popular", featured: true },
   { days: 14, credits: 1000, paise: 34900, label: "14 days", hint: "Best value" },
 ];
+
+/**
+ * Dynamically loads the Razorpay Checkout SDK script.
+ */
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => {
+      console.error("[BizReels] Failed to load Razorpay Checkout SDK");
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+};
 
 export function BoostButton({ listing, onBoosted, size = "default" }) {
   const [open, setOpen] = useState(false);
@@ -39,23 +57,85 @@ export function BoostModal({ open, onOpenChange, listing, onBoosted }) {
   const submit = async () => {
     setSaving(true);
     try {
-      const { data } = await boostApi.boost(listing.id, selected, method);
       if (method === "inr") {
-        // Payment path: simulate dev-mode success immediately
-        const paymentId = data?.payment?.payment_id;
-        const isDev = data?.payment?.dev_mode;
-        if (paymentId && isDev) {
-          await paymentApi.simulate(paymentId);
-          toast.success(`Listing boosted for ${selected} days (dev pay)`);
-        } else if (paymentId) {
-          toast.info("Complete payment on Razorpay to activate boost");
+        // INR payment path — use Razorpay checkout
+        const { data } = await boostApi.boost(listing.id, selected, method);
+        const paymentData = data?.payment;
+
+        if (!paymentData?.razorpay_order_id) {
+          console.error("[BizReels] Boost payment order missing razorpay_order_id:", data);
+          toast.error("Failed to create payment order. Please try again.");
+          return;
         }
+
+        console.log("[BizReels] Boost payment order created:", {
+          order_id: paymentData.razorpay_order_id,
+          amount_paise: paymentData.amount_paise,
+          listing_id: listing.id,
+        });
+
+        // Load Razorpay SDK
+        const sdkLoaded = await loadRazorpayScript();
+        if (!sdkLoaded || !window.Razorpay) {
+          console.error("[BizReels] Razorpay SDK failed to load");
+          toast.error("Payment gateway could not be loaded. Please check your internet connection.");
+          return;
+        }
+
+        // Open Razorpay checkout
+        const options = {
+          key: paymentData.key_id,
+          amount: paymentData.amount_paise || plan.paise,
+          currency: "INR",
+          name: "BizReels Boost",
+          description: `Boost listing for ${selected} days`,
+          order_id: paymentData.razorpay_order_id,
+          handler: async (response) => {
+            try {
+              await api.post("/v1/payments/verify", {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              toast.success(`Listing boosted for ${selected} days!`);
+              onOpenChange?.(false);
+              onBoosted?.();
+            } catch (err) {
+              console.error("[BizReels] Boost payment verification failed:", err);
+              toast.error("Payment was received but verification failed. Please contact support.");
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              console.log("[BizReels] Razorpay modal dismissed by user");
+              toast.info("Payment cancelled.");
+              setSaving(false);
+            },
+          },
+          theme: { color: "#7C3AED" },
+        };
+
+        const rzp = new window.Razorpay(options);
+
+        rzp.on("payment.failed", (response) => {
+          console.error("[BizReels] Razorpay boost payment failed:", {
+            code: response.error?.code,
+            description: response.error?.description,
+            reason: response.error?.reason,
+          });
+          toast.error(response.error?.description || "Payment failed. Please try again.");
+        });
+
+        rzp.open();
       } else {
+        // Credits payment path
+        await boostApi.boost(listing.id, selected, method);
         toast.success(`Listing boosted for ${selected} days`);
+        onOpenChange?.(false);
+        onBoosted?.();
       }
-      onOpenChange?.(false);
-      onBoosted?.();
     } catch (err) {
+      console.error("[BizReels] Boost error:", err);
       toast.error(err?.response?.data?.detail || "Failed to boost");
     } finally {
       setSaving(false);

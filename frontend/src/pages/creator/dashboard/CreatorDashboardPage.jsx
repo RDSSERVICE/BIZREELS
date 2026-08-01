@@ -5,8 +5,11 @@ import {
   FiActivity, FiCheckCircle, FiXCircle, FiPlay, FiMessageSquare,
   FiSend, FiChevronLeft, FiChevronRight, FiAlertCircle
 } from 'react-icons/fi';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import SubscriptionStatusCard from '../../../components/subscription/SubscriptionStatusCard';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import { useGetCreatorDashboardQuery } from '../../../features/creator/creatorApi';
@@ -17,6 +20,7 @@ import { getSocket } from '../../../lib/socket';
 import DirectChatContainer from '../../vendor/hire-creator/components/DirectChatContainer';
 
 export default function CreatorDashboardPage() {
+  const currentUser = useSelector(selectCurrentUser);
   const { data, isFetching, refetch: refetchMetrics } = useGetCreatorDashboardQuery(undefined, { pollingInterval: 300000 });
   const statsData = data?.data || data || {};
 
@@ -210,6 +214,9 @@ export default function CreatorDashboardPage() {
         title="Creator Studio & Collaborations Hub"
         subtitle="Manage brand invitation offers, upload reels submissions, and track earnings metrics"
       />
+
+      {/* Subscription Status Card */}
+      <SubscriptionStatusCard user={currentUser} />
 
       {/* Overview Stat Cards Grid */}
       {isFetching && !data ? (

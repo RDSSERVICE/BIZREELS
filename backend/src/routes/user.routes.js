@@ -104,17 +104,11 @@ router.get('/', optionalAuth, catchAsync(async (req, res) => {
 }));
 
 router.get('/me', requireAuth, catchAsync(async (req, res) => {
-  const user = req.user;
-  // Lazy-reconcile is_subscribed_verified against actual sub expiry.
+  let user = req.user;
   try {
-    const current = !!user.is_subscribed_verified;
-    const active = await subscriptionService.hasActiveVerifiedSub(user._id.toString());
-    if (current !== active) {
-      await User.updateOne(
-        { _id: user._id },
-        { $set: { is_subscribed_verified: active } }
-      );
-      user.is_subscribed_verified = active;
+    const reconciledUser = await subscriptionService.reconcileUserSubscription(user._id.toString());
+    if (reconciledUser) {
+      user = reconciledUser;
     }
   } catch (err) {
     // Non-fatal fallback

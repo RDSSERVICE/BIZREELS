@@ -1,35 +1,139 @@
 import React, { useState } from 'react';
-import { useGetTransactionsQuery, useRechargeWalletMutation } from './walletApi';
-import { FiTrendingUp, FiPlus, FiArrowDownLeft, FiArrowUpRight, FiDollarSign, FiInfo } from 'react-icons/fi';
+import { useGetTransactionsQuery } from './walletApi';
+import { FiTrendingUp, FiPlus, FiArrowDownLeft, FiArrowUpRight, FiDollarSign, FiInfo, FiAlertCircle } from 'react-icons/fi';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
 import Input from '../../components/common/Input';
 import { toast } from 'react-hot-toast';
+import { api } from '../../lib/api';
+
+/**
+ * Dynamically loads the Razorpay Checkout SDK script.
+ * Returns true if loaded successfully, false otherwise.
+ */
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => {
+      console.error('[BizReels] Failed to load Razorpay Checkout SDK from https://checkout.razorpay.com/v1/checkout.js');
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+};
 
 const WalletTab = ({ user, refetchUser }) => {
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [isRechargingModal, setIsRechargingModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Queries & Mutations
+  // Queries
   const { data: transactionsRes, isLoading: isTransactionsLoading, refetch: refetchTransactions } = useGetTransactionsQuery();
-  const [rechargeWallet, { isLoading: isRecharging }] = useRechargeWalletMutation();
 
   const transactions = transactionsRes?.data || [];
 
   const handleRecharge = async (e) => {
     e.preventDefault();
-    if (!rechargeAmount || parseFloat(rechargeAmount) <= 0) {
+    const numAmount = parseFloat(rechargeAmount);
+    if (!numAmount || numAmount <= 0) {
       return toast.error('Please enter a valid amount.');
     }
+
+    setIsProcessing(true);
     try {
-      await rechargeWallet({ amount: parseFloat(rechargeAmount) }).unwrap();
-      toast.success(`Successfully deposited ₹${rechargeAmount}!`);
-      setIsRechargingModal(false);
-      setRechargeAmount('');
-      if (refetchUser) refetchUser();
-      refetchTransactions();
+      // 1. Create Razorpay order via backend
+      const res = await api.post('/v1/payments/order', {
+        amount_paise: Math.round(numAmount * 100),
+        purpose: 'wallet_topup',
+      });
+
+      const orderData = res?.data;
+      if (!orderData?.razorpay_order_id) {
+        console.error('[BizReels] Payment order response missing razorpay_order_id:', orderData);
+        throw new Error('Failed to create payment order. Please try again.');
+      }
+
+      console.log('[BizReels] Payment order created:', {
+        order_id: orderData.razorpay_order_id,
+        amount_paise: orderData.amount_paise,
+        key_id: orderData.key_id ? `${orderData.key_id.substring(0, 12)}...` : 'MISSING',
+      });
+
+      // 2. Load Razorpay Checkout SDK
+      const sdkLoaded = await loadRazorpayScript();
+      if (!sdkLoaded || !window.Razorpay) {
+        console.error('[BizReels] Razorpay SDK failed to load. window.Razorpay =', window.Razorpay);
+        throw new Error('Payment gateway could not be loaded. Please check your internet connection and try again.');
+      }
+
+      // 3. Configure and open Razorpay Checkout
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount_paise,
+        currency: orderData.currency || 'INR',
+        name: 'BizReels',
+        description: `Wallet Top-up ₹${numAmount}`,
+        order_id: orderData.razorpay_order_id,
+        handler: async (response) => {
+          // 4. Verify payment on backend
+          try {
+            await api.post('/v1/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            toast.success(`₹${numAmount} added to your wallet successfully!`);
+            setIsRechargingModal(false);
+            setRechargeAmount('');
+            if (refetchUser) refetchUser();
+            refetchTransactions();
+          } catch (verifyErr) {
+            console.error('[BizReels] Payment verification failed:', verifyErr);
+            toast.error('Payment was received but verification failed. Please contact support if your balance is not updated.');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            console.log('[BizReels] Razorpay modal dismissed by user');
+            toast('Payment cancelled.', { icon: '⚠️' });
+            setIsProcessing(false);
+          },
+        },
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+          contact: user?.phone || '',
+        },
+        theme: {
+          color: '#7C3AED',
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+
+      // 5. Handle payment failure
+      rzp.on('payment.failed', (response) => {
+        console.error('[BizReels] Razorpay payment failed:', {
+          code: response.error?.code,
+          description: response.error?.description,
+          source: response.error?.source,
+          step: response.error?.step,
+          reason: response.error?.reason,
+          order_id: response.error?.metadata?.order_id,
+          payment_id: response.error?.metadata?.payment_id,
+        });
+        toast.error(response.error?.description || 'Payment failed. Please try again.');
+      });
+
+      rzp.open();
     } catch (err) {
-      toast.error('Recharge failed. Please try again.');
+      console.error('[BizReels] Recharge flow error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Recharge failed. Please try again.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -107,60 +211,59 @@ const WalletTab = ({ user, refetchUser }) => {
       </div>
 
       {/* Recharge Modal */}
-      <AnimatePresence>
-        {isRechargingModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsRechargingModal(false)} />
-            <div className="bg-white rounded-2xl shadow-modal border border-slate-100 w-full max-w-md p-6 z-10 relative flex flex-col gap-4">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-bold text-brand-navy font-display flex items-center gap-2">
-                  <FiPlus className="w-5 h-5 text-brand-purple" /> Recharge Wallet Balance
-                </h3>
+      {isRechargingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsRechargingModal(false)} />
+          <div className="bg-white rounded-2xl shadow-modal border border-slate-100 w-full max-w-md p-6 z-10 relative flex flex-col gap-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-bold text-brand-navy font-display flex items-center gap-2">
+                <FiPlus className="w-5 h-5 text-brand-purple" /> Recharge Wallet Balance
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsRechargingModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleRecharge} className="flex flex-col gap-4">
+              <Input
+                label="Enter Deposit Amount (₹) *"
+                type="number"
+                placeholder="e.g. 500"
+                value={rechargeAmount}
+                onChange={(e) => setRechargeAmount(e.target.value)}
+                required
+              />
+              
+              <div className="bg-brand-purple/5 p-4 rounded-xl border border-brand-purple/20 text-[10px] text-slate-600 leading-relaxed flex items-center gap-2">
+                <FiAlertCircle className="w-4 h-4 text-brand-purple shrink-0" />
+                <span>🔒 Secure payment via <strong>Razorpay</strong>. You will be redirected to the Razorpay payment gateway to complete this transaction.</span>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-4 border-t border-slate-100 pt-4">
                 <button
                   type="button"
                   onClick={() => setIsRechargingModal(false)}
-                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  className="px-5 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-all cursor-pointer"
                 >
-                  Close
+                  Cancel
                 </button>
+                <Button
+                  type="submit"
+                  disabled={isProcessing}
+                  variant="primary"
+                  className="text-xs py-2.5 px-6 rounded-xl cursor-pointer"
+                >
+                  {isProcessing ? 'Opening Payment...' : `Pay ₹${rechargeAmount || '0'} via Razorpay`}
+                </Button>
               </div>
-
-              <form onSubmit={handleRecharge} className="flex flex-col gap-4">
-                <Input
-                  label="Enter Deposit Amount (₹) *"
-                  type="number"
-                  placeholder="e.g. 500"
-                  value={rechargeAmount}
-                  onChange={(e) => setRechargeAmount(e.target.value)}
-                  required
-                />
-                
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/50 text-[10px] text-slate-500 leading-relaxed">
-                  🔒 Secure transaction payment processor simulation. The amount will be instantly credited to your simulated wallet.
-                </div>
-
-                <div className="flex justify-end gap-3 mt-4 border-t border-slate-100 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsRechargingModal(false)}
-                    className="px-5 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-all cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <Button
-                    type="submit"
-                    disabled={isRecharging}
-                    variant="primary"
-                    className="text-xs py-2.5 px-6 rounded-xl cursor-pointer"
-                  >
-                    {isRecharging ? 'Processing...' : 'Confirm Deposit'}
-                  </Button>
-                </div>
-              </form>
-            </div>
+            </form>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 };

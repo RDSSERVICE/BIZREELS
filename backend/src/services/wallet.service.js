@@ -243,6 +243,17 @@ class WalletService {
     const durationDays = planDoc.duration_days || 30;
     const refId = `sub_${planDoc._id}_${Date.now()}`;
 
+    // Prevent duplicate subscription purchase
+    const activeSub = await UserSubscription.findOne({
+      user_id: uid,
+      status: 'active',
+      plan_id: planDoc._id.toString(),
+      is_deleted: { $ne: true }
+    });
+    if (activeSub) {
+      throw ApiError.badRequest(`You already have an active subscription for the "${planDoc.title}" plan.`);
+    }
+
     // Idempotency: prevent purchasing same plan within 1 minute
     const recentPurchase = await WalletTransactionV2.findOne({
       user_id: uid,
@@ -337,10 +348,12 @@ class WalletService {
               is_subscribed_verified: true,
               subscription: {
                 plan: planDoc.title,
+                plan_id: planDoc._id.toString(),
                 startedAt: new Date(),
                 expiresAt,
                 boostCredits: planDoc.ai_credits || 0,
                 autoRenew: false,
+                status: 'active',
               },
             },
           },
@@ -383,6 +396,18 @@ class WalletService {
     }
 
     const uid = userId.toString();
+
+    // Prevent duplicate subscription purchase
+    const activeSub = await UserSubscription.findOne({
+      user_id: uid,
+      status: 'active',
+      plan_id: planDoc._id.toString(),
+      is_deleted: { $ne: true }
+    });
+    if (activeSub) {
+      throw ApiError.badRequest(`You already have an active subscription for the "${planDoc.title}" plan.`);
+    }
+
     const cost = planDoc.price_inr;
     const durationDays = planDoc.duration_days || 30;
     const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
@@ -453,10 +478,12 @@ class WalletService {
               is_subscribed_verified: true,
               subscription: {
                 plan: planDoc.title,
+                plan_id: planDoc._id.toString(),
                 startedAt: new Date(),
                 expiresAt,
                 boostCredits: planDoc.ai_credits || 0,
                 autoRenew: false,
+                status: 'active',
               },
             },
           },
@@ -470,7 +497,17 @@ class WalletService {
       logger.info(`Direct subscription purchase: ${planDoc.title} by user ${uid} (₹${cost} via Razorpay)`, { service: 'wallet' });
       return {
         transaction: this._serializeTxn(txn),
-        user: { subscription: { plan: planDoc.title, expiresAt } },
+        user: {
+          subscription: {
+            plan: planDoc.title,
+            plan_id: planDoc._id.toString(),
+            startedAt: new Date(),
+            expiresAt,
+            boostCredits: planDoc.ai_credits || 0,
+            autoRenew: false,
+            status: 'active',
+          }
+        },
       };
     } finally {
       await session.endSession();

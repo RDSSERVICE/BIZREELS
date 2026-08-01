@@ -44,7 +44,20 @@ const initSubscriptionCron = () => {
 
         await User.updateOne(
           { _id: sub.user_id },
-          { $set: { is_subscribed_verified: false } }
+          {
+            $set: {
+              is_subscribed_verified: false,
+              subscription: {
+                plan: 'Free Member',
+                plan_id: null,
+                startedAt: null,
+                expiresAt: null,
+                boostCredits: 0,
+                autoRenew: false,
+                status: 'inactive'
+              }
+            }
+          }
         );
 
         expiredCount++;

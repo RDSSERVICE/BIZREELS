@@ -48,59 +48,78 @@ export default function VendorWalletPage() {
 
     setLoading(true);
     try {
-      // 1. Try Razorpay Order endpoint first
-      const res = await api.post('/v1/payments/order', { amount_paise: numAmount * 100, purpose: 'wallet_topup' }).catch(() => null);
+      // 1. Create Razorpay Order via backend
+      const res = await api.post('/v1/payments/order', { amount_paise: numAmount * 100, purpose: 'wallet_topup' });
 
-      if (res?.data?.razorpay_order_id) {
-        if (res.data.dev_mode || res.data.razorpay_order_id.startsWith('order_dev_')) {
-          toast.success('Simulation Mode: Processing mock payment...');
+      if (!res?.data?.razorpay_order_id) {
+        console.error('[BizReels] Payment order response missing razorpay_order_id:', res?.data);
+        throw new Error('Payment gateway initialization failed. Please check your credentials or try again later.');
+      }
+
+      const orderData = res.data;
+
+      console.log('[BizReels] Payment order created:', {
+        order_id: orderData.razorpay_order_id,
+        amount_paise: orderData.amount_paise,
+        key_id: orderData.key_id ? `${orderData.key_id.substring(0, 12)}...` : 'MISSING',
+      });
+
+      // 2. Load Razorpay SDK and open checkout
+      const sdkLoaded = await loadRazorpayScript();
+      if (!sdkLoaded || !window.Razorpay) {
+        console.error('[BizReels] Razorpay SDK failed to load. window.Razorpay =', window.Razorpay);
+        throw new Error('Payment gateway could not be loaded. Please check your internet connection and try again.');
+      }
+
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount_paise,
+        currency: 'INR',
+        name: 'BizReels Wallet Topup',
+        description: `Recharge ₹${numAmount}`,
+        order_id: orderData.razorpay_order_id,
+        handler: async (response) => {
           try {
-            await api.post('/v1/payments/dev/simulate-success', { payment_id: res.data.payment_id });
-            toast.success(`Mock Payment Successful! Added ₹${numAmount.toLocaleString('en-IN')} to wallet.`);
+            await api.post('/v1/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            toast.success(`Razorpay Payment Successful! Added ₹${numAmount.toLocaleString('en-IN')} to wallet.`);
             setIsModalOpen(false);
             if (refetchWallet) refetchWallet();
             if (refetchTx) refetchTx();
           } catch (err) {
-            toast.error('Mock payment simulation failed');
+            console.error('[BizReels] Payment verification failed:', err);
+            toast.error('Payment was received but verification failed. Please contact support.');
           }
-          setLoading(false);
-          return;
-        }
+        },
+        modal: {
+          ondismiss: () => {
+            console.log('[BizReels] Razorpay modal dismissed by user');
+            toast('Payment cancelled.', { icon: '⚠️' });
+            setLoading(false);
+          },
+        },
+        theme: { color: '#7C3AED' },
+      };
 
-        const sdkLoaded = await loadRazorpayScript();
-        if (sdkLoaded && window.Razorpay) {
-          const options = {
-            key: res.data.key_id || 'rzp_test_mockKey',
-            amount: res.data.amount_paise,
-            currency: 'INR',
-            name: 'BizReels Wallet Topup',
-            description: `Recharge ₹${numAmount}`,
-            order_id: res.data.razorpay_order_id,
-            handler: async (response) => {
-              try {
-                await api.post('/v1/payments/verify', {
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                });
-                toast.success(`Razorpay Payment Successful! Added ₹${numAmount.toLocaleString('en-IN')} to wallet.`);
-                setIsModalOpen(false);
-                if (refetchWallet) refetchWallet();
-                if (refetchTx) refetchTx();
-              } catch (err) {
-                toast.error('Payment verification failed');
-              }
-            },
-            modal: { ondismiss: () => setLoading(false) },
-          };
-          const rzp = new window.Razorpay(options);
-          rzp.open();
-          setLoading(false);
-          return;
-        }
-      } else {
-        throw new Error('Payment gateway initialization failed. Please check your credentials or try again later.');
-      }
+      const rzp = new window.Razorpay(options);
+
+      rzp.on('payment.failed', (response) => {
+        console.error('[BizReels] Razorpay payment failed:', {
+          code: response.error?.code,
+          description: response.error?.description,
+          source: response.error?.source,
+          step: response.error?.step,
+          reason: response.error?.reason,
+        });
+        toast.error(response.error?.description || 'Payment failed. Please try again.');
+      });
+
+      rzp.open();
+      setLoading(false);
+      return;
     } catch (err) {
       toast.error(err?.data?.message || err?.message || 'Failed to recharge wallet');
     } finally {

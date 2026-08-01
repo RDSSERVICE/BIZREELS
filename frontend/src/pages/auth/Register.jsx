@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
@@ -17,11 +17,20 @@ import API_CONFIG from '../../config';
 const Register = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [registerUser, { isLoading }] = useRegisterMutation();
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    defaultValues: { name: '', email: '', password: '', confirmPassword: '', role: 'customer' }
+  const refCodeFromUrl = searchParams.get('ref') || '';
+
+  const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm({
+    defaultValues: { name: '', email: '', password: '', confirmPassword: '', role: 'customer', referralCode: refCodeFromUrl }
   });
+
+  useEffect(() => {
+    if (refCodeFromUrl) {
+      setValue('referralCode', refCodeFromUrl);
+    }
+  }, [refCodeFromUrl, setValue]);
 
   const password = watch('password');
 
@@ -31,7 +40,8 @@ const Register = () => {
         name: data.name,
         email: data.email,
         password: data.password,
-        role: data.role
+        role: data.role,
+        referralCode: data.referralCode
       }).unwrap();
 
       dispatch(setCredentials(res.data));
@@ -127,6 +137,13 @@ const Register = () => {
             required: 'Confirm password is required.',
             validate: value => value === password || 'Passwords do not match.'
           })}
+        />
+
+        <Input
+          label="Referral Code (Optional)"
+          placeholder="Enter referral code"
+          error={errors.referralCode}
+          {...register('referralCode')}
         />
 
         <Button type="submit" variant="primary" fullWidth isLoading={isLoading} className="mt-2">

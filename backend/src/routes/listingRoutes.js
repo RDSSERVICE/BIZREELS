@@ -4,6 +4,7 @@ const listingValidation = require('../validations/listingValidation');
 const validate = require('../middleware/validate');
 const { authenticate, authorize } = require('../middleware/auth');
 const { optionalAuth } = require('../middleware/auth.middleware');
+const { requireSubscriptionFeature, checkSubscriptionLimit } = require('../middleware/subscription');
 
 const router = express.Router();
 
@@ -35,6 +36,7 @@ router.post(
   '/ai-copy',
   authenticate,
   authorize('vendor', 'creator', 'admin'),
+  requireSubscriptionFeature('ai_credits'),
   listingController.generateAICopy
 );
 
@@ -70,6 +72,7 @@ router.get(
   '/:id/analytics',
   authenticate,
   authorize('vendor', 'admin'),
+  requireSubscriptionFeature('analytics_access'),
   listingValidation.idParam,
   validate,
   listingController.getAnalytics
@@ -90,6 +93,7 @@ router.post(
   '/',
   authenticate,
   authorize('vendor', 'admin'),
+  checkSubscriptionLimit('listings'),
   listingValidation.create,
   validate,
   listingController.create

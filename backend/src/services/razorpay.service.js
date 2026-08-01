@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const config = require('../config');
 const settingsService = require('./settings.service');
+const logger = require('../utils/logger');
 
 const isDevMode = () => {
   return settingsService.getBool('razorpay', 'dev_mode', 'RAZORPAY_DEV_MODE', false);
@@ -18,9 +19,27 @@ const hasCreds = () => {
   return !!(keyId && keySecret);
 };
 
+/**
+ * Log the current Razorpay configuration status on startup.
+ */
+const logConfigStatus = () => {
+  const dev = isDevMode();
+  const creds = hasCreds();
+  const { keyId } = getCreds();
+
+  if (dev) {
+    logger.warn('[Razorpay] DEV MODE is ON — all payments will be mocked. Set RAZORPAY_DEV_MODE=false for real payments.');
+  } else if (!creds) {
+    logger.error('[Razorpay] PRODUCTION MODE but credentials are MISSING. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env or admin settings.');
+  } else {
+    logger.info(`[Razorpay] Production mode active. Key ID: ${keyId.substring(0, 12)}...`);
+  }
+};
+
 const createOrder = async (amountPaise, receipt, notes = {}) => {
-  if (isDevMode() || !hasCreds()) {
+  if (isDevMode()) {
     const devId = `order_dev_${crypto.randomBytes(10).toString('hex')}`;
+    logger.info(`[Razorpay] DEV MODE: Created mock order ${devId} for ${amountPaise} paise`);
     return {
       id: devId,
       amount: amountPaise,
@@ -31,32 +50,61 @@ const createOrder = async (amountPaise, receipt, notes = {}) => {
     };
   }
 
-  const { keyId, keySecret } = getCreds();
-  const Razorpay = require('razorpay');
-  const rzp = new Razorpay({ key_id: keyId, key_secret: keySecret });
+  if (!hasCreds()) {
+    logger.error('[Razorpay] Cannot create order: Razorpay credentials are not configured.');
+    throw new Error('Payment gateway credentials are not configured. Please contact support.');
+  }
 
-  return new Promise((resolve, reject) => {
-    rzp.orders.create({
+  const { keyId, keySecret } = getCreds();
+
+  try {
+    const Razorpay = require('razorpay');
+    const rzp = new Razorpay({ key_id: keyId, key_secret: keySecret });
+
+    const order = await rzp.orders.create({
       amount: amountPaise,
       currency: 'INR',
       receipt,
       notes,
-    }, (err, order) => {
-      if (err) reject(err);
-      else resolve(order);
     });
-  });
+
+    logger.info(`[Razorpay] Order created: ${order.id}, amount: ${amountPaise} paise, receipt: ${receipt}`);
+    return order;
+  } catch (err) {
+    logger.error(`[Razorpay] Order creation FAILED: ${err.message}`, {
+      statusCode: err.statusCode,
+      error: err.error,
+      amountPaise,
+      receipt,
+    });
+    throw new Error(`Payment order creation failed: ${err.message}`);
+  }
 };
 
 const verifySignature = (orderId, paymentId, signature) => {
-  if (isDevMode() || !hasCreds()) {
-    return true; // dev-mode always succeeds
+  if (isDevMode()) {
+    logger.warn('[Razorpay] DEV MODE: Skipping signature verification');
+    return true;
   }
+
+  if (!hasCreds()) {
+    logger.error('[Razorpay] Cannot verify signature: credentials missing');
+    return false;
+  }
+
   const { keySecret } = getCreds();
   const shasum = crypto.createHmac('sha256', keySecret);
   shasum.update(`${orderId}|${paymentId}`);
   const digest = shasum.digest('hex');
-  return digest === signature;
+  const isValid = digest === signature;
+
+  if (!isValid) {
+    logger.warn(`[Razorpay] Signature verification FAILED for order ${orderId}, payment ${paymentId}`);
+  } else {
+    logger.info(`[Razorpay] Signature verified for order ${orderId}, payment ${paymentId}`);
+  }
+
+  return isValid;
 };
 
 const verifyWebhookSignature = (bodyBytes, signature) => {
@@ -75,7 +123,10 @@ const publicKeyId = () => {
     return 'rzp_test_dev_mock';
   }
   const { keyId } = getCreds();
-  return keyId || 'rzp_test_dev_mock';
+  if (!keyId) {
+    logger.error('[Razorpay] publicKeyId called but RAZORPAY_KEY_ID is empty');
+  }
+  return keyId || '';
 };
 
 module.exports = {
@@ -84,4 +135,5 @@ module.exports = {
   verifySignature,
   verifyWebhookSignature,
   publicKeyId,
+  logConfigStatus,
 };
