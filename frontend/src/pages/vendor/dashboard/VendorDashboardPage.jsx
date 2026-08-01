@@ -166,63 +166,49 @@ export default function VendorDashboardPage() {
       {/* Active Special Offers & Deals */}
       <ActiveOffersPanel role="vendor" />
 
-      {/* CREDITS OVERVIEW & RATE CARD */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="glass rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-amber-500/20 shadow-card bg-gradient-to-r from-amber-500/10 via-surface to-brand-purple/10 space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <h3 className="text-xs sm:text-sm font-bold text-text-primary font-display flex items-center gap-2">
-                <FiDollarSign className="text-amber-500" /> VENDOR CREDIT WALLET <span className="hidden sm:inline">(1 Credit = ₹1 INR)</span>
-              </h3>
-              <Link to="/vendor/wallet" className="text-[10px] sm:text-xs font-bold text-brand-purple hover:underline">
-                Manage Wallet & Topup →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-              <div className="glass p-3 rounded-2xl border border-white/10 text-center">
-                <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">AVAILABLE</span>
-                <span className="text-xl font-bold text-emerald-500">{credits.available}</span>
-                <span className="text-[10px] text-text-secondary block">Credits (₹{credits.available})</span>
-              </div>
-              <div className="glass p-3 rounded-2xl border border-white/10 text-center">
-                <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">DEPOSITED</span>
-                <span className="text-xl font-bold text-blue-400">{credits.deposited}</span>
-                <span className="text-[10px] text-text-secondary block">Credits (₹{credits.deposited})</span>
-              </div>
-              <div className="glass p-3 rounded-2xl border border-white/10 text-center">
-                <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">EARNED</span>
-                <span className="text-xl font-bold text-brand-purple">{credits.earned}</span>
-                <span className="text-[10px] text-text-secondary block">Credits (₹{credits.earned})</span>
-              </div>
-              <div className="glass p-3 rounded-2xl border border-white/10 text-center">
-                <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">USED HISTORY</span>
-                <span className="text-xl font-bold text-amber-500">{credits.used}</span>
-                <span className="text-[10px] text-text-secondary block">Credits Spent</span>
-              </div>
-            </div>
+      {/* CREDITS OVERVIEW CARD */}
+      <div className="glass rounded-2xl sm:rounded-3xl p-5 border border-amber-500/20 shadow-card bg-gradient-to-r from-amber-500/10 via-surface to-brand-purple/5 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-text-primary font-display flex items-center gap-2">
+              <FiDollarSign className="text-amber-500" /> VENDOR CREDIT WALLET <span className="hidden sm:inline">(1 Credit = ₹1 INR)</span>
+            </h3>
+            <p className="text-[10px] text-text-tertiary mt-0.5">Use credits for listings, reels, boosting, AI features, and lead unlocks.</p>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            <Link to="/vendor/credit-rates" className="px-3 py-1.5 bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple text-[10px] sm:text-xs font-bold rounded-xl transition">
+              View Credit Rates
+            </Link>
+            <Link to="/vendor/referrals" className="px-3 py-1.5 bg-brand-pink/10 hover:bg-brand-pink/20 text-brand-pink text-[10px] sm:text-xs font-bold rounded-xl transition">
+              Refer & Earn Rewards
+            </Link>
+            <Link to="/vendor/wallet" className="px-3 py-1.5 gradient-brand text-white text-[10px] sm:text-xs font-bold rounded-xl transition shadow-premium">
+              Topup Wallet →
+            </Link>
           </div>
         </div>
 
-        {/* DYNAMIC CREDIT RATES DISPLAY & REFERRAL MODULE */}
-        <div className="lg:col-span-1 flex flex-col gap-4">
-          <div className="glass rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-white/10 shadow-card space-y-3">
-            <div className="flex items-center justify-between border-b border-border pb-2">
-              <h4 className="text-xs font-bold text-text-primary font-display flex items-center gap-1.5">
-                <FiZap className="text-amber-500" /> Credit Consumption Rates
-              </h4>
-              <span className="text-[10px] text-text-tertiary">Dynamic Admin Rate</span>
-            </div>
-            <div className="space-y-1.5 text-xs text-text-secondary">
-              <div className="flex justify-between"><span>1 Product Listing:</span><strong className="text-text-primary">{creditRates.productListing} Product Credit</strong></div>
-              <div className="flex justify-between"><span>1 Reel Post:</span><strong className="text-text-primary">{creditRates.reelPost} Reel Credit</strong></div>
-              <div className="flex justify-between"><span>1 AI Image:</span><strong className="text-text-primary">{creditRates.aiImage} AI Credits</strong></div>
-              <div className="flex justify-between"><span>30 sec AI Video:</span><strong className="text-text-primary">{creditRates.aiVideo30s} AI Credits</strong></div>
-              <div className="flex justify-between"><span>1 Reel Boost (1 Day):</span><strong className="text-text-primary">{creditRates.reelBoost1Day} Boost Credits</strong></div>
-              <div className="flex justify-between"><span>1 Valid Lead:</span><strong className="text-text-primary">{creditRates.validLead} Lead Credit</strong></div>
-            </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+          <div className="glass p-4 rounded-2xl border border-white/10 text-center">
+            <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">AVAILABLE</span>
+            <span className="text-2xl font-black text-emerald-500">{credits.available}</span>
+            <span className="text-[10px] text-text-secondary block font-medium">Credits (₹{credits.available})</span>
           </div>
-
-          <ReferralCard />
+          <div className="glass p-4 rounded-2xl border border-white/10 text-center">
+            <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">DEPOSITED</span>
+            <span className="text-2xl font-black text-blue-400">{credits.deposited}</span>
+            <span className="text-[10px] text-text-secondary block font-medium">Credits (₹{credits.deposited})</span>
+          </div>
+          <div className="glass p-4 rounded-2xl border border-white/10 text-center">
+            <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">EARNED</span>
+            <span className="text-2xl font-black text-brand-purple">{credits.earned}</span>
+            <span className="text-[10px] text-text-secondary block font-medium">Credits (₹{credits.earned})</span>
+          </div>
+          <div className="glass p-4 rounded-2xl border border-white/10 text-center">
+            <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">USED HISTORY</span>
+            <span className="text-2xl font-black text-amber-500">{credits.used}</span>
+            <span className="text-[10px] text-text-secondary block font-medium">Credits Spent</span>
+          </div>
         </div>
       </div>
 

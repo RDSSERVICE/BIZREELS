@@ -19,6 +19,7 @@ const NAV_SECTIONS = [
     title: 'Overview',
     items: [
       { name: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid },
+      { name: 'Refer & Earn', path: '/vendor/referrals', icon: FiUserCheck },
     ],
   },
   {
@@ -45,6 +46,7 @@ const NAV_SECTIONS = [
     items: [
       { name: 'Subscription', path: '/vendor/subscription', icon: FiCreditCard },
       { name: 'Wallet', path: '/vendor/wallet', icon: FiDollarSign },
+      { name: 'Credit Rates', path: '/vendor/credit-rates', icon: FiZap },
     ],
   },
   {
