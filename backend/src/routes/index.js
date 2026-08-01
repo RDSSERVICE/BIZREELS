@@ -55,6 +55,7 @@ router.use('/leads', lazyLoad('./inquiryRoutes')); // Alias for leads/enquiries
 router.use('/users', lazyLoad('./user.routes'));
 router.use('/categories', lazyLoad('./category.routes'));
 router.use('/creator-marketplace', lazyLoad('./creatorMarketplaceRoutes'));
+router.use('/location', lazyLoad('./location.routes'));
 
 // Referrals endpoint alias for backward compatibility (lazy loaded controller)
 router.get(['/users/me/referrals', '/users/me/referrals/'], authenticate, (req, res, next) => {
@@ -95,6 +96,21 @@ router.post('/subscription/purchase-razorpay', authenticate, async (req, res, ne
     }
     if (!planDoc) {
       return res.status(400).json({ success: false, message: `Plan not found: "${plan_id}"` });
+    }
+
+    // Prevent duplicate subscription purchase
+    const UserSubscription = require('../models/UserSubscription.model');
+    const activeSub = await UserSubscription.findOne({
+      user_id: req.user._id.toString(),
+      status: 'active',
+      is_deleted: { $ne: true }
+    });
+
+    if (activeSub && activeSub.plan_id === planDoc._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: `You already have an active subscription for the "${planDoc.title}" plan. Duplicate purchases are not allowed.`
+      });
     }
 
     const amountPaise = Math.round(planDoc.price_inr * 100);

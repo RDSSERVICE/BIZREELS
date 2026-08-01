@@ -71,6 +71,39 @@ const pincodeLookup = async (pincode) => {
 };
 
 const reverseGeocode = async (lat, lng) => {
+  try {
+    const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+      headers: {
+        'User-Agent': 'BizReels/1.0 (contact@bizreels.com)'
+      },
+      timeout: 5000
+    });
+
+    if (res.data && res.data.address) {
+      const addr = res.data.address;
+      const pincode = addr.postcode || null;
+      const state = addr.state || addr.region || null;
+      const district = addr.state_district || addr.county || addr.city_district || null;
+      const city = addr.city || addr.town || addr.village || addr.municipality || null;
+      const area = addr.suburb || addr.neighbourhood || addr.road || null;
+      const fullAddress = res.data.display_name || '';
+
+      return {
+        area,
+        city: city || district,
+        state,
+        district: district || city,
+        pincode,
+        country: addr.country || 'India',
+        fullAddress,
+        source: 'nominatim',
+      };
+    }
+  } catch (err) {
+    logger.warn(`Nominatim reverse geocode failure: ${err.message}. Falling back to metro default.`);
+  }
+
+  // Fallback to closest metro
   const metros = [
     { lat: 12.97, lng: 77.59, city: 'Bengaluru', state: 'Karnataka' },
     { lat: 28.61, lng: 77.20, city: 'New Delhi', state: 'Delhi' },
@@ -98,6 +131,7 @@ const reverseGeocode = async (lat, lng) => {
     state: best.state,
     pincode: null,
     country: 'India',
+    fullAddress: `${best.city}, ${best.state}, India`,
     source: 'mock',
   };
 };

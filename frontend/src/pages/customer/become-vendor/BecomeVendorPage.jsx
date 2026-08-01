@@ -74,6 +74,7 @@ export default function BecomeVendorPage() {
 
   const [loading, setLoading] = useState(false);
   const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   // 1. Business Type
   const [businessType, setBusinessType] = useState('Retailer');
@@ -154,6 +155,59 @@ export default function BecomeVendorPage() {
     } finally {
       setPincodeLoading(false);
     }
+  };
+
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setDetectingLocation(true);
+    const toastId = toast.loading('Detecting your current location...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await api.post('/v1/location/reverse-geocode', {
+            lat: latitude,
+            lng: longitude
+          });
+          const data = res.data || res;
+          
+          if (data) {
+            if (data.pincode) setPincode(data.pincode);
+            if (data.city) setCity(data.city);
+            if (data.state) setStateName(data.state);
+            if (data.district || data.city) setDistrict(data.district || data.city);
+            if (data.area) setAreaLocality(data.area);
+            if (data.fullAddress) setFullAddress(data.fullAddress);
+            setGoogleMapLocation(`https://www.google.com/maps?q=${latitude},${longitude}`);
+            toast.success('Location auto-detected successfully!', { id: toastId });
+          } else {
+            toast.error('Unable to fetch location details.', { id: toastId });
+          }
+        } catch (err) {
+          toast.error('Failed to resolve address from coordinates.', { id: toastId });
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (error) => {
+        let msg = 'Failed to retrieve location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          msg = 'Location permission denied by user.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          msg = 'Location information is unavailable.';
+        } else if (error.code === error.TIMEOUT) {
+          msg = 'Location request timed out.';
+        }
+        toast.error(msg, { id: toastId });
+        setDetectingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   useEffect(() => {
@@ -599,6 +653,27 @@ export default function BecomeVendorPage() {
               <h3 className="text-base font-bold text-text-primary font-display">Business Address & Map Location</h3>
               <p className="text-xs text-text-tertiary">Type PIN code to auto-fetch State, District, & City</p>
             </div>
+          </div>
+
+          {/* Detect Current Location Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-brand-purple/5 border border-brand-purple/10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-purple/10 flex items-center justify-center text-brand-purple flex-shrink-0 animate-pulse">
+                <FiCompass className={`w-5 h-5 ${detectingLocation ? 'animate-spin' : ''}`} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-text-primary">Auto-Detect Business Location</h4>
+                <p className="text-[10px] text-text-tertiary">Detect coordinates and address automatically via browser GPS</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleDetectLocation}
+              disabled={detectingLocation}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-purple text-white rounded-xl text-xs font-bold hover:bg-brand-purple/90 active:scale-95 transition-all disabled:opacity-50 flex-shrink-0"
+            >
+              {detectingLocation ? 'Detecting...' : 'Detect Current Location'}
+            </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
