@@ -43,6 +43,20 @@ class VendorController {
     const earnedCredits = wallet?.lifetime_earned_credits || 25;
     const usedCreditHistory = wallet?.lifetime_spent_credits || 15;
 
+    const { AppSettings } = require('../models/Admin');
+    let creditRates = {
+      productListing: 1,
+      reelPost: 1,
+      aiImage: 2,
+      aiVideo30s: 15,
+      reelBoost1Day: 10,
+      validLead: 1,
+    };
+    const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+    if (rateSetting && rateSetting.value) {
+      creditRates = { ...creditRates, ...rateSetting.value };
+    }
+
     return ApiResponse.ok(res, 'Vendor dashboard metrics loaded.', {
       totalSales: req.user.walletBalance ? req.user.walletBalance * 2 : 0,
       totalOrders: ordersCount,
@@ -68,14 +82,7 @@ class VendorController {
         successfulReferrals: referralInfo.summary.successful,
         creditsEarned: referralInfo.summary.credits_earned
       } : null,
-      creditRates: {
-        productListing: 1,
-        reelPost: 1,
-        aiImage: 2,
-        aiVideo30s: 15,
-        reelBoost1Day: 10,
-        validLead: 1,
-      }
+      creditRates
     });
   });
 

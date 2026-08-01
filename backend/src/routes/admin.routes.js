@@ -1688,4 +1688,49 @@ router.patch('/locations/radius', requireAuth, requireAdmin, catchAsync(async (r
   res.json({ ok: true, radius_km });
 }));
 
+// ============================================================ CREDIT RATES SETTINGS
+router.get('/credit-rates', requireAuth, catchAsync(async (req, res) => {
+  const { AppSettings } = require('../models/Admin');
+  let rates = {
+    productListing: 1,
+    reelPost: 1,
+    aiImage: 2,
+    aiVideo30s: 15,
+    reelBoost1Day: 10,
+    validLead: 1,
+  };
+  const setting = await AppSettings.findOne({ key: 'credit_rates' });
+  if (setting && setting.value) {
+    rates = { ...rates, ...setting.value };
+  }
+  res.json({ success: true, data: rates });
+}));
+
+router.post('/credit-rates', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { AppSettings } = require('../models/Admin');
+  const { rates } = req.body;
+  if (!rates) {
+    throw ApiError.badRequest('rates object is required');
+  }
+
+  await AppSettings.updateOne(
+    { key: 'credit_rates' },
+    {
+      $set: {
+        value: rates,
+        category: 'general',
+        description: 'Vendor credit consumption rates configuration'
+      }
+    },
+    { upsert: true }
+  );
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['AppSettings', 'AdminOverview'] });
+  } catch (err) {}
+
+  res.json({ success: true, message: 'Credit rates updated successfully!', data: rates });
+}));
+
 module.exports = router;

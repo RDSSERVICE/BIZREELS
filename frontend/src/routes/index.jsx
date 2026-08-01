@@ -94,6 +94,7 @@ const AdminOffersPage = React.lazy(() => import('../pages/admin/offers/AdminOffe
 const AdminCommissionPage = React.lazy(() => import('../pages/admin/commission/AdminCommissionPage'));
 const AdminCmsPage = React.lazy(() => import('../pages/admin/cms/AdminCmsPage'));
 const AdminAppSettingsPage = React.lazy(() => import('../pages/admin/app-settings/AdminAppSettingsPage'));
+const AdminCreditRatesPage = React.lazy(() => import('../pages/admin/app-settings/AdminCreditRatesPage'));
 const AdminSecurityPage = React.lazy(() => import('../pages/admin/security/AdminSecurityPage'));
 const AdminAuditPage = React.lazy(() => import('../pages/admin/audit/AdminAuditPage'));
 const AdminModerationPage = React.lazy(() => import('../pages/admin/moderation/AdminModerationPage'));
@@ -256,6 +257,7 @@ const AppRoutes = () => {
         <Route path="/admin/moderation" element={<AdminModerationPage />} />
         <Route path="/admin/cms" element={<AdminCmsPage />} />
         <Route path="/admin/app-settings" element={<AdminAppSettingsPage />} />
+        <Route path="/admin/credit-rates" element={<AdminCreditRatesPage />} />
         <Route path="/admin/security" element={<AdminSecurityPage />} />
         <Route path="/admin/audit" element={<AdminAuditPage />} />
         <Route path="/admin/financial-reports" element={<AdminFinancialReportsPage />} />

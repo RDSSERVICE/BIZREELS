@@ -86,6 +86,7 @@ const NAV_SECTIONS = [
     items: [
       { name: 'CMS Pages', path: '/admin/cms', icon: FiFileText },
       { name: 'App Settings', path: '/admin/app-settings', icon: FiSettings },
+      { name: 'Credit Rates', path: '/admin/credit-rates', icon: FiZap },
       { name: 'Security', path: '/admin/security', icon: FiLock },
       { name: 'Audit Logs', path: '/admin/audit', icon: FiList },
       { name: 'Financial Reports', path: '/admin/financial-reports', icon: FiPieChart },
