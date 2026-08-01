@@ -20,12 +20,22 @@ export default function VendorSettingsPage() {
 
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+
+  const getAddressString = (addr) => {
+    if (!addr) return '';
+    if (typeof addr === 'string') return addr;
+    if (typeof addr === 'object') {
+      return addr.fullAddress || addr.address || '';
+    }
+    return '';
+  };
 
   // Form State
   const [businessName, setBusinessName] = useState(vendorProfile.businessName || currentUser?.name || '');
   const [category, setCategory] = useState(vendorProfile.category || 'Electronics');
   const [subcategory, setSubcategory] = useState(vendorProfile.subcategory || 'Smartphones & Audio');
-  const [address, setAddress] = useState(vendorProfile.address || currentUser?.location?.address || '');
+  const [address, setAddress] = useState(getAddressString(vendorProfile.address) || currentUser?.location?.address || '');
 
   // Shop Close Schedule Marker
   const [isTemporaryClosed, setIsTemporaryClosed] = useState(!!vendorProfile.isTemporaryClosed);
@@ -33,7 +43,7 @@ export default function VendorSettingsPage() {
   const [autoResponseNote, setAutoResponseNote] = useState(vendorProfile.autoResponseNote || 'We are currently offline. We will reply to your inquiry shortly!');
   const [notificationsEnabled, setNotificationsEnabled] = useState(vendorProfile.notificationsEnabled !== false);
 
-  // Fetch live settings on mount
+  // Fetch live settings and categories on mount
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -43,7 +53,7 @@ export default function VendorSettingsPage() {
           if (s.businessName) setBusinessName(s.businessName);
           if (s.category) setCategory(s.category);
           if (s.subcategory) setSubcategory(s.subcategory);
-          if (s.address) setAddress(s.address);
+          if (s.address) setAddress(getAddressString(s.address));
           if (s.isTemporaryClosed !== undefined) setIsTemporaryClosed(s.isTemporaryClosed);
           if (s.closeScheduleReason) setCloseScheduleReason(s.closeScheduleReason);
           if (s.autoResponseNote) setAutoResponseNote(s.autoResponseNote);
@@ -55,7 +65,18 @@ export default function VendorSettingsPage() {
         setLoading(false);
       }
     };
+
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get('/v1/categories/');
+        setCategories(res.data?.items || res.data || []);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+
     fetchSettings();
+    fetchCategories();
   }, []);
 
   const handleSaveSettings = async (e) => {
@@ -191,14 +212,24 @@ export default function VendorSettingsPage() {
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple"
                 >
-                  <option value="Electronics">Electronics & IT</option>
-                  <option value="Home Services">Home Services & Repairs</option>
-                  <option value="Beauty & Wellness">Beauty & Wellness</option>
-                  <option value="Fashion">Fashion & Apparel</option>
-                  <option value="Education & Coaching">Education & Coaching</option>
-                  <option value="Health & Medical">Health & Medical</option>
-                  <option value="Automobile Services">Automobile Services</option>
-                  <option value="Furniture">Furniture & Decor</option>
+                  {categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <option key={cat._id || cat.id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Electronics">Electronics & IT</option>
+                      <option value="Home Services">Home Services & Repairs</option>
+                      <option value="Beauty & Wellness">Beauty & Wellness</option>
+                      <option value="Fashion">Fashion & Apparel</option>
+                      <option value="Education & Coaching">Education & Coaching</option>
+                      <option value="Health & Medical">Health & Medical</option>
+                      <option value="Automobile Services">Automobile Services</option>
+                      <option value="Furniture">Furniture & Decor</option>
+                    </>
+                  )}
                 </select>
               </div>
 

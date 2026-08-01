@@ -188,13 +188,24 @@ router.get('/me/settings', requireAuth, catchAsync(async (req, res) => {
   if (!user) throw ApiError.notFound('User not found');
 
   const vp = user.vendorProfile || {};
+  let addressStr = '';
+  if (vp.address) {
+    if (typeof vp.address === 'string') {
+      addressStr = vp.address;
+    } else if (typeof vp.address === 'object') {
+      addressStr = vp.address.fullAddress || vp.address.address || '';
+    }
+  } else if (user.location?.address) {
+    addressStr = user.location.address;
+  }
+
   const settings = {
     category: vp.category || 'Electronics',
     subcategory: vp.subcategory || 'Smartphones & Audio',
     isTemporaryClosed: !!vp.isTemporaryClosed,
     closeScheduleReason: vp.closeScheduleReason || 'Renovation / Vacation',
     businessName: vp.businessName || user.name || '',
-    address: vp.address || user.location?.address || '',
+    address: addressStr,
     autoResponseNote: vp.autoResponseNote || '',
     notificationsEnabled: vp.notificationsEnabled !== false,
   };
