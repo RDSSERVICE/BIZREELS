@@ -12,7 +12,7 @@ import AdminPageHeader from '../../../features/admin/components/AdminPageHeader'
 import SubscriptionStatusCard from '../../../components/subscription/SubscriptionStatusCard';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
-import { useGetCreatorDashboardQuery } from '../../../features/creator/creatorApi';
+import { useGetCreatorDashboardQuery, useGetCreatorSubscriptionQuery } from '../../../features/creator/creatorApi';
 import { api } from '../../../lib/api';
 import { getSocket } from '../../../lib/socket';
 
@@ -23,6 +23,8 @@ export default function CreatorDashboardPage() {
   const currentUser = useSelector(selectCurrentUser);
   const { data, isFetching, refetch: refetchMetrics } = useGetCreatorDashboardQuery(undefined, { pollingInterval: 300000 });
   const statsData = data?.data || data || {};
+  const { data: subscriptionRes } = useGetCreatorSubscriptionQuery(undefined, { pollingInterval: 300000 });
+  const activeFeatures = subscriptionRes?.features || [];
 
   const [activeTab, setActiveTab] = useState('invitations'); // invitations | campaigns | chat
   const [campaigns, setCampaigns] = useState([]);
@@ -255,6 +257,36 @@ export default function CreatorDashboardPage() {
         <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 font-bold text-[10px] rounded-xl uppercase">
           {statsData.verificationStatus === 'pro_verified' || statsData.verificationStatus === 'verified_creator' ? 'Verified Badge Active' : 'Get Verified'}
         </span>
+      </div>
+
+      {/* Subscription Features Status */}
+      <div className="glass rounded-2xl p-5 border border-white/10 shadow-card space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
+            <FiShield className="text-brand-purple" />
+            <span>Premium Feature Access</span>
+          </h3>
+          <Link to="/creator/subscription" className="text-xs text-brand-purple font-bold hover:underline">
+            Upgrade
+          </Link>
+        </div>
+
+        <div className="space-y-2">
+          {activeFeatures.length === 0 ? (
+            <div className="text-center py-6 text-text-tertiary">
+              <p className="text-xs">No active premium features. Upgrade to unlock all benefits!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              {activeFeatures.map((feat, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2 bg-brand-purple/5 border border-brand-purple/10 rounded-xl text-xs font-bold text-brand-navy">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-purple"></span>
+                  {feat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* CAMPAIGN INVITATIONS & COLLABORATIONS BOARD */}

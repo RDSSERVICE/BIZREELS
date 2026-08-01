@@ -102,13 +102,30 @@ const applySuccess = async (payment, razorpayPaymentId, signature) => {
         razorpayPaymentId,
       });
       subscriptionOut = result.user?.subscription || null;
+
+      // Also log into role-isolated transaction ledger
+      const User = require('../models/User');
+      const user = await User.findById(userId).select('current_role roles').lean();
+      const userRole = user?.current_role || user?.roles?.[0] || 'vendor';
+      const role = (userRole === 'customer') ? 'vendor' : userRole;
+      try {
+        await walletService.roleCredit({
+          userId,
+          role,
+          amount: 0, // No wallet credit — paid via Razorpay
+          type: 'subscription_purchase',
+          referenceId: `sub_rzp_${planId}_${Date.now()}`,
+          description: `Subscription purchased via Razorpay (${result.user?.subscription?.plan || 'Plan'})`,
+          paymentId: razorpayPaymentId,
+          gateway: 'razorpay',
+          meta: { plan_id: planId, razorpay_payment_id: razorpayPaymentId },
+        });
+      } catch (err) {
+        // Non-critical: isolated ledger log failure should not break payment flow
+      }
     }
-  } else if (purpose === 'listing_boost') {
-    try {
-      const boostService = require('./boost.service');
-      await boostService.activateBoostFromPayment(updated);
-    } catch {}
   }
+  // NOTE: listing_boost handler removed — boost system has been deprecated
 
   await notificationService.create(
     userId,

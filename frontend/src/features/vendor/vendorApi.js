@@ -102,20 +102,7 @@ const vendorApi = apiSlice.injectEndpoints({
       query: (id) => ({ url: `/reels/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Reels', 'VendorDashboard'],
     }),
-
-    // ── Boosts ──────────────────────────────────────────────
-    getVendorBoosts: builder.query({
-      query: () => '/boosts',
-      providesTags: ['VendorBoosts'],
-    }),
-    purchaseBoost: builder.mutation({
-      query: (body) => ({ url: '/boosts', method: 'POST', body }),
-      invalidatesTags: ['VendorBoosts', 'Wallet', 'VendorDashboard'],
-    }),
-    renewBoost: builder.mutation({
-      query: (id) => ({ url: `/boosts/${id}/renew`, method: 'POST' }),
-      invalidatesTags: ['VendorBoosts', 'Wallet'],
-    }),
+    // NOTE: Boosts endpoints removed — boost system deprecated
 
     // ── Leads / Enquiries ───────────────────────────────────
     getVendorLeads: builder.query({
@@ -169,7 +156,7 @@ const vendorApi = apiSlice.injectEndpoints({
 
     // ── Subscription ────────────────────────────────────────
     getVendorSubscription: builder.query({
-      query: () => '/subscription',
+      query: () => '/subscription?role=vendor',
       providesTags: ['Subscription'],
     }),
     getSubscriptionPlans: builder.query({
@@ -207,9 +194,7 @@ export const {
   useGetVendorReelsQuery,
   useCreateReelMutation,
   useDeleteReelMutation,
-  useGetVendorBoostsQuery,
-  usePurchaseBoostMutation,
-  useRenewBoostMutation,
+  // NOTE: Boost hooks removed
   useGetVendorLeadsQuery,
   useReplyToLeadMutation,
   useGetVendorOrdersQuery,

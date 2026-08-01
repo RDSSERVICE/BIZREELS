@@ -69,13 +69,6 @@ function ReelCardMediaCarousel({ reel }) {
         />
       )}
 
-      {/* Boosted badge */}
-      {reel.isBoosted && (
-        <div className="absolute top-3 left-3 gradient-brand px-2.5 py-1 rounded-full text-[10px] font-black text-white flex items-center gap-1 shadow-premium z-10">
-          <FiZap size={11} /> BOOSTED
-        </div>
-      )}
-
       {/* Purpose badge */}
       {reel.postPurpose && (
         <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-amber-400 border border-amber-400/30 z-10">
@@ -631,11 +624,6 @@ export default function VendorReelsPage() {
     }
   };
 
-  const handleConfirmBoost = (e) => {
-    e.preventDefault();
-    toast.success(`🚀 Post Boosted for ${boostDurationDays} days (Target: ${(boostBudget * 20).toLocaleString()} views)!`);
-    setShowBoostModal(false);
-  };
 
   const handleGenerateAiAd = async (e) => {
     e.preventDefault();
@@ -680,12 +668,6 @@ export default function VendorReelsPage() {
             className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl gradient-brand text-white font-bold text-[11px] sm:text-xs shadow-premium flex items-center gap-1.5"
           >
             <FiPlus size={15} /> <span className="hidden sm:inline">CREATE SERVICE REEL / POST</span><span className="sm:hidden">CREATE REEL</span>
-          </button>
-          <button
-            onClick={() => setShowBoostModal(true)}
-            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-amber-500 text-white font-bold text-[11px] sm:text-xs shadow-sm flex items-center gap-1.5"
-          >
-            <FiZap size={15} /> <span className="hidden sm:inline">BOOST POST</span><span className="sm:hidden">BOOST</span>
           </button>
           <button
             onClick={() => setShowAiAdModal(true)}
@@ -777,12 +759,6 @@ export default function VendorReelsPage() {
                 <div className="flex items-center justify-between text-xs text-text-tertiary border-t border-border pt-2">
                   <span className="flex items-center gap-1"><FiEye size={13} /> {reel.views?.toLocaleString() || 120}</span>
                   <span className="flex items-center gap-1"><FiHeart size={13} className="text-brand-pink" /> {reel.likesCount || 15}</span>
-                  <button
-                    onClick={() => { setSelectedReelForBoost(reel); setShowBoostModal(true); }}
-                    className="text-xs font-bold text-amber-600 hover:underline flex items-center gap-1"
-                  >
-                    <FiZap /> Boost
-                  </button>
                 </div>
               </div>
             </div>
@@ -1486,25 +1462,6 @@ export default function VendorReelsPage() {
         onCreated={handleServiceCreated}
       />
 
-      {/* MODAL 2: BOOST POST */}
-      <AdminModal isOpen={showBoostModal} onClose={() => setShowBoostModal(false)} title="2. Boost Post Visibility">
-        <form onSubmit={handleConfirmBoost} className="space-y-4">
-          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-700">
-            Boost your reel/post to get priority placement in buyer feeds and instant customer inquiries.
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Select Budget (INR)</label>
-            <div className="grid grid-cols-3 gap-2">
-              <button type="button" onClick={() => setBoostBudget(199)} className={`p-2 rounded-xl text-xs font-bold border ${boostBudget === 199 ? 'bg-amber-500 text-white' : 'bg-surface'}`}>₹199 (4,000 views)</button>
-              <button type="button" onClick={() => setBoostBudget(499)} className={`p-2 rounded-xl text-xs font-bold border ${boostBudget === 499 ? 'bg-amber-500 text-white' : 'bg-surface'}`}>₹499 (10,000 views)</button>
-              <button type="button" onClick={() => setBoostBudget(999)} className={`p-2 rounded-xl text-xs font-bold border ${boostBudget === 999 ? 'bg-amber-500 text-white' : 'bg-surface'}`}>₹999 (25,000 views)</button>
-            </div>
-          </div>
-          <button type="submit" className="w-full py-3 bg-amber-500 text-white font-bold text-xs rounded-xl">
-            Confirm & Launch Post Boost
-          </button>
-        </form>
-      </AdminModal>
 
       {/* MODAL 3: CREATE REELS AI */}
       <AdminModal isOpen={showAiAdModal} onClose={() => setShowAiAdModal(false)} title="3. Create Reels / AI Generator">

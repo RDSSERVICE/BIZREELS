@@ -29,17 +29,37 @@ class WalletController {
   // ── Get Active Subscription ─────────────────────────────
   getSubscription = asyncHandler(async (req, res) => {
     const UserSubscription = require('../models/UserSubscription.model');
-    const activeSub = await UserSubscription.findOne({
+    const { SubscriptionPlan } = require('../models/Admin');
+
+    const role = (req.query.role || '').toLowerCase().trim();
+    const query = {
       user_id: req.user._id.toString(),
       status: 'active',
       is_deleted: { $ne: true },
-    }).lean();
+    };
+    // If role is specified, filter by it for role isolation
+    if (role && ['vendor', 'creator'].includes(role)) {
+      query.user_role = role;
+    }
 
-    const planName = activeSub ? activeSub.plan_name : 'Free Member';
+    const activeSub = await UserSubscription.findOne(query).lean();
+
+    let features = [];
+    let planName = 'Free Member';
+
+    if (activeSub) {
+      planName = activeSub.plan_name;
+      // Fetch plan features dynamically
+      const plan = await SubscriptionPlan.findById(activeSub.plan_id).lean();
+      if (plan) {
+        features = plan.features_list || (plan.features ? plan.features.split(',').map(f => f.trim()) : []);
+      }
+    }
 
     return ApiResponse.ok(res, 'Subscription details loaded.', {
       subscription: activeSub || { planName, status: 'active' },
       plan: planName,
+      features,
     });
   });
 

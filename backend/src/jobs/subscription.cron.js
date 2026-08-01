@@ -52,7 +52,6 @@ const initSubscriptionCron = () => {
                 plan_id: null,
                 startedAt: null,
                 expiresAt: null,
-                boostCredits: 0,
                 autoRenew: false,
                 status: 'inactive'
               }

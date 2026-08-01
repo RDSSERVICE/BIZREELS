@@ -43,6 +43,7 @@ router.use('/listings', lazyLoad('./listingRoutes'));
 router.use('/requirements', lazyLoad('./requirementRoutes'));
 router.use('/chat', lazyLoad('./chatRoutes'));
 router.use('/wallet', lazyLoad('./walletRoutes'));
+router.use('/transactions', lazyLoad('./transaction.routes'));
 router.use('/hires', lazyLoad('./hireRoutes'));
 router.use('/live', lazyLoad('./liveRoutes'));
 router.use('/notifications', lazyLoad('./notificationRoutes'));
@@ -136,16 +137,7 @@ router.post('/subscription/purchase-razorpay', authenticate, async (req, res, ne
   }
 });
 
-// Boosts endpoint (lazy loaded controller)
-router.get('/boosts', authenticate, (req, res, next) => {
-  require('../controllers/vendorController').getBoosts(req, res, next);
-});
-router.post('/boosts', authenticate, (req, res, next) => {
-  require('../controllers/vendorController').purchaseBoost(req, res, next);
-});
-router.post('/boosts/:id/renew', authenticate, (req, res, next) => {
-  require('../controllers/vendorController').renewBoost(req, res, next);
-});
+// NOTE: Boost endpoints removed — boost system deprecated in favor of subscriptions
 
 // Vendor Portal endpoints (lazy loaded controller)
 router.get('/vendor/dashboard', authenticate, (req, res, next) => {

@@ -13,7 +13,6 @@ const TRANSACTION_TYPES = [
   { value: 'order_payment', label: 'Order Payment' },
   { value: 'commission_payout', label: 'Commission' },
   { value: 'lead_purchase', label: 'Lead Purchase' },
-  { value: 'boost_purchase', label: 'Boost Purchase' },
   { value: 'withdrawal', label: 'Withdrawal' },
   { value: 'deposit', label: 'Deposit' },
 ];

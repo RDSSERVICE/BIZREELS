@@ -123,8 +123,68 @@ const checkSubscriptionLimit = (limitType) => {
     }
   };
 };
+/**
+ * Dynamic feature permission middleware (role-aware).
+ * Determines the role from the request path and checks if the user's
+ * active subscription for that role includes the specified feature key.
+ *
+ * Usage: router.post('/vendor/premium-action', authenticate, checkFeature('analytics_access'), controller)
+ */
+const checkFeature = (featureKey) => {
+  return async (req, res, next) => {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        return next(ApiError.unauthorized('Authentication required.'));
+      }
+
+      // Determine role context from URL path
+      const fullPath = (req.baseUrl || '') + (req.path || '');
+      const role = fullPath.includes('vendor') ? 'vendor' : 'creator';
+
+      // Find the active subscription for this specific role
+      const activeSub = await UserSubscription.findOne({
+        user_id: userId.toString(),
+        user_role: role,
+        status: 'active',
+        is_deleted: { $ne: true },
+      });
+
+      if (!activeSub) {
+        return next(ApiError.forbidden(
+          `Access denied. Feature "${featureKey}" requires an active ${role} subscription.`
+        ));
+      }
+
+      // Fetch the plan and verify the feature
+      const plan = await SubscriptionPlan.findById(activeSub.plan_id).lean();
+      if (!plan) {
+        return next(ApiError.forbidden('Your active subscription plan was not found.'));
+      }
+
+      const isEnabled =
+        plan[featureKey] === true ||
+        (Array.isArray(plan.features_list) && plan.features_list.map(f => f.toLowerCase()).includes(featureKey.toLowerCase())) ||
+        (typeof plan.features === 'string' && plan.features.split(',').map(f => f.trim().toLowerCase()).includes(featureKey.toLowerCase()));
+
+      if (!isEnabled) {
+        return next(ApiError.forbidden(
+          `Feature "${featureKey}" is not enabled on your ${plan.title} plan. Please upgrade.`
+        ));
+      }
+
+      // Attach subscription context for downstream use
+      req.activeSubscription = activeSub;
+      req.activeRole = role;
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+};
 
 module.exports = {
   requireSubscriptionFeature,
-  checkSubscriptionLimit
+  checkSubscriptionLimit,
+  checkFeature,
 };

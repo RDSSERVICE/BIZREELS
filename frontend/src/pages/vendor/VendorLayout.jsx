@@ -29,7 +29,6 @@ const NAV_SECTIONS = [
       { name: 'Verification Center', path: '/vendor/verification', icon: FiShield, badge: 'Badge' },
       { name: 'My Listings', path: '/vendor/listings', icon: FiPackage },
       { name: 'Reels & AI Ads', path: '/vendor/reels', icon: FiVideo },
-      { name: 'Reel Boost', path: '/vendor/boost', icon: FiZap, badge: 'Revenue' },
     ],
   },
   {

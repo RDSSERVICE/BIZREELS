@@ -174,7 +174,6 @@ const reconcileUserSubscription = async (userId) => {
         plan_id: null,
         startedAt: null,
         expiresAt: null,
-        boostCredits: 0,
         autoRenew: false,
         status: 'inactive'
       };
@@ -194,7 +193,6 @@ const reconcileUserSubscription = async (userId) => {
           plan_id: activeSub.plan_id,
           startedAt: activeSub.start_date,
           expiresAt: activeSub.expiry_date,
-          boostCredits: user.subscription?.boostCredits || 0,
           autoRenew: activeSub.auto_renewal || false,
           status: 'active'
         };
@@ -214,7 +212,6 @@ const reconcileUserSubscription = async (userId) => {
         plan_id: null,
         startedAt: null,
         expiresAt: null,
-        boostCredits: 0,
         autoRenew: false,
         status: 'inactive'
       };

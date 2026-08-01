@@ -77,7 +77,7 @@ const creatorApi = apiSlice.injectEndpoints({
 
     // ── Subscription ────────────────────────────────────────
     getCreatorSubscription: builder.query({
-      query: () => '/subscription',
+      query: () => '/subscription?role=creator',
       providesTags: ['Subscription'],
     }),
     getSubscriptionPlans: builder.query({

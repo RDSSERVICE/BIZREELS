@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
   FiPackage, FiTool, FiVideo, FiEye, FiUsers, FiInbox,
-  FiShoppingCart, FiDollarSign, FiZap, FiGrid, FiShield
+  FiShoppingCart, FiDollarSign, FiZap, FiGrid, FiShield, FiActivity
 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
@@ -14,16 +14,16 @@ import ReferralCard from '../../../components/app/ReferralCard';
 import {
   useGetVendorDashboardQuery,
   useGetVendorLeadsQuery,
-  useGetVendorBoostsQuery,
   useGetVendorReelsQuery,
+  useGetVendorSubscriptionQuery,
 } from '../../../features/vendor/vendorApi';
 import { getSocket } from '../../../lib/socket';
 
 export default function VendorDashboardPage() {
   const { data: dashboardRes, isLoading, refetch: refetchDashboard } = useGetVendorDashboardQuery(undefined, { pollingInterval: 300000 });
   const { data: leadsRes, refetch: refetchLeads } = useGetVendorLeadsQuery(undefined, { pollingInterval: 300000 });
-  const { data: boostsRes, refetch: refetchBoosts } = useGetVendorBoostsQuery(undefined, { pollingInterval: 300000 });
   const { data: reelsRes, refetch: refetchReels } = useGetVendorReelsQuery(undefined, { pollingInterval: 300000 });
+  const { data: subscriptionRes } = useGetVendorSubscriptionQuery(undefined, { pollingInterval: 300000 });
 
   // Socket.IO real-time update listeners for dashboard metrics
   useEffect(() => {
@@ -33,7 +33,6 @@ export default function VendorDashboardPage() {
     const handleRefetchAll = () => {
       if (typeof refetchDashboard === 'function') refetchDashboard();
       if (typeof refetchLeads === 'function') refetchLeads();
-      if (typeof refetchBoosts === 'function') refetchBoosts();
       if (typeof refetchReels === 'function') refetchReels();
     };
 
@@ -81,14 +80,14 @@ export default function VendorDashboardPage() {
       socket.off('deal:updated', handleRefetchAll);
       socket.off('order:updated', handleRefetchAll);
     };
-  }, [refetchDashboard, refetchLeads, refetchBoosts, refetchReels]);
+  }, [refetchDashboard, refetchLeads, refetchReels]);
 
   // Safe unwrap: handles both old double-nested (data.data) and new flat (data) response shapes
   const rawData = dashboardRes?.data;
   const metrics = (rawData?.totalProducts !== undefined ? rawData : rawData?.data) || {};
   const leads = Array.isArray(leadsRes?.data) ? leadsRes.data : Array.isArray(leadsRes) ? leadsRes : [];
-  const boosts = Array.isArray(boostsRes?.active) ? boostsRes.active : Array.isArray(boostsRes?.data) ? boostsRes.data : [];
   const reelsList = Array.isArray(reelsRes?.data) ? reelsRes.data : Array.isArray(reelsRes?.reels) ? reelsRes.reels : Array.isArray(reelsRes) ? reelsRes : [];
+  const activeFeatures = subscriptionRes?.features || [];
 
   const realTimeReelsCount = Math.max(metrics.totalReels || 0, reelsList.length);
   const realTimeViewsCount = Math.max(metrics.totalViews || 0, reelsList.reduce((sum, r) => sum + (r.views || 0), 0));
@@ -112,7 +111,6 @@ export default function VendorDashboardPage() {
     { label: 'Enquiries', value: metrics.leadEnquiries ?? 0, icon: FiInbox, color: 'cyan', trend: 5 },
     { label: 'Order Requests', value: metrics.totalOrders ?? 0, icon: FiShoppingCart, color: 'indigo', trend: 15 },
     { label: 'Revenue', value: `₹${(metrics.totalSales || 0).toLocaleString()}`, icon: FiDollarSign, color: 'teal', trend: 24 },
-    { label: 'Active Boosts', value: `${boosts.length} Reels`, icon: FiZap, color: 'orange', trend: 0 },
   ];
 
   const currentUser = useSelector(selectCurrentUser);
@@ -214,9 +212,9 @@ export default function VendorDashboardPage() {
 
       {/* Header Banner */}
       <AdminPageHeader
-        icon={FiGrid}
-        title="Vendor Overview Dashboard"
-        subtitle="Real-time performance analytics across products, services, reels, and lead conversions"
+        icon={FiActivity}
+        title="Vendor Control Dashboard"
+        subtitle="Manage listings, customer inquiries, product requests, and view analytics in real-time."
       >
         <div className="flex flex-wrap items-center gap-2">
           <Link
@@ -224,17 +222,13 @@ export default function VendorDashboardPage() {
             className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-brand-purple text-white font-bold text-[11px] sm:text-xs shadow-premium hover:bg-brand-purple/90 transition flex items-center gap-1.5"
           >
             <FiVideo size={16} />
-            <span className="hidden sm:inline">1. POST REELS/IMAGE</span><span className="sm:hidden">POST REEL</span>
-          </Link>
-          <Link
-            to="/vendor/boost"
-            className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl gradient-brand text-white font-bold text-[11px] sm:text-xs shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
-          >
-            <FiZap size={16} />
-            <span className="hidden sm:inline">2. BOOST POST</span><span className="sm:hidden">BOOST</span>
+            <span className="hidden sm:inline">POST REELS/IMAGE</span><span className="sm:hidden">POST REEL</span>
           </Link>
         </div>
       </AdminPageHeader>
+
+      {/* Subscription Status Card */}
+      <SubscriptionStatusCard user={currentUser} />
 
       {/* Overview Stat Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -283,33 +277,32 @@ export default function VendorDashboardPage() {
           </div>
         </div>
 
-        {/* Active Boosted Reels Status */}
+        {/* Subscription Features Status */}
         <div className="glass rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-white/10 shadow-card space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
-              <FiZap className="text-amber-500" />
-              <span>Active Boosted Reels</span>
+              <FiShield className="text-brand-purple" />
+              <span>Premium Feature Access</span>
             </h3>
-            <Link to="/vendor/boost" className="text-xs text-brand-purple font-bold hover:underline">
-              Manage Boosts
+            <Link to="/vendor/subscription" className="text-xs text-brand-purple font-bold hover:underline">
+              Upgrade
             </Link>
           </div>
 
-          <div className="space-y-3">
-            {boosts.length === 0 ? (
-              <p className="text-xs text-text-tertiary text-center py-4">No active boosted reels. Boost a reel for high reach!</p>
+          <div className="space-y-2">
+            {activeFeatures.length === 0 ? (
+              <div className="text-center py-6 text-text-tertiary">
+                <p className="text-xs">No active premium features. Upgrade to unlock all benefits!</p>
+              </div>
             ) : (
-              boosts.map((b, i) => (
-                <div key={b.id || i} className="glass p-3 sm:p-3.5 rounded-xl border border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs">
-                  <div>
-                    <h4 className="font-bold text-text-primary">{b.reelTitle || 'Boosted Promo Reel'}</h4>
-                    <p className="text-[11px] text-text-tertiary">Plan: {b.plan || 'Boost Package'}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {activeFeatures.map((feat, i) => (
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 bg-brand-purple/5 border border-brand-purple/10 rounded-xl text-xs font-bold text-brand-navy">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-purple"></span>
+                    {feat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                   </div>
-                  <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 font-bold text-[10px] rounded-lg border border-emerald-500/20">
-                    {b.status || 'Active'} ({b.remainingDays || 7}d left)
-                  </span>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </div>

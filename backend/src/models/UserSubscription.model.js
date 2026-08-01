@@ -45,6 +45,7 @@ const userSubscriptionSchema = new mongoose.Schema({
 });
 
 userSubscriptionSchema.index({ user_id: 1, status: 1 });
+userSubscriptionSchema.index({ user_id: 1, user_role: 1, status: 1 });
 userSubscriptionSchema.index({ expiry_date: 1, status: 1 });
 userSubscriptionSchema.index({ plan_id: 1 });
 userSubscriptionSchema.index({ created_at: -1 });

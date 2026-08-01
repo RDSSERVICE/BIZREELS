@@ -43,7 +43,6 @@ const VendorDashboardPage = React.lazy(() => import('../pages/vendor/dashboard/V
 const VendorBusinessProfilePage = React.lazy(() => import('../pages/vendor/profile/VendorBusinessProfilePage'));
 const VendorListingsPage = React.lazy(() => import('../pages/vendor/listings/VendorListingsPage'));
 const VendorReelsPage = React.lazy(() => import('../pages/vendor/reels/VendorReelsPage'));
-const VendorReelBoostPage = React.lazy(() => import('../pages/vendor/boost/VendorReelBoostPage'));
 const VendorLeadsPage = React.lazy(() => import('../pages/vendor/leads/VendorLeadsPage'));
 const VendorOrdersPage = React.lazy(() => import('../pages/vendor/orders/VendorOrdersPage'));
 const VendorAnalyticsPage = React.lazy(() => import('../pages/vendor/analytics/VendorAnalyticsPage'));
@@ -80,7 +79,7 @@ const AdminConsole = React.lazy(() => import('../pages/admin/AdminConsole'));
 const AdminKycPage = React.lazy(() => import('../pages/admin/kyc/AdminKycPage'));
 const AdminListingsPage = React.lazy(() => import('../pages/admin/listings/AdminListingsPage'));
 const AdminReelsPage = React.lazy(() => import('../pages/admin/reels/AdminReelsPage'));
-const AdminBoostPage = React.lazy(() => import('../pages/admin/boost/AdminBoostPage'));
+// NOTE: AdminBoostPage removed — boost system deprecated
 const AdminCategoriesPage = React.lazy(() => import('../pages/admin/categories/AdminCategoriesPage'));
 const AdminLocationsPage = React.lazy(() => import('../pages/admin/locations/AdminLocationsPage'));
 const AdminRequirementsPage = React.lazy(() => import('../pages/admin/requirements/AdminRequirementsPage'));
@@ -175,7 +174,6 @@ const AppRoutes = () => {
         <Route path="verification" element={<VendorVerificationPage />} />
         <Route path="listings" element={<VendorListingsPage />} />
         <Route path="reels" element={<VendorReelsPage />} />
-        <Route path="boost" element={<VendorReelBoostPage />} />
         <Route path="leads" element={<VendorLeadsPage />} />
         <Route path="orders" element={<VendorOrdersPage />} />
         <Route path="analytics" element={<VendorAnalyticsPage />} />
@@ -243,7 +241,7 @@ const AppRoutes = () => {
         <Route path="/admin/approvals" element={<AdminKycPage />} />
         <Route path="/admin/listings" element={<AdminListingsPage />} />
         <Route path="/admin/reels" element={<AdminReelsPage />} />
-        <Route path="/admin/boost" element={<AdminBoostPage />} />
+        {/* NOTE: /admin/boost route removed — boost system deprecated */}
         <Route path="/admin/categories" element={<AdminCategoriesPage />} />
         <Route path="/admin/locations" element={<AdminLocationsPage />} />
         <Route path="/admin/requirements" element={<AdminRequirementsPage />} />

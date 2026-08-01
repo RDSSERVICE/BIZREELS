@@ -145,6 +145,9 @@ const subscriptionPlanSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });
 
+// Role-based plan lookup index
+subscriptionPlanSchema.index({ target_role: 1, is_active: 1 });
+subscriptionPlanSchema.index({ user_type: 1, is_active: 1 });
 
 // ══════════════════════════════════════════════════════════════
 // App Settings — global application configuration
