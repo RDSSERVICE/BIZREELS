@@ -130,6 +130,11 @@ const reelSchema = new Schema(
       default: false,
       index: true,
     },
+    boostPlan: { type: String, default: null },
+    boostExpiresAt: { type: Date, default: null },
+    boostDurationDays: { type: Number, default: null },
+    boostActivatedAt: { type: Date, default: null },
+    boostCost: { type: Number, default: null },
     isDraft: {
       type: Boolean,
       default: false,

@@ -1,34 +1,64 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiZap, FiRefreshCw, FiCheck, FiDollarSign, FiClock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 import { useGetVendorBoostsQuery, usePurchaseBoostMutation, useRenewBoostMutation } from '../../../features/vendor/vendorApi';
+import { api } from '../../../lib/api';
 
 export default function VendorReelBoostPage() {
   const { data } = useGetVendorBoostsQuery(undefined, { pollingInterval: 300000 });
   const [purchaseBoost] = usePurchaseBoostMutation();
   const [renewBoost] = useRenewBoostMutation();
 
+  const [selectedReelId, setSelectedReelId] = useState('');
+  const [myReels, setMyReels] = useState([]);
+  const [loadingReels, setLoadingReels] = useState(false);
+
+  useEffect(() => {
+    setLoadingReels(true);
+    api.get('/v1/reels/my-reels')
+      .then((res) => {
+        const list = res.data?.data || res.data || [];
+        setMyReels(list);
+        if (list.length > 0) {
+          setSelectedReelId(list[0]._id || list[0].id);
+        }
+      })
+      .catch((err) => {
+        console.error('Error fetching reels:', err);
+      })
+      .finally(() => {
+        setLoadingReels(false);
+      });
+  }, []);
+
   const activeBoosts = Array.isArray(data?.active) ? data.active : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
   const totalSpend = activeBoosts.reduce((acc, b) => acc + (b.cost || 0), 0);
 
   const handleBuyBoost = async (planName, cost) => {
+    if (!selectedReelId) {
+      toast.error('Please select a reel to boost first!');
+      return;
+    }
+    const planDays = planName.toLowerCase().includes('3 day') ? 3 : planName.toLowerCase().includes('30 day') ? 30 : 7;
+    const toastId = toast.loading(`Purchasing ${planName}...`);
     try {
-      await purchaseBoost({ plan: planName, cost }).unwrap();
-      toast.success(`Purchased ${planName}! Reel is now boosted to top feed views.`);
-    } catch {
-      toast.success(`Purchased ${planName}! Reel is now boosted to top feed views.`);
+      await purchaseBoost({ reelId: selectedReelId, plan: planName, cost, days: planDays }).unwrap();
+      toast.success(`Purchased ${planName}! Reel is now boosted.`, { id: toastId });
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to purchase boost.', { id: toastId });
     }
   };
 
   const handleRenewBoost = async (id) => {
+    const toastId = toast.loading('Renewing boost...');
     try {
       await renewBoost(id).unwrap();
-      toast.success('Boost renewed for +7 days!');
-    } catch {
-      toast.success('Boost renewed for +7 days!');
+      toast.success('Boost renewed successfully!', { id: toastId });
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to renew boost.', { id: toastId });
     }
   };
 
@@ -51,6 +81,35 @@ export default function VendorReelBoostPage() {
         <AdminStatCard label="Active Boosts" value={String(activeBoosts.length)} icon={FiZap} color="amber" />
         <AdminStatCard label="Total Boost Spend" value={`₹${totalSpend.toLocaleString()}`} icon={FiDollarSign} color="green" />
         <AdminStatCard label="Avg. Reach Multiplier" value={activeBoosts.length ? '10.0x' : '1.0x'} icon={FiClock} color="purple" />
+      </div>
+
+      {/* Select Reel Section */}
+      <div className="glass rounded-2xl p-5 border border-white/50 shadow-card space-y-4">
+        <h3 className="text-sm font-bold text-text-primary font-display border-b border-border pb-3 flex items-center gap-2">
+          <FiZap className="text-brand-purple" /> Select Reel to Boost
+        </h3>
+        {loadingReels ? (
+          <p className="text-xs text-text-tertiary">Loading your reels...</p>
+        ) : myReels.length === 0 ? (
+          <div className="text-xs text-text-tertiary text-center py-4">
+            No reels found. Please upload a reel first before boosting!
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <label className="text-xs font-semibold text-text-secondary">Choose a Reel:</label>
+            <select
+              value={selectedReelId}
+              onChange={(e) => setSelectedReelId(e.target.value)}
+              className="px-3 py-2 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple w-full sm:max-w-md"
+            >
+              {myReels.map((r) => (
+                <option key={r._id || r.id} value={r._id || r.id}>
+                  {r.caption || r.title || 'Untitled Reel'}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Active Boosts */}
@@ -110,7 +169,8 @@ export default function VendorReelBoostPage() {
               </div>
               <button
                 onClick={() => handleBuyBoost(plan.name, plan.price)}
-                className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all ${
+                disabled={!selectedReelId}
+                className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                   plan.popular
                     ? 'gradient-brand text-white shadow-premium hover:opacity-90'
                     : 'bg-surface-tertiary text-text-primary hover:bg-brand-purple/10 hover:text-brand-purple'

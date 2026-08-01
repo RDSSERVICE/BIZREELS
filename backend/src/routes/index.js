@@ -140,6 +140,12 @@ router.post('/subscription/purchase-razorpay', authenticate, async (req, res, ne
 router.get('/boosts', authenticate, (req, res, next) => {
   require('../controllers/vendorController').getBoosts(req, res, next);
 });
+router.post('/boosts', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').purchaseBoost(req, res, next);
+});
+router.post('/boosts/:id/renew', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').renewBoost(req, res, next);
+});
 
 // Vendor Portal endpoints (lazy loaded controller)
 router.get('/vendor/dashboard', authenticate, (req, res, next) => {

@@ -109,14 +109,128 @@ class VendorController {
     const boostedReels = await Reel.find({ creator: req.user._id, isBoosted: true }).lean();
 
     return ApiResponse.ok(res, 'Active reel boosts loaded.', {
-      active: boostedReels.map((r) => ({
-        id: r._id.toString(),
-        reelTitle: r.caption || 'Boosted Reel Promo',
-        plan: 'Gold Boost (7 Days)',
-        remainingDays: 7,
-        status: 'Active',
-        cost: 1499
-      }))
+      active: boostedReels.map((r) => {
+        let remainingDays = 7;
+        if (r.boostExpiresAt) {
+          const diff = new Date(r.boostExpiresAt).getTime() - Date.now();
+          remainingDays = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+        } else if (r.boostDurationDays) {
+          remainingDays = r.boostDurationDays;
+        }
+
+        return {
+          id: r._id.toString(),
+          reelTitle: r.caption || 'Boosted Reel Promo',
+          plan: r.boostPlan || 'Gold Boost (7 Days)',
+          remainingDays,
+          status: remainingDays > 0 ? 'Active' : 'Expired',
+          cost: r.boostCost || 1499
+        };
+      })
+    });
+  });
+
+  purchaseBoost = asyncHandler(async (req, res) => {
+    const { reelId, plan, cost, days } = req.body;
+    const walletService = require('../services/wallet.service');
+    const ApiError = require('../utils/ApiError');
+
+    if (!reelId || !plan || !cost) {
+      throw ApiError.badRequest('reelId, plan, and cost are required');
+    }
+
+    const reel = await Reel.findOne({ _id: reelId, creator: req.user._id });
+    if (!reel) {
+      throw ApiError.notFound('Reel not found or not owned by you');
+    }
+
+    const durationDays = parseInt(days || (plan.toLowerCase().includes('3 day') ? 3 : plan.toLowerCase().includes('30 day') ? 30 : 7), 10);
+
+    await walletService.debit({
+      userId: req.user._id,
+      amount: Math.round(cost),
+      transactionType: 'manual_debit',
+      reason: `Purchased Reel Boost: ${plan} for reel "${reel.caption || 'Promo'}"`,
+      source: 'boost_reel'
+    });
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+    await Reel.updateOne(
+      { _id: reelId },
+      {
+        $set: {
+          isBoosted: true,
+          boostPlan: plan,
+          boostCost: cost,
+          boostDurationDays: durationDays,
+          boostActivatedAt: now.toISOString(),
+          boostExpiresAt: expiresAt.toISOString(),
+        }
+      }
+    );
+
+    return ApiResponse.created(res, 'Reel boost purchased successfully', {
+      id: reelId,
+      plan,
+      cost,
+      remainingDays: durationDays,
+      status: 'Active'
+    });
+  });
+
+  renewBoost = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const walletService = require('../services/wallet.service');
+    const ApiError = require('../utils/ApiError');
+
+    const reel = await Reel.findOne({ _id: id, creator: req.user._id });
+    if (!reel) {
+      throw ApiError.notFound('Boosted reel not found');
+    }
+
+    const cost = reel.boostCost || 1499;
+    const planName = reel.boostPlan || 'Gold Boost (7 Days)';
+    const days = reel.boostDurationDays || 7;
+
+    await walletService.debit({
+      userId: req.user._id,
+      amount: Math.round(cost),
+      transactionType: 'manual_debit',
+      reason: `Renewed Reel Boost: ${planName} for reel "${reel.caption || 'Promo'}"`,
+      source: 'boost_reel'
+    });
+
+    const now = new Date();
+    let baseFrom = now;
+    if (reel.boostExpiresAt) {
+      const currentExpiry = new Date(reel.boostExpiresAt);
+      if (currentExpiry > now) {
+        baseFrom = currentExpiry;
+      }
+    }
+
+    const newExpiry = new Date(baseFrom.getTime() + days * 24 * 60 * 60 * 1000);
+    const remainingDays = Math.max(0, Math.ceil((newExpiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+
+    await Reel.updateOne(
+      { _id: id },
+      {
+        $set: {
+          isBoosted: true,
+          boostActivatedAt: now.toISOString(),
+          boostExpiresAt: newExpiry.toISOString(),
+        }
+      }
+    );
+
+    return ApiResponse.ok(res, 'Reel boost renewed successfully', {
+      id,
+      plan: planName,
+      cost,
+      remainingDays,
+      status: 'Active'
     });
   });
 }
