@@ -19,14 +19,24 @@ const DEFAULT_CONFIG = {
 
 const CONFIG_KEY = 'referral_config';
 
+let cachedConfig = null;
+let lastFetched = 0;
+const CACHE_TTL_MS = 60 * 1000;
+
 /**
  * Get referral configuration from PlatformSettings, or return defaults.
  */
 async function getReferralConfig() {
+  const now = Date.now();
+  if (cachedConfig && (now - lastFetched < CACHE_TTL_MS)) {
+    return cachedConfig;
+  }
   try {
     const setting = await PlatformSettings.findOne({ key: CONFIG_KEY }).lean();
     if (setting && setting.value) {
-      return { ...DEFAULT_CONFIG, ...setting.value };
+      cachedConfig = { ...DEFAULT_CONFIG, ...setting.value };
+      lastFetched = now;
+      return cachedConfig;
     }
   } catch (err) {
     logger.warn('Failed to load referral config, using defaults', { error: err.message });
@@ -46,6 +56,9 @@ async function updateReferralConfig(updates) {
     { $set: { value: merged } },
     { upsert: true }
   );
+
+  cachedConfig = merged;
+  lastFetched = Date.now();
 
   logger.info('Referral config updated', { service: 'referral-config' });
   return merged;

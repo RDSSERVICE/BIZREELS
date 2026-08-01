@@ -34,9 +34,6 @@ const newUniqueCode = async () => {
   return fallbackCode;
 };
 
-/**
- * Ensure a user has a referral code, create one if not.
- */
 const ensureCode = async (userId) => {
   const u = await User.findById(userId, { referral_code: 1 });
   if (!u) throw ApiError.notFound('User not found');
@@ -44,12 +41,12 @@ const ensureCode = async (userId) => {
   if (u.referral_code) return u.referral_code;
 
   const code = await newUniqueCode();
-  await User.updateOne(
+  const updated = await User.findOneAndUpdate(
     { _id: userId, referral_code: { $exists: false } },
-    { $set: { referral_code: code, updated_at: new Date().toISOString() } }
+    { $set: { referral_code: code, updated_at: new Date().toISOString() } },
+    { new: true, select: { referral_code: 1 } }
   );
-  const fresh = await User.findById(userId, { referral_code: 1 });
-  return fresh.referral_code || code;
+  return updated?.referral_code || code;
 };
 
 /**
@@ -137,13 +134,19 @@ const maybeAwardOnKYC = async (userId) => {
  */
 const getVendorDashboard = async (userId) => {
   const uid = userId.toString();
-  const code = await ensureCode(userId);
-  const config = await getReferralConfig();
 
-  const docs = await Referral.find({ referrer_id: uid, is_deleted: { $ne: true } })
-    .sort({ _id: -1 })
-    .limit(100)
-    .lean();
+  const [userDoc, config, docs] = await Promise.all([
+    User.findById(userId, { referral_code: 1 }).lean(),
+    getReferralConfig(),
+    Referral.find({ referrer_id: uid, is_deleted: { $ne: true } }).sort({ _id: -1 }).limit(100).lean()
+  ]);
+
+  if (!userDoc) throw ApiError.notFound('User not found');
+
+  let code = userDoc.referral_code;
+  if (!code) {
+    code = await ensureCode(userId);
+  }
 
   const referredIds = docs.map(d => d.referred_user_id);
   const users = referredIds.length > 0

@@ -5,6 +5,10 @@ const Inquiry = require('../models/Inquiry');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 
+let cachedCreditRates = null;
+let lastRatesFetched = 0;
+const RATES_CACHE_TTL_MS = 30000; // 30 seconds cache
+
 /**
  * VendorController
  * Handles Vendor Portal dashboard, analytics, and boost queries.
@@ -52,9 +56,18 @@ class VendorController {
       reelBoost1Day: 10,
       validLead: 1,
     };
-    const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
-    if (rateSetting && rateSetting.value) {
-      creditRates = { ...creditRates, ...rateSetting.value };
+    const now = Date.now();
+    if (cachedCreditRates && (now - lastRatesFetched < RATES_CACHE_TTL_MS)) {
+      creditRates = cachedCreditRates;
+    } else {
+      try {
+        const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+        if (rateSetting && rateSetting.value) {
+          creditRates = { ...creditRates, ...rateSetting.value };
+        }
+        cachedCreditRates = creditRates;
+        lastRatesFetched = now;
+      } catch (err) {}
     }
 
     return ApiResponse.ok(res, 'Vendor dashboard metrics loaded.', {
