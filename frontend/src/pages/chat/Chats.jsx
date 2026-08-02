@@ -544,6 +544,7 @@ const Chats = () => {
               </button>
             </form>
           </>
+        )}
       </div>
 
       {/* Delete Message Modal Overlay */}
