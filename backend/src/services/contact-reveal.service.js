@@ -67,22 +67,33 @@ const revealContact = async (requesterId, vendorId) => {
 
   if (!relationship && !verified) {
     try {
+      const { AppSettings } = require('../models/Admin');
+      let revealCreditCost = REVEAL_CREDIT_COST;
+      try {
+        const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+        if (rateSetting && rateSetting.value && rateSetting.value.validLead !== undefined) {
+          revealCreditCost = Number(rateSetting.value.validLead);
+        }
+      } catch (err) {
+        logger.error('Failed to fetch dynamic lead reveal credit rate:', err);
+      }
+
       const wallet = await walletService.getOrCreate(requesterId);
       const balance = parseInt(wallet.credits || 0, 10);
-      if (balance < REVEAL_CREDIT_COST) {
+      if (balance < revealCreditCost) {
         throw new ApiError(
           402,
-          `Not enough credits (${balance} available; ${REVEAL_CREDIT_COST} needed). Start a chat with the vendor or subscribe for free reveals.`
+          `Not enough credits (${balance} available; ${revealCreditCost} needed). Start a chat with the vendor or subscribe for free reveals.`
         );
       }
       await walletService.spendCredits(
         requesterId,
-        REVEAL_CREDIT_COST,
+        revealCreditCost,
         'contact_reveal',
         'contact_reveal',
         vendorId
       );
-      creditsSpent = REVEAL_CREDIT_COST;
+      creditsSpent = revealCreditCost;
     } catch (err) {
       if (err.statusCode) throw err;
       logger.error('Wallet spend failed on reveal:', err.message);

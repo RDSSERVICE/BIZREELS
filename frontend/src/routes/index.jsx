@@ -79,7 +79,7 @@ const AdminConsole = React.lazy(() => import('../pages/admin/AdminConsole'));
 const AdminKycPage = React.lazy(() => import('../pages/admin/kyc/AdminKycPage'));
 const AdminListingsPage = React.lazy(() => import('../pages/admin/listings/AdminListingsPage'));
 const AdminReelsPage = React.lazy(() => import('../pages/admin/reels/AdminReelsPage'));
-// NOTE: AdminBoostPage removed — boost system deprecated
+const AdminBoostPage = React.lazy(() => import('../pages/admin/boost/AdminBoostPage'));
 const AdminCategoriesPage = React.lazy(() => import('../pages/admin/categories/AdminCategoriesPage'));
 const AdminLocationsPage = React.lazy(() => import('../pages/admin/locations/AdminLocationsPage'));
 const AdminRequirementsPage = React.lazy(() => import('../pages/admin/requirements/AdminRequirementsPage'));
@@ -241,7 +241,7 @@ const AppRoutes = () => {
         <Route path="/admin/approvals" element={<AdminKycPage />} />
         <Route path="/admin/listings" element={<AdminListingsPage />} />
         <Route path="/admin/reels" element={<AdminReelsPage />} />
-        {/* NOTE: /admin/boost route removed — boost system deprecated */}
+        <Route path="/admin/boost" element={<AdminBoostPage />} />
         <Route path="/admin/categories" element={<AdminCategoriesPage />} />
         <Route path="/admin/locations" element={<AdminLocationsPage />} />
         <Route path="/admin/requirements" element={<AdminRequirementsPage />} />

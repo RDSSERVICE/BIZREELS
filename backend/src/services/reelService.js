@@ -145,14 +145,25 @@ class ReelService {
       }
     }
 
-    // Deduct 1 credit from vendor wallet
+    // Deduct dynamic credits from vendor wallet
     try {
+      const { AppSettings } = require('../models/Admin');
+      let amount = 1;
+      try {
+        const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+        if (rateSetting && rateSetting.value && rateSetting.value.reelPost !== undefined) {
+          amount = Number(rateSetting.value.reelPost);
+        }
+      } catch (err) {
+        logger.error('Failed to fetch credit rates for reel publishing:', err);
+      }
+
       const walletService = require('./wallet.service');
       await walletService.debit({
         userId,
-        amount: 1,
+        amount,
         transactionType: 'publish_post',
-        reason: '1 Reel / Image Post published',
+        reason: `${amount} Credits deducted for publishing a Reel / Image Post`,
         source: 'reel',
         meta: { reel_id: reel._id.toString() },
       });
