@@ -40,6 +40,33 @@ const chatApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Chat'],
     }),
+
+    // Delete entire conversation
+    deleteConversation: builder.mutation({
+      query: (conversationId) => ({
+        url: `/chat/${conversationId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Chat'],
+    }),
+
+    // Delete message for me
+    deleteMessageForMe: builder.mutation({
+      query: (messageId) => ({
+        url: `/chat/messages/${messageId}/me`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Chat'],
+    }),
+
+    // Delete message for everyone
+    deleteMessageForEveryone: builder.mutation({
+      query: (messageId) => ({
+        url: `/chat/messages/${messageId}/everyone`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Chat'],
+    }),
   }),
 });
 
@@ -48,6 +75,9 @@ export const {
   useGetMessagesQuery,
   useSendMessageMutation,
   useClearChatMutation,
+  useDeleteConversationMutation,
+  useDeleteMessageForMeMutation,
+  useDeleteMessageForEveryoneMutation,
 } = chatApi;
 
 export default chatApi;

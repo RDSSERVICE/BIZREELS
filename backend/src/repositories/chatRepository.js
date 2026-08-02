@@ -43,12 +43,29 @@ class ChatRepository {
       .populate('participants', 'name avatarUrl activeRole')
       .populate({
         path: 'lastMessage',
-        select: 'text media sender isSeen createdAt',
+        select: 'text media sender isSeen createdAt deletedFor',
       })
       .sort({ updatedAt: -1 })
       .lean();
 
-    return list;
+    return list.map((c) => {
+      if (c.lastMessage && c.lastMessage.deletedFor) {
+        const isDeletedForMe = c.lastMessage.deletedFor.some(
+          (id) => id.toString() === userId.toString()
+        );
+        if (isDeletedForMe) {
+          return {
+            ...c,
+            lastMessage: {
+              ...c.lastMessage,
+              text: 'Chat cleared',
+              media: null,
+            },
+          };
+        }
+      }
+      return c;
+    });
   }
 
   /**
@@ -87,13 +104,17 @@ class ChatRepository {
               {
                 lastMessage: message._id,
                 $inc: { [path]: 1 },
+                $pull: { isDeletedBy: { $in: [senderId, recipientId] } },
               },
               { session }
             );
           } else {
             await Conversation.findByIdAndUpdate(
               conversationId,
-              { lastMessage: message._id },
+              {
+                lastMessage: message._id,
+                $pull: { isDeletedBy: senderId },
+              },
               { session }
             );
           }
@@ -109,16 +130,23 @@ class ChatRepository {
   /**
    * Fetch chat history messages.
    */
-  async getMessages(conversationId, { page = 1, limit = 30 }) {
+  async getMessages(conversationId, userId, { page = 1, limit = 30 }) {
     const skip = (page - 1) * limit;
-    const messages = await Message.find({ conversation: conversationId })
+    const messages = await Message.find({
+      conversation: conversationId,
+      deletedFor: { $ne: userId }
+    })
+      .setOptions({ includeSoftDeleted: true })
       .populate('sender', 'name avatarUrl activeRole')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10))
       .lean();
 
-    const total = await Message.countDocuments({ conversation: conversationId });
+    const total = await Message.countDocuments({
+      conversation: conversationId,
+      deletedFor: { $ne: userId }
+    });
 
     return { messages: messages.reverse(), total };
   }
@@ -156,6 +184,50 @@ class ChatRepository {
       $unset: { lastMessage: 1 },
     });
     return true;
+  }
+
+  async deleteConversation(conversationId, userId) {
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await Conversation.findByIdAndUpdate(
+          conversationId,
+          { $addToSet: { isDeletedBy: userId } },
+          { session }
+        );
+
+        await Message.updateMany(
+          { conversation: conversationId },
+          { $addToSet: { deletedFor: userId } },
+          { session }
+        );
+      });
+      return true;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  async deleteMessageForMe(messageId, userId) {
+    await Message.findByIdAndUpdate(messageId, {
+      $addToSet: { deletedFor: userId }
+    });
+    return true;
+  }
+
+  async deleteMessageForEveryone(messageId) {
+    return Message.findByIdAndUpdate(
+      messageId,
+      {
+        $set: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          text: 'This message was deleted',
+          media: null,
+        }
+      },
+      { new: true }
+    ).populate('sender', 'name avatarUrl activeRole');
   }
 }
 

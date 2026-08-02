@@ -50,6 +50,27 @@ class ChatController {
     await chatService.clearChat(conversationId, req.user._id);
     return ApiResponse.ok(res, 'Chat history cleared successfully.');
   });
+
+  // ── Delete Conversation ─────────────────────────────────
+  deleteConversation = asyncHandler(async (req, res) => {
+    const { conversationId } = req.params;
+    await chatService.deleteConversation(conversationId, req.user._id);
+    return ApiResponse.ok(res, 'Conversation deleted successfully.');
+  });
+
+  // ── Delete Message For Me ───────────────────────────────
+  deleteMessageForMe = asyncHandler(async (req, res) => {
+    const { messageId } = req.params;
+    await chatService.deleteMessageForMe(messageId, req.user._id);
+    return ApiResponse.ok(res, 'Message deleted for you.');
+  });
+
+  // ── Delete Message For Everyone ─────────────────────────
+  deleteMessageForEveryone = asyncHandler(async (req, res) => {
+    const { messageId } = req.params;
+    await chatService.deleteMessageForEveryone(messageId, req.user._id);
+    return ApiResponse.ok(res, 'Message deleted for everyone.');
+  });
 }
 
 module.exports = new ChatController();

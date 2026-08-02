@@ -42,6 +42,12 @@ const messageSchema = new Schema(
       index: true,
     },
     deletedAt: Date,
+    deletedFor: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
     timestamps: true,

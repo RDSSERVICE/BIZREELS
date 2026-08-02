@@ -3,12 +3,16 @@ import { io } from 'socket.io-client';
 import { useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSend, FiPaperclip, FiMic, FiPhone, FiVideo, FiMoreVertical, FiCircle, FiUser, FiArrowLeft } from 'react-icons/fi';
+import { FiSend, FiPaperclip, FiMic, FiPhone, FiVideo, FiMoreVertical, FiCircle, FiUser, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
 import { selectCurrentUser, selectAccessToken } from '../../features/auth/authSlice';
 import {
   useGetConversationsQuery,
   useGetMessagesQuery,
-  useSendMessageMutation
+  useSendMessageMutation,
+  useClearChatMutation,
+  useDeleteConversationMutation,
+  useDeleteMessageForMeMutation,
+  useDeleteMessageForEveryoneMutation
 } from '../../features/chat/chatApi';
 import API_CONFIG from '../../config';
 import { tokenStore } from '../../lib/api';
@@ -26,6 +30,13 @@ const Chats = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
   const [chatFilter, setChatFilter] = useState('all'); // all | vendor | creator
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+  const [deleteMessageModal, setDeleteMessageModal] = useState(null);
+
+  const [clearChatApi] = useClearChatMutation();
+  const [deleteConversationApi] = useDeleteConversationMutation();
+  const [deleteMessageForMeApi] = useDeleteMessageForMeMutation();
+  const [deleteMessageForEveryoneApi] = useDeleteMessageForEveryoneMutation();
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -118,6 +129,17 @@ const Chats = () => {
     socket.on('messages_seen', () => {
       setMessages((prev) =>
         prev.map((msg) => ({ ...msg, isSeen: true }))
+      );
+      refetchConvs();
+    });
+
+    socket.on('message_deleted', ({ messageId, text }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === messageId
+            ? { ...msg, text, isDeleted: true }
+            : msg
+        )
       );
       refetchConvs();
     });
@@ -362,10 +384,59 @@ const Chats = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2 text-text-secondary">
+              <div className="flex gap-2 text-text-secondary items-center relative">
                 <button className="p-2 hover:bg-surface-tertiary rounded-full cursor-pointer"><FiPhone /></button>
                 <button className="p-2 hover:bg-surface-tertiary rounded-full cursor-pointer"><FiVideo /></button>
-                <button className="p-2 hover:bg-surface-tertiary rounded-full cursor-pointer"><FiMoreVertical /></button>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsHeaderMenuOpen(prev => !prev)}
+                    className="p-2 hover:bg-surface-tertiary rounded-full cursor-pointer text-text-secondary flex items-center justify-center"
+                  >
+                    <FiMoreVertical />
+                  </button>
+                  {isHeaderMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-border rounded-premium shadow-lg z-50 py-1 text-xs text-brand-navy">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsHeaderMenuOpen(false);
+                          if (window.confirm('Are you sure you want to clear this chat history? This cannot be undone.')) {
+                            try {
+                              await clearChatApi(activeConversationId).unwrap();
+                              setMessages([]);
+                              toast.success('Chat cleared.');
+                              refetchConvs();
+                            } catch (err) {
+                              toast.error('Failed to clear chat.');
+                            }
+                          }
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-surface-secondary cursor-pointer transition-colors"
+                      >
+                        Clear Messages
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsHeaderMenuOpen(false);
+                          if (window.confirm('Are you sure you want to delete this chat conversation? This will delete all messages for you and remove the chat from your list.')) {
+                            try {
+                              await deleteConversationApi(activeConversationId).unwrap();
+                              setActiveConversationId(null);
+                              toast.success('Chat deleted.');
+                              refetchConvs();
+                            } catch (err) {
+                              toast.error('Failed to delete chat.');
+                            }
+                          }
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-surface-secondary text-brand-orange cursor-pointer transition-colors"
+                      >
+                        Delete Chat
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -376,25 +447,50 @@ const Chats = () => {
               ) : (
                 messages.map((msg, index) => {
                   const isOwn = msg.sender?._id === user._id || msg.sender === user._id;
+                  const isDeleted = msg.isDeleted || msg.text === 'This message was deleted';
                   return (
                     <div
                       key={msg._id || index}
-                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                      className={`flex group ${isOwn ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`max-w-[70%] flex flex-col gap-1`}>
-                        <div className={`p-3 rounded-premium text-xs leading-relaxed shadow-sm
-                          ${isOwn 
-                            ? 'bg-brand-purple text-white rounded-tr-none' 
-                            : 'bg-white text-brand-navy rounded-tl-none border border-border'
-                          }
-                        `}>
-                          {msg.text}
+                      <div className={`max-w-[70%] flex flex-col gap-1 relative`}>
+                        <div className="flex items-center gap-1.5 group">
+                          {isOwn && !isDeleted && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteMessageModal(msg)}
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:text-brand-orange text-text-tertiary transition-opacity cursor-pointer flex items-center justify-center"
+                              title="Delete Message"
+                            >
+                              <FiTrash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <div className={`p-3 rounded-premium text-xs leading-relaxed shadow-sm
+                            ${isDeleted
+                              ? 'bg-surface-tertiary text-text-tertiary italic rounded-premium border border-border'
+                              : isOwn 
+                                ? 'bg-brand-purple text-white rounded-tr-none' 
+                                : 'bg-white text-brand-navy rounded-tl-none border border-border'
+                            }
+                          `}>
+                            {msg.text}
+                          </div>
+                          {!isOwn && !isDeleted && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteMessageModal(msg)}
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:text-brand-orange text-text-tertiary transition-opacity cursor-pointer flex items-center justify-center"
+                              title="Delete Message"
+                            >
+                              <FiTrash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                         <span className={`text-[8px] text-text-tertiary px-1 flex items-center gap-1.5
                           ${isOwn ? 'self-end justify-end' : 'self-start justify-start'}
                         `}>
                           {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {isOwn && (
+                          {isOwn && !isDeleted && (
                             <span className={msg.isSeen ? 'text-brand-purple font-black' : ''}>
                               • {msg.isSeen ? 'Read' : 'Sent'}
                             </span>
@@ -448,8 +544,70 @@ const Chats = () => {
               </button>
             </form>
           </>
-        )}
       </div>
+
+      {/* Delete Message Modal Overlay */}
+      {deleteMessageModal && (
+        <div className="fixed inset-0 bg-brand-navy/30 backdrop-blur-xs flex items-center justify-center z-[100]">
+          <div className="bg-white border border-border p-6 rounded-premium shadow-glass max-w-sm w-full mx-4 text-brand-navy flex flex-col gap-4">
+            <h4 className="text-sm font-bold font-display uppercase tracking-wide">Delete Message?</h4>
+            <p className="text-xs text-text-secondary">Are you sure you want to delete this message?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const msgId = deleteMessageModal._id;
+                  setDeleteMessageModal(null);
+                  try {
+                    await deleteMessageForMeApi(msgId).unwrap();
+                    setMessages(prev => prev.filter(m => m._id !== msgId));
+                    toast.success('Deleted for you.');
+                    refetchConvs();
+                  } catch (err) {
+                    toast.error('Failed to delete message.');
+                  }
+                }}
+                className="w-full py-2 bg-surface-tertiary hover:bg-surface-secondary text-brand-navy font-bold rounded-premium text-xs cursor-pointer transition-colors"
+              >
+                Delete for me
+              </button>
+              {(deleteMessageModal.sender?._id === user._id || deleteMessageModal.sender === user._id) && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const msgId = deleteMessageModal._id;
+                    setDeleteMessageModal(null);
+                    try {
+                      await deleteMessageForEveryoneApi(msgId).unwrap();
+                      setMessages(prev =>
+                        prev.map(m =>
+                          m._id === msgId
+                            ? { ...m, text: 'This message was deleted', isDeleted: true }
+                            : m
+                        )
+                      );
+                      toast.success('Deleted for everyone.');
+                      refetchConvs();
+                    } catch (err) {
+                      toast.error('Failed to delete message for everyone.');
+                    }
+                  }}
+                  className="w-full py-2 bg-brand-orange hover:bg-brand-orange/90 text-white font-bold rounded-premium text-xs cursor-pointer transition-colors"
+                >
+                  Delete for everyone
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setDeleteMessageModal(null)}
+                className="w-full py-2 border border-border hover:bg-surface-secondary text-text-secondary font-semibold rounded-premium text-xs cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

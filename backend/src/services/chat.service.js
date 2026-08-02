@@ -27,7 +27,7 @@ class ChatService {
       throw ApiError.forbidden('You are not a participant in this conversation.');
     }
 
-    const result = await chatRepository.getMessages(conversationId, { page, limit });
+    const result = await chatRepository.getMessages(conversationId, userId, { page, limit });
     await chatRepository.markMessagesAsSeen(conversationId, userId);
 
     const recipient = conversation.participants.find(p => (p._id || p).toString() !== userId.toString());
@@ -110,6 +110,47 @@ class ChatService {
     }
     await chatRepository.clearChatMessages(conversationId);
     return { ok: true };
+  }
+
+  async deleteConversation(conversationId, userId) {
+    const conversation = await chatRepository.findConversationById(conversationId);
+    if (!conversation) {
+      throw ApiError.notFound('Conversation thread not found.');
+    }
+    const isParticipant = conversation.participants.some(
+      (p) => (p._id || p).toString() === userId.toString()
+    );
+    if (!isParticipant) {
+      throw ApiError.forbidden('You are not a participant in this conversation.');
+    }
+    await chatRepository.deleteConversation(conversationId, userId);
+    return { ok: true };
+  }
+
+  async deleteMessageForMe(messageId, userId) {
+    await chatRepository.deleteMessageForMe(messageId, userId);
+    return { ok: true };
+  }
+
+  async deleteMessageForEveryone(messageId, userId) {
+    const Message = require('../models/Message');
+    const message = await Message.findById(messageId);
+    if (!message) {
+      throw ApiError.notFound('Message not found.');
+    }
+    if (message.sender.toString() !== userId.toString()) {
+      throw ApiError.forbidden('You can only delete your own messages for everyone.');
+    }
+    const updated = await chatRepository.deleteMessageForEveryone(messageId);
+    
+    emitToConversation(updated.conversation.toString(), 'message_deleted', {
+      messageId: updated._id,
+      conversationId: updated.conversation,
+      text: updated.text,
+      isDeleted: true
+    });
+
+    return updated;
   }
 
   async unreadTotal(userId) {
