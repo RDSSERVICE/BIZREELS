@@ -7,6 +7,7 @@ const { AuditLog } = require('../models/Misc');
 const reportService = require('./report.service');
 const walletService = require('./wallet.service');
 const ApiError = require('../utils/ApiError');
+const { getCache, setCache, deleteCache } = require('../utils/cache');
 
 const VALID_USER_ROLES_ADD = new Set(['customer', 'vendor', 'creator']);
 
@@ -81,6 +82,8 @@ const flipUser = async (userId, updates) => {
     const { emitToAdmin } = require('../sockets');
     emitToAdmin('admin:update', { tags: ['AdminUsers', 'AdminOverview'] });
   } catch (err) {}
+
+  await deleteCache('admin:customer:stats').catch(() => {});
 
   return { ok: true, user_id: userId };
 };
@@ -890,100 +893,6 @@ const listCustomers = async ({
     }
   }
 
-  const pipeline = [
-    { $match: matchStage }
-  ];
-
-  pipeline.push({
-    $lookup: {
-      from: 'wallets',
-      localField: '_id',
-      foreignField: 'user_id',
-      as: 'wallet_doc'
-    }
-  });
-  pipeline.push({
-    $unwind: {
-      path: '$wallet_doc',
-      preserveNullAndEmptyArrays: true
-    }
-  });
-
-  pipeline.push({
-    $lookup: {
-      from: 'orders',
-      let: { customerId: '$_id' },
-      pipeline: [
-        {
-          $match: {
-            $expr: { $eq: ['$customer', '$$customerId'] },
-            paymentStatus: 'paid'
-          }
-        }
-      ],
-      as: 'paid_orders'
-    }
-  });
-
-  pipeline.push({
-    $lookup: {
-      from: 'deals',
-      let: { customerIdStr: { $toString: '$_id' } },
-      pipeline: [
-        {
-          $match: {
-            $expr: { $eq: ['$buyer_id', '$$customerIdStr'] },
-            status: 'completed'
-          }
-        }
-      ],
-      as: 'completed_deals'
-    }
-  });
-
-  pipeline.push({
-    $project: {
-      id: '$_id',
-      _id: 1,
-      name: 1,
-      email: 1,
-      phone: 1,
-      profile_pic: { $ifNull: ['$profile_pic', '$avatarUrl'] },
-      is_active: 1,
-      is_banned: 1,
-      kyc_status: 1,
-      referral_code: 1,
-      created_at: 1,
-      lastLoginAt: 1,
-      lastLoginIp: 1,
-      wallet: {
-        credits: { $ifNull: ['$wallet_doc.credits', 0] },
-        balance_inr_paise: { $ifNull: ['$wallet_doc.balance_inr_paise', 0] },
-        is_frozen: { $ifNull: ['$wallet_doc.is_frozen', false] }
-      },
-      total_orders: {
-        $add: [
-          { $size: { $ifNull: ['$paid_orders', []] } },
-          { $size: { $ifNull: ['$completed_deals', []] } }
-        ]
-      },
-      total_spent: {
-        $add: [
-          { $sum: { $ifNull: ['$paid_orders.price', []] } },
-          { $sum: { $ifNull: ['$completed_deals.current_offer', []] } }
-        ]
-      }
-    }
-  });
-
-  if (has_orders !== undefined && has_orders !== null) {
-    if (has_orders === 'true') {
-      pipeline.push({ $match: { total_orders: { $gt: 0 } } });
-    } else if (has_orders === 'false') {
-      pipeline.push({ $match: { total_orders: 0 } });
-    }
-  }
-
   const sortStage = {};
   if (sort) {
     switch (sort) {
@@ -1028,18 +937,287 @@ const listCustomers = async ({
   } else {
     sortStage.created_at = -1;
   }
-  pipeline.push({ $sort: sortStage });
 
-  pipeline.push({
-    $facet: {
-      metadata: [{ $count: 'total' }],
-      data: [{ $skip: skipNum }, { $limit: limitNum }]
+  const needsAggBeforePage = 
+    (has_orders !== undefined && has_orders !== null) ||
+    ['highest_spending', 'spending_desc', 'lowest_spending', 'spending_asc', 'most_orders', 'orders_desc', 'least_orders', 'orders_asc'].includes(sort);
+
+  let data = [];
+  let total = 0;
+
+  if (!needsAggBeforePage) {
+    total = await User.countDocuments(matchStage);
+    const users = await User.find(matchStage)
+      .sort(sortStage)
+      .skip(skipNum)
+      .limit(limitNum)
+      .lean();
+
+    const userIds = users.map(u => u._id);
+    if (userIds.length > 0) {
+      const aggData = await User.aggregate([
+        { $match: { _id: { $in: userIds } } },
+        {
+          $project: {
+            _id: 1,
+            _id_str: { $toString: '$_id' },
+            name: 1,
+            email: 1,
+            phone: 1,
+            profile_pic: 1,
+            avatarUrl: 1,
+            is_active: 1,
+            is_banned: 1,
+            kyc_status: 1,
+            referral_code: 1,
+            created_at: 1,
+            lastLoginAt: 1,
+            lastLoginIp: 1
+          }
+        },
+        {
+          $lookup: {
+            from: 'wallets',
+            localField: '_id_str',
+            foreignField: 'user_id',
+            as: 'wallet_doc'
+          }
+        },
+        {
+          $unwind: {
+            path: '$wallet_doc',
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $lookup: {
+            from: 'orders',
+            localField: '_id',
+            foreignField: 'customer',
+            as: 'all_orders'
+          }
+        },
+        {
+          $lookup: {
+            from: 'deals',
+            localField: '_id_str',
+            foreignField: 'buyer_id',
+            as: 'all_deals'
+          }
+        },
+        {
+          $project: {
+            id: '$_id',
+            _id: 1,
+            name: 1,
+            email: 1,
+            phone: 1,
+            profile_pic: { $ifNull: ['$profile_pic', '$avatarUrl'] },
+            is_active: 1,
+            is_banned: 1,
+            kyc_status: 1,
+            referral_code: 1,
+            created_at: 1,
+            lastLoginAt: 1,
+            lastLoginIp: 1,
+            wallet: {
+              credits: { $ifNull: ['$wallet_doc.credits', 0] },
+              balance_inr_paise: { $ifNull: ['$wallet_doc.balance_inr_paise', 0] },
+              is_frozen: { $ifNull: ['$wallet_doc.is_frozen', false] }
+            },
+            paid_orders: {
+              $filter: {
+                input: '$all_orders',
+                as: 'o',
+                cond: { $eq: ['$$o.paymentStatus', 'paid'] }
+              }
+            },
+            completed_deals: {
+              $filter: {
+                input: '$all_deals',
+                as: 'd',
+                cond: { $eq: ['$$d.status', 'completed'] }
+              }
+            }
+          }
+        },
+        {
+          $project: {
+            id: 1,
+            _id: 1,
+            name: 1,
+            email: 1,
+            phone: 1,
+            profile_pic: 1,
+            is_active: 1,
+            is_banned: 1,
+            kyc_status: 1,
+            referral_code: 1,
+            created_at: 1,
+            lastLoginAt: 1,
+            lastLoginIp: 1,
+            wallet: 1,
+            total_orders: {
+              $add: [
+                { $size: { $ifNull: ['$paid_orders', []] } },
+                { $size: { $ifNull: ['$completed_deals', []] } }
+              ]
+            },
+            total_spent: {
+              $add: [
+                { $sum: { $ifNull: ['$paid_orders.price', []] } },
+                { $sum: { $ifNull: ['$completed_deals.current_offer', []] } }
+              ]
+            }
+          }
+        }
+      ]);
+
+      // Preserve sorting order of `users` array
+      const dataMap = new Map(aggData.map(item => [item._id.toString(), item]));
+      data = users.map(u => dataMap.get(u._id.toString())).filter(Boolean);
     }
-  });
+  } else {
+    // Slow fallback path
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $project: {
+          _id: 1,
+          _id_str: { $toString: '$_id' },
+          name: 1,
+          email: 1,
+          phone: 1,
+          profile_pic: 1,
+          avatarUrl: 1,
+          is_active: 1,
+          is_banned: 1,
+          kyc_status: 1,
+          referral_code: 1,
+          created_at: 1,
+          lastLoginAt: 1,
+          lastLoginIp: 1
+        }
+      },
+      {
+        $lookup: {
+          from: 'wallets',
+          localField: '_id_str',
+          foreignField: 'user_id',
+          as: 'wallet_doc'
+        }
+      },
+      {
+        $unwind: {
+          path: '$wallet_doc',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'orders',
+          localField: '_id',
+          foreignField: 'customer',
+          as: 'all_orders'
+        }
+      },
+      {
+        $lookup: {
+          from: 'deals',
+          localField: '_id_str',
+          foreignField: 'buyer_id',
+          as: 'all_deals'
+        }
+      },
+      {
+        $project: {
+          id: '$_id',
+          _id: 1,
+          name: 1,
+          email: 1,
+          phone: 1,
+          profile_pic: { $ifNull: ['$profile_pic', '$avatarUrl'] },
+          is_active: 1,
+          is_banned: 1,
+          kyc_status: 1,
+          referral_code: 1,
+          created_at: 1,
+          lastLoginAt: 1,
+          lastLoginIp: 1,
+          wallet: {
+            credits: { $ifNull: ['$wallet_doc.credits', 0] },
+            balance_inr_paise: { $ifNull: ['$wallet_doc.balance_inr_paise', 0] },
+            is_frozen: { $ifNull: ['$wallet_doc.is_frozen', false] }
+          },
+          paid_orders: {
+            $filter: {
+              input: '$all_orders',
+              as: 'o',
+              cond: { $eq: ['$$o.paymentStatus', 'paid'] }
+            }
+          },
+          completed_deals: {
+            $filter: {
+              input: '$all_deals',
+              as: 'd',
+              cond: { $eq: ['$$d.status', 'completed'] }
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          id: 1,
+          _id: 1,
+          name: 1,
+          email: 1,
+          phone: 1,
+          profile_pic: 1,
+          is_active: 1,
+          is_banned: 1,
+          kyc_status: 1,
+          referral_code: 1,
+          created_at: 1,
+          lastLoginAt: 1,
+          lastLoginIp: 1,
+          wallet: 1,
+          total_orders: {
+            $add: [
+              { $size: { $ifNull: ['$paid_orders', []] } },
+              { $size: { $ifNull: ['$completed_deals', []] } }
+            ]
+          },
+          total_spent: {
+            $add: [
+              { $sum: { $ifNull: ['$paid_orders.price', []] } },
+              { $sum: { $ifNull: ['$completed_deals.current_offer', []] } }
+            ]
+          }
+        }
+      }
+    ];
 
-  const aggregateResult = await User.aggregate(pipeline);
-  const data = aggregateResult[0]?.data || [];
-  const total = aggregateResult[0]?.metadata[0]?.total || 0;
+    if (has_orders !== undefined && has_orders !== null) {
+      if (has_orders === 'true') {
+        pipeline.push({ $match: { total_orders: { $gt: 0 } } });
+      } else if (has_orders === 'false') {
+        pipeline.push({ $match: { total_orders: 0 } });
+      }
+    }
+
+    pipeline.push({ $sort: sortStage });
+
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: 'total' }],
+        data: [{ $skip: skipNum }, { $limit: limitNum }]
+      }
+    });
+
+    const aggregateResult = await User.aggregate(pipeline);
+    data = aggregateResult[0]?.data || [];
+    total = aggregateResult[0]?.metadata[0]?.total || 0;
+  }
 
   return {
     items: data.map(u => ({
@@ -1242,6 +1420,12 @@ const getCustomerStats = async () => {
   const Order = require('../models/Order');
   const Deal = require('../models/Deal');
 
+  const cacheKey = 'admin:customer:stats';
+  const cachedData = await getCache(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
+
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1283,9 +1467,10 @@ const getCustomerStats = async () => {
   const orderGroups = await Order.aggregate([
     { $match: { paymentStatus: 'paid' } },
     { $group: { _id: '$customer', count: { $sum: 1 } } },
-    { $match: { count: { $gt: 1 } } }
+    { $match: { count: { $gt: 1 } } },
+    { $count: 'total' }
   ]);
-  const returningCount = orderGroups.length;
+  const returningCount = orderGroups[0]?.total || 0;
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
@@ -1299,7 +1484,7 @@ const getCustomerStats = async () => {
     ? Math.round(((countLast30 - countPrev30) / countPrev30) * 100)
     : (countLast30 > 0 ? 100 : 0);
 
-  return {
+  const result = {
     totalCustomers,
     activeCustomers,
     newCustomersToday,
@@ -1311,6 +1496,9 @@ const getCustomerStats = async () => {
     returningCustomers: returningCount,
     growthTrend
   };
+
+  await setCache(cacheKey, result, 300); // cache for 5 minutes
+  return result;
 };
 
 const activateUser = async (userId) => {
@@ -2666,6 +2854,8 @@ const deleteCustomer = async (userId) => {
       emitToUser(userId, 'user:role_deleted', { role: 'customer' });
     }
   } catch (err) {}
+
+  await deleteCache('admin:customer:stats').catch(() => {});
 
   return result;
 };

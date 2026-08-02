@@ -35,6 +35,15 @@ jest.spyOn(AppSettings, 'findOne').mockImplementation((query) => {
   return Promise.resolve(null);
 });
 
+// Mock UserSubscription model queries globally to prevent connection buffering timeouts
+const UserSubscription = require('../src/models/UserSubscription.model');
+jest.spyOn(UserSubscription, 'findOne').mockImplementation(() => {
+  return Promise.resolve({
+    status: 'active',
+    expiry_date: new Date(Date.now() + 86400 * 1000 * 30),
+  });
+});
+
 // Dynamic mock storage for unit test assertions
 global.mockDb = {
   users: {},
