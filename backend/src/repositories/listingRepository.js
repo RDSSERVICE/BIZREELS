@@ -218,10 +218,16 @@ class ListingRepository {
       },
     });
 
-    const [listings, total] = await Promise.all([
-      Listing.aggregate(pipeline),
-      Listing.countDocuments(match),
-    ]);
+    const listings = await Listing.aggregate(pipeline);
+    
+    let total;
+    const limitNum = parseInt(limit, 10) || 10;
+    const pageNum = parseInt(page, 10) || 1;
+    if (pageNum === 1 && listings.length < limitNum) {
+      total = listings.length;
+    } else {
+      total = await Listing.countDocuments(match);
+    }
 
     return { listings, total };
   }
