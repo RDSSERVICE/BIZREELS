@@ -53,33 +53,34 @@ export default function AdminCreditRatesPage() {
       .replace(/^./, (str) => str.toUpperCase());
   };
 
-  useEffect(() => {
-    const fetchRates = async () => {
-      try {
-        const res = await api.get('/v1/admin/credit-rates');
-        if (res.data?.success) {
-          const rates = res.data?.data || {};
-          setForm(rates);
-        } else {
-          // Fallback if success flag is different
-          setForm(res.data || {});
-        }
-      } catch (err) {
-        console.error('Failed to load credit rates:', err);
-        toast.error('Failed to load current rates from database');
-        // Setup default fallback rates
-        setForm({
-          productListing: 1,
-          reelPost: 1,
-          aiImage: 2,
-          aiVideo30s: 15,
-          reelBoost1Day: 10,
-          validLead: 1,
-        });
-      } finally {
-        setLoading(false);
+  const fetchRates = async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const res = await api.get('/v1/admin/credit-rates');
+      if (res.data?.success) {
+        const rates = res.data?.data || {};
+        setForm(rates);
+        if (silent) toast.success('Rates synced with database!');
+      } else {
+        setForm(res.data || {});
       }
-    };
+    } catch (err) {
+      console.error('Failed to load credit rates:', err);
+      toast.error('Failed to load current rates from database');
+      setForm({
+        productListing: 1,
+        reelPost: 1,
+        aiImage: 2,
+        aiVideo30s: 15,
+        reelBoost1Day: 10,
+        validLead: 1,
+      });
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRates();
   }, []);
 
@@ -124,7 +125,15 @@ export default function AdminCreditRatesPage() {
         icon={FiZap}
         title="Credit Consumption Rates"
         subtitle="Manage dynamic admin rates for vendor listings, reel posts, AI generation, boosting, and lead acquisitions"
-      />
+      >
+        <button
+          type="button"
+          onClick={() => fetchRates(true)}
+          className="px-4 py-2 bg-white border border-border text-brand-purple rounded-xl text-xs font-bold hover:bg-brand-purple/5 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+        >
+          <FiZap className="w-3.5 h-3.5" /> Refresh / Sync Rates
+        </button>
+      </AdminPageHeader>
 
       {loading ? (
         <div className="glass rounded-3xl p-12 text-center text-xs text-text-tertiary shadow-glass flex flex-col items-center justify-center gap-3">
@@ -223,7 +232,7 @@ export default function AdminCreditRatesPage() {
                 disabled={saving}
                 className="w-full sm:w-auto px-6 py-3 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-95 transition-all flex items-center justify-center gap-1.5 shadow-premium disabled:opacity-50 cursor-pointer"
               >
-                <FiCheck className="w-4 h-4" /> {saving ? 'Saving Config...' : 'Apply Credit Rates'}
+                <FiCheck className="w-4 h-4" /> {saving ? 'Updating Config...' : 'Update Credit Rates'}
               </button>
             </div>
           </div>

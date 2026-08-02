@@ -53,6 +53,7 @@ class VendorController {
       reelPost: 1,
       aiImage: 2,
       aiVideo30s: 15,
+      reelBoost1Day: 10,
       validLead: 1,
     };
     const now = Date.now();

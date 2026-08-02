@@ -77,6 +77,30 @@ class ListingService {
     const effectiveBasePrice = price || actualPrice || sellingPrice || 0;
     const effectiveSalePrice = salePrice || sellingPrice || 0;
 
+    // Check wallet balance for dynamic listing publish rate
+    const { AppSettings } = require('../models/Admin');
+    let publishCost = 1;
+    try {
+      const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+      if (rateSetting && rateSetting.value && rateSetting.value.productListing !== undefined) {
+        publishCost = Number(rateSetting.value.productListing);
+      }
+    } catch (err) {
+      logger.error('Failed to fetch credit rates for listing creation check:', err);
+    }
+
+    if (publishCost > 0) {
+      const walletService = require('./wallet.service');
+      const wallet = await walletService.getOrCreateWallet(vendorId);
+      const balance = parseInt(wallet.credits || 0, 10);
+      if (balance < publishCost) {
+        throw new ApiError(
+          402,
+          `Insufficient credits (${balance} available; ${publishCost} needed) to publish a product / service listing.`
+        );
+      }
+    }
+
     let discount = 0;
     if (effectiveSalePrice && effectiveBasePrice > 0 && effectiveSalePrice < effectiveBasePrice) {
       discount = Math.round(((effectiveBasePrice - effectiveSalePrice) / effectiveBasePrice) * 100);
@@ -121,6 +145,23 @@ class ListingService {
     });
 
     logger.info(`Listing created successfully: ${listing._id}`, { service: 'listings' });
+
+    if (publishCost > 0) {
+      try {
+        const walletService = require('./wallet.service');
+        await walletService.debit({
+          userId: vendorId,
+          amount: publishCost,
+          transactionType: 'publish_listing',
+          reason: `${publishCost} Credits deducted for publishing a product / service listing`,
+          source: 'listing',
+          meta: { listing_id: listing._id.toString() },
+        });
+      } catch (err) {
+        logger.error('Error debiting wallet credits for listing creation:', err);
+      }
+    }
+
     return listing;
   }
 

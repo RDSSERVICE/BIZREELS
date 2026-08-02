@@ -41,12 +41,35 @@ class ReelService {
     });
   }
 
-  // ── Publish Reel ────────────────────────────────────────
   async publishReel({
     userId, fileBuffer, caption, tags, lat, lng, address,
     postType, category, subcategory, classification, postPurpose,
     targeting, videoUrl, mediaUrls, mediaType, status, scheduledDate
   }, req) {
+    // Check wallet balance for dynamic publish rate
+    const { AppSettings } = require('../models/Admin');
+    let publishCost = 1;
+    try {
+      const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+      if (rateSetting && rateSetting.value && rateSetting.value.reelPost !== undefined) {
+        publishCost = Number(rateSetting.value.reelPost);
+      }
+    } catch (err) {
+      logger.error('Failed to fetch credit rates for reel publishing check:', err);
+    }
+
+    if (publishCost > 0) {
+      const walletService = require('./wallet.service');
+      const wallet = await walletService.getOrCreateWallet(userId);
+      const balance = parseInt(wallet.credits || 0, 10);
+      if (balance < publishCost) {
+        throw new ApiError(
+          402,
+          `Insufficient credits (${balance} available; ${publishCost} needed) to publish a Reel / Image Post.`
+        );
+      }
+    }
+
     // 1. AI Safety Contact Details Check
     const audienceText = typeof targeting?.audience === 'string' ? targeting.audience : Array.isArray(targeting?.audience) ? targeting.audience.join(' ') : '';
     const fullTextScan = `${caption || ''} ${(tags || []).join(' ')} ${audienceText}`;

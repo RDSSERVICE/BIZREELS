@@ -595,8 +595,37 @@ class AuthService {
       activeRole: newRole,
     };
 
-    if (newRole === 'vendor' && profileData) {
-      updateData.vendorProfile = profileData;
+    if (newRole === 'vendor') {
+      if (profileData) {
+        updateData.vendorProfile = profileData;
+      }
+      // Grant free welcome credits to first-time vendor
+      if (!user.has_received_vendor_bonus) {
+        const walletService = require('./wallet.service');
+        const notificationService = require('./notification.service');
+        const WELCOME_CREDITS = 100;
+        try {
+          await walletService.credit({
+            userId,
+            amount: WELCOME_CREDITS,
+            transactionType: 'vendor_welcome_bonus',
+            reason: 'Free Welcome credits for registering as Vendor',
+            source: 'system'
+          });
+          updateData.has_received_vendor_bonus = true;
+          
+          await notificationService.create(
+            userId,
+            'reward',
+            `+${WELCOME_CREDITS} Welcome Credits!`,
+            "You have received 100 free credits to explore BizReels vendor outreach.",
+            {},
+            '/vendor/wallet'
+          );
+        } catch (err) {
+          logger.error('Failed to grant vendor welcome credits:', err);
+        }
+      }
     } else if (newRole === 'creator' && profileData) {
       updateData.creatorProfile = profileData;
     }

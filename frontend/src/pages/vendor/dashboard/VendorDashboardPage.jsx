@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   FiPackage, FiTool, FiVideo, FiEye, FiUsers, FiInbox,
-  FiShoppingCart, FiDollarSign, FiZap, FiGrid, FiShield, FiActivity
+  FiShoppingCart, FiDollarSign, FiZap, FiGrid, FiShield, FiActivity, FiArrowRight, FiCpu, FiImage
 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
@@ -114,6 +114,27 @@ export default function VendorDashboardPage() {
   ];
 
   const currentUser = useSelector(selectCurrentUser);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+  useEffect(() => {
+    if (currentUser?.id || currentUser?._id) {
+      const userId = currentUser.id || currentUser._id;
+      const key = `bizreels_vendor_welcome_shown_${userId}`;
+      if (!localStorage.getItem(key) && currentUser.roles?.includes('vendor')) {
+        setShowWelcomeModal(true);
+      }
+    }
+  }, [currentUser]);
+
+  const closeWelcomeModal = () => {
+    if (currentUser?.id || currentUser?._id) {
+      const userId = currentUser.id || currentUser._id;
+      const key = `bizreels_vendor_welcome_shown_${userId}`;
+      localStorage.setItem(key, 'true');
+    }
+    setShowWelcomeModal(false);
+  };
+
   const vendorProfile = currentUser?.vendorProfile || {};
   const currentTier = vendorProfile.verificationStatus || 'unverified';
 
@@ -307,6 +328,79 @@ export default function VendorDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Welcome & Credit Rates Info Modal */}
+      {showWelcomeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="glass p-6 sm:p-8 rounded-3xl border border-white/50 max-w-lg w-full shadow-premium space-y-6 relative animate-scale-up">
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 rounded-full bg-brand-purple/25 text-brand-purple flex items-center justify-center mx-auto animate-pulse">
+                <FiZap className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-black text-brand-navy font-display">Welcome to BizReels Vendor Portal! 🎉</h2>
+              <p className="text-xs text-text-tertiary">
+                Humne aapke wallet me <span className="font-bold text-emerald-600">100 Free Welcome Credits</span> add kar diye hain!
+              </p>
+            </div>
+
+            <div className="bg-surface-secondary/50 border border-border rounded-2xl p-4 space-y-3">
+              <h4 className="text-[10px] font-black text-brand-purple border-b border-border pb-1.5 uppercase tracking-wider">
+                Credits Consumption Rates:
+              </h4>
+              
+              <div className="grid grid-cols-1 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                <div className="flex items-center justify-between text-xs bg-white/40 p-2.5 rounded-xl border border-white/50">
+                  <span className="font-semibold text-text-secondary flex items-center gap-1.5">
+                    <FiPackage className="text-purple-500 w-3.5 h-3.5" /> Product/Service Listing
+                  </span>
+                  <span className="font-bold text-brand-navy">{creditRates.productListing} Credits</span>
+                </div>
+                <div className="flex items-center justify-between text-xs bg-white/40 p-2.5 rounded-xl border border-white/50">
+                  <span className="font-semibold text-text-secondary flex items-center gap-1.5">
+                    <FiVideo className="text-violet-500 w-3.5 h-3.5" /> Publishing a Reel
+                  </span>
+                  <span className="font-bold text-brand-navy">{creditRates.reelPost} Credits</span>
+                </div>
+                <div className="flex items-center justify-between text-xs bg-white/40 p-2.5 rounded-xl border border-white/50">
+                  <span className="font-semibold text-text-secondary flex items-center gap-1.5">
+                    <FiImage className="text-emerald-500 w-3.5 h-3.5" /> AI Image Generation
+                  </span>
+                  <span className="font-bold text-brand-navy">{creditRates.aiImage} Credits</span>
+                </div>
+                <div className="flex items-center justify-between text-xs bg-white/40 p-2.5 rounded-xl border border-white/50">
+                  <span className="font-semibold text-text-secondary flex items-center gap-1.5">
+                    <FiCpu className="text-blue-500 w-3.5 h-3.5" /> 30s AI Video Generation
+                  </span>
+                  <span className="font-bold text-brand-navy">{creditRates.aiVideo30s} Credits</span>
+                </div>
+                <div className="flex items-center justify-between text-xs bg-white/40 p-2.5 rounded-xl border border-white/50">
+                  <span className="font-semibold text-text-secondary flex items-center gap-1.5">
+                    <FiZap className="text-amber-500 w-3.5 h-3.5" /> 1-Day Reel Boost
+                  </span>
+                  <span className="font-bold text-brand-navy">{creditRates.reelBoost1Day} Credits</span>
+                </div>
+                <div className="flex items-center justify-between text-xs bg-white/40 p-2.5 rounded-xl border border-white/50">
+                  <span className="font-semibold text-text-secondary flex items-center gap-1.5">
+                    <FiInbox className="text-rose-500 w-3.5 h-3.5" /> Unlock customer Lead/Contact
+                  </span>
+                  <span className="font-bold text-brand-navy">{creditRates.validLead} Credits</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-text-tertiary leading-relaxed text-center font-medium">
+              Aap apne credits ko portal me listing post karne, AI promotional video banane, reels ko boost karne ya valid consumer leads unlock karne ke liye use kar sakte hain!
+            </p>
+
+            <button
+              onClick={closeWelcomeModal}
+              className="w-full py-3 bg-brand-purple text-white rounded-xl text-xs font-bold hover:opacity-90 transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              Let's Explore Portal <FiArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
