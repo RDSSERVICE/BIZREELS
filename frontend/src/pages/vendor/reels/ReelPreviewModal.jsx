@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiCalendar, FiAlertTriangle, FiSend, FiVideo, FiImage } from 'react-icons/fi';
+import { FiCalendar, FiAlertTriangle, FiSend, FiPercent, FiBell, FiTag } from 'react-icons/fi';
 import AdminModal from '../../../features/admin/components/AdminModal';
 
 export default function ReelPreviewModal({
@@ -9,6 +9,10 @@ export default function ReelPreviewModal({
   postCategory,
   postSubcategory,
   postPurpose,
+  discountPercent,
+  couponCode,
+  discountValidity,
+  announcementTagline,
   caption,
   mediaOption,
   selectedServiceMediaUrls,
@@ -61,6 +65,29 @@ export default function ReelPreviewModal({
               {postPurpose}
             </span>
           </div>
+
+          {/* Purpose Extra Info Banner (Offer / Announcement) */}
+          {(postPurpose === 'Offer / Discount' || postPurpose === 'Flash Sale') && discountPercent && (
+            <div className="flex flex-wrap items-center gap-2 p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs">
+              <FiPercent className="text-emerald-600 flex-shrink-0" size={13} />
+              <span className="font-extrabold text-emerald-700">{discountPercent}% OFF</span>
+              {couponCode && (
+                <span className="flex items-center gap-1 font-mono bg-white/60 dark:bg-black/20 border border-emerald-300 px-2 py-0.5 rounded-lg text-emerald-700 font-bold">
+                  <FiTag size={10} /> {couponCode}
+                </span>
+              )}
+              {discountValidity && (
+                <span className="text-emerald-600 font-medium">Valid till {new Date(discountValidity).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+              )}
+            </div>
+          )}
+
+          {announcementTagline && (
+            <div className="flex items-start gap-2 p-2.5 bg-blue-500/10 border border-blue-500/30 rounded-xl text-xs">
+              <FiBell className="text-blue-600 flex-shrink-0 mt-0.5" size={13} />
+              <span className="font-semibold text-blue-700 leading-snug">{announcementTagline}</span>
+            </div>
+          )}
 
           {/* Media & Caption Preview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">

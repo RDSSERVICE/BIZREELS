@@ -1,11 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FiLayers, FiTag, FiVideo, FiCheckCircle, FiCheck, FiImage, FiX, FiMapPin, FiUsers, FiEye, FiPlus
+  FiLayers, FiTag, FiVideo, FiCheckCircle, FiCheck, FiImage, FiX, FiMapPin, FiUsers, FiEye, FiPlus,
+  FiPercent, FiZap, FiBell, FiStar, FiGift, FiCalendar, FiAlertCircle
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import CreateServiceModal from './CreateServiceModal';
 import { useListCategoriesQuery } from '../../../features/admin/adminApi';
+
+// PURPOSE OPTIONS PER POST TYPE
+const PURPOSE_OPTIONS = {
+  services: [
+    { key: 'General Promotion', label: 'General Promotion', desc: 'Standard showcase & visibility', icon: FiStar, color: 'amber' },
+    { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Promote a discount or coupon', icon: FiPercent, color: 'green' },
+    { key: 'Announcement', label: 'Announcement', desc: 'Updates or important info', icon: FiBell, color: 'blue' },
+    { key: 'New Service Launch', label: 'New Launch', desc: 'Introduce a brand-new service', icon: FiZap, color: 'purple' },
+  ],
+  product: [
+    { key: 'General Promotion', label: 'General Promotion', desc: 'Standard showcase & visibility', icon: FiStar, color: 'amber' },
+    { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Promote a discount or coupon', icon: FiPercent, color: 'green' },
+    { key: 'New Arrival', label: 'New Arrival', desc: 'Showcase a new product', icon: FiZap, color: 'purple' },
+    { key: 'Flash Sale', label: 'Flash Sale', desc: 'Limited-time deal with urgency', icon: FiGift, color: 'red' },
+  ],
+  shop: [
+    { key: 'General Promotion', label: 'General Promotion', desc: 'General business showcase', icon: FiStar, color: 'amber' },
+    { key: 'Grand Opening', label: 'Grand Opening', desc: 'New shop or branch launch', icon: FiZap, color: 'purple' },
+    { key: 'Special Event', label: 'Special Event', desc: 'Sale event, fair, or seasonal', icon: FiCalendar, color: 'blue' },
+    { key: 'Business Update', label: 'Business Update', desc: 'Hours, location, or news update', icon: FiAlertCircle, color: 'orange' },
+  ],
+};
+
+const COLOR_MAP = {
+  amber:  { active: 'bg-amber-500/10 border-amber-500 text-amber-700',  dot: 'bg-amber-500'  },
+  green:  { active: 'bg-emerald-500/10 border-emerald-500 text-emerald-700', dot: 'bg-emerald-500' },
+  blue:   { active: 'bg-blue-500/10 border-blue-500 text-blue-700',     dot: 'bg-blue-500'   },
+  purple: { active: 'bg-brand-purple/10 border-brand-purple text-brand-purple', dot: 'bg-brand-purple' },
+  red:    { active: 'bg-red-500/10 border-red-500 text-red-700',        dot: 'bg-red-500'    },
+  orange: { active: 'bg-orange-500/10 border-orange-500 text-orange-700', dot: 'bg-orange-500' },
+};
 
 // PROMOTION AREAS
 const PROMOTION_AREAS = [
@@ -61,6 +93,14 @@ export default function CreateReelWizardModal({
   setPostSubcategory,
   postPurpose,
   setPostPurpose,
+  discountPercent,
+  setDiscountPercent,
+  couponCode,
+  setCouponCode,
+  discountValidity,
+  setDiscountValidity,
+  announcementTagline,
+  setAnnouncementTagline,
   selectedServiceId,
   setSelectedServiceId,
   selectedServiceData,
@@ -415,33 +455,118 @@ export default function CreateReelWizardModal({
 
             {/* 3. SELECT PURPOSE */}
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-2">
                 3. Select Post Purpose *
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {[
-                  { key: 'General Promotion', label: 'General Promotion', desc: 'Standard visibility & showcase' },
-                  { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Highlight special deal or coupon' },
-                  { key: 'Announcement', label: 'Announcement', desc: 'New launches or updates' },
-                ].map(p => (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => setPostPurpose(p.key)}
-                    className={`p-3 rounded-xl text-left border transition ${
-                      postPurpose === p.key
-                        ? 'bg-amber-500/10 border-amber-500 text-amber-700 shadow-sm'
-                        : 'bg-surface border-border text-text-secondary hover:border-amber-500/40'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs">{p.label}</span>
-                      {postPurpose === p.key && <FiCheckCircle className="text-amber-600" size={14} />}
-                    </div>
-                    <span className="text-[10px] text-text-tertiary block">{p.desc}</span>
-                  </button>
-                ))}
+
+              <div className="grid grid-cols-2 gap-2">
+                {(PURPOSE_OPTIONS[postType] || PURPOSE_OPTIONS.services).map(p => {
+                  const isActive = postPurpose === p.key;
+                  const Icon = p.icon;
+                  const colors = COLOR_MAP[p.color];
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => {
+                        setPostPurpose(p.key);
+                        // Reset extra fields when purpose changes
+                        setDiscountPercent('');
+                        setCouponCode('');
+                        setDiscountValidity('');
+                        setAnnouncementTagline('');
+                      }}
+                      className={`p-3 rounded-xl text-left border-2 transition-all ${
+                        isActive
+                          ? colors.active + ' shadow-sm scale-[1.01]'
+                          : 'bg-surface border-border text-text-secondary hover:border-border/80 hover:shadow-sm'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                            isActive ? colors.dot + ' text-white' : 'bg-surface-secondary text-text-tertiary'
+                          }`}>
+                            <Icon size={14} />
+                          </div>
+                          <span className="font-bold text-[11px]">{p.label}</span>
+                        </div>
+                        {isActive && <FiCheckCircle size={14} className="flex-shrink-0" />}
+                      </div>
+                      <span className="text-[10px] text-text-tertiary block leading-tight">{p.desc}</span>
+                    </button>
+                  );
+                })}
               </div>
+
+              {/* CONDITIONAL EXTRA FIELDS — Offer / Discount & Flash Sale */}
+              {(postPurpose === 'Offer / Discount' || postPurpose === 'Flash Sale') && (
+                <div className="mt-3 p-3 bg-emerald-500/5 border border-emerald-500/30 rounded-xl space-y-3 animate-fade-in">
+                  <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide flex items-center gap-1">
+                    <FiPercent size={12} /> Offer Details
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Discount % *</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          placeholder="e.g. 20"
+                          value={discountPercent}
+                          onChange={(e) => setDiscountPercent(e.target.value)}
+                          className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-emerald-500 outline-none pr-7"
+                        />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-text-tertiary font-bold">%</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Coupon Code (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. SAVE20"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-emerald-500 outline-none uppercase tracking-widest font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Offer Valid Till (Optional)</label>
+                    <input
+                      type="date"
+                      value={discountValidity}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setDiscountValidity(e.target.value)}
+                      className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-emerald-500 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* CONDITIONAL EXTRA FIELDS — Announcement-style purposes */}
+              {(postPurpose === 'Announcement' || postPurpose === 'New Service Launch' ||
+                postPurpose === 'New Arrival' || postPurpose === 'Grand Opening' ||
+                postPurpose === 'Special Event' || postPurpose === 'Business Update') && (
+                <div className="mt-3 p-3 bg-blue-500/5 border border-blue-500/30 rounded-xl space-y-2 animate-fade-in">
+                  <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wide flex items-center gap-1">
+                    <FiBell size={12} /> Announcement Tagline (Optional)
+                  </p>
+                  <input
+                    type="text"
+                    maxLength={80}
+                    placeholder={`e.g. ${postPurpose === 'Grand Opening' ? 'We are now open at MG Road!' :
+                      postPurpose === 'Special Event' ? 'Mega Sale this Saturday! 10AM–6PM' :
+                      postPurpose === 'New Arrival' ? 'Just arrived – limited stock!' :
+                      'Now offering home visits & online consultations'}`}
+                    value={announcementTagline}
+                    onChange={(e) => setAnnouncementTagline(e.target.value)}
+                    className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-blue-500 outline-none"
+                  />
+                  <p className="text-[10px] text-text-tertiary text-right">{announcementTagline.length}/80</p>
+                </div>
+              )}
             </div>
 
             <button

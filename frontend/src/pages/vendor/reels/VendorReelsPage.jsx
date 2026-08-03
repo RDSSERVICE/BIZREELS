@@ -37,8 +37,13 @@ export default function VendorReelsPage() {
   const [postCategory, setPostCategory] = useState('');
   const [postSubcategory, setPostSubcategory] = useState('');
 
-  // 3. SELECT POST PURPOSE
-  const [postPurpose, setPostPurpose] = useState('General Promotion'); // 'General Promotion' | 'Offer / Discount' | 'Announcement'
+  // 3. SELECT POST PURPOSE + PURPOSE-SPECIFIC EXTRA FIELDS
+  const [postPurpose, setPostPurpose] = useState('General Promotion');
+  // Extra fields shown conditionally by purpose
+  const [discountPercent, setDiscountPercent] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [discountValidity, setDiscountValidity] = useState('');
+  const [announcementTagline, setAnnouncementTagline] = useState('');
 
   // 4. SELECT SERVICE / PRODUCT (OPTION A & B)
   const [selectedServiceId, setSelectedServiceId] = useState('');
@@ -306,6 +311,17 @@ export default function VendorReelsPage() {
         subcategory: postSubcategory,
         classification: postPurpose,
         postPurpose,
+        // Purpose-specific extra metadata
+        offerDetails: postPurpose === 'Offer / Discount' || postPurpose === 'Flash Sale' ? {
+          discountPercent: parseFloat(discountPercent) || null,
+          couponCode: couponCode.trim() || null,
+          validTill: discountValidity || null,
+        } : null,
+        announcementTagline: (postPurpose === 'Announcement' || postPurpose === 'New Service Launch' ||
+          postPurpose === 'New Arrival' || postPurpose === 'Grand Opening' ||
+          postPurpose === 'Special Event' || postPurpose === 'Business Update')
+          ? announcementTagline.trim() || null
+          : null,
         targetListing: targetListingId || null,
         targeting: {
           distance: promotionArea,
@@ -368,6 +384,12 @@ export default function VendorReelsPage() {
     setSelectedProductData(null);
     setSelectedServiceMediaUrls([]);
     setMediaOption('upload_new');
+    // Reset purpose to the first option of that post type
+    setPostPurpose('General Promotion');
+    setDiscountPercent('');
+    setCouponCode('');
+    setDiscountValidity('');
+    setAnnouncementTagline('');
   }, [postType]);
 
   return (
@@ -506,6 +528,14 @@ export default function VendorReelsPage() {
         setPostSubcategory={setPostSubcategory}
         postPurpose={postPurpose}
         setPostPurpose={setPostPurpose}
+        discountPercent={discountPercent}
+        setDiscountPercent={setDiscountPercent}
+        couponCode={couponCode}
+        setCouponCode={setCouponCode}
+        discountValidity={discountValidity}
+        setDiscountValidity={setDiscountValidity}
+        announcementTagline={announcementTagline}
+        setAnnouncementTagline={setAnnouncementTagline}
         selectedServiceId={selectedServiceId}
         setSelectedServiceId={setSelectedServiceId}
         selectedServiceData={selectedServiceData}
@@ -546,6 +576,10 @@ export default function VendorReelsPage() {
         postCategory={postCategory}
         postSubcategory={postSubcategory}
         postPurpose={postPurpose}
+        discountPercent={discountPercent}
+        couponCode={couponCode}
+        discountValidity={discountValidity}
+        announcementTagline={announcementTagline}
         caption={caption}
         mediaOption={mediaOption}
         selectedServiceMediaUrls={selectedServiceMediaUrls}
