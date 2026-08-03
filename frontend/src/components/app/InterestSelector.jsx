@@ -11,40 +11,67 @@ import { api } from '../../lib/api';
 
 const getCategoryIcon = (categoryName, defaultIcon) => {
   const name = (categoryName || '').toLowerCase();
-  const iconStr = typeof defaultIcon === 'string' ? defaultIcon : '';
-
-  if (name.includes('electronic') || name.includes('it') || iconStr === '💻' || iconStr === '📱') {
-    return FaLaptop;
-  }
-  if (name.includes('fashion') || name.includes('apparel') || name.includes('wear') || iconStr === '👗') {
-    return FiShoppingBag;
-  }
-  if (name.includes('restaurant') || name.includes('food') || iconStr === '🍕' || iconStr === '🍲') {
-    return FiCoffee;
-  }
-  if (name.includes('service') || name.includes('repair') || iconStr === '🔧' || iconStr === '🛠️') {
-    return FiTool;
-  }
-  if (name.includes('furniture') || name.includes('decor') || iconStr === '🛋️' || iconStr === '🪑') {
-    return FaCouch;
-  }
-  if (name.includes('automobile') || name.includes('car') || name.includes('vehicle') || name.includes('bike') || iconStr === '🚗' || iconStr === '🏍️') {
-    return FiTruck;
-  }
-  if (name.includes('grocery') || name.includes('essential') || iconStr === '🛒') {
-    return FiShoppingCart;
-  }
-  if (name.includes('healthcare') || name.includes('beauty') || name.includes('salon') || name.includes('fitness') || name.includes('health') || iconStr === '💊' || iconStr === '💇' || iconStr === '🏋️') {
-    return FiHeart;
-  }
-  if (name.includes('real estate') || name.includes('construction') || name.includes('property') || iconStr === '🏗️' || iconStr === '🏠' || iconStr === '🏢') {
-    return FiHome;
-  }
-  if (name.includes('education') || name.includes('coaching') || iconStr === '📚') {
-    return FiBookOpen;
-  }
   
-  return FiFolder;
+  if (defaultIcon && (defaultIcon.startsWith('http://') || defaultIcon.startsWith('https://') || defaultIcon.startsWith('/'))) {
+    return defaultIcon;
+  }
+
+  if (defaultIcon && /[\uD800-\uDFFF\u2600-\u27BF]/.test(defaultIcon)) {
+    return defaultIcon;
+  }
+
+  const nameMap = {
+    'electronic': FaLaptop,
+    'it': FaLaptop,
+    'fashion': FiShoppingBag,
+    'apparel': FiShoppingBag,
+    'wear': FiShoppingBag,
+    'restaurant': FiCoffee,
+    'food': FiCoffee,
+    'service': FiTool,
+    'repair': FiTool,
+    'furniture': FaCouch,
+    'decor': FaCouch,
+    'automobile': FiTruck,
+    'car': FiTruck,
+    'vehicle': FiTruck,
+    'bike': FiTruck,
+    'grocery': FiShoppingCart,
+    'essential': FiShoppingCart,
+    'healthcare': FiHeart,
+    'beauty': FiHeart,
+    'salon': FiHeart,
+    'fitness': FiHeart,
+    'health': FiHeart,
+    'real estate': FiHome,
+    'construction': FiHome,
+    'property': FiHome,
+    'education': FiBookOpen,
+    'coaching': FiBookOpen,
+  };
+
+  for (const key of Object.keys(nameMap)) {
+    if (name.includes(key)) {
+      return nameMap[key];
+    }
+  }
+
+  return defaultIcon || FiFolder;
+};
+
+const renderCategoryIcon = (icon) => {
+  if (!icon) return <FiFolder size={18} />;
+
+  if (typeof icon === 'string' && (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('/'))) {
+    return <img src={icon} alt="" className="w-5 h-5 object-contain" />;
+  }
+
+  if (typeof icon === 'string') {
+    return <span className="text-base leading-none select-none">{icon}</span>;
+  }
+
+  const IconComponent = icon;
+  return <IconComponent size={18} />;
 };
 
 export default function InterestSelector({ selected = [], setSelected }) {
@@ -120,7 +147,7 @@ export default function InterestSelector({ selected = [], setSelected }) {
         const isExpanded = expandedCategory === cat.name;
         const count = categorySelectedCount(cat.name);
         const isCatSelected = selected.some(s => s.category === cat.name);
-        const IconComponent = cat.icon || FiFolder;
+        const categoryIcon = cat.icon;
 
         return (
           <div
@@ -148,7 +175,7 @@ export default function InterestSelector({ selected = [], setSelected }) {
                       : 'bg-white/5 text-text-secondary border border-white/10 group-hover:bg-brand-purple/10 group-hover:text-brand-purple group-hover:border-brand-purple/20'
                   }`}
                 >
-                  <IconComponent size={18} />
+                  {renderCategoryIcon(categoryIcon)}
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-text-primary group-hover:text-brand-purple transition-colors">
