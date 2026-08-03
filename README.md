@@ -1,8 +1,7 @@
 # BizReels — Local Social Commerce Platform (MERN Stack)
 
 [![Repository](https://img.shields.io/badge/GitHub-RDSSERVICE%2FBIZREELS-blue?logo=github)](https://github.com/RDSSERVICE/BIZREELS.git)
-[![Frontend](https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel)](https://bizreels.vercel.app)
-[![Backend](https://img.shields.io/badge/Render-Deployed-informational?logo=render)](https://render.com)
+[![Frontend](https://img.shields.io/badge/Website-Live%20.in-informational?logo=google-chrome)](https://bizreels.in)
 
 BizReels is a production-ready, highly secure local social commerce platform tailored for the Indian marketplace. Discover local vendors, chat directly, negotiate fair deals, post requirements, browse localized reels, find nearby creators, and interact via interactive location maps.
 
@@ -17,7 +16,7 @@ BIZREELS/
 │   │   ├── config/           # Database, Passport.js, & integration configs
 │   │   ├── controllers/      # Route controllers (Auth, Listings, Hires, Reels, etc.)
 │   │   ├── middleware/       # JWT auth, role validation, rate limiters, error handling
-│   │   ├── models/           # Mongoose schemas (22+ MongoDB database models)
+│   │   ├── models/           # Mongoose schemas (24+ MongoDB database models)
 │   │   ├── repositories/     # Data access layer
 │   │   ├── routes/           # Express routes (/api/v1, /api, /v1, /auth aliases)
 │   │   ├── services/         # Business logic & integrations (Razorpay, MSG91, Gemini AI)
@@ -52,23 +51,35 @@ BIZREELS/
    - **Customer Portal**: Search local listings, view interactive map pins, post requirements, chat with vendors, and browse local reels.
    - **Vendor Studio**: Manage product & service listings, boost visibility, track leads, handle orders, and hire local content creators.
    - **Creator Marketplace**: Showcase portfolio reels/photos, manage booking availability, receive vendor project orders, and manage creator wallet payouts.
-   - **Admin Console**: Manage users, approve/takedown listings, moderate reported content, manage KYC queues, set commission rules, and configure platform settings.
+   - **Admin Console**: Manage users, approve/takedown listings, moderate reported content, manage KYC queues, set commission rules, configure platform settings, and edit custom categories.
 
-2. **Google Maps Integration**:
+2. **Open Graph & Twitter Card Integration (SEO)**:
+   - Dynamic meta tags and document titles hoisted natively using React 19 `<SEO>` component for high-quality social sharing.
+   - Static search crawler fallbacks built directly in frontend `index.html`.
+   - Domain migrated cleanly to **`bizreels.in`**.
+
+3. **Dynamic Category & Subcategory Management**:
+   - Removed all hardcoded category fallbacks across onboarding flows, vendor profiles, activities bookmarks, and posting requirements.
+   - Category selections map dynamically to subcategories fetched from the admin database endpoints (`/v1/categories?tree=true`).
+   - Dynamic icon renderer supporting image URLs, Unicode emojis, or fallback Lucide Icons seamlessly.
+
+4. **Pincode Lookup Auto-fetch**:
+   - Redundant "Lookup" buttons removed from vendor registration forms. Pincodes auto-fetch city, state, and district location details in the background as soon as a valid 6-digit Indian PIN Code is inputted.
+
+5. **Location API Caching & Performance Optimizations**:
+   - In-memory `COMMON_PINCODES` cache database resolves popular Indian pincodes instantly in **0ms**.
+   - MongoDB coordinates cache (`GeocodeCache`) rounds coordinates to 3 decimal places (~100m accuracy) to retrieve reverse-geocoded addresses in under **5ms**, bypassing external API network limits.
+
+6. **Parallelized Activity Count Queries**:
+   - Optimized `/me/activity-counts` API by replacing slow, unindexed aggregation lookups (with string-to-ObjectId joins) with indexed parallel queries, reducing execution time from **644ms** to **<10ms**.
+
+7. **Onboarding Credits & Live Wallet Breakdown**:
+   - Automatic wallet creation and welcome credit allocation (**100 free credits**) seeded on signup/first vendor dashboard load, synchronized with User collection and tracked with `signup_bonus` transaction logs.
+   - The Credit Balance Breakdown statistics are populated dynamically from live MongoDB wallet collections, showing real-time deposited, earned, and spent credits.
+
+8. **Google Maps Integration**:
    - Integrated `LocationPicker` component using Google Maps JS & Places Autocomplete API.
    - Access key configured dynamically via `VITE_GOOGLE_MAPS_API_KEY`.
-
-3. **Dynamic API & Socket Routing for Cloud Deployment**:
-   - Zero hardcoding: Frontend connects to backend via `VITE_BACKEND_URL`, `VITE_API_URL`, and `VITE_SOCKET_URL`.
-   - Automatic fallback to Vite dev proxy (`/api`, `/uploads`, `/socket.io`) during local development.
-   - Multi-path Express route mounting (`/api/v1`, `/api`, `/v1`, `/`, `/auth`) for backwards compatibility and host URL variation support.
-
-4. **Single Page Application (SPA) Deep Linking**:
-   - Pre-configured `vercel.json` rewrites (`"source": "/(.*)", "destination": "/index.html"`) and `_redirects` for flawless direct URL navigation and page refresh on Vercel and Netlify.
-
-5. **Real-time WebSockets & Auth Security**:
-   - Socket.IO gateway for instant chat messaging, notification triggers, and live updates.
-   - Single-flight token refresh interceptor in Axios & RTK Query to gracefully handle 401 token rotations.
 
 ---
 
@@ -91,7 +102,7 @@ npm install
 # Start backend dev server
 npm run dev
 ```
-*The backend boots on `http://localhost:5000` with automatic DB initialization and seed options.*
+*The backend boots on `http://localhost:5000` with automatic DB initialization options.*
 
 ### 2. Frontend Setup
 ```bash
@@ -120,7 +131,7 @@ npm run dev
    - `NODE_ENV=production`
    - `PORT=5000`
    - `MONGODB_URI=<your-mongodb-connection-string>`
-   - `CLIENT_URL=https://bizreels.vercel.app`
+   - `CLIENT_URL=https://bizreels.in`
    - `JWT_ACCESS_SECRET=<secret>`
    - `JWT_REFRESH_SECRET=<secret>`
    - `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET` (Optional)
