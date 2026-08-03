@@ -6,7 +6,7 @@ const walletService = require('./wallet.service');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
-const REVEAL_CREDIT_COST = 5;
+const REVEAL_CREDIT_COST = 1;
 const DAILY_REVEAL_LIMIT = 5;
 
 const getDailyCount = async (userId) => {
