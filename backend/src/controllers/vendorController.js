@@ -17,8 +17,8 @@ class VendorController {
   // ── Vendor Dashboard ─────────────────────────────────────
   getDashboard = asyncHandler(async (req, res) => {
     const userId = req.user._id;
-    const { Wallet } = require('../models/Phase4');
     const referralService = require('../services/referral.service');
+    const walletService = require('../services/wallet.service');
 
     const [
       productsCount,
@@ -34,7 +34,7 @@ class VendorController {
       Reel.find({ creator: userId, isDeleted: { $ne: true } }).select('views status').lean(),
       Order.countDocuments({ vendor: userId }),
       Inquiry.countDocuments({ vendor: userId }),
-      Wallet.findOne({ user_id: userId.toString() }).lean(),
+      walletService.getOrCreateWallet(userId),
       referralService.getVendorDashboard(userId).catch(() => null)
     ]);
 
@@ -42,10 +42,10 @@ class VendorController {
     const totalViews = reels.reduce((sum, r) => sum + (r.views || 0), 0);
     const followers = req.user.followersCount || (req.user.followers ? req.user.followers.length : 0);
 
-    const availableCredits = wallet?.credits || 50; // default 50 joining credits if new
-    const depositedCredits = wallet?.lifetime_deposited_paise ? Math.floor(wallet.lifetime_deposited_paise / 100) : 100;
-    const earnedCredits = wallet?.lifetime_earned_credits || 25;
-    const usedCreditHistory = wallet?.lifetime_spent_credits || 15;
+    const availableCredits = wallet ? (wallet.credits || 0) : 0;
+    const depositedCredits = wallet ? (wallet.lifetime_deposited_paise ? Math.floor(wallet.lifetime_deposited_paise / 100) : 0) : 0;
+    const earnedCredits = wallet ? (wallet.lifetime_earned_credits || 0) : 0;
+    const usedCreditHistory = wallet ? (wallet.lifetime_spent_credits || 0) : 0;
 
     const { AppSettings } = require('../models/Admin');
     let creditRates = {

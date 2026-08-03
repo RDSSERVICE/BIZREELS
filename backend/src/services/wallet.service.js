@@ -21,15 +21,41 @@ class WalletService {
     if (!wallet) {
       const created = await Wallet.create([{
         user_id: uid,
-        credits: 0,
+        credits: 100,
         balance_inr_paise: 0,
-        lifetime_earned_credits: 0,
+        lifetime_earned_credits: 100,
         lifetime_spent_credits: 0,
         lifetime_deposited_paise: 0,
         lifetime_spent_paise: 0,
         is_frozen: false,
       }], opts);
       wallet = created[0];
+
+      // Sync User walletBalance
+      await User.updateOne({ _id: userId }, { $set: { walletBalance: 100 } }, opts);
+
+      // Create transaction record
+      try {
+        const user = await User.findById(userId).select('name current_role roles').session(session).lean();
+        await WalletTransactionV2.create([{
+          user_id: uid,
+          user_name: user?.name || 'Unknown',
+          user_role: user?.current_role || user?.roles?.[0] || 'vendor',
+          transaction_type: 'signup_bonus',
+          credit_debit: 'credit',
+          amount: 100,
+          previous_balance: 0,
+          updated_balance: 100,
+          payment_method: 'internal',
+          source: 'system',
+          status: 'completed',
+          reference_id: `welcome_${uid}`,
+          admin_remarks: 'Welcome Free Onboarding Credits',
+          meta: {},
+        }], opts);
+      } catch (err) {
+        logger.warn(`Failed to create onboarding wallet transaction record: ${err.message}`);
+      }
     }
     return wallet;
   }
