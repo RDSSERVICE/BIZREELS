@@ -101,7 +101,15 @@ export default function CreateReelWizardModal({
 
   const dynamicCategoriesData = React.useMemo(() => {
     const data = {};
-    const parents = categoriesList.filter(c => !c.parent_id);
+    let parents = categoriesList.filter(c => !c.parent_id);
+
+    // Filter by type
+    if (postType === 'services') {
+      parents = parents.filter(c => c.category_type === 'service' || !c.category_type);
+    } else if (postType === 'product') {
+      parents = parents.filter(c => c.category_type === 'product' || !c.category_type);
+    }
+
     const children = categoriesList.filter(c => c.parent_id);
 
     parents.forEach(parent => {
@@ -113,32 +121,21 @@ export default function CreateReelWizardModal({
     });
 
     return data;
-  }, [categoriesList]);
+  }, [categoriesList, postType]);
 
-  // Set default category / subcategory dynamically from DB data
+  // When postType or dynamicCategoriesData changes, immediately select first category & subcategory
   useEffect(() => {
     const available = Object.keys(dynamicCategoriesData);
     if (available.length > 0) {
-      if (!postCategory || !available.includes(postCategory)) {
-        setPostCategory(available[0]);
-      }
-    }
-  }, [dynamicCategoriesData, postCategory, setPostCategory]);
-
-  useEffect(() => {
-    if (postCategory && dynamicCategoriesData[postCategory]) {
-      const subs = dynamicCategoriesData[postCategory];
-      if (subs.length > 0) {
-        if (!postSubcategory || !subs.includes(postSubcategory)) {
-          setPostSubcategory(subs[0]);
-        }
-      } else {
-        setPostSubcategory('General');
-      }
+      const defaultCat = available[0];
+      setPostCategory(defaultCat);
+      const subs = dynamicCategoriesData[defaultCat] || [];
+      setPostSubcategory(subs[0] || 'General');
     } else {
-      setPostSubcategory('General');
+      setPostCategory('');
+      setPostSubcategory('');
     }
-  }, [postCategory, dynamicCategoriesData, postSubcategory, setPostSubcategory]);
+  }, [postType, dynamicCategoriesData, setPostCategory, setPostSubcategory]);
 
   const handleCategoryChange = (e) => {
     const cat = e.target.value;
