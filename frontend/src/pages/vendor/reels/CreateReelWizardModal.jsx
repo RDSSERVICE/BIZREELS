@@ -101,15 +101,7 @@ export default function CreateReelWizardModal({
 
   const dynamicCategoriesData = React.useMemo(() => {
     const data = {};
-    let parents = categoriesList.filter(c => !c.parent_id);
-
-    // Filter by type
-    if (postType === 'services') {
-      parents = parents.filter(c => c.category_type === 'service' || !c.category_type);
-    } else if (postType === 'product') {
-      parents = parents.filter(c => c.category_type === 'product' || !c.category_type);
-    }
-
+    const parents = categoriesList.filter(c => !c.parent_id);
     const children = categoriesList.filter(c => c.parent_id);
 
     parents.forEach(parent => {
@@ -121,21 +113,32 @@ export default function CreateReelWizardModal({
     });
 
     return data;
-  }, [categoriesList, postType]);
+  }, [categoriesList]);
 
-  // When postType or dynamicCategoriesData changes, immediately select first category & subcategory
+  // Set default category / subcategory dynamically from DB data
   useEffect(() => {
     const available = Object.keys(dynamicCategoriesData);
     if (available.length > 0) {
-      const defaultCat = available[0];
-      setPostCategory(defaultCat);
-      const subs = dynamicCategoriesData[defaultCat] || [];
-      setPostSubcategory(subs[0] || 'General');
-    } else {
-      setPostCategory('');
-      setPostSubcategory('');
+      if (!postCategory || !available.includes(postCategory)) {
+        setPostCategory(available[0]);
+      }
     }
-  }, [postType, dynamicCategoriesData, setPostCategory, setPostSubcategory]);
+  }, [dynamicCategoriesData, postCategory, setPostCategory]);
+
+  useEffect(() => {
+    if (postCategory && dynamicCategoriesData[postCategory]) {
+      const subs = dynamicCategoriesData[postCategory];
+      if (subs.length > 0) {
+        if (!postSubcategory || !subs.includes(postSubcategory)) {
+          setPostSubcategory(subs[0]);
+        }
+      } else {
+        setPostSubcategory('General');
+      }
+    } else {
+      setPostSubcategory('General');
+    }
+  }, [postCategory, dynamicCategoriesData, postSubcategory, setPostSubcategory]);
 
   const handleCategoryChange = (e) => {
     const cat = e.target.value;
@@ -284,11 +287,16 @@ export default function CreateReelWizardModal({
     setSelectedTargetAudiences(updated);
   };
 
+  const modalTitle =
+    postType === 'product' ? 'Create Product Reel / Image Post Flow' :
+    postType === 'shop'    ? 'Create Shop / Business Reel Flow' :
+                            'Create Service Reel / Image Post Flow';
+
   return (
     <AdminModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Create Service Reel / Image Post Flow"
+      title={modalTitle}
       maxWidth="max-w-3xl"
     >
       <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2">
@@ -858,6 +866,8 @@ export default function CreateReelWizardModal({
         onClose={() => setShowCreateServiceModal(false)}
         initialCategory={postCategory}
         initialSubcategory={postSubcategory}
+        categoriesList={categoriesList}
+        dynamicCategoriesData={dynamicCategoriesData}
         onCreated={handleServiceCreated}
       />
     </AdminModal>
