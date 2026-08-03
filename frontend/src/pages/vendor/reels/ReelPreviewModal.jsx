@@ -27,13 +27,13 @@ export default function ReelPreviewModal({
   onPublish
 }) {
   const activeTitle = postType === 'product'
-    ? (selectedProductData?.title || caption.slice(0, 40) || 'Product Promotion')
+    ? (selectedProductData?.title || caption?.slice(0, 40) || 'Product Promotion')
     : postType === 'services'
-      ? (selectedServiceData?.title || caption.slice(0, 40) || 'Service Promotion')
-      : (caption.slice(0, 40) || 'Shop Promotion');
+      ? (selectedServiceData?.title || caption?.slice(0, 40) || 'Service Promotion')
+      : (caption?.slice(0, 40) || 'Shop Promotion');
 
-  const mediaList = mediaOption === 'service_media' ? selectedServiceMediaUrls : customMediaList;
-  const mainMedia = customMediaList[0]?.url || customMediaUrl || selectedServiceMediaUrls[0];
+  const mediaList = (mediaOption === 'service_media' ? selectedServiceMediaUrls : customMediaList) || [];
+  const mainMedia = customMediaList?.[0]?.url || customMediaUrl || selectedServiceMediaUrls?.[0];
 
   return (
     <AdminModal
@@ -68,7 +68,7 @@ export default function ReelPreviewModal({
               <div className="aspect-[9/16] bg-black rounded-xl overflow-hidden relative max-h-48 flex items-center justify-center border shadow-sm">
                 {mainMedia ? (
                   mainMedia.match(/\.(mp4|webm|mov)(\?.*)?$/i) || mainMedia.startsWith('data:video/') ? (
-                    <video src={mainMedia} src={mainMedia} muted autoPlay loop className="w-full h-full object-cover" />
+                    <video src={mainMedia} muted autoPlay loop className="w-full h-full object-cover" />
                   ) : (
                     <img src={mainMedia} alt="Post Media" className="w-full h-full object-cover" />
                   )
