@@ -81,15 +81,15 @@ This chart details how incoming geocoding and pin-code requests are optimized us
 ```mermaid
 graph TD
     PIN["PIN Code Inputted"] -->|Check Length === 6| CheckMemoryCache{"Check In-Memory Pincodes"}
-    CheckMemoryCache -->|Found (0ms)| SuccessPIN["Return City, District, State"]
+    CheckMemoryCache -->|Found 0ms| SuccessPIN["Return City, District, State"]
     CheckMemoryCache -->|Not Found| CheckDBCache{"Check PincodeCache DB"}
-    CheckDBCache -->|Found (<5ms)| SuccessPIN
+    CheckDBCache -->|Found under 5ms| SuccessPIN
     CheckDBCache -->|Not Found| ExternalPostalAPI["Call Postal PIN Code API"]
     ExternalPostalAPI -->|Write Cache| PincodeCacheDB[(PincodeCache Collection)]
     ExternalPostalAPI --> SuccessPIN
 
     Coord["GPS Coordinates (Lat/Lng)"] -->|Round to 3 Decimals| CheckGeocodeCache{"Check GeocodeCache DB"}
-    CheckGeocodeCache -->|Found (<5ms)| SuccessGeocode["Return Full Area Address"]
+    CheckGeocodeCache -->|Found under 5ms| SuccessGeocode["Return Full Area Address"]
     CheckGeocodeCache -->|Not Found| Nominatim["Call Nominatim OSM API"]
     Nominatim -->|Write Cache| GeocodeCacheDB[(GeocodeCache Collection)]
     Nominatim --> SuccessGeocode
@@ -104,7 +104,7 @@ This chart outlines how credit rates are dynamically fetched from settings cache
 graph TD
     Action["Publish Product / Reveal Lead / Post Reel"] --> CheckRates{"Get Credit Consumption Rates"}
     CheckRates -->|Read from Memory Cache| Consume["Fetch dynamic rate values"]
-    CheckRates -->|Expired Cache (>30s)| DB[(Query AppSettings credit_rates)]
+    CheckRates -->|Expired Cache over 30s| DB[(Query AppSettings credit_rates)]
     DB --> Consume
     Consume --> VerifyBalance{"Verify available wallet balance"}
     VerifyBalance -->|Insufficient| Error["Return 402 Error / Block Action"]
