@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const Inquiry = require('../models/Inquiry');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
+const logger = require('../utils/logger');
 
 let cachedCreditRates = null;
 let lastRatesFetched = 0;
@@ -48,14 +49,7 @@ class VendorController {
     const usedCreditHistory = wallet ? (wallet.lifetime_spent_credits || 0) : 0;
 
     const { AppSettings } = require('../models/Admin');
-    let creditRates = {
-      productListing: 1,
-      reelPost: 1,
-      aiImage: 2,
-      aiVideo30s: 15,
-      reelBoost1Day: 10,
-      validLead: 1,
-    };
+    let creditRates = {};
     const now = Date.now();
     if (cachedCreditRates && (now - lastRatesFetched < RATES_CACHE_TTL_MS)) {
       creditRates = cachedCreditRates;
@@ -63,11 +57,30 @@ class VendorController {
       try {
         const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
         if (rateSetting && rateSetting.value) {
-          creditRates = { ...creditRates, ...rateSetting.value };
+          creditRates = rateSetting.value;
+        } else {
+          creditRates = {
+            productListing: 1,
+            reelPost: 1,
+            aiImage: 2,
+            aiVideo30s: 15,
+            reelBoost1Day: 10,
+            validLead: 1,
+          };
         }
         cachedCreditRates = creditRates;
         lastRatesFetched = now;
-      } catch (err) {}
+      } catch (err) {
+        logger.error('Failed to load credit rates from AppSettings:', err);
+        creditRates = {
+          productListing: 1,
+          reelPost: 1,
+          aiImage: 2,
+          aiVideo30s: 15,
+          reelBoost1Day: 10,
+          validLead: 1,
+        };
+      }
     }
 
     return ApiResponse.ok(res, 'Vendor dashboard metrics loaded.', {
