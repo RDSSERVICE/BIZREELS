@@ -29,7 +29,7 @@ export default function ProductRequirementForm({
   otherConditions, setOtherConditions,
   photos, video, uploading,
   handleImageUpload, handleVideoUpload, removePhoto, setVideo,
-  resolveMediaUrl, categories, defaultCategories,
+  resolveMediaUrl, categories, subcategories = [],
   isLoading, onSubmit
 }) {
   return (
@@ -53,25 +53,34 @@ export default function ProductRequirementForm({
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Category</label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setSubcategory(''); // Reset subcategory when category changes
+            }}
             className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           >
-            {categories.length > 0
-              ? categories.map(cat => <option key={cat._id || cat.name} value={cat.name}>{cat.name}</option>)
-              : defaultCategories.map(cat => <option key={cat.name} value={cat.name}>{cat.label}</option>)
-            }
+            {categories.map(cat => (
+              <option key={cat.id || cat._id} value={cat.name}>
+                {cat.name}
+              </option>
+            ))}
           </select>
         </div>
 
         <div>
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Subcategory</label>
-          <input
-            type="text"
+          <select
             value={subcategory}
             onChange={(e) => setSubcategory(e.target.value)}
-            placeholder="e.g. Laptops, Printers, Accessories"
-            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-          />
+            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+          >
+            <option value="">Select Subcategory</option>
+            {subcategories.map(sub => (
+              <option key={sub.id || sub._id} value={sub.name}>
+                {sub.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

@@ -7,58 +7,7 @@ import {
 import { FaCouch, FaLaptop } from 'react-icons/fa';
 import { api } from '../../lib/api';
 
-const DEFAULT_CATEGORIES = [
-  {
-    name: 'Electronics & IT',
-    icon: FaLaptop,
-    subs: ['Laptops', 'Smartphones', 'Tablets', 'Cameras', 'Computer Accessories', 'Printers', 'Networking', 'Software']
-  },
-  {
-    name: 'Fashion & Apparel',
-    icon: FiShoppingBag,
-    subs: ['Men\'s Wear', 'Women\'s Wear', 'Kids\' Wear', 'Footwear', 'Jewellery', 'Watches', 'Bags & Wallets', 'Ethnic Wear']
-  },
-  {
-    name: 'Restaurant & Food',
-    icon: FiCoffee,
-    subs: ['Fast Food', 'Fine Dining', 'Bakery & Sweets', 'Beverages', 'Catering', 'Cloud Kitchen', 'Street Food', 'Organic Food']
-  },
-  {
-    name: 'Services & Repairs',
-    icon: FiTool,
-    subs: ['AC Repair', 'Plumbing', 'Electrician', 'Carpentry', 'Painting', 'Pest Control', 'Appliance Repair', 'Cleaning']
-  },
-  {
-    name: 'Furniture & Home Decor',
-    icon: FaCouch,
-    subs: ['Sofas', 'Beds', 'Tables', 'Wardrobes', 'Lighting', 'Curtains', 'Wall Art', 'Kitchenware']
-  },
-  {
-    name: 'Automobile & Parts',
-    icon: FiTruck,
-    subs: ['Cars', 'Bikes', 'Spare Parts', 'Tyres', 'Car Accessories', 'Service Center', 'EV', 'Commercial Vehicles']
-  },
-  {
-    name: 'Grocery & Daily Essentials',
-    icon: FiShoppingCart,
-    subs: ['Fruits & Vegetables', 'Dairy', 'Snacks', 'Beverages', 'Personal Care', 'Baby Care', 'Pet Supplies', 'Stationery']
-  },
-  {
-    name: 'Healthcare & Beauty',
-    icon: FiHeart,
-    subs: ['Pharmacy', 'Skin Care', 'Hair Care', 'Fitness', 'Dental', 'Ayurveda', 'Salon & Spa', 'Eye Care']
-  },
-  {
-    name: 'Real Estate & Construction',
-    icon: FiHome,
-    subs: ['Residential', 'Commercial', 'Plots', 'Rentals', 'Building Materials', 'Interior Design', 'Architecture', 'Labour']
-  },
-  {
-    name: 'Education & Coaching',
-    icon: FiBookOpen,
-    subs: ['School Tuition', 'Competitive Exams', 'Skill Development', 'Language Classes', 'Music & Art', 'IT Training', 'MBA Coaching', 'Online Courses']
-  },
-];
+
 
 const getCategoryIcon = (categoryName, defaultIcon) => {
   const name = (categoryName || '').toLowerCase();
@@ -99,7 +48,7 @@ const getCategoryIcon = (categoryName, defaultIcon) => {
 };
 
 export default function InterestSelector({ selected = [], setSelected }) {
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState([]);
   const [expandedCategory, setExpandedCategory] = useState(null);
 
   useEffect(() => {
@@ -116,12 +65,10 @@ export default function InterestSelector({ selected = [], setSelected }) {
               dbId: c._id,
               subs: (c.children || []).map(sub => sub.name),
             }));
-          if (formatted.length >= 5) {
-            setCategories(formatted);
-          }
+          setCategories(formatted);
         }
       } catch (err) {
-        // Fall back to DEFAULT_CATEGORIES
+        console.error('Failed to load categories in InterestSelector:', err);
       }
     };
     loadCategories();

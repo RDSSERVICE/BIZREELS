@@ -19,6 +19,7 @@ import {
 import { toast } from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
 import { api } from '../../lib/api';
+import SEO from '../../components/common/SEO';
 
 const CATEGORIES = [
   'All Categories',
@@ -102,6 +103,11 @@ const PublicCreatorMarketplacePage = () => {
 
   return (
     <div className="min-h-screen bg-surface-secondary pb-16">
+      <SEO 
+        title="Creator Marketplace"
+        description="Hire professional creators to produce high-engaging video reels for your local business. Browse creator portfolios, pricing, and availability."
+        url="https://bizreels.in/creator-marketplace"
+      />
       {/* ── Page Hero Banner ────────────────────────────────────────── */}
       <section className="relative px-4 sm:px-6 lg:px-8 py-10 sm:py-14 md:py-16 overflow-hidden">
         {/* BG decoration */}

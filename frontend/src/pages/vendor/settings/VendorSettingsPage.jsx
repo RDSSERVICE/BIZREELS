@@ -212,24 +212,11 @@ export default function VendorSettingsPage() {
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple"
                 >
-                  {categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <option key={cat._id || cat.id} value={cat.name}>
-                        {cat.name}
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="Electronics">Electronics & IT</option>
-                      <option value="Home Services">Home Services & Repairs</option>
-                      <option value="Beauty & Wellness">Beauty & Wellness</option>
-                      <option value="Fashion">Fashion & Apparel</option>
-                      <option value="Education & Coaching">Education & Coaching</option>
-                      <option value="Health & Medical">Health & Medical</option>
-                      <option value="Automobile Services">Automobile Services</option>
-                      <option value="Furniture">Furniture & Decor</option>
-                    </>
-                  )}
+                  {categories.filter(cat => !cat.parent_id).map((cat) => (
+                    <option key={cat._id || cat.id} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

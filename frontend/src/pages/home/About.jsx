@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FiGlobe, FiShield, FiTv, FiUsers, FiTarget, FiHeart } from 'react-icons/fi';
+import SEO from '../../components/common/SEO';
 
 const About = () => {
   const containerVariants = {
@@ -49,6 +50,11 @@ const About = () => {
 
   return (
     <div className="overflow-x-hidden min-h-screen bg-surface-secondary">
+      <SEO 
+        title="About Us"
+        description="Learn more about BizReels - India's first AI-powered visual reels commerce platform connecting local vendors, creators, and buyers."
+        url="https://bizreels.in/about"
+      />
       {/* ── HEADER BANNER ──────────────────────────────────────── */}
       <section className="relative px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-10 sm:pb-14 overflow-hidden">
         {/* BG decoration */}

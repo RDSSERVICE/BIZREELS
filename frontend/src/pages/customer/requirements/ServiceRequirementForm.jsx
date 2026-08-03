@@ -25,7 +25,7 @@ export default function ServiceRequirementForm({
   otherConditions, setOtherConditions,
   photos, video, uploading,
   handleImageUpload, handleVideoUpload, removePhoto, setVideo,
-  resolveMediaUrl, categories, defaultCategories,
+  resolveMediaUrl, categories, subcategories = [],
   isLoading, onSubmit
 }) {
   const [locationType, setLocationType] = useState('on-site'); // 'on-site' | 'remote'
@@ -77,16 +77,13 @@ export default function ServiceRequirementForm({
         return 'e.g. 3 months';
       case 'one-time':
       default:
-        return 'e.g. 1 video / 1 shoot';
+        return 'e.g. 1 video, 3 designs';
     }
   };
 
   return (
     <form onSubmit={(e) => {
-      // Inject locationType info into otherConditions so it's logged in backend
       const modifiedConditions = `[Location Type: ${locationType.toUpperCase()}][Service Model: ${durationType.toUpperCase()}] ${otherConditions || ''}`;
-      
-      // Call onSubmit callback
       onSubmit(e, modifiedConditions);
     }} className="space-y-5">
       {/* Title */}
@@ -108,25 +105,34 @@ export default function ServiceRequirementForm({
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Service Category</label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setSubcategory(''); // Reset subcategory when category changes
+            }}
             className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           >
-            {categories.length > 0
-              ? categories.map(cat => <option key={cat._id || cat.name} value={cat.name}>{cat.name}</option>)
-              : defaultCategories.map(cat => <option key={cat.name} value={cat.name}>{cat.label}</option>)
-            }
+            {categories.map(cat => (
+              <option key={cat.id || cat._id} value={cat.name}>
+                {cat.name}
+              </option>
+            ))}
           </select>
         </div>
 
         <div>
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Subcategory / Specialization</label>
-          <input
-            type="text"
+          <select
             value={subcategory}
             onChange={(e) => setSubcategory(e.target.value)}
-            placeholder="e.g. UGC Creation, Premiere Pro editing, Logo Design"
-            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-          />
+            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+          >
+            <option value="">Select Subcategory</option>
+            {subcategories.map(sub => (
+              <option key={sub.id || sub._id} value={sub.name}>
+                {sub.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

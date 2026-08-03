@@ -46,15 +46,25 @@ export default function PostRequirementPage() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const res = await api.get('/v1/categories?top_level=true');
+        const res = await api.get('/v1/categories');
         const items = res.data?.items || [];
-        if (items.length > 0) {
-          setCategories(items);
+        setCategories(items);
+        
+        // Auto select first top-level category on load
+        const topLevel = items.filter(c => !c.parent_id);
+        if (topLevel.length > 0) {
+          setCategory(topLevel[0].name);
         }
       } catch {}
     };
     loadCategories();
   }, []);
+
+  const parentCategories = categories.filter(c => !c.parent_id);
+  const selectedParent = parentCategories.find(c => c.name === category);
+  const subcategories = selectedParent
+    ? categories.filter(c => c.parent_id === selectedParent.id)
+    : [];
 
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -170,7 +180,12 @@ export default function PostRequirementPage() {
   const handleTypeChange = (newType) => {
     setType(newType);
     setTitle('');
-    setCategory(newType === 'service' ? 'Services' : 'Electronics');
+    
+    const topLevel = categories.filter(c => !c.parent_id);
+    const typedCategories = topLevel.filter(c => c.category_type === newType);
+    const targetCategory = typedCategories.length > 0 ? typedCategories[0] : (topLevel.length > 0 ? topLevel[0] : null);
+    
+    setCategory(targetCategory ? targetCategory.name : (newType === 'service' ? 'Services' : 'Electronics'));
     setSubcategory('');
     setBudget('');
     setQuantity('1');
@@ -220,18 +235,6 @@ export default function PostRequirementPage() {
     }
   };
 
-  const defaultCategories = [
-    { name: 'Electronics', label: 'Electronics & IT' },
-    { name: 'Fashion', label: 'Fashion & Apparel' },
-    { name: 'Furniture', label: 'Furniture & Home Decor' },
-    { name: 'Services', label: 'Professional Services' },
-    { name: 'Automobile', label: 'Automobile & Parts' },
-    { name: 'Agriculture', label: 'Agriculture & Supplies' },
-    { name: 'Property', label: 'Real Estate & Rentals' },
-    { name: 'Healthcare', label: 'Healthcare & Beauty' },
-    { name: 'Restaurant', label: 'Restaurant & Food' },
-    { name: 'Education', label: 'Education & Coaching' },
-  ];
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
@@ -289,8 +292,8 @@ export default function PostRequirementPage() {
             photos={photos} video={video} uploading={uploading}
             handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload}
             removePhoto={removePhoto} setVideo={setVideo}
-            resolveMediaUrl={resolveMediaUrl} categories={categories}
-            defaultCategories={defaultCategories} isLoading={isLoading}
+            resolveMediaUrl={resolveMediaUrl} categories={parentCategories}
+            subcategories={subcategories} isLoading={isLoading}
             onSubmit={handleSubmit}
           />
         ) : (
@@ -309,8 +312,8 @@ export default function PostRequirementPage() {
             photos={photos} video={video} uploading={uploading}
             handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload}
             removePhoto={removePhoto} setVideo={setVideo}
-            resolveMediaUrl={resolveMediaUrl} categories={categories}
-            defaultCategories={defaultCategories} isLoading={isLoading}
+            resolveMediaUrl={resolveMediaUrl} categories={parentCategories}
+            subcategories={subcategories} isLoading={isLoading}
             onSubmit={handleSubmit}
           />
         )}

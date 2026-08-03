@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiVideo, FiMapPin, FiCompass, FiShield, FiBriefcase, FiZap, FiTrendingUp, FiUsers, FiPlay } from 'react-icons/fi';
 import Button from '../../components/common/Button';
+import SEO from '../../components/common/SEO';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -33,6 +34,11 @@ const Home = () => {
 
   return (
     <div className="overflow-x-hidden min-h-screen bg-surface-secondary">
+      <SEO 
+        title="Watch. Discover. Shop."
+        description="Discover local vendors, chat direct, deal fair. India's first visual reels commerce platform."
+        url="https://bizreels.in/"
+      />
       {/* ── HERO SECTION ────────────────────────────────────────── */}
       <section className="relative px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-28 pb-12 sm:pb-16 md:pb-20 flex flex-col items-center justify-center text-center overflow-hidden">
         {/* Background decorative elements */}

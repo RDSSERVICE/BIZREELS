@@ -526,7 +526,7 @@ export default function BecomeCreatorPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. creator@bizreels.com"
+                  placeholder="e.g. creator@bizreels.in"
                   className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
               </div>

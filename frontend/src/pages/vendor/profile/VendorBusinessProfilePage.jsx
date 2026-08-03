@@ -4,6 +4,7 @@ import {
   FiBriefcase, FiMapPin, FiGlobe, FiPhone, FiClock, FiFileText, FiSave, FiCheck, FiInstagram, FiFacebook, FiMessageCircle, FiCamera, FiImage
 } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
+import { useListCategoriesQuery } from '../../../features/admin/adminApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import api, { tokenStore, resolveMediaUrl } from '../../../lib/api';
 import toast from 'react-hot-toast';
@@ -49,6 +50,10 @@ export default function VendorBusinessProfilePage() {
 
   const user = profileRes?.data?.user || profileRes?.user || authUser || {};
   const vendorProfile = user.vendorProfile || {};
+
+  const { data: categoriesDataRes } = useListCategoriesQuery();
+  const categoriesList = categoriesDataRes?.items || [];
+  const parentCategories = categoriesList.filter(c => !c.parent_id);
 
   const [shopName, setShopName] = useState('');
   const [businessName, setBusinessName] = useState('');
@@ -359,12 +364,11 @@ export default function VendorBusinessProfilePage() {
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
               >
-                <option value="Electronics">Electronics & IT</option>
-                <option value="Fashion">Fashion & Apparel</option>
-                <option value="Furniture">Furniture & Decor</option>
-                <option value="Jewellery">Jewellery & Accessories</option>
-                <option value="Restaurant">Restaurant & Food</option>
-                <option value="Services">Services & Repairs</option>
+                {parentCategories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
               </select>
             </div>
 

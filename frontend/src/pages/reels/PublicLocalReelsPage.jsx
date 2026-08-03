@@ -24,6 +24,7 @@ import { useGetReelsFeedQuery } from '../../features/reels/reelsApi';
 import { useGetVendorListingsQuery } from '../../features/vendor/vendorApi';
 import Loader from '../../components/common/Loader';
 import { resolveMediaUrl } from '../../lib/api';
+import SEO from '../../components/common/SEO';
 
 const PublicLocalReelsPage = () => {
   const navigate = useNavigate();
@@ -80,6 +81,11 @@ const PublicLocalReelsPage = () => {
 
   return (
     <div className="min-h-screen bg-surface-secondary pb-16">
+      <SEO 
+        title="Local Reels & Listings"
+        description="Watch short-form video reels and explore product listing posts from local vendors in your area. Get custom quotes and deals!"
+        url="https://bizreels.in/local-reels"
+      />
       {/* ── Page Hero Header ────────────────────────────────────────── */}
       <section className="relative px-4 sm:px-6 lg:px-8 py-10 sm:py-14 md:py-16 overflow-hidden">
         {/* BG decoration */}

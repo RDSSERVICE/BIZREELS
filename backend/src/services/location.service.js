@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
-// Define PincodeCache Schema & Model inline to avoid bloating models folder
+// Define PincodeCache Schema & Model inline
 const pincodeCacheSchema = new mongoose.Schema({
   _id: String,
   pincode: String,
@@ -20,6 +20,39 @@ try {
   PincodeCache = mongoose.model('PincodeCache', pincodeCacheSchema, 'pincode_cache');
 }
 
+// Define GeocodeCache Schema & Model inline
+const geocodeCacheSchema = new mongoose.Schema({
+  _id: String, // "lat_round,lng_round"
+  area: String,
+  city: String,
+  state: String,
+  district: String,
+  pincode: String,
+  country: String,
+  fullAddress: String,
+}, { versionKey: false, timestamps: { createdAt: 'created_at', updatedAt: false } });
+
+let GeocodeCache;
+try {
+  GeocodeCache = mongoose.model('GeocodeCache');
+} catch {
+  GeocodeCache = mongoose.model('GeocodeCache', geocodeCacheSchema, 'geocode_cache');
+}
+
+// Local in-memory cache for common testing/demo pincodes (0ms response)
+const COMMON_PINCODES = {
+  '110001': { area: 'Connaught Place', city: 'New Delhi', state: 'Delhi', country: 'India' },
+  '400001': { area: 'Mumbai G.P.O.', city: 'Mumbai', state: 'Maharashtra', country: 'India' },
+  '560001': { area: 'Bangalore G.P.O.', city: 'Bengaluru', state: 'Karnataka', country: 'India' },
+  '600001': { area: 'Chennai G.P.O.', city: 'Chennai', state: 'Tamil Nadu', country: 'India' },
+  '700001': { area: 'Kolkata G.P.O.', city: 'Kolkata', state: 'West Bengal', country: 'India' },
+  '500001': { area: 'Hyderabad G.P.O.', city: 'Hyderabad', state: 'Telangana', country: 'India' },
+  '380001': { area: 'Ahmedabad G.P.O.', city: 'Ahmedabad', state: 'Gujarat', country: 'India' },
+  '411001': { area: 'Pune G.P.O.', city: 'Pune', state: 'Maharashtra', country: 'India' },
+  '122001': { area: 'Gurgaon G.P.O.', city: 'Gurgaon', state: 'Haryana', country: 'India' },
+  '201301': { area: 'Noida Sector 1', city: 'Gautam Buddha Nagar', state: 'Uttar Pradesh', country: 'India' },
+};
+
 const PINCODE_API = 'https://api.postalpincode.in/pincode/{pincode}';
 
 const pincodeLookup = async (pincode) => {
@@ -27,12 +60,17 @@ const pincodeLookup = async (pincode) => {
     throw ApiError.badRequest('Pincode must be 6 digits');
   }
 
-  // Check cache
+  // 1. Check COMMON_PINCODES memory cache
+  if (COMMON_PINCODES[pincode]) {
+    return { pincode, ...COMMON_PINCODES[pincode], source: 'memory_cache' };
+  }
+
+  // 2. Check DB cache
   const cached = await PincodeCache.findById(pincode);
   if (cached) {
     const obj = cached.toObject();
     delete obj._id;
-    return obj;
+    return { ...obj, source: 'db_cache' };
   }
 
   try {
@@ -62,7 +100,7 @@ const pincodeLookup = async (pincode) => {
       );
     } catch {}
 
-    return result;
+    return { ...result, source: 'nominatim_pincode' };
   } catch (err) {
     if (err.statusCode) throw err;
     logger.warn(`Pincode API failure: ${err.message}`);
@@ -71,10 +109,27 @@ const pincodeLookup = async (pincode) => {
 };
 
 const reverseGeocode = async (lat, lng) => {
+  // Round to 3 decimal places (~110 meters accuracy) for caching
+  const roundedLat = parseFloat(lat.toFixed(3));
+  const roundedLng = parseFloat(lng.toFixed(3));
+  const cacheKey = `${roundedLat},${roundedLng}`;
+
+  // 1. Check Geocode Cache
+  try {
+    const cached = await GeocodeCache.findById(cacheKey);
+    if (cached) {
+      const obj = cached.toObject();
+      delete obj._id;
+      return { ...obj, source: 'geocode_cache' };
+    }
+  } catch (err) {
+    logger.warn(`Geocode cache read error: ${err.message}`);
+  }
+
   try {
     const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
       headers: {
-        'User-Agent': 'BizReels/1.0 (contact@bizreels.com)'
+        'User-Agent': 'BizReels/1.0 (contact@bizreels.in)'
       },
       timeout: 5000
     });
@@ -88,7 +143,7 @@ const reverseGeocode = async (lat, lng) => {
       const area = addr.suburb || addr.neighbourhood || addr.road || null;
       const fullAddress = res.data.display_name || '';
 
-      return {
+      const result = {
         area,
         city: city || district,
         state,
@@ -96,8 +151,20 @@ const reverseGeocode = async (lat, lng) => {
         pincode,
         country: addr.country || 'India',
         fullAddress,
-        source: 'nominatim',
       };
+
+      // Cache it in DB
+      try {
+        await GeocodeCache.updateOne(
+          { _id: cacheKey },
+          { $set: result },
+          { upsert: true }
+        );
+      } catch (cacheErr) {
+        logger.warn(`Geocode cache write error: ${cacheErr.message}`);
+      }
+
+      return { ...result, source: 'nominatim' };
     }
   } catch (err) {
     logger.warn(`Nominatim reverse geocode failure: ${err.message}. Falling back to metro default.`);

@@ -141,7 +141,7 @@ export default function VendorVerificationPage() {
 
   // Direct Website Verification (No OTP needed for Website)
   const handleVerifyWebsite = async (url) => {
-    const targetUrl = url || vendorProfile.website || 'https://www.bizreels.com';
+    const targetUrl = url || vendorProfile.website || 'https://www.bizreels.in';
     setLoading(true);
     const toastId = toast.loading('Pinging and verifying website URL...');
     try {

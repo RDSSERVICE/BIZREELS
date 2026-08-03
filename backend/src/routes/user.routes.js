@@ -408,48 +408,24 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
   const { ChatMessage } = require('../models/Chat');
   const uid = req.user._id.toString();
 
-  // Run queries in parallel. Consolidation via $facet reduces DB RTT and load.
+  // Run queries in parallel. Replaced slow non-indexed aggregation lookup with direct index queries.
   const [
-    aggResultArray,
+    byTypeCounts,
+    savedServices,
     unreadNotifications,
     unreadChat
   ] = await Promise.all([
     Interaction.aggregate([
       { $match: { user_id: uid } },
-      {
-        $facet: {
-          byType: [
-            { $group: { _id: '$type', count: { $sum: 1 } } }
-          ],
-          savedServices: [
-            { $match: { type: 'save', listing_id: { $ne: null } } },
-            {
-              $addFields: {
-                listingObjId: {
-                  $cond: {
-                    if: { $regexMatch: { input: '$listing_id', regex: '^[0-9a-fA-F]{24}$' } },
-                    then: { $toObjectId: '$listing_id' },
-                    else: null
-                  }
-                }
-              }
-            },
-            { $match: { listingObjId: { $ne: null } } },
-            {
-              $lookup: {
-                from: 'listings',
-                localField: 'listingObjId',
-                foreignField: '_id',
-                as: 'listing'
-              }
-            },
-            { $unwind: '$listing' },
-            { $match: { 'listing.type': 'service', 'listing.isDeleted': { $ne: true } } },
-            { $count: 'count' }
-          ]
-        }
-      }
+      { $group: { _id: '$type', count: { $sum: 1 } } }
     ]),
+    (async () => {
+      const savedInters = await Interaction.find({ user_id: uid, type: 'save', listing_id: { $ne: null } }).select('listing_id').lean();
+      const listingIds = savedInters.map(i => i.listing_id).filter(id => /^[0-9a-fA-F]{24}$/.test(id));
+      if (listingIds.length === 0) return 0;
+      const Listing = require('../models/Listing');
+      return await Listing.countDocuments({ _id: { $in: listingIds }, type: 'service', isDeleted: { $ne: true } });
+    })(),
     Notification.countDocuments({ recipient: uid, isRead: false }).catch(() => 0),
     ChatMessage.countDocuments({ receiver_id: uid, read_at: null, is_deleted: { $ne: true } }).catch(() => 0)
   ]);
@@ -463,9 +439,7 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
     chat_inquiry: 0
   };
 
-  const aggResult = aggResultArray[0] || { byType: [], savedServices: [] };
-
-  aggResult.byType.forEach(item => {
+  byTypeCounts.forEach(item => {
     if (item._id in counts) {
       counts[item._id] = item.count;
     }
@@ -477,7 +451,6 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
   const whatsappContacted = counts.whatsapp_contact;
   const chatInquiries = counts.chat_inquiry;
 
-  const savedServices = aggResult.savedServices[0]?.count || 0;
   const actualSavedProducts = Math.max(0, counts.save - savedServices);
 
   const total = actualSavedProducts + savedServices + savedReels + savedImages + clickToCalled + whatsappContacted + chatInquiries;

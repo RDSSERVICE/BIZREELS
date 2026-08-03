@@ -26,18 +26,19 @@ import {
   useGetFollowingQuery,
   useUnfollowUserMutation,
 } from '../../../features/customer/activitiesApi';
+import { useListCategoriesQuery } from '../../../features/admin/adminApi';
 import { resolveMediaUrl, api } from '../../../lib/api';
 import { getSocket } from '../../../lib/socket';
 
-const CATEGORIES = [
-  'Electronics & IT', 'Fashion & Apparel', 'Restaurant & Food', 'Services & Repairs',
-  'Furniture & Home Decor', 'Automobile & Parts', 'Grocery & Daily Essentials',
-  'Healthcare & Beauty', 'Real Estate & Construction', 'Education & Coaching'
-];
+
 
 export default function CustomerActivitiesPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('saved-products');
+
+  const { data: categoriesDataRes } = useListCategoriesQuery();
+  const categoriesList = categoriesDataRes?.items || [];
+  const parentCategories = categoriesList.filter(c => !c.parent_id);
 
   // Activity Counts
   const [counts, setCounts] = useState({
@@ -694,7 +695,11 @@ export default function CustomerActivitiesPage() {
               className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-semibold text-text-secondary focus:outline-none focus:border-brand-purple"
             >
               <option value="">All Categories</option>
-              {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              {parentCategories.map(cat => (
+                <option key={cat.id || cat._id} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
             </select>
           )}
 

@@ -8,6 +8,7 @@ import {
   FiMail, FiCamera, FiImage, FiCompass
 } from 'react-icons/fi';
 import { useAddRoleMutation } from '../../../features/auth/authApi';
+import { useListCategoriesQuery } from '../../../features/admin/adminApi';
 import { setCredentials, selectCurrentUser } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -24,18 +25,6 @@ const BUSINESS_TYPES = [
   { id: 'Freelancer', label: 'Freelancer', desc: 'Independent contractor or creative professional' },
 ];
 
-const CATEGORIES_DATA = {
-  'Electronics & IT': ['Mobile & Accessories', 'Laptops & Computers', 'Home Appliances', 'Cameras & Audio', 'Repairs & Services'],
-  'Fashion & Apparel': ['Men Clothing', 'Women Ethnic & Western', 'Kids Wear', 'Footwear', 'Jewellery & Watches'],
-  'Restaurant & Food': ['Cafes & Fast Food', 'Fine Dining', 'Bakery & Sweets', 'Catering Services', 'Cloud Kitchen'],
-  'Services & Repairs': ['Home Cleaning', 'Electrician & Plumber', 'Beauty & Wellness', 'AC Repair', 'Automobile Repair'],
-  'Furniture & Home Decor': ['Living Room Furniture', 'Bedroom Furniture', 'Kitchen & Dining', 'Lighting & Decor'],
-  'Automobile & Parts': ['Car Accessories', 'Two-Wheeler Spares', 'Car Washing', 'Tyres & Batteries'],
-  'Grocery & Daily Essentials': ['Fresh Fruits & Vegetables', 'Dairy & Bakery', 'Packaged Food', 'Personal Care'],
-  'Healthcare & Beauty': ['Pharmacy & Medicines', 'Cosmetics', 'Fitness & Gym', 'Ayurveda & Herbal'],
-  'Real Estate & Construction': ['Property Rentals', 'Building Supplies', 'Interior Design', 'Contractors'],
-  'Education & Coaching': ['Tuition Classes', 'Computer Training', 'Language Institutes', 'Music & Arts']
-};
 
 // Time translation helpers
 const format24to12 = (timeStr) => {
@@ -82,8 +71,34 @@ export default function BecomeVendorPage() {
   // 2. Shop / Business Info
   const [shopName, setShopName] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState(['Electronics & IT']);
+  const { data: categoriesDataRes } = useListCategoriesQuery();
+  const categoriesList = categoriesDataRes?.items || [];
+
+  const dynamicCategoriesData = React.useMemo(() => {
+    const data = {};
+    const parents = categoriesList.filter(c => !c.parent_id);
+    const children = categoriesList.filter(c => c.parent_id);
+
+    parents.forEach(parent => {
+      const parentName = parent.name;
+      const subcategories = children
+        .filter(child => child.parent_id === parent.id)
+        .map(child => child.name);
+      data[parentName] = subcategories;
+    });
+
+    return data;
+  }, [categoriesList]);
+
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedSubCategories, setSelectedSubCategories] = useState([]);
+
+  useEffect(() => {
+    const keys = Object.keys(dynamicCategoriesData);
+    if (keys.length > 0 && selectedCategories.length === 0) {
+      setSelectedCategories([keys[0]]);
+    }
+  }, [dynamicCategoriesData, selectedCategories]);
   const [businessDescription, setBusinessDescription] = useState('');
   const [shopLogo, setShopLogo] = useState('');
   const [shopCoverImage, setShopCoverImage] = useState('');
@@ -473,7 +488,7 @@ export default function BecomeVendorPage() {
           <div>
             <label className="block text-xs font-semibold text-text-secondary mb-2">Category (Select all that apply) *</label>
             <div className="flex flex-wrap gap-2">
-              {Object.keys(CATEGORIES_DATA).map((cat) => {
+              {Object.keys(dynamicCategoriesData).map((cat) => {
                 const isSelected = selectedCategories.includes(cat);
                 return (
                   <button
@@ -497,7 +512,7 @@ export default function BecomeVendorPage() {
           <div>
             <label className="block text-xs font-semibold text-text-secondary mb-2">Sub Category (Multiple Choice)</label>
             <div className="flex flex-wrap gap-2">
-              {selectedCategories.flatMap(cat => CATEGORIES_DATA[cat] || []).map((sub) => {
+              {selectedCategories.flatMap(cat => dynamicCategoriesData[cat] || []).map((sub) => {
                 const isSelected = selectedSubCategories.includes(sub);
                 return (
                   <button
@@ -687,16 +702,8 @@ export default function BecomeVendorPage() {
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value)}
                   placeholder="6-Digit PIN Code"
-                  className="w-full pr-16 pl-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
+                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
                 />
-                <button
-                  type="button"
-                  onClick={() => handlePincodeLookup()}
-                  disabled={pincodeLoading || pincode.length !== 6}
-                  className="absolute right-1 px-2.5 py-1.5 bg-brand-purple text-white rounded-lg text-[10px] font-bold hover:opacity-90 transition disabled:opacity-50"
-                >
-                  {pincodeLoading ? 'Fetching...' : 'Lookup'}
-                </button>
               </div>
             </div>
 
