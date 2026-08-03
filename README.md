@@ -1,7 +1,7 @@
 # BizReels — Local Social Commerce Platform (MERN Stack)
 
 [![Repository](https://img.shields.io/badge/GitHub-RDSSERVICE%2FBIZREELS-blue?logo=github)](https://github.com/RDSSERVICE/BIZREELS.git)
-[![Frontend](https://img.shields.io/badge/Website-Live%20.in-informational?logo=google-chrome)](https://bizreels.in)
+[![Website](https://img.shields.io/badge/Website-Live%20.in-informational?logo=google-chrome)](https://bizreels.in)
 
 BizReels is a production-ready, highly secure local social commerce platform tailored for the Indian marketplace. Discover local vendors, chat directly, negotiate fair deals, post requirements, browse localized reels, find nearby creators, and interact via interactive location maps.
 
@@ -41,6 +41,77 @@ BIZREELS/
 │   └── package.json          # Frontend dependencies
 │
 └── vercel.json               # Root Vercel SPA routing configuration
+```
+
+---
+
+## 📊 System Workflows & Data Flowcharts
+
+### 1. General System Architecture & Communication
+This chart illustrates the communication channels between the client frontend, backend API server, MongoDB database, and external verification/geocoding web services:
+
+```mermaid
+graph TD
+    Client["React 19 Frontend Client"] <-->|HTTP / RTK Query / Socket.io| Server["Express API Server"]
+    Server <-->|Mongoose Session Operations| Database[("MongoDB Atlas Database")]
+    Server -->|External Fetch| OpenStreetMap["Nominatim OSM API"]
+    Server -->|External Fetch| PostalAPI["Postal PIN Code API"]
+```
+
+---
+
+### 2. Onboarding, Role Switch & Wallet Seeding Flow
+This chart describes a customer's journey: from selecting interest categories onboarding, switching to a vendor profile, auto-fetching location data, getting free welcome credits, to displaying live dynamic rates:
+
+```mermaid
+graph TD
+    User["New Account (Customer Role)"] -->|Onboarding Prompt| Interests["Interest Selection Page"]
+    Interests -->|Fetches Dynamic Categories| RenderInterests["Choose 5+ Categories & Subcategories"]
+    RenderInterests -->|Click Become Vendor| BecomeVendor["Become Vendor Page"]
+    BecomeVendor -->|Pincode Auto-fetch Location| RoleSwitch["Update User Profile & Set activeRole: vendor"]
+    RoleSwitch -->|Onboarding complete| WalletSeeder["Auto-Seed Wallet with 100 Free Credits"]
+    WalletSeeder -->|Dynamic metrics| Dashboard["Vendor Dashboard / Credit Rates Page"]
+```
+
+---
+
+### 3. Optimized Location Fetching & Dual-Caching Pipeline
+This chart details how incoming geocoding and pin-code requests are optimized using a high-speed memory cache and MongoDB coordinate caching to prevent slow RTT:
+
+```mermaid
+graph TD
+    PIN["PIN Code Inputted"] -->|Check Length === 6| CheckMemoryCache{"Check In-Memory Pincodes"}
+    CheckMemoryCache -->|Found (0ms)| SuccessPIN["Return City, District, State"]
+    CheckMemoryCache -->|Not Found| CheckDBCache{"Check PincodeCache DB"}
+    CheckDBCache -->|Found (<5ms)| SuccessPIN
+    CheckDBCache -->|Not Found| ExternalPostalAPI["Call Postal PIN Code API"]
+    ExternalPostalAPI -->|Write Cache| PincodeCacheDB[("PincodeCache Collection")]
+    ExternalPostalAPI --> SuccessPIN
+
+    Coord["GPS Coordinates (Lat/Lng)"] -->|Round to 3 Decimals| CheckGeocodeCache{"Check GeocodeCache DB"}
+    CheckGeocodeCache -->|Found (<5ms)| SuccessGeocode["Return Full Area Address"]
+    CheckGeocodeCache -->|Not Found| Nominatim["Call Nominatim OSM API"]
+    Nominatim -->|Write Cache| GeocodeCacheDB[("GeocodeCache Collection")]
+    Nominatim --> SuccessGeocode
+```
+
+---
+
+### 4. Wallet Credits Operations & Consumption Rate Verification
+This chart outlines how credit rates are dynamically fetched from settings cache and deducted securely via database transactions when a vendor performs a paid action:
+
+```mermaid
+graph TD
+    Action["Publish Product / Reveal Lead / Post Reel"] --> CheckRates{"Get Credit Consumption Rates"}
+    CheckRates -->|Read from Memory Cache| Consume["Fetch dynamic rate values"]
+    CheckRates -->|Expired Cache (>30s)| DB[("Query AppSettings 'credit_rates'")]
+    DB --> Consume
+    Consume --> VerifyBalance{"Verify available wallet balance"}
+    VerifyBalance -->|Insufficient| Error["Return 402 Error / Block Action"]
+    VerifyBalance -->|Sufficient| Debit["Perform Mongoose session transaction debit"]
+    Debit --> SyncUser["Sync User walletBalance"]
+    Debit --> CreateLog["Write WalletTransactionV2 success log"]
+    Debit --> LiveUpdate["Emit Socket.io event for real-time wallet UI refresh"]
 ```
 
 ---
