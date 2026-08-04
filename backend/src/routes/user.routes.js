@@ -361,6 +361,65 @@ router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
   });
 }));
 
+// ── Update Profile (PATCH /me) ─────────────────────────────────────────
+router.patch('/me', requireAuth, catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const {
+    name, avatarUrl, phone, gender, occupation, dob, language,
+    location, vendorProfile, creatorProfile, city
+  } = req.body;
+
+  const updateData = {};
+
+  if (name !== undefined) updateData.name = name;
+  if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+  if (phone !== undefined) updateData.phone = phone;
+  if (gender !== undefined) updateData.gender = gender;
+  if (occupation !== undefined) updateData.occupation = occupation;
+  if (dob !== undefined) updateData.dob = dob;
+  if (language !== undefined) updateData.language = language;
+  if (location !== undefined) updateData.location = location;
+  if (city !== undefined) updateData.city = city;
+
+  // Vendor profile update — block base64 images
+  if (vendorProfile !== undefined) {
+    const vpStr = JSON.stringify(vendorProfile || {});
+    if (/data:[^;]+;base64,/.test(vpStr)) {
+      throw ApiError.badRequest('Base64 images are not allowed. Upload images via /api/v1/upload/image first.');
+    }
+    updateData.vendorProfile = vendorProfile;
+  }
+
+  // Creator profile update — block base64 images
+  if (creatorProfile !== undefined) {
+    const cpStr = JSON.stringify(creatorProfile || {});
+    if (/data:[^;]+;base64,/.test(cpStr)) {
+      throw ApiError.badRequest('Base64 images are not allowed. Upload images via /api/v1/upload/image first.');
+    }
+    updateData.creatorProfile = creatorProfile;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    throw ApiError.badRequest('No update fields provided.');
+  }
+
+  const updated = await User.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    { returnDocument: 'after', runValidators: false }
+  ).select('-password -__v').lean();
+
+  if (!updated) {
+    throw ApiError.notFound('User not found.');
+  }
+
+  res.json({
+    success: true,
+    message: 'Profile updated successfully.',
+    data: { user: updated }
+  });
+}));
+
 // ── Interest Selection (Post-Login) ────────────────────────────────────
 router.get('/me/interests', requireAuth, catchAsync(async (req, res) => {
   const user = req.user;

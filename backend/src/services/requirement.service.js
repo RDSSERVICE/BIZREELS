@@ -53,17 +53,13 @@ class RequirementService {
     const notificationService = require('./notification.service');
     const { emitToUser, emitToAdmin } = require('../sockets');
 
-    // Query active and approved vendors (optimized with select and lean)
+    // Query active vendors (relaxed KYC — include unverified new vendors too)
     const vendors = await User.find({
       roles: 'vendor',
       is_active: true,
       is_banned: { $ne: true },
-      $or: [
-        { kyc_status: 'approved' },
-        { 'vendorProfile.verificationStatus': { $in: ['verified_vendor', 'premium_verified', 'approved'] } }
-      ]
     })
-      .select('_id vendorProfile.category vendorProfile.businessCategory vendorProfile.subcategory vendorProfile.subCategory vendorProfile.city vendorProfile.state vendorProfile.address vendorProfile.serviceArea vendorProfile.serviceAreas location')
+      .select('_id vendorProfile location')
       .lean();
 
     const reqCategoryNormalized = (category || '').toLowerCase().trim();
@@ -75,39 +71,69 @@ class RequirementService {
     const matchedVendorIds = [];
 
     for (const vendor of vendors) {
+      const vp = vendor.vendorProfile || {};
+
       // 1. Primary Business Category Check
-      const vCategory = (vendor.vendorProfile?.category || '').toLowerCase().trim();
-      const vCategory2 = (vendor.vendorProfile?.businessCategory || '').toLowerCase().trim();
-      const categoryMatches = (
-        vCategory.includes(reqCategoryNormalized) ||
-        reqCategoryNormalized.includes(vCategory && vCategory.length > 2 ? vCategory : 'xyz_no_match') ||
-        vCategory2.includes(reqCategoryNormalized) ||
-        reqCategoryNormalized.includes(vCategory2 && vCategory2.length > 2 ? vCategory2 : 'xyz_no_match')
-      );
+      // Support both: vendorProfile.category (string) AND vendorProfile.categories (array)
+      const vCategorySingle = (vp.category || vp.businessCategory || '').toLowerCase().trim();
+      const vCategoriesArray = Array.isArray(vp.categories) ? vp.categories.map(c => c.toLowerCase().trim()) : [];
+
+      let categoryMatches = false;
+      if (reqCategoryNormalized) {
+        // Check single string field
+        if (vCategorySingle && (
+          vCategorySingle.includes(reqCategoryNormalized) ||
+          reqCategoryNormalized.includes(vCategorySingle.length > 2 ? vCategorySingle : 'xyz_no_match')
+        )) {
+          categoryMatches = true;
+        }
+        // Check array field
+        if (!categoryMatches && vCategoriesArray.length > 0) {
+          categoryMatches = vCategoriesArray.some(vc =>
+            vc.includes(reqCategoryNormalized) ||
+            reqCategoryNormalized.includes(vc.length > 2 ? vc : 'xyz_no_match')
+          );
+        }
+      } else {
+        // No category filter — match all vendors
+        categoryMatches = true;
+      }
 
       if (!categoryMatches) continue;
 
-      // 2. Subcategory Check (optional, only check if both have specified)
-      const vSubcategory = (vendor.vendorProfile?.subcategory || vendor.vendorProfile?.subCategory || '').toLowerCase().trim();
-      if (reqSubcategoryNormalized && vSubcategory) {
-        const subcategoryMatches = (
-          vSubcategory.includes(reqSubcategoryNormalized) ||
-          reqSubcategoryNormalized.includes(vSubcategory && vSubcategory.length > 2 ? vSubcategory : 'xyz_no_match')
-        );
-        if (!subcategoryMatches) continue;
+      // 2. Subcategory Check (optional, only if both have specified)
+      if (reqSubcategoryNormalized) {
+        const vSubcategorySingle = (vp.subcategory || vp.subCategory || '').toLowerCase().trim();
+        const vSubcategoriesArray = Array.isArray(vp.subCategories) ? vp.subCategories.map(s => s.toLowerCase().trim()) : [];
+
+        let subcategoryMatches = false;
+        if (vSubcategorySingle && (
+          vSubcategorySingle.includes(reqSubcategoryNormalized) ||
+          reqSubcategoryNormalized.includes(vSubcategorySingle.length > 2 ? vSubcategorySingle : 'xyz_no_match')
+        )) {
+          subcategoryMatches = true;
+        }
+        if (!subcategoryMatches && vSubcategoriesArray.length > 0) {
+          subcategoryMatches = vSubcategoriesArray.some(vs =>
+            vs.includes(reqSubcategoryNormalized) ||
+            reqSubcategoryNormalized.includes(vs.length > 2 ? vs : 'xyz_no_match')
+          );
+        }
+        // Only skip if vendor has subcategory data but doesn't match
+        if ((vSubcategorySingle || vSubcategoriesArray.length > 0) && !subcategoryMatches) continue;
       }
 
-      // 3. Location Check (City, State, Area)
-      const vCity = (vendor.location?.city || vendor.vendorProfile?.location?.city || vendor.vendorProfile?.city || '').toLowerCase().trim();
-      const vState = (vendor.location?.state || vendor.vendorProfile?.location?.state || vendor.vendorProfile?.state || '').toLowerCase().trim();
-      const vAddress = (vendor.location?.address || vendor.vendorProfile?.location?.address || '').toLowerCase().trim();
-      const vServiceArea = (vendor.vendorProfile?.serviceArea || vendor.vendorProfile?.serviceAreas || '').toLowerCase().trim();
+      // 3. Location Check (City, State, Area) — check nested address object too
+      const vCity = (vendor.location?.city || vp.city || vp.address?.city || '').toLowerCase().trim();
+      const vState = (vendor.location?.state || vp.state || vp.address?.state || '').toLowerCase().trim();
+      const vAddress = (vendor.location?.address || vp.address?.fullAddress || '').toLowerCase().trim();
+      const vServiceArea = (vp.serviceArea || vp.serviceAreas || '').toLowerCase().trim();
 
       let locationMatches = true;
       if (reqCity || reqState || reqArea) {
         locationMatches = (
-          (reqCity && (vCity.includes(reqCity) || reqCity.includes(vCity && vCity.length > 2 ? vCity : 'xyz_no_match') || vServiceArea.includes(reqCity) || vAddress.includes(reqCity))) ||
-          (reqState && (vState.includes(reqState) || reqState.includes(vState && vState.length > 2 ? vState : 'xyz_no_match') || vServiceArea.includes(reqState) || vAddress.includes(reqState))) ||
+          (reqCity && (vCity.includes(reqCity) || reqCity.includes(vCity.length > 2 ? vCity : 'xyz_no_match') || vServiceArea.includes(reqCity) || vAddress.includes(reqCity))) ||
+          (reqState && (vState.includes(reqState) || reqState.includes(vState.length > 2 ? vState : 'xyz_no_match') || vServiceArea.includes(reqState) || vAddress.includes(reqState))) ||
           (reqArea && (vServiceArea.includes(reqArea) || vAddress.includes(reqArea) || vCity.includes(reqArea)))
         );
       }

@@ -7,51 +7,61 @@ const SEED_TREE = [
   {
     name: 'Electronics',
     icon: '📱',
+    category_type: 'product',
     children: ['Mobile', 'Laptop', 'TV', 'Home Appliances', 'Accessories'],
   },
   {
     name: 'Fashion',
     icon: '👗',
+    category_type: 'product',
     children: ['Men', 'Women', 'Kids', 'Footwear', 'Accessories'],
   },
   {
     name: 'Home & Furniture',
     icon: '🛋️',
+    category_type: 'product',
     children: ['Furniture', 'Kitchen', 'Decor', 'Bedding'],
   },
   {
     name: 'Vehicles',
     icon: '🏍️',
+    category_type: 'product',
     children: ['Car', 'Bike', 'Scooter', 'Commercial'],
   },
   {
     name: 'Real Estate',
     icon: '🏠',
+    category_type: 'service',
     children: ['Rent', 'Buy', 'Sell', 'PG/Hostel'],
   },
   {
     name: 'Services',
     icon: '🛠️',
+    category_type: 'service',
     children: ['Plumber', 'Electrician', 'Carpenter', 'AC Repair', 'Cleaning', 'Painter'],
   },
   {
     name: 'Food & Grocery',
     icon: '🍲',
+    category_type: 'product',
     children: ['Restaurants', 'Grocery', 'Bakery', 'Sweets'],
   },
   {
     name: 'Beauty & Salon',
     icon: '💇',
+    category_type: 'service',
     children: ['Men Salon', 'Women Salon', 'Spa', 'Makeup'],
   },
   {
     name: 'Health & Fitness',
     icon: '🏋️',
+    category_type: 'service',
     children: ['Gym', 'Yoga', 'Doctor', 'Medical Store'],
   },
   {
     name: 'Education & Coaching',
     icon: '📚',
+    category_type: 'service',
     children: ['School', 'Coaching', 'Tuition', 'Skill Courses'],
   },
 ];
@@ -74,33 +84,50 @@ const serializeCategory = (cat) => {
 
 const seedCategories = async () => {
   const count = await Category.countDocuments({ is_deleted: { $ne: true } });
-  if (count > 0) {
-    return;
-  }
-  for (let idx = 0; idx < SEED_TREE.length; idx++) {
-    const group = SEED_TREE[idx];
-    const parentSlug = slugify(group.name, { lower: true });
-    const parent = await Category.create({
-      name: group.name,
-      slug: parentSlug,
-      icon_url: group.icon,
-      parent_id: null,
-      sort_order: idx,
-    });
-    const parentId = parent._id.toString();
-    for (let cidx = 0; cidx < group.children.length; cidx++) {
-      const childName = group.children[cidx];
-      const childSlug = slugify(`${group.name}-${childName}`, { lower: true });
-      await Category.create({
-        name: childName,
-        slug: childSlug,
-        icon_url: null,
-        parent_id: parentId,
-        sort_order: cidx,
+  if (count === 0) {
+    for (let idx = 0; idx < SEED_TREE.length; idx++) {
+      const group = SEED_TREE[idx];
+      const parentSlug = slugify(group.name, { lower: true });
+      const parent = await Category.create({
+        name: group.name,
+        slug: parentSlug,
+        icon_url: group.icon,
+        parent_id: null,
+        sort_order: idx,
+        category_type: group.category_type,
       });
+      const parentId = parent._id.toString();
+      for (let cidx = 0; cidx < group.children.length; cidx++) {
+        const childName = group.children[cidx];
+        const childSlug = slugify(`${group.name}-${childName}`, { lower: true });
+        await Category.create({
+          name: childName,
+          slug: childSlug,
+          icon_url: null,
+          parent_id: parentId,
+          sort_order: cidx,
+          category_type: group.category_type,
+        });
+      }
     }
+    logger.info(`Seeded ${SEED_TREE.length} category groups`);
+  } else {
+    // If they already exist, update any missing category_type
+    for (const group of SEED_TREE) {
+      const parent = await Category.findOneAndUpdate(
+        { name: group.name, parent_id: null },
+        { $set: { category_type: group.category_type } },
+        { new: true }
+      );
+      if (parent) {
+        await Category.updateMany(
+          { parent_id: parent._id.toString() },
+          { $set: { category_type: group.category_type } }
+        );
+      }
+    }
+    logger.info("Validated and updated existing categories' types.");
   }
-  logger.info(`Seeded ${SEED_TREE.length} category groups`);
 };
 
 const cache = require('../utils/cache');

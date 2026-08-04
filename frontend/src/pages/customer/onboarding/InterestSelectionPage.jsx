@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
 import { FiGrid, FiZap, FiChevronRight } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
 import { useGetMeQuery } from '../../../features/auth/authApi';
+import { setCredentials } from '../../../features/auth/authSlice';
 import InterestSelector from '../../../components/app/InterestSelector';
 
 export default function InterestSelectionPage() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { refetch } = useGetMeQuery();
   const [selected, setSelected] = useState([]); // array of { category, subcategory }
   const [saving, setSaving] = useState(false);
@@ -21,9 +24,13 @@ export default function InterestSelectionPage() {
 
     setSaving(true);
     try {
-      await api.patch('/v1/users/me/interests', { interests: selected });
+      const res = await api.patch('/v1/users/me/interests', { interests: selected });
       toast.success('Interests saved! Your feed is now personalized 🎯');
-      refetch();
+      const refetchRes = await refetch();
+      const updatedUser = refetchRes.data?.user || refetchRes.data || res.data?.user || res.data?.data?.user;
+      if (updatedUser) {
+        dispatch(setCredentials({ user: updatedUser }));
+      }
       navigate('/customer/home', { replace: true });
     } catch (err) {
       const msg = err?.response?.data?.message || 'Failed to save interests';

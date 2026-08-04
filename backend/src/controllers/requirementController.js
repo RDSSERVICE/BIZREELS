@@ -64,12 +64,15 @@ class RequirementController {
     let targetCustomerId = customerId;
     let targetVendorId = undefined;
 
-    if (activeRole === 'customer' || (!activeRole && userRoles.includes('customer'))) {
+    // Only use vendor query mode if the active role is explicitly 'vendor'
+    // and no customerId was explicitly requested
+    if (activeRole === 'vendor' && !targetCustomerId) {
+      targetVendorId = req.user._id;
+    } else {
+      // Default: customer mode — show user's own requirements
       if (!targetCustomerId) {
         targetCustomerId = req.user._id;
       }
-    } else if (activeRole === 'vendor' || (!activeRole && userRoles.includes('vendor'))) {
-      targetVendorId = req.user._id;
     }
 
     const result = await requirementService.queryRequirements({

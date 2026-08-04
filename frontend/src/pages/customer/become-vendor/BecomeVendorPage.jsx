@@ -65,8 +65,9 @@ export default function BecomeVendorPage() {
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
 
-  // 1. Business Type
+  // 1. Business Type & Vendor Type
   const [businessType, setBusinessType] = useState('Retailer');
+  const [vendorType, setVendorType] = useState('both'); // 'product', 'service', 'both'
 
   // 2. Shop / Business Info
   const [shopName, setShopName] = useState('');
@@ -76,7 +77,16 @@ export default function BecomeVendorPage() {
 
   const dynamicCategoriesData = React.useMemo(() => {
     const data = {};
-    const parents = categoriesList.filter(c => !c.parent_id);
+    const parents = categoriesList.filter(c => {
+      if (c.parent_id) return false;
+      if (vendorType === 'product') {
+        return c.category_type === 'product' || !c.category_type;
+      }
+      if (vendorType === 'service') {
+        return c.category_type === 'service' || !c.category_type;
+      }
+      return true;
+    });
     const children = categoriesList.filter(c => c.parent_id);
 
     parents.forEach(parent => {
@@ -88,17 +98,26 @@ export default function BecomeVendorPage() {
     });
 
     return data;
-  }, [categoriesList]);
+  }, [categoriesList, vendorType]);
 
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedSubCategories, setSelectedSubCategories] = useState([]);
 
+  // States for searchable dropdowns & terms modal
+  const [catSearch, setCatSearch] = useState('');
+  const [subSearch, setSubSearch] = useState('');
+  const [showCatDropdown, setShowCatDropdown] = useState(false);
+  const [showSubDropdown, setShowSubDropdown] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // Reset category selections when vendorType changes to prevent cross-type garbage data
   useEffect(() => {
-    const keys = Object.keys(dynamicCategoriesData);
-    if (keys.length > 0 && selectedCategories.length === 0) {
-      setSelectedCategories([keys[0]]);
-    }
-  }, [dynamicCategoriesData, selectedCategories]);
+    setSelectedCategories([]);
+    setSelectedSubCategories([]);
+    setCatSearch('');
+    setSubSearch('');
+  }, [vendorType]);
+
   const [businessDescription, setBusinessDescription] = useState('');
   const [shopLogo, setShopLogo] = useState('');
   const [shopCoverImage, setShopCoverImage] = useState('');
@@ -233,11 +252,10 @@ export default function BecomeVendorPage() {
 
   const toggleCategory = (cat) => {
     if (selectedCategories.includes(cat)) {
-      if (selectedCategories.length === 1) {
-        toast.error('Select at least one business category');
-        return;
-      }
       setSelectedCategories(selectedCategories.filter(c => c !== cat));
+      // Auto-remove subcategories of the removed category
+      const subsToRemove = dynamicCategoriesData[cat] || [];
+      setSelectedSubCategories(selectedSubCategories.filter(s => !subsToRemove.includes(s)));
     } else {
       setSelectedCategories([...selectedCategories, cat]);
     }
@@ -250,6 +268,21 @@ export default function BecomeVendorPage() {
       setSelectedSubCategories([...selectedSubCategories, sub]);
     }
   };
+
+  const filteredCategories = React.useMemo(() => {
+    const allCats = Object.keys(dynamicCategoriesData);
+    if (!catSearch) return allCats;
+    return allCats.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase()));
+  }, [dynamicCategoriesData, catSearch]);
+
+  const availableSubcategories = React.useMemo(() => {
+    return selectedCategories.flatMap(cat => dynamicCategoriesData[cat] || []);
+  }, [dynamicCategoriesData, selectedCategories]);
+
+  const filteredSubcategories = React.useMemo(() => {
+    if (!subSearch) return availableSubcategories;
+    return availableSubcategories.filter(sub => sub.toLowerCase().includes(subSearch.toLowerCase()));
+  }, [availableSubcategories, subSearch]);
 
   // Image upload helper
   const handleImageUpload = async (e, setImageState) => {
@@ -310,10 +343,16 @@ export default function BecomeVendorPage() {
       return;
     }
 
+    if (selectedCategories.length === 0) {
+      toast.error('Please select at least one business category');
+      return;
+    }
+
     setLoading(true);
     try {
       const vendorProfileData = {
         businessType,
+        vendorType, // Save selected vendor type (product/service/both)
         shopName,
         displayName: displayName || shopName,
         categories: selectedCategories,
@@ -377,7 +416,7 @@ export default function BecomeVendorPage() {
       });
 
       // 2. Add 'vendor' role
-      const roleRes = await addRoleApi({ role: 'vendor' }).unwrap();
+      const roleRes = await addRoleApi({ role: 'vendor', profileData: vendorProfileData }).unwrap();
       const updatedUser = roleRes.user || roleRes.data?.user || roleRes;
 
       // 3. Switch active role to 'vendor'
@@ -484,52 +523,217 @@ export default function BecomeVendorPage() {
             </div>
           </div>
 
-          {/* Categories (Multiple Choice) */}
-          <div>
-            <label className="block text-xs font-semibold text-text-secondary mb-2">Category (Select all that apply) *</label>
-            <div className="flex flex-wrap gap-2">
-              {Object.keys(dynamicCategoriesData).map((cat) => {
-                const isSelected = selectedCategories.includes(cat);
+          {/* Vendor Type Selection */}
+          <div className="border-t border-border pt-4">
+            <label className="block text-xs font-bold text-text-secondary mb-2">Vendor Type (Product / Service / Both) *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { id: 'product', label: 'Product Vendor', desc: 'Offers categories related to goods and products' },
+                { id: 'service', label: 'Service Provider', desc: 'Offers categories related to local and specialized services' },
+                { id: 'both', label: 'Product & Service', desc: 'Offers both product and service categories' },
+              ].map((vt) => {
+                const selected = vendorType === vt.id;
                 return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => toggleCategory(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                      isSelected
-                        ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                        : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
+                  <div
+                    key={vt.id}
+                    onClick={() => setVendorType(vt.id)}
+                    className={`cursor-pointer p-4 rounded-2xl border transition-all flex flex-col justify-between ${
+                      selected
+                        ? 'bg-brand-purple/10 border-brand-purple text-brand-purple shadow-sm'
+                        : 'bg-surface border-border hover:border-brand-purple/50 text-text-secondary'
                     }`}
                   >
-                    {isSelected && '✓ '} {cat}
-                  </button>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-text-primary">{vt.label}</span>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selected ? 'border-brand-purple bg-brand-purple text-white' : 'border-border'}`}>
+                        {selected && <FiCheck className="w-2.5 h-2.5" />}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-text-tertiary leading-tight">{vt.desc}</p>
+                  </div>
                 );
               })}
             </div>
           </div>
 
-          {/* Dynamic Sub Categories */}
-          <div>
-            <label className="block text-xs font-semibold text-text-secondary mb-2">Sub Category (Multiple Choice)</label>
-            <div className="flex flex-wrap gap-2">
-              {selectedCategories.flatMap(cat => dynamicCategoriesData[cat] || []).map((sub) => {
-                const isSelected = selectedSubCategories.includes(sub);
-                return (
-                  <button
-                    key={sub}
-                    type="button"
-                    onClick={() => toggleSubCategory(sub)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
-                      isSelected
-                        ? 'bg-brand-purple/20 text-brand-purple border-brand-purple'
-                        : 'bg-surface-tertiary border-border text-text-tertiary hover:text-text-primary'
-                    }`}
+          {/* Categories Searchable Dropdown */}
+          <div className="relative">
+            <label className="block text-xs font-semibold text-text-secondary mb-2 flex justify-between items-center">
+              <span>Business Category (Select all that apply) *</span>
+              {selectedCategories.length > 0 && (
+                <span className="text-[10px] text-text-tertiary">Selected: {selectedCategories.length}</span>
+              )}
+            </label>
+            
+            {/* Selected category tags */}
+            {selectedCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {selectedCategories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-xl text-xs font-bold"
                   >
-                    {isSelected ? '✓ ' : '+ '} {sub}
-                  </button>
-                );
-              })}
+                    {cat}
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(cat)}
+                      className="text-brand-purple hover:text-red-500 font-bold focus:outline-none ml-1 text-sm"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Searchable input control */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <FiSearch className="text-text-tertiary w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                value={catSearch}
+                onChange={(e) => {
+                  setCatSearch(e.target.value);
+                  setShowCatDropdown(true);
+                }}
+                onFocus={() => setShowCatDropdown(true)}
+                placeholder="Search categories..."
+                className="w-full pl-9 pr-10 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCatDropdown(!showCatDropdown)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-tertiary hover:text-text-primary text-xs"
+              >
+                ▼
+              </button>
             </div>
+
+            {/* Dropdown Options */}
+            {showCatDropdown && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowCatDropdown(false)} />
+                <div className="absolute left-0 right-0 mt-1.5 max-h-56 overflow-y-auto bg-surface border border-border rounded-xl shadow-premium z-40 p-2 space-y-1 animate-fade-in">
+                  {filteredCategories.length === 0 ? (
+                    <p className="text-xs text-text-tertiary p-3 text-center">No matching categories found</p>
+                  ) : (
+                    filteredCategories.map((cat) => {
+                      const isSelected = selectedCategories.includes(cat);
+                      return (
+                        <div
+                          key={cat}
+                          onClick={() => {
+                            toggleCategory(cat);
+                            setCatSearch('');
+                          }}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                            isSelected
+                              ? 'bg-brand-purple/10 text-brand-purple'
+                              : 'hover:bg-surface-secondary text-text-secondary'
+                          }`}
+                        >
+                          <span>{cat}</span>
+                          {isSelected && <FiCheck className="w-3.5 h-3.5 text-brand-purple" />}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Sub Categories Searchable Dropdown */}
+          <div className="relative">
+            <label className="block text-xs font-semibold text-text-secondary mb-2 flex justify-between items-center">
+              <span>Sub Category (Select all that apply)</span>
+              {selectedSubCategories.length > 0 && (
+                <span className="text-[10px] text-text-tertiary">Selected: {selectedSubCategories.length}</span>
+              )}
+            </label>
+
+            {/* Selected subcategory tags */}
+            {selectedSubCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {selectedSubCategories.map((sub) => (
+                  <span
+                    key={sub}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-brand-pink/10 border border-brand-pink/20 text-brand-pink rounded-xl text-xs font-semibold"
+                  >
+                    {sub}
+                    <button
+                      type="button"
+                      onClick={() => toggleSubCategory(sub)}
+                      className="text-brand-pink hover:text-red-500 font-bold focus:outline-none ml-1 text-sm"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Searchable input control */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <FiSearch className="text-text-tertiary w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                disabled={selectedCategories.length === 0}
+                value={subSearch}
+                onChange={(e) => {
+                  setSubSearch(e.target.value);
+                  setShowSubDropdown(true);
+                }}
+                onFocus={() => setShowSubDropdown(true)}
+                placeholder={selectedCategories.length === 0 ? "Please select a category first" : "Search subcategories..."}
+                className="w-full pl-9 pr-10 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all disabled:opacity-50"
+              />
+              <button
+                type="button"
+                disabled={selectedCategories.length === 0}
+                onClick={() => setShowSubDropdown(!showSubDropdown)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-tertiary hover:text-text-primary text-xs disabled:opacity-50"
+              >
+                ▼
+              </button>
+            </div>
+
+            {/* Dropdown Options */}
+            {showSubDropdown && selectedCategories.length > 0 && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowSubDropdown(false)} />
+                <div className="absolute left-0 right-0 mt-1.5 max-h-56 overflow-y-auto bg-surface border border-border rounded-xl shadow-premium z-40 p-2 space-y-1 animate-fade-in">
+                  {filteredSubcategories.length === 0 ? (
+                    <p className="text-xs text-text-tertiary p-3 text-center">No matching subcategories found</p>
+                  ) : (
+                    filteredSubcategories.map((sub) => {
+                      const isSelected = selectedSubCategories.includes(sub);
+                      return (
+                        <div
+                          key={sub}
+                          onClick={() => {
+                            toggleSubCategory(sub);
+                            setSubSearch('');
+                          }}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+                            isSelected
+                              ? 'bg-brand-pink/10 text-brand-pink font-semibold'
+                              : 'hover:bg-surface-secondary text-text-secondary'
+                          }`}
+                        >
+                          <span>{sub}</span>
+                          {isSelected && <FiCheck className="w-3.5 h-3.5 text-brand-pink" />}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div>
@@ -1045,7 +1249,7 @@ export default function BecomeVendorPage() {
               className="mt-0.5 w-4 h-4 rounded text-brand-purple focus:ring-brand-purple border-border"
             />
             <span className="text-xs text-text-secondary leading-relaxed">
-              I hereby declare that all business details, addresses, and contact numbers provided are true, valid, and authentic. I accept the <span className="font-bold text-brand-purple underline">BizReels Vendor Terms & Conditions</span> and Privacy Policy.
+              I hereby declare that all business details, addresses, and contact numbers provided are true, valid, and authentic. I accept the <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTermsModal(true); }} className="font-bold text-brand-purple underline cursor-pointer hover:text-brand-purple/80">BizReels Vendor Terms & Conditions</span> and Privacy Policy.
             </span>
           </label>
         </div>
@@ -1060,6 +1264,60 @@ export default function BecomeVendorPage() {
           <FiArrowRight size={18} />
         </button>
       </form>
+
+      {/* Terms & Conditions Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface border border-border rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-premium animate-scale-in">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <h3 className="text-base font-bold text-text-primary font-display">BizReels Vendor Terms & Conditions</h3>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="text-text-tertiary hover:text-text-primary text-xl font-bold transition-all focus:outline-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable) */}
+            <div className="p-6 overflow-y-auto space-y-4 text-xs text-text-secondary leading-relaxed">
+              <p className="font-semibold text-text-primary">Welcome to the BizReels Vendor Storefront Program!</p>
+              <p>By registering as a vendor on BizReels, you agree to comply with and be bound by the following terms & conditions:</p>
+              
+              <h4 className="font-bold text-text-primary mt-3">1. Business Legitimacy</h4>
+              <p>You guarantee that all commercial details, shop name, address, categories, and documents submitted are correct, legitimate, and belong strictly to your legal entity or storefront.</p>
+              
+              <h4 className="font-bold text-text-primary mt-3">2. Category Alignment</h4>
+              <p>You agree to tag your business storefront only under categories and subcategories in which you are licensed, qualified, and active. Misrepresentation of business type is grounds for account suspension.</p>
+              
+              <h4 className="font-bold text-text-primary mt-3">3. Quotations & Leads Communication</h4>
+              <p>BizReels facilitates leads matching from local customers. When posting quotes or bidding on requirements, you agree to provide authentic and transparent quotes. Unprofessional, spammy, or offensive quotes will lead to penalties.</p>
+              
+              <h4 className="font-bold text-text-primary mt-3">4. Fees & Wallet Balance</h4>
+              <p>Specific vendor tools, premium outreach credits, and lead connections are subject to credit costs/pricing. All credit transactions, deposits, and refunds are governed by the BizReels Wallet guidelines.</p>
+              
+              <h4 className="font-bold text-text-primary mt-3">5. Delivery & Service Standard</h4>
+              <p>Home delivery, services, and offline visits configured in this portal must be fulfilled with utmost customer satisfaction and quality. BizReels does not take direct responsibility for product defects or service disputes.</p>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-border flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setTermsAccepted(true);
+                  setShowTermsModal(false);
+                }}
+                className="px-5 py-2.5 bg-brand-purple text-white font-bold text-xs rounded-xl hover:bg-brand-purple/90 transition-all shadow-premium"
+              >
+                Accept & Agree
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
