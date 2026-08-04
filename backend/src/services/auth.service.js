@@ -587,7 +587,23 @@ class AuthService {
     }
 
     if (user.roles.includes(newRole)) {
-      throw ApiError.conflict(`You already have the "${newRole}" role.`);
+      // Idempotent: If user already has the role, update profile data and set it as activeRole
+      const updateData = {
+        activeRole: newRole,
+      };
+      if (newRole === 'vendor') {
+        if (profileData) {
+          updateData.vendorProfile = profileData;
+        }
+      } else if (newRole === 'creator') {
+        if (profileData) {
+          updateData.creatorProfile = profileData;
+        }
+      }
+      const updatedUser = await authRepository.updateUser(userId, updateData);
+      const actionType = newRole === 'vendor' ? 'VENDOR_PROFILE_UPDATE' : 'CREATOR_PROFILE_UPDATE';
+      await this._logAction(userId, actionType, 'User', userId, `Updated profile for existing ${newRole} role`, req);
+      return this._sanitizeUser(updatedUser);
     }
 
     const updateData = {

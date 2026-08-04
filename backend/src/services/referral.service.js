@@ -44,7 +44,7 @@ const ensureCode = async (userId) => {
   const updated = await User.findOneAndUpdate(
     { _id: userId, referral_code: { $exists: false } },
     { $set: { referral_code: code, updated_at: new Date().toISOString() } },
-    { new: true, select: { referral_code: 1 } }
+    { returnDocument: 'after', select: { referral_code: 1 } }
   );
   return updated?.referral_code || code;
 };

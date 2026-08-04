@@ -226,7 +226,7 @@ class ChatRepository {
           media: null,
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).populate('sender', 'name avatarUrl activeRole');
   }
 }

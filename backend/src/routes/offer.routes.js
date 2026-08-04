@@ -97,7 +97,7 @@ router.post('/:id/click', requireAuth, catchAsync(async (req, res) => {
   const offer = await Offer.findOneAndUpdate(
     { _id: req.params.id, isDeleted: { $ne: true } },
     { $inc: { 'analytics.clicksCount': 1 } },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   if (!offer) {

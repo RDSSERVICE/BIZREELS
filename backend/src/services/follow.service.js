@@ -24,7 +24,7 @@ const follow = async (followerId, followingId) => {
         following_type: 'user',
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 
   // Update customer (follower) following array & followingCount

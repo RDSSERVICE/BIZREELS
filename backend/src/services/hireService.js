@@ -178,7 +178,7 @@ class HireService {
     const campaign = await Campaign.findOneAndUpdate(
       { hireRequest: id },
       { status: 'cancelled' },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     // Notify creator
@@ -213,7 +213,7 @@ class HireService {
       const campaign = await Campaign.findOneAndUpdate(
         { hireRequest: id },
         { status },
-        { new: true }
+        { returnDocument: 'after' }
       );
 
       // Notify vendor
@@ -287,7 +287,7 @@ class HireService {
       const campaign = await Campaign.findOneAndUpdate(
         { hireRequest: id },
         { status: 'completed', progress: 100 },
-        { new: true }
+        { returnDocument: 'after' }
       );
 
       // Notify creator

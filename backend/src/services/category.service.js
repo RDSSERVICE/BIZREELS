@@ -117,7 +117,7 @@ const seedCategories = async () => {
       const parent = await Category.findOneAndUpdate(
         { name: group.name, parent_id: null },
         { $set: { category_type: group.category_type } },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (parent) {
         await Category.updateMany(

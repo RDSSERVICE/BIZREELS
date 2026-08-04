@@ -323,7 +323,7 @@ class RequirementService {
             $addToSet: { vendorsViewed: userId },
             $inc: { views_count: 1 }
           },
-          { new: true }
+          { returnDocument: 'after' }
         );
 
         const { emitToUser } = require('../sockets');
@@ -375,7 +375,7 @@ class RequirementService {
         $inc: { quotesCount: 1, proposals_count: 1 },
         status: 'Vendors Responded'
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     await requirementRepository.logAudit({
@@ -454,7 +454,7 @@ class RequirementService {
     const updatedQuote = await Quote.findByIdAndUpdate(
       quoteId,
       updateData,
-      { new: true }
+      { returnDocument: 'after' }
     ).populate('vendor', 'name avatarUrl phone email vendorProfile');
 
     const Requirement = require('../models/Requirement');
@@ -478,7 +478,7 @@ class RequirementService {
     const updatedReq = await Requirement.findByIdAndUpdate(
       requirement._id,
       updateFields,
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (status === 'accepted') {
