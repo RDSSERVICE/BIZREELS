@@ -479,304 +479,331 @@ export default function ProductFormModal({
 
   return (
     <AdminModal isOpen={isOpen} onClose={onClose} title={isEdit ? 'Edit Product Listing' : 'Add New Product'} maxWidth="max-w-3xl">
-      <form onSubmit={handleSubmit} className="space-y-5 max-h-[75vh] overflow-y-auto pr-1">
-        {/* Category & Subcategory */}
-        <div className="grid grid-cols-2 gap-3">
-          <SearchableSelect
-            label="Category"
-            placeholder="Search category..."
-            value={form.category}
-            onChange={handleCategoryChange}
-            options={productCategories}
-          />
-          <SearchableSelect
-            label="Subcategory"
-            placeholder="Search subcategory..."
-            value={form.subcategory}
-            onChange={(val) => updateForm('subcategory', val)}
-            options={productSubcategories}
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
+        
+        {/* SECTION 1: BASIC INFO & CLASSIFICATION */}
+        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
+          <div className="flex justify-between items-center mb-1">
+            <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider">1. Basic Info & Classification</h4>
+            <span className="text-[10px] font-bold text-brand-purple bg-brand-purple/10 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <FiCpu size={12} /> AI Assisted
+            </span>
+          </div>
 
-        {/* AI Sample Auto Fill */}
-        <div className="p-3 border border-dashed border-brand-purple rounded-2xl bg-brand-purple/5 space-y-2">
-          <label className="text-xs font-bold text-brand-purple flex items-center gap-1.5">
-            <FiCpu /> Upload Image / Voice Note / Video for Real-Time AI Auto-Fill
-          </label>
-          <input type="file" accept="image/*,video/*,audio/*" onChange={handleAiAutoFill} className="text-xs text-text-tertiary" />
-          <p className="text-[10px] text-text-tertiary">AI will analyze your sample media to auto-generate details.</p>
-        </div>
+          {/* Category & Subcategory */}
+          <div className="grid grid-cols-2 gap-3">
+            <SearchableSelect
+              label="Category"
+              placeholder="Search category..."
+              value={form.category}
+              onChange={handleCategoryChange}
+              options={productCategories}
+            />
+            <SearchableSelect
+              label="Subcategory"
+              placeholder="Search subcategory..."
+              value={form.subcategory}
+              onChange={(val) => updateForm('subcategory', val)}
+              options={productSubcategories}
+            />
+          </div>
 
-        {/* Product Name & Brand */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Product Name *</label>
-            <input type="text" required value={form.title} onChange={(e) => updateForm('title', e.target.value)} placeholder="e.g. Wireless Noise Cancelling Headphones" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Brand</label>
-            <input type="text" value={form.brand} onChange={(e) => updateForm('brand', e.target.value)} placeholder="e.g. Sony, Samsung" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-          </div>
-        </div>
-
-        {/* Short Description */}
-        <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Short Description</label>
-          <input type="text" value={form.shortDescription} onChange={(e) => updateForm('shortDescription', e.target.value)} placeholder="Brief one-liner..." className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" maxLength={300} />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Full Description</label>
-          <textarea rows={3} value={form.description} onChange={(e) => updateForm('description', e.target.value)} placeholder="Detailed product description..." className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-        </div>
-
-        {/* SKU & Unit */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">SKU</label>
-            <div className="relative flex items-center">
-              <input
-                type="text"
-                value={form.sku}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setForm(prev => ({ ...prev, sku: val }));
-                  setVariantSku(val);
-                }}
-                placeholder="SKU-001"
-                className="w-full p-2.5 pr-10 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
-              />
-              <button
-                type="button"
-                onClick={generateSKU}
-                title="Auto-Generate SKU"
-                className="absolute right-2 p-1.5 rounded-lg hover:bg-brand-purple/10 text-brand-purple transition-all cursor-pointer"
-              >
-                <FiRefreshCw className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Unit</label>
-            <select value={form.unit} onChange={(e) => updateForm('unit', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs">
-              <option value="piece">Piece</option>
-              <option value="kg">Kg</option>
-              <option value="liter">Liter</option>
-              <option value="meter">Meter</option>
-              <option value="set">Set</option>
-              <option value="box">Box</option>
-              <option value="pair">Pair</option>
-              <option value="dozen">Dozen</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Min Order Qty</label>
-            <input type="number" min={1} value={form.minOrderQty} onChange={(e) => updateForm('minOrderQty', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">GST %</label>
-            <input type="text" value={form.gst} onChange={(e) => updateForm('gst', e.target.value)} placeholder="18%" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-          </div>
-        </div>
-
-        {/* Price & Stock */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Stock *</label>
-            <input type="number" value={form.stock} onChange={(e) => updateForm('stock', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Actual Price (₹)</label>
-            <input type="number" value={form.actualPrice} onChange={(e) => updateForm('actualPrice', e.target.value)} placeholder="3999" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Selling Price (₹) *</label>
-            <input type="number" required value={form.sellingPrice} onChange={(e) => updateForm('sellingPrice', e.target.value)} placeholder="2499" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Discount %</label>
-            <input type="text" disabled value={`${form.discount}%`} className="w-full p-2.5 bg-surface-tertiary font-bold text-emerald-600 border border-border rounded-xl text-xs" />
-          </div>
-        </div>
-
-        {/* Warranty & Return Policy */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Warranty</label>
-            <input type="text" value={form.warranty} onChange={(e) => updateForm('warranty', e.target.value)} placeholder="e.g. 1 Year Manufacturer Warranty" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Return Policy</label>
-            <input type="text" value={form.returnPolicy} onChange={(e) => updateForm('returnPolicy', e.target.value)} placeholder="e.g. 7-day return policy" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
-          </div>
-        </div>
-
-        {/* Shipping Details */}
-        <div className="p-3 bg-surface-secondary rounded-2xl border border-border space-y-3">
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block">Shipping Details</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <input type="text" value={form.shippingDetails.weight} onChange={(e) => setForm(prev => ({ ...prev, shippingDetails: { ...prev.shippingDetails, weight: e.target.value } }))} placeholder="Weight (e.g. 500g)" className="p-2 bg-surface border border-border rounded-xl text-xs" />
-            <input type="text" value={form.shippingDetails.dimensions} onChange={(e) => setForm(prev => ({ ...prev, shippingDetails: { ...prev.shippingDetails, dimensions: e.target.value } }))} placeholder="Dimensions" className="p-2 bg-surface border border-border rounded-xl text-xs" />
-            <input type="number" min={1} value={form.shippingDetails.estimatedDays} onChange={(e) => setForm(prev => ({ ...prev, shippingDetails: { ...prev.shippingDetails, estimatedDays: Number(e.target.value) } }))} placeholder="Est. days" className="p-2 bg-surface border border-border rounded-xl text-xs" />
-            <label className="flex items-center gap-2 text-xs font-semibold">
-              <input type="checkbox" checked={form.shippingDetails.freeShipping} onChange={(e) => setForm(prev => ({ ...prev, shippingDetails: { ...prev.shippingDetails, freeShipping: e.target.checked } }))} />
-              Free Shipping
+          {/* AI Sample Auto Fill */}
+          <div className="p-3 border border-dashed border-brand-purple rounded-2xl bg-brand-purple/5 space-y-2">
+            <label className="text-xs font-bold text-brand-purple flex items-center gap-1.5">
+              <FiCpu /> Upload Image / Voice Note / Video for Real-Time AI Auto-Fill
             </label>
+            <input type="file" accept="image/*,video/*,audio/*" onChange={handleAiAutoFill} className="text-xs text-text-tertiary" />
+            <p className="text-[10px] text-text-tertiary">AI will analyze your sample media to auto-generate details.</p>
           </div>
-        </div>
 
-        {/* Images Upload */}
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block">Product Images (Max {maxLimits.maxImages})</label>
-          <div className="flex flex-wrap gap-2">
-            {form.images.map((img, idx) => (
-              <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-border group">
-                <img src={img} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
-                <button type="button" onClick={() => handleRemoveImage(idx)} className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-[10px]">
-                  <FiX className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-            {form.images.length < maxLimits.maxImages ? (
-              <label className="w-16 h-16 rounded-xl border-2 border-dashed border-border hover:border-brand-purple flex items-center justify-center cursor-pointer transition">
-                <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
-                {uploading ? <div className="w-4 h-4 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" /> : <FiUploadCloud className="w-5 h-5 text-text-tertiary" />}
-              </label>
-            ) : (
-              <div className="w-16 h-16 rounded-xl bg-surface-tertiary border border-border flex flex-col items-center justify-center text-[8px] text-text-tertiary text-center font-bold">
-                Max limit reached
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Video URL */}
-        <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Product Video URL (Optional, Max {maxLimits.maxVideos})</label>
-          <input 
-            type="url" 
-            value={form.video} 
-            onChange={(e) => updateForm('video', e.target.value)} 
-            placeholder="https://..." 
-            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs"
-            disabled={maxLimits.maxVideos === 0 || (!!form.video && maxLimits.maxVideos <= 1)}
-          />
-        </div>
-
-        {/* Product Variants Section */}
-        <div className="space-y-3 border-t border-border pt-3">
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block">Product Variants (Manage Options)</label>
-          {form.variants && form.variants.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {form.variants.map((v, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2.5 bg-surface-secondary border border-border rounded-xl text-xs">
-                  <div className="flex items-center gap-2">
-                    {v.imageUrl && <img src={v.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-border" />}
-                    <div>
-                      <span className="font-bold text-text-primary">{v.name}</span>
-                      {v.priceAdjustment !== 0 && (
-                        <span className="text-[10px] text-emerald-600 block">Adjustment: +₹{v.priceAdjustment}</span>
-                      )}
-                    </div>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={() => setForm(prev => ({ ...prev, variants: prev.variants.filter((_, i) => i !== idx) }))} 
-                    className="text-red-500 font-bold hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
+          {/* Product Name & Brand */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Product Name *</label>
+              <input type="text" required value={form.title} onChange={(e) => updateForm('title', e.target.value)} placeholder="e.g. Wireless Noise Cancelling Headphones" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
             </div>
-          )}
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Brand</label>
+              <input type="text" value={form.brand} onChange={(e) => updateForm('brand', e.target.value)} placeholder="e.g. Sony, Samsung" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+            </div>
+          </div>
+
+          {/* Short Description */}
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Short Description</label>
+            <input type="text" value={form.shortDescription} onChange={(e) => updateForm('shortDescription', e.target.value)} placeholder="Brief one-liner..." className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" maxLength={300} />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Full Description</label>
+            <textarea rows={3} value={form.description} onChange={(e) => updateForm('description', e.target.value)} placeholder="Detailed product description..." className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+          </div>
+        </div>
+
+        {/* SECTION 2: PRICING & INVENTORY */}
+        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
+          <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider mb-1">2. Pricing & Inventory</h4>
           
-          <div className="bg-surface-secondary/40 p-3 rounded-2xl border border-border space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder="Label (e.g. Color, RAM)" value={variantLabel} onChange={(e) => setVariantLabel(e.target.value)} className="p-2 bg-surface border border-border rounded-xl text-xs" />
-              <input type="text" placeholder="Value (e.g. Black, 256 GB)" value={variantValue} onChange={(e) => setVariantValue(e.target.value)} className="p-2 bg-surface border border-border rounded-xl text-xs" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">SKU</label>
               <div className="relative flex items-center">
                 <input
                   type="text"
-                  placeholder="SKU (Optional)"
-                  value={variantSku}
+                  value={form.sku}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setVariantSku(val);
                     setForm(prev => ({ ...prev, sku: val }));
+                    setVariantSku(val);
                   }}
-                  className="w-full p-2 pr-8 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+                  placeholder="SKU-001"
+                  className="w-full p-2.5 pr-10 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
                 />
                 <button
                   type="button"
-                  onClick={generateVariantSKU}
+                  onClick={generateSKU}
                   title="Auto-Generate SKU"
-                  className="absolute right-1.5 p-1 rounded hover:bg-brand-purple/10 text-brand-purple transition-all cursor-pointer"
+                  className="absolute right-2 p-1.5 rounded-lg hover:bg-brand-purple/10 text-brand-purple transition-all cursor-pointer"
                 >
-                  <FiRefreshCw className="w-3 h-3" />
+                  <FiRefreshCw className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <input type="number" placeholder="Price Adjustment (Optional)" value={variantPriceAdj} onChange={(e) => setVariantPriceAdj(e.target.value)} className="p-2 bg-surface border border-border rounded-xl text-xs" />
             </div>
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <div className="flex items-center gap-2">
-                {variantImageUrl && <img src={variantImageUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-border animate-fade-in" />}
-                <label className="px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-bold cursor-pointer hover:bg-surface-tertiary transition">
-                  <input type="file" accept="image/*" onChange={handleVariantImageUpload} className="hidden" />
-                  {variantUploading ? 'Uploading...' : 'Upload Variant Image'}
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Unit</label>
+              <select value={form.unit} onChange={(e) => updateForm('unit', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs">
+                <option value="piece">Piece</option>
+                <option value="kg">Kg</option>
+                <option value="liter">Liter</option>
+                <option value="meter">Meter</option>
+                <option value="set">Set</option>
+                <option value="box">Box</option>
+                <option value="pair">Pair</option>
+                <option value="dozen">Dozen</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Min Order Qty</label>
+              <input type="number" min={1} value={form.minOrderQty} onChange={(e) => updateForm('minOrderQty', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">GST %</label>
+              <input type="text" value={form.gst} onChange={(e) => updateForm('gst', e.target.value)} placeholder="18%" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Stock *</label>
+              <input type="number" value={form.stock} onChange={(e) => updateForm('stock', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Actual Price (₹)</label>
+              <input type="number" value={form.actualPrice} onChange={(e) => updateForm('actualPrice', e.target.value)} placeholder="3999" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Selling Price (₹) *</label>
+              <input type="number" required value={form.sellingPrice} onChange={(e) => updateForm('sellingPrice', e.target.value)} placeholder="2499" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Discount %</label>
+              <input type="text" disabled value={`${form.discount}%`} className="w-full p-2.5 bg-surface-tertiary font-bold text-emerald-600 border border-border rounded-xl text-xs" />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 3: WARRANTY & SHIPPING */}
+        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
+          <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider mb-1">3. Warranty & Shipping</h4>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Warranty</label>
+              <input type="text" value={form.warranty} onChange={(e) => updateForm('warranty', e.target.value)} placeholder="e.g. 1 Year Manufacturer Warranty" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Return Policy</label>
+              <input type="text" value={form.returnPolicy} onChange={(e) => updateForm('returnPolicy', e.target.value)} placeholder="e.g. 7-day return policy" className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" />
+            </div>
+          </div>
+
+          <div className="p-3 bg-surface rounded-2xl border border-border space-y-3">
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block">Shipping Specifications</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <input type="text" value={form.shippingDetails.weight} onChange={(e) => setForm(prev => ({ ...prev, shippingDetails: { ...prev.shippingDetails, weight: e.target.value } }))} placeholder="Weight (e.g. 500g)" className="p-2 bg-surface-secondary border border-border rounded-xl text-xs" />
+              <input type="text" value={form.shippingDetails.dimensions} onChange={(e) => setForm(prev => ({ ...prev, shippingDetails: { ...prev.shippingDetails, dimensions: e.target.value } }))} placeholder="Dimensions" className="p-2 bg-surface-secondary border border-border rounded-xl text-xs" />
+              <input type="number" min={1} value={form.shippingDetails.estimatedDays} onChange={(e) => setForm(prev => ({ ...prev, shippingDetails: { ...prev.shippingDetails, estimatedDays: Number(e.target.value) } }))} placeholder="Est. days" className="p-2 bg-surface-secondary border border-border rounded-xl text-xs" />
+              <label className="flex items-center gap-2 text-xs font-semibold select-none cursor-pointer">
+                <input type="checkbox" checked={form.shippingDetails.freeShipping} onChange={(e) => setForm(prev => ({ ...prev, shippingDetails: { ...prev.shippingDetails, freeShipping: e.target.checked } }))} className="w-4 h-4 rounded text-brand-purple" />
+                Free Shipping
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 4: PRODUCT MEDIA */}
+        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
+          <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider mb-1">4. Product Media</h4>
+          
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block">Product Images (Max {maxLimits.maxImages})</label>
+            <div className="flex flex-wrap gap-2">
+              {form.images.map((img, idx) => (
+                <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-border group">
+                  <img src={img} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => handleRemoveImage(idx)} className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-[10px]">
+                    <FiX className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              {form.images.length < maxLimits.maxImages ? (
+                <label className="w-16 h-16 rounded-xl border-2 border-dashed border-border hover:border-brand-purple flex items-center justify-center cursor-pointer transition bg-surface">
+                  <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
+                  {uploading ? <div className="w-4 h-4 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" /> : <FiUploadCloud className="w-5 h-5 text-text-tertiary" />}
                 </label>
-              </div>
-              <button type="button" onClick={handleAddVariant} className="px-4 py-1.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm">+ Add Variant</button>
+              ) : (
+                <div className="w-16 h-16 rounded-xl bg-surface-tertiary border border-border flex flex-col items-center justify-center text-[8px] text-text-tertiary text-center font-bold">
+                  Max limit reached
+                </div>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Tags */}
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block">Tags</label>
-          <div className="flex flex-wrap gap-1.5">
-            {form.tags.map(tag => (
-              <span key={tag} className="px-2 py-0.5 bg-brand-purple/10 text-brand-purple text-[10px] font-bold rounded-lg flex items-center gap-1">
-                <FiTag className="w-2.5 h-2.5" /> {tag}
-                <button type="button" onClick={() => handleRemoveTag(tag)} className="hover:text-red-500">×</button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input type="text" value={form.newTag} onChange={(e) => updateForm('newTag', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())} placeholder="Add tag..." className="flex-1 p-2 bg-surface border border-border rounded-xl text-xs" />
-            <button type="button" onClick={handleAddTag} className="px-3 py-2 bg-brand-purple text-white rounded-xl text-xs font-bold">+ Tag</button>
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Product Video URL (Optional, Max {maxLimits.maxVideos})</label>
+            <input 
+              type="url" 
+              value={form.video} 
+              onChange={(e) => updateForm('video', e.target.value)} 
+              placeholder="https://..." 
+              className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs"
+              disabled={maxLimits.maxVideos === 0 || (!!form.video && maxLimits.maxVideos <= 1)}
+            />
           </div>
         </div>
 
-        {/* Product Labels / Specifications */}
-        <div className="space-y-2 border-t border-border pt-3">
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block">Product Specifications (Labels)</label>
-          <div className="flex flex-wrap gap-2">
-            {form.labels.map((lbl, idx) => (
-              <span key={idx} className="px-2.5 py-1 bg-surface-secondary border border-border text-xs rounded-xl flex items-center gap-1.5">
-                <strong className="text-brand-purple">{lbl.key}:</strong> {lbl.value}
-                <button type="button" onClick={() => handleRemoveLabel(idx)} className="text-text-tertiary hover:text-red-500">×</button>
-              </span>
-            ))}
+        {/* SECTION 5: VARIANTS, SPECIFICATIONS & STATUS */}
+        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
+          <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider mb-1">5. Variants, Specs & Status</h4>
+          
+          {/* Product Variants Section */}
+          <div className="space-y-3 pt-1">
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block">Product Variants (Manage Options)</label>
+            {form.variants && form.variants.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {form.variants.map((v, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2.5 bg-surface border border-border rounded-xl text-xs">
+                    <div className="flex items-center gap-2">
+                      {v.imageUrl && <img src={v.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-border" />}
+                      <div>
+                        <span className="font-bold text-text-primary">{v.name}</span>
+                        {v.priceAdjustment !== 0 && (
+                          <span className="text-[10px] text-emerald-600 block">Adjustment: +₹{v.priceAdjustment}</span>
+                        )}
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setForm(prev => ({ ...prev, variants: prev.variants.filter((_, i) => i !== idx) }))} 
+                      className="text-red-500 font-bold hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="bg-surface p-3 rounded-2xl border border-border space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="Label (e.g. Color, RAM)" value={variantLabel} onChange={(e) => setVariantLabel(e.target.value)} className="p-2 bg-surface-secondary border border-border rounded-xl text-xs" />
+                <input type="text" placeholder="Value (e.g. Black, 256 GB)" value={variantValue} onChange={(e) => setVariantValue(e.target.value)} className="p-2 bg-surface-secondary border border-border rounded-xl text-xs" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="SKU (Optional)"
+                    value={variantSku}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setVariantSku(val);
+                      setForm(prev => ({ ...prev, sku: val }));
+                    }}
+                    className="w-full p-2 pr-8 bg-surface-secondary border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+                  />
+                  <button
+                    type="button"
+                    onClick={generateVariantSKU}
+                    title="Auto-Generate SKU"
+                    className="absolute right-1.5 p-1 rounded hover:bg-brand-purple/10 text-brand-purple transition-all cursor-pointer"
+                  >
+                    <FiRefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <input type="number" placeholder="Price Adjustment (Optional)" value={variantPriceAdj} onChange={(e) => setVariantPriceAdj(e.target.value)} className="p-2 bg-surface-secondary border border-border rounded-xl text-xs" />
+              </div>
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <div className="flex items-center gap-2">
+                  {variantImageUrl && <img src={variantImageUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-border animate-fade-in" />}
+                  <label className="px-3 py-1.5 bg-surface-secondary border border-border rounded-xl text-xs font-bold cursor-pointer hover:bg-surface-tertiary transition select-none">
+                    <input type="file" accept="image/*" onChange={handleVariantImageUpload} className="hidden" />
+                    {variantUploading ? 'Uploading...' : 'Upload Variant Image'}
+                  </label>
+                </div>
+                <button type="button" onClick={handleAddVariant} className="px-4 py-1.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm">+ Add Variant</button>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2 pt-1">
-            <input type="text" placeholder="Label Key (e.g. Battery)" value={form.newLabelKey} onChange={(e) => updateForm('newLabelKey', e.target.value)} className="flex-1 p-2 bg-surface border border-border rounded-xl text-xs" />
-            <input type="text" placeholder="Value (e.g. 5000 mAh)" value={form.newLabelVal} onChange={(e) => updateForm('newLabelVal', e.target.value)} className="flex-1 p-2 bg-surface border border-border rounded-xl text-xs" />
-            <button type="button" onClick={handleAddLabel} className="px-3 py-2 bg-brand-purple text-white rounded-xl text-xs font-bold">+ Add</button>
-          </div>
-        </div>
 
-        {/* Status */}
-        <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Listing Status</label>
-          <select value={form.status} onChange={(e) => updateForm('status', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs">
-            <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="hidden">Hidden</option>
-          </select>
+          {/* Tags */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block">Tags</label>
+            <div className="flex flex-wrap gap-1.5">
+              {form.tags.map(tag => (
+                <span key={tag} className="px-2 py-0.5 bg-brand-purple/10 text-brand-purple text-[10px] font-bold rounded-lg flex items-center gap-1">
+                  <FiTag className="w-2.5 h-2.5" /> {tag}
+                  <button type="button" onClick={() => handleRemoveTag(tag)} className="hover:text-red-500">×</button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input type="text" value={form.newTag} onChange={(e) => updateForm('newTag', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())} placeholder="Add tag..." className="flex-1 p-2 bg-surface border border-border rounded-xl text-xs" />
+              <button type="button" onClick={handleAddTag} className="px-3 py-2 bg-brand-purple text-white rounded-xl text-xs font-bold">+ Tag</button>
+            </div>
+          </div>
+
+          {/* Product Labels / Specifications */}
+          <div className="space-y-2 border-t border-border pt-3">
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block">Product Specifications (Labels)</label>
+            {form.labels.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {form.labels.map((lbl, idx) => (
+                  <span key={idx} className="px-2.5 py-1 bg-surface border border-border text-xs rounded-xl flex items-center gap-1.5">
+                    <strong className="text-brand-purple">{lbl.key}:</strong> {lbl.value}
+                    <button type="button" onClick={() => handleRemoveLabel(idx)} className="text-text-tertiary hover:text-red-500">×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2 pt-1">
+              <input type="text" placeholder="Label Key (e.g. Battery)" value={form.newLabelKey} onChange={(e) => updateForm('newLabelKey', e.target.value)} className="flex-1 p-2 bg-surface border border-border rounded-xl text-xs" />
+              <input type="text" placeholder="Value (e.g. 5000 mAh)" value={form.newLabelVal} onChange={(e) => updateForm('newLabelVal', e.target.value)} className="flex-1 p-2 bg-surface border border-border rounded-xl text-xs" />
+              <button type="button" onClick={handleAddLabel} className="px-3 py-2 bg-brand-purple text-white rounded-xl text-xs font-bold">+ Add</button>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Listing Status</label>
+            <select value={form.status} onChange={(e) => updateForm('status', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs">
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="hidden">Hidden</option>
+            </select>
+          </div>
         </div>
 
         {/* Submit */}
