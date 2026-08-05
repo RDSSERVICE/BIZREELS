@@ -141,7 +141,16 @@ export default function CreateReelWizardModal({
 
   const dynamicCategoriesData = React.useMemo(() => {
     const data = {};
-    const parents = categoriesList.filter(c => !c.parent_id);
+    const parents = categoriesList.filter(c => {
+      if (c.parent_id) return false;
+      if (postType === 'services') {
+        return c.category_type === 'service' || !c.category_type;
+      }
+      if (postType === 'product') {
+        return c.category_type === 'product' || !c.category_type;
+      }
+      return true;
+    });
     const children = categoriesList.filter(c => c.parent_id);
 
     parents.forEach(parent => {
@@ -153,7 +162,7 @@ export default function CreateReelWizardModal({
     });
 
     return data;
-  }, [categoriesList]);
+  }, [categoriesList, postType]);
 
   // Set default category / subcategory dynamically from DB data
   useEffect(() => {
