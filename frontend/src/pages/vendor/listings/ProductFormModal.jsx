@@ -131,10 +131,7 @@ export default function ProductFormModal({
     tags: [],
     newTag: '',
     shippingDetails: { weight: '', dimensions: '', freeShipping: false, estimatedDays: 5 },
-    labels: [
-      { key: 'Brand', value: 'Generic' },
-      { key: 'Warranty', value: '1 Year' }
-    ],
+    labels: [],
     newLabelKey: '',
     newLabelVal: '',
     images: [],
@@ -159,14 +156,17 @@ export default function ProductFormModal({
     const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
     const ts = Date.now().toString().slice(-4);
     const skuCode = `SKU-${rand}-${ts}`;
-    updateForm('sku', skuCode);
+    setForm(prev => ({ ...prev, sku: skuCode }));
+    setVariantSku(skuCode);
     toast.success('SKU Code Auto-Generated!');
   };
 
   const generateVariantSKU = () => {
     const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
     const ts = Date.now().toString().slice(-4);
-    setVariantSku(`SKU-VAR-${rand}-${ts}`);
+    const skuCode = `SKU-${rand}-${ts}`;
+    setForm(prev => ({ ...prev, sku: skuCode }));
+    setVariantSku(skuCode);
     toast.success('Variant SKU Auto-Generated!');
   };
 
@@ -365,6 +365,9 @@ export default function ProductFormModal({
       const data = aiRes.data?.data || aiRes.data || aiRes;
       if (data && data.generated) {
         const gen = data.generated;
+        const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const ts = Date.now().toString().slice(-4);
+        const skuCode = `SKU-${rand}-${ts}`;
         setForm(prev => ({
           ...prev,
           title: prev.title || gen.title || `AI ${file.name.split('.')[0]}`,
@@ -374,7 +377,9 @@ export default function ProductFormModal({
           labels: Array.isArray(gen.features) ? gen.features.map(f => ({ key: f, value: 'Yes' })) : prev.labels,
           actualPrice: gen.suggested_price_range_inr?.max || prev.actualPrice,
           sellingPrice: gen.suggested_price_range_inr?.min || prev.sellingPrice,
+          sku: prev.sku || skuCode,
         }));
+        setVariantSku(prev => prev || skuCode);
         toast.success('AI extracted specs, price & details in real-time!', { id: toastId });
       } else {
         throw new Error('AI returned empty response');
@@ -534,7 +539,11 @@ export default function ProductFormModal({
               <input
                 type="text"
                 value={form.sku}
-                onChange={(e) => updateForm('sku', e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setForm(prev => ({ ...prev, sku: val }));
+                  setVariantSku(val);
+                }}
                 placeholder="SKU-001"
                 className="w-full p-2.5 pr-10 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
               />
@@ -694,7 +703,11 @@ export default function ProductFormModal({
                   type="text"
                   placeholder="SKU (Optional)"
                   value={variantSku}
-                  onChange={(e) => setVariantSku(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setVariantSku(val);
+                    setForm(prev => ({ ...prev, sku: val }));
+                  }}
                   className="w-full p-2 pr-8 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
                 />
                 <button
