@@ -129,6 +129,26 @@ const vendorApi = apiSlice.injectEndpoints({
       query: (params = {}) => ({ url: '/vendor/analytics', params }),
       providesTags: ['Analytics'],
     }),
+    getVendorAnalyticsOverview: builder.query({
+      query: (range = '30d') => ({ url: '/vendor/analytics/overview', params: { range } }),
+      providesTags: ['Analytics'],
+    }),
+    getVendorAnalyticsListings: builder.query({
+      query: (params = {}) => ({ url: '/vendor/analytics/listings', params }),
+      providesTags: ['Analytics'],
+    }),
+    getVendorAnalyticsTimeseries: builder.query({
+      query: ({ range = '30d', metric = 'views' } = {}) => ({ url: '/vendor/analytics/timeseries', params: { range, metric } }),
+      providesTags: ['Analytics'],
+    }),
+    getVendorAnalyticsBoostRoi: builder.query({
+      query: (listingId) => ({ url: '/vendor/analytics/boost-roi', params: { listing_id: listingId } }),
+      providesTags: ['Analytics'],
+    }),
+    simulateVendorAnalytics: builder.mutation({
+      query: () => ({ url: '/vendor/analytics/simulate', method: 'POST' }),
+      invalidatesTags: ['Analytics', 'VendorDashboard', 'Products', 'Reels'],
+    }),
 
     // ── Reviews ─────────────────────────────────────────────
     getVendorReviews: builder.query({
@@ -200,6 +220,11 @@ export const {
   useGetVendorOrdersQuery,
   useUpdateOrderStatusMutation,
   useGetVendorAnalyticsQuery,
+  useGetVendorAnalyticsOverviewQuery,
+  useGetVendorAnalyticsListingsQuery,
+  useGetVendorAnalyticsTimeseriesQuery,
+  useGetVendorAnalyticsBoostRoiQuery,
+  useSimulateVendorAnalyticsMutation,
   useGetVendorReviewsQuery,
   useReplyToReviewMutation,
   useGetVendorWalletQuery,

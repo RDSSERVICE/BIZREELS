@@ -143,6 +143,21 @@ router.post('/subscription/purchase-razorpay', authenticate, async (req, res, ne
 router.get('/vendor/dashboard', authenticate, (req, res, next) => {
   require('../controllers/vendorController').getDashboard(req, res, next);
 });
+router.get('/vendor/analytics/overview', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').getAnalyticsOverview(req, res, next);
+});
+router.get('/vendor/analytics/listings', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').getAnalyticsListings(req, res, next);
+});
+router.get('/vendor/analytics/timeseries', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').getAnalyticsTimeseries(req, res, next);
+});
+router.get('/vendor/analytics/boost-roi', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').getAnalyticsBoostRoi(req, res, next);
+});
+router.post('/vendor/analytics/simulate', authenticate, (req, res, next) => {
+  require('../controllers/vendorController').simulateAnalyticsData(req, res, next);
+});
 router.get('/vendor/analytics', authenticate, (req, res, next) => {
   require('../controllers/vendorController').getAnalytics(req, res, next);
 });

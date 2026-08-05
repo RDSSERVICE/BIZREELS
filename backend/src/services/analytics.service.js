@@ -4,6 +4,7 @@ const Deal = require('../models/Deal');
 const { Review } = require('../models/Phase4');
 const { ListingEvent } = require('../models/Misc');
 const ApiError = require('../utils/ApiError');
+const mongoose = require('mongoose');
 
 const RANGE_DAYS = { '7d': 7, '30d': 30, '90d': 90, all: null };
 
@@ -39,7 +40,7 @@ const overview = async (vendorId, rangeKey = '30d') => {
     ]).catch(() => []),
     ListingEvent.distinct('user_id', chatQ).catch(() => []),
     Listing.aggregate([
-      { $match: { vendor_id: vendorId, is_deleted: { $ne: true } } },
+      { $match: { vendor: new mongoose.Types.ObjectId(vendorId), isDeleted: { $ne: true } } },
       { $project: { watchers_count: { $size: { $ifNull: ['$watchers', []] } } } },
       { $group: { _id: null, total: { $sum: '$watchers_count' } } },
     ]).catch(() => []),
@@ -52,13 +53,13 @@ const overview = async (vendorId, rangeKey = '30d') => {
       { $group: { _id: null, avg: { $avg: '$rating' }, n: { $sum: 1 } } },
     ]).catch(() => []),
     Listing.countDocuments({
-      vendor_id: vendorId,
-      is_deleted: { $ne: true },
+      vendor: vendorId,
+      isDeleted: { $ne: true },
       is_takendown: { $ne: true },
     }).catch(() => 0),
     Listing.countDocuments({
-      vendor_id: vendorId,
-      is_deleted: { $ne: true },
+      vendor: vendorId,
+      isDeleted: { $ne: true },
       is_takendown: { $ne: true },
       status: 'active',
     }).catch(() => 0)
@@ -234,7 +235,7 @@ const timeseries = async (vendorId, rangeKey = '30d', metric = 'views') => {
 
 const boostRoi = async (vendorId, listingId) => {
   const li = await Listing.findById(listingId);
-  if (!li || li.vendor_id !== vendorId) {
+  if (!li || li.vendor.toString() !== vendorId.toString()) {
     throw ApiError.notFound('Listing not found');
   }
 
