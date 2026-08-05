@@ -4,6 +4,13 @@ const app = require('../src/app');
 const User = require('../src/models/User');
 const Listing = require('../src/models/Listing');
 
+jest.mock('../src/services/wallet.service', () => ({
+  getOrCreateWallet: jest.fn().mockResolvedValue({
+    credits: 100,
+  }),
+  debit: jest.fn().mockResolvedValue(true),
+}));
+
 // Mock connection logic locally for listings tests
 const connection = require('../src/database/connection');
 jest.spyOn(connection, 'connectDB').mockResolvedValue({
@@ -24,6 +31,32 @@ jest.spyOn(AppSettings, 'findOne').mockImplementation((query) => {
     return Promise.resolve({ value: 1 });
   }
   return Promise.resolve(null);
+});
+
+// Mock UserSubscription model queries to prevent buffering timeouts
+const UserSubscription = require('../src/models/UserSubscription.model');
+jest.spyOn(UserSubscription, 'findOne').mockImplementation(() => {
+  return Promise.resolve({
+    status: 'active',
+    plan_id: 'mock-plan-id',
+    expiry_date: new Date(Date.now() + 86400 * 1000 * 30),
+  });
+});
+
+// Mock SubscriptionPlan model queries to prevent buffering timeouts
+const { SubscriptionPlan } = require('../src/models/Admin');
+jest.spyOn(SubscriptionPlan, 'findById').mockImplementation(() => {
+  return {
+    lean: jest.fn().mockResolvedValue({
+      _id: 'mock-plan-id',
+      title: 'Premium Plan',
+      features: {
+        listings: 100,
+        reels: 100,
+        leads: 100,
+      },
+    }),
+  };
 });
 
 const getMockDb = () => {

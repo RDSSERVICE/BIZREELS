@@ -8,7 +8,8 @@ function fmtPrice(n) {
 }
 
 export default function ListingCard({ listing }) {
-  const cover = listing.images?.[0]?.url;
+  const imgObj = listing.images?.[0];
+  const cover = typeof imgObj === 'object' ? imgObj?.url : imgObj;
   const hasOffer = listing.offer_price != null && listing.offer_price < listing.price;
   return (
     <Link

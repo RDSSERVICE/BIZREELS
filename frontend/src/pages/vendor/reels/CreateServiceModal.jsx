@@ -76,9 +76,7 @@ export default function CreateServiceModal({
         subcategory: subcategory || 'General',
         price: parseFloat(price) || 0,
         description: description.trim(),
-        images: imageUrl
-          ? [imageUrl]
-          : ['https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80'],
+        images: imageUrl ? [imageUrl] : [],
       }).unwrap();
 
       toast.success('🟢 Service Created Successfully!', { id: toastId });

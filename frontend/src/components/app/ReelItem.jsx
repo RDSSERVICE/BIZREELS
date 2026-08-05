@@ -146,7 +146,9 @@ export default function ReelItem({ listing, index = 0, onOpenLogin }) {
   };
 
   const hasVideo = !!listing.reel?.url;
-  const hasImage = !!listing.images?.[0]?.url;
+  const firstImage = listing.images?.[0];
+  const hasImage = typeof firstImage === 'object' ? !!firstImage?.url : !!firstImage;
+  const imageSrc = typeof firstImage === 'object' ? firstImage?.url : firstImage;
 
   return (
     <div
@@ -171,7 +173,7 @@ export default function ReelItem({ listing, index = 0, onOpenLogin }) {
         />
       ) : hasImage ? (
         <img
-          src={resolveMediaUrl(listing.images[0].url)}
+          src={resolveMediaUrl(imageSrc)}
           alt={listing.title}
           className="absolute inset-0 w-full h-full object-cover"
           loading={index < 2 ? "eager" : "lazy"}

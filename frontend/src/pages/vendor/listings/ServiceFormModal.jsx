@@ -153,6 +153,8 @@ export default function ServiceFormModal({
   const [isGeneratingAiDesc, setIsGeneratingAiDesc] = useState(false);
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [coverUrlInput, setCoverUrlInput] = useState('');
+  const [galleryUrlInput, setGalleryUrlInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Dynamic limits state
@@ -430,9 +432,7 @@ export default function ServiceFormModal({
         },
         images: form.coverImage
           ? [form.coverImage, ...form.galleryImages]
-          : form.galleryImages.length > 0
-            ? form.galleryImages
-            : ['https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=500'],
+          : form.galleryImages,
         videos: form.videos,
         location: vendorCoords ? { type: 'Point', coordinates: [vendorCoords.lng, vendorCoords.lat] } : undefined,
         status: form.status,
@@ -664,6 +664,28 @@ export default function ServiceFormModal({
                   </div>
                 )
               )}
+
+              <div className="flex gap-1.5 mt-2 max-w-[240px]">
+                <input
+                  type="url"
+                  placeholder="Or paste cover URL"
+                  value={coverUrlInput}
+                  onChange={(e) => setCoverUrlInput(e.target.value)}
+                  className="flex-1 p-1.5 bg-surface border border-border rounded-xl text-[10px] outline-none focus:border-brand-purple"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!coverUrlInput.trim()) return;
+                    updateForm('coverImage', coverUrlInput.trim());
+                    setCoverUrlInput('');
+                    toast.success('Cover URL set!');
+                  }}
+                  className="px-2.5 py-1.5 bg-brand-purple text-white rounded-xl text-[10px] font-bold transition hover:bg-brand-purple/90 shrink-0"
+                >
+                  Set
+                </button>
+              </div>
             </div>
             <div>
               <label className="text-[10px] font-bold text-text-tertiary block mb-1">Gallery Images</label>
@@ -686,6 +708,33 @@ export default function ServiceFormModal({
                     Max reached
                   </div>
                 )}
+              </div>
+
+              <div className="flex gap-1.5 mt-2 max-w-[240px]">
+                <input
+                  type="url"
+                  placeholder="Or paste gallery image URL"
+                  value={galleryUrlInput}
+                  onChange={(e) => setGalleryUrlInput(e.target.value)}
+                  className="flex-1 p-1.5 bg-surface border border-border rounded-xl text-[10px] outline-none focus:border-brand-purple"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!galleryUrlInput.trim()) return;
+                    const totalImages = (form.coverImage ? 1 : 0) + form.galleryImages.length;
+                    if (totalImages >= maxLimits.maxImages) {
+                      toast.error(`Maximum allowed images is ${maxLimits.maxImages}`);
+                      return;
+                    }
+                    setForm(prev => ({ ...prev, galleryImages: [...prev.galleryImages, galleryUrlInput.trim()] }));
+                    setGalleryUrlInput('');
+                    toast.success('Gallery URL added!');
+                  }}
+                  className="px-2.5 py-1.5 bg-brand-purple text-white rounded-xl text-[10px] font-bold transition hover:bg-brand-purple/90 shrink-0"
+                >
+                  Add
+                </button>
               </div>
             </div>
           </div>

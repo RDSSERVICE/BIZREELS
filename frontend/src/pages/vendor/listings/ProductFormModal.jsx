@@ -144,6 +144,7 @@ export default function ProductFormModal({
   const [aiPrompt, setAiPrompt] = useState('');
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Variant helper states
@@ -546,7 +547,7 @@ export default function ProductFormModal({
         tags: form.tags,
         shippingDetails: form.shippingDetails,
         labels: form.labels,
-        images: form.images.length > 0 ? form.images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'],
+        images: form.images,
         videos: form.video ? [form.video] : [],
         location: vendorCoords ? { type: 'Point', coordinates: [vendorCoords.lng, vendorCoords.lat] } : undefined,
         status: form.status,
@@ -796,6 +797,32 @@ export default function ProductFormModal({
                   Max limit reached
                 </div>
               )}
+            </div>
+
+            <div className="flex gap-2 mt-2">
+              <input
+                type="url"
+                placeholder="Or paste image URL (https://...)"
+                value={imageUrlInput}
+                onChange={(e) => setImageUrlInput(e.target.value)}
+                className="flex-1 p-2.5 bg-surface border border-border rounded-xl text-xs outline-none focus:border-brand-purple"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!imageUrlInput.trim()) return;
+                  if (form.images.length >= maxLimits.maxImages) {
+                    toast.error(`Maximum allowed images is ${maxLimits.maxImages}`);
+                    return;
+                  }
+                  setForm(prev => ({ ...prev, images: [...prev.images, imageUrlInput.trim()] }));
+                  setImageUrlInput('');
+                  toast.success('Image URL added!');
+                }}
+                className="px-3.5 py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold transition hover:bg-brand-purple/90 shrink-0"
+              >
+                Add URL
+              </button>
             </div>
           </div>
 

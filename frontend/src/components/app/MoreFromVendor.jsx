@@ -40,8 +40,8 @@ export default function MoreFromVendor({ listing }) {
           <div key={it.id} className="min-w-[140px] w-[140px] snap-start glass rounded-xl overflow-hidden" data-testid={`more-vendor-item-${it.slug}`}>
             <Link to={`/listing/${it.slug}`} className="block">
               <div className="aspect-[4/5] bg-white/5">
-                {(it.images || [])[0]?.url ? (
-                  <img src={(it.images || [])[0].url} alt={it.title} className="w-full h-full object-cover" />
+                {(it.images || [])[0] ? (
+                  <img src={typeof (it.images || [])[0] === 'object' ? (it.images || [])[0].url : (it.images || [])[0]} alt={it.title} className="w-full h-full object-cover" />
                 ) : it.reel?.thumbnail_url ? (
                   <img src={it.reel.thumbnail_url} alt={it.title} className="w-full h-full object-cover" />
                 ) : null}

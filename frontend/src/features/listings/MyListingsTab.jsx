@@ -38,7 +38,7 @@ const MyListingsTab = ({ user }) => {
   const [reelBoostEnabled, setReelBoostEnabled] = useState(true);
   const [boostCategory, setBoostCategory] = useState('student');
   const [boostArea, setBoostArea] = useState({ city: 'Delhi', distance: '10', state: 'Delhi' });
-  const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600');
+  const [imageUrl, setImageUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
 
   // API Queries & Mutations
@@ -144,7 +144,7 @@ const MyListingsTab = ({ user }) => {
     setVariants([]);
     setReelBoostEnabled(true);
     setBoostCategory('student');
-    setImageUrl('https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600');
+    setImageUrl('');
     setVideoUrl('');
   };
 
