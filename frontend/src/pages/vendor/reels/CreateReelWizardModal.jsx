@@ -853,8 +853,17 @@ export default function CreateReelWizardModal({
                         placeholder="https://example.com/media.mp4"
                         value={customMediaUrl}
                         onChange={(e) => {
-                          setCustomMediaUrl(e.target.value);
-                          setMediaType(e.target.value.match(/\.(mp4|mov|webm)(\?.*)?$/i) || e.target.value.startsWith('data:video/') ? 'video' : 'image');
+                          const val = e.target.value;
+                          setCustomMediaUrl(val);
+                          const isVid = val.startsWith('data:video/') || (() => {
+                            try {
+                              const path = val.split('?')[0].split('#')[0];
+                              return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)$/i.test(path);
+                            } catch {
+                              return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)/i.test(val);
+                            }
+                          })();
+                          setMediaType(isVid ? 'video' : 'image');
                         }}
                         className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple"
                       />

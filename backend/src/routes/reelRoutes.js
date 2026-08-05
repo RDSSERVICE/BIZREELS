@@ -27,11 +27,16 @@ const router = express.Router();
 // ── Public Feed and Comments ─────────────────────────────
 router.get('/my-reels', authenticate, reelController.getMyReels);
 router.get('/', reelValidation.getFeed, validate, (req, res, next) => {
-  if (req.query.myReels || req.headers.authorization) {
-    // If client asks for my-reels or has auth, try getMyReels if requested
-    if (req.query.myReels === 'true') {
-      return authenticate(req, res, () => reelController.getMyReels(req, res, next));
-    }
+  if (req.query.myReels === 'true') {
+    return authenticate(req, res, (err) => {
+      if (err) return next(err);
+      return reelController.getMyReels(req, res, next);
+    });
+  }
+  if (req.headers.authorization || req.cookies?.accessToken) {
+    return authenticate(req, res, () => {
+      return reelController.getFeed(req, res, next);
+    });
   }
   return reelController.getFeed(req, res, next);
 });

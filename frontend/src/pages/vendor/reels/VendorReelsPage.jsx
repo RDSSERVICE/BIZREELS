@@ -291,6 +291,19 @@ export default function VendorReelsPage() {
       finalMedia = ['https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'];
     }
 
+    // Auto-detect mediaType based on finalMedia content
+    const hasVideo = finalMedia.some(url => {
+      if (!url) return false;
+      if (url.startsWith('data:video/')) return true;
+      try {
+        const path = url.split('?')[0].split('#')[0];
+        return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)$/i.test(path);
+      } catch {
+        return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)/i.test(url);
+      }
+    });
+    const finalMediaType = hasVideo ? 'video' : 'image';
+
     const toastId = toast.loading(
       publishStatus === 'scheduled' ? 'Scheduling Post...' :
       publishStatus === 'draft' ? 'Saving Draft...' : 'Publishing Reel/Image Post...'
@@ -332,7 +345,7 @@ export default function VendorReelsPage() {
         customAudience: customTargetAudience,
         mediaUrls: finalMedia,
         videoUrl: finalMedia[0],
-        mediaType,
+        mediaType: finalMediaType,
         saveToServiceGallery,
         status: publishStatus,
         scheduledDate: publishStatus === 'scheduled' ? scheduledDate : null,
@@ -348,6 +361,9 @@ export default function VendorReelsPage() {
       setShowPreviewModal(false);
       setShowPostModal(false);
       setCaption('');
+      setCustomMediaUrl('');
+      setCustomMediaList([]);
+      setSelectedServiceMediaUrls([]);
       refetch();
     } catch (err) {
       toast.error(err.data?.message || err.message || 'Failed to publish post', { id: toastId });
@@ -502,8 +518,8 @@ export default function VendorReelsPage() {
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-text-tertiary border-t border-border pt-2">
-                  <span className="flex items-center gap-1"><FiEye size={13} /> {reel.views?.toLocaleString() || 120}</span>
-                  <span className="flex items-center gap-1"><FiHeart size={13} className="text-brand-pink" /> {reel.likesCount || 15}</span>
+                  <span className="flex items-center gap-1"><FiEye size={13} /> {reel.views !== undefined ? reel.views.toLocaleString() : 0}</span>
+                  <span className="flex items-center gap-1"><FiHeart size={13} className="text-brand-pink" /> {reel.likesCount || 0}</span>
                 </div>
               </div>
             </div>

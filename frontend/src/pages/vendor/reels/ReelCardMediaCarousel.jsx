@@ -15,9 +15,18 @@ export default function ReelCardMediaCarousel({ reel }) {
   const mediaList = rawMediaList.filter(Boolean);
   const currentUrl = mediaList[currentIndex] || mediaList[0] || '';
 
-  const isVideo = reel.mediaType === 'video' ||
-    Boolean(currentUrl.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i)) ||
-    currentUrl.startsWith('data:video/');
+  const checkIsVideo = (url) => {
+    if (!url) return false;
+    if (url.startsWith('data:video/')) return true;
+    try {
+      const path = url.split('?')[0].split('#')[0];
+      return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)$/i.test(path);
+    } catch {
+      return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)/i.test(url);
+    }
+  };
+
+  const isVideo = reel.mediaType === 'video' || checkIsVideo(currentUrl);
 
   const handlePrev = (e) => {
     e.stopPropagation();
