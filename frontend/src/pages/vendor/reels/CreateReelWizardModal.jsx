@@ -6,6 +6,7 @@ import {
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import CreateServiceModal from './CreateServiceModal';
+import CreateProductModal from './CreateProductModal';
 import { useListCategoriesQuery } from '../../../features/admin/adminApi';
 
 // PURPOSE OPTIONS PER POST TYPE
@@ -134,6 +135,7 @@ export default function CreateReelWizardModal({
 }) {
   const [wizardStep, setWizardStep] = useState(1);
   const [showCreateServiceModal, setShowCreateServiceModal] = useState(false);
+  const [showCreateProductModal, setShowCreateProductModal] = useState(false);
 
   // Fetch dynamic categories from admin settings
   const { data: categoriesDataRes } = useListCategoriesQuery();
@@ -258,6 +260,20 @@ export default function CreateReelWizardModal({
       const media = [...(newService.images || []), ...(newService.videos || [])];
       if (media.length > 0) setSelectedServiceMediaUrls([media[0]]);
       toast.success(`Selected newly created service: "${newService.title}"`);
+    }
+  };
+
+  const handleProductCreated = (newProduct) => {
+    if (newProduct) {
+      const id = newProduct._id || newProduct.id;
+      setSelectedProductId(id);
+      setSelectedProductData(newProduct);
+      if (newProduct.category) setPostCategory(newProduct.category);
+      if (newProduct.subcategory) setPostSubcategory(newProduct.subcategory);
+      if (newProduct.title) setCaption(newProduct.title + ' - ' + (newProduct.description || ''));
+      const media = [...(newProduct.images || []), ...(newProduct.videos || [])];
+      if (media.length > 0) setSelectedServiceMediaUrls([media[0]]);
+      toast.success(`Selected newly created product: "${newProduct.title}"`);
     }
   };
 
@@ -674,6 +690,19 @@ export default function CreateReelWizardModal({
                       </button>
                     </div>
                   )}
+
+                  {postType === 'product' && (
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-[11px] text-text-tertiary">Can't find the product?</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateProductModal(true)}
+                        className="px-3 py-1.5 bg-brand-purple/10 text-brand-purple border border-brand-purple/30 hover:bg-brand-purple hover:text-white transition rounded-xl text-xs font-bold flex items-center gap-1"
+                      >
+                        <FiPlus size={13} /> Option B – Create New Product
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1012,6 +1041,17 @@ export default function CreateReelWizardModal({
         categoriesList={categoriesList}
         dynamicCategoriesData={dynamicCategoriesData}
         onCreated={handleServiceCreated}
+      />
+
+      {/* CREATE NEW PRODUCT MODAL */}
+      <CreateProductModal
+        isOpen={showCreateProductModal}
+        onClose={() => setShowCreateProductModal(false)}
+        initialCategory={postCategory}
+        initialSubcategory={postSubcategory}
+        categoriesList={categoriesList}
+        dynamicCategoriesData={dynamicCategoriesData}
+        onCreated={handleProductCreated}
       />
     </AdminModal>
   );
