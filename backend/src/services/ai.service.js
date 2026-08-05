@@ -1,5 +1,7 @@
 const axios = require('axios');
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 const Category = require('../models/Category');
 const Listing = require('../models/Listing');
 const User = require('../models/User');
@@ -98,7 +100,93 @@ const resolveModel = (feature) => {
   return { provider, model };
 };
 
-const callGeminiAPI = async (systemInstruction, prompt, featureName) => {
+const getMimeType = (filename) => {
+  const ext = path.extname(filename).toLowerCase();
+  switch (ext) {
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    case '.webp':
+      return 'image/webp';
+    case '.mp3':
+      return 'audio/mpeg';
+    case '.wav':
+      return 'audio/wav';
+    case '.ogg':
+      return 'audio/ogg';
+    case '.webm':
+      return filename.toLowerCase().includes('audio') ? 'audio/webm' : 'video/webm';
+    case '.mp4':
+      return 'video/mp4';
+    case '.m4a':
+      return 'audio/mp4';
+    default:
+      return 'application/octet-stream';
+  }
+};
+
+const getLocalFileBuffer = async (url) => {
+  try {
+    const cleanUrl = url.split('?')[0];
+    const filename = path.basename(cleanUrl);
+    const parentDir = path.resolve(__dirname, '..'); // backend/src -> backend
+    const pathsToTry = [
+      path.join(parentDir, 'uploads', filename),
+      path.join(parentDir, 'uploads', 'processed', filename),
+      path.join(parentDir, 'uploads', 'temp', filename)
+    ];
+
+    for (const p of pathsToTry) {
+      try {
+        if (fs.existsSync(p)) {
+          const buffer = await fs.promises.readFile(p);
+          return { buffer, mimeType: getMimeType(filename) };
+        }
+      } catch (err) {
+        // continue
+      }
+    }
+  } catch (err) {
+    logger.warn(`Error resolving local file buffer: ${err.message}`);
+  }
+  return null;
+};
+
+const getRemoteFileBuffer = async (url) => {
+  try {
+    const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 10000 });
+    const contentType = res.headers['content-type'] || 'application/octet-stream';
+    return { buffer: Buffer.from(res.data), mimeType: contentType };
+  } catch (err) {
+    logger.warn(`Failed to fetch remote media for Gemini from ${url}: ${err.message}`);
+    return null;
+  }
+};
+
+const getInlineDataPart = async (url) => {
+  if (!url || typeof url !== 'string') return null;
+  const isLocal = url.startsWith('/') || url.includes('localhost') || url.includes('127.0.0.1');
+  
+  let res = null;
+  if (isLocal) {
+    res = await getLocalFileBuffer(url);
+  } else {
+    res = await getRemoteFileBuffer(url);
+  }
+
+  if (!res) return null;
+
+  return {
+    inlineData: {
+      mimeType: res.mimeType,
+      data: res.buffer.toString('base64'),
+    }
+  };
+};
+
+const callGeminiAPI = async (systemInstruction, prompt, featureName, mediaParts = []) => {
   const cfg = getCfg();
   if (!cfg.apiKey) {
     throw new Error('AI not configured: GOOGLE_AI_API_KEY / api_key missing');
@@ -109,11 +197,18 @@ const callGeminiAPI = async (systemInstruction, prompt, featureName) => {
 
   let { model } = resolveModel(featureName);
 
+  const parts = [{ text: prompt }];
+  if (Array.isArray(mediaParts)) {
+    for (const part of mediaParts) {
+      if (part) parts.push(part);
+    }
+  }
+
   const payload = {
     contents: [
       {
         role: 'user',
-        parts: [{ text: prompt }],
+        parts,
       },
     ],
     generationConfig: {
@@ -278,8 +373,32 @@ const generateListingContent = async (title, categoryName, subCategoryName, list
   }
   prompt += `\n${getListingSchemaPrompt()}`;
 
+  const mediaParts = [];
+  if (media) {
+    try {
+      if (media.audio_url) {
+        const part = await getInlineDataPart(media.audio_url);
+        if (part) mediaParts.push(part);
+      }
+      if (media.video_url) {
+        const part = await getInlineDataPart(media.video_url);
+        if (part) mediaParts.push(part);
+      }
+      if (media.image_urls && Array.isArray(media.image_urls)) {
+        for (const imgUrl of media.image_urls.slice(0, 3)) {
+          if (imgUrl) {
+            const part = await getInlineDataPart(imgUrl);
+            if (part) mediaParts.push(part);
+          }
+        }
+      }
+    } catch (mediaErr) {
+      logger.warn(`Failed to process media parts for listing: ${mediaErr.message}`);
+    }
+  }
+
   try {
-    const raw = await callGeminiAPI(SYSTEM_LISTING, prompt, 'listing');
+    const raw = await callGeminiAPI(SYSTEM_LISTING, prompt, 'listing', mediaParts);
     const data = parseJsonStrict(raw);
     const approxTokens = Math.max(400, Math.min(3000, Math.floor((prompt.length + raw.length) / 4)));
     await recordTokens(approxTokens);
@@ -320,8 +439,16 @@ const transcribeAudio = async (audioUrl) => {
     `Preserve product / brand names verbatim.\n\nAudio: ${audioUrl}\n\n` +
     `Return JSON: {"transcript": "…", "language": "en|hi|mixed", "confidence": "low|medium|high"}`;
 
+  const mediaParts = [];
   try {
-    const raw = await callGeminiAPI('You are a professional audio transcriber. Output JSON only.', prompt, 'transcribe');
+    const part = await getInlineDataPart(audioUrl);
+    if (part) mediaParts.push(part);
+  } catch (err) {
+    logger.warn(`Failed to attach audio inline: ${err.message}`);
+  }
+
+  try {
+    const raw = await callGeminiAPI('You are a professional audio transcriber. Output JSON only.', prompt, 'transcribe', mediaParts);
     const data = parseJsonStrict(raw);
     const approx = Math.max(200, Math.min(2000, Math.floor((prompt.length + raw.length) / 4)));
     await recordTokens(approx);

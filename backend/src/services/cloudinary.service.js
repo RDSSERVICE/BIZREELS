@@ -13,8 +13,13 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/jpg']);
 const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
+const ALLOWED_AUDIO_TYPES = new Set([
+  'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/mp3',
+  'audio/x-m4a', 'audio/m4a', 'audio/aac', 'audio/flac', 'audio/x-wav', 'audio/mp4'
+]);
 
 const isDevMode = () => {
   return settingsService.getBool('cloudinary', 'dev_mode', 'CLOUDINARY_DEV_MODE', false);
@@ -112,7 +117,6 @@ const devWrite = (fileBytes, filename, folder, resourceType) => {
 const uploadFile = async (fileBytes, filename, contentType, folder, resourceType = 'image') => {
   folder = validateFolder(folder);
 
-  // Validate size/type
   if (resourceType === 'image') {
     if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
       throw ApiError.badRequest(`Unsupported image type: ${contentType}`);
@@ -126,6 +130,16 @@ const uploadFile = async (fileBytes, filename, contentType, folder, resourceType
     }
     if (fileBytes.length > MAX_VIDEO_BYTES) {
       throw ApiError.badRequest('Video exceeds 50MB limit');
+    }
+  } else if (resourceType === 'raw') {
+    // Check if it is an audio file or raw stream
+    const isAudio = ALLOWED_AUDIO_TYPES.has(contentType) || contentType.startsWith('audio/');
+    const isGeneric = contentType === 'application/octet-stream' || contentType === 'binary/octet-stream';
+    if (!isAudio && !isGeneric) {
+      throw ApiError.badRequest(`Unsupported raw content type: ${contentType}`);
+    }
+    if (fileBytes.length > MAX_AUDIO_BYTES) {
+      throw ApiError.badRequest('Raw file exceeds 20MB limit');
     }
   } else {
     throw ApiError.badRequest(`Unknown resource_type: ${resourceType}`);

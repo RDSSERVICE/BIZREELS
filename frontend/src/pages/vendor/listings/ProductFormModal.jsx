@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FiCpu, FiUploadCloud, FiPlus, FiX, FiImage, FiTag, FiRefreshCw, FiSearch, FiCheck
+  FiCpu, FiMic, FiMicOff, FiUploadCloud, FiPlus, FiX, FiImage, FiTag, FiRefreshCw, FiSearch, FiCheck
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
@@ -141,6 +141,8 @@ export default function ProductFormModal({
     variants: [],
   });
 
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -391,6 +393,87 @@ export default function ProductFormModal({
     }
   };
 
+  // Voice Input for AI Prompts
+  const toggleVoiceRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return toast.error('Voice input is not supported in this browser.');
+    if (isListeningVoice) {
+      setIsListeningVoice(false);
+      return;
+    }
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'hi-IN';
+      recognition.onstart = () => {
+        setIsListeningVoice(true);
+        toast.success('🎙️ Listening... Speak product details now');
+      };
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript) setAiPrompt(prev => prev ? `${prev} ${transcript}` : transcript);
+      };
+      recognition.onerror = (event) => {
+        setIsListeningVoice(false);
+        toast.error(`Voice error: ${event.error}`);
+      };
+      recognition.onend = () => setIsListeningVoice(false);
+      recognition.start();
+    } catch {
+      setIsListeningVoice(false);
+      toast.error('Failed to start voice input');
+    }
+  };
+
+  // Generate AI Content from Prompts / Voice details
+  const handleGenerateAiContent = async (e) => {
+    if (e) e.preventDefault();
+    if (!aiPrompt.trim()) return toast.error('Please enter or dictate a prompt for AI generation');
+    updateForm('isAiGenerating', true);
+    const toastId = toast.loading('✨ Google Gemini AI is generating real-time details...');
+    try {
+      const aiRes = await api.post('/v1/ai/generate-listing-content', {
+        title: form.title || aiPrompt.trim().slice(0, 100) || 'Product Sample',
+        type: 'new_product',
+        hints: aiPrompt.trim(),
+        category_name: form.category,
+        sub_category_name: form.subcategory,
+      });
+
+      const data = aiRes.data?.data || aiRes.data || aiRes;
+      if (data && data.generated) {
+        const gen = data.generated;
+        const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const ts = Date.now().toString().slice(-4);
+        const skuCode = `SKU-${rand}-${ts}`;
+        setForm(prev => ({
+          ...prev,
+          title: prev.title || gen.title || `AI Product`,
+          shortDescription: gen.short_description || prev.shortDescription,
+          description: gen.description || prev.description,
+          tags: gen.tags || prev.tags,
+          labels: Array.isArray(gen.features) ? gen.features.map(f => ({ key: f, value: 'Yes' })) : prev.labels,
+          actualPrice: gen.suggested_price_range_inr?.max || prev.actualPrice,
+          sellingPrice: gen.suggested_price_range_inr?.min || prev.sellingPrice,
+          sku: prev.sku || skuCode,
+        }));
+        setVariantSku(prev => prev || skuCode);
+        toast.success('✨ Gemini AI specifications & details generated in real-time!', { id: toastId });
+      } else {
+        throw new Error('AI returned empty response');
+      }
+    } catch (err) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to generate AI content';
+      toast.error(`⚠️ ${errMsg}`, { id: toastId });
+    } finally {
+      updateForm('isAiGenerating', false);
+    }
+  };
+
   const handleVariantImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -508,13 +591,58 @@ export default function ProductFormModal({
             />
           </div>
 
-          {/* AI Sample Auto Fill */}
-          <div className="p-3 border border-dashed border-brand-purple rounded-2xl bg-brand-purple/5 space-y-2">
-            <label className="text-xs font-bold text-brand-purple flex items-center gap-1.5">
-              <FiCpu /> Upload Image / Voice Note / Video for Real-Time AI Auto-Fill
-            </label>
-            <input type="file" accept="image/*,video/*,audio/*" onChange={handleAiAutoFill} className="text-xs text-text-tertiary" />
-            <p className="text-[10px] text-text-tertiary">AI will analyze your sample media to auto-generate details.</p>
+          {/* AI Assisted Generator */}
+          <div className="p-3 rounded-xl bg-gradient-to-r from-brand-purple/10 via-brand-pink/10 to-brand-orange/10 border border-brand-purple/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-brand-purple flex items-center gap-1">
+                <FiCpu size={14} /> AI Description & Specs Generator (Voice & Text)
+              </span>
+              <button
+                type="button"
+                onClick={toggleVoiceRecording}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${
+                  isListeningVoice
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'bg-brand-purple text-white hover:bg-brand-purple/90'
+                }`}
+                title="Speak details to AI"
+              >
+                {isListeningVoice ? <FiMicOff size={12} /> : <FiMic size={12} />}
+                <span>{isListeningVoice ? 'Listening...' : 'Voice Input'}</span>
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Describe your product (e.g. '128GB black iPhone 14 in brand new condition') or speak..."
+                className="flex-1 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+              />
+              <button
+                type="button"
+                onClick={handleGenerateAiContent}
+                disabled={form.isAiGenerating || !aiPrompt.trim()}
+                className="px-3.5 py-1.5 gradient-brand text-white font-bold text-xs rounded-xl shadow-sm hover:opacity-95 transition flex items-center gap-1 disabled:opacity-50 shrink-0"
+              >
+                <FiCpu size={13} />
+                <span>{form.isAiGenerating ? 'Generating...' : 'Auto-Generate'}</span>
+              </button>
+            </div>
+
+            {/* Real-time Media Auto-Fill */}
+            <div className="pt-2 border-t border-brand-purple/10 space-y-1">
+              <label className="text-[10px] font-bold text-brand-purple uppercase block">Or Upload Media for AI Auto-Fill</label>
+              <input
+                type="file"
+                accept="image/*,video/*,audio/*"
+                onChange={handleAiAutoFill}
+                className="text-xs text-text-tertiary"
+              />
+              <p className="text-[9px] text-text-tertiary">
+                Gemini will scan your sample photo/video/voice note to extract specifications & details.
+              </p>
+            </div>
           </div>
 
           {/* Product Name & Brand */}

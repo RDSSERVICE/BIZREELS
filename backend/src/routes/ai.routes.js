@@ -31,7 +31,7 @@ const enforceRateLimit = (userId, bucket, limit) => {
 
 // ============================================================ CONTENT GENERATION
 router.post('/generate-listing-content', requireAuth, requireVendor, catchAsync(async (req, res) => {
-  const { title, category_id, sub_category_id, type, hints, video_url, audio_url, image_urls } = req.body;
+  const { title, category_id, sub_category_id, category_name, sub_category_name, type, hints, video_url, audio_url, image_urls } = req.body;
   if (!title || title.length < 3 || title.length > 140) {
     throw ApiError.badRequest('Title must be between 3 and 140 characters');
   }
@@ -41,14 +41,14 @@ router.post('/generate-listing-content', requireAuth, requireVendor, catchAsync(
 
   enforceRateLimit(req.user._id.toString(), 'gen-content', AI_RATE_LIMIT);
 
-  let catName = null;
-  let subName = null;
+  let catName = category_name ? String(category_name).trim() : null;
+  let subName = sub_category_name ? String(sub_category_name).trim() : null;
 
-  if (category_id) {
+  if (category_id && typeof category_id === 'string' && category_id.match(/^[0-9a-fA-F]{24}$/)) {
     const c = await Category.findById(category_id).select('name');
     if (c) catName = c.name;
   }
-  if (sub_category_id) {
+  if (sub_category_id && typeof sub_category_id === 'string' && sub_category_id.match(/^[0-9a-fA-F]{24}$/)) {
     const sc = await Category.findById(sub_category_id).select('name');
     if (sc) subName = sc.name;
   }
