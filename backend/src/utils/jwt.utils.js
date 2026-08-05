@@ -40,7 +40,12 @@ const hashRefreshToken = (raw) => {
  * Decode/verify an access token.
  */
 const decodeAccessToken = (token) => {
-  return jwt.verify(token, config.jwtSecret, { algorithms: [config.jwtAlgorithm] });
+  const secret = config.jwt?.accessSecret || config.jwtSecret;
+  const options = {};
+  if (config.jwtAlgorithm) {
+    options.algorithms = [config.jwtAlgorithm];
+  }
+  return jwt.verify(token, secret, options);
 };
 
 module.exports = {

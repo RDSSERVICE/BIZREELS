@@ -77,24 +77,33 @@ const optionalAuth = async (req, res, next) => {
       return next();
     }
     let payload;
+    let errorToThrow = null;
     try {
       payload = decodeAccessToken(token);
-    } catch {
+    } catch (err) {
       try {
         payload = jwt.verify(token, config.jwt.accessSecret);
-      } catch {
+      } catch (err2) {
         try {
           payload = jwt.verify(token, config.jwtSecret);
-        } catch {
-          payload = null;
+        } catch (err3) {
+          const isExpired = err.name === 'TokenExpiredError' || err2.name === 'TokenExpiredError' || err3.name === 'TokenExpiredError';
+          errorToThrow = ApiError.unauthorized(isExpired ? 'Access token expired' : 'Invalid access token');
         }
       }
     }
-    req.userId = payload ? (payload.sub || payload.userId) : null;
-  } catch {
-    req.userId = null;
+    if (errorToThrow) {
+      throw errorToThrow;
+    }
+    const userId = payload ? (payload.sub || payload.userId) : null;
+    if (!userId) {
+      throw ApiError.unauthorized('Invalid token payload');
+    }
+    req.userId = userId;
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 };
 
 module.exports = { requireAuth, optionalAuth };
