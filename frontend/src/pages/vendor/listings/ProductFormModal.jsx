@@ -1,10 +1,96 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FiCpu, FiUploadCloud, FiPlus, FiX, FiImage, FiTag, FiRefreshCw
+  FiCpu, FiUploadCloud, FiPlus, FiX, FiImage, FiTag, FiRefreshCw, FiSearch, FiCheck
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import { api, mediaApi } from '../../../lib/api';
+
+function SearchableSelect({
+  label,
+  placeholder,
+  value,
+  onChange,
+  options,
+  disabled = false,
+}) {
+  const [search, setSearch] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearch(value || '');
+    }
+  }, [value, isOpen]);
+
+  const filteredOptions = React.useMemo(() => {
+    if (!search || search === value) return options;
+    return options.filter(opt =>
+      opt.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [options, search, value]);
+
+  return (
+    <div className="relative">
+      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => {
+            setSearch('');
+            setIsOpen(true);
+          }}
+          onBlur={() => {
+            setTimeout(() => {
+              setIsOpen(false);
+              setSearch(value || '');
+            }, 200);
+          }}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="w-full p-2.5 pr-8 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple transition-all disabled:opacity-50 text-text-primary"
+        />
+        <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-tertiary pointer-events-none text-[10px]">
+          ▼
+        </span>
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-surface border border-border rounded-xl shadow-lg z-50 p-1 space-y-0.5">
+          {filteredOptions.length === 0 ? (
+            <p className="text-xs text-text-tertiary p-2 text-center">No results found</p>
+          ) : (
+            filteredOptions.map((opt, idx) => {
+              const isSelected = opt === value;
+              return (
+                <div
+                  key={idx}
+                  onMouseDown={() => {
+                    onChange(opt);
+                    setSearch(opt);
+                    setIsOpen(false);
+                  }}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                    isSelected
+                      ? 'bg-brand-purple/10 text-brand-purple font-bold'
+                      : 'hover:bg-white/5 text-text-secondary'
+                  }`}
+                >
+                  {opt}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * ProductFormModal — Complete product creation/editing form
@@ -107,6 +193,53 @@ export default function ProductFormModal({
       fetchLimits();
     }
   }, [isOpen]);
+
+  const productCategories = React.useMemo(() => {
+    return categoriesList
+      .filter(c => !c.parent_id && (c.category_type === 'product' || !c.category_type))
+      .map(c => c.name);
+  }, [categoriesList]);
+
+  const productSubcategories = React.useMemo(() => {
+    if (!form.category) return [];
+    const parent = categoriesList.find(
+      c => !c.parent_id && (c.name === form.category || c.id === form.category || c._id === form.category)
+    );
+    if (!parent) return [];
+    return categoriesList
+      .filter(c => c.parent_id === parent.id || c.parent_id === parent._id)
+      .map(c => c.name);
+  }, [categoriesList, form.category]);
+
+  // Default to first category/subcategory if not set
+  useEffect(() => {
+    if (!form.category && productCategories.length > 0) {
+      updateForm('category', productCategories[0]);
+    }
+  }, [productCategories, form.category]);
+
+  useEffect(() => {
+    if (!form.subcategory && productSubcategories.length > 0) {
+      updateForm('subcategory', productSubcategories[0]);
+    }
+  }, [productSubcategories, form.subcategory]);
+
+  const handleCategoryChange = (val) => {
+    updateForm('category', val);
+    const parent = categoriesList.find(
+      c => !c.parent_id && (c.name === val || c.id === val || c._id === val)
+    );
+    if (parent) {
+      const subs = categoriesList.filter(c => c.parent_id === parent.id || c.parent_id === parent._id);
+      if (subs.length > 0) {
+        updateForm('subcategory', subs[0].name);
+      } else {
+        updateForm('subcategory', 'General');
+      }
+    } else {
+      updateForm('subcategory', 'General');
+    }
+  };
 
   // Populate form when editing
   useEffect(() => {
@@ -344,24 +477,20 @@ export default function ProductFormModal({
       <form onSubmit={handleSubmit} className="space-y-5 max-h-[75vh] overflow-y-auto pr-1">
         {/* Category & Subcategory */}
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Category (Lock to Registered)</label>
-            <select value={form.category} onChange={(e) => updateForm('category', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs" disabled>
-              <option value={registeredCat || 'Electronics'}>{registeredCat || 'Electronics'}</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Subcategory</label>
-            <select value={form.subcategory} onChange={(e) => updateForm('subcategory', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs">
-              {registeredSubcats && registeredSubcats.length > 0 ? (
-                registeredSubcats.map(sub => <option key={sub} value={sub}>{sub}</option>)
-              ) : subcategoriesList && subcategoriesList.length > 0 ? (
-                subcategoriesList.map(sub => <option key={sub} value={sub}>{sub}</option>)
-              ) : (
-                <option value="General">General</option>
-              )}
-            </select>
-          </div>
+          <SearchableSelect
+            label="Category"
+            placeholder="Search category..."
+            value={form.category}
+            onChange={handleCategoryChange}
+            options={productCategories}
+          />
+          <SearchableSelect
+            label="Subcategory"
+            placeholder="Search subcategory..."
+            value={form.subcategory}
+            onChange={(val) => updateForm('subcategory', val)}
+            options={productSubcategories}
+          />
         </div>
 
         {/* AI Sample Auto Fill */}

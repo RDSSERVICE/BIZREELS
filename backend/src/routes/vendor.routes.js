@@ -265,7 +265,7 @@ router.post('/me/settings', requireAuth, catchAsync(async (req, res) => {
 // ── VENDOR DYNAMIC OFFERS ENDPOINTS ─────────────────────────
 
 router.get('/me/offers', requireAuth, catchAsync(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).select('vendorProfile.offers').lean();
   if (!user) throw ApiError.notFound('User not found');
   const offers = user.vendorProfile?.offers || [];
   res.json({ success: true, data: offers });
