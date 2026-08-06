@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiX,
   FiMapPin, FiPhone, FiMessageSquare, FiChevronUp, FiChevronDown,
@@ -15,6 +16,7 @@ import { api } from '../../lib/api';
  * Similar to ReelFullscreenViewer but for static image content.
  */
 export default function ImageFullscreenViewer({ images, startIndex = 0, onClose, onLike, onSave, onFollow, likedMap = {}, savedMap = {}, followingMap = {} }) {
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
@@ -116,7 +118,7 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
   const handleCallRequest = (post) => {
     handleTrackInteraction('click_to_call', post);
     const vendor = post.creator || post.vendor;
-    const phone = vendor?.phone || '';
+    const phone = vendor?.phone || vendor?.vendorProfile?.whatsapp || '';
     if (phone) {
       window.open(`tel:${phone}`, '_self');
     } else {
@@ -124,9 +126,50 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
     }
   };
 
-  const handleInquiry = (post) => {
+  const handleChat = async (post) => {
+    handleTrackInteraction('chat_direct', post);
+    const vendorObj = post.creator || post.vendor;
+    const vendorId = vendorObj?._id || vendorObj?.id || (typeof vendorObj === 'string' ? vendorObj : null);
+
+    if (!vendorId) {
+      toast.error('Vendor details unavailable');
+      return;
+    }
+
+    try {
+      const title = post.title || post.caption || 'Image Post';
+      await api.post('/v1/chat/messages', {
+        recipientId: vendorId,
+        text: `Hi! I saw your post "${title}" on BizReels and I am interested. Let's chat!`
+      });
+      const vendorName = encodeURIComponent(vendorObj.vendorProfile?.shopName || vendorObj.name || 'Vendor');
+      const vendorAvatar = encodeURIComponent(vendorObj.profile_pic || vendorObj.avatarUrl || '');
+      navigate(`/customer/chat?vendorId=${vendorId}&name=${vendorName}&avatar=${vendorAvatar}`);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to open chat with vendor');
+    }
+  };
+
+  const handleInquiry = async (post) => {
     handleTrackInteraction('chat_inquiry', post);
-    toast.success('Inquiry sent! Vendor will respond shortly.');
+    const vendorObj = post.creator || post.vendor;
+    const vendorId = vendorObj?._id || vendorObj?.id || (typeof vendorObj === 'string' ? vendorObj : null);
+
+    if (!vendorId) {
+      toast.error('Vendor details unavailable');
+      return;
+    }
+
+    const listingId = post._id || post.id;
+    try {
+      await api.post('/v1/inquiries', {
+        listingId,
+        message: `I'm interested in your listing: "${post.title || ''}"`
+      });
+      toast.success('Inquiry sent successfully!');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to submit inquiry');
+    }
   };
 
   if (!currentPost) return null;
@@ -304,54 +347,52 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
             </button>
           </div>
 
-          {/* Boosted post: vendor contact + actions */}
-          {currentPost.isBoosted && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-4 text-white/70 text-[10px]">
-                <span className="flex items-center gap-1">
-                  <FiMapPin size={10} /> {maskAddress(vendor)}
+          {/* Vendor contact + actions */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-4 text-white/70 text-[10px]">
+              <span className="flex items-center gap-1">
+                <FiMapPin size={10} /> {maskAddress(vendor)}
+              </span>
+              <span className="flex items-center gap-1">
+                <FiPhone size={10} /> {maskPhone(vendor.phone)}
+              </span>
+              {vendor.is_subscribed_verified && (
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <FiShield size={10} /> Verified
                 </span>
-                <span className="flex items-center gap-1">
-                  <FiPhone size={10} /> {maskPhone(vendor.phone)}
-                </span>
-                {vendor.is_subscribed_verified && (
-                  <span className="flex items-center gap-1 text-emerald-400">
-                    <FiShield size={10} /> Verified
-                  </span>
-                )}
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                <button
-                  onClick={() => handleWhatsApp(currentPost)}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition border border-emerald-500/20"
-                >
-                  <FaWhatsapp size={16} />
-                  <span className="text-[8px] font-bold">WhatsApp</span>
-                </button>
-                <button
-                  onClick={() => handleCallRequest(currentPost)}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/20"
-                >
-                  <FiPhone size={16} />
-                  <span className="text-[8px] font-bold">Call</span>
-                </button>
-                <button
-                  onClick={() => handleInquiry(currentPost)}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition border border-purple-500/20"
-                >
-                  <FiMessageSquare size={16} />
-                  <span className="text-[8px] font-bold">Chat</span>
-                </button>
-                <button
-                  onClick={() => handleInquiry(currentPost)}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition border border-orange-500/20"
-                >
-                  <FiMessageCircle size={16} />
-                  <span className="text-[8px] font-bold">Inquiry</span>
-                </button>
-              </div>
+              )}
             </div>
-          )}
+            <div className="grid grid-cols-4 gap-2">
+              <button
+                onClick={() => handleWhatsApp(currentPost)}
+                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition border border-emerald-500/20"
+              >
+                <FaWhatsapp size={16} />
+                <span className="text-[8px] font-bold">WhatsApp</span>
+              </button>
+              <button
+                onClick={() => handleCallRequest(currentPost)}
+                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/20"
+              >
+                <FiPhone size={16} />
+                <span className="text-[8px] font-bold">Call</span>
+              </button>
+              <button
+                onClick={() => handleChat(currentPost)}
+                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition border border-purple-500/20"
+              >
+                <FiMessageSquare size={16} />
+                <span className="text-[8px] font-bold">Chat</span>
+              </button>
+              <button
+                onClick={() => handleInquiry(currentPost)}
+                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition border border-orange-500/20"
+              >
+                <FiMessageCircle size={16} />
+                <span className="text-[8px] font-bold">Inquiry</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>

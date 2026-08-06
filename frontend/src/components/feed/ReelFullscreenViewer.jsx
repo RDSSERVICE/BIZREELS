@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiX,
   FiVolume2, FiVolumeX, FiMapPin, FiPhone, FiMessageSquare,
@@ -15,6 +16,7 @@ import { api } from '../../lib/api';
  * Shows vendor profile for boosted reels with masked contact info.
  */
 export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, onLike, onSave, onFollow, likedMap = {}, savedMap = {}, followingMap = {} }) {
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [muted, setMuted] = useState(true);
   const containerRef = useRef(null);
@@ -105,7 +107,7 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
 
   const handleCallRequest = (reel) => {
     handleTrackInteraction('click_to_call', reel);
-    const phone = reel.creator?.phone || '';
+    const phone = reel.creator?.phone || reel.creator?.vendorProfile?.whatsapp || '';
     if (phone) {
       window.open(`tel:${phone}`, '_self');
     } else {
@@ -113,9 +115,66 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
     }
   };
 
-  const handleInquiry = (reel) => {
+  const handleChat = async (reel) => {
+    handleTrackInteraction('chat_direct', reel);
+    const vendorObj = reel.creator;
+    const vendorId = vendorObj?._id || vendorObj?.id || (typeof vendorObj === 'string' ? vendorObj : null);
+
+    if (!vendorId) {
+      toast.error('Vendor details unavailable for this reel');
+      return;
+    }
+
+    try {
+      const title = reel.caption || 'Reel Post';
+      await api.post('/v1/chat/messages', {
+        recipientId: vendorId,
+        text: `Hi! I saw your reel "${title}" on BizReels and I am interested. Let's chat!`
+      });
+      const vendorName = encodeURIComponent(vendorObj.vendorProfile?.shopName || vendorObj.name || 'Vendor');
+      const vendorAvatar = encodeURIComponent(vendorObj.profile_pic || vendorObj.avatarUrl || '');
+      navigate(`/customer/chat?vendorId=${vendorId}&name=${vendorName}&avatar=${vendorAvatar}`);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to open chat with vendor');
+    }
+  };
+
+  const handleInquiry = async (reel) => {
     handleTrackInteraction('chat_inquiry', reel);
-    toast.success('Inquiry sent! Vendor will respond shortly.');
+    const vendorObj = reel.creator;
+    const vendorId = vendorObj?._id || vendorObj?.id || (typeof vendorObj === 'string' ? vendorObj : null);
+
+    if (!vendorId) {
+      toast.error('Vendor details unavailable');
+      return;
+    }
+
+    const listingId = reel.targetListing?._id || reel.targetListing?.id || reel.targetListing;
+    if (listingId) {
+      try {
+        await api.post('/v1/inquiries', {
+          listingId,
+          message: `I'm interested in the product shown in your reel: "${reel.caption || ''}"`
+        });
+        toast.success('Inquiry sent successfully!');
+      } catch (err) {
+        toast.error(err?.response?.data?.message || 'Failed to submit inquiry');
+      }
+    } else {
+      // Fallback: If no targetListing is linked, send a direct chat message instead!
+      try {
+        await api.post('/v1/chat/messages', {
+          recipientId: vendorId,
+          text: `Hi! I want to inquire about your reel: "${reel.caption || ''}"`
+        });
+        toast.success('Inquiry sent via Chat!');
+        const vendorName = encodeURIComponent(vendorObj.vendorProfile?.shopName || vendorObj.name || 'Vendor');
+        const vendorAvatar = encodeURIComponent(vendorObj.profile_pic || vendorObj.avatarUrl || '');
+        navigate(`/customer/chat?vendorId=${vendorId}&name=${vendorName}&avatar=${vendorAvatar}`);
+      } catch (err) {
+        toast.error(err?.response?.data?.message || 'Failed to send inquiry');
+      }
+    }
   };
 
   if (!currentReel) return null;
@@ -293,56 +352,54 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
             </button>
           </div>
 
-          {/* Boosted reel: Vendor masked info + action buttons */}
-          {currentReel.isBoosted && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-4 text-white/70 text-[10px]">
-                <span className="flex items-center gap-1">
-                  <FiMapPin size={10} /> {maskAddress(currentReel.creator)}
+          {/* Vendor contact + action buttons */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-4 text-white/70 text-[10px]">
+              <span className="flex items-center gap-1">
+                <FiMapPin size={10} /> {maskAddress(currentReel.creator)}
+              </span>
+              <span className="flex items-center gap-1">
+                <FiPhone size={10} /> {maskPhone(currentReel.creator?.phone)}
+              </span>
+              {currentReel.creator?.is_subscribed_verified && (
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <FiShield size={10} /> Verified
                 </span>
-                <span className="flex items-center gap-1">
-                  <FiPhone size={10} /> {maskPhone(currentReel.creator?.phone)}
-                </span>
-                {currentReel.creator?.is_subscribed_verified && (
-                  <span className="flex items-center gap-1 text-emerald-400">
-                    <FiShield size={10} /> Verified
-                  </span>
-                )}
-              </div>
-
-              {/* Action Buttons Row */}
-              <div className="grid grid-cols-4 gap-2">
-                <button
-                  onClick={() => handleWhatsApp(currentReel)}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition border border-emerald-500/20"
-                >
-                  <FaWhatsapp size={16} />
-                  <span className="text-[8px] font-bold">WhatsApp</span>
-                </button>
-                <button
-                  onClick={() => handleCallRequest(currentReel)}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/20"
-                >
-                  <FiPhone size={16} />
-                  <span className="text-[8px] font-bold">Call</span>
-                </button>
-                <button
-                  onClick={() => handleInquiry(currentReel)}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition border border-purple-500/20"
-                >
-                  <FiMessageSquare size={16} />
-                  <span className="text-[8px] font-bold">Chat</span>
-                </button>
-                <button
-                  onClick={() => handleInquiry(currentReel)}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition border border-orange-500/20"
-                >
-                  <FiMessageCircle size={16} />
-                  <span className="text-[8px] font-bold">Inquiry</span>
-                </button>
-              </div>
+              )}
             </div>
-          )}
+
+            {/* Action Buttons Row */}
+            <div className="grid grid-cols-4 gap-2">
+              <button
+                onClick={() => handleWhatsApp(currentReel)}
+                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition border border-emerald-500/20"
+              >
+                <FaWhatsapp size={16} />
+                <span className="text-[8px] font-bold">WhatsApp</span>
+              </button>
+              <button
+                onClick={() => handleCallRequest(currentReel)}
+                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/20"
+              >
+                <FiPhone size={16} />
+                <span className="text-[8px] font-bold">Call</span>
+              </button>
+              <button
+                onClick={() => handleChat(currentReel)}
+                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition border border-purple-500/20"
+              >
+                <FiMessageSquare size={16} />
+                <span className="text-[8px] font-bold">Chat</span>
+              </button>
+              <button
+                onClick={() => handleInquiry(currentReel)}
+                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition border border-orange-500/20"
+              >
+                <FiMessageCircle size={16} />
+                <span className="text-[8px] font-bold">Inquiry</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>
