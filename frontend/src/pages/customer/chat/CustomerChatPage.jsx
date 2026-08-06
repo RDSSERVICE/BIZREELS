@@ -16,7 +16,8 @@ import {
   useGetConversationsQuery,
   useGetMessagesQuery,
   useSendMessageMutation,
-  useClearChatMutation
+  useClearChatMutation,
+  useDeleteConversationMutation
 } from '../../../features/chat/chatApi';
 
 const TABS = [
