@@ -40,72 +40,7 @@ class ReelRepository {
       match.hashtags = { $in: hashtags.map(h => h.toLowerCase()) };
     }
 
-    // Auto-seed default reels if database contains 0 reels to ensure home feed is loaded correctly
-    if (!reelsSeededChecked && !creatorId && (!hashtags || hashtags.length === 0)) {
-      try {
-        const totalCount = await Reel.countDocuments(match);
-        reelsSeededChecked = true;
-        if (totalCount === 0) {
-          const User = mongoose.model('User');
-          const firstUser = await User.findOne({ roles: 'vendor' }) || await User.findOne({});
-          if (firstUser) {
-            const seedReels = [
-              {
-                creator: firstUser._id,
-                videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4',
-                thumbnailUrl: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=500',
-                caption: 'Premium Organic Herbs straight from our farm! 🌿 #organic #herbs #gardening',
-                category: 'Grocery & Daily Essentials',
-                subcategory: 'Organic Food',
-                likesCount: 15,
-                commentsCount: 2,
-                views: 0,
-                isBoosted: true
-              },
-              {
-                creator: firstUser._id,
-                videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-tailor-working-with-cloth-41618-large.mp4',
-                thumbnailUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=500',
-                caption: 'Handcrafted premium clothing tailor-made just for you. 👔 Custom fabrics & fits. #fashion #tailoring #menstyle',
-                category: 'Fashion & Apparel',
-                subcategory: 'Men\'s Wear',
-                likesCount: 38,
-                commentsCount: 5,
-                views: 0,
-                isBoosted: false
-              },
-              {
-                creator: firstUser._id,
-                videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-chef-preparing-a-fresh-vegetable-salad-40034-large.mp4',
-                thumbnailUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500',
-                caption: 'Fresh and healthy farm salads prepared daily in our kitchen! 🥗 Try today. #healthyfood #restaurant #salad',
-                category: 'Restaurant & Food',
-                subcategory: 'Organic Food',
-                likesCount: 22,
-                commentsCount: 1,
-                views: 0,
-                isBoosted: true
-              },
-              {
-                creator: firstUser._id,
-                videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-mechanic-repairing-a-car-engine-40436-large.mp4',
-                thumbnailUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=500',
-                caption: 'Expert AC repair and auto services at your doorstep. Fast turnaround. 🔧🚗 #automobile #repair #carcare',
-                category: 'Services & Repairs',
-                subcategory: 'Appliance Repair',
-                likesCount: 9,
-                commentsCount: 0,
-                views: 0,
-                isBoosted: false
-              }
-            ];
-            await Reel.create(seedReels);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to auto-seed reels:', err.message);
-      }
-    }
+
 
     const pipeline = [];
 
