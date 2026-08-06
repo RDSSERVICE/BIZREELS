@@ -9,25 +9,21 @@ import { api } from '../../lib/api';
 
 
 
-const getCategoryIcon = (categoryName, defaultIcon) => {
+const getCategoryIcon = (categoryName) => {
   const name = (categoryName || '').toLowerCase();
-  
-  if (defaultIcon && (defaultIcon.startsWith('http://') || defaultIcon.startsWith('https://') || defaultIcon.startsWith('/'))) {
-    return defaultIcon;
-  }
-
-  if (defaultIcon && /[\uD800-\uDFFF\u2600-\u27BF]/.test(defaultIcon)) {
-    return defaultIcon;
-  }
 
   const nameMap = {
     'electronic': FaLaptop,
     'it': FaLaptop,
+    'computer': FaLaptop,
+    'tech': FaLaptop,
     'fashion': FiShoppingBag,
     'apparel': FiShoppingBag,
     'wear': FiShoppingBag,
+    'clothing': FiShoppingBag,
     'restaurant': FiCoffee,
     'food': FiCoffee,
+    'beverage': FiCoffee,
     'service': FiTool,
     'repair': FiTool,
     'furniture': FaCouch,
@@ -56,21 +52,16 @@ const getCategoryIcon = (categoryName, defaultIcon) => {
     }
   }
 
-  return defaultIcon || FiFolder;
+  return FiFolder;
 };
 
-const renderCategoryIcon = (icon) => {
-  if (!icon) return <FiFolder size={18} />;
+const renderCategoryIcon = (IconComponent) => {
+  if (!IconComponent) return <FiFolder size={18} />;
 
-  if (typeof icon === 'string' && (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('/'))) {
-    return <img src={icon} alt="" className="w-5 h-5 object-contain" />;
+  if (typeof IconComponent === 'string') {
+    return <span className="text-base leading-none select-none">{IconComponent}</span>;
   }
 
-  if (typeof icon === 'string') {
-    return <span className="text-base leading-none select-none">{icon}</span>;
-  }
-
-  const IconComponent = icon;
   return <IconComponent size={18} />;
 };
 
@@ -88,7 +79,7 @@ export default function InterestSelector({ selected = [], setSelected }) {
             .filter(c => !c.parent_id && c.is_active !== false)
             .map(c => ({
               name: c.name,
-              icon: getCategoryIcon(c.name, c.icon_url),
+              icon: getCategoryIcon(c.name),
               dbId: c._id,
               subs: (c.children || []).map(sub => sub.name),
             }));

@@ -275,10 +275,20 @@ export default function CustomerSettingsPage() {
             <form onSubmit={handleSaveProfile} className="space-y-6">
               {/* Profile Info Section */}
               <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
-                <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2 border-b border-border pb-3">
-                  <FiUser className="text-brand-purple" />
-                  <span>Personal Information</span>
-                </h3>
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
+                    <FiUser className="text-brand-purple" />
+                    <span>Personal Information</span>
+                  </h3>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-premium hover:opacity-90 transition hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <FiSave size={13} />
+                    <span>Update</span>
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -372,15 +382,25 @@ export default function CustomerSettingsPage() {
                     <span>Address & Location (Autofill Enabled)</span>
                   </h3>
 
-                  <button
-                    type="button"
-                    onClick={handleAutofillLocation}
-                    disabled={isLocating}
-                    className="flex items-center gap-1.5 px-3 py-1.5 glass border border-border text-brand-purple hover:bg-brand-purple/10 rounded-xl text-xs font-bold transition"
-                  >
-                    <FiRefreshCw size={13} className={isLocating ? 'animate-spin' : ''} />
-                    <span>Use Current Location</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleAutofillLocation}
+                      disabled={isLocating}
+                      className="flex items-center gap-1.5 px-3 py-1.5 glass border border-border text-brand-purple hover:bg-brand-purple/10 rounded-xl text-xs font-bold transition"
+                    >
+                      <FiRefreshCw size={13} className={isLocating ? 'animate-spin' : ''} />
+                      <span>Use Current Location</span>
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-premium hover:opacity-90 transition hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <FiSave size={13} />
+                      <span>Update</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
