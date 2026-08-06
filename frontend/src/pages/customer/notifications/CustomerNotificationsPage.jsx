@@ -59,6 +59,11 @@ export default function CustomerNotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const pathname = window.location.pathname;
+  const isVendorPortal = pathname.includes('/vendor');
+  const isCreatorPortal = pathname.includes('/creator');
+  const isCustomerPortal = !isVendorPortal && !isCreatorPortal;
+
   useEffect(() => {
     fetchNotifications();
 
@@ -72,7 +77,7 @@ export default function CustomerNotificationsPage() {
         socket.off('notification:new', handleNewNotification);
       };
     }
-  }, []);
+  }, [pathname]);
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -80,7 +85,21 @@ export default function CustomerNotificationsPage() {
       const res = await api.get('/v1/notifications/me');
       const data = res.data?.data || res.data;
       const items = Array.isArray(data?.items) ? data.items : Array.isArray(data?.notifications) ? data.notifications : Array.isArray(data) ? data : [];
-      setNotifications(items);
+      
+      // Filter notifications based on active role dashboard
+      const roleFiltered = items.filter((n) => {
+        const url = (n.actionUrl || '').toLowerCase();
+        if (isVendorPortal) {
+          return url.startsWith('/vendor');
+        }
+        if (isCreatorPortal) {
+          return url.startsWith('/creator');
+        }
+        // Customer Portal sees customer links or generic system messages (no specific role prefix)
+        return url.startsWith('/customer') || (!url.startsWith('/vendor') && !url.startsWith('/creator') && !url.startsWith('/admin'));
+      });
+
+      setNotifications(roleFiltered);
     } catch {
       setNotifications([]);
     } finally {
@@ -92,12 +111,24 @@ export default function CustomerNotificationsPage() {
     (n) => activeTab === 'all' || n.type === activeTab
   );
 
+  // Customize headers based on role
+  let headerTitle = "Notifications Center";
+  let headerSubtitle = "Stay updated on admin announcements, vendor replies, price drops, and offers";
+
+  if (isVendorPortal) {
+    headerTitle = "Vendor Notifications";
+    headerSubtitle = "Track live messages, customer inquiries, quotes, and leads";
+  } else if (isCreatorPortal) {
+    headerTitle = "Creator Notifications";
+    headerSubtitle = "Track follower activities, viewer milestones, and collaborations";
+  }
+
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
       <AdminPageHeader
         icon={FiBell}
-        title="Notifications Center"
-        subtitle="Stay updated on admin announcements, vendor replies, price drops, and offers"
+        title={headerTitle}
+        subtitle={headerSubtitle}
       />
 
       <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
