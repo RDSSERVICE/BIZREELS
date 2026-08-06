@@ -59,8 +59,11 @@ class ReelController {
     // Parse comma-separated hashtags if present
     const hashtagsList = hashtags ? hashtags.split(',').map(h => h.trim()) : undefined;
 
+    const viewerId = req.user?._id?.toString() || req.ip || req.headers['x-forwarded-for'] || 'anonymous';
+
     const result = await reelService.getFeed({
-      currentUserId: req.user?._id, // nullable in case of guest views, but protected by auth generally
+      currentUserId: req.user?._id,
+      viewerId,
       creatorId,
       hashtags: hashtagsList,
       lat,
@@ -81,7 +84,8 @@ class ReelController {
   viewReel = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { watchDuration } = req.body;
-    const reel = await reelService.viewReel(id, req.user?._id, watchDuration);
+    const viewerId = req.user?._id?.toString() || req.ip || req.headers['x-forwarded-for'] || 'anonymous';
+    const reel = await reelService.viewReel(id, viewerId, watchDuration);
     return ApiResponse.ok(res, 'View registered.', { reel });
   });
 

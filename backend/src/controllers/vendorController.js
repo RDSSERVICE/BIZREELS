@@ -225,8 +225,8 @@ class VendorController {
           postType: 'product',
           category: 'Electronics',
           isDeleted: false,
-          views: 342,
-          likes: 54,
+          views: 0,
+          likes: 0,
         },
         {
           creator: userId,
@@ -236,8 +236,8 @@ class VendorController {
           postType: 'product',
           category: 'Accessories',
           isDeleted: false,
-          views: 215,
-          likes: 31,
+          views: 0,
+          likes: 0,
         }
       ];
       reels = await Reel.create(sampleReels);

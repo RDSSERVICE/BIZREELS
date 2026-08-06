@@ -59,7 +59,7 @@ class ReelRepository {
                 subcategory: 'Organic Food',
                 likesCount: 15,
                 commentsCount: 2,
-                views: 120,
+                views: 0,
                 isBoosted: true
               },
               {
@@ -71,7 +71,7 @@ class ReelRepository {
                 subcategory: 'Men\'s Wear',
                 likesCount: 38,
                 commentsCount: 5,
-                views: 340,
+                views: 0,
                 isBoosted: false
               },
               {
@@ -83,7 +83,7 @@ class ReelRepository {
                 subcategory: 'Organic Food',
                 likesCount: 22,
                 commentsCount: 1,
-                views: 198,
+                views: 0,
                 isBoosted: true
               },
               {
@@ -95,7 +95,7 @@ class ReelRepository {
                 subcategory: 'Appliance Repair',
                 likesCount: 9,
                 commentsCount: 0,
-                views: 85,
+                views: 0,
                 isBoosted: false
               }
             ];

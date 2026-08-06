@@ -225,7 +225,7 @@ class ReelService {
   }
 
   // ── Fetch Feed (Recommendation Engine) ──────────────────
-  async getFeed({ currentUserId, creatorId, hashtags, lat, lng, distance, page, limit }) {
+  async getFeed({ currentUserId, viewerId, creatorId, hashtags, lat, lng, distance, page, limit }) {
     // Use recommendation engine for authenticated users with no specific filters
     if (currentUserId && !creatorId && (!hashtags || hashtags.length === 0)) {
       try {
@@ -240,7 +240,7 @@ class ReelService {
     if (!currentUserId && !creatorId && (!hashtags || hashtags.length === 0)) {
       try {
         const recommendationService = require('./recommendation.service');
-        return await recommendationService.getGenericFeed(page, limit);
+        return await recommendationService.getGenericFeed(viewerId, page, limit);
       } catch (err) {
         logger.warn('Generic recommendation fallback to basic feed', { error: err.message });
       }
@@ -261,19 +261,43 @@ class ReelService {
 
   // ── Increment View + Track for Recommendations ─────────
   async viewReel(id, userId, watchDuration) {
-    const updated = await reelRepository.incrementViews(id);
+    const viewerId = userId ? userId.toString() : 'anonymous';
+
+    // YouTube/Instagram style: view must watch for at least 3 seconds
+    const MIN_WATCH_TIME_SECONDS = 3;
+    const isWatchTimeValid = (watchDuration || 0) >= MIN_WATCH_TIME_SECONDS;
+
+    // View cooldown/deduplication window: 15 minutes
+    const RECENT_VIEW_WINDOW_MS = 15 * 60 * 1000;
+
+    const ReelView = require('../models/ReelView');
+    const existingView = await ReelView.findOne({ user_id: viewerId, reel_id: id });
+
+    let shouldIncrementView = isWatchTimeValid;
+    if (existingView) {
+      const timeSinceLastView = Date.now() - new Date(existingView.viewed_at).getTime();
+      if (timeSinceLastView < RECENT_VIEW_WINDOW_MS) {
+        shouldIncrementView = false;
+      }
+    }
+
+    let updated;
+    if (shouldIncrementView) {
+      updated = await reelRepository.incrementViews(id);
+    } else {
+      updated = await reelRepository.findReelById(id);
+    }
+
     if (!updated) {
       throw ApiError.notFound('Reel not found.');
     }
 
-    // Track view for recommendation engine
-    if (userId) {
-      try {
-        const recommendationService = require('./recommendation.service');
-        await recommendationService.trackView(userId, id, watchDuration || 0);
-      } catch (err) {
-        // Non-critical — don't break the main flow
-      }
+    // Track view for recommendation engine (even if view count isn't incremented, we track so it can be filtered out)
+    try {
+      const recommendationService = require('./recommendation.service');
+      await recommendationService.trackView(viewerId, id, watchDuration || 0);
+    } catch (err) {
+      // Non-critical — don't break the main flow
     }
 
     return updated;

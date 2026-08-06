@@ -65,30 +65,53 @@ class RecommendationService {
     const mainPoolSize = Math.ceil(poolSize * 0.8);
     const explorationPoolSize = Math.ceil(poolSize * 0.2);
 
-    // 5. Build main recommendation pipeline
-    const mainReels = await this._getMainReels({
+    // 5. Calculate user top watched categories to boost related content
+    const topCategories = await this._getTopEngagedCategories(userId);
+
+    // 6. Build main recommendation pipeline
+    let mainReels = await this._getMainReels({
       excludeIds: viewedIds,
       interests,
+      topCategories,
       followedIds,
       limit: mainPoolSize,
       skip: (pageNum - 1) * limitNum,
     });
 
-    // 6. Get exploration content (categories user hasn't engaged with)
-    const explorationReels = await this._getExplorationReels({
+    // 7. Get exploration content (categories user hasn't engaged with)
+    let explorationReels = await this._getExplorationReels({
       excludeIds: [...viewedIds, ...mainReels.map(r => r._id)],
       excludeCategories: interestCategories,
       limit: explorationPoolSize,
     });
 
-    // 7. Merge and apply diversity filter
-    const allCandidates = [...mainReels, ...explorationReels];
+    let allCandidates = [...mainReels, ...explorationReels];
+
+    // Fallback: if all candidate reels have already been viewed, reset exclusions to loop back content
+    if (allCandidates.length === 0 && viewedIds.length > 0) {
+      mainReels = await this._getMainReels({
+        excludeIds: [],
+        interests,
+        topCategories,
+        followedIds,
+        limit: mainPoolSize,
+        skip: (pageNum - 1) * limitNum,
+      });
+      explorationReels = await this._getExplorationReels({
+        excludeIds: mainReels.map(r => r._id),
+        excludeCategories: interestCategories,
+        limit: explorationPoolSize,
+      });
+      allCandidates = [...mainReels, ...explorationReels];
+    }
+
+    // 8. Merge and apply diversity filter
     const diversified = this._applyCreatorDiversity(allCandidates, limitNum);
 
-    // 8. Lookup creator details and like state
+    // 9. Lookup creator details and like state
     const result = await this._enrichReels(diversified, userId);
 
-    // 9. Get total count for pagination
+    // 10. Get total count for pagination
     const total = await Reel.countDocuments({
       isDeleted: false,
       isDraft: false,
@@ -106,7 +129,7 @@ class RecommendationService {
   /**
    * Main recommendations — scored by engagement, interest match, trending, freshness.
    */
-  async _getMainReels({ excludeIds, interests, followedIds, limit, skip }) {
+  async _getMainReels({ excludeIds, interests, topCategories, followedIds, limit, skip }) {
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
@@ -139,6 +162,13 @@ class RecommendationService {
       });
       interestCond = {
         $cond: [{ $or: orConditions }, 20, 0]
+      };
+    }
+
+    let categoryEngagementBoost = 0;
+    if (topCategories && topCategories.length > 0) {
+      categoryEngagementBoost = {
+        $cond: [{ $in: ['$category', topCategories] }, 15, 0]
       };
     }
 
@@ -192,6 +222,8 @@ class RecommendationService {
           },
           // Boost bonus
           boostBonus: { $cond: [{ $eq: ['$isBoosted', true] }, 20, 0] },
+          // Category history boost
+          categoryHistoryBoost: categoryEngagementBoost,
         },
       },
       {
@@ -204,6 +236,7 @@ class RecommendationService {
               '$followedCreator',
               '$freshnessBoost',
               '$boostBonus',
+              '$categoryHistoryBoost',
               // Small random factor for variety (0-5)
               { $multiply: [{ $rand: {} }, 5] },
             ],
@@ -399,26 +432,54 @@ class RecommendationService {
   /**
    * Get generic (unauthenticated) feed — trending + recent.
    */
-  async getGenericFeed(page = 1, limit = 10) {
+  async getGenericFeed(viewerId, page = 1, limit = 10) {
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
     const skip = (pageNum - 1) * limitNum;
 
-    const cacheKey = `feed:generic:${pageNum}`;
+    // Use viewerId in generic feed cache key so guest refreshes fetch fresh content
+    const cacheKey = `feed:generic:${viewerId || 'guest'}:${pageNum}`;
     const cached = await cache.getCache(cacheKey);
     if (cached) return cached;
+
+    // Get viewed exclusions and top categories for guest dynamic filtering
+    let viewedIds = [];
+    let topCategories = [];
+    if (viewerId) {
+      try {
+        const recentViews = await ReelView.find({ user_id: viewerId.toString() })
+          .select('reel_id')
+          .sort({ viewed_at: -1 })
+          .limit(200)
+          .lean();
+        viewedIds = recentViews.map(v => v.reel_id);
+
+        topCategories = await this._getTopEngagedCategories(viewerId);
+      } catch (err) {}
+    }
+
+    const matchStage = {
+      isDeleted: false,
+      isDraft: false,
+      status: 'published',
+    };
+
+    if (viewedIds.length > 0) {
+      matchStage._id = { $nin: viewedIds };
+    }
+
+    let categoryEngagementBoost = 0;
+    if (topCategories && topCategories.length > 0) {
+      categoryEngagementBoost = {
+        $cond: [{ $in: ['$category', topCategories] }, 15, 0]
+      };
+    }
 
     const now = new Date();
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
-    const reels = await Reel.aggregate([
-      {
-        $match: {
-          isDeleted: false,
-          isDraft: false,
-          status: 'published',
-        },
-      },
+    let reels = await Reel.aggregate([
+      { $match: matchStage },
       {
         $addFields: {
           score: {
@@ -428,6 +489,7 @@ class RecommendationService {
               { $multiply: [{ $ifNull: ['$views', 0] }, 0.1] },
               { $cond: [{ $gte: ['$createdAt', threeDaysAgo] }, 20, 0] },
               { $cond: [{ $eq: ['$isBoosted', true] }, 15, 0] },
+              categoryEngagementBoost,
               { $multiply: [{ $rand: {} }, 5] },
             ],
           },
@@ -461,14 +523,100 @@ class RecommendationService {
       },
     ]);
 
+    // Fallback: If no candidate reels left (all viewed), loop back
+    if (reels.length === 0 && viewedIds.length > 0) {
+      delete matchStage._id;
+      reels = await Reel.aggregate([
+        { $match: matchStage },
+        {
+          $addFields: {
+            score: {
+              $add: [
+                { $multiply: [{ $ifNull: ['$likesCount', 0] }, 2] },
+                { $multiply: [{ $ifNull: ['$commentsCount', 0] }, 3] },
+                { $multiply: [{ $ifNull: ['$views', 0] }, 0.1] },
+                { $cond: [{ $gte: ['$createdAt', threeDaysAgo] }, 20, 0] },
+                { $cond: [{ $eq: ['$isBoosted', true] }, 15, 0] },
+                categoryEngagementBoost,
+                { $multiply: [{ $rand: {} }, 5] },
+              ],
+            },
+          },
+        },
+        { $sort: { score: -1 } },
+        { $skip: skip },
+        { $limit: limitNum },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'creator',
+            foreignField: '_id',
+            as: 'creatorDetails',
+          },
+        },
+        { $unwind: { path: '$creatorDetails', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            videoUrl: 1, thumbnailUrl: 1, caption: 1, hashtags: 1,
+            location: 1, views: 1, likesCount: 1, commentsCount: 1,
+            isBoosted: 1, createdAt: 1,
+            hasLiked: { $literal: false },
+            creator: {
+              _id: '$creatorDetails._id',
+              name: '$creatorDetails.name',
+              avatarUrl: '$creatorDetails.avatarUrl',
+              activeRole: '$creatorDetails.activeRole',
+            },
+          },
+        },
+      ]);
+    }
+
     // Apply creator diversity
     const diversified = this._applyCreatorDiversity(reels, limitNum);
 
     const total = await Reel.countDocuments({ isDeleted: false, isDraft: false, status: 'published' });
     const response = { reels: diversified, total };
 
-    await cache.setCache(cacheKey, response, 120); // 2 min cache for generic
+    await cache.setCache(cacheKey, response, 30); // 30 sec cache for generic
     return response;
+  }
+
+  /**
+   * Helper to aggregate user watch history and extract top 3 engaged categories.
+   */
+  async _getTopEngagedCategories(userId) {
+    if (!userId) return [];
+    try {
+      const ReelView = require('../models/ReelView');
+      const mongoose = require('mongoose');
+      
+      const aggregation = await ReelView.aggregate([
+        { $match: { user_id: userId.toString() } },
+        {
+          $lookup: {
+            from: 'reels',
+            localField: 'reel_id',
+            foreignField: '_id',
+            as: 'reelDetails',
+          },
+        },
+        { $unwind: '$reelDetails' },
+        {
+          $group: {
+            _id: '$reelDetails.category',
+            totalWatchTime: { $sum: '$watch_duration_seconds' },
+            viewCount: { $sum: 1 },
+          },
+        },
+        { $sort: { totalWatchTime: -1, viewCount: -1 } },
+        { $limit: 3 },
+      ]);
+      return aggregation.map((item) => item._id).filter(Boolean);
+    } catch (err) {
+      logger.error('Failed to calculate top engaged categories:', err);
+      return [];
+    }
   }
 }
 
