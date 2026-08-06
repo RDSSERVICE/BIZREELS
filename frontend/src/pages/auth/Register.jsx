@@ -47,12 +47,12 @@ const Register = () => {
       dispatch(setCredentials(res.data));
       toast.success('Registration successful! Welcome to BizReels.');
       const user = res.data?.user || res.data;
-      const activeRole = user?.activeRole || user?.current_role || data.role || 'customer';
+      const activeRole = data.role || user?.activeRole || user?.current_role || 'customer';
       let targetPath = getRoleDashboard(activeRole);
       if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
-        targetPath = '/customer/become-vendor';
+        targetPath = '/vendor/profile';
       } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
-        targetPath = '/customer/become-creator';
+        targetPath = '/creator/profile';
       }
       navigate(targetPath, { replace: true });
     } catch (err) {

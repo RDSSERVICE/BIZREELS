@@ -83,4 +83,48 @@ const authorize = (...allowedRoles) => {
   };
 };
 
-module.exports = { authenticate, authorize };
+/**
+ * Optional authentication middleware.
+ * If token is valid, attaches user to req.user; otherwise continues without throwing.
+ */
+const optionalAuthenticate = async (req, res, next) => {
+  try {
+    let token;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+    }
+
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, config.jwt.accessSecret);
+    } catch {
+      try {
+        decoded = jwt.verify(token, config.jwtSecret);
+      } catch {
+        req.user = null;
+        return next();
+      }
+    }
+
+    const userId = decoded.userId || decoded.sub;
+    const user = await User.findById(userId)
+      .select('-password -__v -creatorProfile -vendorProfile -customerProfile -followers -following')
+      .lean();
+
+    req.user = user;
+    next();
+  } catch (error) {
+    req.user = null;
+    next();
+  }
+};
+
+module.exports = { authenticate, authorize, optionalAuthenticate };

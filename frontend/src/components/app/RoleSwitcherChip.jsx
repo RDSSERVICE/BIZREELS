@@ -66,9 +66,9 @@ export default function RoleSwitcherChip() {
       
       let targetPath = homeForRole(role);
       if (role === 'vendor' && !updatedUser?.vendorProfile?.shopName) {
-        targetPath = '/customer/become-vendor';
+        targetPath = '/vendor/profile';
       } else if (role === 'creator' && !updatedUser?.creatorProfile?.displayName) {
-        targetPath = '/customer/become-creator';
+        targetPath = '/creator/profile';
       }
       navigate(targetPath, { replace: true });
     } catch (e) {

@@ -211,6 +211,7 @@ class ListingRepository {
         shippingDetails: 1,
         gst: 1,
         tags: 1,
+        views: { $ifNull: ['$views', 0] },
         vendor: {
           _id: '$vendorDetails._id',
           name: '$vendorDetails.name',

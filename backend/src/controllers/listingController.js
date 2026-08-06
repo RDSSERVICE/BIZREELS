@@ -83,6 +83,11 @@ class ListingController {
   // ── Get Single Listing Details ──────────────────────────
   getListingDetails = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    try {
+      await listingService.incrementViews(id);
+    } catch (err) {
+      console.error('Failed to auto-increment listing view count:', err);
+    }
     const listing = await listingService.getListingDetails(id);
     return ApiResponse.ok(res, 'Listing details retrieved.', { listing });
   });

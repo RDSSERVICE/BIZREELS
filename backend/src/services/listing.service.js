@@ -525,7 +525,8 @@ class ListingService {
   }
 
   async incrementViews(id) {
-    return { ok: true };
+    const Listing = require('../models/Listing');
+    return Listing.findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true });
   }
 
   async getByIdForOwner(id, vendorId) {

@@ -49,9 +49,9 @@ const AuthCallback = () => {
       const activeRole = user?.activeRole || user?.current_role || (user?.roles || [])[0] || 'customer';
       let targetPath = getRoleDashboard(activeRole);
       if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
-        targetPath = '/customer/become-vendor';
+        targetPath = '/vendor/profile';
       } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
-        targetPath = '/customer/become-creator';
+        targetPath = '/creator/profile';
       }
       navigate(targetPath, { replace: true });
     }

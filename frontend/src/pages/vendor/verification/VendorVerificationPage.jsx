@@ -43,6 +43,15 @@ export default function VendorVerificationPage() {
   const vendorProfile = currentUser?.vendorProfile || {};
 
   const [activeTab, setActiveTab] = useState('contacts'); // 'contacts' | 'documents' | 'payment'
+  const docsSequence = [
+    { key: 'aadhaar', label: 'Aadhaar Card' },
+    { key: 'pan', label: 'PAN Card' },
+    { key: 'gst', label: 'GST Registration' },
+    { key: 'shopLicense', label: 'Shop License' },
+    { key: 'udyamRegistration', label: 'MSME / Udyam' },
+    { key: 'dynamic', label: 'Custom Document' }
+  ];
+  const [currentDocIndex, setCurrentDocIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [statusData, setStatusData] = useState({
     completionPercentage: 20,
@@ -141,7 +150,11 @@ export default function VendorVerificationPage() {
 
   // Direct Website Verification (No OTP needed for Website)
   const handleVerifyWebsite = async (url) => {
-    const targetUrl = url || vendorProfile.website || 'https://www.bizreels.in';
+    const targetUrl = url || vendorProfile.website;
+    if (!targetUrl || targetUrl.trim() === '') {
+      toast.error('❌ Please configure your website URL in settings before verifying.');
+      return;
+    }
     setLoading(true);
     const toastId = toast.loading('Pinging and verifying website URL...');
     try {
@@ -233,16 +246,37 @@ export default function VendorVerificationPage() {
         setDynamicDocFile('');
       }
 
-      // AUTOMATIC PROGRESSION: Auto-move to Part 3 (payment) after document verification
+      // AUTOMATIC PROGRESSION: Auto-move to next document or Part 3 after document verification
       setTimeout(() => {
-        setActiveTab('payment');
-        toast.success('⏩ Part 2 Document Submitted! Automatically advancing to Part 3: Payout & Payment Details.');
+        if (currentDocIndex < 5) {
+          setCurrentDocIndex(prev => prev + 1);
+          toast.success(`⏩ ${docName || docType.toUpperCase()} submitted! Moving to next document.`);
+        } else {
+          setActiveTab('payment');
+          toast.success('⏩ All Part 2 documents processed! Advancing to Part 3: Payout & Payment Details.');
+        }
       }, 1200);
 
     } catch (err) {
       toast.error(`Failed to verify ${docType}`, { id: toastId });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSkipDoc = () => {
+    if (currentDocIndex < 5) {
+      setCurrentDocIndex(prev => prev + 1);
+      toast.success('⏩ Document skipped. Moving to next document.');
+    } else {
+      setActiveTab('payment');
+      toast.success('⏩ Moving to Part 3: Payout & Payment Details.');
+    }
+  };
+
+  const handlePrevDoc = () => {
+    if (currentDocIndex > 0) {
+      setCurrentDocIndex(prev => prev - 1);
     }
   };
 
@@ -572,242 +606,339 @@ export default function VendorVerificationPage() {
             <span className="text-xs text-brand-purple font-semibold">Instant API Verification</span>
           </h3>
 
+          {/* Step indicators */}
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 border-b border-border pb-4 mb-4">
+            {docsSequence.map((step, idx) => {
+              const isCompleted = step.key === 'dynamic'
+                ? (statusData.documents?.dynamicDocs && statusData.documents.dynamicDocs.length > 0)
+                : statusData.documents?.[step.key]?.status === 'approved' || statusData.documents?.[step.key];
+              const isActive = currentDocIndex === idx;
+              return (
+                <button
+                  type="button"
+                  key={step.key}
+                  onClick={() => setCurrentDocIndex(idx)}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all ${
+                    isActive
+                      ? 'bg-brand-purple/10 text-brand-purple border-brand-purple/40 font-bold shadow-sm'
+                      : isCompleted
+                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                      : 'bg-surface-secondary text-text-tertiary border-border hover:text-text-secondary'
+                  }`}
+                >
+                  <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-wider">Step {idx + 1}</span>
+                  <span className="text-[11px] font-bold truncate w-full mt-0.5">{step.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="space-y-6">
             
             {/* 1. Aadhaar Card */}
-            <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-brand-purple text-white flex items-center justify-center text-xs font-bold">A</span>
-                  <div>
-                    <h4 className="text-xs font-bold text-text-primary">Aadhaar Card (Individual Identity)</h4>
-                    <p className="text-[10px] text-text-tertiary">Enter 12-digit Aadhaar number & upload front-back images</p>
+            {currentDocIndex === 0 && (
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-brand-purple text-white flex items-center justify-center text-xs font-bold">A</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-text-primary">Aadhaar Card (Individual Identity)</h4>
+                      <p className="text-[10px] text-text-tertiary">Enter 12-digit Aadhaar number & upload front-back images</p>
+                    </div>
                   </div>
+                  {statusData.documents?.aadhaar?.status === 'approved' && (
+                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                      Verified ✓
+                    </span>
+                  )}
                 </div>
-                {statusData.documents?.aadhaar?.status === 'approved' && (
-                  <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
-                    Verified ✓
-                  </span>
-                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    maxLength={12}
+                    value={aadhaarNum}
+                    onChange={(e) => setAadhaarNum(e.target.value)}
+                    placeholder="12-Digit Aadhaar Number"
+                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary"
+                  />
+
+                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
+                    <FiUploadCloud size={14} /> {aadhaarFront ? 'Front Attached ✓' : 'Upload Front Image'}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarFront)} />
+                  </label>
+
+                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
+                    <FiUploadCloud size={14} /> {aadhaarBack ? 'Back Attached ✓' : 'Upload Back Image'}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarBack)} />
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleVerifyDocument('aadhaar', aadhaarNum, aadhaarFront, aadhaarBack, null, 'Aadhaar Card')}
+                  disabled={loading || !aadhaarNum}
+                  className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                >
+                  Verify Aadhaar Card
+                </button>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input
-                  type="text"
-                  maxLength={12}
-                  value={aadhaarNum}
-                  onChange={(e) => setAadhaarNum(e.target.value)}
-                  placeholder="12-Digit Aadhaar Number"
-                  className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary"
-                />
-
-                <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                  <FiUploadCloud size={14} /> {aadhaarFront ? 'Front Attached ✓' : 'Upload Front Image'}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarFront)} />
-                </label>
-
-                <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                  <FiUploadCloud size={14} /> {aadhaarBack ? 'Back Attached ✓' : 'Upload Back Image'}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarBack)} />
-                </label>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleVerifyDocument('aadhaar', aadhaarNum, aadhaarFront, aadhaarBack, null, 'Aadhaar Card')}
-                disabled={loading || !aadhaarNum}
-                className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
-              >
-                Verify Aadhaar Card
-              </button>
-            </div>
+            )}
 
             {/* 2. PAN Card */}
-            <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-brand-pink text-white flex items-center justify-center text-xs font-bold">P</span>
-                  <div>
-                    <h4 className="text-xs font-bold text-text-primary">PAN Card (Tax Identification)</h4>
-                    <p className="text-[10px] text-text-tertiary">Enter 10-digit PAN number & upload PAN document</p>
+            {currentDocIndex === 1 && (
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-brand-pink text-white flex items-center justify-center text-xs font-bold">P</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-text-primary">PAN Card (Tax Identification)</h4>
+                      <p className="text-[10px] text-text-tertiary">Enter 10-digit PAN number & upload PAN document</p>
+                    </div>
                   </div>
+                  {statusData.documents?.pan?.status === 'approved' && (
+                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                      Verified ✓
+                    </span>
+                  )}
                 </div>
-                {statusData.documents?.pan?.status === 'approved' && (
-                  <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
-                    Verified ✓
-                  </span>
-                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    maxLength={10}
+                    value={panNum}
+                    onChange={(e) => setPanNum(e.target.value.toUpperCase())}
+                    placeholder="e.g. ABCDE1234F"
+                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary uppercase"
+                  />
+
+                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
+                    <FiUploadCloud size={14} /> {panFront ? 'Front Attached ✓' : 'Upload Front Image'}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setPanFront)} />
+                  </label>
+
+                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
+                    <FiUploadCloud size={14} /> {panBack ? 'Back Attached ✓' : 'Upload Back Image'}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setPanBack)} />
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleVerifyDocument('pan', panNum, panFront, panBack, null, 'PAN Card')}
+                  disabled={loading || !panNum}
+                  className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                >
+                  Verify PAN Card
+                </button>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input
-                  type="text"
-                  maxLength={10}
-                  value={panNum}
-                  onChange={(e) => setPanNum(e.target.value.toUpperCase())}
-                  placeholder="e.g. ABCDE1234F"
-                  className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary uppercase"
-                />
-
-                <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                  <FiUploadCloud size={14} /> {panFront ? 'Front Attached ✓' : 'Upload Front Image'}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setPanFront)} />
-                </label>
-
-                <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                  <FiUploadCloud size={14} /> {panBack ? 'Back Attached ✓' : 'Upload Back Image'}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setPanBack)} />
-                </label>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleVerifyDocument('pan', panNum, panFront, panBack, null, 'PAN Card')}
-                disabled={loading || !panNum}
-                className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
-              >
-                Verify PAN Card
-              </button>
-            </div>
+            )}
 
             {/* 3. GST Number (Optional) */}
-            <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">G</span>
-                  <div>
-                    <h4 className="text-xs font-bold text-text-primary">GST Registration Certificate (Optional)</h4>
-                    <p className="text-[10px] text-text-tertiary">Enter 15-digit GSTIN & upload GST registration certificate</p>
+            {currentDocIndex === 2 && (
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">G</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-text-primary">GST Registration Certificate (Optional)</h4>
+                      <p className="text-[10px] text-text-tertiary">Enter 15-digit GSTIN & upload GST registration certificate</p>
+                    </div>
                   </div>
+                  {statusData.documents?.gst?.status === 'approved' && (
+                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                      Verified ✓
+                    </span>
+                  )}
                 </div>
-                {statusData.documents?.gst?.status === 'approved' && (
-                  <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
-                    Verified ✓
-                  </span>
-                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    maxLength={15}
+                    value={gstNum}
+                    onChange={(e) => setGstNum(e.target.value.toUpperCase())}
+                    placeholder="15-Digit GSTIN (e.g. 27ABCDE1234F1Z5)"
+                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary uppercase"
+                  />
+
+                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
+                    <FiUploadCloud size={14} /> {gstFile ? 'Certificate Attached ✓' : 'Upload GST Certificate'}
+                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setGstFile)} />
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleVerifyDocument('gst', gstNum, null, null, gstFile, 'GST Certificate')}
+                  disabled={loading || !gstNum}
+                  className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                >
+                  Verify GSTIN
+                </button>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  maxLength={15}
-                  value={gstNum}
-                  onChange={(e) => setGstNum(e.target.value.toUpperCase())}
-                  placeholder="15-Digit GSTIN (e.g. 27ABCDE1234F1Z5)"
-                  className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary uppercase"
-                />
+            {/* 4. Shop License (Optional) */}
+            {currentDocIndex === 3 && (
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center text-xs font-bold">S</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-text-primary">Shop & Establishment License (Optional)</h4>
+                      <p className="text-[10px] text-text-tertiary">Enter license registration number & upload license document</p>
+                    </div>
+                  </div>
+                  {statusData.documents?.shopLicense?.status === 'approved' && (
+                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                      Verified ✓
+                    </span>
+                  )}
+                </div>
 
-                <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                  <FiUploadCloud size={14} /> {gstFile ? 'Certificate Attached ✓' : 'Upload GST Certificate'}
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setGstFile)} />
-                </label>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={shopLicenseNum}
+                    onChange={(e) => setShopLicenseNum(e.target.value)}
+                    placeholder="License Registration No."
+                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-semibold text-text-primary"
+                  />
+                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
+                    <FiUploadCloud size={14} /> {shopLicenseFile ? 'License Attached ✓' : 'Upload License Document'}
+                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setShopLicenseFile)} />
+                  </label>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => handleVerifyDocument('gst', gstNum, null, null, gstFile, 'GST Certificate')}
-                disabled={loading || !gstNum}
-                className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
-              >
-                Verify GSTIN
-              </button>
-            </div>
-
-            {/* 4. Shop License & Udyam Registration (Optional) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-surface border border-border space-y-3">
-                <h4 className="text-xs font-bold text-text-primary">Shop & Establishment License</h4>
-                <input
-                  type="text"
-                  value={shopLicenseNum}
-                  onChange={(e) => setShopLicenseNum(e.target.value)}
-                  placeholder="License Registration No."
-                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-semibold"
-                />
-                <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5">
-                  <FiUploadCloud size={14} /> {shopLicenseFile ? 'License Attached ✓' : 'Upload License'}
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setShopLicenseFile)} />
-                </label>
                 <button
                   type="button"
                   onClick={() => handleVerifyDocument('shopLicense', shopLicenseNum, null, null, shopLicenseFile, 'Shop License')}
                   disabled={loading || !shopLicenseNum}
-                  className="w-full py-2 bg-brand-purple text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                  className="w-full py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
                 >
-                  Verify License
+                  Verify Shop License
                 </button>
               </div>
+            )}
 
-              <div className="p-4 rounded-2xl bg-surface border border-border space-y-3">
-                <h4 className="text-xs font-bold text-text-primary">MSME / Udyam Registration</h4>
-                <input
-                  type="text"
-                  value={udyamNum}
-                  onChange={(e) => setUdyamNum(e.target.value)}
-                  placeholder="Udyam Registration No. (UDYAM-XX-00-000000)"
-                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-semibold"
-                />
-                <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5">
-                  <FiUploadCloud size={14} /> {udyamFile ? 'Udyam Attached ✓' : 'Upload Certificate'}
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setUdyamFile)} />
-                </label>
+            {/* 5. Udyam Registration (Optional) */}
+            {currentDocIndex === 4 && (
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-teal-500 text-white flex items-center justify-center text-xs font-bold">M</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-text-primary">MSME / Udyam Registration (Optional)</h4>
+                      <p className="text-[10px] text-text-tertiary">Enter Udyam registration number (e.g. UDYAM-XX-00-000000) & upload certificate</p>
+                    </div>
+                  </div>
+                  {statusData.documents?.udyamRegistration?.status === 'approved' && (
+                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                      Verified ✓
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={udyamNum}
+                    onChange={(e) => setUdyamNum(e.target.value)}
+                    placeholder="Udyam Registration No. (UDYAM-XX-00-000000)"
+                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-semibold text-text-primary"
+                  />
+                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
+                    <FiUploadCloud size={14} /> {udyamFile ? 'Udyam Attached ✓' : 'Upload MSME Certificate'}
+                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setUdyamFile)} />
+                  </label>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => handleVerifyDocument('udyamRegistration', udyamNum, null, null, udyamFile, 'Udyam Registration')}
                   disabled={loading || !udyamNum}
-                  className="w-full py-2 bg-brand-purple text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                  className="w-full py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
                 >
-                  Verify Udyam
+                  Verify Udyam Registration
                 </button>
               </div>
-            </div>
+            )}
 
-            {/* 5. Dynamic Category Documents (FSSAI, Driving License, Pharmacy License) */}
-            <div className="p-5 rounded-2xl bg-surface-secondary border border-border space-y-3">
-              <h4 className="text-xs font-bold text-text-primary flex items-center gap-2">
-                <FiPlus className="text-brand-purple" />
-                <span>Dynamic Category Business Documents (FSSAI / Food License / Driving License / Pharmacy Permit)</span>
-              </h4>
+            {/* 6. Dynamic Category Documents (Optional) */}
+            {currentDocIndex === 5 && (
+              <div className="p-5 rounded-2xl bg-surface-secondary border border-border space-y-3 animate-fade-in">
+                <h4 className="text-xs font-bold text-text-primary flex items-center gap-2">
+                  <FiPlus className="text-brand-purple" />
+                  <span>Dynamic Category Business Documents (FSSAI / Food License / Driving License / Pharmacy Permit)</span>
+                </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input
-                  type="text"
-                  value={dynamicDocName}
-                  onChange={(e) => setDynamicDocName(e.target.value)}
-                  placeholder="Document Name (e.g. FSSAI License)"
-                  className="px-3 py-2 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    value={dynamicDocName}
+                    onChange={(e) => setDynamicDocName(e.target.value)}
+                    placeholder="Document Name (e.g. FSSAI License)"
+                    className="px-3 py-2 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
+                  />
 
-                <input
-                  type="text"
-                  value={dynamicDocNum}
-                  onChange={(e) => setDynamicDocNum(e.target.value)}
-                  placeholder="Reg / License No."
-                  className="px-3 py-2 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-                />
+                  <input
+                    type="text"
+                    value={dynamicDocNum}
+                    onChange={(e) => setDynamicDocNum(e.target.value)}
+                    placeholder="Reg / License No."
+                    className="px-3 py-2 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
+                  />
 
-                <label className="cursor-pointer px-3 py-2 bg-surface border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5">
-                  <FiUploadCloud size={14} /> {dynamicDocFile ? 'File Attached ✓' : 'Upload Document'}
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setDynamicDocFile)} />
-                </label>
+                  <label className="cursor-pointer px-3 py-2 bg-surface border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5">
+                    <FiUploadCloud size={14} /> {dynamicDocFile ? 'File Attached ✓' : 'Upload Document'}
+                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setDynamicDocFile)} />
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleVerifyDocument('dynamic', dynamicDocNum, null, null, dynamicDocFile, dynamicDocName || 'Custom Business License')}
+                  disabled={loading || !dynamicDocName}
+                  className="w-full py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                >
+                  Add & Verify Document
+                </button>
               </div>
+            )}
+          </div>
+
+          {/* Wizard Footer Navigation */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border mt-6">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrevDoc}
+                disabled={currentDocIndex === 0}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  currentDocIndex > 0
+                    ? 'bg-surface border border-border text-text-secondary hover:bg-surface-secondary shadow-sm'
+                    : 'opacity-50 cursor-not-allowed bg-surface-secondary text-text-tertiary border border-border'
+                }`}
+              >
+                Back
+              </button>
 
               <button
                 type="button"
-                onClick={() => handleVerifyDocument('dynamic', dynamicDocNum, null, null, dynamicDocFile, dynamicDocName || 'Custom Business License')}
-                disabled={loading || !dynamicDocName}
-                className="w-full py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                onClick={handleSkipDoc}
+                className="px-5 py-2 rounded-xl bg-surface-tertiary hover:bg-surface-secondary border border-border text-text-secondary text-xs font-bold transition flex items-center gap-1.5"
               >
-                Add & Verify Document
+                <span>{currentDocIndex === 5 ? 'Skip & Finish' : 'Skip & Next'}</span>
+                <FiChevronRight size={14} />
               </button>
             </div>
-          </div>
 
-          <div className="flex justify-end pt-2 border-t border-border">
             <button
               type="button"
               onClick={() => handleTabClick('payment')}
-              className={`px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                 isPart2Complete
                   ? 'gradient-brand text-white shadow-premium hover:opacity-90'
                   : 'bg-surface-secondary text-text-tertiary border border-border cursor-not-allowed'

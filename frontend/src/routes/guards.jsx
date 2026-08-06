@@ -55,28 +55,26 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
   // Check if vendor/creator profile is incomplete before allowing dashboard access
   const isAccessingVendor = allowedRoles.includes('vendor');
   if (isAccessingVendor && !user?.vendorProfile?.shopName) {
-    return <Navigate to="/customer/become-vendor" replace />;
+    if (window.location.pathname !== '/vendor/profile') {
+      return <Navigate to="/vendor/profile" replace />;
+    }
   }
 
   const isAccessingCreator = allowedRoles.includes('creator');
   if (isAccessingCreator && !user?.creatorProfile?.displayName) {
-    return <Navigate to="/customer/become-creator" replace />;
+    if (window.location.pathname !== '/creator/profile') {
+      return <Navigate to="/creator/profile" replace />;
+    }
   }
 
   const hasAllowedRole = allowedRoles.some(r => r === activeRole || userRoles.includes(r));
 
   if (!hasAllowedRole) {
     if (userRoles.includes('vendor')) {
-      if (user?.vendorProfile?.shopName) {
-        return <Navigate to="/vendor/dashboard" replace />;
-      }
-      return <Navigate to="/customer/become-vendor" replace />;
+      return <Navigate to="/vendor/dashboard" replace />;
     }
     if (userRoles.includes('creator')) {
-      if (user?.creatorProfile?.displayName) {
-        return <Navigate to="/creator/dashboard" replace />;
-      }
-      return <Navigate to="/customer/become-creator" replace />;
+      return <Navigate to="/creator/dashboard" replace />;
     }
     return <Navigate to="/customer/home" replace />;
   }

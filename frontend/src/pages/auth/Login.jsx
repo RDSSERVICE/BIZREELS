@@ -45,7 +45,7 @@ const Login = () => {
       dispatch(setCredentials(res.data));
       toast.success('Welcome back to BizReels!');
       const user = res.data?.user || res.data;
-      const activeRole = user?.activeRole || user?.current_role || data.role || 'customer';
+      const activeRole = data.role || user?.activeRole || user?.current_role || 'customer';
       const roles = user?.roles || [];
       if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
@@ -59,9 +59,9 @@ const Login = () => {
           }
         }
         if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
-          targetPath = '/customer/become-vendor';
+          targetPath = '/vendor/profile';
         } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
-          targetPath = '/customer/become-creator';
+          targetPath = '/creator/profile';
         }
         navigate(targetPath, { replace: true });
       }
@@ -121,9 +121,9 @@ const Login = () => {
           }
         }
         if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
-          targetPath = '/customer/become-vendor';
+          targetPath = '/vendor/profile';
         } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
-          targetPath = '/customer/become-creator';
+          targetPath = '/creator/profile';
         }
         navigate(targetPath, { replace: true });
       }

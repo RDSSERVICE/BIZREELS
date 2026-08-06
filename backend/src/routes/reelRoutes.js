@@ -3,7 +3,7 @@ const reelController = require('../controllers/reelController');
 const reelValidation = require('../validations/reelValidation');
 const validate = require('../middleware/validate');
 const upload = require('../middleware/upload');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, optionalAuthenticate } = require('../middleware/auth');
 const { checkSubscriptionLimit } = require('../middleware/subscription');
 
 const router = express.Router();
@@ -54,7 +54,7 @@ router.post(
 );
 
 router.delete('/:id', authenticate, reelValidation.idParam, validate, reelController.deleteReel);
-router.post('/:id/view', authenticate, reelValidation.idParam, validate, reelController.viewReel);
+router.post('/:id/view', optionalAuthenticate, reelValidation.idParam, validate, reelController.viewReel);
 router.post('/:id/like', authenticate, reelValidation.idParam, validate, reelController.toggleLike);
 
 router.post('/:id/comments', authenticate, reelValidation.comment, validate, reelController.addComment);
