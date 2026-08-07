@@ -111,8 +111,19 @@ class AuthController {
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     await authService.logout(refreshToken, req.user._id, req);
 
-    res.clearCookie('refreshToken', { path: '/api/v1/auth' });
-    res.clearCookie('accessToken');
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.clearCookie('refreshToken', {
+      path: '/api/v1/auth',
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+    });
+    res.clearCookie('accessToken', {
+      path: '/',
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+    });
 
     return ApiResponse.ok(res, 'Logged out successfully.');
   });
@@ -121,8 +132,19 @@ class AuthController {
   logoutAll = asyncHandler(async (req, res) => {
     await authService.logoutAll(req.user._id, req);
 
-    res.clearCookie('refreshToken', { path: '/api/v1/auth' });
-    res.clearCookie('accessToken');
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.clearCookie('refreshToken', {
+      path: '/api/v1/auth',
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+    });
+    res.clearCookie('accessToken', {
+      path: '/',
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+    });
 
     return ApiResponse.ok(res, 'Logged out from all devices.');
   });
@@ -186,8 +208,19 @@ class AuthController {
   // ── Delete Account ─────────────────────────────────────
   deleteAccount = asyncHandler(async (req, res) => {
     const result = await authService.deleteAccount(req.user._id, req);
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.clearCookie('refreshToken', {
+      path: '/api/v1/auth',
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+    });
+    res.clearCookie('accessToken', {
+      path: '/',
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+    });
     return ApiResponse.ok(res, 'Account deleted successfully.', result);
   });
 
@@ -207,10 +240,11 @@ class AuthController {
 
   // ── Private: Set Refresh Token Cookie ───────────────────
   _setRefreshTokenCookie(res, refreshToken) {
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/api/v1/auth',
     });
@@ -218,11 +252,13 @@ class AuthController {
 
   // ── Private: Set Access Token Cookie ────────────────────
   _setAccessTokenCookie(res, accessToken) {
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 30 * 60 * 1000, // 30 minutes
+      path: '/',
     });
   }
 }
