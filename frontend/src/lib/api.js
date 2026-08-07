@@ -34,8 +34,20 @@ const safeSetItem = (key, value) => {
 };
 
 export const tokenStore = {
-  getAccess: () => null,
-  getRefresh: () => null,
+  getAccess: () => {
+    try {
+      return localStorage.getItem(ACCESS_KEY) || localStorage.getItem("accessToken");
+    } catch {
+      return null;
+    }
+  },
+  getRefresh: () => {
+    try {
+      return localStorage.getItem(REFRESH_KEY) || localStorage.getItem("refreshToken");
+    } catch {
+      return null;
+    }
+  },
   getUser: () => {
     try {
       const raw = localStorage.getItem(USER_KEY) || localStorage.getItem("user");
@@ -44,8 +56,10 @@ export const tokenStore = {
       return null;
     }
   },
-  set: ({ user }) => {
+  set: ({ user, accessToken, refreshToken }) => {
     if (user) safeSetItem(USER_KEY, JSON.stringify(user));
+    if (accessToken) safeSetItem(ACCESS_KEY, accessToken);
+    if (refreshToken) safeSetItem(REFRESH_KEY, refreshToken);
   },
   setUser: (user) => safeSetItem(USER_KEY, JSON.stringify(user)),
   clear: () => {
@@ -65,9 +79,15 @@ export const tokenStore = {
 const api = axios.create({ baseURL: API_BASE, withCredentials: true });
 export { api };
 
-// Request interceptor: cookies handle auth automatically via withCredentials.
-// No need to manually attach Authorization header from localStorage.
-api.interceptors.request.use((config) => config);
+// Request interceptor: attach Authorization header from localStorage if available,
+// cookies also handle auth as fallback via withCredentials.
+api.interceptors.request.use((config) => {
+  const token = tokenStore.getAccess();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Refresh-on-401 with single-flight lock
 let refreshPromise = null;
@@ -82,10 +102,17 @@ api.interceptors.response.use(
     try {
       if (!refreshPromise) {
         refreshPromise = axios
-          .post(`${API_BASE}/v1/auth/refresh`, {}, { withCredentials: true })
+          .post(`${API_BASE}/v1/auth/refresh`, { refreshToken: tokenStore.getRefresh() }, { withCredentials: true })
           .then((res) => {
             const data = res.data?.data || res.data;
             const newAccess = data?.accessToken || data?.access_token;
+            const newRefresh = data?.refreshToken || data?.refresh_token;
+            if (newAccess) {
+              tokenStore.set({
+                accessToken: newAccess,
+                refreshToken: newRefresh,
+              });
+            }
             return newAccess;
           })
           .finally(() => {

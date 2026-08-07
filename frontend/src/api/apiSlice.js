@@ -12,7 +12,7 @@ const baseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.BASE_URL,
   credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
-    const token = getState().auth.accessToken;
+    const token = getState().auth.accessToken || tokenStore.getAccess();
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
@@ -32,7 +32,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
       {
         url: '/auth/refresh-token',
         method: 'POST',
-        body: {},
+        body: { refreshToken: tokenStore.getRefresh() },
       },
       api,
       extraOptions
@@ -44,7 +44,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
         {
           url: '/auth/refresh',
           method: 'POST',
-          body: {},
+          body: { refreshToken: tokenStore.getRefresh() },
         },
         api,
         extraOptions
@@ -57,8 +57,17 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
       resBody?.data?.access_token ||
       resBody?.accessToken ||
       resBody?.access_token;
+    const newRefreshToken =
+      resBody?.data?.refreshToken ||
+      resBody?.data?.refresh_token ||
+      resBody?.refreshToken ||
+      resBody?.refresh_token;
 
     if (newAccessToken) {
+      tokenStore.set({
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      });
       api.dispatch(tokenRefreshed(newAccessToken));
 
       // Retry original request with new token

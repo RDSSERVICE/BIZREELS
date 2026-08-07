@@ -6,11 +6,11 @@ import { tokenStore } from '../../lib/api';
  * Manages user session, tokens, and active role in Redux.
  */
 const initialState = {
-  user: null,
-  accessToken: null,
-  isAuthenticated: false,
+  user: tokenStore.getUser(),
+  accessToken: tokenStore.getAccess(),
+  isAuthenticated: !!tokenStore.getAccess(),
   isLoading: true, // True until initial auth check completes
-  activeRole: 'customer',
+  activeRole: tokenStore.getUser()?.activeRole || tokenStore.getUser()?.current_role || 'customer',
 };
 
 const authSlice = createSlice({
@@ -31,6 +31,8 @@ const authSlice = createSlice({
 
       tokenStore.set({
         user: user || state.user,
+        accessToken,
+        refreshToken,
       });
     },
     tokenRefreshed: (state, action) => {
