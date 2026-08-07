@@ -27,14 +27,12 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
 
   if (result?.error?.status === 401) {
-    const refreshToken = tokenStore.getRefresh();
-
     // Attempt refresh via /auth/refresh-token or /auth/refresh
     let refreshResult = await baseQuery(
       {
         url: '/auth/refresh-token',
         method: 'POST',
-        body: { refreshToken: refreshToken || undefined, refresh_token: refreshToken || undefined },
+        body: {},
       },
       api,
       extraOptions
@@ -46,7 +44,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
         {
           url: '/auth/refresh',
           method: 'POST',
-          body: { refresh_token: refreshToken || undefined },
+          body: {},
         },
         api,
         extraOptions
@@ -61,17 +59,6 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
       resBody?.access_token;
 
     if (newAccessToken) {
-      const newRefreshToken =
-        resBody?.data?.refreshToken ||
-        resBody?.data?.refresh_token ||
-        resBody?.refreshToken ||
-        resBody?.refresh_token;
-
-      tokenStore.set({
-        access_token: newAccessToken,
-        refresh_token: newRefreshToken || refreshToken,
-      });
-
       api.dispatch(tokenRefreshed(newAccessToken));
 
       // Retry original request with new token

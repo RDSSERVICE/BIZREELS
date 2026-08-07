@@ -34,12 +34,8 @@ const safeSetItem = (key, value) => {
 };
 
 export const tokenStore = {
-  getAccess: () => {
-    try { return localStorage.getItem(ACCESS_KEY) || localStorage.getItem("accessToken"); } catch { return null; }
-  },
-  getRefresh: () => {
-    try { return localStorage.getItem(REFRESH_KEY) || localStorage.getItem("refreshToken"); } catch { return null; }
-  },
+  getAccess: () => null,
+  getRefresh: () => null,
   getUser: () => {
     try {
       const raw = localStorage.getItem(USER_KEY) || localStorage.getItem("user");
@@ -48,11 +44,7 @@ export const tokenStore = {
       return null;
     }
   },
-  set: ({ access_token, refresh_token, accessToken, refreshToken, user }) => {
-    const access = access_token || accessToken;
-    const refresh = refresh_token || refreshToken;
-    if (access) safeSetItem(ACCESS_KEY, access);
-    if (refresh) safeSetItem(REFRESH_KEY, refresh);
+  set: ({ user }) => {
     if (user) safeSetItem(USER_KEY, JSON.stringify(user));
   },
   setUser: (user) => safeSetItem(USER_KEY, JSON.stringify(user)),
@@ -97,22 +89,14 @@ api.interceptors.response.use(
     if (!response || response.status !== 401 || config?._retry) {
       return Promise.reject(error);
     }
-    const refresh = tokenStore.getRefresh();
-    if (!refresh) {
-      tokenStore.clear();
-      return Promise.reject(error);
-    }
     try {
       if (!refreshPromise) {
         refreshPromise = axios
-          .post(`${API_BASE}/v1/auth/refresh`, { refresh_token: refresh })
+          .post(`${API_BASE}/v1/auth/refresh`, {}, { withCredentials: true })
           .then((res) => {
-            // Refresh token rotation: server returns new access + refresh pair.
-            tokenStore.set({
-              access_token: res.data.access_token,
-              refresh_token: res.data.refresh_token,
-            });
-            return res.data.access_token;
+            const data = res.data?.data || res.data;
+            const newAccess = data?.accessToken || data?.access_token;
+            return newAccess;
           })
           .finally(() => {
             refreshPromise = null;
@@ -120,7 +104,9 @@ api.interceptors.response.use(
       }
       const newAccess = await refreshPromise;
       config._retry = true;
-      config.headers.Authorization = `Bearer ${newAccess}`;
+      if (newAccess) {
+        config.headers.Authorization = `Bearer ${newAccess}`;
+      }
       return api.request(config);
     } catch (e) {
       tokenStore.clear();

@@ -21,6 +21,7 @@ class AuthController {
     }, req);
 
     this._setRefreshTokenCookie(res, result.refreshToken);
+    this._setAccessTokenCookie(res, result.accessToken);
 
     return ApiResponse.created(res, 'Registration successful.', {
       user: result.user,
@@ -35,6 +36,7 @@ class AuthController {
     const result = await authService.loginWithEmail({ email, password, role }, req);
 
     this._setRefreshTokenCookie(res, result.refreshToken);
+    this._setAccessTokenCookie(res, result.accessToken);
 
     return ApiResponse.ok(res, 'Login successful.', {
       user: result.user,
@@ -63,6 +65,7 @@ class AuthController {
     const result = await authService.verifyOtpAndLogin(identifier, identifierType, otp, req);
 
     this._setRefreshTokenCookie(res, result.refreshToken);
+    this._setAccessTokenCookie(res, result.accessToken);
 
     return ApiResponse.ok(res, 'OTP verified. Login successful.', {
       user: result.user,
@@ -77,6 +80,7 @@ class AuthController {
     const result = await authService.googleOAuthCallback(req.user, req);
 
     this._setRefreshTokenCookie(res, result.refreshToken);
+    this._setAccessTokenCookie(res, result.accessToken);
 
     // Redirect to frontend with access token
     const redirectUrl = `${process.env.CLIENT_URL}/auth/callback?accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`;
@@ -93,6 +97,7 @@ class AuthController {
     const result = await authService.refreshAccessToken(refreshToken, req);
 
     this._setRefreshTokenCookie(res, result.refreshToken);
+    this._setAccessTokenCookie(res, result.accessToken);
 
     return ApiResponse.ok(res, 'Token refreshed.', {
       user: result.user,
@@ -106,7 +111,8 @@ class AuthController {
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     await authService.logout(refreshToken, req.user._id, req);
 
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', { path: '/api/v1/auth' });
+    res.clearCookie('accessToken');
 
     return ApiResponse.ok(res, 'Logged out successfully.');
   });
@@ -115,7 +121,8 @@ class AuthController {
   logoutAll = asyncHandler(async (req, res) => {
     await authService.logoutAll(req.user._id, req);
 
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', { path: '/api/v1/auth' });
+    res.clearCookie('accessToken');
 
     return ApiResponse.ok(res, 'Logged out from all devices.');
   });
@@ -206,6 +213,16 @@ class AuthController {
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/api/v1/auth',
+    });
+  }
+
+  // ── Private: Set Access Token Cookie ────────────────────
+  _setAccessTokenCookie(res, accessToken) {
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000, // 30 minutes
     });
   }
 }
