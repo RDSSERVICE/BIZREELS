@@ -150,7 +150,6 @@ export default function AdminVendors() {
 
   // Export CSV
   const handleExport = () => {
-    const access = localStorage.getItem('bizreels_access_token') || localStorage.getItem('accessToken') || '';
     const query = new URLSearchParams({
       q: search,
       status,
@@ -161,9 +160,7 @@ export default function AdminVendors() {
     }).toString();
 
     fetch(`${API_BASE}/admin/vendors/export?${query}`, {
-      headers: {
-        Authorization: `Bearer ${access}`,
-      },
+      credentials: 'include',
     })
       .then((res) => {
         if (!res.ok) throw new Error('Export failed');

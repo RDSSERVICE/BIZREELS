@@ -10,10 +10,10 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const dispatch = useDispatch();
   const [user, setUser] = useState(() => tokenStore.getUser());
-  const [loading, setLoading] = useState(!!tokenStore.getAccess());
+  const [loading, setLoading] = useState(!!tokenStore.getUser());
 
   const refreshMe = useCallback(async () => {
-    if (!tokenStore.getAccess()) {
+    if (!tokenStore.getUser()) {
       setUser(null);
       setLoading(false);
       return null;
@@ -40,22 +40,18 @@ export function AuthProvider({ children }) {
 
   const applyAuthResponse = (data) => {
     tokenStore.set({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
       user: data.user,
     });
     setUser(data.user);
     dispatch(setCredentials({
       user: data.user,
       accessToken: data.access_token,
-      refreshToken: data.refresh_token,
     }));
   };
 
   const logout = async () => {
-    const rt = tokenStore.getRefresh();
     try {
-      if (rt) await authApi.logout(rt);
+      await authApi.logout();
     } catch { /* noop */ }
     tokenStore.clear();
     setUser(null);

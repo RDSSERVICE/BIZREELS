@@ -44,12 +44,14 @@ const LiveStream = () => {
 
   // Connect socket for stream room updates
   useEffect(() => {
-    const authToken = token || tokenStore.getAccess();
-    if (!authToken || !activeStreamId) return;
+    const authToken = token || '';
+    if (!authToken && !user) return;
+    if (!activeStreamId) return;
 
     const socket = io(API_CONFIG.SOCKET_URL, {
-      auth: { token: authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}` },
+      auth: authToken ? { token: authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}` } : undefined,
       transports: ['polling', 'websocket'],
+      withCredentials: true,
     });
 
     socketRef.current = socket;

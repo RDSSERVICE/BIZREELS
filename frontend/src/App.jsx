@@ -19,17 +19,17 @@ function App() {
   const dispatch = useDispatch();
   const isAuthLoading = useSelector(selectAuthLoading);
 
-  const hasToken = !!(tokenStore.getAccess() || tokenStore.getRefresh());
+  const hasSession = !!tokenStore.getUser();
 
-  // Trigger base profile query on mount only if user has a stored access/refresh token
+  // Trigger base profile query on mount only if user has a stored session
   const { data: profileRes, error, isSuccess, isLoading } = useGetMeQuery(undefined, {
-    skip: !hasToken,
+    skip: !hasSession,
     retryOnMountOrArgChange: false,
     refetchOnFocus: false,
   });
 
   useEffect(() => {
-    if (!hasToken) {
+    if (!hasSession) {
       dispatch(setLoading(false));
       return;
     }
@@ -46,7 +46,6 @@ function App() {
       dispatch(
         setCredentials({
           user: fetchedUser,
-          accessToken: tokenStore.getAccess(),
         })
       );
     } else if (error) {

@@ -24,7 +24,7 @@ export default function CustomerLayout() {
   const user = useSelector(selectCurrentUser);
   const { data: profileData, refetch: refetchProfile } = useGetMeQuery(undefined, {
     pollingInterval: 300000,
-    skip: !user && !tokenStore.getAccess(),
+    skip: !user && !tokenStore.getUser(),
   });
   const [switchRoleApi] = useSwitchRoleMutation();
   const [logoutApi] = useLogoutMutation();

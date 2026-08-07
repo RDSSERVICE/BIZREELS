@@ -12,14 +12,16 @@ export function getSocket() {
     try { socket.disconnect(); } catch (e) {}
   }
 
-  const token = tokenStore.getAccess() || localStorage.getItem('bizreels_access_token') || localStorage.getItem('accessToken') || '';
-  if (!token) return null;
+  const user = tokenStore.getUser();
+  if (!user) return null;
+
+  const token = tokenStore.getAccess() || '';
 
   socket = io(BACKEND_URL, {
     path: '/socket.io',
     transports: ['websocket'],
     withCredentials: true,
-    auth: { token: token.startsWith('Bearer ') ? token : `Bearer ${token}` },
+    auth: token ? { token: token.startsWith('Bearer ') ? token : `Bearer ${token}` } : undefined,
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: 5,

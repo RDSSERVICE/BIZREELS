@@ -132,7 +132,6 @@ export default function AdminCustomers() {
 
   // Export CSV
   const handleExport = () => {
-    const access = localStorage.getItem('bizreels_access_token') || localStorage.getItem('accessToken') || '';
     const query = new URLSearchParams({
       q: search,
       status,
@@ -144,9 +143,7 @@ export default function AdminCustomers() {
     }).toString();
 
     fetch(`${API_BASE}/admin/customers/export?${query}`, {
-      headers: {
-        Authorization: `Bearer ${access}`,
-      },
+      credentials: 'include',
     })
       .then((res) => {
         if (!res.ok) throw new Error('Export failed');

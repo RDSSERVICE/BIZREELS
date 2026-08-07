@@ -17,7 +17,7 @@ export default function CustomerSettingsPage() {
   const { user: authUser } = useSelector((state) => state.auth);
   const { data: profileRes } = useGetMeQuery(undefined, {
     pollingInterval: 300000,
-    skip: !authUser && !tokenStore.getAccess(),
+    skip: !authUser && !tokenStore.getUser(),
   });
   const [updateProfileApi] = useUpdateProfileMutation();
   const [deleteAccountApi] = useDeleteAccountMutation();

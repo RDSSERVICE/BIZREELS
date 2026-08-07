@@ -8,7 +8,7 @@ import { tokenStore } from '../../../lib/api';
 
 export default function VendorCreditRatesPage() {
   const { data: profileRes } = useGetMeQuery(undefined, {
-    skip: !tokenStore.getAccess(),
+    skip: !tokenStore.getUser(),
   });
   const { data: dashboardRes, isLoading } = useGetVendorDashboardQuery(undefined, {
     pollingInterval: 300000,

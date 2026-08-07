@@ -12,7 +12,7 @@ const baseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.BASE_URL,
   credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
-    const token = tokenStore.getAccess() || getState().auth.accessToken;
+    const token = getState().auth.accessToken;
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }

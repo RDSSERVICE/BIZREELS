@@ -80,7 +80,6 @@ export default function TransactionHistory() {
   };
 
   const handleExportCSV = () => {
-    const token = localStorage.getItem('bizreels_access_token') || localStorage.getItem('accessToken');
     const params = new URLSearchParams(queryParams).toString();
     window.open(`${API_URL}/admin/wallet/transactions/export/csv?${params}`, '_blank');
   };

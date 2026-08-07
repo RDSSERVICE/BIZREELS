@@ -30,17 +30,11 @@ const authSlice = createSlice({
       state.activeRole = user?.activeRole || user?.current_role || state.activeRole || 'customer';
 
       tokenStore.set({
-        access_token: accessToken || tokenStore.getAccess(),
-        refresh_token: refreshToken || tokenStore.getRefresh(),
         user: user || state.user,
       });
     },
     tokenRefreshed: (state, action) => {
       state.accessToken = action.payload;
-      tokenStore.set({
-        access_token: action.payload,
-        refresh_token: tokenStore.getRefresh(),
-      });
     },
     setActiveRole: (state, action) => {
       state.activeRole = action.payload;

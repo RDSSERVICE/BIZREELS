@@ -65,19 +65,9 @@ export const tokenStore = {
 const api = axios.create({ baseURL: API_BASE, withCredentials: true });
 export { api };
 
-api.interceptors.request.use((config) => {
-  const access = tokenStore.getAccess();
-  if (access) {
-    config.headers = config.headers || {};
-    if (typeof config.headers.set === 'function') {
-      config.headers.set('Authorization', `Bearer ${access}`);
-    } else {
-      config.headers['Authorization'] = `Bearer ${access}`;
-      config.headers.Authorization = `Bearer ${access}`;
-    }
-  }
-  return config;
-});
+// Request interceptor: cookies handle auth automatically via withCredentials.
+// No need to manually attach Authorization header from localStorage.
+api.interceptors.request.use((config) => config);
 
 // Refresh-on-401 with single-flight lock
 let refreshPromise = null;
@@ -123,8 +113,8 @@ export const authApi = {
   sendOtp: (phone) => api.post("/v1/auth/otp/send", { phone }),
   verifyOtp: ({ phone, otp, name, roles }) =>
     api.post("/v1/auth/otp/verify", { phone, otp, name, roles }),
-  refresh: (refresh_token) => api.post("/v1/auth/refresh", { refresh_token }),
-  logout: (refresh_token) => api.post("/v1/auth/logout", { refresh_token }),
+  refresh: () => api.post("/v1/auth/refresh", {}),
+  logout: () => api.post("/v1/auth/logout", {}),
   googleSessionExchange: (session_id) =>
     api.post("/v1/auth/google/session-exchange", { session_id }),
 };

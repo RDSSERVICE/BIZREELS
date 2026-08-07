@@ -11,7 +11,7 @@ export default function CreatorSettingsPage() {
   const user = useSelector(selectCurrentUser);
   const { data: profileRes } = useGetMeQuery(undefined, {
     pollingInterval: 300000,
-    skip: !user && !tokenStore.getAccess(),
+    skip: !user && !tokenStore.getUser(),
   });
 
   const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
