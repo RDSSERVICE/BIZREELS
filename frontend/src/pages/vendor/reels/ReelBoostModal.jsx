@@ -7,8 +7,6 @@ import { useGetVendorDashboardQuery, useBoostReelMutation } from '../../../featu
 export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) {
   const navigate = useNavigate();
   const [durationDays, setDurationDays] = useState(3);
-  const [customDays, setCustomDays] = useState('');
-  const [isCustom, setIsCustom] = useState(false);
 
   const { data: dashboardRes, isLoading: isDashboardLoading } = useGetVendorDashboardQuery(undefined, {
     skip: !isOpen
@@ -24,24 +22,16 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
   const creditRates = metrics.creditRates || {};
   const ratePerDay = creditRates.reelBoost1Day ?? 10;
 
-  const activeDuration = isCustom ? (parseInt(customDays, 10) || 0) : durationDays;
-  const totalCost = activeDuration * ratePerDay;
+  const totalCost = durationDays * ratePerDay;
   const hasEnoughCredits = availableCredits >= totalCost;
 
-  const handleDurationSelect = (days) => {
-    setIsCustom(false);
-    setDurationDays(days);
-  };
-
-  const handleCustomDaysChange = (e) => {
-    const val = e.target.value;
-    if (val === '' || /^\d+$/.test(val)) {
-      setCustomDays(val);
-    }
+  const handleDaysChange = (e) => {
+    const val = parseInt(e.target.value, 10);
+    setDurationDays(isNaN(val) ? 0 : val);
   };
 
   const handleConfirmBoost = async () => {
-    if (activeDuration <= 0) {
+    if (durationDays <= 0) {
       toast.error('Please select a valid boost duration.');
       return;
     }
@@ -53,8 +43,8 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
 
     const toastId = toast.loading('Activating Reel Boost...');
     try {
-      await boostReel({ id: reel._id || reel.id, durationDays: activeDuration }).unwrap();
-      toast.success(`Reel boosted successfully for ${activeDuration} days!`, { id: toastId });
+      await boostReel({ id: reel._id || reel.id, durationDays }).unwrap();
+      toast.success(`Reel boosted successfully for ${durationDays} days!`, { id: toastId });
       if (refetchReels) refetchReels();
       onClose();
     } catch (err) {
@@ -105,50 +95,16 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
 
         {/* Choose Duration */}
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Select Boost Duration</label>
-          <div className="grid grid-cols-4 gap-2">
-            {[1, 3, 7, 14].map((days) => (
-              <button
-                key={days}
-                type="button"
-                onClick={() => handleDurationSelect(days)}
-                className={`py-2 px-1 rounded-xl text-xs font-bold border transition ${
-                  !isCustom && durationDays === days
-                    ? 'bg-brand-purple border-brand-purple text-white shadow-sm'
-                    : 'bg-surface border-border text-text-secondary hover:border-border/80'
-                }`}
-              >
-                {days} {days === 1 ? 'Day' : 'Days'}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom Duration Toggle */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setIsCustom(!isCustom)}
-              className={`text-[10px] font-bold uppercase transition flex items-center gap-1 ${
-                isCustom ? 'text-brand-purple' : 'text-text-tertiary hover:text-text-secondary'
-              }`}
-            >
-              {isCustom ? '← Use preset days' : '+ Set custom days'}
-            </button>
-
-            {isCustom && (
-              <div className="mt-2 animate-fade-in">
-                <input
-                  type="number"
-                  min="1"
-                  max="90"
-                  placeholder="Enter number of days (e.g. 5)"
-                  value={customDays}
-                  onChange={handleCustomDaysChange}
-                  className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple outline-none"
-                />
-              </div>
-            )}
-          </div>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Boost Duration (Days)</label>
+          <input
+            type="number"
+            min="1"
+            max="90"
+            placeholder="Enter number of days (e.g. 5)"
+            value={durationDays || ''}
+            onChange={handleDaysChange}
+            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple outline-none"
+          />
         </div>
 
         {/* Cost & Wallet Status */}
@@ -206,10 +162,10 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
           </button>
           <button
             type="button"
-            disabled={isBoosting || !hasEnoughCredits || activeDuration <= 0 || isDashboardLoading}
+            disabled={isBoosting || !hasEnoughCredits || durationDays <= 0 || isDashboardLoading}
             onClick={handleConfirmBoost}
             className={`flex-1 py-3 text-white font-bold text-xs rounded-xl shadow-premium transition flex items-center justify-center gap-1.5 ${
-              isBoosting || !hasEnoughCredits || activeDuration <= 0 || isDashboardLoading
+              isBoosting || !hasEnoughCredits || durationDays <= 0 || isDashboardLoading
                 ? 'bg-text-tertiary cursor-not-allowed opacity-50'
                 : 'gradient-brand hover:brightness-110'
             }`}

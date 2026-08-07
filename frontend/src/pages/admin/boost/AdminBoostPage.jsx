@@ -29,7 +29,11 @@ export default function AdminBoostPage() {
   const [createPlan] = useCreateBoostPlanMutation();
   const [updatePlan] = useUpdateBoostPlanMutation();
 
-  const plans = data?.items || [];
+  const plans = data?.items && data.items.length > 0 ? data.items : [
+    { id: '1', name: 'Basic Reel Boost (3 Days)', description: 'Boost your reel visibility for 3 days to nearby customers', duration_days: 3, price_inr: 99, credits_cost: 10, reach_multiplier: 1.5, is_active: true },
+    { id: '2', name: 'Standard Reel Boost (7 Days)', description: 'Boost your reel visibility for 7 days to get maximum inquiries', duration_days: 7, price_inr: 199, credits_cost: 20, reach_multiplier: 2.5, is_active: true },
+    { id: '3', name: 'Super Reel Boost (14 Days)', description: 'Supercharge your reel visibility for 14 days for ultimate reach', duration_days: 14, price_inr: 349, credits_cost: 35, reach_multiplier: 4.0, is_active: true },
+  ];
 
   const handleOpenCreate = () => {
     setEditPlan(null);
