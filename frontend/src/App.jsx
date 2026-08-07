@@ -19,6 +19,16 @@ function App() {
   const dispatch = useDispatch();
   const isAuthLoading = useSelector(selectAuthLoading);
 
+  // One-time cleanup: remove stale tokens from localStorage (tokens are now in HTTP-only cookies)
+  useEffect(() => {
+    try {
+      localStorage.removeItem('bizreels_access_token');
+      localStorage.removeItem('bizreels_refresh_token');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+    } catch {}
+  }, []);
+
   const hasSession = !!tokenStore.getUser();
 
   // Trigger base profile query on mount only if user has a stored session
