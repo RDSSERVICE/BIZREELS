@@ -1,4 +1,5 @@
 const cloudinary = require('../config/cloudinary');
+const cloudinaryService = require('./cloudinary.service');
 const reelRepository = require('../repositories/reelRepository');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
@@ -70,6 +71,43 @@ class ReelService {
       }
     }
 
+    // Helper functions for base64 check and parsing
+    const hasBase64 = (obj) => {
+      if (!obj) return false;
+      try {
+        const str = typeof obj === 'object' ? JSON.stringify(obj) : String(obj);
+        return /data:[^;]+;base64,/.test(str);
+      } catch (err) {
+        return false;
+      }
+    };
+
+    const parseBase64 = (base64Str) => {
+      const matches = base64Str.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) return null;
+      const contentType = matches[1];
+      const buffer = Buffer.from(matches[2], 'base64');
+      return { contentType, buffer };
+    };
+
+    const uploadBase64IfPresent = async (urlStr) => {
+      if (!urlStr || !hasBase64(urlStr)) return urlStr;
+      const parsed = parseBase64(urlStr);
+      if (!parsed) return urlStr;
+      const resourceType = parsed.contentType.startsWith('video/') ? 'video' : 'image';
+      const ext = parsed.contentType.split('/')[1] || (resourceType === 'video' ? 'mp4' : 'jpg');
+      const filename = `reel_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
+      
+      const uploadResult = await cloudinaryService.uploadFile(
+        parsed.buffer,
+        filename,
+        parsed.contentType,
+        'uploads/reels',
+        resourceType
+      );
+      return uploadResult.secure_url;
+    };
+
     // 1. AI Safety Contact Details Check
     const audienceText = typeof targeting?.audience === 'string' ? targeting.audience : Array.isArray(targeting?.audience) ? targeting.audience.join(' ') : '';
     const fullTextScan = `${caption || ''} ${(tags || []).join(' ')} ${audienceText}`;
@@ -80,7 +118,19 @@ class ReelService {
       );
     }
 
-    let finalVideoUrl = videoUrl || (Array.isArray(mediaUrls) && mediaUrls[0]) || '';
+    // Process base64 URLs in mediaUrls
+    let processedMediaUrls = [];
+    if (Array.isArray(mediaUrls)) {
+      for (const url of mediaUrls) {
+        const uploadedUrl = await uploadBase64IfPresent(url);
+        processedMediaUrls.push(uploadedUrl);
+      }
+    }
+
+    // Process base64 videoUrl
+    let processedVideoUrl = await uploadBase64IfPresent(videoUrl);
+
+    let finalVideoUrl = processedVideoUrl || (processedMediaUrls.length > 0 && processedMediaUrls[0]) || '';
     let finalThumbnailUrl = '';
 
     if (fileBuffer) {
@@ -88,6 +138,10 @@ class ReelService {
       const uploadResult = await this.uploadVideoStream(fileBuffer);
       finalVideoUrl = uploadResult.secure_url;
       finalThumbnailUrl = uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url.replace(/\.[^/.]+$/, '.jpg');
+    }
+
+    if (!finalThumbnailUrl && finalVideoUrl && finalVideoUrl.includes('cloudinary.com')) {
+      finalThumbnailUrl = finalVideoUrl.replace(/\.[^/.]+$/, '.jpg');
     }
 
     if (!finalVideoUrl) {
@@ -135,7 +189,7 @@ class ReelService {
       targetAudience: Array.isArray(targeting?.audience) ? targeting.audience : [targeting?.audience || 'Anyone'],
       customAudience: targeting?.customAudience || req.body?.customAudience || '',
       status: reelStatus,
-      mediaUrls: Array.isArray(mediaUrls) && mediaUrls.length > 0 ? mediaUrls : [finalVideoUrl],
+      mediaUrls: processedMediaUrls.length > 0 ? processedMediaUrls : [finalVideoUrl],
       mediaType: mediaType || (finalVideoUrl.endsWith('.mp4') ? 'video' : 'image'),
       scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
       aiModeration: {
@@ -153,7 +207,7 @@ class ReelService {
         const Listing = require('../models/Listing');
         const listing = await Listing.findById(req.body.targetListing);
         if (listing) {
-          const urls = Array.isArray(mediaUrls) && mediaUrls.length > 0 ? mediaUrls : [finalVideoUrl];
+          const urls = processedMediaUrls.length > 0 ? processedMediaUrls : [finalVideoUrl];
           for (const url of urls) {
             if (url.match(/\.(mp4|mov|webm|avi)(\?.*)?$/i)) {
               if (!listing.videos.includes(url)) listing.videos.push(url);

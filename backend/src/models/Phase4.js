@@ -106,11 +106,10 @@ const hasBase64 = (obj) => {
 };
 
 // Pre-validate hook to block base64 strings in KYC Documents
-kycDocSchema.pre('validate', function (next) {
+kycDocSchema.pre('validate', function () {
   if (hasBase64(this.doc_url) || hasBase64(this.selfie_url)) {
-    return next(new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.'));
+    throw new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.');
   }
-  if (typeof next === 'function') next();
 });
 
 const registerOrReuse = (name, schema, collection) =>

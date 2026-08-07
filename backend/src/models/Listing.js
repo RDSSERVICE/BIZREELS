@@ -297,16 +297,15 @@ const hasBase64 = (obj) => {
 };
 
 // Pre-validate hook to block base64 strings in listing fields
-listingSchema.pre('validate', function (next) {
+listingSchema.pre('validate', function () {
   if (
     hasBase64(this.images) ||
     hasBase64(this.videos) ||
     hasBase64(this.variants) ||
     hasBase64(this.serviceDetails)
   ) {
-    return next(new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.'));
+    throw new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.');
   }
-  if (typeof next === 'function') next();
 });
 
 // Query middleware to exclude soft deleted entries

@@ -11,7 +11,7 @@ export default function CreatorWalletPage() {
   const { data: txData, isFetching: isFetchingTx } = useGetCreatorTransactionsQuery(undefined, { pollingInterval: 300000 });
   const [requestPayout] = useRequestPayoutMutation();
 
-  const balance = walletData?.balance ?? walletData?.walletBalance ?? 0;
+  const balance = walletData?.data?.balance ?? walletData?.data?.walletBalance ?? walletData?.balance ?? walletData?.walletBalance ?? 0;
   const payouts = Array.isArray(txData?.data) ? txData.data : Array.isArray(txData?.transactions) ? txData.transactions : Array.isArray(txData) ? txData : [];
 
   const pendingAmount = payouts

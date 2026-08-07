@@ -170,11 +170,10 @@ const hasBase64 = (obj) => {
 };
 
 // Pre-validate hook to block base64 strings in Reels
-reelSchema.pre('validate', function (next) {
+reelSchema.pre('validate', function () {
   if (hasBase64(this.videoUrl) || hasBase64(this.thumbnailUrl) || hasBase64(this.mediaUrls)) {
-    return next(new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.'));
+    throw new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.');
   }
-  if (typeof next === 'function') next();
 });
 
 // Query middleware to exclude soft-deleted reels by default

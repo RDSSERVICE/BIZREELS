@@ -45,6 +45,7 @@ export default function ReelCardMediaCarousel({ reel }) {
       {isVideo ? (
         <video
           src={currentUrl}
+          controls
           muted
           autoPlay
           loop

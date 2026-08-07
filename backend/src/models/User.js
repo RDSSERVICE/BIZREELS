@@ -104,17 +104,15 @@ const hasBase64 = (obj) => {
 };
 
 // Pre-validate hook to clean up empty/falsy sparse unique fields and block base64 strings
-userSchema.pre('validate', function (next) {
+userSchema.pre('validate', function () {
   if (!this.phone) this.phone = undefined;
   if (!this.email) this.email = undefined;
   if (!this.referral_code) this.referral_code = undefined;
 
   // Prevent storing base64 files in profile fields
   if (hasBase64(this.creatorProfile) || hasBase64(this.vendorProfile) || hasBase64(this.customerProfile)) {
-    return next(new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.'));
+    throw new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.');
   }
-
-  if (typeof next === 'function') next();
 });
 
 // Pre-save hook to hash password if modified

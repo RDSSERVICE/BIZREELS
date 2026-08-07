@@ -27,16 +27,14 @@ export default function VendorWalletPage() {
   const [amount, setAmount] = useState('1000');
   const [loading, setLoading] = useState(false);
 
-  const balance = walletData?.balance ?? walletData?.walletBalance ?? 0;
+  const balance = walletData?.data?.balance ?? walletData?.data?.walletBalance ?? walletData?.balance ?? walletData?.walletBalance ?? 0;
   const transactions = Array.isArray(txData?.transactions) ? txData.transactions : Array.isArray(txData?.data) ? txData.data : Array.isArray(txData?.items) ? txData.items : Array.isArray(txData) ? txData : [];
-
-  const totalCredits = transactions
-    .filter((tx) => tx.type === 'credit' || tx.type === 'deposit')
-    .reduce((acc, tx) => acc + (tx.amount || 0), 0);
 
   const totalDebits = transactions
     .filter((tx) => tx.type === 'debit' || tx.type === 'payment' || tx.type === 'purchase')
     .reduce((acc, tx) => acc + (tx.amount || 0), 0);
+
+  const totalCredits = balance + totalDebits;
 
   const handleRechargeSubmit = async (e) => {
     e.preventDefault();
