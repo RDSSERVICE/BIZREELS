@@ -32,7 +32,7 @@ function App() {
   const hasSession = !!tokenStore.getUser();
 
   // Trigger base profile query on mount only if user has a stored session
-  const { data: profileRes, error, isSuccess, isLoading } = useGetMeQuery(undefined, {
+  const { data: profileRes, error, isSuccess, isLoading, isFetching } = useGetMeQuery(undefined, {
     skip: !hasSession,
     retryOnMountOrArgChange: false,
     refetchOnFocus: false,
@@ -45,7 +45,7 @@ function App() {
     }
 
     // If request is fetching, keep loading true
-    if (isLoading) {
+    if (isLoading || isFetching) {
       dispatch(setLoading(true));
       return;
     }
@@ -62,7 +62,7 @@ function App() {
       // No active session cookie or invalid, clear auth state
       dispatch(logout());
     }
-  }, [hasSession, isLoading, isSuccess, profileRes, error, dispatch]);
+  }, [hasSession, isLoading, isFetching, isSuccess, profileRes, error, dispatch]);
 
   if (isAuthLoading) {
     return <Loader fullPage />;
