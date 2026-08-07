@@ -10,6 +10,7 @@ import {
   useListBoostPlansQuery,
   useCreateBoostPlanMutation,
   useUpdateBoostPlanMutation,
+  useGetAdminOverviewQuery,
 } from '../../../features/admin/adminApi';
 
 const TABS = [
@@ -24,14 +25,11 @@ export default function AdminBoostPage() {
   const [form, setForm] = useState({ name: '', description: '', duration_days: 7, price_inr: 499, credits_cost: 50 });
 
   const { data, isFetching } = useListBoostPlansQuery(undefined, { pollingInterval: 5000 });
+  const { data: ov, isFetching: isFetchingOverview } = useGetAdminOverviewQuery(undefined, { pollingInterval: 5000 });
   const [createPlan] = useCreateBoostPlanMutation();
   const [updatePlan] = useUpdateBoostPlanMutation();
 
-  const plans = data?.items || [
-    { id: '1', name: '7-Day Starter Boost', description: '2x visibility on feed & search', duration_days: 7, price_inr: 499, credits_cost: 50, is_active: true },
-    { id: '2', name: '15-Day Growth Boost', description: '3x visibility + sponsored badge', duration_days: 15, price_inr: 999, credits_cost: 100, is_active: true },
-    { id: '3', name: '30-Day Premium Boost', description: '5x max reach + top category banner', duration_days: 30, price_inr: 1899, credits_cost: 200, is_active: true },
-  ];
+  const plans = data?.items || [];
 
   const handleOpenCreate = () => {
     setEditPlan(null);
@@ -138,15 +136,27 @@ export default function AdminBoostPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl mx-auto pt-4">
             <div className="bg-surface-secondary p-4 rounded-xl">
               <span className="text-[10px] text-text-tertiary font-bold uppercase block">Active Campaigns</span>
-              <span className="text-xl font-black text-brand-purple font-display">24</span>
+              <span className="text-xl font-black text-brand-purple font-display">
+                {isFetchingOverview ? '...' : (ov?.active_boosts || 0)}
+              </span>
             </div>
             <div className="bg-surface-secondary p-4 rounded-xl">
               <span className="text-[10px] text-text-tertiary font-bold uppercase block">Total Boost Revenue</span>
-              <span className="text-xl font-black text-emerald-600 font-display">₹48,500</span>
+              <span className="text-xl font-black text-emerald-600 font-display">
+                {isFetchingOverview ? '...' : `₹${((ov?.boost_revenue_paise || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+              </span>
             </div>
             <div className="bg-surface-secondary p-4 rounded-xl">
               <span className="text-[10px] text-text-tertiary font-bold uppercase block">Avg Reach Boost</span>
-              <span className="text-xl font-black text-brand-orange font-display">3.4x</span>
+              <span className="text-xl font-black text-brand-orange font-display">
+                {isFetchingOverview ? '...' : (() => {
+                  const activePlans = plans.filter(p => p.is_active !== false);
+                  const avgReach = activePlans.length > 0
+                    ? (activePlans.reduce((acc, p) => acc + (p.reach_multiplier || 1.5), 0) / activePlans.length).toFixed(1)
+                    : '3.4';
+                  return `${avgReach}x`;
+                })()}
+              </span>
             </div>
           </div>
         </div>
