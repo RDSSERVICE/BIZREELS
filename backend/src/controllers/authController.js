@@ -25,6 +25,7 @@ class AuthController {
     return ApiResponse.created(res, 'Registration successful.', {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   });
 
@@ -38,6 +39,7 @@ class AuthController {
     return ApiResponse.ok(res, 'Login successful.', {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   });
 
@@ -77,7 +79,7 @@ class AuthController {
     this._setRefreshTokenCookie(res, result.refreshToken);
 
     // Redirect to frontend with access token
-    const redirectUrl = `${process.env.CLIENT_URL}/auth/callback?accessToken=${result.accessToken}`;
+    const redirectUrl = `${process.env.CLIENT_URL}/auth/callback?accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`;
     return res.redirect(redirectUrl);
   });
 
@@ -95,6 +97,7 @@ class AuthController {
     return ApiResponse.ok(res, 'Token refreshed.', {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   });
 

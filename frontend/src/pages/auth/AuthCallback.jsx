@@ -18,18 +18,19 @@ const AuthCallback = () => {
   const [searchParams] = useSearchParams();
 
   const token = searchParams.get('accessToken') || searchParams.get('token') || searchParams.get('access_token');
+  const refreshTokenParam = searchParams.get('refreshToken') || searchParams.get('refresh_token');
   const [tokenReady, setTokenReady] = useState(false);
 
   useEffect(() => {
     if (token) {
-      tokenStore.set({ access_token: token });
+      tokenStore.set({ access_token: token, refresh_token: refreshTokenParam });
       dispatch(tokenRefreshed(token));
       setTokenReady(true);
     } else {
       toast.error('Authentication failed. No token received.');
       navigate('/auth/login', { replace: true });
     }
-  }, [token, dispatch, navigate]);
+  }, [token, refreshTokenParam, dispatch, navigate]);
 
   // Trigger lazy query only after token has been set in tokenStore
   const { data: userProfile, error, isSuccess } = useGetMeQuery(undefined, {
