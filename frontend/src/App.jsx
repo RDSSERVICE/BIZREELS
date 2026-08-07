@@ -62,7 +62,7 @@ function App() {
       // No active session cookie or invalid, clear auth state
       dispatch(logout());
     }
-  }, [hasToken, isLoading, isSuccess, profileRes, error, dispatch]);
+  }, [hasSession, isLoading, isSuccess, profileRes, error, dispatch]);
 
   if (isAuthLoading) {
     return <Loader fullPage />;
