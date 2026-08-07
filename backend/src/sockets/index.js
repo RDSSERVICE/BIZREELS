@@ -176,6 +176,17 @@ const emitToAdmin = (event, payload) => {
   if (ioInstance) {
     ioInstance.to('admin').emit(event, payload);
   }
+  // Clear the analytics overview cache if an AdminOverview update event occurs
+  if (event === 'admin:update' && payload && payload.tags && payload.tags.includes('AdminOverview')) {
+    try {
+      const adminService = require('../services/admin.service');
+      if (adminService && typeof adminService.clearOverviewCache === 'function') {
+        adminService.clearOverviewCache();
+      }
+    } catch (err) {
+      // Ignore errors to prevent circular dependency blocks
+    }
+  }
 };
 
 /**

@@ -230,7 +230,22 @@ const restoreListing = async (listingId) => {
   return { ok: true, listing_id: listingId };
 };
 
+let overviewCache = {
+  data: null,
+  timestamp: 0,
+};
+const OVERVIEW_CACHE_TTL = 30 * 1000; // 30 seconds cache TTL
+
+const clearOverviewCache = () => {
+  overviewCache.data = null;
+  overviewCache.timestamp = 0;
+};
+
 const analyticsOverview = async () => {
+  const currentTime = Date.now();
+  if (overviewCache.data && (currentTime - overviewCache.timestamp < OVERVIEW_CACHE_TTL)) {
+    return overviewCache.data;
+  }
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -535,7 +550,7 @@ const analyticsOverview = async () => {
   // Compile legacy field compatibility values (todays_uploads)
   const todaysUploads = todaysListings + todaysReels;
 
-  return {
+  const responseData = {
     total_users: totalUsers,
     total_customers: totalCustomers,
     total_vendors: totalVendors,
@@ -572,6 +587,11 @@ const analyticsOverview = async () => {
     todays_reels_trend: calcTrend(todaysReels, yesterdaysReels),
     todays_deals_trend: calcTrend(todaysDeals, yesterdaysDeals),
   };
+
+  overviewCache.data = responseData;
+  overviewCache.timestamp = currentTime;
+
+  return responseData;
 };
 
 // ============================================================ USER DETAIL / CRUD
@@ -3274,5 +3294,6 @@ module.exports = {
   deleteCustomer,
   deleteVendor,
   deleteCreator,
+  clearOverviewCache,
 };
 
