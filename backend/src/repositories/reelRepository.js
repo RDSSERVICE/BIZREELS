@@ -106,9 +106,11 @@ class ReelRepository {
           interestMatch: interestCond
         }
       });
-      pipeline.push({ $sort: { followedCreator: -1, interestMatch: -1, createdAt: -1 } });
-    } else if (!coordinates) {
-      pipeline.push({ $sort: { createdAt: -1 } });
+      pipeline.push({ $sort: { isBoosted: -1, followedCreator: -1, interestMatch: -1, createdAt: -1 } });
+    } else if (coordinates && coordinates.length === 2) {
+      pipeline.push({ $sort: { isBoosted: -1, distance: 1, createdAt: -1 } });
+    } else {
+      pipeline.push({ $sort: { isBoosted: -1, createdAt: -1 } });
     }
 
     // Paginate before expensive lookups

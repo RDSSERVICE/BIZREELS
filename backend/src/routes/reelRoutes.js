@@ -62,5 +62,6 @@ router.delete('/comments/:commentId', authenticate, reelValidation.commentParam,
 
 router.post('/:id/save', authenticate, reelController.saveReel);
 router.post('/:id/unsave', authenticate, reelController.unsaveReel);
+router.post('/:id/boost', authenticate, reelValidation.idParam, validate, reelController.boostReel);
 
 module.exports = router;

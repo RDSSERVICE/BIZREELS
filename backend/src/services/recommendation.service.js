@@ -221,7 +221,7 @@ class RecommendationService {
             },
           },
           // Boost bonus
-          boostBonus: { $cond: [{ $eq: ['$isBoosted', true] }, 20, 0] },
+          boostBonus: { $cond: [{ $eq: ['$isBoosted', true] }, 1000, 0] },
           // Category history boost
           categoryHistoryBoost: categoryEngagementBoost,
         },
@@ -243,7 +243,7 @@ class RecommendationService {
           },
         },
       },
-      { $sort: { recommendationScore: -1 } },
+      { $sort: { isBoosted: -1, recommendationScore: -1 } },
       { $skip: skip > 0 ? skip : 0 },
       { $limit: limit },
       {

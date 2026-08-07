@@ -180,6 +180,16 @@ class ReelController {
 
     return ApiResponse.ok(res, 'Reel unsaved successfully.', { user, active: false });
   });
+
+  // ── Boost Reel ───────────────────────────────────────────
+  boostReel = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { durationDays } = req.body;
+    const boostService = require('../services/boost.service');
+
+    const result = await boostService.boostReelWithCredits(req.user._id, id, durationDays);
+    return ApiResponse.ok(res, 'Reel boosted successfully.', result);
+  });
 }
 
 module.exports = new ReelController();

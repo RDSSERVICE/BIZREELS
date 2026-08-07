@@ -1,22 +1,27 @@
 const Listing = require('../models/Listing');
+const Reel = require('../models/Reel');
+const { AppSettings, BoostPlan } = require('../models/Admin');
 const walletService = require('./wallet.service');
 const notificationService = require('./notification.service');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 const { serializeListing } = require('./listing.service');
 
-const BOOST_PLANS = {
-  3: { credits: 300, paise: 9900 },
-  7: { credits: 600, paise: 19900 },
-  14: { credits: 1000, paise: 34900 },
-};
-
-const validatePlan = (durationDays) => {
-  const plan = BOOST_PLANS[parseInt(durationDays, 10)];
-  if (!plan) {
-    throw ApiError.badRequest(`Invalid duration_days. Allowed: ${Object.keys(BOOST_PLANS)}`);
+const validatePlan = async (durationDays) => {
+  const days = parseInt(durationDays, 10);
+  if (isNaN(days) || days <= 0) {
+    throw ApiError.badRequest('Invalid duration days.');
   }
-  return plan;
+
+  const plan = await BoostPlan.findOne({ duration_days: days, is_active: true, is_deleted: { $ne: true } });
+  if (!plan) {
+    throw ApiError.badRequest(`No active listing boost plan found for ${days} days.`);
+  }
+
+  return {
+    credits: plan.credits_cost,
+    paise: Math.round(plan.price_inr * 100),
+  };
 };
 
 const getOwnedListing = async (listingId, vendorId) => {
@@ -75,7 +80,7 @@ const applyBoost = async (listingId, durationDays) => {
 };
 
 const boostWithCredits = async (vendorId, listingId, durationDays) => {
-  const plan = validatePlan(durationDays);
+  const plan = await validatePlan(durationDays);
   const listing = await getOwnedListing(listingId, vendorId);
 
   await walletService.spendCredits(
@@ -101,7 +106,7 @@ const boostWithCredits = async (vendorId, listingId, durationDays) => {
 };
 
 const boostWithInr = async (vendorId, listingId, durationDays) => {
-  const plan = validatePlan(durationDays);
+  const plan = await validatePlan(durationDays);
   await getOwnedListing(listingId, vendorId);
   const paymentService = require('./payment.service');
   const order = await paymentService.createPaymentOrder(
@@ -154,11 +159,91 @@ const listMyBoosted = async (vendorId) => {
 
 const expireBoostsOnce = async () => {
   const nowIso = new Date().toISOString();
-  const res = await Listing.updateMany(
+  
+  // 1. Expire listing boosts
+  const resListing = await Listing.updateMany(
     { boost_expires_at: { $lte: nowIso, $ne: null } },
     { $set: { boost_expires_at: null, boost_duration_days: null, updated_at: nowIso } }
   );
-  return res.modifiedCount;
+
+  // 2. Expire reel boosts
+  const resReel = await Reel.updateMany(
+    { boostExpiresAt: { $lte: new Date(), $ne: null }, isBoosted: true },
+    { $set: { isBoosted: false, boostExpiresAt: null, boostDurationDays: null } }
+  );
+
+  return resListing.modifiedCount + resReel.modifiedCount;
+};
+
+const boostReelWithCredits = async (vendorId, reelId, durationDays) => {
+  const days = parseInt(durationDays, 10);
+  if (isNaN(days) || days <= 0) {
+    throw ApiError.badRequest('Duration in days must be a positive number');
+  }
+
+  const reel = await Reel.findOne({ _id: reelId, isDeleted: { $ne: true } });
+  if (!reel) {
+    throw ApiError.notFound('Reel not found');
+  }
+
+  if (reel.creator.toString() !== vendorId.toString()) {
+    throw ApiError.forbidden('Only the reel owner can boost');
+  }
+
+  // Fetch active credit rates to get cost per day
+  let costPerDay = 10; // fallback default
+  try {
+    const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+    if (rateSetting && rateSetting.value && rateSetting.value.reelBoost1Day !== undefined) {
+      costPerDay = Number(rateSetting.value.reelBoost1Day);
+    }
+  } catch (err) {
+    logger.error('Failed to fetch credit rates for reel boosting:', err);
+  }
+
+  const totalCost = costPerDay * days;
+
+  // Deduct credits from vendor's wallet
+  await walletService.spendCredits(
+    vendorId,
+    totalCost,
+    `Boost reel for ${days} days`,
+    'boost_reel'
+  );
+
+  // Calculate new boost expiration date
+  const now = new Date();
+  let baseFrom = now;
+  if (reel.boostExpiresAt && reel.boostExpiresAt > now) {
+    baseFrom = reel.boostExpiresAt;
+  }
+  const newExpiry = new Date(baseFrom.getTime() + days * 24 * 60 * 60 * 1000);
+
+  // Update reel properties
+  await Reel.updateOne(
+    { _id: reelId },
+    {
+      $set: {
+        isBoosted: true,
+        boostExpiresAt: newExpiry,
+        boostDurationDays: days,
+        boostActivatedAt: now,
+        boostCost: totalCost,
+      }
+    }
+  );
+
+  // Trigger notification for vendor
+  await notificationService.create(
+    vendorId,
+    'boost',
+    'Reel boosted!',
+    `Your reel is boosted for ${days} days.`,
+    {},
+    '/vendor/reels'
+  );
+
+  return { reel_id: reelId, isBoosted: true, boostExpiresAt: newExpiry };
 };
 
 const expireBoostsLoop = async () => {
@@ -177,6 +262,7 @@ module.exports = {
   boostWithInr,
   activateBoostFromPayment,
   listMyBoosted,
+  boostReelWithCredits,
   expireBoostsOnce,
   expireBoostsLoop,
 };

@@ -98,6 +98,14 @@ const vendorApi = apiSlice.injectEndpoints({
       query: (body) => ({ url: '/reels', method: 'POST', body }),
       invalidatesTags: ['Reels', 'VendorDashboard'],
     }),
+    boostReel: builder.mutation({
+      query: ({ id, durationDays }) => ({
+        url: `/reels/${id}/boost`,
+        method: 'POST',
+        body: { durationDays }
+      }),
+      invalidatesTags: ['Reels', 'VendorDashboard', 'Wallet'],
+    }),
     deleteReel: builder.mutation({
       query: (id) => ({ url: `/reels/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Reels', 'VendorDashboard'],
@@ -214,6 +222,7 @@ export const {
   useGetVendorReelsQuery,
   useCreateReelMutation,
   useDeleteReelMutation,
+  useBoostReelMutation,
   // NOTE: Boost hooks removed
   useGetVendorLeadsQuery,
   useReplyToLeadMutation,

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   FiVideo, FiCpu, FiPlay, FiCalendar, FiShield,
-  FiEye, FiHeart, FiRadio, FiPlus, FiTrash2, FiFileText
+  FiEye, FiHeart, FiRadio, FiPlus, FiTrash2, FiFileText, FiZap
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
@@ -20,6 +20,7 @@ import CreateReelWizardModal from './CreateReelWizardModal';
 import ReelPreviewModal from './ReelPreviewModal';
 import AiReelGeneratorModal from './AiReelGeneratorModal';
 import InteractiveLiveModal from './InteractiveLiveModal';
+import ReelBoostModal from './ReelBoostModal';
 
 export default function VendorReelsPage() {
   const [activeTab, setActiveTab] = useState('published');
@@ -29,6 +30,13 @@ export default function VendorReelsPage() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showAiAdModal, setShowAiAdModal] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
+  const [showBoostModal, setShowBoostModal] = useState(false);
+  const [selectedReelForBoost, setSelectedReelForBoost] = useState(null);
+
+  const handleOpenBoostModal = (reel) => {
+    setSelectedReelForBoost(reel);
+    setShowBoostModal(true);
+  };
 
   // 1. SELECT CONTENT TYPE
   const [postType, setPostType] = useState('services'); // 'product' | 'services' | 'shop'
@@ -496,14 +504,33 @@ export default function VendorReelsPage() {
               <div className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="font-bold text-sm text-text-primary line-clamp-2">{reel.caption || reel.title || 'Service Reel'}</h4>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteReel(reel._id || reel.id)}
-                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition flex-shrink-0"
-                    title="Delete Reel"
-                  >
-                    <FiTrash2 size={16} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {reel.isBoosted && (
+                      <span className="bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5" title={`Boost active until ${new Date(reel.boostExpiresAt).toLocaleDateString()}`}>
+                        <FiZap size={11} className="fill-amber-500" />
+                        Boosted
+                      </span>
+                    )}
+                    {!reel.isBoosted && reel.status === 'published' && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenBoostModal(reel)}
+                        className="p-1.5 rounded-lg hover:bg-amber-500/10 text-text-tertiary hover:text-amber-500 transition flex-shrink-0 flex items-center gap-1"
+                        title="Boost Reel"
+                      >
+                        <FiZap size={15} />
+                        <span className="text-[10px] font-bold">Boost</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteReel(reel._id || reel.id)}
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition flex-shrink-0"
+                      title="Delete Reel"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-1">
@@ -636,6 +663,17 @@ export default function VendorReelsPage() {
         liveTitle={liveTitle}
         setLiveTitle={setLiveTitle}
         handleToggleLiveStream={handleToggleLiveStream}
+      />
+
+      {/* MODAL 5: BOOST REEL */}
+      <ReelBoostModal
+        isOpen={showBoostModal}
+        onClose={() => {
+          setShowBoostModal(false);
+          setSelectedReelForBoost(null);
+        }}
+        reel={selectedReelForBoost}
+        refetchReels={refetch}
       />
     </div>
   );
