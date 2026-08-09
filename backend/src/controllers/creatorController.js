@@ -15,35 +15,7 @@ class CreatorController {
   // ── Creator Dashboard ────────────────────────────────────
   getDashboard = asyncHandler(async (req, res) => {
     const userId = req.user._id;
-    const userIdStr = userId.toString();
 
-    const [
-      hireRequestsCount,
-      pendingRequests,
-      reels,
-      totalOrders,
-      portfolioReelsCount,
-      portfolioImagesCount
-    ] = await Promise.all([
-      HireRequest.countDocuments({ creator: userId }),
-      HireRequest.countDocuments({ creator: userId, status: 'pending' }),
-      Reel.find({ creator: userId }).select('views').lean(),
-      Order.countDocuments({ vendor: userId }),
-      Reel.countDocuments({ creator: userId }),
-      Listing.countDocuments({ vendor: userId })
-    ]);
-
-    const totalProjectsCount = hireRequestsCount + totalOrders;
-    const totalViews = reels.reduce((acc, r) => acc + (r.views || 0), 0);
-
-    // Calculate active clients (unique vendors who have created a completed or accepted HireRequest)
-    const activeClientsCount = await HireRequest.distinct('vendor', {
-      creator: userId,
-      status: { $in: ['accepted', 'completed'] }
-    }).then(list => list.length);
-
-    // Calculate monthly earnings and last month earnings from WalletTransaction
-    const WalletTransaction = require('../models/WalletTransaction');
     const startOfThisMonth = new Date();
     startOfThisMonth.setDate(1);
     startOfThisMonth.setHours(0, 0, 0, 0);
@@ -53,6 +25,59 @@ class CreatorController {
     startOfLastMonth.setDate(1);
     startOfLastMonth.setHours(0, 0, 0, 0);
 
+    const [
+      hireRequestsCount,
+      pendingRequests,
+      reels,
+      totalOrders,
+      portfolioReelsCount,
+      portfolioImagesCount,
+      thisMonthHires,
+      lastMonthHires,
+      thisMonthOrders,
+      lastMonthOrders,
+      thisMonthReels,
+      lastMonthReels
+    ] = await Promise.all([
+      HireRequest.countDocuments({ creator: userId }),
+      HireRequest.countDocuments({ creator: userId, status: 'pending' }),
+      Reel.find({ creator: userId }).select('views').lean(),
+      Order.countDocuments({ vendor: userId }),
+      Reel.countDocuments({ creator: userId }),
+      Listing.countDocuments({ vendor: userId }),
+      HireRequest.countDocuments({ creator: userId, createdAt: { $gte: startOfThisMonth } }),
+      HireRequest.countDocuments({ creator: userId, createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } }),
+      Order.countDocuments({ vendor: userId, createdAt: { $gte: startOfThisMonth } }),
+      Order.countDocuments({ vendor: userId, createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } }),
+      Reel.find({ creator: userId, createdAt: { $gte: startOfThisMonth } }).select('views').lean(),
+      Reel.find({ creator: userId, createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } }).select('views').lean()
+    ]);
+
+    const totalProjectsCount = hireRequestsCount + totalOrders;
+    const totalViews = reels.reduce((acc, r) => acc + (r.views || 0), 0);
+
+    // Dynamic calculations for Project Trends
+    const thisMonthProjects = thisMonthHires + thisMonthOrders;
+    const lastMonthProjects = lastMonthHires + lastMonthOrders;
+    const projectsTrend = lastMonthProjects > 0
+      ? Math.round(((thisMonthProjects - lastMonthProjects) / lastMonthProjects) * 100)
+      : (thisMonthProjects > 0 ? 100 : 0);
+
+    // Dynamic calculations for Views Trends
+    const thisMonthViews = thisMonthReels.reduce((acc, r) => acc + (r.views || 0), 0);
+    const lastMonthViews = lastMonthReels.reduce((acc, r) => acc + (r.views || 0), 0);
+    const viewsTrend = lastMonthViews > 0
+      ? Math.round(((thisMonthViews - lastMonthViews) / lastMonthViews) * 100)
+      : (thisMonthViews > 0 ? 100 : 0);
+
+    // Calculate active clients (unique vendors who have created a completed or accepted HireRequest)
+    const activeClientsCount = await HireRequest.distinct('vendor', {
+      creator: userId,
+      status: { $in: ['accepted', 'completed'] }
+    }).then(list => list.length);
+
+    // Calculate monthly earnings and last month earnings from WalletTransaction
+    const WalletTransaction = require('../models/WalletTransaction');
     const [thisMonthTx, lastMonthTx] = await Promise.all([
       WalletTransaction.find({
         user: userId,
@@ -69,6 +94,33 @@ class CreatorController {
     const monthlyEarnings = thisMonthTx.reduce((acc, tx) => acc + tx.amount, 0);
     const lastMonthEarnings = lastMonthTx.reduce((acc, tx) => acc + tx.amount, 0);
 
+    const earningsTrend = lastMonthEarnings > 0
+      ? Math.round(((monthlyEarnings - lastMonthEarnings) / lastMonthEarnings) * 100)
+      : (monthlyEarnings > 0 ? 100 : 0);
+
+    // Dynamic calculations for Reviews/Rating Trends
+    const Review = require('../models/Review');
+    const [thisMonthReviews, lastMonthReviews] = await Promise.all([
+      Review.find({ targetUser: userId, createdAt: { $gte: startOfThisMonth } }).select('rating').lean(),
+      Review.find({ targetUser: userId, createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } }).select('rating').lean()
+    ]);
+    const thisMonthRatingAvg = thisMonthReviews.length > 0
+      ? thisMonthReviews.reduce((acc, r) => acc + r.rating, 0) / thisMonthReviews.length
+      : 0;
+    const lastMonthRatingAvg = lastMonthReviews.length > 0
+      ? lastMonthReviews.reduce((acc, r) => acc + r.rating, 0) / lastMonthReviews.length
+      : 0;
+    const ratingTrend = lastMonthRatingAvg > 0
+      ? Math.round(((thisMonthRatingAvg - lastMonthRatingAvg) / lastMonthRatingAvg) * 100)
+      : (thisMonthRatingAvg > 0 ? 100 : 0);
+
+    // Pending requests trend (simply comparison of pending count)
+    const thisMonthPending = await HireRequest.countDocuments({ creator: userId, status: 'pending', createdAt: { $gte: startOfThisMonth } });
+    const lastMonthPending = await HireRequest.countDocuments({ creator: userId, status: 'pending', createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } });
+    const pendingRequestsTrend = lastMonthPending > 0
+      ? Math.round(((thisMonthPending - lastMonthPending) / lastMonthPending) * 100)
+      : (thisMonthPending > 0 ? 100 : 0);
+
     return ApiResponse.ok(res, 'Creator dashboard metrics loaded.', {
       totalProjects: totalProjectsCount,
       pendingRequests: pendingRequests,
@@ -81,6 +133,11 @@ class CreatorController {
       portfolioImages: portfolioImagesCount,
       monthlyEarnings: monthlyEarnings,
       lastMonthEarnings: lastMonthEarnings,
+      projectsTrend,
+      earningsTrend,
+      ratingTrend,
+      viewsTrend,
+      pendingRequestsTrend,
       verificationStatus: req.user.creatorProfile?.verificationStatus || 'unverified'
     });
   });
