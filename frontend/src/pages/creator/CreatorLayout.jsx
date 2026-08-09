@@ -171,7 +171,7 @@ export default function CreatorLayout() {
       <div className="border-t border-border px-4 py-4">
         <div className="flex items-center gap-3 mb-3">
           <img
-            src={profileUser?.profile_pic || "/logo.png"}
+            src={creatorProfile.profilePhoto || profileUser?.profile_pic || "/logo.png"}
             alt="Creator"
             className="w-9 h-9 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm"
           />
@@ -271,7 +271,7 @@ export default function CreatorLayout() {
             <NotificationBellDropdown role="creator" />
 
             <img
-              src={profileUser?.profile_pic || "/logo.png"}
+              src={creatorProfile.profilePhoto || profileUser?.profile_pic || "/logo.png"}
               alt="Creator Profile"
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm flex-shrink-0"
             />
