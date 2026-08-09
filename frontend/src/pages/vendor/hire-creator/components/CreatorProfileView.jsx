@@ -12,7 +12,7 @@ export default function CreatorProfileView({ profile, onBack, onSelectHire }) {
   const reels = profile.reels || [];
   const portfolioImages = profile.portfolioImages || [];
   const reviews = profile.reviews || [];
-  const pricing = profile.pricing || { reel1: 800, reel3: 2000 };
+  const pricing = profile.pricing || { reel1: 0, reel3: 0 };
 
   const formatCount = (num) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;

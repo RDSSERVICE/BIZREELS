@@ -8,19 +8,19 @@ export default function CreatorPricingPage() {
   const { data, isFetching } = useGetCreatorPricingQuery(undefined, { pollingInterval: 300000 });
   const [updatePricing] = useUpdateCreatorPricingMutation();
 
-  const [reel1, setReel1] = useState('500');
-  const [reel3, setReel3] = useState('1200');
-  const [reel10, setReel10] = useState('3500');
-  const [hourlyRate, setHourlyRate] = useState('1000');
-  const [dayRate, setDayRate] = useState('6000');
+  const [reel1, setReel1] = useState('0');
+  const [reel3, setReel3] = useState('0');
+  const [reel10, setReel10] = useState('0');
+  const [hourlyRate, setHourlyRate] = useState('0');
+  const [dayRate, setDayRate] = useState('0');
 
   useEffect(() => {
     if (data) {
-      if (data.reel1) setReel1(String(data.reel1));
-      if (data.reel3) setReel3(String(data.reel3));
-      if (data.reel10) setReel10(String(data.reel10));
-      if (data.hourlyRate) setHourlyRate(String(data.hourlyRate));
-      if (data.dayRate) setDayRate(String(data.dayRate));
+      setReel1(String(data.reel1 ?? 0));
+      setReel3(String(data.reel3 ?? 0));
+      setReel10(String(data.reel10 ?? 0));
+      setHourlyRate(String(data.hourlyRate ?? 0));
+      setDayRate(String(data.dayRate ?? 0));
     }
   }, [data]);
 

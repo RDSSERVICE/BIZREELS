@@ -77,15 +77,15 @@ router.get('/', optionalAuth, catchAsync(async (req, res) => {
     city: u.city || 'Mumbai',
     category: u.creatorProfile?.category || u.occupation || 'Visual Creator',
     bio: u.creatorProfile?.bio || 'Verified content creator on BizReels.',
-    rating_avg: u.rating_avg || 4.9,
-    rating_count: u.rating_count || 12,
+    rating_avg: u.rating_avg ?? 0,
+    rating_count: u.rating_count ?? 0,
     creatorProfile: u.creatorProfile || {
       name: u.name,
       category: u.occupation || 'Creator',
       bio: 'Verified content creator on BizReels.',
-      pricing: { reel1: 800, reel3: 2000 }
+      pricing: { reel1: 0, reel3: 0 }
     },
-    pricing: u.creatorProfile?.pricing || { reel1: 800, reel3: 2000 },
+    pricing: u.creatorProfile?.pricing || { reel1: 0, reel3: 0 },
     isVerified: u.kyc_status === 'approved' || u.is_subscribed_verified
   }));
 
@@ -349,7 +349,7 @@ router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
       bio: c.creatorProfile?.bio || 'Professional short-form video creator & brand ambassador on BizReels.',
       rating: c.rating_avg ?? 0,
       reviewsCount: c.rating_count ?? 0,
-      pricing: c.creatorProfile?.pricing || { reel1: 800, reel3: 2000 },
+      pricing: c.creatorProfile?.pricing || { reel1: 0, reel3: 0 },
       isVerified: c.kyc_status === 'approved' || c.is_subscribed_verified,
       availability: c.creatorProfile?.availability || 'Available',
       languages: c.creatorProfile?.languages || 'English, Hindi',

@@ -10,7 +10,7 @@ export default function CreatorCard({ creator, onSelectDetails, onSelectHire }) 
   const isVerified = !!creator.isVerified;
   const rating = creator.rating_avg ?? 0;
   const reviewsCount = creator.rating_count ?? 0;
-  const reelPrice = creator.pricing?.reel1 || 800;
+  const reelPrice = creator.pricing?.reel1 || 0;
   const followers = creator.followersCount || 0;
   const reelsCount = creator.totalReels || 0;
   const campaignsCount = creator.totalCampaigns || 0;

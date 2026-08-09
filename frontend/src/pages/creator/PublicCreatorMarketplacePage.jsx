@@ -296,7 +296,7 @@ const PublicCreatorMarketplacePage = () => {
                       Starting Package
                     </span>
                     <span className="text-sm font-black text-brand-navy">
-                      ₹{creator.pricing?.reel1 ? creator.pricing.reel1.toLocaleString('en-IN') : '800'}
+                      ₹{creator.pricing?.reel1 ? creator.pricing.reel1.toLocaleString('en-IN') : '0'}
                       <span className="text-[10px] font-normal text-text-tertiary ml-0.5">/ Reel</span>
                     </span>
                   </div>
@@ -400,13 +400,13 @@ const PublicCreatorMarketplacePage = () => {
                   <span className="font-semibold text-text-secondary flex items-center gap-1.5">
                     <FiVideo className="text-purple-500" /> 1 Video Reel Package
                   </span>
-                  <span className="font-black text-brand-navy text-sm">₹{(selectedCreator.pricing?.reel1 ?? 800).toLocaleString('en-IN')}</span>
+                  <span className="font-black text-brand-navy text-sm">₹{(selectedCreator.pricing?.reel1 ?? 0).toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs bg-surface-secondary/40 p-3 rounded-xl border border-border/50">
                   <span className="font-semibold text-text-secondary flex items-center gap-1.5">
                     <FiVideo className="text-violet-500" /> 3 Video Reels Package
                   </span>
-                  <span className="font-black text-brand-navy text-sm">₹{(selectedCreator.pricing?.reel3 ?? 2000).toLocaleString('en-IN')}</span>
+                  <span className="font-black text-brand-navy text-sm">₹{(selectedCreator.pricing?.reel3 ?? 0).toLocaleString('en-IN')}</span>
                 </div>
                 {selectedCreator.pricing?.reel10 && (
                   <div className="flex items-center justify-between text-xs bg-surface-secondary/40 p-3 rounded-xl border border-border/50">

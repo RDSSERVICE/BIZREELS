@@ -215,11 +215,11 @@ class CreatorController {
   getPricing = asyncHandler(async (req, res) => {
     const p = req.user.creatorProfile?.pricing || {};
     return ApiResponse.ok(res, 'Pricing details loaded.', {
-      reel1: p.reel1 || 500,
-      reel3: p.reel3 || 1200,
-      reel10: p.reel10 || 3500,
-      hourlyRate: p.hourlyRate || 1000,
-      dayRate: p.dayRate || 6000
+      reel1: Number(p.reel1 || 0),
+      reel3: Number(p.reel3 || 0),
+      reel10: Number(p.reel10 || 0),
+      hourlyRate: Number(p.hourlyRate || 0),
+      dayRate: Number(p.dayRate || 0)
     });
   });
 

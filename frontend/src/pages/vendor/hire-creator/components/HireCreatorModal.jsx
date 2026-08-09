@@ -17,7 +17,7 @@ export default function HireCreatorModal({ creator, onClose, onSubmit, defaultVa
 
   const [numReels, setNumReels] = useState(defaultValues?.numReels || 1);
   const [numPosts, setNumPosts] = useState(defaultValues?.numPosts || 0);
-  const [budget, setBudget] = useState(defaultValues?.budget || creator?.pricing?.reel1 || 800);
+  const [budget, setBudget] = useState(defaultValues?.budget || creator?.pricing?.reel1 || 0);
   const [deliveryDays, setDeliveryDays] = useState(defaultValues?.deliveryDays || 3);
   
   // Dates formatting helper

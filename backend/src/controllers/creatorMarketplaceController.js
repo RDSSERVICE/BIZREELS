@@ -245,8 +245,8 @@ class CreatorMarketplaceController {
         followingCount: c.followingCount || 0,
         isVerified: c.kyc_status === 'approved' || c.is_subscribed_verified,
         pricing: {
-          reel1: pricing.reel1 || 800,
-          reel3: pricing.reel3 || 2000,
+          reel1: Number(pricing.reel1 || 0),
+          reel3: Number(pricing.reel3 || 0),
         },
         languages: profile.languages || 'English, Hindi',
         experience: profile.experienceYears || '2 Years',
@@ -425,9 +425,9 @@ class CreatorMarketplaceController {
         },
       })),
       pricing: {
-        reel1: pricing.reel1 || 800,
-        reel3: pricing.reel3 || 2000,
-        reel10: pricing.reel10 || 5000,
+        reel1: Number(pricing.reel1 || 0),
+        reel3: Number(pricing.reel3 || 0),
+        reel10: Number(pricing.reel10 || 0),
       },
       availabilityStatus: cp.availability || 'Available',
     };
