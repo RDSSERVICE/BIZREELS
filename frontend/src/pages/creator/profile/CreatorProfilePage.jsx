@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { FiUser, FiSave } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { setCredentials } from '../../../features/auth/authSlice';
-import { tokenStore } from '../../../lib/api';
+import { api, tokenStore } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
@@ -25,6 +25,7 @@ export default function CreatorProfilePage() {
   const [experienceYears, setExperienceYears] = useState('2');
   const [city, setCity] = useState('Mumbai');
   const [travelAvailable, setTravelAvailable] = useState('Yes');
+  const [profilePhoto, setProfilePhoto] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -35,8 +36,33 @@ export default function CreatorProfilePage() {
       setExperienceYears(creatorProfile.experienceYears || '2');
       setCity(creatorProfile.city || user.city || 'Mumbai');
       setTravelAvailable(creatorProfile.travelAvailable ? 'Yes' : 'No');
+      setProfilePhoto(creatorProfile.profilePhoto || '');
     }
   }, [creatorProfile, user]);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const toastId = toast.loading('Uploading profile picture...');
+    try {
+      const res = await api.post('/v1/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const url = res.data?.data?.url || res.data?.url || res.data?.data;
+      if (url) {
+        setProfilePhoto(url);
+        toast.success('Profile picture uploaded!', { id: toastId });
+      } else {
+        throw new Error('Image URL not found in response');
+      }
+    } catch (err) {
+      toast.error('Failed to upload profile picture.', { id: toastId });
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -51,6 +77,7 @@ export default function CreatorProfilePage() {
           experienceYears,
           city,
           travelAvailable: travelAvailable === 'Yes',
+          profilePhoto,
           updatedAt: new Date().toISOString()
         }
       };
@@ -74,6 +101,30 @@ export default function CreatorProfilePage() {
       />
 
       <form onSubmit={handleSave} className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
+        {/* Profile Photo Upload Section */}
+        <div className="flex flex-col items-center gap-3 pb-4 border-b border-border">
+          <div className="relative group">
+            <img
+              src={profilePhoto || '/logo.png'}
+              alt="Profile Preview"
+              className="w-24 h-24 rounded-full object-cover border-2 border-brand-purple shadow-md bg-white p-0.5 animate-fade-in"
+            />
+            <label className="absolute bottom-0 right-0 p-2 bg-brand-purple text-white rounded-full cursor-pointer hover:bg-brand-purple/90 transition shadow-md">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+              </svg>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+            </label>
+          </div>
+          <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Creator Avatar</span>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Creator / Stage Name</label>
