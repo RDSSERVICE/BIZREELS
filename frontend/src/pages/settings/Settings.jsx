@@ -36,6 +36,9 @@ const Settings = () => {
   const user = useSelector(selectCurrentUser);
   const navigate = useNavigate();
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   const [updateProfileApi, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [logoutApi] = useLogoutMutation();
   const [deleteAccountApi] = useDeleteAccountMutation();
@@ -496,7 +499,20 @@ const Settings = () => {
                   <Input
                     label="Date of Birth (Optional)"
                     type="date"
-                    {...register('dob')}
+                    max={todayStr}
+                    error={errors.dob?.message}
+                    {...register('dob', {
+                      validate: (val) => {
+                        if (!val) return true;
+                        const selectedDate = new Date(val);
+                        const current = new Date();
+                        current.setHours(23, 59, 59, 999);
+                        if (selectedDate > current) {
+                          return 'Date of Birth cannot be in the future';
+                        }
+                        return true;
+                      }
+                    })}
                   />
 
                   <Input

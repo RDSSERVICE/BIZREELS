@@ -21,12 +21,36 @@ export default function HireCreatorModal({ creator, onClose, onSubmit, defaultVa
   const [deliveryDays, setDeliveryDays] = useState(defaultValues?.deliveryDays || 3);
   
   // Dates formatting helper
-  const formatDateForInput = (d) => {
-    if (!d) return '';
-    return new Date(d).toISOString().split('T')[0];
+  const getTodayDateString = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   };
 
-  const [startDate, setStartDate] = useState(formatDateForInput(defaultValues?.startDate));
+  const getDayAfter = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    date.setDate(date.getDate() + 1);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const formatDateForInput = (d) => {
+    if (!d) return '';
+    const date = new Date(d);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const [startDate, setStartDate] = useState(
+    defaultValues?.startDate ? formatDateForInput(defaultValues.startDate) : getTodayDateString()
+  );
   const [endDate, setEndDate] = useState(formatDateForInput(defaultValues?.endDate));
   const [deadline, setDeadline] = useState(formatDateForInput(defaultValues?.deadline));
 
@@ -81,6 +105,26 @@ export default function HireCreatorModal({ creator, onClose, onSubmit, defaultVa
     if (!deliveryDays || parseInt(deliveryDays, 10) <= 0) {
       toast.error('Proposed turnaround timeframe is required.');
       return;
+    }
+
+    if (startDate) {
+      const today = getTodayDateString();
+      if (startDate < today) {
+        toast.error('Start date cannot be in the past.');
+        return;
+      }
+    }
+    if (startDate && endDate) {
+      if (endDate <= startDate) {
+        toast.error('End date must be after the start date.');
+        return;
+      }
+    }
+    if (startDate && deadline) {
+      if (deadline <= startDate) {
+        toast.error('Final deadline must be after the start date.');
+        return;
+      }
     }
 
     const payload = {
@@ -276,8 +320,18 @@ export default function HireCreatorModal({ creator, onClose, onSubmit, defaultVa
               <label className="font-bold text-text-secondary">Start Date</label>
               <input
                 type="date"
+                min={getTodayDateString()}
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  setStartDate(newStart);
+                  if (endDate && endDate <= newStart) {
+                    setEndDate(getDayAfter(newStart));
+                  }
+                  if (deadline && deadline <= newStart) {
+                    setDeadline(getDayAfter(newStart));
+                  }
+                }}
                 className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
@@ -285,6 +339,7 @@ export default function HireCreatorModal({ creator, onClose, onSubmit, defaultVa
               <label className="font-bold text-text-secondary">End Date</label>
               <input
                 type="date"
+                min={getDayAfter(startDate)}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple"
@@ -294,6 +349,7 @@ export default function HireCreatorModal({ creator, onClose, onSubmit, defaultVa
               <label className="font-bold text-text-secondary">Final Deadline</label>
               <input
                 type="date"
+                min={getDayAfter(startDate)}
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple"

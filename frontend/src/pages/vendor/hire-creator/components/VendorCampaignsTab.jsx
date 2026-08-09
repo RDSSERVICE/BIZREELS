@@ -20,6 +20,16 @@ export default function VendorCampaignsTab({
   const [comment, setComment] = useState('');
   const [playingVideo, setPlayingVideo] = useState(null);
 
+  React.useEffect(() => {
+    if (campaigns && campaigns.length > 0) {
+      const hasActive = campaigns.some(c => c.status === 'accepted');
+      const hasPending = campaigns.some(c => c.status === 'pending');
+      if (activeSubTab === 'active' && !hasActive && hasPending) {
+        setActiveSubTab('pending');
+      }
+    }
+  }, [campaigns]);
+
   const filtered = campaigns.filter((c) => {
     if (activeSubTab === 'pending') return c.status === 'pending';
     if (activeSubTab === 'active') return c.status === 'accepted';

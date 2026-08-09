@@ -26,6 +26,9 @@ export default function CustomerSettingsPage() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState('male');
   const [occupation, setOccupation] = useState('');
@@ -144,6 +147,15 @@ export default function CustomerSettingsPage() {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    if (dob) {
+      const todayVal = new Date();
+      todayVal.setHours(23, 59, 59, 999);
+      if (new Date(dob) > todayVal) {
+        toast.error('Date of Birth cannot be in the future.');
+        return;
+      }
+    }
+
     setSaving(true);
     const toastId = toast.loading('Saving profile changes...');
 
@@ -331,7 +343,19 @@ export default function CustomerSettingsPage() {
                     <input
                       type="date"
                       value={dob}
-                      onChange={(e) => setDob(e.target.value)}
+                      max={todayStr}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          const todayVal = new Date();
+                          todayVal.setHours(23, 59, 59, 999);
+                          if (new Date(val) > todayVal) {
+                            toast.error('Date of Birth cannot be in the future.');
+                            return;
+                          }
+                        }
+                        setDob(val);
+                      }}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
                     />
                   </div>

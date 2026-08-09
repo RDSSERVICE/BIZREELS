@@ -525,7 +525,18 @@ class AuthService {
     if (phone) updateFields.phone = phone;
     if (gender) updateFields.gender = gender;
     if (occupation) updateFields.occupation = occupation;
-    if (dob) updateFields.dob = dob;
+    if (dob) {
+      const dobDate = new Date(dob);
+      if (isNaN(dobDate.getTime())) {
+        throw ApiError.badRequest('Invalid Date of Birth.');
+      }
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      if (dobDate > today) {
+        throw ApiError.badRequest('Date of Birth cannot be in the future.');
+      }
+      updateFields.dob = dob;
+    }
     if (language) updateFields.language = language;
     if (location) {
       updateFields.location = {
@@ -546,6 +557,26 @@ class AuthService {
       };
     }
     if (creatorProfile) {
+      if (creatorProfile.dob) {
+        const dobDate = new Date(creatorProfile.dob);
+        if (isNaN(dobDate.getTime())) {
+          throw ApiError.badRequest('Invalid Date of Birth in creator profile.');
+        }
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (dobDate > today) {
+          throw ApiError.badRequest('Date of Birth in creator profile cannot be in the future.');
+        }
+        // Calculate age
+        let age = today.getFullYear() - dobDate.getFullYear();
+        const m = today.getMonth() - dobDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+          age--;
+        }
+        if (age < 18) {
+          throw ApiError.badRequest('Must be 18 years or older to register as a Creator.');
+        }
+      }
       const currentProfile = user.creatorProfile ? (user.creatorProfile.toObject ? user.creatorProfile.toObject() : user.creatorProfile) : {};
       updateFields.creatorProfile = {
         ...currentProfile,

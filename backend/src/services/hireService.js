@@ -42,6 +42,30 @@ class HireService {
       throw ApiError.badRequest('Insufficient wallet balance to propose campaign budget.');
     }
 
+    // Business logic: validate dates
+    if (startDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const start = new Date(startDate);
+      if (start < today) {
+        throw ApiError.badRequest('Start date cannot be in the past.');
+      }
+    }
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (end <= start) {
+        throw ApiError.badRequest('End date must be after the start date.');
+      }
+    }
+    if (startDate && deadline) {
+      const start = new Date(startDate);
+      const dead = new Date(deadline);
+      if (dead <= start) {
+        throw ApiError.badRequest('Final deadline must be after the start date.');
+      }
+    }
+
     // Create HireRequest (Legacy compatibility)
     const request = await hireRepository.createRequest({
       vendor: vendorId,
@@ -113,6 +137,34 @@ class HireService {
     // Update Campaign
     const campaign = await Campaign.findOne({ hireRequest: id });
     if (campaign) {
+      // Validate updated dates
+      const reqStartDate = data.startDate !== undefined ? data.startDate : campaign.startDate;
+      const reqEndDate = data.endDate !== undefined ? data.endDate : campaign.endDate;
+      const reqDeadline = data.deadline !== undefined ? data.deadline : campaign.deadline;
+
+      if (reqStartDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const start = new Date(reqStartDate);
+        if (start < today) {
+          throw ApiError.badRequest('Start date cannot be in the past.');
+        }
+      }
+      if (reqStartDate && reqEndDate) {
+        const start = new Date(reqStartDate);
+        const end = new Date(reqEndDate);
+        if (end <= start) {
+          throw ApiError.badRequest('End date must be after the start date.');
+        }
+      }
+      if (reqStartDate && reqDeadline) {
+        const start = new Date(reqStartDate);
+        const dead = new Date(reqDeadline);
+        if (dead <= start) {
+          throw ApiError.badRequest('Final deadline must be after the start date.');
+        }
+      }
+
       campaign.title = data.title || campaign.title;
       campaign.description = data.description || campaign.description;
       if (data.productService !== undefined) campaign.productService = data.productService;

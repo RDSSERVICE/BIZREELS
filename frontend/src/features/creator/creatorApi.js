@@ -63,11 +63,11 @@ const creatorApi = apiSlice.injectEndpoints({
 
     // ── Wallet / Earnings ───────────────────────────────────
     getCreatorWallet: builder.query({
-      query: () => '/wallet',
+      query: () => '/wallet/creator',
       providesTags: ['Wallet'],
     }),
     getCreatorTransactions: builder.query({
-      query: (params = {}) => ({ url: '/wallet/transactions', params }),
+      query: (params = {}) => ({ url: '/transactions/creator', params }),
       providesTags: ['Wallet'],
     }),
     requestPayout: builder.mutation({

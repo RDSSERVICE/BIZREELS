@@ -167,7 +167,7 @@ export default function VendorHireCreatorPage() {
     setLoadingCampaigns(true);
     try {
       const res = await api.get('/v1/hires?role=vendor');
-      setCampaigns(res.data?.hireRequests || []);
+      setCampaigns(res.data?.data?.hireRequests || []);
     } catch (err) {
       console.error('Failed to load campaigns:', err);
       setCampaigns([]);

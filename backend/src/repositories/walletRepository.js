@@ -72,6 +72,85 @@ class WalletRepository {
           { returnDocument: 'after', session }
         );
 
+        // ─── Sync Isolated Wallet (New Architecture) ─────────────────
+        try {
+          const IsolatedWallet = require('../models/IsolatedWallet.model');
+          const IsolatedTransaction = require('../models/IsolatedTransaction.model');
+
+          let targetRole = null;
+          if (amount < 0) {
+            targetRole = 'vendor';
+          } else {
+            const desc = (description || '').toLowerCase();
+            if (desc.includes('campaign') || desc.includes('creator') || desc.includes('shoot')) {
+              targetRole = 'creator';
+            } else {
+              targetRole = 'vendor';
+            }
+          }
+
+          // Get or create isolated wallet
+          let isoWallet = await IsolatedWallet.findOne({ userId: uid, role: targetRole }).session(session);
+          if (!isoWallet) {
+            let initialBalance = 0;
+            if (targetRole === 'vendor') {
+              initialBalance = previousBalance;
+            }
+            const createdIso = await IsolatedWallet.create([{
+              userId: uid,
+              role: targetRole,
+              balance: initialBalance,
+              currency: 'INR',
+              lifetime_earned: targetRole === 'vendor' ? initialBalance : 0,
+              lifetime_spent: 0,
+              is_frozen: false,
+              status: 'active',
+            }], { session });
+            isoWallet = createdIso[0];
+          }
+
+          if (!isoWallet.is_frozen) {
+            const prevIsoBalance = isoWallet.balance || 0;
+            const updatedIsoBalance = prevIsoBalance + amount;
+
+            if (updatedIsoBalance >= 0) {
+              const isoIncFields = amount > 0
+                ? { balance: amount, lifetime_earned: amount }
+                : { balance: amount, lifetime_spent: Math.abs(amount) };
+
+              await IsolatedWallet.updateOne(
+                { userId: uid, role: targetRole },
+                { $inc: isoIncFields },
+                { session }
+              );
+
+              let isoTxType = 'credit';
+              if (amount < 0) {
+                isoTxType = type === 'withdrawal' ? 'payout' : type === 'payment' ? 'subscription_purchase' : 'debit';
+              } else {
+                isoTxType = type === 'deposit' ? 'recharge' : type === 'refund' ? 'refund' : 'credit';
+              }
+
+              await IsolatedTransaction.create([{
+                userId: uid,
+                role: targetRole,
+                walletId: isoWallet._id,
+                type: isoTxType,
+                amount: Math.abs(amount),
+                previous_balance: prevIsoBalance,
+                updated_balance: updatedIsoBalance,
+                paymentId: referenceId || null,
+                gateway: 'internal',
+                description: description || null,
+                reference_id: referenceId ? `iso_${referenceId}` : `txn_iso_${Date.now()}`,
+                status: 'success',
+              }], { session });
+            }
+          }
+        } catch (err) {
+          logger.error('Failed to sync isolated wallet during updateWalletBalance', { error: err.message });
+        }
+
         // Create V2 transaction record
         const creditDebit = amount >= 0 ? 'credit' : 'debit';
         const txnType = type === 'deposit' ? 'recharge' : type === 'payment' ? 'subscription_purchase' : type === 'withdrawal' ? 'withdrawal' : 'manual_credit';

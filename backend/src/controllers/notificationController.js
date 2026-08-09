@@ -8,12 +8,14 @@ const asyncHandler = require('../utils/asyncHandler');
  */
 class NotificationController {
   getNotifications = asyncHandler(async (req, res) => {
-    const list = await notificationService.getNotifications(req.user._id);
+    const role = req.query.role || req.user.activeRole || req.user.current_role || 'customer';
+    const list = await notificationService.getNotifications(req.user._id, role);
     return ApiResponse.ok(res, 'Notifications log retrieved.', { items: list, notifications: list });
   });
 
   getUnreadCount = asyncHandler(async (req, res) => {
-    const count = await notificationService.unreadCount(req.user._id);
+    const role = req.query.role || req.user.activeRole || req.user.current_role || 'customer';
+    const count = await notificationService.unreadCount(req.user._id, role);
     return ApiResponse.ok(res, 'Unread count retrieved.', { count });
   });
 

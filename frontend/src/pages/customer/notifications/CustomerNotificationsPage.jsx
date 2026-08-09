@@ -70,7 +70,19 @@ export default function CustomerNotificationsPage() {
     const socket = getSocket();
     if (socket) {
       const handleNewNotification = (notif) => {
-        setNotifications((prev) => [notif, ...prev]);
+        const url = (notif.actionUrl || '').toLowerCase();
+        let matchesRole = false;
+        if (isVendorPortal) {
+          matchesRole = url.startsWith('/vendor');
+        } else if (isCreatorPortal) {
+          matchesRole = url.startsWith('/creator');
+        } else {
+          matchesRole = url.startsWith('/customer') || (!url.startsWith('/vendor') && !url.startsWith('/creator') && !url.startsWith('/admin'));
+        }
+
+        if (matchesRole) {
+          setNotifications((prev) => [notif, ...prev]);
+        }
       };
       socket.on('notification:new', handleNewNotification);
       return () => {
@@ -82,7 +94,8 @@ export default function CustomerNotificationsPage() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/v1/notifications/me');
+      const role = isVendorPortal ? 'vendor' : isCreatorPortal ? 'creator' : 'customer';
+      const res = await api.get(`/v1/notifications/me?role=${role}`);
       const data = res.data?.data || res.data;
       const items = Array.isArray(data?.items) ? data.items : Array.isArray(data?.notifications) ? data.notifications : Array.isArray(data) ? data : [];
       

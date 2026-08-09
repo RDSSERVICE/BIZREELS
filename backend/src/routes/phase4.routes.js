@@ -78,13 +78,15 @@ router.get('/reviews/vendor/:vendor_id/summary', catchAsync(async (req, res) => 
 router.get('/notifications/me', requireAuth, catchAsync(async (req, res) => {
   const isRead = req.query.is_read !== undefined ? req.query.is_read === 'true' : null;
   const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 30, 10)));
+  const role = req.query.role || req.user.activeRole || req.user.current_role || 'customer';
 
-  const result = await notificationService.listMine(req.user._id.toString(), isRead, req.query.cursor || null, limit);
+  const result = await notificationService.listMine(req.user._id.toString(), isRead, req.query.cursor || null, limit, role);
   res.json(result);
 }));
 
 router.get('/notifications/me/unread-count', requireAuth, catchAsync(async (req, res) => {
-  const count = await notificationService.unreadCount(req.user._id.toString());
+  const role = req.query.role || req.user.activeRole || req.user.current_role || 'customer';
+  const count = await notificationService.unreadCount(req.user._id.toString(), role);
   res.json({ count });
 }));
 

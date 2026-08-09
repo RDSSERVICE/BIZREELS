@@ -6,7 +6,7 @@ const Notification = require('../models/Notification');
  * Access layer for in-app client alerts.
  */
 class NotificationRepository {
-  async getNotificationsForUser(userId, { isRead = null, cursor = null, limit = 30 } = {}) {
+  async getNotificationsForUser(userId, { isRead = null, cursor = null, limit = 30, role = null } = {}) {
     const query = { recipient: userId.toString() };
     
     if (isRead !== null) {
@@ -20,17 +20,51 @@ class NotificationRepository {
       }
     }
 
+    if (role) {
+      if (role === 'vendor') {
+        query.actionUrl = { $regex: '^/vendor', $options: 'i' };
+      } else if (role === 'creator') {
+        query.actionUrl = { $regex: '^/creator', $options: 'i' };
+      } else if (role === 'admin') {
+        query.actionUrl = { $regex: '^/admin', $options: 'i' };
+      } else if (role === 'customer') {
+        query.$or = [
+          { actionUrl: { $not: { $regex: '^/(vendor|creator|admin)', $options: 'i' } } },
+          { actionUrl: null },
+          { actionUrl: '' }
+        ];
+      }
+    }
+
     return Notification.find(query)
       .sort({ _id: -1 })
       .limit(limit)
       .lean();
   }
 
-  async unreadCount(userId) {
-    return Notification.countDocuments({
+  async unreadCount(userId, role = null) {
+    const query = {
       recipient: userId.toString(),
       isRead: false
-    });
+    };
+
+    if (role) {
+      if (role === 'vendor') {
+        query.actionUrl = { $regex: '^/vendor', $options: 'i' };
+      } else if (role === 'creator') {
+        query.actionUrl = { $regex: '^/creator', $options: 'i' };
+      } else if (role === 'admin') {
+        query.actionUrl = { $regex: '^/admin', $options: 'i' };
+      } else if (role === 'customer') {
+        query.$or = [
+          { actionUrl: { $not: { $regex: '^/(vendor|creator|admin)', $options: 'i' } } },
+          { actionUrl: null },
+          { actionUrl: '' }
+        ];
+      }
+    }
+
+    return Notification.countDocuments(query);
   }
 
   async createNotification({ recipient, sender, type, title, body, message, data, actionUrl }) {

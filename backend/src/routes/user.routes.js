@@ -376,7 +376,20 @@ router.patch('/me', requireAuth, catchAsync(async (req, res) => {
   if (phone !== undefined) updateData.phone = phone;
   if (gender !== undefined) updateData.gender = gender;
   if (occupation !== undefined) updateData.occupation = occupation;
-  if (dob !== undefined) updateData.dob = dob;
+  if (dob !== undefined) {
+    if (dob) {
+      const dobDate = new Date(dob);
+      if (isNaN(dobDate.getTime())) {
+        throw ApiError.badRequest('Invalid Date of Birth.');
+      }
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      if (dobDate > today) {
+        throw ApiError.badRequest('Date of Birth cannot be in the future.');
+      }
+    }
+    updateData.dob = dob;
+  }
   if (language !== undefined) updateData.language = language;
   if (location !== undefined) updateData.location = location;
   if (city !== undefined) updateData.city = city;
@@ -390,11 +403,31 @@ router.patch('/me', requireAuth, catchAsync(async (req, res) => {
     updateData.vendorProfile = vendorProfile;
   }
 
-  // Creator profile update — block base64 images
+  // Creator profile update — block base64 images and validate DOB (must be 18+ and not in the future)
   if (creatorProfile !== undefined) {
     const cpStr = JSON.stringify(creatorProfile || {});
     if (/data:[^;]+;base64,/.test(cpStr)) {
       throw ApiError.badRequest('Base64 images are not allowed. Upload images via /api/v1/upload/image first.');
+    }
+    if (creatorProfile?.dob) {
+      const dobDate = new Date(creatorProfile.dob);
+      if (isNaN(dobDate.getTime())) {
+        throw ApiError.badRequest('Invalid Date of Birth in creator profile.');
+      }
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      if (dobDate > today) {
+        throw ApiError.badRequest('Date of Birth in creator profile cannot be in the future.');
+      }
+      // Calculate age
+      let age = today.getFullYear() - dobDate.getFullYear();
+      const m = today.getMonth() - dobDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+        age--;
+      }
+      if (age < 18) {
+        throw ApiError.badRequest('Must be 18 years or older to register as a Creator.');
+      }
     }
     updateData.creatorProfile = creatorProfile;
   }

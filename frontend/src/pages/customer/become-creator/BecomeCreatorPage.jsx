@@ -46,8 +46,10 @@ export default function BecomeCreatorPage() {
   const currentUser = useSelector(selectCurrentUser);
   const [addRoleApi] = useAddRoleMutation();
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   const [loading, setLoading] = useState(false);
-  const [pincodeLoading, setPincodeLoading] = useState(false);
 
   // 1. Basic Information
   const [fullName, setFullName] = useState(currentUser?.name || '');
@@ -107,33 +109,7 @@ export default function BecomeCreatorPage() {
   // 11. Terms Declaration
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // Pincode auto-lookup
-  const handlePincodeLookup = async (codeToSearch) => {
-    const targetCode = codeToSearch || pincode;
-    if (!targetCode || targetCode.length !== 6) return;
-    setPincodeLoading(true);
-    try {
-      const res = await api.post('/v1/location/pincode-lookup', { pincode: targetCode });
-      const data = res.data || res;
-      if (data) {
-        if (data.city) setCity(data.city);
-        if (data.state) setStateName(data.state);
-        if (data.district || data.city) setDistrict(data.district || data.city);
-        if (data.area && !areaLocality) setAreaLocality(data.area);
-        toast.success(`Location auto-fetched: ${data.city || data.area}, ${data.state}`);
-      }
-    } catch (err) {
-      toast.error('Could not auto-fetch pincode data');
-    } finally {
-      setPincodeLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    if (pincode && pincode.length === 6) {
-      handlePincodeLookup(pincode);
-    }
-  }, [pincode]);
 
   const detectLiveLocation = () => {
     if (!navigator.geolocation) {
@@ -255,6 +231,27 @@ export default function BecomeCreatorPage() {
     e.preventDefault();
     if (!fullName || !displayName) {
       toast.error('Full Name & Display Name are required');
+      return;
+    }
+    if (!dob) {
+      toast.error('Date of Birth is required');
+      return;
+    }
+    const todayVal = new Date();
+    todayVal.setHours(23, 59, 59, 999);
+    const dobDate = new Date(dob);
+    if (dobDate > todayVal) {
+      toast.error('Date of Birth cannot be in the future.');
+      return;
+    }
+    // Calculate age
+    let age = todayVal.getFullYear() - dobDate.getFullYear();
+    const m = todayVal.getMonth() - dobDate.getMonth();
+    if (m < 0 || (m === 0 && todayVal.getDate() < dobDate.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      toast.error('Must be 18 years or older to register as a Creator.');
       return;
     }
     if (!mobileNumber) {
@@ -421,7 +418,30 @@ export default function BecomeCreatorPage() {
                 type="date"
                 required
                 value={dob}
-                onChange={(e) => setDob(e.target.value)}
+                max={todayStr}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    const todayVal = new Date();
+                    todayVal.setHours(23, 59, 59, 999);
+                    if (new Date(val) > todayVal) {
+                      toast.error('Date of Birth cannot be in the future.');
+                      return;
+                    }
+                    // Age validation
+                    const birthDate = new Date(val);
+                    let age = todayVal.getFullYear() - birthDate.getFullYear();
+                    const m = todayVal.getMonth() - birthDate.getMonth();
+                    if (m < 0 || (m === 0 && todayVal.getDate() < birthDate.getDate())) {
+                      age--;
+                    }
+                    if (age < 18) {
+                      toast.error('Must be 18 years or older to register as a Creator.');
+                      return;
+                    }
+                  }
+                  setDob(val);
+                }}
                 className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
               />
             </div>
@@ -541,7 +561,7 @@ export default function BecomeCreatorPage() {
               <span className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shadow-md">3</span>
               <div>
                 <h3 className="text-base font-bold text-text-primary font-display">Location & Address</h3>
-                <p className="text-xs text-text-tertiary">Type PIN code to auto-fetch State, District, & City</p>
+                <p className="text-xs text-text-tertiary">Base location and address details of the creator</p>
               </div>
             </div>
 
@@ -569,25 +589,15 @@ export default function BecomeCreatorPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-text-secondary mb-1">PIN Code *</label>
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  required
-                  maxLength={6}
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                  placeholder="6-Digit PIN Code"
-                  className="w-full pr-16 pl-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => handlePincodeLookup()}
-                  disabled={pincodeLoading || pincode.length !== 6}
-                  className="absolute right-1 px-2.5 py-1.5 bg-brand-purple text-white rounded-lg text-[10px] font-bold hover:opacity-90 transition disabled:opacity-50"
-                >
-                  {pincodeLoading ? 'Fetching...' : 'Lookup'}
-                </button>
-              </div>
+              <input
+                type="text"
+                required
+                maxLength={6}
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value)}
+                placeholder="6-Digit PIN Code"
+                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
+              />
             </div>
 
             <div>

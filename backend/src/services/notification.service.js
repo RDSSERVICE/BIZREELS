@@ -7,8 +7,8 @@ const { emitToUser } = require('../sockets');
  * Handles core backend methods for reading, listing, and cleaning alerts.
  */
 class NotificationService {
-  async getNotifications(userId) {
-    return notificationRepository.getNotificationsForUser(userId);
+  async getNotifications(userId, role = null) {
+    return notificationRepository.getNotificationsForUser(userId, { role });
   }
 
   async markAllAsRead(userId) {
@@ -32,6 +32,36 @@ class NotificationService {
   }
 
   async create(userId, type, title, body = null, data = {}, actionUrl = null) {
+    let resolvedUrl = actionUrl;
+    try {
+      const User = require('../models/User');
+      const user = await User.findById(userId).select('activeRole current_role').lean();
+      const activeRole = user?.activeRole || user?.current_role || 'customer';
+
+      if (resolvedUrl) {
+        if (resolvedUrl.startsWith('/wallet')) {
+          resolvedUrl = activeRole === 'customer' ? '/wallet' : `/${activeRole}/wallet`;
+        } else if (resolvedUrl.startsWith('/subscriptions') || resolvedUrl.startsWith('/subscription')) {
+          resolvedUrl = activeRole === 'customer' ? '/subscriptions' : `/${activeRole}/subscription`;
+        } else if (resolvedUrl.startsWith('/chat')) {
+          resolvedUrl = activeRole === 'customer' ? '/chat' : `/${activeRole}/chat`;
+        } else if (resolvedUrl === '/notifications') {
+          resolvedUrl = activeRole === 'customer' ? '/notifications' : `/${activeRole}/notifications`;
+        }
+      } else {
+        if (type === 'requirement' || type === 'proposal' || type === 'lead') {
+          resolvedUrl = activeRole === 'customer' ? '/my-requirements' : `/${activeRole}/leads`;
+        } else if (type === 'hire' || type === 'campaign') {
+          resolvedUrl = activeRole === 'customer' ? '/activities' : `/${activeRole}/hire-creator`;
+          if (activeRole === 'creator') {
+            resolvedUrl = '/creator/dashboard';
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error resolving actionUrl for notification:', err.message);
+    }
+
     let savedNotif = null;
     try {
       savedNotif = await notificationRepository.createNotification({
@@ -41,7 +71,7 @@ class NotificationService {
         body: body || title || '',
         message: body || title || '',
         data: data || {},
-        actionUrl: actionUrl || null,
+        actionUrl: resolvedUrl || null,
       });
     } catch (err) {
       console.error('Error saving notification in DB:', err.message);
@@ -55,19 +85,20 @@ class NotificationService {
       body: body || title || '',
       message: body || title || '',
       data,
-      actionUrl,
+      actionUrl: resolvedUrl,
       createdAt: new Date().toISOString(),
     });
 
-    return savedNotif || { userId, type, title, body, data, actionUrl };
+    return savedNotif || { userId, type, title, body, data, actionUrl: resolvedUrl };
   }
 
-  async listMine(userId, isRead = null, cursor = null, limit = 30) {
+  async listMine(userId, isRead = null, cursor = null, limit = 30, role = null) {
     const listLimit = Math.max(1, Math.min(100, parseInt(limit || 30, 10)));
     const notifs = await notificationRepository.getNotificationsForUser(userId, {
       isRead,
       cursor,
-      limit: listLimit + 1
+      limit: listLimit + 1,
+      role
     });
 
     const hasMore = notifs.length > listLimit;
@@ -81,8 +112,8 @@ class NotificationService {
     };
   }
 
-  async unreadCount(userId) {
-    return notificationRepository.unreadCount(userId);
+  async unreadCount(userId, role = null) {
+    return notificationRepository.unreadCount(userId, role);
   }
 
   async markRead(nid, userId) {

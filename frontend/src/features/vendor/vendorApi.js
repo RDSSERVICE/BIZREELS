@@ -170,11 +170,11 @@ const vendorApi = apiSlice.injectEndpoints({
 
     // ── Wallet ──────────────────────────────────────────────
     getVendorWallet: builder.query({
-      query: () => '/wallet',
+      query: () => '/wallet/vendor',
       providesTags: ['Wallet'],
     }),
     getWalletTransactions: builder.query({
-      query: (params = {}) => ({ url: '/wallet/transactions', params }),
+      query: (params = {}) => ({ url: '/transactions/vendor', params }),
       providesTags: ['Wallet'],
     }),
     rechargeWallet: builder.mutation({

@@ -19,7 +19,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
   // Fetch unread count & list
   const fetchNotifications = async () => {
     try {
-      const listRes = await api.get('/v1/notifications/me').catch(() => api.get('/v1/notifications'));
+      const listRes = await api.get(`/v1/notifications/me?role=${role}`).catch(() => api.get(`/v1/notifications?role=${role}`));
 
       const itemsData = listRes?.data?.data || listRes?.data;
       const rawList = Array.isArray(itemsData?.items)
@@ -46,8 +46,22 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
 
     const socket = getSocket();
     const handleNewNotification = (notif) => {
-      setUnreadCount(prev => prev + 1);
-      setNotifications(prev => [notif, ...prev]);
+      const url = (notif.actionUrl || '').toLowerCase();
+      let matchesRole = false;
+      if (role === 'vendor') {
+        matchesRole = url.startsWith('/vendor');
+      } else if (role === 'creator') {
+        matchesRole = url.startsWith('/creator');
+      } else if (role === 'admin') {
+        matchesRole = url.startsWith('/admin');
+      } else {
+        matchesRole = url.startsWith('/customer') || (!url.startsWith('/vendor') && !url.startsWith('/creator') && !url.startsWith('/admin'));
+      }
+
+      if (matchesRole) {
+        setUnreadCount(prev => prev + 1);
+        setNotifications(prev => [notif, ...prev]);
+      }
     };
 
     if (socket) {
@@ -68,7 +82,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
         socket.off('notification:new', handleNewNotification);
       }
     };
-  }, []);
+  }, [role]);
 
   const handleMarkAllRead = async () => {
     try {

@@ -112,6 +112,72 @@ class WalletService {
         // Sync User.walletBalance
         await User.updateOne({ _id: userId }, { $inc: { walletBalance: parseFloat(amount) } }, { session });
 
+        // ─── Sync Isolated Wallet (New Architecture) ─────────────────
+        try {
+          const IsolatedWallet = require('../models/IsolatedWallet.model');
+          const IsolatedTransaction = require('../models/IsolatedTransaction.model');
+
+          let targetRole = null;
+          const desc = (reason || '').toLowerCase();
+          if (desc.includes('campaign') || desc.includes('creator') || desc.includes('shoot')) {
+            targetRole = 'creator';
+          } else {
+            targetRole = 'vendor';
+          }
+
+          // Get or create isolated wallet
+          let isoWallet = await IsolatedWallet.findOne({ userId: uid, role: targetRole }).session(session);
+          if (!isoWallet) {
+            let initialBalance = 0;
+            if (targetRole === 'vendor') {
+              initialBalance = previousBalance;
+            }
+            const createdIso = await IsolatedWallet.create([{
+              userId: uid,
+              role: targetRole,
+              balance: initialBalance,
+              currency: 'INR',
+              lifetime_earned: targetRole === 'vendor' ? initialBalance : 0,
+              lifetime_spent: 0,
+              is_frozen: false,
+              status: 'active',
+            }], { session });
+            isoWallet = createdIso[0];
+          }
+
+          if (!isoWallet.is_frozen) {
+            const prevIsoBalance = isoWallet.balance || 0;
+            const updatedIsoBalance = prevIsoBalance + parseFloat(amount);
+
+            if (updatedIsoBalance >= 0) {
+              await IsolatedWallet.updateOne(
+                { userId: uid, role: targetRole },
+                { $inc: { balance: parseFloat(amount), lifetime_earned: parseFloat(amount) } },
+                { session }
+              );
+
+              let isoTxType = transactionType === 'recharge' ? 'recharge' : transactionType === 'refund' ? 'refund' : 'credit';
+
+              await IsolatedTransaction.create([{
+                userId: uid,
+                role: targetRole,
+                walletId: isoWallet._id,
+                type: isoTxType,
+                amount: parseFloat(amount),
+                previous_balance: prevIsoBalance,
+                updated_balance: updatedIsoBalance,
+                paymentId: refId || null,
+                gateway: source === 'admin_panel' ? 'internal' : 'razorpay',
+                description: reason || null,
+                reference_id: refId ? `iso_${refId}` : `txn_iso_${Date.now()}`,
+                status: 'success',
+              }], { session });
+            }
+          }
+        } catch (err) {
+          logger.error('Failed to sync isolated wallet during credit', { error: err.message });
+        }
+
         // Create transaction record
         const user = await User.findById(userId).select('name current_role roles').session(session).lean();
         const txnArr = await WalletTransactionV2.create([{
@@ -188,6 +254,72 @@ class WalletService {
 
         // Sync User.walletBalance
         await User.updateOne({ _id: userId }, { $inc: { walletBalance: -parseFloat(amount) } }, { session });
+
+        // ─── Sync Isolated Wallet (New Architecture) ─────────────────
+        try {
+          const IsolatedWallet = require('../models/IsolatedWallet.model');
+          const IsolatedTransaction = require('../models/IsolatedTransaction.model');
+
+          let targetRole = null;
+          const desc = (reason || '').toLowerCase();
+          if (desc.includes('campaign') || desc.includes('creator') || desc.includes('shoot') || transactionType === 'withdrawal') {
+            targetRole = 'creator';
+          } else {
+            targetRole = 'vendor';
+          }
+
+          // Get or create isolated wallet
+          let isoWallet = await IsolatedWallet.findOne({ userId: uid, role: targetRole }).session(session);
+          if (!isoWallet) {
+            let initialBalance = 0;
+            if (targetRole === 'vendor') {
+              initialBalance = previousBalance;
+            }
+            const createdIso = await IsolatedWallet.create([{
+              userId: uid,
+              role: targetRole,
+              balance: initialBalance,
+              currency: 'INR',
+              lifetime_earned: targetRole === 'vendor' ? initialBalance : 0,
+              lifetime_spent: 0,
+              is_frozen: false,
+              status: 'active',
+            }], { session });
+            isoWallet = createdIso[0];
+          }
+
+          if (!isoWallet.is_frozen) {
+            const prevIsoBalance = isoWallet.balance || 0;
+            const updatedIsoBalance = prevIsoBalance - parseFloat(amount);
+
+            if (updatedIsoBalance >= 0) {
+              await IsolatedWallet.updateOne(
+                { userId: uid, role: targetRole },
+                { $inc: { balance: -parseFloat(amount), lifetime_spent: parseFloat(amount) } },
+                { session }
+              );
+
+              let isoTxType = transactionType === 'withdrawal' ? 'payout' : transactionType === 'subscription_purchase' ? 'subscription_purchase' : 'debit';
+
+              await IsolatedTransaction.create([{
+                userId: uid,
+                role: targetRole,
+                walletId: isoWallet._id,
+                type: isoTxType,
+                amount: parseFloat(amount),
+                previous_balance: prevIsoBalance,
+                updated_balance: updatedIsoBalance,
+                paymentId: refId || null,
+                gateway: 'internal',
+                description: reason || null,
+                reference_id: refId ? `iso_${refId}` : `txn_iso_${Date.now()}`,
+                status: 'success',
+              }], { session });
+            }
+          }
+        } catch (err) {
+          logger.error('Failed to sync isolated wallet during debit', { error: err.message });
+        }
 
         // Create transaction record
         const user = await User.findById(userId).select('name current_role roles').session(session).lean();
