@@ -103,14 +103,14 @@ export default function VendorDashboardPage() {
   };
 
   const stats = [
-    { label: 'Total Products', value: metrics.totalProducts ?? metrics.activeListings ?? 0, icon: FiPackage, color: 'purple', trend: 14 },
-    { label: 'Total Services', value: metrics.totalServices ?? 0, icon: FiTool, color: 'blue', trend: 8 },
-    { label: 'Total Reels', value: realTimeReelsCount, icon: FiVideo, color: 'violet', trend: 20 },
-    { label: 'Total Views', value: realTimeViewsCount.toLocaleString(), icon: FiEye, color: 'amber', trend: 18 },
-    { label: 'Followers', value: (metrics.followers || 0).toLocaleString(), icon: FiUsers, color: 'green', trend: 12 },
-    { label: 'Enquiries', value: metrics.leadEnquiries ?? 0, icon: FiInbox, color: 'cyan', trend: 5 },
-    { label: 'Order Requests', value: metrics.totalOrders ?? 0, icon: FiShoppingCart, color: 'indigo', trend: 15 },
-    { label: 'Revenue', value: `₹${(metrics.totalSales || 0).toLocaleString()}`, icon: FiDollarSign, color: 'teal', trend: 24 },
+    { label: 'Total Products', value: metrics.totalProducts ?? metrics.activeListings ?? 0, icon: FiPackage, color: 'purple', trend: metrics.trends?.totalProducts ?? 0 },
+    { label: 'Total Services', value: metrics.totalServices ?? 0, icon: FiTool, color: 'blue', trend: metrics.trends?.totalServices ?? 0 },
+    { label: 'Total Reels', value: realTimeReelsCount, icon: FiVideo, color: 'violet', trend: metrics.trends?.totalReels ?? 0 },
+    { label: 'Total Views', value: realTimeViewsCount.toLocaleString(), icon: FiEye, color: 'amber', trend: metrics.trends?.totalViews ?? 0 },
+    { label: 'Followers', value: (metrics.followers || 0).toLocaleString(), icon: FiUsers, color: 'green', trend: metrics.trends?.followers ?? 0 },
+    { label: 'Enquiries', value: metrics.leadEnquiries ?? 0, icon: FiInbox, color: 'cyan', trend: metrics.trends?.leadEnquiries ?? 0 },
+    { label: 'Order Requests', value: metrics.totalOrders ?? 0, icon: FiShoppingCart, color: 'indigo', trend: metrics.trends?.totalOrders ?? 0 },
+    { label: 'Revenue', value: `₹${(metrics.totalSales || 0).toLocaleString()}`, icon: FiDollarSign, color: 'teal', trend: metrics.trends?.totalSales ?? 0 },
   ];
 
   const currentUser = useSelector(selectCurrentUser);

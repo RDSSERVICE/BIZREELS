@@ -2,6 +2,8 @@ const Listing = require('../models/Listing');
 const Reel = require('../models/Reel');
 const Order = require('../models/Order');
 const Inquiry = require('../models/Inquiry');
+const Deal = require('../models/Deal');
+const Follow = require('../models/Follow');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const logger = require('../utils/logger');
@@ -21,22 +23,84 @@ class VendorController {
     const referralService = require('../services/referral.service');
     const walletService = require('../services/wallet.service');
 
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
     const [
       productsCount,
+      recentProductsCount,
+      prevProductsCount,
       servicesCount,
+      recentServicesCount,
+      prevServicesCount,
       reels,
       ordersCount,
+      recentOrdersCount,
+      prevOrdersCount,
       leadsCount,
+      recentLeadsCount,
+      prevLeadsCount,
       wallet,
-      referralInfo
+      referralInfo,
+      orderSalesAgg,
+      currentOrderSalesAgg,
+      previousOrderSalesAgg,
+      dealSalesAgg,
+      currentDealSalesAgg,
+      previousDealSalesAgg,
+      recentFollowersCount,
+      prevFollowersCount
     ] = await Promise.all([
       Listing.countDocuments({ vendor: userId, type: 'product', isDeleted: { $ne: true } }),
+      Listing.countDocuments({ vendor: userId, type: 'product', isDeleted: { $ne: true }, createdAt: { $gte: thirtyDaysAgo } }),
+      Listing.countDocuments({ vendor: userId, type: 'product', isDeleted: { $ne: true }, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      
       Listing.countDocuments({ vendor: userId, type: 'service', isDeleted: { $ne: true } }),
-      Reel.find({ creator: userId, isDeleted: { $ne: true } }).select('views status').lean(),
+      Listing.countDocuments({ vendor: userId, type: 'service', isDeleted: { $ne: true }, createdAt: { $gte: thirtyDaysAgo } }),
+      Listing.countDocuments({ vendor: userId, type: 'service', isDeleted: { $ne: true }, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      
+      Reel.find({ creator: userId, isDeleted: { $ne: true } }).select('views status createdAt').lean(),
+      
       Order.countDocuments({ vendor: userId }),
+      Order.countDocuments({ vendor: userId, createdAt: { $gte: thirtyDaysAgo } }),
+      Order.countDocuments({ vendor: userId, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      
       Inquiry.countDocuments({ vendor: userId }),
+      Inquiry.countDocuments({ vendor: userId, createdAt: { $gte: thirtyDaysAgo } }),
+      Inquiry.countDocuments({ vendor: userId, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      
       walletService.getOrCreateWallet(userId),
-      referralService.getVendorDashboard(userId).catch(() => null)
+      referralService.getVendorDashboard(userId).catch(() => null),
+      
+      Order.aggregate([
+        { $match: { vendor: userId, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }] } },
+        { $group: { _id: null, total: { $sum: { $multiply: ['$price', '$quantity'] } } } }
+      ]).catch(() => []),
+      Order.aggregate([
+        { $match: { vendor: userId, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }], createdAt: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: { $multiply: ['$price', '$quantity'] } } } }
+      ]).catch(() => []),
+      Order.aggregate([
+        { $match: { vendor: userId, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }], createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: { $multiply: ['$price', '$quantity'] } } } }
+      ]).catch(() => []),
+      
+      Deal.aggregate([
+        { $match: { seller_id: userId.toString(), status: 'completed' } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer'] } } } }
+      ]).catch(() => []),
+      Deal.aggregate([
+        { $match: { seller_id: userId.toString(), status: 'completed', created_at: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer'] } } } }
+      ]).catch(() => []),
+      Deal.aggregate([
+        { $match: { seller_id: userId.toString(), status: 'completed', created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer'] } } } }
+      ]).catch(() => []),
+      
+      Follow.countDocuments({ following_id: userId.toString(), created_at: { $gte: thirtyDaysAgo } }),
+      Follow.countDocuments({ following_id: userId.toString(), created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
     ]);
 
     const totalReels = reels.length;
@@ -48,10 +112,54 @@ class VendorController {
     const earnedCredits = wallet ? (wallet.lifetime_earned_credits || 0) : 0;
     const usedCreditHistory = wallet ? (wallet.lifetime_spent_credits || 0) : 0;
 
+    // View counts from ReelView model to determine historical views trend accurately
+    let recentViews = 0;
+    let prevViews = 0;
+    const vendorReelIds = reels.map(r => r._id);
+    if (vendorReelIds.length > 0) {
+      const ReelView = require('../models/ReelView');
+      const [recV, preV] = await Promise.all([
+        ReelView.countDocuments({ reel_id: { $in: vendorReelIds }, viewed_at: { $gte: thirtyDaysAgo } }),
+        ReelView.countDocuments({ reel_id: { $in: vendorReelIds }, viewed_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
+      ]).catch(() => [0, 0]);
+      recentViews = recV;
+      prevViews = preV;
+    }
+
+    // Helper to calculate percentages trend safely
+    const calculateTrend = (current, previous) => {
+      if (previous === 0) {
+        return current > 0 ? 100 : 0;
+      }
+      const diff = current - previous;
+      const pct = (diff / previous) * 100;
+      return Math.round(pct);
+    };
+
+    const trendProducts = calculateTrend(recentProductsCount, prevProductsCount);
+    const trendServices = calculateTrend(recentServicesCount, prevServicesCount);
+
+    const recentReelsCount = reels.filter(r => new Date(r.createdAt) >= thirtyDaysAgo).length;
+    const prevReelsCount = reels.filter(r => {
+      const d = new Date(r.createdAt);
+      return d >= sixtyDaysAgo && d < thirtyDaysAgo;
+    }).length;
+    const trendReels = calculateTrend(recentReelsCount, prevReelsCount);
+
+    const trendViews = calculateTrend(recentViews, prevViews);
+    const trendFollowers = calculateTrend(recentFollowersCount, prevFollowersCount);
+    const trendEnquiries = calculateTrend(recentLeadsCount, prevLeadsCount);
+    const trendOrders = calculateTrend(recentOrdersCount, prevOrdersCount);
+
+    const totalSales = (orderSalesAgg[0]?.total || 0) + (dealSalesAgg[0]?.total || 0);
+    const currentSales = (currentOrderSalesAgg[0]?.total || 0) + (currentDealSalesAgg[0]?.total || 0);
+    const previousSales = (previousOrderSalesAgg[0]?.total || 0) + (previousDealSalesAgg[0]?.total || 0);
+    const trendSales = calculateTrend(currentSales, previousSales);
+
     const { AppSettings } = require('../models/Admin');
     let creditRates = {};
-    const now = Date.now();
-    if (cachedCreditRates && (now - lastRatesFetched < RATES_CACHE_TTL_MS)) {
+    const nowMs = Date.now();
+    if (cachedCreditRates && (nowMs - lastRatesFetched < RATES_CACHE_TTL_MS)) {
       creditRates = cachedCreditRates;
     } else {
       try {
@@ -69,7 +177,7 @@ class VendorController {
           };
         }
         cachedCreditRates = creditRates;
-        lastRatesFetched = now;
+        lastRatesFetched = nowMs;
       } catch (err) {
         logger.error('Failed to load credit rates from AppSettings:', err);
         creditRates = {
@@ -84,7 +192,7 @@ class VendorController {
     }
 
     return ApiResponse.ok(res, 'Vendor dashboard metrics loaded.', {
-      totalSales: req.user.walletBalance ? req.user.walletBalance * 2 : 0,
+      totalSales,
       totalOrders: ordersCount,
       activeListings: productsCount,
       totalProducts: productsCount,
@@ -108,7 +216,17 @@ class VendorController {
         successfulReferrals: referralInfo.summary.successful,
         creditsEarned: referralInfo.summary.credits_earned
       } : null,
-      creditRates
+      creditRates,
+      trends: {
+        totalProducts: trendProducts,
+        totalServices: trendServices,
+        totalReels: trendReels,
+        totalViews: trendViews,
+        followers: trendFollowers,
+        leadEnquiries: trendEnquiries,
+        totalOrders: trendOrders,
+        totalSales: trendSales
+      }
     });
   });
 

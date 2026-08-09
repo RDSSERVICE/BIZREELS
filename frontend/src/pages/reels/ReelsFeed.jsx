@@ -59,13 +59,50 @@ const ReelsFeed = () => {
 
   const reels = feedRes?.data || [];
 
-  // Register view count on current video item mount/switch
+  // ── Watch Duration Tracker (Instagram-style view counting) ──
+  // Tracks when user starts watching a reel, and on scroll/switch
+  // calculates actual watch time and sends it to backend.
+  // Backend requires >= 3 seconds watch time to count as a view.
+  const watchStartRef = useRef(null); // timestamp when current reel started playing
+  const prevIndexRef = useRef(null);  // previous reel index to detect change
+
+  // When activeVideoIndex changes, register view for the PREVIOUS reel with actual watch duration
   useEffect(() => {
-    if (reels.length > 0 && reels[activeVideoIndex]) {
-      const activeId = reels[activeVideoIndex]._id;
-      registerView(activeId).catch(() => {});
+    const prevIdx = prevIndexRef.current;
+
+    // If we had a previous reel playing, send its view with watch duration
+    if (prevIdx !== null && prevIdx !== activeVideoIndex && reels[prevIdx]) {
+      const prevReelId = reels[prevIdx]._id;
+      const watchDuration = watchStartRef.current
+        ? Math.round((Date.now() - watchStartRef.current) / 1000)
+        : 0;
+
+      registerView({ id: prevReelId, watchDuration }).catch(() => {});
     }
+
+    // Start tracking the new reel's watch time
+    prevIndexRef.current = activeVideoIndex;
+    watchStartRef.current = Date.now();
+
+    // Cleanup: when component unmounts, register view for the last watched reel
+    return () => {
+      // This runs on unmount or before next effect run — we only want unmount
+    };
   }, [activeVideoIndex, reels, registerView]);
+
+  // Register view for the current reel when user navigates away (unmount)
+  useEffect(() => {
+    return () => {
+      if (prevIndexRef.current !== null && reels[prevIndexRef.current]) {
+        const lastReelId = reels[prevIndexRef.current]._id;
+        const watchDuration = watchStartRef.current
+          ? Math.round((Date.now() - watchStartRef.current) / 1000)
+          : 0;
+        registerView({ id: lastReelId, watchDuration }).catch(() => {});
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reels]);
 
   // Track vertical scroll intersection indices
   const handleScroll = () => {

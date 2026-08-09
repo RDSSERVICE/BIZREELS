@@ -63,9 +63,10 @@ const reelsApi = apiSlice.injectEndpoints({
 
     // ── Register View Count ───────────────────────────────
     viewReel: builder.mutation({
-      query: (id) => ({
+      query: ({ id, watchDuration = 0 }) => ({
         url: `/reels/${id}/view`,
         method: 'POST',
+        body: { watchDuration },
       }),
     }),
 
