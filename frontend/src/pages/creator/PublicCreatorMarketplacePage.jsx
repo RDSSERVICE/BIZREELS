@@ -14,7 +14,8 @@ import {
   FiArrowRight,
   FiCompass,
   FiAward,
-  FiShield
+  FiShield,
+  FiUsers
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
@@ -43,6 +44,7 @@ const PublicCreatorMarketplacePage = () => {
 
   const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCreator, setSelectedCreator] = useState(null);
 
   // Fetch real-time creator profiles from DB endpoint
   const fetchCreators = async (isInitial = false) => {
@@ -235,7 +237,7 @@ const PublicCreatorMarketplacePage = () => {
               >
                 {/* Top Creator Info Header */}
                 <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="relative shrink-0">
+                  <div className="relative shrink-0 cursor-pointer hover:scale-105 transition-transform duration-200" onClick={() => setSelectedCreator(creator)}>
                     {/* Avatar with gradient ring */}
                     <div className="p-[2px] rounded-2xl bg-gradient-to-br from-brand-purple via-brand-pink to-brand-orange">
                       <img
@@ -253,7 +255,10 @@ const PublicCreatorMarketplacePage = () => {
 
                   <div className="flex flex-col gap-1 flex-grow min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-bold text-sm text-brand-navy group-hover:text-brand-purple transition-colors duration-200 truncate">
+                      <h3 
+                        className="font-bold text-sm text-brand-navy hover:text-brand-purple transition-colors duration-200 truncate cursor-pointer"
+                        onClick={() => setSelectedCreator(creator)}
+                      >
                         {creator.name}
                       </h3>
                       <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-0.5 rounded-lg text-xs font-bold flex-shrink-0 border border-amber-100">
@@ -267,10 +272,15 @@ const PublicCreatorMarketplacePage = () => {
                       {creator.category || 'Visual Creator'}
                     </span>
 
-                    <span className="text-[11px] text-text-tertiary flex items-center gap-1 mt-0.5">
-                      <FiMapPin className="w-3 h-3 text-brand-orange flex-shrink-0" />
-                      <span className="truncate">{creator.city || 'India'}</span>
-                    </span>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <span className="text-[11px] text-text-tertiary flex items-center gap-1 min-w-0">
+                        <FiMapPin className="w-3 h-3 text-brand-orange flex-shrink-0" />
+                        <span className="truncate">{creator.city || 'India'}</span>
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${creator.availability?.toLowerCase() === 'busy' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'}`}>
+                        {creator.availability || 'Available'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -291,20 +301,152 @@ const PublicCreatorMarketplacePage = () => {
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => handleConnectCreator(creator)}
-                    className="px-4 py-2.5 bg-brand-purple hover:bg-brand-purple-800 text-white font-bold text-xs rounded-xl transition-all duration-200 shadow-sm flex items-center gap-1.5 active:scale-[0.97] flex-shrink-0"
-                    data-testid={`hire-${creator._id}`}
-                  >
-                    <FiSend className="w-3.5 h-3.5" />
-                    <span>Hire Creator</span>
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => setSelectedCreator(creator)}
+                      className="px-3 py-2.5 bg-surface-secondary border border-border text-text-primary font-bold text-xs rounded-xl hover:bg-surface-tertiary transition flex items-center gap-1.5"
+                    >
+                      <span>Details</span>
+                    </button>
+                    <button
+                      onClick={() => handleConnectCreator(creator)}
+                      className="px-4 py-2.5 bg-brand-purple hover:bg-brand-purple-800 text-white font-bold text-xs rounded-xl transition-all duration-200 shadow-sm flex items-center gap-1.5 active:scale-[0.97]"
+                      data-testid={`hire-${creator._id}`}
+                    >
+                      <FiSend className="w-3.5 h-3.5" />
+                      <span>Hire</span>
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
           </div>
         )}
       </div>
+
+      {/* ── Creator Details Modal ── */}
+      {selectedCreator && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-border/80 max-w-lg w-full shadow-premium relative space-y-6 animate-scale-up max-h-[90vh] overflow-y-auto">
+            {/* Close button */}
+            <button
+              onClick={() => setSelectedCreator(null)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-surface-secondary text-text-secondary transition text-sm font-bold"
+            >
+              ✕
+            </button>
+
+            {/* Header info */}
+            <div className="flex items-center gap-4">
+              <div className="p-[2px] rounded-2xl bg-gradient-to-br from-brand-purple via-brand-pink to-brand-orange shrink-0">
+                <img
+                  src={selectedCreator.avatarUrl}
+                  alt={selectedCreator.name}
+                  className="w-16 h-16 rounded-[14px] object-cover bg-white"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-lg font-black text-brand-navy">{selectedCreator.name}</h3>
+                  {selectedCreator.isVerified && (
+                    <FiCheckCircle className="text-brand-purple shrink-0" size={16} />
+                  )}
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${selectedCreator.availability?.toLowerCase() === 'busy' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'}`}>
+                    {selectedCreator.availability || 'Available'}
+                  </span>
+                </div>
+                <p className="text-xs text-brand-purple font-semibold mt-0.5">{selectedCreator.category}</p>
+                <p className="text-[11px] text-text-tertiary flex items-center gap-1 mt-1">
+                  <FiMapPin size={12} className="text-brand-orange shrink-0" /> {selectedCreator.city}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-3 gap-2 py-3 px-4 bg-surface-secondary/40 rounded-xl border border-border/40 text-center text-xs">
+              <div>
+                <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider block">Followers</span>
+                <span className="font-extrabold text-brand-navy text-sm flex items-center justify-center gap-1 mt-0.5">
+                  <FiUsers size={12} className="text-brand-purple" /> {selectedCreator.followers >= 1000 ? `${(selectedCreator.followers / 1000).toFixed(1)}K` : selectedCreator.followers}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider block">Experience</span>
+                <span className="font-extrabold text-brand-navy text-sm flex items-center justify-center gap-1 mt-0.5">
+                  <FiAward size={12} className="text-violet-500" /> {selectedCreator.experience}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider block">Rating</span>
+                <span className="font-extrabold text-brand-navy text-sm flex items-center justify-center gap-1 mt-0.5">
+                  <FiStar size={12} className="text-amber-500 fill-amber-500" /> {Number(selectedCreator.rating ?? 0).toFixed(1)}
+                </span>
+              </div>
+            </div>
+
+            {/* Bio section */}
+            <div className="space-y-1">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">Bio / Description</h4>
+              <p className="text-xs text-text-secondary leading-relaxed bg-surface-secondary/35 p-3 rounded-xl border border-border/30">
+                {selectedCreator.bio}
+              </p>
+            </div>
+
+            {/* Pricing Details */}
+            <div className="space-y-2">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">Pricing Packages</h4>
+              <div className="grid grid-cols-1 gap-2.5">
+                <div className="flex items-center justify-between text-xs bg-surface-secondary/40 p-3 rounded-xl border border-border/50">
+                  <span className="font-semibold text-text-secondary flex items-center gap-1.5">
+                    <FiVideo className="text-purple-500" /> 1 Video Reel Package
+                  </span>
+                  <span className="font-black text-brand-navy text-sm">₹{(selectedCreator.pricing?.reel1 ?? 800).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs bg-surface-secondary/40 p-3 rounded-xl border border-border/50">
+                  <span className="font-semibold text-text-secondary flex items-center gap-1.5">
+                    <FiVideo className="text-violet-500" /> 3 Video Reels Package
+                  </span>
+                  <span className="font-black text-brand-navy text-sm">₹{(selectedCreator.pricing?.reel3 ?? 2000).toLocaleString('en-IN')}</span>
+                </div>
+                {selectedCreator.pricing?.reel10 && (
+                  <div className="flex items-center justify-between text-xs bg-surface-secondary/40 p-3 rounded-xl border border-border/50">
+                    <span className="font-semibold text-text-secondary flex items-center gap-1.5">
+                      <FiVideo className="text-emerald-500" /> 10 Video Reels Bundle
+                    </span>
+                    <span className="font-black text-brand-navy text-sm">₹{(selectedCreator.pricing.reel10).toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Languages spoken */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">Languages</span>
+              <span className="font-semibold text-text-secondary">{selectedCreator.languages}</span>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setSelectedCreator(null)}
+                className="w-1/3 py-3 border border-border hover:bg-surface-secondary text-text-primary rounded-xl text-xs font-bold transition active:scale-[0.98]"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedCreator(null);
+                  handleConnectCreator(selectedCreator);
+                }}
+                className="w-2/3 py-3 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition shadow-premium flex items-center justify-center gap-1.5 active:scale-[0.98]"
+              >
+                <FiSend className="w-3.5 h-3.5" />
+                <span>Hire Creator Now</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

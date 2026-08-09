@@ -330,7 +330,7 @@ router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
 
   const [creators, total] = await Promise.all([
     User.find(query)
-      .select('name profile_pic avatarUrl city rating_avg rating_count creatorProfile created_at kyc_status is_subscribed_verified occupation')
+      .select('name profile_pic avatarUrl city rating_avg rating_count creatorProfile created_at kyc_status is_subscribed_verified occupation followersCount')
       .skip(skip)
       .limit(limit)
       .lean(),
@@ -350,7 +350,11 @@ router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
       rating: c.rating_avg ?? 0,
       reviewsCount: c.rating_count ?? 0,
       pricing: c.creatorProfile?.pricing || { reel1: 800, reel3: 2000 },
-      isVerified: c.kyc_status === 'approved' || c.is_subscribed_verified
+      isVerified: c.kyc_status === 'approved' || c.is_subscribed_verified,
+      availability: c.creatorProfile?.availability || 'Available',
+      languages: c.creatorProfile?.languages || 'English, Hindi',
+      experience: c.creatorProfile?.experienceYears || '2 Years',
+      followers: c.followersCount || 0
     })),
     pagination: {
       page,
