@@ -76,23 +76,27 @@ class CreatorController {
       status: { $in: ['accepted', 'completed'] }
     }).then(list => list.length);
 
-    // Calculate monthly earnings and last month earnings from WalletTransaction
-    const WalletTransaction = require('../models/WalletTransaction');
+    // Calculate monthly earnings and last month earnings from IsolatedTransaction (role-isolated ledger)
+    const IsolatedTransaction = require('../models/IsolatedTransaction.model');
     const [thisMonthTx, lastMonthTx] = await Promise.all([
-      WalletTransaction.find({
-        user: userId,
-        type: 'deposit',
-        createdAt: { $gte: startOfThisMonth }
+      IsolatedTransaction.find({
+        userId: userId.toString(),
+        role: 'creator',
+        type: 'credit',
+        status: 'success',
+        created_at: { $gte: startOfThisMonth }
       }).lean(),
-      WalletTransaction.find({
-        user: userId,
-        type: 'deposit',
-        createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth }
+      IsolatedTransaction.find({
+        userId: userId.toString(),
+        role: 'creator',
+        type: 'credit',
+        status: 'success',
+        created_at: { $gte: startOfLastMonth, $lt: startOfThisMonth }
       }).lean()
     ]);
 
-    const monthlyEarnings = thisMonthTx.reduce((acc, tx) => acc + tx.amount, 0);
-    const lastMonthEarnings = lastMonthTx.reduce((acc, tx) => acc + tx.amount, 0);
+    const monthlyEarnings = thisMonthTx.reduce((acc, tx) => acc + (tx.amount || 0), 0);
+    const lastMonthEarnings = lastMonthTx.reduce((acc, tx) => acc + (tx.amount || 0), 0);
 
     const earningsTrend = lastMonthEarnings > 0
       ? Math.round(((monthlyEarnings - lastMonthEarnings) / lastMonthEarnings) * 100)
@@ -121,10 +125,15 @@ class CreatorController {
       ? Math.round(((thisMonthPending - lastMonthPending) / lastMonthPending) * 100)
       : (thisMonthPending > 0 ? 100 : 0);
 
+    // Calculate total creator earnings from role-isolated wallet
+    const IsolatedWallet = require('../models/IsolatedWallet.model');
+    const creatorWallet = await IsolatedWallet.findOne({ userId: userId.toString(), role: 'creator' }).lean();
+    const totalEarningsVal = creatorWallet?.lifetime_earned || creatorWallet?.balance || 0;
+
     return ApiResponse.ok(res, 'Creator dashboard metrics loaded.', {
       totalProjects: totalProjectsCount,
       pendingRequests: pendingRequests,
-      totalEarnings: req.user.walletBalance || 0,
+      totalEarnings: totalEarningsVal,
       rating: req.user.rating_avg || 5.0,
       reviewCount: req.user.rating_count || 0,
       portfolioViews: totalViews,
