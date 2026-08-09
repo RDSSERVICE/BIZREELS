@@ -102,11 +102,15 @@ reviewSchema.post('save', async function () {
     if (userStats.length > 0) {
       const targetUserDoc = await mongoose.model('User').findById(this.targetUser);
       if (targetUserDoc) {
+        const roundedRating = Math.round(userStats[0].avgRating * 10) / 10;
+        targetUserDoc.rating_avg = roundedRating;
+        targetUserDoc.rating_count = userStats[0].totalReviews;
+
         if (targetUserDoc.roles.includes('vendor') && targetUserDoc.vendorProfile) {
-          targetUserDoc.vendorProfile.rating = Math.round(userStats[0].avgRating * 10) / 10;
+          targetUserDoc.vendorProfile.rating = roundedRating;
           targetUserDoc.vendorProfile.totalReviews = userStats[0].totalReviews;
         } else if (targetUserDoc.roles.includes('creator') && targetUserDoc.creatorProfile) {
-          targetUserDoc.creatorProfile.rating = Math.round(userStats[0].avgRating * 10) / 10;
+          targetUserDoc.creatorProfile.rating = roundedRating;
           targetUserDoc.creatorProfile.totalReviews = userStats[0].totalReviews;
         }
         await targetUserDoc.save();

@@ -200,7 +200,7 @@ export default function CreatorProfileView({ profile, onBack, onSelectHire }) {
           <div className="space-y-4">
             <div className="flex items-center gap-2 border-b border-border/40 pb-3">
               <span className="text-base font-black text-amber-500 flex items-center gap-1">
-                <FiStar className="fill-amber-500" /> {profile.rating_avg.toFixed(1)}
+                <FiStar className="fill-amber-500" /> {(profile.rating_avg ?? 0).toFixed(1)}
               </span>
               <span className="text-xs text-text-tertiary">({reviews.length} Client Ratings Left)</span>
             </div>

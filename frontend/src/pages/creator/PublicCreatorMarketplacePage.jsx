@@ -258,8 +258,8 @@ const PublicCreatorMarketplacePage = () => {
                       </h3>
                       <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-0.5 rounded-lg text-xs font-bold flex-shrink-0 border border-amber-100">
                         <FiStar className="w-3 h-3 fill-amber-500" />
-                        <span>{creator.rating || '4.9'}</span>
-                        <span className="text-[10px] text-text-tertiary">({creator.reviewsCount || 0})</span>
+                        <span>{Number(creator.rating ?? 0).toFixed(1)}</span>
+                        <span className="text-[10px] text-text-tertiary">({creator.reviewsCount ?? 0})</span>
                       </div>
                     </div>
 

@@ -347,8 +347,8 @@ router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
       city: c.city || 'India',
       category: c.creatorProfile?.category || c.occupation || 'Visual Creator',
       bio: c.creatorProfile?.bio || 'Professional short-form video creator & brand ambassador on BizReels.',
-      rating: c.rating_avg || 4.9,
-      reviewsCount: c.rating_count || 12,
+      rating: c.rating_avg ?? 0,
+      reviewsCount: c.rating_count ?? 0,
       pricing: c.creatorProfile?.pricing || { reel1: 800, reel3: 2000 },
       isVerified: c.kyc_status === 'approved' || c.is_subscribed_verified
     })),

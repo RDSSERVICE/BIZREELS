@@ -8,8 +8,8 @@ export default function CreatorCard({ creator, onSelectDetails, onSelectHire }) 
   const bio = creator.bio || 'Verified content creator on BizReels.';
   const city = creator.city || 'Mumbai';
   const isVerified = !!creator.isVerified;
-  const rating = creator.rating_avg || 5.0;
-  const reviewsCount = creator.rating_count || 0;
+  const rating = creator.rating_avg ?? 0;
+  const reviewsCount = creator.rating_count ?? 0;
   const reelPrice = creator.pricing?.reel1 || 800;
   const followers = creator.followersCount || 0;
   const reelsCount = creator.totalReels || 0;
