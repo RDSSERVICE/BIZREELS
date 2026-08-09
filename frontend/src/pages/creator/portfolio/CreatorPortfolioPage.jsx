@@ -10,6 +10,7 @@ import {
   useUploadPortfolioImageMutation,
   useDeletePortfolioItemMutation
 } from '../../../features/creator/creatorApi';
+import { api } from '../../../lib/api';
 
 const TABS = [
   { key: 'reels', label: 'Sample Reels', icon: FiFilm },
@@ -21,6 +22,9 @@ export default function CreatorPortfolioPage() {
   const [showModal, setShowModal] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
+  const [uploadMode, setUploadMode] = useState('file'); // 'file' | 'link'
+  const [fileToUpload, setFileToUpload] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const { data, isFetching } = useGetCreatorPortfolioQuery(undefined, { pollingInterval: 300000 });
   const [uploadReel, { isLoading: isUploadingReel }] = useUploadPortfolioReelMutation();
@@ -39,6 +43,8 @@ export default function CreatorPortfolioPage() {
     }
     setTitleInput('');
     setUrlInput('');
+    setFileToUpload(null);
+    setUploadMode('file');
     setShowModal(true);
   };
 
@@ -48,21 +54,54 @@ export default function CreatorPortfolioPage() {
       return toast.error('Please enter a title for your portfolio item');
     }
 
+    if (uploadMode === 'file' && !fileToUpload) {
+      return toast.error('Please select a file to upload');
+    }
+
+    setUploading(true);
+    const toastId = toast.loading('Uploading portfolio item...');
+
     try {
-      if (activeTab === 'reels') {
-        const videoUrl = urlInput.trim() || 'https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-neon-room-41566-large.mp4';
-        await uploadReel({ title: titleInput.trim(), videoUrl }).unwrap();
-        toast.success('Sample reel added to portfolio!');
+      let finalUrl = '';
+      if (uploadMode === 'file') {
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
+        formData.append('folder', 'listings/misc');
+        formData.append('resource_type', activeTab === 'reels' ? 'video' : 'image');
+
+        const uploadRes = await api.post('/v1/media/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        finalUrl = uploadRes.data?.secure_url || uploadRes.data?.url;
+        if (!finalUrl) {
+          throw new Error('Upload succeeded but did not return a valid URL.');
+        }
       } else {
-        const imageUrl = urlInput.trim() || 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=600&q=80';
-        await uploadImage({ title: titleInput.trim(), url: imageUrl }).unwrap();
-        toast.success('Portfolio shoot image added!');
+        finalUrl = urlInput.trim();
+        if (!finalUrl) {
+          finalUrl = activeTab === 'reels'
+            ? 'https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-neon-room-41566-large.mp4'
+            : 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=600&q=80';
+        }
       }
+
+      if (activeTab === 'reels') {
+        await uploadReel({ title: titleInput.trim(), videoUrl: finalUrl }).unwrap();
+        toast.success('Sample reel added to portfolio!', { id: toastId });
+      } else {
+        await uploadImage({ title: titleInput.trim(), url: finalUrl }).unwrap();
+        toast.success('Portfolio shoot image added!', { id: toastId });
+      }
+
       setShowModal(false);
       setTitleInput('');
       setUrlInput('');
+      setFileToUpload(null);
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to upload portfolio item');
+      toast.error(err?.data?.message || err?.message || 'Failed to upload portfolio item', { id: toastId });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -178,6 +217,23 @@ export default function CreatorPortfolioPage() {
         title={activeTab === 'reels' ? 'Upload Sample Reel' : 'Upload Portfolio Shoot Image'}
       >
         <form onSubmit={handleFormSubmit} className="space-y-4">
+          <div className="flex gap-2 p-1 bg-surface-secondary rounded-xl border border-border">
+            <button
+              type="button"
+              onClick={() => setUploadMode('file')}
+              className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${uploadMode === 'file' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+            >
+              Upload Local File
+            </button>
+            <button
+              type="button"
+              onClick={() => setUploadMode('link')}
+              className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${uploadMode === 'link' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+            >
+              External Link
+            </button>
+          </div>
+
           <div>
             <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
               Title / Caption *
@@ -192,29 +248,55 @@ export default function CreatorPortfolioPage() {
             />
           </div>
 
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
-              {activeTab === 'reels' ? 'Video File URL' : 'Image File URL'}
-            </label>
-            <input
-              type="url"
-              placeholder={activeTab === 'reels' ? 'https://... (mp4 video url or leave empty for sample demo video)' : 'https://... (image url or leave empty for sample photo)'}
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
-            />
-            <span className="text-[10px] text-text-tertiary mt-1 block">
-              Tip: Paste an MP4 or image URL from Cloudinary/Unsplash or leave empty to use a demo asset.
-            </span>
-          </div>
+          {uploadMode === 'file' ? (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
+                Select {activeTab === 'reels' ? 'Video File (mp4, webm)' : 'Image File (jpg, png, webp)'} *
+              </label>
+              <div className="border-2 border-dashed border-border hover:border-brand-purple rounded-xl p-6 text-center cursor-pointer relative bg-surface-secondary/40 transition">
+                <input
+                  type="file"
+                  required
+                  accept={activeTab === 'reels' ? 'video/mp4,video/webm,video/quicktime' : 'image/*'}
+                  onChange={(e) => setFileToUpload(e.target.files[0])}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
+                <FiUploadCloud size={24} className="mx-auto text-text-tertiary mb-2" />
+                {fileToUpload ? (
+                  <p className="text-xs font-bold text-brand-purple truncate px-2">{fileToUpload.name}</p>
+                ) : (
+                  <>
+                    <p className="text-xs font-bold text-text-secondary">Click to choose a file</p>
+                    <p className="text-[9px] text-text-tertiary mt-1">Max size: {activeTab === 'reels' ? '50MB' : '10MB'}</p>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
+                {activeTab === 'reels' ? 'Video File URL' : 'Image File URL'}
+              </label>
+              <input
+                type="url"
+                placeholder={activeTab === 'reels' ? 'https://... (mp4 video url or leave empty for sample demo video)' : 'https://... (image url or leave empty for sample photo)'}
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
+              />
+              <span className="text-[10px] text-text-tertiary mt-1 block">
+                Tip: Paste an MP4 or image URL from Cloudinary/Unsplash or leave empty to use a demo asset.
+              </span>
+            </div>
+          )}
 
           <button
             type="submit"
-            disabled={isUploadingReel || isUploadingImage}
+            disabled={uploading || isUploadingReel || isUploadingImage}
             className="w-full py-3 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition flex items-center justify-center gap-1.5 shadow-premium"
           >
             <FiUploadCloud size={16} />
-            <span>{isUploadingReel || isUploadingImage ? 'Uploading...' : `Upload to ${activeTab === 'reels' ? 'Reels' : 'Images'} Portfolio`}</span>
+            <span>{uploading || isUploadingReel || isUploadingImage ? 'Uploading...' : `Upload to ${activeTab === 'reels' ? 'Reels' : 'Images'} Portfolio`}</span>
           </button>
         </form>
       </AdminModal>
