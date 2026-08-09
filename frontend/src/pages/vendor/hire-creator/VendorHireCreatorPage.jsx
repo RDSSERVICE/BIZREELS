@@ -272,6 +272,20 @@ export default function VendorHireCreatorPage() {
     }
   };
 
+  const handleApproveMilestone = async (campaignId, milestoneId) => {
+    const confirm = window.confirm('Are you sure you want to approve this milestone deliverable?');
+    if (!confirm) return;
+
+    const toastId = toast.loading('Approving milestone...');
+    try {
+      await api.patch(`/v1/hires/campaign/${campaignId}/milestone/${milestoneId}/approve`);
+      toast.success('🟢 Milestone approved successfully!', { id: toastId });
+      fetchCampaigns();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to approve milestone.', { id: toastId });
+    }
+  };
+
   const handleOpenChat = (creatorId) => {
     // Find creator info
     const c = campaigns.find(c => String(c.creator?._id || c.creator?.id) === String(creatorId));
@@ -618,6 +632,7 @@ export default function VendorHireCreatorPage() {
             onCompleteCampaign={handleCompleteCampaign}
             onOpenChat={handleOpenChat}
             onSubmitReview={handleSubmitReview}
+            onApproveMilestone={handleApproveMilestone}
             currentUser={currentUser}
           />
         )

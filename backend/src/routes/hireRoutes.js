@@ -14,5 +14,6 @@ router.patch('/:id', authenticate, hireController.updateStatus);
 router.patch('/:id/edit', authenticate, hireController.edit);
 router.patch('/:id/cancel', authenticate, hireController.cancel);
 router.post('/campaign/:id/deliverable', authenticate, hireController.submitDeliverable);
+router.patch('/campaign/:id/milestone/:milestoneId/approve', authenticate, hireController.approveMilestone);
 
 module.exports = router;

@@ -12,7 +12,8 @@ export default function VendorCampaignsTab({
   onCompleteCampaign,
   onOpenChat,
   onSubmitReview,
-  currentUser
+  currentUser,
+  onApproveMilestone
 }) {
   const [activeSubTab, setActiveSubTab] = useState('active'); // active | pending | finished
   const [reviewingCampaign, setReviewingCampaign] = useState(null); // campaign object to rate
@@ -134,16 +135,42 @@ export default function VendorCampaignsTab({
                   </div>
 
                   {/* Deliverables List */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 w-full">
                     <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Deliverables Milestones</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {c.deliverables?.map((item, idx) => (
-                        <span key={idx} className="bg-white/40 border border-white/60 text-text-secondary px-2.5 py-0.5 rounded-full text-[10px] font-medium">
-                          ✓ {item}
-                        </span>
-                      ))}
-                      <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                        {c.numReels || 0} Reels, {c.numPosts || 0} Posts
+                    <div className="flex flex-col gap-2">
+                      {(c.deliverables || []).map((item, idx) => {
+                        const title = typeof item === 'string' ? item : item.title;
+                        const status = typeof item === 'string' ? 'pending' : (item.status || 'pending');
+                        const mId = typeof item === 'string' ? String(idx) : (item._id || item.id);
+
+                        return (
+                          <div key={idx} className="flex items-center justify-between bg-surface/50 border border-border/40 p-2.5 rounded-xl text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${status === 'approved' ? 'bg-emerald-500' : status === 'submitted' ? 'bg-brand-purple animate-pulse' : 'bg-text-tertiary'}`} />
+                              <span className={`font-semibold ${status === 'approved' ? 'line-through text-text-tertiary' : 'text-text-secondary'}`}>{title}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
+                                status === 'submitted' ? 'bg-brand-purple/10 text-brand-purple' :
+                                'bg-surface border border-border text-text-tertiary'
+                              }`}>
+                                {status}
+                              </span>
+                              {status === 'submitted' && c.status === 'accepted' && (
+                                <button
+                                  onClick={() => onApproveMilestone && onApproveMilestone(c._id || c.id, mId)}
+                                  className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold rounded-lg transition"
+                                >
+                                  Approve
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <span className="text-[9px] text-text-tertiary font-bold mt-1 block">
+                        Expected Scope: {c.numReels || 0} Reels, {c.numPosts || 0} Posts
                       </span>
                     </div>
                   </div>

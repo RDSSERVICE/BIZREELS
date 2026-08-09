@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   FiVideo, FiClock, FiDollarSign, FiStar, FiEye, FiShield,
   FiActivity, FiCheckCircle, FiXCircle, FiPlay, FiMessageSquare,
-  FiSend, FiChevronLeft, FiChevronRight, FiAlertCircle
+  FiSend, FiChevronLeft, FiChevronRight, FiAlertCircle, FiUploadCloud, FiTrash
 } from 'react-icons/fi';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
@@ -34,6 +34,10 @@ export default function CreatorDashboardPage() {
   const [submittingCampaignId, setSubmittingCampaignId] = useState(null);
   const [deliverableUrl, setDeliverableUrl] = useState('');
   const [deliverableCaption, setDeliverableCaption] = useState('');
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState('');
+  const [submitMode, setSubmitMode] = useState('file'); // 'file' | 'link'
+  const [fileToUpload, setFileToUpload] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   // Chat Integration State
   const [chatRecipientId, setChatRecipientId] = useState(null);
@@ -121,25 +125,58 @@ export default function CreatorDashboardPage() {
 
   const handleSubmitDeliverable = async (e) => {
     e.preventDefault();
-    if (!deliverableUrl.trim()) {
+
+    if (submitMode === 'file' && !fileToUpload) {
+      toast.error('Please choose a file to upload.');
+      return;
+    }
+
+    if (submitMode === 'link' && !deliverableUrl.trim()) {
       toast.error('Please enter a valid deliverable video URL.');
       return;
     }
 
     const toastId = toast.loading('Uploading submission...');
+    setUploading(true);
+
     try {
+      let finalUrl = '';
+      if (submitMode === 'file') {
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
+        formData.append('folder', 'listings/misc');
+        formData.append('resource_type', 'video'); // Deliverables are usually reels/videos
+
+        const uploadRes = await api.post('/v1/media/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        finalUrl = uploadRes.data?.secure_url || uploadRes.data?.url;
+        if (!finalUrl) {
+          throw new Error('Upload succeeded but did not return a valid URL.');
+        }
+      } else {
+        finalUrl = deliverableUrl.trim();
+      }
+
       await api.post(`/v1/hires/campaign/${submittingCampaignId}/deliverable`, {
-        url: deliverableUrl.trim(),
+        url: finalUrl,
         type: 'reel',
         caption: deliverableCaption.trim(),
+        milestoneId: selectedMilestoneId || undefined
       });
+
       toast.success('🟢 Deliverable submitted successfully to vendor!', { id: toastId });
       setSubmittingCampaignId(null);
       setDeliverableUrl('');
       setDeliverableCaption('');
+      setSelectedMilestoneId('');
+      setFileToUpload(null);
       fetchCampaigns();
     } catch (err) {
-      toast.error('Failed to upload submission.', { id: toastId });
+      toast.error(err.response?.data?.message || err.message || 'Failed to upload submission.', { id: toastId });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -200,6 +237,8 @@ export default function CreatorDashboardPage() {
         return null;
     }
   };
+
+  const activeSubmittingCampaign = campaigns.find(c => (c._id || c.id) === submittingCampaignId);
 
   const stats = [
     { label: 'Total Projects', value: String(statsData.totalProjects ?? 0), icon: FiVideo, color: 'purple', trend: statsData.projectsTrend ?? 0 },
@@ -369,19 +408,48 @@ export default function CreatorDashboardPage() {
                           <p className="text-xs text-text-tertiary leading-relaxed">{c.description}</p>
                         </div>
 
-                        {/* Deliverables tags */}
-                        <div className="space-y-1">
+                        {/* Deliverables Milestones */}
+                        <div className="space-y-2 w-full">
                           <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block">Campaign Deliverables</span>
-                          <div className="flex flex-wrap gap-1">
-                            {c.deliverables?.map((item, idx) => (
-                              <span key={idx} className="bg-white/40 border border-white/60 text-text-secondary px-2.5 py-0.5 rounded-full text-[10px]">
-                                ✓ {item}
-                              </span>
-                            ))}
-                            <span className="bg-brand-purple/10 border border-brand-purple/20 text-brand-purple px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                              {c.numReels} Reels, {c.numPosts} Posts
-                            </span>
+                          <div className="flex flex-col gap-1.5">
+                            {(c.deliverables || []).map((item, idx) => {
+                              const title = typeof item === 'string' ? item : item.title;
+                              const status = typeof item === 'string' ? 'pending' : (item.status || 'pending');
+                              return (
+                                <div key={idx} className="flex items-center justify-between bg-surface/50 border border-border/40 p-2 rounded-xl text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${status === 'approved' ? 'bg-emerald-500' : status === 'submitted' ? 'bg-brand-purple animate-pulse' : 'bg-text-tertiary'}`} />
+                                    <span className={`font-semibold ${status === 'approved' ? 'line-through text-text-tertiary' : 'text-text-secondary'}`}>{title}</span>
+                                  </div>
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                    status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
+                                    status === 'submitted' ? 'bg-brand-purple/10 text-brand-purple' :
+                                    'bg-surface border border-border text-text-tertiary'
+                                  }`}>
+                                    {status}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[9px] text-text-tertiary font-bold">{c.numReels || 0} Reels, {c.numPosts || 0} Posts</span>
+                          </div>
+                          {/* Progress bar */}
+                          {c.status === 'accepted' && (
+                            <div className="w-full space-y-1 pt-1">
+                              <div className="flex justify-between text-[10px] font-bold text-text-secondary">
+                                <span>Milestone Progress</span>
+                                <span>{c.progress || 0}%</span>
+                              </div>
+                              <div className="h-1.5 bg-surface-secondary border border-border rounded-full overflow-hidden">
+                                <div
+                                  className="h-full gradient-brand transition-all duration-500"
+                                  style={{ width: `${c.progress || 0}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Submission URLs list */}
@@ -445,7 +513,12 @@ export default function CreatorDashboardPage() {
                                 <FiMessageSquare size={14} /> Chat
                               </button>
                               <button
-                                onClick={() => setSubmittingCampaignId(c._id || c.id)}
+                                onClick={() => {
+                                  setSubmittingCampaignId(c._id || c.id);
+                                  setSelectedMilestoneId('');
+                                  setSubmitMode('file');
+                                  setFileToUpload(null);
+                                }}
                                 className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition"
                               >
                                 Submit Video Reel
@@ -474,17 +547,84 @@ export default function CreatorDashboardPage() {
             </div>
 
             <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs">
-              <div className="space-y-1">
-                <label className="font-bold text-text-secondary">Reel/Video Public URL *</label>
-                <input
-                  type="text"
-                  value={deliverableUrl}
-                  onChange={(e) => setDeliverableUrl(e.target.value)}
-                  placeholder="Paste the URL link to your uploaded reel..."
-                  className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
-                  required
-                />
+              {/* Target Milestone Selection */}
+              {activeSubmittingCampaign?.deliverables && activeSubmittingCampaign.deliverables.length > 0 && (
+                <div className="space-y-1">
+                  <label className="font-bold text-text-secondary">Target Milestone / Deliverable *</label>
+                  <select
+                    value={selectedMilestoneId}
+                    onChange={(e) => setSelectedMilestoneId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
+                    required
+                  >
+                    <option value="">-- Select Milestone --</option>
+                    {activeSubmittingCampaign.deliverables.map((item, idx) => {
+                      const title = typeof item === 'string' ? item : item.title;
+                      const status = typeof item === 'string' ? 'pending' : (item.status || 'pending');
+                      const mId = typeof item === 'string' ? String(idx) : (item._id || item.id);
+                      return (
+                        <option key={idx} value={mId} disabled={status === 'approved'}>
+                          {title} ({status})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
+              {/* Upload Mode Selector */}
+              <div className="flex gap-2 p-1 bg-surface-secondary rounded-xl border border-border">
+                <button
+                  type="button"
+                  onClick={() => setSubmitMode('file')}
+                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${submitMode === 'file' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                >
+                  Upload Video File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubmitMode('link')}
+                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${submitMode === 'link' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                >
+                  External Link
+                </button>
               </div>
+
+              {submitMode === 'file' ? (
+                <div className="space-y-1">
+                  <label className="font-bold text-text-secondary">Select Video File *</label>
+                  <div className="border-2 border-dashed border-border hover:border-brand-purple rounded-xl p-6 text-center cursor-pointer relative bg-surface-secondary/40 transition">
+                    <input
+                      type="file"
+                      required
+                      accept="video/mp4,video/webm,video/quicktime"
+                      onChange={(e) => setFileToUpload(e.target.files[0])}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    <FiUploadCloud size={24} className="mx-auto text-text-tertiary mb-2" />
+                    {fileToUpload ? (
+                      <p className="text-xs font-bold text-brand-purple truncate px-2">{fileToUpload.name}</p>
+                    ) : (
+                      <>
+                        <p className="text-xs font-bold text-text-secondary">Click to choose a video file</p>
+                        <p className="text-[9px] text-text-tertiary mt-1">Max size: 50MB</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="font-bold text-text-secondary">Reel/Video Public URL *</label>
+                  <input
+                    type="text"
+                    value={deliverableUrl}
+                    onChange={(e) => setDeliverableUrl(e.target.value)}
+                    placeholder="Paste the URL link to your uploaded reel..."
+                    className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="font-bold text-text-secondary">Submission Notes / Caption</label>
@@ -493,7 +633,7 @@ export default function CreatorDashboardPage() {
                   value={deliverableCaption}
                   onChange={(e) => setDeliverableCaption(e.target.value)}
                   placeholder="Provide caption updates, instructions on review feedback, revisions etc..."
-                  className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
                 />
               </div>
 
@@ -507,9 +647,10 @@ export default function CreatorDashboardPage() {
                 </button>
                 <button
                   type="submit"
+                  disabled={uploading}
                   className="px-5 py-2.5 gradient-brand text-white font-bold rounded-xl shadow-premium transition"
                 >
-                  Submit Deliverable
+                  {uploading ? 'Uploading...' : 'Submit Deliverable'}
                 </button>
               </div>
             </form>

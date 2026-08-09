@@ -49,7 +49,7 @@ const campaignSchema = new Schema(
       default: 'General',
     },
     deliverables: {
-      type: [String],
+      type: [Schema.Types.Mixed],
       default: [],
     },
     numReels: {

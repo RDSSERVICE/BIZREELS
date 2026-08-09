@@ -47,9 +47,15 @@ class HireController {
 
   submitDeliverable = asyncHandler(async (req, res) => {
     const { id } = req.params; // campaignId
-    const { url, type, caption } = req.body;
-    const campaign = await hireService.submitDeliverable(id, url, type, caption, req.user._id);
+    const { url, type, caption, milestoneId } = req.body;
+    const campaign = await hireService.submitDeliverable(id, url, type, caption, req.user._id, milestoneId);
     return ApiResponse.ok(res, 'Deliverable uploaded successfully.', { campaign });
+  });
+
+  approveMilestone = asyncHandler(async (req, res) => {
+    const { id, milestoneId } = req.params; // campaignId, milestoneId
+    const campaign = await hireService.approveMilestone(id, milestoneId, req.user._id);
+    return ApiResponse.ok(res, 'Milestone approved successfully.', { campaign });
   });
 }
 

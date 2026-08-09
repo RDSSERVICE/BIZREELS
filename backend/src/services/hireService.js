@@ -86,7 +86,14 @@ class HireService {
       description,
       productService,
       category,
-      deliverables,
+      deliverables: (deliverables || []).map((d, index) => ({
+        id: `m_${Date.now()}_${index}`,
+        _id: `m_${Date.now()}_${index}`,
+        title: typeof d === 'string' ? d : d.title,
+        status: 'pending',
+        submissionUrl: null,
+        submittedAt: null
+      })),
       numReels: parseInt(numReels, 10) || 0,
       numPosts: parseInt(numPosts, 10) || 0,
       budget: parseFloat(budget),
@@ -169,7 +176,28 @@ class HireService {
       campaign.description = data.description || campaign.description;
       if (data.productService !== undefined) campaign.productService = data.productService;
       if (data.category !== undefined) campaign.category = data.category;
-      if (data.deliverables !== undefined) campaign.deliverables = data.deliverables;
+      if (data.deliverables !== undefined) {
+        campaign.deliverables = (data.deliverables || []).map((d, index) => {
+          if (d && typeof d === 'object' && d.title) {
+            return {
+              id: d.id || d._id?.toString() || `m_${Date.now()}_${index}`,
+              _id: d._id?.toString() || d.id || `m_${Date.now()}_${index}`,
+              title: d.title,
+              status: d.status || 'pending',
+              submissionUrl: d.submissionUrl || null,
+              submittedAt: d.submittedAt || null
+            };
+          }
+          return {
+            id: `m_${Date.now()}_${index}`,
+            _id: `m_${Date.now()}_${index}`,
+            title: d,
+            status: 'pending',
+            submissionUrl: null,
+            submittedAt: null
+          };
+        });
+      }
       if (data.numReels !== undefined) campaign.numReels = parseInt(data.numReels, 10);
       if (data.numPosts !== undefined) campaign.numPosts = parseInt(data.numPosts, 10);
       campaign.budget = parseFloat(data.budget) || campaign.budget;
@@ -360,7 +388,7 @@ class HireService {
     throw ApiError.badRequest('Invalid status update request.');
   }
 
-  async submitDeliverable(campaignId, fileUrl, type = 'reel', caption = '', userId) {
+  async submitDeliverable(campaignId, fileUrl, type = 'reel', caption = '', userId, milestoneId = null) {
     const campaign = await Campaign.findById(campaignId);
     if (!campaign) {
       throw ApiError.notFound('Campaign not found.');
@@ -379,10 +407,34 @@ class HireService {
       uploadedAt: new Date(),
     });
 
-    // Update progress based on submissions compared to expected deliverables
-    const totalExpected = (campaign.numReels || 0) + (campaign.numPosts || 0) || 1;
-    const submittedCount = campaign.submissionUrls.length;
-    campaign.progress = Math.min(95, Math.round((submittedCount / totalExpected) * 100)); // cap at 95 until vendor marks completed
+    // If milestoneId is provided, mark that specific deliverable milestone as submitted!
+    if (milestoneId && campaign.deliverables && campaign.deliverables.length > 0) {
+      campaign.deliverables = campaign.deliverables.map((d, index) => {
+        const idStr = d._id?.toString() || d.id || String(index);
+        if (idStr === milestoneId.toString()) {
+          return {
+            ...d,
+            status: 'submitted',
+            submissionUrl: fileUrl,
+            submittedAt: new Date()
+          };
+        }
+        return d;
+      });
+      campaign.markModified('deliverables');
+    }
+
+    // Recalculate progress based on deliverables status
+    if (campaign.deliverables && campaign.deliverables.length > 0) {
+      const totalCount = campaign.deliverables.length;
+      const doneCount = campaign.deliverables.filter(d => d.status === 'submitted' || d.status === 'approved').length;
+      campaign.progress = Math.min(95, Math.round((doneCount / totalCount) * 100));
+    } else {
+      const totalExpected = (campaign.numReels || 0) + (campaign.numPosts || 0) || 1;
+      const submittedCount = campaign.submissionUrls.length;
+      campaign.progress = Math.min(95, Math.round((submittedCount / totalExpected) * 100));
+    }
+
     await campaign.save();
 
     // Notify vendor
@@ -396,6 +448,78 @@ class HireService {
     });
     emitToUser(campaign.vendor.toString(), 'notification', notifyRecord);
     emitToUser(campaign.vendor.toString(), 'campaign:updated', { campaignId });
+
+    return campaign;
+  }
+
+  async approveMilestone(campaignId, milestoneId, userId) {
+    const campaign = await Campaign.findById(campaignId);
+    if (!campaign) {
+      throw ApiError.notFound('Campaign not found.');
+    }
+    if (campaign.vendor.toString() !== userId.toString()) {
+      throw ApiError.forbidden('Only the campaign owner can approve milestones.');
+    }
+
+    let updated = false;
+    campaign.deliverables = (campaign.deliverables || []).map((d, index) => {
+      const idStr = d._id?.toString() || d.id || String(index);
+      if (idStr === milestoneId.toString()) {
+        updated = true;
+        return {
+          ...d,
+          status: 'approved'
+        };
+      }
+      return d;
+    });
+
+    if (!updated) {
+      throw ApiError.notFound('Milestone not found in this campaign.');
+    }
+
+    campaign.markModified('deliverables');
+
+    // Recalculate progress
+    const totalCount = campaign.deliverables.length;
+    const approvedCount = campaign.deliverables.filter(d => d.status === 'approved').length;
+    campaign.progress = Math.round((approvedCount / totalCount) * 100);
+
+    // If progress is 100%, transition the campaign to completed and release escrow!
+    if (campaign.progress === 100) {
+      campaign.status = 'completed';
+      
+      const request = await require('../models/HireRequest').findById(campaign.hireRequest);
+      if (request && request.paymentStatus === 'paid') {
+        // Credit the creator's wallet!
+        await walletRepository.updateWalletBalance(
+          campaign.creator,
+          campaign.budget,
+          'deposit',
+          `escrow_release_${campaign._id}`,
+          `Released escrow payout for campaign: "${campaign.title}"`
+        );
+        request.status = 'completed';
+        request.paymentStatus = 'paid';
+        await request.save();
+      }
+    }
+
+    await campaign.save();
+
+    // Notify creator
+    const notifyRecord = await Notification.create({
+      recipient: campaign.creator,
+      sender: userId,
+      type: 'campaign',
+      title: campaign.progress === 100 ? 'Campaign Completed & Payout Released' : 'Milestone Approved by Vendor',
+      message: campaign.progress === 100
+        ? `Campaign "${campaign.title}" has been completed and ₹${campaign.budget} payout released to your wallet.`
+        : `Milestone has been approved for campaign: "${campaign.title}"`,
+      data: { campaignId },
+    });
+    emitToUser(campaign.creator.toString(), 'notification', notifyRecord);
+    emitToUser(campaign.creator.toString(), 'campaign:updated', { campaignId });
 
     return campaign;
   }
