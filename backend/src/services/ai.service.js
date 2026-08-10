@@ -27,16 +27,20 @@ const DEFAULT_FEATURE_MODELS = {
 
 const getCfg = () => {
   const snap = settingsService.getIntegrationSync('ai_content');
-  const apiKey = (process.env.GEMINI_API_KEY || '').trim() || (process.env.GOOGLE_AI_API_KEY || '').trim() || (snap.api_key || '').trim();
-  const provider = (process.env.AI_PROVIDER || snap.provider || DEFAULT_PROVIDER).trim();
-  const model = (process.env.AI_MODEL || snap.model || DEFAULT_MODEL).trim();
+  const openRouterApiKey = (process.env.OPENROUTER_API_KEY || '').trim();
+  const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim() || (process.env.GOOGLE_AI_API_KEY || '').trim() || (snap.api_key || '').trim();
+  const apiKey = openRouterApiKey || geminiApiKey;
+
+  const provider = openRouterApiKey ? 'openrouter' : (process.env.AI_PROVIDER || snap.provider || DEFAULT_PROVIDER).trim();
+  const model = openRouterApiKey ? (process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash').trim() : (process.env.AI_MODEL || snap.model || DEFAULT_MODEL).trim();
   const enabled = snap.enabled !== undefined ? !!snap.enabled : true;
 
-  return { provider, model, apiKey, enabled };
+  return { provider, model, apiKey, enabled, openRouterApiKey, geminiApiKey };
 };
 
 const isConfigured = () => {
-  return !!getCfg().apiKey;
+  const cfg = getCfg();
+  return !!cfg.apiKey;
 };
 
 const getTodayKey = () => {
@@ -93,9 +97,23 @@ const recordTokens = async (tokens) => {
 
 const resolveModel = (feature) => {
   const cfg = getCfg();
-  const provider = cfg.provider;
   const snap = settingsService.getIntegrationSync('ai_content') || {};
   const featureModels = snap.feature_models || {};
+
+  if (cfg.openRouterApiKey) {
+    const customModel = process.env.OPENROUTER_MODEL;
+    let model = customModel ? customModel.trim() : ((featureModels[feature] || '').trim() || DEFAULT_FEATURE_MODELS[feature] || 'gemini-1.5-flash');
+    if (!customModel && model.startsWith('gemini-')) {
+      if (model === 'gemini-1.5-flash') {
+        model = 'google/gemini-2.5-flash';
+      } else {
+        model = 'google/' + model;
+      }
+    }
+    return { provider: 'openrouter', model };
+  }
+
+  const provider = cfg.provider;
   const model = (featureModels[feature] || '').trim() || DEFAULT_FEATURE_MODELS[feature] || cfg.model || 'gemini-1.5-flash';
   return { provider, model };
 };
@@ -188,6 +206,10 @@ const getInlineDataPart = async (url) => {
 
 const callGeminiAPI = async (systemInstruction, prompt, featureName, mediaParts = []) => {
   const cfg = getCfg();
+  if (cfg.openRouterApiKey) {
+    return callOpenRouterAPI(systemInstruction, prompt, featureName, mediaParts);
+  }
+
   if (!cfg.apiKey) {
     throw new Error('AI not configured: GOOGLE_AI_API_KEY / api_key missing');
   }
@@ -239,6 +261,73 @@ const callGeminiAPI = async (systemInstruction, prompt, featureName, mediaParts 
   const rawText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!rawText) {
     throw new Error('Empty response from Gemini API');
+  }
+  return rawText;
+};
+
+const callOpenRouterAPI = async (systemInstruction, prompt, featureName, mediaParts = []) => {
+  const apiKey = (process.env.OPENROUTER_API_KEY || '').trim();
+  if (!apiKey) {
+    throw new Error('OpenRouter AI not configured: OPENROUTER_API_KEY missing');
+  }
+
+  const { model } = resolveModel(featureName);
+
+  const messages = [];
+  if (systemInstruction) {
+    messages.push({
+      role: 'system',
+      content: systemInstruction,
+    });
+  }
+
+  let content = prompt;
+  if (mediaParts && mediaParts.length > 0) {
+    content = [{ type: 'text', text: prompt }];
+    for (const part of mediaParts) {
+      if (part && part.inlineData) {
+        const mimeType = part.inlineData.mimeType;
+        const base64Data = part.inlineData.data;
+        if (mimeType.startsWith('image/')) {
+          content.push({
+            type: 'image_url',
+            image_url: {
+              url: `data:${mimeType};base64,${base64Data}`,
+            },
+          });
+        }
+      }
+    }
+  }
+
+  messages.push({
+    role: 'user',
+    content,
+  });
+
+  const payload = {
+    model,
+    messages,
+    response_format: { type: 'json_object' },
+  };
+
+  const response = await axios.post(
+    'https://openrouter.ai/api/v1/chat/completions',
+    payload,
+    {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://bizreels.com',
+        'X-Title': 'BizReels',
+      },
+      timeout: 15000,
+    }
+  );
+
+  const rawText = response.data?.choices?.[0]?.message?.content;
+  if (!rawText) {
+    throw new Error('Empty response from OpenRouter API');
   }
   return rawText;
 };
