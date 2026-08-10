@@ -55,16 +55,36 @@ class ListingService {
       type: 'Point',
       coordinates: [0, 0],
     };
-    if (lat && lng) {
-      location.coordinates = [parseFloat(lng), parseFloat(lat)];
-      location.address = address || '';
+
+    let latVal = lat;
+    let lngVal = lng;
+    let addressVal = address;
+    let cityVal = '';
+    let stateVal = '';
+    let pincodeVal = '';
+
+    if (data.location && Array.isArray(data.location.coordinates) && data.location.coordinates.length === 2 && (data.location.coordinates[0] !== 0 || data.location.coordinates[1] !== 0)) {
+      lngVal = data.location.coordinates[0];
+      latVal = data.location.coordinates[1];
+      if (data.location.address) addressVal = data.location.address;
+      if (data.location.city) cityVal = data.location.city;
+      if (data.location.state) stateVal = data.location.state;
+      if (data.location.pincode) pincodeVal = data.location.pincode;
+    }
+
+    if (latVal && lngVal) {
+      location.coordinates = [parseFloat(lngVal), parseFloat(latVal)];
+      location.address = addressVal || '';
+      if (cityVal) location.city = cityVal;
+      if (stateVal) location.state = stateVal;
+      if (pincodeVal) location.pincode = pincodeVal;
     } else {
       try {
         const User = require('../models/User');
         const vendor = await User.findById(vendorId);
         if (vendor && vendor.location && Array.isArray(vendor.location.coordinates) && vendor.location.coordinates.length === 2 && (vendor.location.coordinates[0] !== 0 || vendor.location.coordinates[1] !== 0)) {
           location.coordinates = vendor.location.coordinates;
-          location.address = address || vendor.location.address || '';
+          location.address = addressVal || vendor.location.address || '';
           location.city = vendor.location.city || '';
           location.state = vendor.location.state || '';
           location.pincode = vendor.location.pincode || '';
@@ -162,6 +182,14 @@ class ListingService {
       }
     }
 
+    // Trigger referral reward check if applicable
+    try {
+      const referralService = require('./referral.service');
+      await referralService.maybeAwardOnListing(vendorId);
+    } catch (err) {
+      logger.error('Failed to trigger referral check on listing creation:', err);
+    }
+
     return listing;
   }
 
@@ -192,12 +220,33 @@ class ListingService {
       }
     }
 
-    if (updateData.lat && updateData.lng) {
+    let inputLat = updateData.lat;
+    let inputLng = updateData.lng;
+    let inputAddress = updateData.address;
+    let inputCity = '';
+    let inputState = '';
+    let inputPincode = '';
+
+    if (updateData.location && Array.isArray(updateData.location.coordinates) && updateData.location.coordinates.length === 2 && (updateData.location.coordinates[0] !== 0 || updateData.location.coordinates[1] !== 0)) {
+      inputLng = updateData.location.coordinates[0];
+      inputLat = updateData.location.coordinates[1];
+      if (updateData.location.address) inputAddress = updateData.location.address;
+      if (updateData.location.city) inputCity = updateData.location.city;
+      if (updateData.location.state) inputState = updateData.location.state;
+      if (updateData.location.pincode) inputPincode = updateData.location.pincode;
+    }
+
+    if (inputLat && inputLng) {
       updateData.location = {
         type: 'Point',
-        coordinates: [parseFloat(updateData.lng), parseFloat(updateData.lat)],
-        address: updateData.address || listing.location?.address || '',
+        coordinates: [parseFloat(inputLng), parseFloat(inputLat)],
+        address: inputAddress || listing.location?.address || '',
+        city: inputCity || listing.location?.city || '',
+        state: inputState || listing.location?.state || '',
+        pincode: inputPincode || listing.location?.pincode || '',
       };
+    } else if (updateData.location && Array.isArray(updateData.location.coordinates) && updateData.location.coordinates.length === 2) {
+      // Keep whatever location was passed by frontend
     } else if (!listing.location || !listing.location.coordinates || listing.location.coordinates[0] === 0) {
       try {
         const User = require('../models/User');
@@ -206,7 +255,7 @@ class ListingService {
           updateData.location = {
             type: 'Point',
             coordinates: vendor.location.coordinates,
-            address: updateData.address || vendor.location.address || listing.location?.address || '',
+            address: inputAddress || vendor.location.address || listing.location?.address || '',
             city: vendor.location.city || '',
             state: vendor.location.state || '',
             pincode: vendor.location.pincode || '',

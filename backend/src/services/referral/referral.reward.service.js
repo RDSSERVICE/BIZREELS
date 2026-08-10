@@ -23,7 +23,7 @@ async function checkEligibility(referredUserId) {
       return { eligible: true, event: 'registration' };
 
     case 'first_listing': {
-      const count = await Listing.countDocuments({ vendor_id: uid, is_deleted: { $ne: true } });
+      const count = await Listing.countDocuments({ vendor: uid, is_deleted: { $ne: true } });
       return { eligible: count >= 1, event: 'first_listing' };
     }
 

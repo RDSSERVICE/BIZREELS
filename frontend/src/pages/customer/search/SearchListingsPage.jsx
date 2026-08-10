@@ -377,7 +377,7 @@ export default function SearchListingsPage() {
       ? selectedItem.location.coordinates
       : null;
 
-    const targetCoords = vendorCoords || itemCoords;
+    const targetCoords = itemCoords || vendorCoords;
 
     if (coords && targetCoords) {
       const [targetLng, targetLat] = targetCoords;
@@ -646,7 +646,7 @@ export default function SearchListingsPage() {
               ? item.location.coordinates
               : null;
 
-            const targetCoords = vendorCoords || itemCoords;
+            const targetCoords = itemCoords || vendorCoords;
 
             if (coords && targetCoords) {
               const [targetLng, targetLat] = targetCoords;

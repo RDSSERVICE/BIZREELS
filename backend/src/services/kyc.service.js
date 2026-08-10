@@ -175,6 +175,14 @@ const kycReview = async (kid, adminId, approve, reason = null) => {
       }
     }
     await user.save();
+    if (approve) {
+      try {
+        const referralService = require('./referral.service');
+        await referralService.maybeAwardOnKYC(userId);
+      } catch (err) {
+        console.error('Error triggering referral check on KYC approval:', err);
+      }
+    }
   }
 
   await notificationService.create(

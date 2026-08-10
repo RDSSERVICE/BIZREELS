@@ -347,7 +347,7 @@ const Search = () => {
                         ? item.location.coordinates
                         : null;
 
-                      const targetCoords = vendorCoords || itemCoords;
+                      const targetCoords = itemCoords || vendorCoords;
                       
                       let calculatedDist = null;
                       if (coords && targetCoords) {
