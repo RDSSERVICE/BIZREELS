@@ -72,6 +72,16 @@ export default function SearchListingsPage() {
   const [inquiringId, setInquiringId] = useState(null);
 
   const [selectedItem, setSelectedItem] = useState(null);
+  const handleSelectItem = async (item) => {
+    setSelectedItem(item);
+    if (!item) return;
+    try {
+      const listingId = item._id || item.id;
+      await api.get(`/v1/listings/${listingId}`);
+    } catch (err) {
+      console.error('Failed to trigger listing view increment:', err);
+    }
+  };
   const [coords, setCoords] = useState(null);
   const [geocodedCache, setGeocodedCache] = useState({});
   const [savedItems, setSavedItems] = useState({});
@@ -330,7 +340,7 @@ export default function SearchListingsPage() {
     }
   };
 
-  const handleWhatsApp = (item) => {
+  const handleWhatsApp = async (item) => {
     const vendorObj = item.vendor || item.vendorId || {};
     const phone = vendorObj.phone || vendorObj.vendorProfile?.whatsapp || vendorObj.vendorProfile?.whatsappNumber || vendorObj.whatsappNumber || '';
     if (!phone) {
@@ -342,6 +352,20 @@ export default function SearchListingsPage() {
     if (formattedPhone.length === 10) {
       formattedPhone = '91' + formattedPhone;
     }
+
+    // Track interaction for analytics overview
+    try {
+      const listingId = item._id || item.id;
+      const targetUserId = vendorObj._id || vendorObj.id;
+      await api.post('/v1/users/me/track-interaction', {
+        type: 'whatsapp_contact',
+        listingId,
+        targetUserId,
+      });
+    } catch (err) {
+      console.error('Failed to track WhatsApp interaction:', err);
+    }
+
     window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
   };
 
@@ -353,6 +377,19 @@ export default function SearchListingsPage() {
         listingId,
         message: 'Customer requested a phone call callback.'
       });
+
+      // Track interaction for analytics overview
+      try {
+        const targetUserId = vendorObj._id || vendorObj.id;
+        await api.post('/v1/users/me/track-interaction', {
+          type: 'click_to_call',
+          listingId,
+          targetUserId,
+        });
+      } catch (trackErr) {
+        console.error('Failed to track call interaction:', trackErr);
+      }
+
       toast.success(`📞 Call request sent to ${vendorObj.name || vendorObj.shopName || 'Vendor'}! They will call you shortly.`);
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Failed to send call request';
@@ -458,6 +495,18 @@ export default function SearchListingsPage() {
         recipientId: vendorId,
         text: `Hello! I am interested in your listing: "${item.title}". Could you share more details?`
       });
+
+      // Track interaction for analytics overview
+      try {
+        await api.post('/v1/users/me/track-interaction', {
+          type: 'chat_inquiry',
+          listingId: item._id || item.id,
+          targetUserId: vendorId,
+        });
+      } catch (trackErr) {
+        console.error('Failed to track inquiry interaction:', trackErr);
+      }
+
       toast.success(`Inquiry sent to ${vendorObj.name || vendorObj.shopName || 'Vendor'}! Redirecting to chat...`);
       const vendorName = encodeURIComponent(vendorObj.shopName || vendorObj.name || 'Vendor');
       const vendorAvatar = encodeURIComponent(vendorObj.avatarUrl || vendorObj.logo || '');
@@ -793,7 +842,7 @@ export default function SearchListingsPage() {
               <div
                 key={itemId}
                 className="glass rounded-2xl border border-white/50 shadow-card hover:shadow-card-hover transition-all overflow-hidden flex flex-col justify-between cursor-pointer"
-                onClick={() => setSelectedItem(item)}
+                onClick={() => handleSelectItem(item)}
               >
                 <div className="aspect-video bg-surface-tertiary relative overflow-hidden">
                   <OptimizedImage src={imageUrl} alt={item.title} className="w-full h-full object-cover" width={400} />
@@ -837,7 +886,7 @@ export default function SearchListingsPage() {
                     </div>
 
                     <button
-                      onClick={(e) => { e.stopPropagation(); setSelectedItem(item); }}
+                      onClick={(e) => { e.stopPropagation(); handleSelectItem(item); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition"
                     >
                       <FiPackage size={14} />

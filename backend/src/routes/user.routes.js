@@ -731,6 +731,27 @@ router.post('/me/track-interaction', requireAuth, catchAsync(async (req, res) =>
 
   await Interaction.create(interactionData);
 
+  // Sync with ListingEvent for vendor analytics overview
+  if (listingId) {
+    try {
+      const eventService = require('../services/event.service');
+      let eventType = null;
+      if (type === 'whatsapp_contact') eventType = 'wa_click';
+      else if (type === 'click_to_call') eventType = 'wa_click'; // contact click
+      else if (type === 'chat_inquiry') eventType = 'chat_start';
+
+      if (eventType) {
+        await eventService.emit({
+          listing_id: listingId,
+          event_type: eventType,
+          user_id: uid,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to emit ListingEvent from track-interaction:', err);
+    }
+  }
+
   res.json({ success: true, message: 'Interaction tracked' });
 }));
 

@@ -575,7 +575,19 @@ class ListingService {
 
   async incrementViews(id) {
     const Listing = require('../models/Listing');
-    return Listing.findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true });
+    const eventService = require('./event.service');
+
+    const updated = await Listing.findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true });
+
+    if (updated) {
+      await eventService.emit({
+        listing_id: id,
+        vendor_id: updated.vendor ? updated.vendor.toString() : null,
+        event_type: 'view',
+      });
+    }
+
+    return updated;
   }
 
   async getByIdForOwner(id, vendorId) {

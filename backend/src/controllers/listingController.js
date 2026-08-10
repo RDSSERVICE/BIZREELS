@@ -158,6 +158,18 @@ class ListingController {
         type: 'save',
       });
       await Listing.updateOne({ _id: id }, { $inc: { saves_count: 1 } });
+
+      // Emit listing event for analytics!
+      try {
+        const eventService = require('../services/event.service');
+        await eventService.emit({
+          listing_id: id,
+          event_type: 'save',
+          user_id: req.user._id,
+        });
+      } catch (err) {
+        console.error('Failed to emit listing save event:', err);
+      }
     }
 
     const updatedListing = await Listing.findById(id);
