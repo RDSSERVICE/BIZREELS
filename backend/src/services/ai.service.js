@@ -179,7 +179,7 @@ const getRemoteFileBuffer = async (url) => {
 const getInlineDataPart = async (url) => {
   if (!url || typeof url !== 'string') return null;
   const isLocal = url.startsWith('/') || url.includes('localhost') || url.includes('127.0.0.1');
-  
+
   let res = null;
   if (isLocal) {
     res = await getLocalFileBuffer(url);
@@ -312,7 +312,7 @@ const callOpenRouterAPI = async (systemInstruction, prompt, featureName, mediaPa
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://bizreels.com',
+          'HTTP-Referer': 'https://bizreels.in',
           'X-Title': 'BizReels',
         },
         timeout: 15000,
@@ -380,10 +380,13 @@ const getListingSchemaPrompt = () => {
   return (
     'Return JSON in this exact schema:\n' +
     '{\n' +
+    '  "title": "catchy, professional SEO-friendly product/service name, 5-10 words",\n' +
+    '  "brand": "brand name (e.g. Sony, Apple, generic, etc.) if mentioned/implied, otherwise null/empty string",\n' +
     '  "description": "150-300 word engaging description, 3-5 features, use case, CTA",\n' +
     '  "short_description": "≤15 word tagline",\n' +
     '  "tags": ["5-10 kebab-case tags"],\n' +
     '  "features": ["3-6 bullet-point features"],\n' +
+    '  "specifications": [ { "key": "spec name, e.g. Color|Material|Size|Battery Life", "value": "spec value, e.g. Red|Leather|Medium|10 hours" } ],\n' +
     '  "variants": [ /* products → {name,type:"size|color|material|custom",options:[]};\n' +
     '                 services → {name,price_hint_inr,features:[]} tiers */ ],\n' +
     '  "suggested_price_range_inr": {"min": int, "max": int},\n' +
@@ -393,10 +396,13 @@ const getListingSchemaPrompt = () => {
 };
 
 const getEmptyListingStruct = (listingType) => ({
+  title: '',
+  brand: '',
   description: '',
   short_description: '',
   tags: [],
   features: [],
+  specifications: [],
   variants: [],
   suggested_price_range_inr: null,
   warranty_suggestion: '',
@@ -433,10 +439,16 @@ const cleanVariants = (vs, listingType) => {
 
 const normalizeListingData = (d, listingType) => {
   const out = {
+    title: String(d.title || d.product_name || d.name || '').trim(),
+    brand: d.brand ? String(d.brand).trim() : '',
     description: String(d.description || '').trim(),
     short_description: String(d.short_description || '').trim(),
     tags: (d.tags || []).map(x => String(x || '').trim().toLowerCase().replace(/\s+/g, '-')).slice(0, 10),
     features: (d.features || []).map(x => String(x || '').trim()).slice(0, 8),
+    specifications: (d.specifications || d.labels || []).map(s => ({
+      key: String(s.key || '').trim(),
+      value: String(s.value || '').trim()
+    })).filter(s => s.key && s.value),
     variants: cleanVariants(d.variants || [], listingType),
     suggested_price_range_inr: d.suggested_price_range_inr || null,
     warranty_suggestion: listingType === 'new_product' ? String(d.warranty_suggestion || '').trim() : '',

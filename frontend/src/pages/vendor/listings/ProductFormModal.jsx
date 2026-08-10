@@ -371,17 +371,41 @@ export default function ProductFormModal({
         const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
         const ts = Date.now().toString().slice(-4);
         const skuCode = `SKU-${rand}-${ts}`;
-        setForm(prev => ({
-          ...prev,
-          title: prev.title || gen.title || `AI ${file.name.split('.')[0]}`,
-          shortDescription: gen.short_description || prev.shortDescription,
-          description: gen.description || prev.description,
-          tags: gen.tags || prev.tags,
-          labels: Array.isArray(gen.features) ? gen.features.map(f => ({ key: f, value: 'Yes' })) : prev.labels,
-          actualPrice: gen.suggested_price_range_inr?.max || prev.actualPrice,
-          sellingPrice: gen.suggested_price_range_inr?.min || prev.sellingPrice,
-          sku: prev.sku || skuCode,
-        }));
+        
+        const flatVariants = [];
+        if (Array.isArray(gen.variants)) {
+          for (const v of gen.variants) {
+            if (v && v.options && Array.isArray(v.options)) {
+              for (const opt of v.options) {
+                flatVariants.push({
+                  name: `${v.name}: ${opt}`,
+                  priceAdjustment: 0,
+                  stock: -1,
+                });
+              }
+            }
+          }
+        }
+
+        setForm(prev => {
+          const mappedLabels = (Array.isArray(gen.specifications) && gen.specifications.length > 0)
+            ? gen.specifications.map(s => ({ key: s.key, value: s.value }))
+            : (Array.isArray(gen.features) ? gen.features.map(f => ({ key: f, value: 'Yes' })) : prev.labels);
+
+          return {
+            ...prev,
+            title: gen.title || prev.title || `AI ${file.name.split('.')[0]}`,
+            brand: gen.brand || prev.brand,
+            shortDescription: gen.short_description || prev.shortDescription,
+            description: gen.description || prev.description,
+            tags: gen.tags || prev.tags,
+            labels: mappedLabels,
+            variants: flatVariants.length > 0 ? flatVariants : prev.variants,
+            actualPrice: gen.suggested_price_range_inr?.max || prev.actualPrice,
+            sellingPrice: gen.suggested_price_range_inr?.min || prev.sellingPrice,
+            sku: prev.sku || skuCode,
+          };
+        });
         setVariantSku(prev => prev || skuCode);
         toast.success('AI extracted specs, price & details in real-time!', { id: toastId });
       } else {
@@ -451,17 +475,41 @@ export default function ProductFormModal({
         const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
         const ts = Date.now().toString().slice(-4);
         const skuCode = `SKU-${rand}-${ts}`;
-        setForm(prev => ({
-          ...prev,
-          title: prev.title || gen.title || `AI Product`,
-          shortDescription: gen.short_description || prev.shortDescription,
-          description: gen.description || prev.description,
-          tags: gen.tags || prev.tags,
-          labels: Array.isArray(gen.features) ? gen.features.map(f => ({ key: f, value: 'Yes' })) : prev.labels,
-          actualPrice: gen.suggested_price_range_inr?.max || prev.actualPrice,
-          sellingPrice: gen.suggested_price_range_inr?.min || prev.sellingPrice,
-          sku: prev.sku || skuCode,
-        }));
+
+        const flatVariants = [];
+        if (Array.isArray(gen.variants)) {
+          for (const v of gen.variants) {
+            if (v && v.options && Array.isArray(v.options)) {
+              for (const opt of v.options) {
+                flatVariants.push({
+                  name: `${v.name}: ${opt}`,
+                  priceAdjustment: 0,
+                  stock: -1,
+                });
+              }
+            }
+          }
+        }
+
+        setForm(prev => {
+          const mappedLabels = (Array.isArray(gen.specifications) && gen.specifications.length > 0)
+            ? gen.specifications.map(s => ({ key: s.key, value: s.value }))
+            : (Array.isArray(gen.features) ? gen.features.map(f => ({ key: f, value: 'Yes' })) : prev.labels);
+
+          return {
+            ...prev,
+            title: gen.title || prev.title || 'AI Product',
+            brand: gen.brand || prev.brand,
+            shortDescription: gen.short_description || prev.shortDescription,
+            description: gen.description || prev.description,
+            tags: gen.tags || prev.tags,
+            labels: mappedLabels,
+            variants: flatVariants.length > 0 ? flatVariants : prev.variants,
+            actualPrice: gen.suggested_price_range_inr?.max || prev.actualPrice,
+            sellingPrice: gen.suggested_price_range_inr?.min || prev.sellingPrice,
+            sku: prev.sku || skuCode,
+          };
+        });
         setVariantSku(prev => prev || skuCode);
         toast.success('✨ Gemini AI specifications & details generated in real-time!', { id: toastId });
       } else {
