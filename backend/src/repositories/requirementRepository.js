@@ -201,6 +201,8 @@ class RequirementRepository {
         proposals_count: 1,
         views_count: 1,
         assignedVendorIds: 1,
+        vendorsViewed: 1,
+        vendorsResponded: 1,
         totalVendorsMatched: 1,
         totalVendorsNotified: 1,
         acceptedProposalId: 1,
@@ -259,7 +261,7 @@ class RequirementRepository {
   }
 
   async checkVendorHasQuoted(requirementId, vendorId) {
-    const quote = await Quote.findOne({ requirement: requirementId, vendor: vendorId });
+    const quote = await Quote.findOne({ requirement: requirementId, vendor: vendorId, isDeleted: { $ne: true } });
     return !!quote;
   }
 

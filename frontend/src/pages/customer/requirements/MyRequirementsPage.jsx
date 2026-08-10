@@ -18,7 +18,8 @@ import {
   useDeleteRequirementMutation,
   useUpdateRequirementMutation,
   useGetQuotesForRequirementQuery,
-  useUpdateQuoteStatusMutation
+  useUpdateQuoteStatusMutation,
+  useGetRequirementDetailsQuery
 } from '../../../features/customer/requirementsApi';
 
 const TABS = [
@@ -65,12 +66,12 @@ export default function MyRequirementsPage() {
   const totalItems = data?.meta?.total || data?.total || 0;
 
   // Selected requirement details query
-  const { data: detailData, isFetching: isDetailLoading, refetch: refetchDetails } = useGetRequirementsQuery(
-    activeReqId ? { search: activeReqId, limit: 1 } : skipSymbol
+  const { data: detailData, isFetching: isDetailLoading, refetch: refetchDetails } = useGetRequirementDetailsQuery(
+    activeReqId,
+    { skip: !activeReqId }
   );
   
-  const selectedReqList = Array.isArray(detailData?.data) ? detailData.data : (detailData?.requirements || detailData?.data?.requirements || []);
-  const selectedReq = selectedReqList.find(r => r._id === activeReqId || r.id === activeReqId);
+  const selectedReq = detailData?.requirement || detailData?.data?.requirement || detailData?.data;
 
   const { data: quotesData, isFetching: isQuotesLoading, refetch: refetchQuotes } = useGetQuotesForRequirementQuery(
     activeReqId,

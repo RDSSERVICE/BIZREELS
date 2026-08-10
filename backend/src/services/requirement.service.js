@@ -311,7 +311,12 @@ class RequirementService {
       throw ApiError.notFound('Requirement not found.');
     }
 
-    if (role === 'vendor' && userId) {
+    const isOwner = requirement.customer && (requirement.customer._id || requirement.customer).toString() === userId.toString();
+    const isMatchedVendor = requirement.assignedVendorIds && requirement.assignedVendorIds.some(
+      v => v.toString() === userId.toString()
+    );
+
+    if (userId && !isOwner && (role === 'vendor' || isMatchedVendor)) {
       const Requirement = require('../models/Requirement');
       const hasViewed = requirement.vendorsViewed && requirement.vendorsViewed.some(
         v => v.toString() === userId.toString()

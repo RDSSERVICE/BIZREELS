@@ -11,6 +11,7 @@ import AdminPageHeader from '../../../features/admin/components/AdminPageHeader'
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
+import { useAuth } from '../../../context/AuthContext';
 import { useGetVendorLeadsQuery } from '../../../features/vendor/vendorApi';
 import {
   useGetRequirementsQuery,
@@ -26,6 +27,7 @@ const TABS = [
 ];
 
 export default function VendorLeadsPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('requirement-matches');
   
   // Leads & Enquiries Queries
@@ -292,6 +294,9 @@ export default function VendorLeadsPage() {
                   ? 'Remote (Online)' 
                   : (typeof location === 'string' ? location : `${location.city || 'Local'}${location.state ? `, ${location.state}` : ''}`);
                 const isSaved = savedIds.includes(reqId);
+                const hasResponded = m.vendorsResponded && m.vendorsResponded.some(
+                  vId => (vId._id || vId).toString() === (user?._id || user?.id)?.toString()
+                );
 
                 return (
                   <div key={reqId} className="glass rounded-xl p-5 border border-white/30 hover:border-brand-purple/40 shadow-sm transition-all flex flex-col gap-4">
@@ -349,13 +354,20 @@ export default function VendorLeadsPage() {
                           <FiEye size={12} />
                           <span>View Detail</span>
                         </button>
-                        <button
-                          onClick={() => handleOpenProposalModal(m)}
-                          className="px-2.5 sm:px-3.5 py-1.5 gradient-brand text-white text-[11px] sm:text-xs font-bold rounded-lg shadow hover:opacity-95 transition flex items-center gap-1"
-                        >
-                          <FiFileText size={12} />
-                          <span>Submit Proposal</span>
-                        </button>
+                        {hasResponded ? (
+                          <span className="px-2.5 sm:px-3.5 py-1.5 bg-emerald-500/10 text-emerald-600 text-[11px] sm:text-xs font-bold rounded-lg border border-emerald-500/20 flex items-center gap-1">
+                            <FiCheck size={12} />
+                            <span>Proposal Sent</span>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenProposalModal(m)}
+                            className="px-2.5 sm:px-3.5 py-1.5 gradient-brand text-white text-[11px] sm:text-xs font-bold rounded-lg shadow hover:opacity-95 transition flex items-center gap-1"
+                          >
+                            <FiFileText size={12} />
+                            <span>Submit Proposal</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleSaveRequirement(reqId)}
                           className={`p-1.5 border rounded-lg transition ${isSaved ? 'bg-brand-purple/10 text-brand-purple border-brand-purple/20' : 'bg-surface border-border text-text-tertiary hover:text-brand-purple'}`}
@@ -577,16 +589,24 @@ export default function VendorLeadsPage() {
               >
                 Close View
               </button>
-              <button
-                onClick={() => {
-                  const m = displayReq;
-                  setDetailReq(null);
-                  handleOpenProposalModal(m);
-                }}
-                className="px-5 py-2 gradient-brand text-white font-bold rounded-xl shadow-premium"
-              >
-                Respond with Proposal
-              </button>
+              {displayReq.vendorsResponded && displayReq.vendorsResponded.some(
+                vId => (vId._id || vId).toString() === (user?._id || user?.id)?.toString()
+              ) ? (
+                <span className="px-5 py-2 bg-emerald-500/10 text-emerald-600 font-bold rounded-xl border border-emerald-500/20 flex items-center gap-1">
+                  <FiCheck size={14} /> Proposal Sent
+                </span>
+              ) : (
+                <button
+                  onClick={() => {
+                    const m = displayReq;
+                    setDetailReq(null);
+                    handleOpenProposalModal(m);
+                  }}
+                  className="px-5 py-2 gradient-brand text-white font-bold rounded-xl shadow-premium"
+                >
+                  Respond with Proposal
+                </button>
+              )}
             </div>
           </div>
         )}
