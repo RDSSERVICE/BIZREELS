@@ -121,9 +121,28 @@ export default function VendorLeadsPage() {
     };
   }, [detailReq, refetchReqs]);
 
-  const productEnquiries = Array.isArray(leadsData?.productEnquiries) ? leadsData.productEnquiries : Array.isArray(leadsData?.data) ? leadsData.data : [];
-  const serviceEnquiries = Array.isArray(leadsData?.serviceEnquiries) ? leadsData.serviceEnquiries : [];
-  const quoteRequests = Array.isArray(leadsData?.quoteRequests) ? leadsData.quoteRequests : [];
+  // Segregate backend flat list of inquiries into the matching categories
+  const allInquiries = Array.isArray(leadsData?.data) ? leadsData.data : Array.isArray(leadsData) ? leadsData : [];
+  
+  const productEnquiries = [];
+  const serviceEnquiries = [];
+  const quoteRequests = [];
+
+  allInquiries.forEach((e) => {
+    const isQuoteOrCall = (e.message || '').toLowerCase().includes('callback') || 
+                          (e.message || '').toLowerCase().includes('call callback') ||
+                          (e.message || '').toLowerCase().includes('quote') ||
+                          e.listing?.price === 0 || 
+                          e.listing?.sellingPrice === 0;
+
+    if (isQuoteOrCall) {
+      quoteRequests.push(e);
+    } else if (e.listing?.type === 'service') {
+      serviceEnquiries.push(e);
+    } else {
+      productEnquiries.push(e);
+    }
+  });
   
   // Parse requirement matches
   const requirementMatches = (reqsData?.requirements || reqsData?.data?.requirements || reqsData?.data || [])
@@ -204,24 +223,52 @@ export default function VendorLeadsPage() {
     return `${hours} Hours remaining`;
   };
 
-  const renderEnquiryCard = (e, type = 'product') => (
-    <div key={e._id || e.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-      <div>
-        <h4 className="font-bold text-xs text-text-primary">{e.customer || 'Customer'} ({e.phone || 'Phone hidden'})</h4>
-        <p className={`text-xs font-semibold mt-0.5 ${type === 'product' ? 'text-brand-orange' : 'text-brand-purple'}`}>
-          {type === 'product' ? 'Item' : 'Service'}: {e.item || e.message}
-        </p>
-        <p className="text-xs text-text-secondary mt-1">"{e.message || e.msg}"</p>
+  const handleWhatsAppReply = (phone, itemTitle) => {
+    if (!phone) {
+      toast.error('Customer phone details not available');
+      return;
+    }
+    let cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = '91' + cleanPhone;
+    }
+    const text = encodeURIComponent(`Hi! Regarding your inquiry about "${itemTitle}"...`);
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
+  };
+
+  const handleCallReply = (phone) => {
+    if (!phone) {
+      toast.error('Customer phone details not available');
+      return;
+    }
+    window.location.href = `tel:${phone}`;
+  };
+
+  const renderEnquiryCard = (e, type = 'product') => {
+    const customerObj = e.customer || {};
+    const customerName = customerObj.name || (typeof customerObj === 'string' ? customerObj : 'Client Buyer');
+    const customerPhone = customerObj.phone || '';
+    const itemTitle = e.listing?.title || 'Listing Item';
+
+    return (
+      <div key={e._id || e.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-xs text-text-primary">{customerName} {customerPhone && `(${customerPhone})`}</h4>
+          <p className={`text-xs font-semibold mt-0.5 ${type === 'product' ? 'text-brand-orange' : 'text-brand-purple'}`}>
+            {type === 'product' ? 'Item' : 'Service'}: {itemTitle}
+          </p>
+          <p className="text-xs text-text-secondary mt-1 italic">"{e.message || e.msg}"</p>
+        </div>
+        <button
+          onClick={() => type === 'product' ? handleWhatsAppReply(customerPhone, itemTitle) : handleCallReply(customerPhone)}
+          className="px-3.5 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5 whitespace-nowrap self-start sm:self-center"
+        >
+          {type === 'product' ? <FiMessageCircle size={14} /> : <FiPhone size={14} />}
+          {type === 'product' ? 'Reply on WhatsApp' : 'Call Customer'}
+        </button>
       </div>
-      <button
-        onClick={() => toast.success(`Opened contact option for ${e.customer || 'customer'}`)}
-        className="px-3.5 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
-      >
-        {type === 'product' ? <FiMessageCircle size={14} /> : <FiPhone size={14} />}
-        {type === 'product' ? 'Reply on WhatsApp' : 'Call Customer'}
-      </button>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-12">
@@ -260,20 +307,32 @@ export default function VendorLeadsPage() {
           quoteRequests.length === 0 ? (
             <p className="text-xs text-text-tertiary text-center py-6">No quote requests found.</p>
           ) : (
-            quoteRequests.map((q) => (
-              <div key={q._id || q.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                <div>
-                  <h4 className="font-bold text-xs text-text-primary">{q.customer}</h4>
-                  <p className="text-xs text-text-secondary mt-0.5">{q.item} • Target Budget: {q.budget}</p>
+            quoteRequests.map((q) => {
+              const customerObj = q.customer || {};
+              const customerName = customerObj.name || (typeof customerObj === 'string' ? customerObj : 'Client Buyer');
+              const customerPhone = customerObj.phone || '';
+              const itemTitle = q.listing?.title || 'Listing Item';
+              const price = q.listing?.sellingPrice || q.listing?.price || null;
+
+              return (
+                <div key={q._id || q.id} className="glass rounded-xl p-4 border border-white/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-xs text-text-primary">{customerName} {customerPhone && `(${customerPhone})`}</h4>
+                    <p className="text-xs text-text-secondary mt-0.5 font-semibold">
+                      {itemTitle} • Budget/Price: {price ? `₹${price.toLocaleString()}` : 'Quote Request'}
+                    </p>
+                    <p className="text-xs text-text-secondary mt-1 italic">"{q.message}"</p>
+                  </div>
+                  <button
+                    onClick={() => handleWhatsAppReply(customerPhone, itemTitle)}
+                    className="px-3.5 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5 whitespace-nowrap self-start sm:self-center"
+                  >
+                    <FiMessageCircle size={14} />
+                    <span>Submit Quote Proposal</span>
+                  </button>
                 </div>
-                <button
-                  onClick={() => toast.success('Quote submitted to customer!')}
-                  className="px-3.5 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition"
-                >
-                  Submit Proposal Quote
-                </button>
-              </div>
-            ))
+              );
+            })
           )
         )}
 
