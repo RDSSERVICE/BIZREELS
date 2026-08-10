@@ -32,7 +32,7 @@ const getCfg = () => {
   const apiKey = openRouterApiKey || geminiApiKey;
 
   const provider = openRouterApiKey ? 'openrouter' : (process.env.AI_PROVIDER || snap.provider || DEFAULT_PROVIDER).trim();
-  const model = openRouterApiKey ? (process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash').trim() : (process.env.AI_MODEL || snap.model || DEFAULT_MODEL).trim();
+  const model = openRouterApiKey ? (process.env.OPENROUTER_MODEL || 'openrouter/free').trim() : (process.env.AI_MODEL || snap.model || DEFAULT_MODEL).trim();
   const enabled = snap.enabled !== undefined ? !!snap.enabled : true;
 
   return { provider, model, apiKey, enabled, openRouterApiKey, geminiApiKey };
@@ -102,14 +102,7 @@ const resolveModel = (feature) => {
 
   if (cfg.openRouterApiKey) {
     const customModel = process.env.OPENROUTER_MODEL;
-    let model = customModel ? customModel.trim() : ((featureModels[feature] || '').trim() || DEFAULT_FEATURE_MODELS[feature] || 'gemini-1.5-flash');
-    if (!customModel && model.startsWith('gemini-')) {
-      if (model === 'gemini-1.5-flash') {
-        model = 'google/gemini-2.5-flash';
-      } else {
-        model = 'google/' + model;
-      }
-    }
+    const model = customModel ? customModel.trim() : 'openrouter/free';
     return { provider: 'openrouter', model };
   }
 
@@ -311,25 +304,44 @@ const callOpenRouterAPI = async (systemInstruction, prompt, featureName, mediaPa
     response_format: { type: 'json_object' },
   };
 
-  const response = await axios.post(
-    'https://openrouter.ai/api/v1/chat/completions',
-    payload,
-    {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://bizreels.com',
-        'X-Title': 'BizReels',
-      },
-      timeout: 15000,
-    }
-  );
+  try {
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://bizreels.com',
+          'X-Title': 'BizReels',
+        },
+        timeout: 15000,
+      }
+    );
 
-  const rawText = response.data?.choices?.[0]?.message?.content;
-  if (!rawText) {
-    throw new Error('Empty response from OpenRouter API');
+    const rawText = response.data?.choices?.[0]?.message?.content;
+    if (!rawText) {
+      throw new Error('Empty response from OpenRouter API');
+    }
+    return rawText;
+  } catch (err) {
+    if (err.response) {
+      const status = err.response.status;
+      const errorMsg = err.response.data?.error?.message || (err.response.data?.error ? JSON.stringify(err.response.data.error) : err.message);
+      if (status === 401) {
+        throw new Error(`OpenRouter API Authentication Failed (401): Please verify that your OPENROUTER_API_KEY in .env is correct. Details: ${errorMsg}`);
+      } else if (status === 402) {
+        throw new Error(`OpenRouter Payment Required (402): Insufficient credits or balance to use this model. Details: ${errorMsg}`);
+      } else if (status === 429) {
+        throw new Error(`OpenRouter Rate Limit Exceeded (429): Too many requests. Details: ${errorMsg}`);
+      } else if (status >= 500) {
+        throw new Error(`OpenRouter Server Error (${status}): The AI provider is currently unavailable. Details: ${errorMsg}`);
+      } else {
+        throw new Error(`OpenRouter Error (${status}): ${errorMsg}`);
+      }
+    }
+    throw err;
   }
-  return rawText;
 };
 
 const parseJsonStrict = (raw) => {
