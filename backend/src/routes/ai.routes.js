@@ -250,4 +250,17 @@ router.post('/negotiate', requireAuth, catchAsync(async (req, res) => {
   res.json(result);
 }));
 
+// ============================================================ IMAGE GENERATION
+router.post('/generate-image', requireAuth, requireVendor, catchAsync(async (req, res) => {
+  const { prompt, width = 800, height = 800 } = req.body;
+  if (!prompt || prompt.trim().length < 3) {
+    throw ApiError.badRequest('Prompt must be at least 3 characters');
+  }
+
+  enforceRateLimit(req.user._id.toString(), 'gen-image', AI_RATE_LIMIT);
+
+  const result = await aiService.generateAiImage(prompt, width, height);
+  res.json(result);
+}));
+
 module.exports = router;

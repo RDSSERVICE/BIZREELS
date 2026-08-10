@@ -155,6 +155,12 @@ export default function ProductFormModal({
   const [variantImageUrl, setVariantImageUrl] = useState('');
   const [variantUploading, setVariantUploading] = useState(false);
 
+  // AI Image Generation states
+  const [productAiPrompt, setProductAiPrompt] = useState('');
+  const [isGeneratingProductAiImage, setIsGeneratingProductAiImage] = useState(false);
+  const [variantAiPrompt, setVariantAiPrompt] = useState('');
+  const [isGeneratingVariantAiImage, setIsGeneratingVariantAiImage] = useState(false);
+
   const generateSKU = () => {
     const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
     const ts = Date.now().toString().slice(-4);
@@ -340,6 +346,70 @@ export default function ProductFormModal({
     setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
   };
 
+  const handleGenerateProductAiImage = async () => {
+    if (!productAiPrompt.trim()) {
+      toast.error('Please enter a prompt to generate an image.');
+      return;
+    }
+    if (form.images.length >= maxLimits.maxImages) {
+      toast.error(`Maximum allowed images is ${maxLimits.maxImages}`);
+      return;
+    }
+
+    setIsGeneratingProductAiImage(true);
+    const toastId = toast.loading('AI generating product image...');
+    try {
+      const res = await api.post('/v1/ai/generate-image', {
+        prompt: productAiPrompt.trim(),
+        width: 800,
+        height: 800,
+      });
+
+      if (res.data && res.data.success && res.data.url) {
+        setForm(prev => ({ ...prev, images: [...prev.images, res.data.url] }));
+        setProductAiPrompt('');
+        toast.success('AI Image generated and added!', { id: toastId });
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (err) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to generate AI image';
+      toast.error(errMsg, { id: toastId });
+    } finally {
+      setIsGeneratingProductAiImage(false);
+    }
+  };
+
+  const handleGenerateVariantAiImage = async () => {
+    if (!variantAiPrompt.trim()) {
+      toast.error('Please enter a prompt to generate variant image.');
+      return;
+    }
+
+    setIsGeneratingVariantAiImage(true);
+    const toastId = toast.loading('AI generating variant image...');
+    try {
+      const res = await api.post('/v1/ai/generate-image', {
+        prompt: variantAiPrompt.trim(),
+        width: 800,
+        height: 800,
+      });
+
+      if (res.data && res.data.success && res.data.url) {
+        setVariantImageUrl(res.data.url);
+        setVariantAiPrompt('');
+        toast.success('AI Variant Image generated successfully!', { id: toastId });
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (err) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to generate AI variant image';
+      toast.error(errMsg, { id: toastId });
+    } finally {
+      setIsGeneratingVariantAiImage(false);
+    }
+  };
+
   // AI Sample Upload Auto-Fill
   const handleAiAutoFill = async (e) => {
     const file = e.target.files[0];
@@ -408,6 +478,32 @@ export default function ProductFormModal({
         });
         setVariantSku(prev => prev || skuCode);
         toast.success('AI extracted specs, price & details in real-time!', { id: toastId });
+
+        // Auto-set the uploaded image or generate one if the file is not an image
+        if (resource_type === 'image' && form.images.length < maxLimits.maxImages) {
+          setForm(prev => ({ ...prev, images: [...prev.images, url] }));
+        } else if (resource_type !== 'image' && form.images.length < maxLimits.maxImages) {
+          const generatedTitle = gen.title || form.title || file.name.split('.')[0] || 'Product';
+          toast.promise(
+            (async () => {
+              const imgRes = await api.post('/v1/ai/generate-image', {
+                prompt: `Professional studio product photograph of ${generatedTitle}, clean background, highly detailed, realistic, 4k`,
+                width: 800,
+                height: 800,
+              });
+              if (imgRes.data && imgRes.data.success && imgRes.data.url) {
+                setForm(prev => ({ ...prev, images: [...prev.images, imgRes.data.url] }));
+                return 'AI Image generated and added!';
+              }
+              throw new Error('No URL returned');
+            })(),
+            {
+              loading: 'Generating matching AI product image...',
+              success: '✨ AI Product Image generated successfully!',
+              error: 'Failed to generate AI product image',
+            }
+          );
+        }
       } else {
         throw new Error('AI returned empty response');
       }
@@ -512,6 +608,30 @@ export default function ProductFormModal({
         });
         setVariantSku(prev => prev || skuCode);
         toast.success('✨ Gemini AI specifications & details generated in real-time!', { id: toastId });
+
+        // Auto-generate AI image in background
+        if (form.images.length < maxLimits.maxImages) {
+          const generatedTitle = gen.title || form.title || 'Product';
+          toast.promise(
+            (async () => {
+              const imgRes = await api.post('/v1/ai/generate-image', {
+                prompt: `Professional studio product photograph of ${generatedTitle}, clean background, highly detailed, realistic, 4k`,
+                width: 800,
+                height: 800,
+              });
+              if (imgRes.data && imgRes.data.success && imgRes.data.url) {
+                setForm(prev => ({ ...prev, images: [...prev.images, imgRes.data.url] }));
+                return 'AI Image generated and added!';
+              }
+              throw new Error('No URL returned');
+            })(),
+            {
+              loading: 'Generating matching AI product image...',
+              success: '✨ AI Product Image generated successfully!',
+              error: 'Failed to generate AI product image',
+            }
+          );
+        }
       } else {
         throw new Error('AI returned empty response');
       }
@@ -872,6 +992,40 @@ export default function ProductFormModal({
                 Add URL
               </button>
             </div>
+
+            {/* AI Image Generation Option */}
+            <div className="bg-surface p-3 rounded-2xl border border-border space-y-2 mt-2">
+              <label className="text-[9px] font-bold text-brand-purple uppercase flex items-center gap-1">
+                <FiCpu className="w-3.5 h-3.5 animate-pulse" /> AI Image Generator
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Describe your product image (e.g. A premium leather wallet, dark background, studio lighting...)"
+                  value={productAiPrompt}
+                  onChange={(e) => setProductAiPrompt(e.target.value)}
+                  className="flex-1 p-2.5 bg-surface-secondary border border-border rounded-xl text-xs outline-none focus:border-brand-purple text-text-primary"
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerateProductAiImage}
+                  disabled={isGeneratingProductAiImage}
+                  className="px-3.5 py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold transition hover:bg-brand-purple/90 shrink-0 flex items-center gap-1 disabled:opacity-50"
+                >
+                  {isGeneratingProductAiImage ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    'AI Generate'
+                  )}
+                </button>
+              </div>
+              <p className="text-[10px] text-text-tertiary">
+                <strong>Tips:</strong> Enter descriptive prompts (e.g., product features, lighting, backdrop) for realistic images.
+              </p>
+            </div>
           </div>
 
           <div>
@@ -950,13 +1104,56 @@ export default function ProductFormModal({
               </div>
               <div className="flex items-center justify-between gap-2 pt-1">
                 <div className="flex items-center gap-2">
-                  {variantImageUrl && <img src={variantImageUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-border animate-fade-in" />}
+                  {variantImageUrl && (
+                    <div className="relative group/varimg">
+                      <img src={variantImageUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-border animate-fade-in" />
+                      <button
+                        type="button"
+                        onClick={() => setVariantImageUrl('')}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center transition text-[8px]"
+                        title="Remove Image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
                   <label className="px-3 py-1.5 bg-surface-secondary border border-border rounded-xl text-xs font-bold cursor-pointer hover:bg-surface-tertiary transition select-none">
                     <input type="file" accept="image/*" onChange={handleVariantImageUpload} className="hidden" />
                     {variantUploading ? 'Uploading...' : 'Upload Variant Image'}
                   </label>
                 </div>
                 <button type="button" onClick={handleAddVariant} className="px-4 py-1.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm">+ Add Variant</button>
+              </div>
+
+              {/* Variant AI Image Generator */}
+              <div className="border-t border-border pt-2.5 space-y-2">
+                <label className="text-[9px] font-bold text-brand-purple uppercase flex items-center gap-1">
+                  <FiCpu className="w-3.5 h-3.5 animate-pulse" /> Variant AI Image Generator
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Describe variant image (e.g. Red color leather wallet...)"
+                    value={variantAiPrompt}
+                    onChange={(e) => setVariantAiPrompt(e.target.value)}
+                    className="flex-1 p-2 bg-surface-secondary border border-border rounded-xl text-xs outline-none focus:border-brand-purple text-text-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGenerateVariantAiImage}
+                    disabled={isGeneratingVariantAiImage}
+                    className="px-3 py-1.5 bg-brand-purple text-white rounded-xl text-xs font-bold transition hover:bg-brand-purple/90 shrink-0 flex items-center gap-1 disabled:opacity-50"
+                  >
+                    {isGeneratingVariantAiImage ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      'AI Generate'
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

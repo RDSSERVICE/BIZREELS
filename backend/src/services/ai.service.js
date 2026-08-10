@@ -10,6 +10,12 @@ const { ChatThread, ChatMessage } = require('../models/Chat');
 const settingsService = require('./settings.service');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+const uuid = require('uuid');
+const imageProcessingService = require('./image-processing.service');
+const { processedDir } = require('./image-processing.service');
+const storageService = require('./storage.service');
+const config = require('../config');
+const { tempDir } = require('../middleware/upload.middleware');
 
 const DEFAULT_PROVIDER = 'gemini';
 const DEFAULT_MODEL = 'gemini-1.5-flash';
@@ -1209,6 +1215,70 @@ const detectForbiddenContactDetails = (text) => {
   return { hasViolation: false };
 };
 
+const generateAiImage = async (prompt, width = 800, height = 800) => {
+  if (!prompt || typeof prompt !== 'string') {
+    throw ApiError.badRequest('Prompt is required for image generation');
+  }
+
+  // Construct Pollinations URL
+  const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.trim())}?width=${width}&height=${height}&nologo=true&private=true`;
+
+  const rawFilePath = path.join(tempDir, `ai-raw-${uuid.v4()}.jpg`);
+  const uniqueName = `ai-gen-${uuid.v4()}.webp`;
+  const processedFilePath = path.join(processedDir, uniqueName);
+
+  let isRawFileCreated = false;
+  let isProcessedFileCreated = false;
+
+  try {
+    // 1. Fetch image from pollinations.ai as arraybuffer
+    const response = await axios.get(pollinationsUrl, { responseType: 'arraybuffer', timeout: 30000 });
+    const buffer = Buffer.from(response.data);
+
+    // 2. Save image buffer to temporary raw file
+    await fs.promises.writeFile(rawFilePath, buffer);
+    isRawFileCreated = true;
+
+    // 3. Process the image using Sharp via imageProcessingService
+    const processResult = await imageProcessingService.processImage(rawFilePath, processedFilePath);
+    isProcessedFileCreated = true;
+
+    // 4. Upload to storage provider
+    const uploadResult = await storageService.upload(processedFilePath, uniqueName);
+
+    // 5. Clean up temporary files
+    if (isRawFileCreated) {
+      await fs.promises.unlink(rawFilePath).catch(() => {});
+      isRawFileCreated = false;
+    }
+    if (isProcessedFileCreated && (config.storageProvider || 'local').toLowerCase() !== 'local') {
+      await fs.promises.unlink(processedFilePath).catch(() => {});
+      isProcessedFileCreated = false;
+    }
+
+    return {
+      success: true,
+      url: uploadResult.url,
+      filename: uniqueName,
+      size: processResult.size,
+      format: processResult.format,
+      dimensions: {
+        width: processResult.width,
+        height: processResult.height
+      }
+    };
+  } catch (error) {
+    // Cleanup files if they were created and not deleted
+    if (isRawFileCreated) {
+      await fs.promises.unlink(rawFilePath).catch(() => {});
+    }
+    if (isProcessedFileCreated) {
+      await fs.promises.unlink(processedFilePath).catch(() => {});
+    }
+    throw ApiError.badRequest(`AI Image Generation failed: ${error.message}`);
+  }
+};
+
 module.exports = {
   isConfigured,
   getUsageToday,
@@ -1223,4 +1293,5 @@ module.exports = {
   suggestPrice,
   negotiationHelper,
   detectForbiddenContactDetails,
+  generateAiImage,
 };

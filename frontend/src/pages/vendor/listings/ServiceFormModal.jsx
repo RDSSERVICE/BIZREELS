@@ -157,6 +157,12 @@ export default function ServiceFormModal({
   const [galleryUrlInput, setGalleryUrlInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // AI Image generation states
+  const [coverAiPrompt, setCoverAiPrompt] = useState('');
+  const [isGeneratingCoverAi, setIsGeneratingCoverAi] = useState(false);
+  const [galleryAiPrompt, setGalleryAiPrompt] = useState('');
+  const [isGeneratingGalleryAi, setIsGeneratingGalleryAi] = useState(false);
+
   // Dynamic limits state
   const [maxLimits, setMaxLimits] = useState({ maxImages: 5, maxVideos: 1 });
 
@@ -314,6 +320,32 @@ export default function ServiceFormModal({
           price: gen.suggested_price_range_inr?.min || prev.price,
         }));
         toast.success('AI extracted service specifications & details in real-time!', { id: toastId });
+
+        // Auto-set the uploaded image or generate one if the file is not an image
+        if (resource_type === 'image') {
+          updateForm('coverImage', url);
+        } else if (resource_type !== 'image' && !form.coverImage) {
+          const generatedTitle = gen.title || form.title || file.name.split('.')[0] || 'Service';
+          toast.promise(
+            (async () => {
+              const imgRes = await api.post('/v1/ai/generate-image', {
+                prompt: `Professional high-quality service photo representing: ${generatedTitle}. Clean setting, professional lighting, realistic, 4k`,
+                width: 800,
+                height: 800,
+              });
+              if (imgRes.data && imgRes.data.success && imgRes.data.url) {
+                updateForm('coverImage', imgRes.data.url);
+                return 'AI Cover Image generated and set!';
+              }
+              throw new Error('No URL returned');
+            })(),
+            {
+              loading: 'Generating matching AI service cover image...',
+              success: '✨ AI Cover Image generated and set!',
+              error: 'Failed to generate AI cover image',
+            }
+          );
+        }
       } else {
         throw new Error('AI returned empty response');
       }
@@ -351,6 +383,30 @@ export default function ServiceFormModal({
         detailedDescription: generatedDetailed,
       }));
       toast.success('✨ Gemini AI Description generated in real-time!', { id: toastId });
+
+      // Auto-generate cover image in background if none is set
+      if (!form.coverImage) {
+        const generatedTitle = gen.title || form.title || aiPrompt.trim() || 'Service';
+        toast.promise(
+          (async () => {
+            const imgRes = await api.post('/v1/ai/generate-image', {
+              prompt: `Professional high-quality service photo representing: ${generatedTitle}. Clean setting, professional lighting, realistic, 4k`,
+              width: 800,
+              height: 800,
+            });
+            if (imgRes.data && imgRes.data.success && imgRes.data.url) {
+              updateForm('coverImage', imgRes.data.url);
+              return 'AI Cover Image generated and set!';
+            }
+            throw new Error('No URL returned');
+          })(),
+          {
+            loading: 'Generating matching AI service cover image...',
+            success: '✨ AI Cover Image generated and set!',
+            error: 'Failed to generate AI cover image',
+          }
+        );
+      }
     } catch (err) {
       const errMsg = err?.response?.data?.message || err?.message || 'Failed to generate AI description';
       toast.error(`⚠️ ${errMsg}`, { id: toastId });
@@ -407,6 +463,76 @@ export default function ServiceFormModal({
       toast.error('Image upload failed', { id: toastId });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleGenerateCoverAiImage = async () => {
+    if (!coverAiPrompt.trim()) {
+      toast.error('Please enter a prompt to generate cover image.');
+      return;
+    }
+    const totalImages = (form.coverImage ? 1 : 0) + form.galleryImages.length;
+    if (totalImages >= maxLimits.maxImages && !form.coverImage) {
+      toast.error(`Maximum allowed images is ${maxLimits.maxImages}`);
+      return;
+    }
+
+    setIsGeneratingCoverAi(true);
+    const toastId = toast.loading('AI generating cover image...');
+    try {
+      const res = await api.post('/v1/ai/generate-image', {
+        prompt: coverAiPrompt.trim(),
+        width: 800,
+        height: 800,
+      });
+
+      if (res.data && res.data.success && res.data.url) {
+        updateForm('coverImage', res.data.url);
+        setCoverAiPrompt('');
+        toast.success('AI Cover Image generated and set!', { id: toastId });
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (err) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to generate AI image';
+      toast.error(errMsg, { id: toastId });
+    } finally {
+      setIsGeneratingCoverAi(false);
+    }
+  };
+
+  const handleGenerateGalleryAiImage = async () => {
+    if (!galleryAiPrompt.trim()) {
+      toast.error('Please enter a prompt to generate gallery image.');
+      return;
+    }
+    const totalImages = (form.coverImage ? 1 : 0) + form.galleryImages.length;
+    if (totalImages >= maxLimits.maxImages) {
+      toast.error(`Maximum allowed images is ${maxLimits.maxImages}`);
+      return;
+    }
+
+    setIsGeneratingGalleryAi(true);
+    const toastId = toast.loading('AI generating gallery image...');
+    try {
+      const res = await api.post('/v1/ai/generate-image', {
+        prompt: galleryAiPrompt.trim(),
+        width: 800,
+        height: 800,
+      });
+
+      if (res.data && res.data.success && res.data.url) {
+        setForm(prev => ({ ...prev, galleryImages: [...prev.galleryImages, res.data.url] }));
+        setGalleryAiPrompt('');
+        toast.success('AI Gallery Image generated and added!', { id: toastId });
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (err) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to generate AI image';
+      toast.error(errMsg, { id: toastId });
+    } finally {
+      setIsGeneratingGalleryAi(false);
     }
   };
 
@@ -686,6 +812,30 @@ export default function ServiceFormModal({
                   Set
                 </button>
               </div>
+
+              {/* AI Image Generation for Cover */}
+              <div className="bg-surface p-2.5 rounded-xl border border-border space-y-1.5 mt-2 max-w-[240px]">
+                <label className="text-[8px] font-bold text-brand-purple uppercase flex items-center gap-0.5">
+                  <FiCpu className="w-3 h-3 animate-pulse" /> Cover AI Generator
+                </label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="Cover prompt..."
+                    value={coverAiPrompt}
+                    onChange={(e) => setCoverAiPrompt(e.target.value)}
+                    className="flex-1 p-1.5 bg-surface-secondary border border-border rounded-xl text-[10px] outline-none focus:border-brand-purple text-text-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGenerateCoverAiImage}
+                    disabled={isGeneratingCoverAi}
+                    className="px-2 py-1.5 bg-brand-purple text-white rounded-xl text-[10px] font-bold transition hover:bg-brand-purple/90 shrink-0 flex items-center justify-center disabled:opacity-50"
+                  >
+                    {isGeneratingCoverAi ? 'Gen...' : 'AI'}
+                  </button>
+                </div>
+              </div>
             </div>
             <div>
               <label className="text-[10px] font-bold text-text-tertiary block mb-1">Gallery Images</label>
@@ -735,6 +885,30 @@ export default function ServiceFormModal({
                 >
                   Add
                 </button>
+              </div>
+
+              {/* AI Image Generation for Gallery */}
+              <div className="bg-surface p-2.5 rounded-xl border border-border space-y-1.5 mt-2 max-w-[240px]">
+                <label className="text-[8px] font-bold text-brand-purple uppercase flex items-center gap-0.5">
+                  <FiCpu className="w-3 h-3 animate-pulse" /> Gallery AI Generator
+                </label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="Gallery prompt..."
+                    value={galleryAiPrompt}
+                    onChange={(e) => setGalleryAiPrompt(e.target.value)}
+                    className="flex-1 p-1.5 bg-surface-secondary border border-border rounded-xl text-[10px] outline-none focus:border-brand-purple text-text-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGenerateGalleryAiImage}
+                    disabled={isGeneratingGalleryAi}
+                    className="px-2 py-1.5 bg-brand-purple text-white rounded-xl text-[10px] font-bold transition hover:bg-brand-purple/90 shrink-0 flex items-center justify-center disabled:opacity-50"
+                  >
+                    {isGeneratingGalleryAi ? 'Gen...' : 'AI'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
