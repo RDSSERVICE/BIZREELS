@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { api, resolveMediaUrl } from '../../../lib/api';
 import OptimizedImage from '../../../components/common/OptimizedImage';
+import { useAuth } from '../../../context/AuthContext';
 
 const DISTANCE_VALUES = [
   { value: 'all', label: 'Anywhere' },
@@ -59,6 +60,7 @@ function OfferCountdown({ validTill }) {
 
 export default function SearchListingsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [type, setType] = useState('all'); // 'all' | 'product' | 'service'
   const [category, setCategory] = useState('all');
@@ -71,6 +73,7 @@ export default function SearchListingsPage() {
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [coords, setCoords] = useState(null);
+  const [geocodedCache, setGeocodedCache] = useState({});
   const [savedItems, setSavedItems] = useState({});
   const [likedItems, setLikedItems] = useState({});
   const [orderConfirmedModal, setOrderConfirmedModal] = useState(false);
@@ -93,22 +96,63 @@ export default function SearchListingsPage() {
     );
   };
 
-  // Fetch coordinates on mount
+  // Fetch coordinates on mount / user location change
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCoords({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.warn('Geolocation error:', error);
+    const getCustomerCoords = async () => {
+      // Prioritize user profile coordinates if they are valid (non-zero)
+      if (user && user.location && Array.isArray(user.location.coordinates) && user.location.coordinates.length === 2) {
+        const [lng, lat] = user.location.coordinates;
+        if (parseFloat(lng) !== 0 || parseFloat(lat) !== 0) {
+          setCoords({ lat: parseFloat(lat), lng: parseFloat(lng) });
+          return;
         }
-      );
-    }
-  }, []);
+      }
+
+      // If user profile coordinates are [0, 0] or unset, try to geocode their address details using Google Maps API
+      if (user && user.location && (user.location.city || user.location.address || user.location.pincode)) {
+        const addressParts = [];
+        if (user.location.address) addressParts.push(user.location.address);
+        if (user.location.city) addressParts.push(user.location.city);
+        if (user.location.state) addressParts.push(user.location.state);
+        if (user.location.pincode) addressParts.push(user.location.pincode);
+        const addressQuery = addressParts.join(', ');
+
+        if (addressQuery.trim()) {
+          try {
+            const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+            if (apiKey) {
+              const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressQuery)}&key=${apiKey}`);
+              const data = await res.json();
+              if (data && data.results && data.results.length > 0) {
+                const loc = data.results[0].geometry.location;
+                setCoords({ lat: loc.lat, lng: loc.lng });
+                return;
+              }
+            }
+          } catch (err) {
+            console.warn('Google Geocoding error for customer:', err);
+          }
+        }
+      }
+
+      // Fallback to browser geolocation
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setCoords({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            });
+          },
+          (error) => {
+            console.warn('Geolocation error:', error);
+          }
+        );
+      }
+    };
+
+    getCustomerCoords();
+  }, [user]);
 
   // Fetch saved/liked interactions
   const fetchInteractions = async () => {
@@ -152,6 +196,65 @@ export default function SearchListingsPage() {
     };
     loadCategories();
   }, []);
+
+  // Geocode vendor/listing locations if coordinates are [0, 0] or missing
+  useEffect(() => {
+    const geocodeVendors = async () => {
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!apiKey || listings.length === 0) return;
+
+      const locationsToGeocode = [];
+      for (const item of listings) {
+        const vendorObj = item.vendor || item.vendorId || {};
+        const city = item.city || vendorObj.city || item.location?.city;
+        const address = item.location?.address || vendorObj.location?.address || vendorObj.address;
+        const state = item.location?.state || vendorObj.location?.state || vendorObj.state;
+        const pincode = item.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
+
+        const vendorCoords = (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
+          ? vendorObj.location.coordinates
+          : null;
+        const itemCoords = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2 && (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0))
+          ? item.location.coordinates
+          : null;
+
+        const targetCoords = itemCoords || vendorCoords;
+
+        if (!targetCoords) {
+          const locStr = [address, city, state, pincode].filter(Boolean).join(', ') || city;
+          if (locStr && locStr.trim() && !geocodedCache[locStr]) {
+            locationsToGeocode.push(locStr);
+          }
+        }
+      }
+
+      const uniqueToGeocode = [...new Set(locationsToGeocode)];
+      if (uniqueToGeocode.length === 0) return;
+
+      const newCacheResults = {};
+      let updated = false;
+
+      for (const locStr of uniqueToGeocode) {
+        try {
+          const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locStr)}&key=${apiKey}`);
+          const data = await res.json();
+          if (data && data.results && data.results.length > 0) {
+            const loc = data.results[0].geometry.location;
+            newCacheResults[locStr] = { lat: loc.lat, lng: loc.lng };
+            updated = true;
+          }
+        } catch (err) {
+          console.warn('Google Geocoding error for vendor:', locStr, err);
+        }
+      }
+
+      if (updated) {
+        setGeocodedCache(prev => ({ ...prev, ...newCacheResults }));
+      }
+    };
+
+    geocodeVendors();
+  }, [listings, geocodedCache]);
 
   // Fetch listing reviews
   const fetchReviews = async (listingId) => {
@@ -370,16 +473,22 @@ export default function SearchListingsPage() {
   let detailDistStr = '';
   if (selectedItem) {
     const vendorObj = selectedItem.vendor || selectedItem.vendorId || {};
+    const city = selectedItem.city || vendorObj.city || selectedItem.location?.city;
+    const address = selectedItem.location?.address || vendorObj.location?.address || vendorObj.address;
+    const state = selectedItem.location?.state || vendorObj.location?.state || vendorObj.state;
+    const pincode = selectedItem.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
+    const locStr = [address, city, state, pincode].filter(Boolean).join(', ') || city;
+
     const vendorCoords = (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
       ? vendorObj.location.coordinates
-      : null;
+      : (geocodedCache[locStr] ? [geocodedCache[locStr].lng, geocodedCache[locStr].lat] : null);
     const itemCoords = (selectedItem.location && Array.isArray(selectedItem.location.coordinates) && selectedItem.location.coordinates.length === 2 && (selectedItem.location.coordinates[0] !== 0 || selectedItem.location.coordinates[1] !== 0))
       ? selectedItem.location.coordinates
       : null;
 
     const targetCoords = itemCoords || vendorCoords;
 
-    if (coords && targetCoords) {
+    if (coords && targetCoords && (coords.lat !== 0 || coords.lng !== 0)) {
       const [targetLng, targetLat] = targetCoords;
       const R = 6371; // Earth radius in km
       const dLat = (targetLat - coords.lat) * (Math.PI / 180);
@@ -392,11 +501,15 @@ export default function SearchListingsPage() {
         Math.sin(dLng / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       const calculatedKm = R * c;
-      detailDistStr = `${calculatedKm.toFixed(1)} km away from you`;
-    } else if (selectedItem.distance !== undefined && selectedItem.distance !== null) {
+      if (calculatedKm < 6000) {
+        detailDistStr = `${calculatedKm.toFixed(1)} km away from you`;
+      } else {
+        detailDistStr = 'Nearby';
+      }
+    } else if (selectedItem.distance !== undefined && selectedItem.distance !== null && selectedItem.distance / 1000 < 6000) {
       const km = selectedItem.distance / 1000;
       detailDistStr = `${km.toFixed(1)} km away from you`;
-    } else if (selectedItem.distanceKm !== undefined && selectedItem.distanceKm !== null) {
+    } else if (selectedItem.distanceKm !== undefined && selectedItem.distanceKm !== null && Number(selectedItem.distanceKm) < 6000) {
       detailDistStr = `${Number(selectedItem.distanceKm).toFixed(1)} km away from you`;
     } else {
       detailDistStr = 'Nearby';
@@ -639,16 +752,21 @@ export default function SearchListingsPage() {
             const imageUrl = resolveMediaUrl(rawImage);
             const isService = item.type === 'service';
             let distStr = 'Local';
+            const itemAddress = item.location?.address || vendorObj.location?.address || vendorObj.address;
+            const itemState = item.location?.state || vendorObj.location?.state || vendorObj.state;
+            const itemPincode = item.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
+            const itemLocStr = [itemAddress, city, itemState, itemPincode].filter(Boolean).join(', ') || city;
+
             const vendorCoords = (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
               ? vendorObj.location.coordinates
-              : null;
+              : (geocodedCache[itemLocStr] ? [geocodedCache[itemLocStr].lng, geocodedCache[itemLocStr].lat] : null);
             const itemCoords = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2 && (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0))
               ? item.location.coordinates
               : null;
 
             const targetCoords = itemCoords || vendorCoords;
 
-            if (coords && targetCoords) {
+            if (coords && targetCoords && (coords.lat !== 0 || coords.lng !== 0)) {
               const [targetLng, targetLat] = targetCoords;
               const R = 6371; // Earth radius in km
               const dLat = (targetLat - coords.lat) * (Math.PI / 180);
@@ -661,11 +779,13 @@ export default function SearchListingsPage() {
                 Math.sin(dLng / 2);
               const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
               const calculatedKm = R * c;
-              distStr = `${calculatedKm.toFixed(1)} km`;
-            } else if (item.distance !== undefined && item.distance !== null) {
+              if (calculatedKm < 6000) {
+                distStr = `${calculatedKm.toFixed(1)} km`;
+              }
+            } else if (item.distance !== undefined && item.distance !== null && item.distance / 1000 < 6000) {
               const km = item.distance / 1000;
               distStr = `${km.toFixed(1)} km`;
-            } else if (item.distanceKm !== undefined && item.distanceKm !== null) {
+            } else if (item.distanceKm !== undefined && item.distanceKm !== null && Number(item.distanceKm) < 6000) {
               distStr = `${Number(item.distanceKm).toFixed(1)} km`;
             }
 

@@ -2,6 +2,33 @@ const mongoose = require('mongoose');
 const Listing = require('../models/Listing');
 const AuditLog = require('../models/AuditLog');
 
+function calculateDistanceInMeters(coords1, coords2) {
+  if (!Array.isArray(coords1) || coords1.length < 2 || !Array.isArray(coords2) || coords2.length < 2) {
+    return null;
+  }
+  const lng1 = parseFloat(coords1[0]);
+  const lat1 = parseFloat(coords1[1]);
+  const lng2 = parseFloat(coords2[0]);
+  const lat2 = parseFloat(coords2[1]);
+  
+  if (isNaN(lng1) || isNaN(lat1) || isNaN(lng2) || isNaN(lat2)) return null;
+  if (lng1 === 0 && lat1 === 0) return null;
+  if (lng2 === 0 && lat2 === 0) return null;
+
+  const R = 6371e3; // Earth radius in meters
+  const phi1 = lat1 * Math.PI / 180;
+  const phi2 = lat2 * Math.PI / 180;
+  const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+  const deltaLambda = (lng2 - lng1) * Math.PI / 180;
+
+  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+            Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // in meters
+}
+
 /**
  * ListingRepository
  * Encapsulates database operations and geo-proximity search pipelines for Products/Services.
@@ -86,8 +113,8 @@ class ListingRepository {
 
     const pipeline = [];
 
-    // Geolocation sorting first if coordinates [lng, lat] provided
-    if (coordinates && coordinates.length === 2) {
+    // Geolocation sorting first if coordinates [lng, lat] provided and not [0, 0]
+    if (coordinates && coordinates.length === 2 && (parseFloat(coordinates[0]) !== 0 || parseFloat(coordinates[1]) !== 0)) {
       const geoNear = {
         near: { type: 'Point', coordinates: [parseFloat(coordinates[0]), parseFloat(coordinates[1])] },
         distanceField: 'distance',
@@ -230,6 +257,27 @@ class ListingRepository {
     });
 
     const listings = await Listing.aggregate(pipeline);
+
+    // Calculate/override distance based on vendor's actual profile location coordinates
+    if (coordinates && coordinates.length === 2 && (parseFloat(coordinates[0]) !== 0 || parseFloat(coordinates[1]) !== 0)) {
+      listings.forEach(listing => {
+        const vendorCoords = listing.vendor?.location?.coordinates;
+        if (vendorCoords && vendorCoords.length === 2) {
+          const dist = calculateDistanceInMeters(coordinates, vendorCoords);
+          if (dist !== null) {
+            listing.distance = dist;
+          } else {
+            listing.distance = undefined;
+          }
+        } else {
+          listing.distance = undefined;
+        }
+      });
+    } else {
+      listings.forEach(listing => {
+        listing.distance = undefined;
+      });
+    }
     
     let total;
     const limitNum = parseInt(limit, 10) || 10;
