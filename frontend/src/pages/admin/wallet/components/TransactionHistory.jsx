@@ -32,7 +32,9 @@ const STATUSES = [
   { value: 'reversed', label: 'Reversed' },
 ];
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api/v1';
+import API_CONFIG from '../../../../config';
+
+const API_URL = API_CONFIG.BASE_URL;
 
 /**
  * TransactionHistory
