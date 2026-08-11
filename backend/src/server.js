@@ -57,6 +57,10 @@ const startServer = async () => {
     const { initSubscriptionCron } = require('./jobs/subscription.cron');
     initSubscriptionCron();
 
+    // Start Reel Scheduler
+    const { initReelScheduler } = require('./jobs/reelScheduler');
+    initReelScheduler();
+
     // Log Razorpay configuration status
     const razorpayService = require('./services/razorpay.service');
     razorpayService.logConfigStatus();

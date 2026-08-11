@@ -280,16 +280,25 @@ const runDealFollowups = async () => {
           text: 'Did your deal complete? Tap Complete to earn trust points.',
         });
 
-        for (const uid of [d.buyer_id, d.seller_id]) {
-          await notificationService.create(
-            uid,
-            'deal_update',
-            'Confirm your deal',
-            '48h passed since acceptance. Confirm completion to earn trust.',
-            {},
-            `/chat/${d.thread_id.toString()}`
-          );
-        }
+        // Notify buyer (customer) and seller (vendor) with correct roles
+        await notificationService.create(
+          d.buyer_id,
+          'deal_update',
+          'Confirm your deal',
+          '48h passed since acceptance. Confirm completion to earn trust.',
+          {},
+          `/chat/${d.thread_id.toString()}`,
+          'customer'
+        );
+        await notificationService.create(
+          d.seller_id,
+          'deal_update',
+          'Confirm your deal',
+          '48h passed since acceptance. Confirm completion to earn trust.',
+          {},
+          `/chat/${d.thread_id.toString()}`,
+          'vendor'
+        );
 
         await Deal.updateOne({ _id: d._id }, { $set: { followup_sent: true } });
       } catch (err) {

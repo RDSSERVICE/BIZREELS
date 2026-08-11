@@ -46,16 +46,25 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
 
     const socket = getSocket();
     const handleNewNotification = (notif) => {
-      const url = (notif.actionUrl || '').toLowerCase();
+      // Use recipientRole field for filtering (primary)
+      // Fall back to actionUrl pattern for legacy notifications without recipientRole
       let matchesRole = false;
-      if (role === 'vendor') {
-        matchesRole = url.startsWith('/vendor');
-      } else if (role === 'creator') {
-        matchesRole = url.startsWith('/creator');
-      } else if (role === 'admin') {
-        matchesRole = url.startsWith('/admin');
+
+      if (notif.recipientRole) {
+        // New system: direct role match
+        matchesRole = notif.recipientRole === role;
       } else {
-        matchesRole = url.startsWith('/customer') || (!url.startsWith('/vendor') && !url.startsWith('/creator') && !url.startsWith('/admin'));
+        // Legacy fallback: match by actionUrl pattern
+        const url = (notif.actionUrl || '').toLowerCase();
+        if (role === 'vendor') {
+          matchesRole = url.startsWith('/vendor');
+        } else if (role === 'creator') {
+          matchesRole = url.startsWith('/creator');
+        } else if (role === 'admin') {
+          matchesRole = url.startsWith('/admin');
+        } else {
+          matchesRole = url.startsWith('/customer') || (!url.startsWith('/vendor') && !url.startsWith('/creator') && !url.startsWith('/admin'));
+        }
       }
 
       if (matchesRole) {
@@ -86,7 +95,8 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
 
   const handleMarkAllRead = async () => {
     try {
-      await api.post('/v1/notifications/me/read-all').catch(() => api.post('/v1/notifications/read-all'));
+      // Pass role so backend only marks current role's notifications as read
+      await api.post(`/v1/notifications/me/read-all?role=${role}`).catch(() => api.post(`/v1/notifications/read-all?role=${role}`));
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true, is_read: true })));
       toast.success('All notifications marked as read');

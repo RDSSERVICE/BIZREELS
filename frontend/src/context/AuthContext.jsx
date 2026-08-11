@@ -100,13 +100,20 @@ export function AuthProvider({ children }) {
     };
 
     const onNotificationNew = (notif) => {
+      // Filter: only show toast if the notification's recipientRole matches user's active role
+      const userActiveRole = user?.activeRole || user?.current_role || 'customer';
+      if (notif.recipientRole && notif.recipientRole !== userActiveRole) {
+        // This notification is for a different role — don't show toast on current dashboard
+        return;
+      }
+
       if (!window.location.pathname.includes("/notifications")) {
         toast.message(notif.title, {
           description: notif.body || "New alert received.",
-          action: notif.action_url ? {
+          action: (notif.actionUrl || notif.action_url) ? {
             label: "Open",
             onClick: () => {
-              window.location.href = notif.action_url;
+              window.location.href = notif.actionUrl || notif.action_url;
             }
           } : undefined
         });

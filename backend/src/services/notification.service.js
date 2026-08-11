@@ -5,14 +5,15 @@ const { emitToUser } = require('../sockets');
 /**
  * NotificationService
  * Handles core backend methods for reading, listing, and cleaning alerts.
+ * Now supports explicit `recipientRole` for proper role-scoped notifications.
  */
 class NotificationService {
   async getNotifications(userId, role = null) {
     return notificationRepository.getNotificationsForUser(userId, { role });
   }
 
-  async markAllAsRead(userId) {
-    return notificationRepository.markAllAsRead(userId);
+  async markAllAsRead(userId, role = null) {
+    return notificationRepository.markAllAsRead(userId, role);
   }
 
   async markAsRead(notificationId, userId) {
@@ -31,29 +32,53 @@ class NotificationService {
     return { message: 'Alert removed successfully.' };
   }
 
-  async create(userId, type, title, body = null, data = {}, actionUrl = null) {
+  /**
+   * Create a notification.
+   * @param {string} userId - recipient user ID
+   * @param {string} type - notification type (requirement, quote, payment, etc.)
+   * @param {string} title - notification title
+   * @param {string|null} body - notification body text
+   * @param {object} data - extra data payload
+   * @param {string|null} actionUrl - deep-link URL
+   * @param {string|null} recipientRole - explicit target role (vendor/customer/creator/admin)
+   */
+  async create(userId, type, title, body = null, data = {}, actionUrl = null, recipientRole = null) {
     let resolvedUrl = actionUrl;
+    let resolvedRole = recipientRole;
+
     try {
       const User = require('../models/User');
       const user = await User.findById(userId).select('activeRole current_role').lean();
       const activeRole = user?.activeRole || user?.current_role || 'customer';
 
+      // If no explicit recipientRole was given, auto-detect from actionUrl or user's activeRole
+      if (!resolvedRole) {
+        if (resolvedUrl) {
+          if (resolvedUrl.startsWith('/vendor')) resolvedRole = 'vendor';
+          else if (resolvedUrl.startsWith('/creator')) resolvedRole = 'creator';
+          else if (resolvedUrl.startsWith('/admin')) resolvedRole = 'admin';
+          else resolvedRole = activeRole;
+        } else {
+          resolvedRole = activeRole;
+        }
+      }
+
       if (resolvedUrl) {
         if (resolvedUrl.startsWith('/wallet')) {
-          resolvedUrl = activeRole === 'customer' ? '/wallet' : `/${activeRole}/wallet`;
+          resolvedUrl = resolvedRole === 'customer' ? '/wallet' : `/${resolvedRole}/wallet`;
         } else if (resolvedUrl.startsWith('/subscriptions') || resolvedUrl.startsWith('/subscription')) {
-          resolvedUrl = activeRole === 'customer' ? '/subscriptions' : `/${activeRole}/subscription`;
+          resolvedUrl = resolvedRole === 'customer' ? '/subscriptions' : `/${resolvedRole}/subscription`;
         } else if (resolvedUrl.startsWith('/chat')) {
-          resolvedUrl = activeRole === 'customer' ? '/chat' : `/${activeRole}/chat`;
+          resolvedUrl = resolvedRole === 'customer' ? '/chat' : `/${resolvedRole}/chat`;
         } else if (resolvedUrl === '/notifications') {
-          resolvedUrl = activeRole === 'customer' ? '/notifications' : `/${activeRole}/notifications`;
+          resolvedUrl = resolvedRole === 'customer' ? '/notifications' : `/${resolvedRole}/notifications`;
         }
       } else {
         if (type === 'requirement' || type === 'proposal' || type === 'lead') {
-          resolvedUrl = activeRole === 'customer' ? '/my-requirements' : `/${activeRole}/leads`;
+          resolvedUrl = resolvedRole === 'customer' ? '/my-requirements' : `/${resolvedRole}/leads`;
         } else if (type === 'hire' || type === 'campaign') {
-          resolvedUrl = activeRole === 'customer' ? '/activities' : `/${activeRole}/hire-creator`;
-          if (activeRole === 'creator') {
+          resolvedUrl = resolvedRole === 'customer' ? '/activities' : `/${resolvedRole}/hire-creator`;
+          if (resolvedRole === 'creator') {
             resolvedUrl = '/creator/dashboard';
           }
         }
@@ -72,6 +97,7 @@ class NotificationService {
         message: body || title || '',
         data: data || {},
         actionUrl: resolvedUrl || null,
+        recipientRole: resolvedRole || null,
       });
     } catch (err) {
       console.error('Error saving notification in DB:', err.message);
@@ -86,10 +112,11 @@ class NotificationService {
       message: body || title || '',
       data,
       actionUrl: resolvedUrl,
+      recipientRole: resolvedRole || null,
       createdAt: new Date().toISOString(),
     });
 
-    return savedNotif || { userId, type, title, body, data, actionUrl: resolvedUrl };
+    return savedNotif || { userId, type, title, body, data, actionUrl: resolvedUrl, recipientRole: resolvedRole };
   }
 
   async listMine(userId, isRead = null, cursor = null, limit = 30, role = null) {
@@ -120,8 +147,8 @@ class NotificationService {
     return this.markAsRead(nid, userId);
   }
 
-  async markAllRead(userId) {
-    return this.markAllAsRead(userId);
+  async markAllRead(userId, role = null) {
+    return this.markAllAsRead(userId, role);
   }
 
   async dismiss(nid, userId) {

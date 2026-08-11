@@ -4,6 +4,7 @@ const Notification = require('../models/Notification');
 /**
  * NotificationRepository
  * Access layer for in-app client alerts.
+ * Uses `recipientRole` as primary filter; falls back to actionUrl regex for legacy data.
  */
 class NotificationRepository {
   async getNotificationsForUser(userId, { isRead = null, cursor = null, limit = 30, role = null } = {}) {
@@ -14,24 +15,34 @@ class NotificationRepository {
     }
     
     if (cursor) {
-      const mongoose = require('mongoose');
       if (mongoose.Types.ObjectId.isValid(cursor)) {
         query._id = { $lt: new mongoose.Types.ObjectId(cursor) };
       }
     }
 
     if (role) {
-      if (role === 'vendor') {
-        query.actionUrl = { $regex: '^/vendor', $options: 'i' };
-      } else if (role === 'creator') {
-        query.actionUrl = { $regex: '^/creator', $options: 'i' };
-      } else if (role === 'admin') {
-        query.actionUrl = { $regex: '^/admin', $options: 'i' };
-      } else if (role === 'customer') {
+      // Primary: match recipientRole field directly
+      // Fallback: for legacy notifications without recipientRole, match by actionUrl pattern
+      if (role === 'customer') {
         query.$or = [
-          { actionUrl: { $not: { $regex: '^/(vendor|creator|admin)', $options: 'i' } } },
-          { actionUrl: null },
-          { actionUrl: '' }
+          { recipientRole: 'customer' },
+          // Legacy: no recipientRole set AND actionUrl doesn't belong to vendor/creator/admin
+          {
+            recipientRole: { $in: [null, undefined] },
+            $and: [
+              { actionUrl: { $not: { $regex: '^/(vendor|creator|admin)', $options: 'i' } } },
+            ]
+          },
+        ];
+      } else {
+        // vendor, creator, admin
+        query.$or = [
+          { recipientRole: role },
+          // Legacy: no recipientRole set AND actionUrl starts with /role
+          {
+            recipientRole: { $in: [null, undefined] },
+            actionUrl: { $regex: `^/${role}`, $options: 'i' },
+          },
         ];
       }
     }
@@ -49,17 +60,23 @@ class NotificationRepository {
     };
 
     if (role) {
-      if (role === 'vendor') {
-        query.actionUrl = { $regex: '^/vendor', $options: 'i' };
-      } else if (role === 'creator') {
-        query.actionUrl = { $regex: '^/creator', $options: 'i' };
-      } else if (role === 'admin') {
-        query.actionUrl = { $regex: '^/admin', $options: 'i' };
-      } else if (role === 'customer') {
+      if (role === 'customer') {
         query.$or = [
-          { actionUrl: { $not: { $regex: '^/(vendor|creator|admin)', $options: 'i' } } },
-          { actionUrl: null },
-          { actionUrl: '' }
+          { recipientRole: 'customer' },
+          {
+            recipientRole: { $in: [null, undefined] },
+            $and: [
+              { actionUrl: { $not: { $regex: '^/(vendor|creator|admin)', $options: 'i' } } },
+            ]
+          },
+        ];
+      } else {
+        query.$or = [
+          { recipientRole: role },
+          {
+            recipientRole: { $in: [null, undefined] },
+            actionUrl: { $regex: `^/${role}`, $options: 'i' },
+          },
         ];
       }
     }
@@ -67,10 +84,11 @@ class NotificationRepository {
     return Notification.countDocuments(query);
   }
 
-  async createNotification({ recipient, sender, type, title, body, message, data, actionUrl }) {
+  async createNotification({ recipient, sender, type, title, body, message, data, actionUrl, recipientRole }) {
     return Notification.create({
       recipient: recipient.toString(),
       sender: sender ? sender.toString() : null,
+      recipientRole: recipientRole || null,
       type: type || 'system',
       title,
       body: body || message || '',
@@ -81,11 +99,33 @@ class NotificationRepository {
     });
   }
 
-  async markAllAsRead(userId) {
-    return Notification.updateMany(
-      { recipient: userId.toString(), isRead: false },
-      { isRead: true }
-    );
+  async markAllAsRead(userId, role = null) {
+    const query = { recipient: userId.toString(), isRead: false };
+
+    // Scope to the active role so other roles' notifications stay unread
+    if (role) {
+      if (role === 'customer') {
+        query.$or = [
+          { recipientRole: 'customer' },
+          {
+            recipientRole: { $in: [null, undefined] },
+            $and: [
+              { actionUrl: { $not: { $regex: '^/(vendor|creator|admin)', $options: 'i' } } },
+            ]
+          },
+        ];
+      } else {
+        query.$or = [
+          { recipientRole: role },
+          {
+            recipientRole: { $in: [null, undefined] },
+            actionUrl: { $regex: `^/${role}`, $options: 'i' },
+          },
+        ];
+      }
+    }
+
+    return Notification.updateMany(query, { isRead: true });
   }
 
   async markAsRead(notificationId, userId) {

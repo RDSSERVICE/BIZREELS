@@ -191,7 +191,8 @@ const kycReview = async (kid, adminId, approve, reason = null) => {
     `KYC ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
     reason || (approve ? 'Your KYC has been approved.' : 'Please resubmit.'),
     {},
-    '/kyc'
+    '/kyc',
+    null
   );
 
   try {

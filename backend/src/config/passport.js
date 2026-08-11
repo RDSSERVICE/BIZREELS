@@ -8,12 +8,21 @@ const logger = require('../utils/logger');
  * Passport.js Google OAuth 2.0 Strategy Configuration
  */
 const configurePassport = () => {
+  let callbackURL = '/api/v1/auth/google/callback';
+  if (config.google.callbackUrl) {
+    try {
+      callbackURL = new URL(config.google.callbackUrl).pathname;
+    } catch (err) {
+      callbackURL = config.google.callbackUrl;
+    }
+  }
+
   passport.use(
     new GoogleStrategy(
       {
         clientID: config.google.clientId || 'placeholder-client-id',
         clientSecret: config.google.clientSecret || 'placeholder-client-secret',
-        callbackURL: config.google.callbackUrl,
+        callbackURL,
         passReqToCallback: true,
       },
       async (req, accessToken, refreshToken, profile, done) => {

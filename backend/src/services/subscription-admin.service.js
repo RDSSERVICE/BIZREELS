@@ -493,7 +493,7 @@ class SubscriptionAdminService {
   _notifyUser(userId, title, message) {
     try {
       const notificationService = require('./notification.service');
-      notificationService.create(userId, 'subscription', title, message || '', {}, '/subscriptions');
+      notificationService.create(userId, 'subscription', title, message || '', {}, '/subscriptions', null);
     } catch (err) {}
   }
 }

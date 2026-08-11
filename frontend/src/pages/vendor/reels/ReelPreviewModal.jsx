@@ -30,6 +30,16 @@ export default function ReelPreviewModal({
   selectedProductData,
   onPublish
 }) {
+  const getMinDateTimeString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const activeTitle = postType === 'product'
     ? (selectedProductData?.title || caption?.slice(0, 40) || 'Product Promotion')
     : postType === 'services'
@@ -173,6 +183,7 @@ export default function ReelPreviewModal({
               type="datetime-local"
               value={scheduledDate}
               onChange={(e) => setScheduledDate(e.target.value)}
+              min={getMinDateTimeString()}
               className="w-full p-2 bg-surface border border-border rounded-xl text-xs"
             />
           )}

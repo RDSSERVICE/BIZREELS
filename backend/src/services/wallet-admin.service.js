@@ -534,10 +534,13 @@ class WalletAdminService {
     }
   }
 
-  _notifyUser(userId, type, title, message) {
+  async _notifyUser(userId, type, title, message) {
     try {
       const notificationService = require('./notification.service');
-      notificationService.create(userId, type, title, message, {}, '/wallet');
+      const User = require('../models/User');
+      const user = await User.findById(userId).select('activeRole current_role').lean();
+      const role = user?.activeRole || user?.current_role || 'customer';
+      notificationService.create(userId, type, title, message, {}, '/wallet', role);
     } catch (err) {
       logger.warn('Notification failed in wallet service', { error: err.message });
     }

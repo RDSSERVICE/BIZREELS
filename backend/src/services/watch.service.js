@@ -114,7 +114,8 @@ const notifyWatchers = async ({ listingId, title, slug, effectivePrice, event = 
           titleTxt,
           bodyTxt,
           { listing_id: listingId, event },
-          actionUrl
+          actionUrl,
+          'customer'
         );
         sentInapp++;
       } catch (err) {

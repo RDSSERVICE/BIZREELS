@@ -3,6 +3,7 @@ const ApiError = require('../utils/ApiError');
 const { decodeAccessToken } = require('../utils/jwt.utils');
 const config = require('../config');
 const User = require('../models/User');
+const cache = require('../utils/cache');
 
 /**
  * Require authentication middleware.
@@ -46,11 +47,16 @@ const requireAuth = async (req, res, next) => {
       throw ApiError.unauthorized('Invalid token payload');
     }
 
-    const user = await User.findById(userId)
-      .select('-password -__v -creatorProfile -vendorProfile -customerProfile -followers -following')
-      .lean();
-    if (!user || user.is_active === false || user.is_deleted === true || user.isActive === false || user.isDeleted === true) {
-      throw ApiError.unauthorized('User not found or disabled');
+    const cacheKey = `user:auth:${userId}`;
+    let user = await cache.getCache(cacheKey);
+    if (!user) {
+      user = await User.findById(userId)
+        .select('-password -__v -creatorProfile -vendorProfile -customerProfile -followers -following')
+        .lean();
+      if (!user || user.is_active === false || user.is_deleted === true || user.isActive === false || user.isDeleted === true) {
+        throw ApiError.unauthorized('User not found or disabled');
+      }
+      await cache.setCache(cacheKey, user, 30); // cache for 30 seconds
     }
 
     req.user = user;

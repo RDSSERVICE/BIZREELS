@@ -63,6 +63,11 @@ const errorHandler = (err, req, res, next) => {
       method: req.method,
       ip: req.ip,
       service: 'error-handler',
+      oauthError: err.oauthError ? {
+        statusCode: err.oauthError.statusCode,
+        data: err.oauthError.data,
+        message: err.oauthError.message,
+      } : undefined,
     });
   } else {
     logger.warn('Operational Error:', {

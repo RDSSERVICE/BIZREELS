@@ -70,7 +70,8 @@ const maybeGrantBonus = async (userId) => {
       `+${BONUS_CREDITS} profile bonus!`,
       "You've completed all onboarding steps.",
       {},
-      '/wallet'
+      '/wallet',
+      null
     );
   } catch (err) {
     logger.error('profile-complete bonus grant failed:', err.message);

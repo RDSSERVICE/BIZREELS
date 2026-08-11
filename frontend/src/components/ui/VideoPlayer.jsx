@@ -6,12 +6,24 @@ import { motion, AnimatePresence } from 'framer-motion';
  * Premium vertical VideoPlayer component.
  * Features IntersectionObserver autoplay, double-tap to like animation, and volume syncing.
  */
+const checkIsVideo = (url) => {
+  if (!url) return false;
+  if (url.startsWith('data:video/')) return true;
+  try {
+    const path = url.split('?')[0].split('#')[0];
+    return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)$/i.test(path);
+  } catch {
+    return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)/i.test(url);
+  }
+};
+
 const VideoPlayer = ({
   src,
   poster,
   isActive, // set by parent based on scroll snapping index
   onDoubleTap,
 }) => {
+  const isVideo = checkIsVideo(src);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -101,7 +113,7 @@ const VideoPlayer = ({
       setTimeout(() => setShowHeart(false), 800); // hide after animation finishes
     } else {
       // Single tap triggers play/pause
-      handlePlayPause();
+      if (isVideo) handlePlayPause();
     }
     lastTap = now;
   };
@@ -112,18 +124,26 @@ const VideoPlayer = ({
       className="relative w-full h-full bg-brand-navy-dark overflow-hidden flex items-center justify-center cursor-pointer"
       onClick={handleVideoTap}
     >
-      <video
-        ref={videoRef}
-        src={src}
-        poster={poster}
-        loop
-        playsInline
-        muted={isMuted}
-        className="w-full h-full object-cover"
-      />
+      {isVideo ? (
+        <video
+          ref={videoRef}
+          src={src}
+          poster={poster}
+          loop
+          playsInline
+          muted={isMuted}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <img
+          src={src}
+          alt="Reel Content"
+          className="w-full h-full object-cover"
+        />
+      )}
 
       {/* Play/Pause state HUD indicator */}
-      {!isPlaying && (
+      {isVideo && !isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center bg-brand-navy-dark/20 pointer-events-none">
           <span className="p-4 rounded-full bg-black/45 text-white/90 text-sm font-bold tracking-widest uppercase backdrop-blur-xs">
             Paused
@@ -147,12 +167,14 @@ const VideoPlayer = ({
       </AnimatePresence>
 
       {/* Floating Speaker control overlay */}
-      <button
-        onClick={handleVolumeToggle}
-        className="absolute bottom-4 right-4 p-2.5 rounded-full bg-black/50 text-white backdrop-blur-xs hover:bg-black/70 transition-all border border-white/10 z-10"
-      >
-        {isMuted ? <FiVolumeX className="w-4 h-4" /> : <FiVolume2 className="w-4 h-4" />}
-      </button>
+      {isVideo && (
+        <button
+          onClick={handleVolumeToggle}
+          className="absolute bottom-4 right-4 p-2.5 rounded-full bg-black/50 text-white backdrop-blur-xs hover:bg-black/70 transition-all border border-white/10 z-10"
+        >
+          {isMuted ? <FiVolumeX className="w-4 h-4" /> : <FiVolume2 className="w-4 h-4" />}
+        </button>
+      )}
     </div>
   );
 };

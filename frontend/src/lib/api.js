@@ -414,6 +414,7 @@ export const aiApi = {
   matchVendors: (payload) => api.post("/v1/ai/match-vendors", payload),
   suggestPrice: (payload) => api.post("/v1/ai/suggest-price", payload),
   negotiate: (payload) => api.post("/v1/ai/negotiate", payload),
+  generateReel: (prompt) => api.post("/v1/ai/generate-reel", { prompt }),
 };
 
 export const onboardingApi = {

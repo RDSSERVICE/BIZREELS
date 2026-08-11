@@ -134,7 +134,8 @@ async function processReward(referralId) {
         `+${config.referrer_reward} referral credits!`,
         'A vendor you referred just completed their first action.',
         {},
-        '/wallet'
+        '/wallet',
+        null
       );
       await notificationService.create(
         ref.referred_user_id,
@@ -142,7 +143,8 @@ async function processReward(referralId) {
         `+${config.referred_reward} welcome bonus!`,
         'Referral bonus unlocked.',
         {},
-        '/wallet'
+        '/wallet',
+        null
       );
     } catch (err) {}
 

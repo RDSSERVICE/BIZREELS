@@ -47,6 +47,20 @@ class ReelService {
     postType, category, subcategory, classification, postPurpose,
     targeting, videoUrl, mediaUrls, mediaType, status, scheduledDate
   }, req) {
+    // Validate scheduled date if status is scheduled
+    if (status === 'scheduled' || scheduledDate) {
+      if (!scheduledDate) {
+        throw ApiError.badRequest('Scheduled date and time is required for scheduling.');
+      }
+      const selectedDate = new Date(scheduledDate);
+      if (isNaN(selectedDate.getTime())) {
+        throw ApiError.badRequest('Invalid scheduled date and time format.');
+      }
+      if (selectedDate <= new Date()) {
+        throw ApiError.badRequest('Scheduled date and time must be in the future.');
+      }
+    }
+
     // Check wallet balance for dynamic publish rate
     const { AppSettings } = require('../models/Admin');
     let publishCost = 1;

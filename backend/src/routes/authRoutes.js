@@ -77,11 +77,40 @@ router.post('/refresh', authController.refreshToken);
 // Google OAuth
 router.get(
   '/google',
-  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
+  (req, res, next) => {
+    const config = require('../config');
+    let callbackPath = '/api/v1/auth/google/callback';
+    try {
+      if (config.google.callbackUrl) {
+        callbackPath = new URL(config.google.callbackUrl).pathname;
+      }
+    } catch (err) {}
+    const callbackURL = `${req.protocol}://${req.get('host')}${callbackPath}`;
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      session: false,
+      callbackURL
+    })(req, res, next);
+  }
 );
+
 router.get(
   '/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+  (req, res, next) => {
+    const config = require('../config');
+    let callbackPath = '/api/v1/auth/google/callback';
+    try {
+      if (config.google.callbackUrl) {
+        callbackPath = new URL(config.google.callbackUrl).pathname;
+      }
+    } catch (err) {}
+    const callbackURL = `${req.protocol}://${req.get('host')}${callbackPath}`;
+    passport.authenticate('google', {
+      failureRedirect: '/login',
+      session: false,
+      callbackURL
+    })(req, res, next);
+  },
   authController.googleCallback
 );
 

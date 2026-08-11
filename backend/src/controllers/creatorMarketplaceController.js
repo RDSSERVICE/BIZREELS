@@ -339,7 +339,7 @@ class CreatorMarketplaceController {
     const pricing = cp.pricing || {};
 
     // Fetch related Reels
-    const reels = await Reel.find({ creator: id, isDeleted: { $ne: true } })
+    const reels = await Reel.find({ creator: id, isDeleted: { $ne: true }, status: 'published' })
       .sort({ createdAt: -1 })
       .lean();
 

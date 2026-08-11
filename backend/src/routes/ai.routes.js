@@ -257,9 +257,101 @@ router.post('/generate-image', requireAuth, requireVendor, catchAsync(async (req
     throw ApiError.badRequest('Prompt must be at least 3 characters');
   }
 
+  // 1. Fetch dynamic credit rate
+  const { AppSettings } = require('../models/Admin');
+  const walletService = require('../services/wallet.service');
+  const logger = require('../utils/logger');
+  let cost = 2;
+  try {
+    const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+    if (rateSetting && rateSetting.value && rateSetting.value.aiImage !== undefined) {
+      cost = Number(rateSetting.value.aiImage);
+    }
+  } catch (err) {
+    logger.error('Failed to fetch credit rates for AI Image check:', err);
+  }
+
+  // 2. Check vendor balance
+  const wallet = await walletService.getOrCreateWallet(req.user._id);
+  const balance = parseInt(wallet.credits || 0, 10);
+  if (balance < cost) {
+    throw new ApiError(
+      402,
+      `Insufficient credits (${balance} available; ${cost} needed) to generate an AI Image.`
+    );
+  }
+
   enforceRateLimit(req.user._id.toString(), 'gen-image', AI_RATE_LIMIT);
 
+  // 3. Generate image
   const result = await aiService.generateAiImage(prompt, width, height);
+
+  // 4. Debit credits on success
+  try {
+    await walletService.debit({
+      userId: req.user._id,
+      amount: cost,
+      transactionType: 'ai_image_generation',
+      reason: `${cost} Credits deducted for AI Image generation`,
+      source: 'ai',
+      meta: { prompt }
+    });
+  } catch (err) {
+    logger.error('Error updating wallet credits for AI Image generation:', err);
+  }
+
+  res.json(result);
+}));
+
+router.post('/generate-reel', requireAuth, requireVendor, catchAsync(async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt || prompt.trim().length < 3) {
+    throw ApiError.badRequest('Prompt must be at least 3 characters');
+  }
+
+  // 1. Fetch dynamic credit rate
+  const { AppSettings } = require('../models/Admin');
+  const walletService = require('../services/wallet.service');
+  const logger = require('../utils/logger');
+  let cost = 15;
+  try {
+    const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+    if (rateSetting && rateSetting.value && rateSetting.value.aiVideo30s !== undefined) {
+      cost = Number(rateSetting.value.aiVideo30s);
+    }
+  } catch (err) {
+    logger.error('Failed to fetch credit rates for AI Reel check:', err);
+  }
+
+  // 2. Check vendor balance
+  const wallet = await walletService.getOrCreateWallet(req.user._id);
+  const balance = parseInt(wallet.credits || 0, 10);
+  if (balance < cost) {
+    throw new ApiError(
+      402,
+      `Insufficient credits (${balance} available; ${cost} needed) to generate an AI Reel.`
+    );
+  }
+
+  enforceRateLimit(req.user._id.toString(), 'gen-reel', AI_RATE_LIMIT);
+
+  // 3. Generate AI Reel script & image
+  const result = await aiService.generateAiReel(prompt.trim());
+
+  // 4. Debit credits on success
+  try {
+    await walletService.debit({
+      userId: req.user._id,
+      amount: cost,
+      transactionType: 'ai_reel_generation',
+      reason: `${cost} Credits deducted for AI Reel generation`,
+      source: 'ai',
+      meta: { prompt }
+    });
+  } catch (err) {
+    logger.error('Error updating wallet credits for AI Reel generation:', err);
+  }
+
   res.json(result);
 }));
 

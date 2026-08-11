@@ -20,7 +20,8 @@ class NotificationController {
   });
 
   markAllAsRead = asyncHandler(async (req, res) => {
-    await notificationService.markAllAsRead(req.user._id);
+    const role = req.query.role || req.body.role || req.user.activeRole || req.user.current_role || 'customer';
+    await notificationService.markAllAsRead(req.user._id, role);
     return ApiResponse.ok(res, 'All notifications marked as read.');
   });
 

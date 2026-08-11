@@ -66,6 +66,15 @@ const getDailyCap = async () => {
 const getUsageToday = async () => {
   const day = getTodayKey();
   const conn = mongoose.connection;
+  if (!conn || !conn.db) {
+    const cap = await getDailyCap();
+    return {
+      day,
+      tokens_used: 0,
+      tokens_cap: cap,
+      tokens_remaining: cap,
+    };
+  }
   const doc = await conn.db.collection('ai_usage').findOne({ _id: day });
   const used = doc ? parseInt(doc.tokens_used || 0, 10) : 0;
   const cap = await getDailyCap();
@@ -91,6 +100,7 @@ const recordTokens = async (tokens) => {
   if (tokens <= 0) return;
   const day = getTodayKey();
   const conn = mongoose.connection;
+  if (!conn || !conn.db) return;
   await conn.db.collection('ai_usage').updateOne(
     { _id: day },
     {
@@ -1279,6 +1289,125 @@ const generateAiImage = async (prompt, width = 800, height = 800) => {
   }
 };
 
+const generateAiReel = async (prompt) => {
+  await ensureBudgetOrRaise(1800);
+  const started = Date.now();
+  const { model, provider } = resolveModel('listing');
+
+  const tree = await loadCategoryTree();
+  const idToInfo = {};
+  const treePromptLines = [];
+  for (const c of tree) {
+    treePromptLines.push(`- id=${c.id} | ${c.name}`);
+    idToInfo[c.id] = { name: c.name, parent_id: null, kind: 'top' };
+    for (const s of c.sub) {
+      treePromptLines.push(`    - sub_id=${s.id} | ${s.name} (parent: ${c.name})`);
+      idToInfo[s.id] = { name: s.name, parent_id: c.id, kind: 'sub' };
+    }
+  }
+
+  const systemInstruction = 
+    'You are an expert social media and local advertisement scriptwriter for BizReels, an Indian business reels and marketplace platform. ' +
+    'Your goal is to generate an engaging, catchy, and professional ad script/caption for a local business reel post. ' +
+    'Use emojis, call-to-actions, and highlight key value propositions suitable for Indian buyers (using ₹ pricing, local terms, and festive/seasonal appeal where appropriate). ' +
+    'Also map the business description to the most appropriate category and subcategory from the provided platform category tree. ' +
+    'Additionally, write a detailed image description prompt to be fed into an AI image generator (like DALL-E) to showcase the business product or service beautifully. ' +
+    'Output MUST be valid JSON containing only the specified fields, without any markdown code block formatting or fences.';
+
+  const geminiPrompt = 
+    `Business/Promo Description: "${prompt}"\n\n` +
+    `Platform Category Tree:\n${treePromptLines.join('\n')}\n\n` +
+    `Return JSON schema in this exact structure:\n` +
+    `{\n` +
+    `  "caption": "a highly engaging caption/script with hook, key features, and call-to-action",\n` +
+    `  "category_id": "the matching top category ID from the list, or null if none fit",\n` +
+    `  "sub_category_id": "the matching subcategory ID from the list, or null if none fit",\n` +
+    `  "image_prompt": "a detailed, high-quality descriptive English prompt for AI image generation, focused on showcasing the business service/product (e.g., 'A professional chef preparing gourmet Italian pizza in a modern kitchen, photorealistic, cinematic lighting')" \n` +
+    `}`;
+
+  try {
+    const raw = await callGeminiAPI(systemInstruction, geminiPrompt, 'listing');
+    const data = parseJsonStrict(raw);
+
+    const catId = String(data.category_id || '').trim();
+    let subId = String(data.sub_category_id || '').trim() || null;
+
+    let categoryName = null;
+    let subCategoryName = null;
+
+    if (idToInfo[catId] && idToInfo[catId].kind === 'top') {
+      data.category_id = catId;
+      categoryName = idToInfo[catId].name;
+    } else {
+      const firstCat = tree[0];
+      if (firstCat) {
+        data.category_id = firstCat.id;
+        categoryName = firstCat.name;
+      }
+    }
+
+    if (subId) {
+      const info = idToInfo[subId];
+      if (info && info.kind === 'sub' && info.parent_id === data.category_id) {
+        subCategoryName = info.name;
+      } else {
+        subId = null;
+      }
+    }
+
+    const imagePrompt = String(data.image_prompt || prompt).trim() || 'A beautiful local storefront showcase';
+    const imageResult = await generateAiImage(imagePrompt);
+
+    const approxTokens = Math.max(400, Math.min(3000, Math.floor((geminiPrompt.length + raw.length) / 4)));
+    await recordTokens(approxTokens);
+
+    return {
+      success: true,
+      caption: String(data.caption || prompt).trim(),
+      category_id: data.category_id || null,
+      sub_category_id: subId || null,
+      category_name: categoryName,
+      sub_category_name: subCategoryName,
+      imagePrompt,
+      mediaUrl: imageResult.url,
+      meta: {
+        latency_ms: Date.now() - started,
+        model_used: resolveModel('listing').model,
+        provider: resolveModel('listing').provider,
+        tokens_used: approxTokens,
+      }
+    };
+  } catch (err) {
+    logger.warn(`AI Reel generation failed: ${err.message}`);
+    
+    const firstCat = tree[0];
+    const catId = firstCat ? firstCat.id : null;
+    const catName = firstCat ? firstCat.name : 'General';
+    const subId = firstCat && firstCat.sub.length > 0 ? firstCat.sub[0].id : null;
+    const subName = firstCat && firstCat.sub.length > 0 ? firstCat.sub[0].name : 'General';
+
+    let imageUrl = 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
+    try {
+      const fallbackImage = await generateAiImage(prompt);
+      imageUrl = fallbackImage.url;
+    } catch (imageErr) {
+      logger.warn(`Fallback AI image generation also failed: ${imageErr.message}`);
+    }
+
+    return {
+      success: false,
+      caption: prompt,
+      category_id: catId,
+      sub_category_id: subId,
+      category_name: catName,
+      sub_category_name: subName,
+      imagePrompt: prompt,
+      mediaUrl: imageUrl,
+      error: err.message
+    };
+  }
+};
+
 module.exports = {
   isConfigured,
   getUsageToday,
@@ -1294,4 +1423,5 @@ module.exports = {
   negotiationHelper,
   detectForbiddenContactDetails,
   generateAiImage,
+  generateAiReel,
 };

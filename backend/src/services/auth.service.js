@@ -508,6 +508,11 @@ class AuthService {
 
     const updatedUser = await authRepository.updateUser(userId, { activeRole: newRole });
 
+    try {
+      const cache = require('../utils/cache');
+      await cache.deleteCache(`user:auth:${userId}`);
+    } catch (err) {}
+
     await this._logAction(userId, 'ROLE_SWITCH', 'User', userId, `Switched to ${newRole}`, req);
 
     return this._sanitizeUser(updatedUser);
@@ -585,6 +590,12 @@ class AuthService {
     }
 
      const updatedUser = await authRepository.updateUser(userId, updateFields);
+
+    try {
+      const cache = require('../utils/cache');
+      await cache.deleteCache(`user:auth:${userId}`);
+    } catch (err) {}
+
     await this._logAction(userId, 'PROFILE_UPDATE', 'User', userId, 'Updated profile details', req);
 
     try {
@@ -667,7 +678,8 @@ class AuthService {
             `+${WELCOME_CREDITS} Welcome Credits!`,
             "You have received 100 free credits to explore BizReels vendor outreach.",
             {},
-            '/vendor/wallet'
+            '/vendor/wallet',
+            'vendor'
           );
         } catch (err) {
           logger.error('Failed to grant vendor welcome credits:', err);

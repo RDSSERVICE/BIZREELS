@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
 import { FiMail, FiLock, FiPhone, FiSmartphone } from 'react-icons/fi';
-import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation } from '../../features/auth/authApi';
+import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation, useSwitchRoleMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
 import { getRoleDashboard } from '../../lib/roleNav';
 import Button from '../../components/common/Button';
@@ -28,6 +28,9 @@ const Login = () => {
   const [loginEmail, { isLoading: isEmailLoading }] = useLoginWithEmailMutation();
   const [requestOtp, { isLoading: isOtpRequestLoading }] = useRequestOtpMutation();
   const [verifyOtp, { isLoading: isOtpVerifyLoading }] = useVerifyOtpMutation();
+  const [switchRoleApi] = useSwitchRoleMutation();
+
+  const [otpRole, setOtpRole] = useState('customer');
 
   const from = location.state?.from?.pathname;
 
@@ -107,8 +110,25 @@ const Login = () => {
       dispatch(setCredentials(res.data));
       toast.success('Welcome back to BizReels!');
       const user = res.data?.user || res.data;
-      const activeRole = user?.activeRole || user?.current_role || 'customer';
       const roles = user?.roles || [];
+
+      // Determine target role: use selected otpRole if user has it, else fallback
+      let activeRole = user?.activeRole || user?.current_role || 'customer';
+      if (otpRole && roles.includes(otpRole) && otpRole !== activeRole) {
+        try {
+          const switchRes = await switchRoleApi({ role: otpRole }).unwrap();
+          const switchedUser = switchRes?.user || switchRes?.data?.user;
+          if (switchedUser) {
+            dispatch(setCredentials({ user: switchedUser, accessToken: res.data?.accessToken || res.data?.access_token }));
+          }
+          activeRole = otpRole;
+        } catch {
+          // If switch fails, continue with current activeRole
+        }
+      } else if (otpRole && roles.includes(otpRole)) {
+        activeRole = otpRole;
+      }
+
       if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
@@ -227,6 +247,22 @@ const Login = () => {
                 error={otpForm.formState.errors.identifier}
                 {...otpForm.register('identifier', { required: 'Email or Phone is required' })}
               />
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold tracking-wide text-brand-navy uppercase">
+                  Login as Role
+                </label>
+                <select
+                  value={otpRole}
+                  onChange={(e) => setOtpRole(e.target.value)}
+                  className="w-full h-12 px-4 rounded-xl border border-border bg-white text-text-primary text-sm font-semibold outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple transition-all cursor-pointer shadow-sm"
+                >
+                  <option value="customer">Customer / Buyer (Default)</option>
+                  <option value="vendor">Vendor / Business Owner</option>
+                  <option value="creator">Creator / Content Producer</option>
+                </select>
+              </div>
+
               <Button
                 onClick={handleSendOtp}
                 variant="primary"

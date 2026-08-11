@@ -155,6 +155,7 @@ const reelSchema = new Schema(
 // ── Indexes ───────────────────────────────────────────────
 reelSchema.index({ 'location.coordinates': '2dsphere' });
 reelSchema.index({ creator: 1, createdAt: -1 });
+reelSchema.index({ creator: 1, isDeleted: 1, createdAt: -1 });
 reelSchema.index({ hashtags: 1, createdAt: -1 });
 reelSchema.index({ isDeleted: 1, status: 1, createdAt: -1 });
 

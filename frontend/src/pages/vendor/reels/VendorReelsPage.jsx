@@ -169,60 +169,6 @@ export default function VendorReelsPage() {
     }
   };
 
-  // AI Ad Prompt & Voice Speech Recognition State
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-  const [isListeningVoice, setIsListeningVoice] = useState(false);
-
-  const toggleVoiceRecording = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      return toast.error('Voice input is not supported in this browser. Please type your prompt.');
-    }
-
-    if (isListeningVoice) {
-      setIsListeningVoice(false);
-      return;
-    }
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'hi-IN'; // Default Hindi/English voice dictation
-
-      recognition.onstart = () => {
-        setIsListeningVoice(true);
-        toast.success('🎙️ Listening... Speak your prompt now (Hindi/English)');
-      };
-
-      recognition.onresult = (event) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        if (transcript) {
-          setAiPrompt((prev) => (prev ? `${prev} ${transcript}` : transcript));
-        }
-      };
-
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListeningVoice(false);
-        toast.error(`Voice dictation error: ${event.error}`);
-      };
-
-      recognition.onend = () => {
-        setIsListeningVoice(false);
-      };
-
-      recognition.start();
-    } catch (err) {
-      setIsListeningVoice(false);
-      toast.error('Failed to start voice recognition');
-    }
-  };
-
   // API QUERIES & MUTATIONS
   const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 300000 });
   const { data: listingsData } = useGetVendorListingsQuery(undefined);
@@ -281,6 +227,19 @@ export default function VendorReelsPage() {
     if (violation) {
       toast.error(`⚠️ RESTRICTED: Post contains ${violation}. Phone numbers, WhatsApp, QR codes, emails, websites & social handles are strictly prohibited! Vendor flagged.`, { duration: 6000 });
       return;
+    }
+
+    if (publishStatus === 'scheduled') {
+      if (!scheduledDate) {
+        return toast.error('Please select a date and time to schedule the post');
+      }
+      const selected = new Date(scheduledDate);
+      if (isNaN(selected.getTime())) {
+        return toast.error('Invalid scheduled date/time selected');
+      }
+      if (selected <= new Date()) {
+        return toast.error('Scheduled date and time must be in the future');
+      }
     }
 
     // Determine final media URLs (up to 5 items)
@@ -378,27 +337,6 @@ export default function VendorReelsPage() {
     }
   };
 
-  const handleGenerateAiAd = async (e) => {
-    e.preventDefault();
-    if (!aiPrompt) return toast.error('Enter product description');
-
-    const violation = scanForForbiddenContact(aiPrompt);
-    if (violation) {
-      return toast.error(`⚠️ RESTRICTED: Prompt contains ${violation}.`);
-    }
-
-    setIsGeneratingAi(true);
-    const toastId = toast.loading('AI is generating video script & ad layout...');
-    setTimeout(async () => {
-      setIsGeneratingAi(false);
-      setShowAiAdModal(false);
-      try {
-        await createReel({ title: aiPrompt, caption: aiPrompt, postType: 'service', status: 'published' }).unwrap();
-      } catch {}
-      toast.success('AI Video Ad Generated & Published to Reels!', { id: toastId });
-      refetch();
-    }, 2500);
-  };
 
   // Reset helper when content type switches to ensure correct default option selections
   useEffect(() => {
@@ -645,12 +583,8 @@ export default function VendorReelsPage() {
       <AiReelGeneratorModal
         isOpen={showAiAdModal}
         onClose={() => setShowAiAdModal(false)}
-        aiPrompt={aiPrompt}
-        setAiPrompt={setAiPrompt}
-        isGeneratingAi={isGeneratingAi}
-        onSubmit={handleGenerateAiAd}
-        toggleVoiceRecording={toggleVoiceRecording}
-        isListeningVoice={isListeningVoice}
+        refetch={refetch}
+        createReel={createReel}
       />
 
       {/* MODAL 4: GO LIVE Interactive simulator */}

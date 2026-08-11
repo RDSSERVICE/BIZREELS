@@ -99,7 +99,8 @@ const boostWithCredits = async (vendorId, listingId, durationDays) => {
     'Listing boosted!',
     `'${listing.title}' is boosted for ${durationDays} days.`,
     {},
-    `/listing/${listing.slug}`
+    `/listing/${listing.slug}`,
+    'vendor'
   );
 
   return { listing_id: listingId, boost, payment_method: 'credits' };
@@ -142,7 +143,8 @@ const activateBoostFromPayment = async (payment) => {
     'Boost activated',
     `Your listing is now boosted for ${durationDays} days.`,
     {},
-    '/vendor/dashboard'
+    '/vendor/dashboard',
+    'vendor'
   );
   return boost;
 };
@@ -240,7 +242,8 @@ const boostReelWithCredits = async (vendorId, reelId, durationDays) => {
     'Reel boosted!',
     `Your reel is boosted for ${days} days.`,
     {},
-    '/vendor/reels'
+    '/vendor/reels',
+    'vendor'
   );
 
   return { reel_id: reelId, isBoosted: true, boostExpiresAt: newExpiry };

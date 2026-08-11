@@ -158,7 +158,9 @@ class RequirementService {
         'requirement',
         notifyTitle,
         notifyBody,
-        { requirementId: requirement._id }
+        { requirementId: requirement._id },
+        null,
+        'vendor'
       );
 
       // Emit Socket.IO events to matched vendor
@@ -398,7 +400,9 @@ class RequirementService {
       'quote',
       'New Proposal Received',
       `A vendor has submitted a quote of ₹${price} for your requirement: "${requirement.title}"`,
-      { requirementId: requirement._id, quoteId: quote._id }
+      { requirementId: requirement._id, quoteId: quote._id },
+      null,
+      'customer'
     );
 
     const { emitToUser, emitToAdmin } = require('../sockets');
@@ -524,7 +528,9 @@ class RequirementService {
       'payment',
       `Proposal ${status === 'accepted' ? 'Accepted' : 'Rejected'}`,
       `Your proposal of ₹${quote.price} for requirement "${requirement.title}" has been ${status}.`,
-      { requirementId: requirement._id, quoteId }
+      { requirementId: requirement._id, quoteId },
+      null,
+      'vendor'
     );
 
     const { emitToUser, emitToAdmin } = require('../sockets');

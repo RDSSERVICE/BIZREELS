@@ -97,7 +97,8 @@ const activateSubscriptionFromPayment = async (payment) => {
     extended ? 'Verified subscription extended' : 'Verified subscription active',
     `You're subscribed to ${plan}. Verified badge shows when KYC is also approved.`,
     {},
-    '/subscriptions'
+    '/subscriptions',
+    null
   );
 
   return serializeSub(subDoc);
@@ -160,7 +161,8 @@ const reconcileUserSubscription = async (userId) => {
           'Subscription Expired',
           `Your ${activeSub.plan_name} subscription has expired. Renew to keep premium benefits.`,
           {},
-          '/subscriptions'
+          '/subscriptions',
+          null
         );
         const { emitToUser, emitToAdmin } = require('../sockets');
         emitToUser(userId, 'subscription:expired', { plan: activeSub.plan_name, expired_at: now.toISOString() });

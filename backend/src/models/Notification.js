@@ -16,6 +16,12 @@ const notificationSchema = new Schema(
       type: Schema.Types.Mixed,
       index: true,
     },
+    recipientRole: {
+      type: String,
+      enum: ['customer', 'vendor', 'creator', 'admin', null],
+      default: null,
+      index: true,
+    },
     type: {
       type: String,
       default: 'system',
@@ -58,6 +64,6 @@ const notificationSchema = new Schema(
 
 // Indexes
 notificationSchema.index({ createdAt: -1 });
-notificationSchema.index({ recipient: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({ recipient: 1, recipientRole: 1, isRead: 1, createdAt: -1 });
 
 module.exports = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);

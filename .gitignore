@@ -31,3 +31,5 @@ frontend/build/
 # ── Local File Uploads ───────────────────────────────────
 backend/src/uploads/*
 !backend/src/uploads/.gitkeep
+backend/uploads/
+

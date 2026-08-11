@@ -62,7 +62,8 @@ const nudgeOnce = async () => {
         `Give '${title.slice(0, 40)}' a boost`,
         `Only ${views30d} views in the last 30 days — a 3-day boost may 12x visibility.`,
         { listing_id: listingId, views_30d: views30d },
-        `/listing/${li.slug || listingId}?open_boost=1`
+        `/listing/${li.slug || listingId}?open_boost=1`,
+        'vendor'
       );
 
       await Listing.updateOne(

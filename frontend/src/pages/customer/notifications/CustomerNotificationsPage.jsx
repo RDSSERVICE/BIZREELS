@@ -62,7 +62,9 @@ export default function CustomerNotificationsPage() {
   const pathname = window.location.pathname;
   const isVendorPortal = pathname.includes('/vendor');
   const isCreatorPortal = pathname.includes('/creator');
-  const isCustomerPortal = !isVendorPortal && !isCreatorPortal;
+
+  // Determine the active role for this page based on the URL
+  const activeRole = isVendorPortal ? 'vendor' : isCreatorPortal ? 'creator' : 'customer';
 
   useEffect(() => {
     fetchNotifications();
@@ -70,14 +72,21 @@ export default function CustomerNotificationsPage() {
     const socket = getSocket();
     if (socket) {
       const handleNewNotification = (notif) => {
-        const url = (notif.actionUrl || '').toLowerCase();
+        // Use recipientRole field for filtering (primary)
         let matchesRole = false;
-        if (isVendorPortal) {
-          matchesRole = url.startsWith('/vendor');
-        } else if (isCreatorPortal) {
-          matchesRole = url.startsWith('/creator');
+
+        if (notif.recipientRole) {
+          matchesRole = notif.recipientRole === activeRole;
         } else {
-          matchesRole = url.startsWith('/customer') || (!url.startsWith('/vendor') && !url.startsWith('/creator') && !url.startsWith('/admin'));
+          // Legacy fallback: match by actionUrl pattern
+          const url = (notif.actionUrl || '').toLowerCase();
+          if (isVendorPortal) {
+            matchesRole = url.startsWith('/vendor');
+          } else if (isCreatorPortal) {
+            matchesRole = url.startsWith('/creator');
+          } else {
+            matchesRole = url.startsWith('/customer') || (!url.startsWith('/vendor') && !url.startsWith('/creator') && !url.startsWith('/admin'));
+          }
         }
 
         if (matchesRole) {
@@ -94,25 +103,13 @@ export default function CustomerNotificationsPage() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const role = isVendorPortal ? 'vendor' : isCreatorPortal ? 'creator' : 'customer';
-      const res = await api.get(`/v1/notifications/me?role=${role}`);
+      const res = await api.get(`/v1/notifications/me?role=${activeRole}`);
       const data = res.data?.data || res.data;
       const items = Array.isArray(data?.items) ? data.items : Array.isArray(data?.notifications) ? data.notifications : Array.isArray(data) ? data : [];
       
-      // Filter notifications based on active role dashboard
-      const roleFiltered = items.filter((n) => {
-        const url = (n.actionUrl || '').toLowerCase();
-        if (isVendorPortal) {
-          return url.startsWith('/vendor');
-        }
-        if (isCreatorPortal) {
-          return url.startsWith('/creator');
-        }
-        // Customer Portal sees customer links or generic system messages (no specific role prefix)
-        return url.startsWith('/customer') || (!url.startsWith('/vendor') && !url.startsWith('/creator') && !url.startsWith('/admin'));
-      });
-
-      setNotifications(roleFiltered);
+      // API already returns role-filtered results via ?role= param and recipientRole field
+      // No need for redundant client-side filtering
+      setNotifications(items);
     } catch {
       setNotifications([]);
     } finally {

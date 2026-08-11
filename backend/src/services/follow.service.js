@@ -59,7 +59,8 @@ const follow = async (followerId, followingId) => {
         followerId: followerId,
         action: 'view_profile',
       },
-      `/customer/vendor/${followerId}`
+      `/customer/vendor/${followerId}`,
+      'vendor'
     );
   } catch (err) {
     console.error('Error creating follow notification:', err.message);

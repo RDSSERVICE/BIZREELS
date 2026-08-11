@@ -133,7 +133,8 @@ const applySuccess = async (payment, razorpayPaymentId, signature) => {
     'Payment successful',
     `₹${(updated.amount_paise / 100).toFixed(2)} · ${purpose}`,
     {},
-    '/wallet'
+    '/wallet',
+    null
   );
 
   const out = serializePayment(updated);

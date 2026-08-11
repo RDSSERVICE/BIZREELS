@@ -30,7 +30,7 @@ class ReelRepository {
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
     const skip = (pageNum - 1) * limitNum;
-    const match = { isDeleted: false, isDraft: false };
+    const match = { isDeleted: false, isDraft: false, status: 'published' };
 
     if (creatorId && mongoose.Types.ObjectId.isValid(creatorId)) {
       match.creator = new mongoose.Types.ObjectId(creatorId);
