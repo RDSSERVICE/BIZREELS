@@ -68,15 +68,18 @@ app.use(
   })
 );
 
-// CORS — allow frontend origin
-app.use(
-  cors({
-    origin: config.clientUrl,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  })
-);
+// CORS — allow cross-origin from any frontend domain
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow any origin or requests with no origin (e.g. mobile apps, curl, server-to-server)
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+};
+
+app.use(cors(corsOptions));
 
 // Rate Limiting — prevent brute force & DDoS
 app.use('/api', apiLimiter);

@@ -8,7 +8,8 @@ const config = {
   // ── Server ──────────────────────────────────────────────
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT, 10) || 5000,
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  clientUrl: process.env.CLIENT_URL || '*',
+  corsOrigin: process.env.CORS_ORIGIN || '*',
 
   // ── MongoDB ─────────────────────────────────────────────
   mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/bizreels',
