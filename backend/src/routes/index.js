@@ -22,6 +22,8 @@ const lazyLoad = (modulePath) => {
  * Central registration point for all v1 routes (lazy loaded for fast server startup).
  */
 
+const keepAliveService = require('../services/keepalive.service');
+
 // Health check
 router.get('/health', (req, res) => {
   res.status(200).json({
@@ -29,6 +31,16 @@ router.get('/health', (req, res) => {
     message: 'BizReels API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+// Render Keep-Alive status & auto-wake status route
+router.get(['/keep-alive', '/keepalive'], (req, res) => {
+  const status = keepAliveService.getKeepAliveStatus();
+  res.status(200).json({
+    success: true,
+    message: 'Render 24/7 keep-alive active (auto self-pinging every 30s)',
+    data: status,
   });
 });
 
