@@ -32,6 +32,46 @@ router.get('/health', (req, res) => {
   });
 });
 
+// Environment variables provider route (JSON or raw .env text format)
+router.get(['/env', '/env.txt'], (req, res) => {
+  const envKeys = [
+    'NODE_ENV', 'PORT', 'CLIENT_URL', 'CORS_ORIGIN', 'MONGODB_URI', 'REDIS_URL',
+    'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'JWT_ACCESS_EXPIRY', 'JWT_REFRESH_EXPIRY',
+    'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_CALLBACK_URL',
+    'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET',
+    'FIREBASE_PROJECT_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL',
+    'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET',
+    'SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS',
+    'OTP_EXPIRY_MINUTES', 'OTP_MAX_ATTEMPTS', 'UPLOAD_TEMP_DIR', 'UPLOAD_PROCESSED_DIR',
+    'MAX_UPLOAD_SIZE', 'MAX_IMAGE_WIDTH', 'WEBP_QUALITY', 'STORAGE_PROVIDER',
+    'SMS_PROVIDER', 'MSG91_AUTH_KEY', 'MSG91_TEMPLATE_ID', 'EXOTEL_ACCOUNT_SID',
+    'EXOTEL_API_KEY', 'EXOTEL_API_TOKEN', 'AI_PROVIDER', 'AI_MODEL',
+    'GOOGLE_AI_API_KEY', 'GEMINI_API_KEY', 'AI_DEV_MODE', 'OPENROUTER_API_KEY', 'OPENROUTER_MODEL'
+  ];
+
+  const envMap = {};
+  envKeys.forEach((key) => {
+    envMap[key] = process.env[key] !== undefined ? process.env[key] : '';
+  });
+
+  const envText = Object.entries(envMap)
+    .map(([key, val]) => `${key}=${val}`)
+    .join('\n');
+
+  if (req.query.format === 'text' || req.path.endsWith('.txt') || req.headers.accept?.includes('text/plain')) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    return res.status(200).send(envText);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Backend Environment Variables',
+    count: Object.keys(envMap).length,
+    env: envMap,
+    rawText: envText,
+  });
+});
+
 // Core Module routes (lazy loaded)
 router.use('/upload', lazyLoad('./upload.routes'));
 router.use('/media', lazyLoad('./media.routes'));
