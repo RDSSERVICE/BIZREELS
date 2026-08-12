@@ -240,6 +240,149 @@ const updateCategory = async (cid, updates) => {
   return serializeCategory(doc);
 };
 
+const bulkUploadCategories = async (buffer) => {
+  const xlsx = require('xlsx');
+  const workbook = xlsx.read(buffer, { type: 'buffer' });
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    throw ApiError.badRequest('Excel sheet is empty or invalid');
+  }
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+  const data = xlsx.utils.sheet_to_json(worksheet);
+
+  if (data.length === 0) {
+    throw ApiError.badRequest('No data rows found in the Excel sheet');
+  }
+
+  const results = {
+    createdCategories: 0,
+    createdSubcategories: 0,
+    updatedCategories: 0,
+    errors: []
+  };
+
+  for (let index = 0; index < data.length; index++) {
+    const row = data[index];
+    
+    // Normalize keys (lowercase, remove spaces and underscores)
+    const normalizedRow = {};
+    for (const k of Object.keys(row)) {
+      const normalizedKey = k.toLowerCase().trim().replace(/[\s_]+/g, '');
+      normalizedRow[normalizedKey] = row[k];
+    }
+    
+    const categoryName = normalizedRow['categoryname'] || normalizedRow['name'];
+    const categoryType = normalizedRow['categorytype'] || normalizedRow['type'];
+    const subcategoryName = normalizedRow['subcategoryname'] || normalizedRow['subcategory'];
+    const description = normalizedRow['description'] || normalizedRow['desc'];
+    const requiredLicensesStr = normalizedRow['requiredlicenses'] || normalizedRow['licenses'];
+    
+    if (!categoryName) {
+      results.errors.push(`Row ${index + 2}: Missing category name`);
+      continue;
+    }
+    
+    // Parse required licenses (comma separated list)
+    let requiredLicenses = [];
+    if (requiredLicensesStr) {
+      requiredLicenses = String(requiredLicensesStr)
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+    
+    // Ensure category_type is valid (product or service)
+    let cleanType = null;
+    if (categoryType) {
+      const typeStr = String(categoryType).toLowerCase().trim();
+      if (['product', 'service'].includes(typeStr)) {
+        cleanType = typeStr;
+      }
+    }
+    
+    try {
+      // 1. Look for or create Parent Category
+      let parentCategory = await Category.findOne({
+        name: { $regex: new RegExp(`^${categoryName.trim()}$`, 'i') },
+        parent_id: null,
+        is_deleted: { $ne: true }
+      });
+      
+      if (!parentCategory) {
+        // Create new parent category
+        const slugBase = slugify(categoryName.trim(), { lower: true });
+        let slug = slugBase;
+        let i = 1;
+        while (await Category.findOne({ slug }).lean()) {
+          i++;
+          slug = `${slugBase}-${i}`;
+        }
+        
+        parentCategory = await Category.create({
+          name: categoryName.trim(),
+          slug,
+          icon_url: null,
+          description: description ? String(description).trim() : null,
+          category_type: cleanType || 'product', // default to product
+          required_licenses: requiredLicenses,
+          parent_id: null
+        });
+        results.createdCategories++;
+      } else {
+        // Update existing parent category properties if provided in the row
+        const updates = {};
+        if (description) updates.description = String(description).trim();
+        if (cleanType) updates.category_type = cleanType;
+        if (requiredLicenses.length > 0) {
+          // Merge licenses uniquely
+          const existingLicenses = parentCategory.required_licenses || [];
+          updates.required_licenses = [...new Set([...existingLicenses, ...requiredLicenses])];
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await Category.updateOne({ _id: parentCategory._id }, { $set: updates });
+          results.updatedCategories++;
+        }
+      }
+      
+      // 2. If subcategory_name is specified, look for or create Subcategory
+      if (subcategoryName && String(subcategoryName).trim()) {
+        const subNameTrim = String(subcategoryName).trim();
+        let subcategory = await Category.findOne({
+          name: { $regex: new RegExp(`^${subNameTrim}$`, 'i') },
+          parent_id: parentCategory._id.toString(),
+          is_deleted: { $ne: true }
+        });
+        
+        if (!subcategory) {
+          const slugBase = slugify(`${parentCategory.name}-${subNameTrim}`, { lower: true });
+          let slug = slugBase;
+          let i = 1;
+          while (await Category.findOne({ slug }).lean()) {
+            i++;
+            slug = `${slugBase}-${i}`;
+          }
+          
+          await Category.create({
+            name: subNameTrim,
+            slug,
+            icon_url: null,
+            category_type: parentCategory.category_type, // inherit parent category_type
+            parent_id: parentCategory._id.toString()
+          });
+          results.createdSubcategories++;
+        }
+      }
+    } catch (err) {
+      results.errors.push(`Row ${index + 2}: Error saving category (${err.message})`);
+    }
+  }
+
+  // Increment categories cache version to invalidate cached category listings
+  await cache.incrCache('categories:version');
+  return results;
+};
+
 const softDeleteCategory = async (cid) => {
   await Category.updateOne({ _id: cid }, { $set: { is_deleted: true } });
   await cache.incrCache('categories:version');
@@ -253,4 +396,5 @@ module.exports = {
   createCategory,
   updateCategory,
   softDeleteCategory,
+  bulkUploadCategories,
 };

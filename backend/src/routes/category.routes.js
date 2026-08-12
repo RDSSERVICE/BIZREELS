@@ -3,6 +3,7 @@ const { requireAuth } = require('../middleware/auth.middleware');
 const categoryService = require('../services/category.service');
 const { catchAsync } = require('../utils/helpers');
 const ApiError = require('../utils/ApiError');
+const upload = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -49,6 +50,14 @@ router.post('/', requireAuth, requireAdmin, catchAsync(async (req, res) => {
     category_type || null, 
     required_licenses || []
   );
+  res.json(result);
+}));
+
+router.post('/bulk-upload', requireAuth, requireAdmin, upload.single('file'), catchAsync(async (req, res) => {
+  if (!req.file) {
+    throw ApiError.badRequest('No file uploaded');
+  }
+  const result = await categoryService.bulkUploadCategories(req.file.buffer);
   res.json(result);
 }));
 

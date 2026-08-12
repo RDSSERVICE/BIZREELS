@@ -466,6 +466,14 @@ const adminApi = apiSlice.injectEndpoints({
       query: (id) => ({ url: `/categories/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Categories'],
     }),
+    bulkUploadCategories: builder.mutation({
+      query: (formData) => ({
+        url: '/categories/bulk-upload',
+        method: 'POST',
+        body: formData,
+      }),
+      invalidatesTags: ['Categories'],
+    }),
 
     // ---- Subscription Plans (Admin CRUD & Operations) ----
     listSubscriptionPlans: builder.query({
@@ -671,6 +679,7 @@ export const {
   useListCategoriesQuery,
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
+  useBulkUploadCategoriesMutation,
   useListSubscriptionPlansQuery,
   useCreateSubscriptionPlanMutation,
   useUpdateSubscriptionPlanMutation,
