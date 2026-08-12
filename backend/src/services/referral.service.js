@@ -179,7 +179,7 @@ const getVendorDashboard = async (userId) => {
 
   return {
     referral_code: code,
-    referral_link: `${process.env.CLIENT_URL || 'https://bizreels.vercel.app'}/register?ref=${code}`,
+    referral_link: `${process.env.CLIENT_URL || 'https://bizreels.in'}/register?ref=${code}`,
     items,
     summary: {
       total: items.length,
@@ -198,7 +198,7 @@ const getVendorDashboard = async (userId) => {
  */
 const getReferralLink = async (userId) => {
   const code = await ensureCode(userId);
-  const baseUrl = process.env.CLIENT_URL || 'https://bizreels.vercel.app';
+  const baseUrl = process.env.CLIENT_URL || 'https://bizreels.in';
   return {
     referral_code: code,
     referral_link: `${baseUrl}/register?ref=${code}`,

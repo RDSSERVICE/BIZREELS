@@ -83,7 +83,12 @@ class AuthController {
     this._setAccessTokenCookie(res, result.accessToken);
 
     // Redirect to frontend with access token
-    const redirectUrl = `${process.env.CLIENT_URL}/auth/callback?accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`;
+    let clientUrl = process.env.CLIENT_URL;
+    if (!clientUrl || clientUrl === '*') {
+      clientUrl = 'https://bizreels.in';
+    }
+    clientUrl = clientUrl.replace(/\/+$/, '');
+    const redirectUrl = `${clientUrl}/auth/callback?accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`;
     return res.redirect(redirectUrl);
   });
 
