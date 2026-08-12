@@ -37,6 +37,8 @@ const logger = require('./utils/logger');
 
 const app = express();
 
+app.set('trust proxy', true);
+
 app.use(requestPerformanceLogger);
 
 // Connection Keep-Alive & Cache-Control headers configuration
