@@ -58,8 +58,13 @@ app.use((req, res, next) => {
 // SECURITY MIDDLEWARE
 // ══════════════════════════════════════════════════════════════
 
-// Helmet — set security HTTP headers
-app.use(helmet());
+// Helmet — set security HTTP headers (disable CSP for Swagger UI compatibility)
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 // CORS — allow frontend origin
 app.use(
