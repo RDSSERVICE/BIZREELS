@@ -128,12 +128,35 @@ const authRoutes = require('./routes/authRoutes');
 app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 
+// ══════════════════════════════════════════════════════════════
+// SWAGGER API DOCUMENTATION (WITH AUTO ROUTE DISCOVERY)
+// ══════════════════════════════════════════════════════════════
+const { swaggerUi, serve, getSwaggerSpec } = require('./config/swagger.config');
+
+const serveSwaggerUI = (req, res, next) => {
+  const dynamicSpec = getSwaggerSpec(req.app);
+  return swaggerUi.setup(dynamicSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'BizReels API Documentation',
+  })(req, res, next);
+};
+
+app.use('/api-docs', serve, serveSwaggerUI);
+app.use('/docs', serve, serveSwaggerUI);
+
+app.get(['/api-docs.json', '/docs.json'], (req, res) => {
+  const dynamicSpec = getSwaggerSpec(req.app);
+  res.setHeader('Content-Type', 'application/json');
+  res.send(dynamicSpec);
+});
+
 // Root health check & favicon handlers
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'BizReels Backend API is running',
     version: '1.0.0',
+    documentation: '/api-docs',
     timestamp: new Date().toISOString(),
   });
 });
