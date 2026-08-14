@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { FiSearch, FiMapPin, FiStar, FiShoppingBag, FiTool, FiMessageCircle, FiPackage, FiHeart, FiShare2, FiPhone, FiMessageSquare, FiShoppingCart, FiClock } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -60,6 +60,7 @@ function OfferCountdown({ validTill }) {
 
 export default function SearchListingsPage() {
   const navigate = useNavigate();
+  const { productId } = useParams();
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [type, setType] = useState('all'); // 'all' | 'product' | 'service'
@@ -72,6 +73,23 @@ export default function SearchListingsPage() {
   const [inquiringId, setInquiringId] = useState(null);
 
   const [selectedItem, setSelectedItem] = useState(null);
+
+  useEffect(() => {
+    if (productId) {
+      const fetchSelectedProduct = async () => {
+        try {
+          const res = await api.get(`/v1/listings/${productId}`);
+          const item = res.data?.listing || res.data?.data?.listing || res.data || null;
+          if (item) {
+            setSelectedItem(item);
+          }
+        } catch (err) {
+          console.error('Failed to fetch product for direct link view:', err);
+        }
+      };
+      fetchSelectedProduct();
+    }
+  }, [productId]);
   const handleSelectItem = async (item) => {
     setSelectedItem(item);
     if (!item) return;
@@ -491,9 +509,11 @@ export default function SearchListingsPage() {
 
     setInquiringId(item._id || item.id);
     try {
+      const itemId = item._id || item.id;
+      const productLink = `${window.location.origin}/customer/product/${itemId}`;
       await api.post('/v1/chat/messages', {
         recipientId: vendorId,
-        text: `Hello! I am interested in your listing: "${item.title}". Could you share more details?`
+        text: `Hello! I am interested in your listing: "${item.title}". Could you share more details?\nProduct Link: ${productLink}`
       });
 
       // Track interaction for analytics overview

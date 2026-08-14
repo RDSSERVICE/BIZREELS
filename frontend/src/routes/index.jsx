@@ -153,6 +153,7 @@ const AppRoutes = () => {
         <Route path="post-requirement" element={<PostRequirementPage />} />
         <Route path="my-requirements" element={<MyRequirementsPage />} />
         <Route path="search" element={<SearchListingsPage />} />
+        <Route path="product/:productId" element={<SearchListingsPage />} />
         <Route path="activities" element={<CustomerActivitiesPage />} />
         <Route path="notifications" element={<CustomerNotificationsPage />} />
         <Route path="chat" element={<CustomerChatPage />} />
