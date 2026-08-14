@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
@@ -17,38 +17,37 @@ import ImageFullscreenViewer from '../../../components/feed/ImageFullscreenViewe
 
 /**
  * CustomerReelMedia Component
- * Displays video or image media with arrow buttons for multi-photo reels
+ * Displays video or image media with swipe/scroll snapping navigation (no arrow buttons)
  */
 function CustomerReelMedia({ reel, muted, setMuted }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const videoRef = useRef(null);
 
   const rawMediaList = Array.isArray(reel.mediaUrls) && reel.mediaUrls.length > 0
     ? reel.mediaUrls
     : [reel.videoUrl || reel.thumbnailUrl || 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'];
 
   const mediaList = rawMediaList.filter(Boolean);
-  const currentUrl = mediaList[currentIndex] || mediaList[0] || '';
+  const currentUrl = mediaList[0] || '';
 
   const isVideo = reel.mediaType === 'video' ||
     Boolean(currentUrl.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i)) ||
     currentUrl.startsWith('data:video/');
 
-  const handlePrev = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setCurrentIndex((prev) => (prev - 1 + mediaList.length) % mediaList.length);
-  };
-
-  const handleNext = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setCurrentIndex((prev) => (prev + 1) % mediaList.length);
-  };
+  useEffect(() => {
+    if (videoRef.current) {
+      if (muted) {
+        videoRef.current.muted = true;
+      } else {
+        videoRef.current.muted = false;
+      }
+    }
+  }, [muted]);
 
   return (
-    <div className="relative aspect-[9/16] bg-black group overflow-hidden">
+    <div className="relative aspect-[9/16] bg-black overflow-hidden rounded-2xl border border-white/10">
       {isVideo ? (
         <video
+          ref={videoRef}
           src={currentUrl}
           loop
           muted={muted}
@@ -66,54 +65,15 @@ function CustomerReelMedia({ reel, muted, setMuted }) {
 
       {isVideo && (
         <button
-          onClick={() => setMuted(!muted)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setMuted(!muted);
+          }}
           className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition z-20"
           title={muted ? 'Unmute' : 'Mute'}
         >
           {muted ? <FiVolumeX size={16} /> : <FiVolume2 size={16} />}
         </button>
-      )}
-
-      {/* CAROUSEL ARROW BUTTONS & MEDIA COUNTER (IF > 1 MEDIA ITEMS) */}
-      {mediaList.length > 1 && (
-        <>
-          {/* Left Arrow Button */}
-          <button
-            type="button"
-            onClick={handlePrev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center backdrop-blur-sm transition border border-white/20 shadow-md z-20 hover:scale-110"
-            title="Previous Image/Video"
-          >
-            <FiChevronLeft size={20} />
-          </button>
-
-          {/* Right Arrow Button */}
-          <button
-            type="button"
-            onClick={handleNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center backdrop-blur-sm transition border border-white/20 shadow-md z-20 hover:scale-110"
-            title="Next Image/Video"
-          >
-            <FiChevronRight size={20} />
-          </button>
-
-          {/* Media Count Badge */}
-          <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-white border border-white/20 z-10 flex items-center gap-1">
-            {isVideo ? <FiVideo size={10} /> : <FiImage size={10} />}
-            <span>{currentIndex + 1} / {mediaList.length}</span>
-          </div>
-
-          {/* Bottom Dot Indicators */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10">
-            {mediaList.map((_, idx) => (
-              <span
-                key={idx}
-                className={`h-1.5 rounded-full transition-all ${currentIndex === idx ? 'w-4 bg-brand-purple' : 'w-1.5 bg-white/60'
-                  }`}
-              />
-            ))}
-          </div>
-        </>
       )}
     </div>
   );
@@ -451,242 +411,55 @@ export default function CustomerHomePage() {
           <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
           <p className="text-xs font-medium">Loading feed...</p>
         </div>
-      ) : activeTab === 'combined' ? (
-        processedCombinedFeed.length === 0 ? (
-          <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
-            No combined posts match your filter criteria.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            {processedCombinedFeed.map((item) => {
-              const isLiked = likedMap[item._id || item.id];
-              const isSaved = savedMap[item._id || item.id];
-              const itemId = item._id || item.id;
+      ) : processedCombinedFeed.length === 0 ? (
+        <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border max-w-xl mx-auto">
+          No posts match your filter criteria.
+        </div>
+      ) : (
+        <div className="max-w-xl mx-auto space-y-8 pb-12">
+          {processedCombinedFeed.map((item) => {
+            const itemId = item._id || item.id;
+            const isLiked = likedMap[itemId];
+            const isSaved = savedMap[itemId];
 
-              if (item.postType === 'reel') {
-                const isFollowing = followingMap[item.creator?._id || item.creator?.id || item.creator];
-                return (
-                  <div
-                    key={itemId}
-                    className="w-full glass border border-white/50 rounded-3xl overflow-hidden shadow-card relative self-stretch flex flex-col justify-between"
-                  >
-                    {/* Header */}
-                    <div className="p-3.5 flex items-center justify-between glass border-b border-border">
-                      <div
-                        onClick={() => navigate(`/customer/vendor/${item.creator?._id || item.creator?.id || item.creator}`)}
-                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
-                      >
-                        <div className="w-9 h-9 rounded-full gradient-brand p-0.5">
-                          <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-xs font-bold text-text-primary">
-                            {item.creator?.name ? item.creator.name.charAt(0) : 'V'}
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5 font-display">
-                            {item.creator?.name || 'Verified Creator'}
-                            <span className="bg-brand-purple/10 text-brand-purple text-[9px] px-1 rounded font-bold">Reel</span>
-                          </h4>
-                          <p className="text-[10px] text-text-tertiary flex items-center gap-1">
-                            <FiMapPin size={10} className="text-brand-orange" />
-                            {item.location?.address || 'Nearby'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleFollow(item.creator?._id || item.creator?.id || item.creator)}
-                        className={`px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition ${isFollowing
-                          ? 'bg-surface-tertiary text-text-secondary border border-border'
-                          : 'gradient-brand text-white shadow-premium'
-                          }`}
-                      >
-                        {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
-                      </button>
-                    </div>
-
-                    {/* Reel Media */}
-                    <div
-                      onClick={() => {
-                        const idx = processedReels.findIndex(r => r._id === itemId || r.id === itemId);
-                        setReelViewerStartIndex(idx >= 0 ? idx : 0);
-                        setReelViewerOpen(true);
-                      }}
-                      className="cursor-pointer"
-                    >
-                      <CustomerReelMedia reel={item} muted={muted} setMuted={setMuted} />
-                    </div>
-
-                    {/* Action Bar */}
-                    <div className="p-4 glass space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() => handleLike(itemId, 'reel')}
-                            className={`flex items-center gap-1.5 text-xs font-semibold transition ${isLiked ? 'text-brand-pink' : 'text-text-secondary hover:text-brand-pink'}`}
-                          >
-                            <FiHeart size={20} className={isLiked ? 'fill-brand-pink' : ''} />
-                            <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedReelId(itemId);
-                              setIsCommentsOpen(true);
-                            }}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-purple"
-                          >
-                            <FiMessageCircle size={20} />
-                            <span>{item.commentsCount || 0}</span>
-                          </button>
-
-                          <button
-                            onClick={() => handleOpenChat(
-                              item.creator?._id || item.creator?.id || item.creator,
-                              item.creator?.name,
-                              item.creator?.avatarUrl || item.creator?.profile_pic
-                            )}
-                            className="flex items-center gap-1.5 text-xs font-bold text-brand-purple hover:underline"
-                            title="Chat with Vendor"
-                          >
-                            <FiMessageSquare size={18} />
-                            <span>Chat</span>
-                          </button>
-                        </div>
-
-                        <button
-                          onClick={() => handleSave(itemId, 'reel')}
-                          className={`transition ${isSaved ? 'text-brand-purple' : 'text-text-secondary hover:text-brand-purple'}`}
-                        >
-                          <FiBookmark size={20} className={isSaved ? 'fill-brand-purple' : ''} />
-                        </button>
-                      </div>
-                      <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 mt-1">{item.caption || item.description}</p>
-                    </div>
-                  </div>
-                );
-              } else {
-                // Listing card (Image/Products)
-                return (
-                  <div
-                    key={itemId}
-                    className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card cursor-pointer hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between self-stretch"
-                    onClick={() => {
-                      const idx = processedImages.findIndex(i => i._id === itemId || i.id === itemId);
-                      setImageViewerStartIndex(idx >= 0 ? idx : 0);
-                      setImageViewerOpen(true);
-                    }}
-                  >
-                    <div className="aspect-square bg-surface-tertiary relative overflow-hidden shrink-0">
-                      <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
-                      <div className="absolute top-3 right-3 glass px-3 py-1 rounded-full text-xs font-bold text-emerald-600 border border-border">
-                        ₹{item.price?.toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h4 className="font-bold text-sm text-text-primary font-display">{item.title}</h4>
-                        <p
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/customer/vendor/${item.vendor?._id || item.vendor?.id || item.vendor}`);
-                          }}
-                          className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition font-medium mt-1"
-                        >
-                          By {item.vendor?.name || 'Verified Vendor'}
-                        </p>
-                        {item.description && (
-                          <p className="text-xs text-text-secondary mt-1.5 line-clamp-2 leading-relaxed">{item.description}</p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-border mt-3 shrink-0">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLike(itemId, 'listing');
-                          }}
-                          className={`flex items-center gap-1 text-xs ${isLiked ? 'text-brand-pink font-bold' : 'text-text-tertiary'}`}
-                        >
-                          <FiHeart size={16} className={isLiked ? 'fill-brand-pink' : ''} />
-                          <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenChat(
-                              item.vendor?._id || item.vendor?.id || item.vendor,
-                              item.vendor?.name,
-                              item.vendor?.avatarUrl || item.vendor?.profile_pic
-                            );
-                          }}
-                          className="text-xs text-brand-purple font-bold hover:underline flex items-center gap-1"
-                        >
-                          <FiMessageSquare size={14} />
-                          <span>Chat</span>
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSave(itemId, 'listing');
-                          }}
-                          className={`text-xs flex items-center gap-1 ${isSaved ? 'text-brand-purple font-bold' : 'text-text-tertiary'}`}
-                        >
-                          <FiBookmark size={16} className={isSaved ? 'fill-brand-purple' : ''} />
-                          <span>{isSaved ? 'Saved' : 'Save'}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-            })}
-          </div>
-        )
-      ) : activeTab === 'reels' ? (
-        processedReels.length === 0 ? (
-          <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
-            No video reels match your search and filter criteria.
-          </div>
-        ) : (
-          <div className="space-y-8 flex flex-col items-center">
-            {processedReels.map((reel) => {
-              const isLiked = likedMap[reel._id];
-              const isSaved = savedMap[reel._id];
-              const isFollowing = followingMap[reel.creator?._id || reel.creator];
+            if (item.postType === 'reel') {
+              const vendorId = item.creator?._id || item.creator?.id || item.creator;
+              const isFollowing = followingMap[vendorId];
 
               return (
                 <div
-                  key={reel._id}
-                  className="w-full max-w-md glass border border-white/50 rounded-3xl overflow-hidden shadow-card relative"
+                  key={itemId}
+                  className="w-full glass border border-white/50 rounded-3xl overflow-hidden shadow-card relative flex flex-col justify-between"
                 >
-                  {/* Header */}
+                  {/* Card Header */}
                   <div className="p-3.5 flex items-center justify-between glass border-b border-border">
                     <div
-                      onClick={() => navigate(`/customer/vendor/${reel.creator?._id || reel.creator}`)}
+                      onClick={() => navigate(`/customer/vendor/${vendorId}`)}
                       className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
                     >
                       <div className="w-9 h-9 rounded-full gradient-brand p-0.5">
-                        <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-xs font-bold text-text-primary">
-                          {typeof reel.creator === 'object' && reel.creator?.name ? reel.creator.name.charAt(0) : 'V'}
+                        <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-xs font-bold text-text-primary overflow-hidden">
+                          {item.creator?.avatarUrl || item.creator?.profile_pic ? (
+                            <img src={item.creator.avatarUrl || item.creator.profile_pic} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{item.creator?.name ? item.creator.name.charAt(0) : 'V'}</span>
+                          )}
                         </div>
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5 font-display">
-                          {typeof reel.creator === 'object' && reel.creator?.name ? reel.creator.name : 'Verified Creator'}
-                          <span className="bg-brand-purple/10 text-brand-purple text-[9px] px-1 rounded font-bold">Vendor</span>
+                          {item.creator?.name || 'Verified Creator'}
+                          <span className="bg-brand-purple/10 text-brand-purple text-[9px] px-1 rounded font-bold">Reel</span>
                         </h4>
                         <p className="text-[10px] text-text-tertiary flex items-center gap-1">
                           <FiMapPin size={10} className="text-brand-orange" />
-                          {reel.location?.address || 'Nearby'}
+                          {item.location?.address || 'Nearby'}
                         </p>
                       </div>
                     </div>
 
                     <button
-                      onClick={() => handleFollow(reel.creator?._id || reel.creator)}
+                      onClick={() => handleFollow(vendorId)}
                       className={`px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition ${isFollowing
                         ? 'bg-surface-tertiary text-text-secondary border border-border'
                         : 'gradient-brand text-white shadow-premium'
@@ -696,47 +469,46 @@ export default function CustomerHomePage() {
                     </button>
                   </div>
 
-                  {/* Reel Media Carousel Viewport — Click to open fullscreen */}
+                  {/* Reel Media Section */}
                   <div
                     onClick={() => {
-                      const idx = processedReels.findIndex(r => r._id === reel._id);
+                      const idx = processedReels.findIndex(r => r._id === itemId || r.id === itemId);
                       setReelViewerStartIndex(idx >= 0 ? idx : 0);
                       setReelViewerOpen(true);
                     }}
                     className="cursor-pointer"
                   >
-                    <CustomerReelMedia reel={reel} muted={muted} setMuted={setMuted} />
+                    <CustomerReelMedia reel={item} muted={muted} setMuted={setMuted} />
                   </div>
 
-                  {/* Action Bar */}
-                  <div className="p-4 glass space-y-3">
+                  {/* Action Bar & Details */}
+                  <div className="p-4 glass space-y-3 border-t border-border">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <button
-                          onClick={() => handleLike(reel._id, 'reel')}
-                          className={`flex items-center gap-1.5 text-xs font-semibold transition ${isLiked ? 'text-brand-pink' : 'text-text-secondary hover:text-brand-pink'
-                            }`}
+                          onClick={() => handleLike(itemId, 'reel')}
+                          className={`flex items-center gap-1.5 text-xs font-semibold transition ${isLiked ? 'text-brand-pink' : 'text-text-secondary hover:text-brand-pink'}`}
                         >
                           <FiHeart size={20} className={isLiked ? 'fill-brand-pink' : ''} />
-                          <span>{(reel.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                          <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
                         </button>
 
                         <button
                           onClick={() => {
-                            setSelectedReelId(reel._id);
+                            setSelectedReelId(itemId);
                             setIsCommentsOpen(true);
                           }}
                           className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-purple"
                         >
                           <FiMessageCircle size={20} />
-                          <span>{reel.commentsCount || 0}</span>
+                          <span>{item.commentsCount || 0}</span>
                         </button>
 
                         <button
                           onClick={() => handleOpenChat(
-                            reel.creator?._id || reel.creator,
-                            reel.creator?.name,
-                            reel.creator?.avatarUrl || reel.creator?.profile_pic
+                            vendorId,
+                            item.creator?.name,
+                            item.creator?.avatarUrl || item.creator?.profile_pic
                           )}
                           className="flex items-center gap-1.5 text-xs font-bold text-brand-purple hover:underline"
                           title="Chat with Vendor"
@@ -747,103 +519,146 @@ export default function CustomerHomePage() {
                       </div>
 
                       <button
-                        onClick={() => handleSave(reel._id, 'reel')}
+                        onClick={() => handleSave(itemId, 'reel')}
                         className={`transition ${isSaved ? 'text-brand-purple' : 'text-text-secondary hover:text-brand-purple'}`}
                       >
                         <FiBookmark size={20} className={isSaved ? 'fill-brand-purple' : ''} />
                       </button>
                     </div>
 
-                    <p className="text-xs text-text-secondary leading-relaxed line-clamp-1 opacity-60">{reel.category || ''} {reel.subcategory ? '• ' + reel.subcategory : ''}</p>
+                    {/* Views Count */}
+                    <p className="text-[10px] font-extrabold text-text-tertiary uppercase tracking-wider">
+                      {(item.views || 0).toLocaleString()} views
+                    </p>
+
+                    <p className="text-xs text-text-secondary leading-relaxed mt-1">
+                      <span className="font-bold text-text-primary mr-1.5">{item.creator?.name || 'Verified Creator'}</span>
+                      {item.caption || item.description}
+                    </p>
                   </div>
                 </div>
               );
-            })}
-          </div>
-        )
-      ) : (
-        /* Image Feed Grid */
-        processedImages.length === 0 ? (
-          <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
-            No image listings match your search and filter criteria.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {processedImages.map((item) => {
-              const isLiked = likedMap[item._id];
-              const isSaved = savedMap[item._id];
+            } else {
+              const vendorId = item.vendor?._id || item.vendor?.id || item.vendor;
+              const isFollowing = followingMap[vendorId];
 
               return (
-                <div key={item._id} className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card cursor-pointer hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
-                  onClick={() => {
-                    const idx = processedImages.findIndex(i => i._id === item._id);
-                    setImageViewerStartIndex(idx >= 0 ? idx : 0);
-                    setImageViewerOpen(true);
-                  }}
+                <div
+                  key={itemId}
+                  className="w-full glass border border-white/50 rounded-3xl overflow-hidden shadow-card relative flex flex-col justify-between animate-fade-in"
                 >
-                  <div className="aspect-square bg-surface-tertiary relative overflow-hidden">
+                  {/* Card Header */}
+                  <div className="p-3.5 flex items-center justify-between glass border-b border-border">
+                    <div
+                      onClick={() => navigate(`/customer/vendor/${vendorId}`)}
+                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+                    >
+                      <div className="w-9 h-9 rounded-full gradient-brand p-0.5">
+                        <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-xs font-bold text-text-primary overflow-hidden">
+                          {item.vendor?.avatarUrl || item.vendor?.profile_pic ? (
+                            <img src={item.vendor.avatarUrl || item.vendor.profile_pic} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{item.vendor?.name ? item.vendor.name.charAt(0) : 'V'}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5 font-display">
+                          {item.vendor?.name || 'Verified Vendor'}
+                          <span className="bg-emerald-500/10 text-emerald-600 text-[9px] px-1 rounded font-bold">Product</span>
+                        </h4>
+                        <p className="text-[10px] text-text-tertiary flex items-center gap-1">
+                          <FiMapPin size={10} className="text-brand-orange" />
+                          {item.vendor?.location?.address || 'Nearby'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleFollow(vendorId)}
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition ${isFollowing
+                        ? 'bg-surface-tertiary text-text-secondary border border-border'
+                        : 'gradient-brand text-white shadow-premium'
+                        }`}
+                    >
+                      {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
+                    </button>
+                  </div>
+
+                  {/* Listing Media Section */}
+                  <div
+                    onClick={() => {
+                      const idx = processedImages.findIndex(i => i._id === itemId || i.id === itemId);
+                      setImageViewerStartIndex(idx >= 0 ? idx : 0);
+                      setImageViewerOpen(true);
+                    }}
+                    className="cursor-pointer aspect-square bg-surface-tertiary relative overflow-hidden"
+                  >
                     <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
                     <div className="absolute top-3 right-3 glass px-3 py-1 rounded-full text-xs font-bold text-emerald-600 border border-border">
                       ₹{item.price?.toLocaleString()}
                     </div>
                   </div>
 
-                  <div className="p-4 space-y-2">
-                    <h4 className="font-bold text-sm text-text-primary font-display">{item.title}</h4>
-                    <p
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/customer/vendor/${item.vendor?._id || item.vendor}`);
-                      }}
-                      className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition font-medium"
-                    >
-                      By {typeof item.vendor === 'object' && item.vendor?.name ? item.vendor.name : 'Verified Vendor'}
-                    </p>
+                  {/* Action Bar & Details */}
+                  <div className="p-4 glass space-y-3 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLike(itemId, 'listing');
+                          }}
+                          className={`flex items-center gap-1.5 text-xs font-semibold transition ${isLiked ? 'text-brand-pink font-bold' : 'text-text-secondary hover:text-brand-pink'}`}
+                        >
+                          <FiHeart size={20} className={isLiked ? 'fill-brand-pink' : ''} />
+                          <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                        </button>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-border">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLike(item._id, 'listing');
-                        }}
-                        className={`flex items-center gap-1 text-xs ${isLiked ? 'text-brand-pink font-bold' : 'text-text-tertiary'}`}
-                      >
-                        <FiHeart size={16} className={isLiked ? 'fill-brand-pink' : ''} />
-                        <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenChat(
-                            item.vendor?._id || item.vendor?.id || item.vendor,
-                            item.vendor?.name,
-                            item.vendor?.avatarUrl || item.vendor?.profile_pic
-                          );
-                        }}
-                        className="text-xs text-brand-purple font-bold hover:underline flex items-center gap-1"
-                      >
-                        <FiMessageSquare size={14} />
-                        <span>Chat</span>
-                      </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenChat(
+                              vendorId,
+                              item.vendor?.name,
+                              item.vendor?.avatarUrl || item.vendor?.profile_pic
+                            );
+                          }}
+                          className="flex items-center gap-1.5 text-xs font-bold text-brand-purple hover:underline"
+                          title="Chat with Vendor"
+                        >
+                          <FiMessageSquare size={18} />
+                          <span>Chat</span>
+                        </button>
+                      </div>
 
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleSave(item._id, 'listing');
+                          handleSave(itemId, 'listing');
                         }}
-                        className={`text-xs flex items-center gap-1 ${isSaved ? 'text-brand-purple font-bold' : 'text-text-tertiary'}`}
+                        className={`transition ${isSaved ? 'text-brand-purple' : 'text-text-secondary hover:text-brand-purple'}`}
                       >
-                        <FiBookmark size={16} className={isSaved ? 'fill-brand-purple' : ''} />
-                        <span>{isSaved ? 'Saved' : 'Save'}</span>
+                        <FiBookmark size={20} className={isSaved ? 'fill-brand-purple' : ''} />
                       </button>
                     </div>
+
+                    {/* Product Title and Price */}
+                    <div className="flex items-baseline justify-between mt-1">
+                      <h4 className="font-extrabold text-sm text-text-primary font-display">{item.title}</h4>
+                      <span className="text-xs font-bold text-emerald-600">₹{item.price?.toLocaleString()}</span>
+                    </div>
+
+                    <p className="text-xs text-text-secondary leading-relaxed mt-1">
+                      <span className="font-bold text-text-primary mr-1.5">{item.vendor?.name || 'Verified Vendor'}</span>
+                      {item.description}
+                    </p>
                   </div>
                 </div>
               );
-            })}
-          </div>
-        )
+            }
+          })}
+        </div>
       )}
       <CommentsDrawer
         isOpen={isCommentsOpen}

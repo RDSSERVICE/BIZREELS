@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiX,
   FiVolume2, FiVolumeX, FiMapPin, FiPhone, FiMessageSquare,
-  FiChevronUp, FiChevronDown, FiShield, FiStar, FiUserPlus, FiCheck
+  FiShield, FiUserPlus, FiCheck
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -13,7 +13,7 @@ import ChatDrawer from '../ui/ChatDrawer';
 
 /**
  * ReelFullscreenViewer
- * Full-screen vertical scroll viewer for video reels.
+ * Full-screen vertical scroll-snap viewer for video reels.
  * Shows vendor profile for boosted reels with masked contact info.
  */
 export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, onLike, onSave, onFollow, likedMap = {}, savedMap = {}, followingMap = {} }) {
@@ -31,6 +31,18 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
 
   const currentReel = reels[currentIndex];
 
+  // Scroll to startIndex on mount
+  useEffect(() => {
+    if (containerRef.current && startIndex > 0) {
+      const scrollContainer = containerRef.current;
+      setTimeout(() => {
+        if (scrollContainer) {
+          scrollContainer.scrollTop = startIndex * scrollContainer.clientHeight;
+        }
+      }, 100);
+    }
+  }, [startIndex]);
+
   // Auto-play current video, pause others
   useEffect(() => {
     videoRefs.current.forEach((video, idx) => {
@@ -46,33 +58,51 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
   }, [currentIndex]);
 
   const goUp = () => {
-    if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
+    if (currentIndex > 0) {
+      const prevIndex = currentIndex - 1;
+      setCurrentIndex(prevIndex);
+      if (containerRef.current) {
+        containerRef.current.scrollTop = prevIndex * containerRef.current.clientHeight;
+      }
+    }
   };
 
   const goDown = () => {
-    if (currentIndex < reels.length - 1) setCurrentIndex(prev => prev + 1);
+    if (currentIndex < reels.length - 1) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      if (containerRef.current) {
+        containerRef.current.scrollTop = nextIndex * containerRef.current.clientHeight;
+      }
+    }
   };
 
   // Keyboard navigation
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'ArrowUp') goUp();
-      else if (e.key === 'ArrowDown') goDown();
-      else if (e.key === 'Escape') onClose?.();
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        goUp();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        goDown();
+      } else if (e.key === 'Escape') {
+        onClose?.();
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [currentIndex]);
 
-  // Touch swipe handling
-  const touchStart = useRef(null);
-  const handleTouchStart = (e) => { touchStart.current = e.touches[0].clientY; };
-  const handleTouchEnd = (e) => {
-    if (!touchStart.current) return;
-    const diff = touchStart.current - e.changedTouches[0].clientY;
-    if (diff > 60) goDown();
-    else if (diff < -60) goUp();
-    touchStart.current = null;
+  // Scroll event handler to track active index
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    const scrollTop = containerRef.current.scrollTop;
+    const clientHeight = containerRef.current.clientHeight;
+    const index = Math.round(scrollTop / (clientHeight || 1));
+    if (index !== currentIndex && index >= 0 && index < reels.length) {
+      setCurrentIndex(index);
+    }
   };
 
   // Mask phone number: show first 2 and last 4 digits
@@ -160,7 +190,6 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
         toast.error(err?.response?.data?.message || 'Failed to submit inquiry');
       }
     } else {
-      // Fallback: If no targetListing is linked, open chat drawer instead
       setChatDrawerRecipientId(vendorId);
       setChatDrawerRecipientName(vendorObj?.vendorProfile?.shopName || vendorObj?.name || 'Vendor Partner');
       setChatDrawerRecipientAvatar(vendorObj?.profile_pic || vendorObj?.avatarUrl || null);
@@ -176,9 +205,6 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-black flex items-center justify-center"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      ref={containerRef}
     >
       {/* Close Button */}
       <button
@@ -187,24 +213,6 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
       >
         <FiX size={20} />
       </button>
-
-      {/* Navigation arrows */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2">
-        <button
-          onClick={goUp}
-          disabled={currentIndex === 0}
-          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/60 transition border border-white/10"
-        >
-          <FiChevronUp size={20} />
-        </button>
-        <button
-          onClick={goDown}
-          disabled={currentIndex === reels.length - 1}
-          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/60 transition border border-white/10"
-        >
-          <FiChevronDown size={20} />
-        </button>
-      </div>
 
       {/* Counter */}
       <div className="absolute top-4 left-4 z-40 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-bold border border-white/10">
@@ -219,180 +227,187 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
         {muted ? <FiVolumeX size={18} /> : <FiVolume2 size={18} />}
       </button>
 
-      {/* Video */}
-      <div className="w-full h-full max-w-[500px] mx-auto relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -50, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="w-full h-full"
-          >
-            <video
-              ref={el => videoRefs.current[currentIndex] = el}
-              src={currentReel.videoUrl || currentReel.mediaUrls?.[0] || ''}
-              loop
-              muted={muted}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
-        </AnimatePresence>
+      {/* Scroll Snapping Reels Feed Container */}
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="w-full h-full max-w-[500px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-none scroll-smooth bg-black relative"
+      >
+        {reels.map((reel, idx) => {
+          const isLiked = likedMap[reel._id || reel.id];
+          const isSaved = savedMap[reel._id || reel.id];
+          const isFollowing = followingMap[reel.creator?._id || reel.creator?.id || reel.creator];
 
-        {/* Right-side action buttons */}
-        <div className="absolute right-3 bottom-32 z-30 flex flex-col items-center gap-5">
-          {/* Like */}
-          <button
-            onClick={() => onLike?.(currentReel._id || currentReel.id)}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition ${
-              likedMap[currentReel._id || currentReel.id] ? 'bg-red-500 text-white' : 'bg-black/40 text-white'
-            }`}>
-              <FiHeart size={20} fill={likedMap[currentReel._id || currentReel.id] ? 'currentColor' : 'none'} />
-            </div>
-            <span className="text-white text-[10px] font-bold">{currentReel.likesCount || 0}</span>
-          </button>
-
-          {/* Comments */}
-          <button className="flex flex-col items-center gap-1">
-            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center">
-              <FiMessageCircle size={20} />
-            </div>
-            <span className="text-white text-[10px] font-bold">{currentReel.commentsCount || 0}</span>
-          </button>
-
-          {/* Save */}
-          <button
-            onClick={() => onSave?.(currentReel._id || currentReel.id)}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition ${
-              savedMap[currentReel._id || currentReel.id] ? 'bg-brand-purple text-white' : 'bg-black/40 text-white'
-            }`}>
-              <FiBookmark size={20} fill={savedMap[currentReel._id || currentReel.id] ? 'currentColor' : 'none'} />
-            </div>
-            <span className="text-white text-[10px] font-bold">Save</span>
-          </button>
-
-          {/* Share */}
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}/customer/home?reel=${currentReel._id || currentReel.id}`;
-              navigator.clipboard?.writeText(url);
-              toast.success('Link copied!');
-            }}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center">
-              <FiShare2 size={20} />
-            </div>
-            <span className="text-white text-[10px] font-bold">Share</span>
-          </button>
-        </div>
-
-        {/* Bottom vendor info overlay */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 pt-20">
-          {/* Vendor Profile */}
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden flex-shrink-0">
-              {currentReel.creator?.profile_pic || currentReel.creator?.avatarUrl ? (
-                <img
-                  src={currentReel.creator.profile_pic || currentReel.creator.avatarUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-brand-purple/30 flex items-center justify-center text-white font-bold text-sm">
-                  {(currentReel.creator?.name || 'V').charAt(0)}
-                </div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-white text-sm font-bold truncate">
-                  {currentReel.creator?.vendorProfile?.shopName || currentReel.creator?.name || 'Vendor'}
-                </p>
-                {currentReel.isBoosted && (
-                  <span className="bg-yellow-400/20 text-yellow-400 text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-yellow-400/30">
-                    PROMOTED
-                  </span>
-                )}
-              </div>
-              <p className="text-white/60 text-[10px] truncate">
-                {currentReel.category || 'Business'} • {currentReel.subcategory || ''}
-              </p>
-            </div>
-            {/* Follow button */}
-            <button
-              onClick={() => onFollow?.(currentReel.creator?._id || currentReel.creator?.id || currentReel.creator)}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition border ${
-                followingMap[currentReel.creator?._id || currentReel.creator?.id || currentReel.creator]
-                  ? 'bg-white/10 text-white/80 border-white/20'
-                  : 'bg-white text-black border-white hover:bg-white/90'
-              }`}
+          return (
+            <div
+              key={reel._id || reel.id || idx}
+              className="w-full h-full snap-start snap-always flex-shrink-0 flex items-center justify-center relative bg-black"
             >
-              {followingMap[currentReel.creator?._id || currentReel.creator?.id || currentReel.creator] ? (
-                <><FiCheck size={10} className="inline mr-1" />Following</>
-              ) : (
-                <><FiUserPlus size={10} className="inline mr-1" />Follow</>
-              )}
-            </button>
-          </div>
+              {/* Video Element */}
+              <video
+                ref={el => videoRefs.current[idx] = el}
+                src={reel.videoUrl || reel.mediaUrls?.[0] || ''}
+                loop
+                muted={muted}
+                playsInline
+                className="w-full h-full object-cover"
+              />
 
-          {/* Vendor contact + action buttons */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-4 text-white/70 text-[10px]">
-              <span className="flex items-center gap-1">
-                <FiMapPin size={10} /> {maskAddress(currentReel.creator)}
-              </span>
-              <span className="flex items-center gap-1">
-                <FiPhone size={10} /> {maskPhone(currentReel.creator?.phone)}
-              </span>
-              {currentReel.creator?.is_subscribed_verified && (
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <FiShield size={10} /> Verified
-                </span>
-              )}
-            </div>
+              {/* Right-side action buttons */}
+              <div className="absolute right-3 bottom-32 z-30 flex flex-col items-center gap-5">
+                {/* Like */}
+                <button
+                  onClick={() => onLike?.(reel._id || reel.id)}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition ${
+                    isLiked ? 'bg-red-500 text-white animate-scale-pop' : 'bg-black/40 text-white'
+                  }`}>
+                    <FiHeart size={20} fill={isLiked ? 'currentColor' : 'none'} />
+                  </div>
+                  <span className="text-white text-[10px] font-bold">{reel.likesCount || 0}</span>
+                </button>
 
-            {/* Action Buttons Row */}
-            <div className="grid grid-cols-4 gap-2">
-              <button
-                onClick={() => handleWhatsApp(currentReel)}
-                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition border border-emerald-500/20"
-              >
-                <FaWhatsapp size={16} />
-                <span className="text-[8px] font-bold">WhatsApp</span>
-              </button>
-              <button
-                onClick={() => handleCallRequest(currentReel)}
-                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/20"
-              >
-                <FiPhone size={16} />
-                <span className="text-[8px] font-bold">Call</span>
-              </button>
-              <button
-                onClick={() => handleChat(currentReel)}
-                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition border border-purple-500/20"
-              >
-                <FiMessageSquare size={16} />
-                <span className="text-[8px] font-bold">Chat</span>
-              </button>
-              <button
-                onClick={() => handleInquiry(currentReel)}
-                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition border border-orange-500/20"
-              >
-                <FiMessageCircle size={16} />
-                <span className="text-[8px] font-bold">Inquiry</span>
-              </button>
+                {/* Comments */}
+                <button className="flex flex-col items-center gap-1">
+                  <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center">
+                    <FiMessageCircle size={20} />
+                  </div>
+                  <span className="text-white text-[10px] font-bold">{reel.commentsCount || 0}</span>
+                </button>
+
+                {/* Save */}
+                <button
+                  onClick={() => onSave?.(reel._id || reel.id)}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition ${
+                    isSaved ? 'bg-brand-purple text-white' : 'bg-black/40 text-white'
+                  }`}>
+                    <FiBookmark size={20} fill={isSaved ? 'currentColor' : 'none'} />
+                  </div>
+                  <span className="text-white text-[10px] font-bold">Save</span>
+                </button>
+
+                {/* Share */}
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/customer/home?reel=${reel._id || reel.id}`;
+                    navigator.clipboard?.writeText(url);
+                    toast.success('Link copied!');
+                  }}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center">
+                    <FiShare2 size={20} />
+                  </div>
+                  <span className="text-white text-[10px] font-bold">Share</span>
+                </button>
+              </div>
+
+              {/* Bottom vendor info overlay */}
+              <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-4 pt-24 text-left">
+                {/* Vendor Profile */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden flex-shrink-0">
+                    {reel.creator?.profile_pic || reel.creator?.avatarUrl ? (
+                      <img
+                        src={reel.creator.profile_pic || reel.creator.avatarUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-brand-purple/30 flex items-center justify-center text-white font-bold text-sm">
+                        {(reel.creator?.name || 'V').charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-white text-sm font-bold truncate">
+                        {reel.creator?.vendorProfile?.shopName || reel.creator?.name || 'Vendor'}
+                      </p>
+                      {reel.isBoosted && (
+                        <span className="bg-yellow-400/20 text-yellow-400 text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-yellow-400/30">
+                          PROMOTED
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-white/60 text-[10px] truncate">
+                      {reel.category || 'Business'} • {reel.subcategory || ''}
+                    </p>
+                  </div>
+                  {/* Follow button */}
+                  <button
+                    onClick={() => onFollow?.(reel.creator?._id || reel.creator?.id || reel.creator)}
+                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition border ${
+                      isFollowing
+                        ? 'bg-white/10 text-white/80 border-white/20'
+                        : 'bg-white text-black border-white hover:bg-white/90'
+                    }`}
+                  >
+                    {isFollowing ? (
+                      <><FiCheck size={10} className="inline mr-1" />Following</>
+                    ) : (
+                      <><FiUserPlus size={10} className="inline mr-1" />Follow</>
+                    )}
+                  </button>
+                </div>
+
+                {/* Vendor contact + action buttons */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-4 text-white/70 text-[10px]">
+                    <span className="flex items-center gap-1">
+                      <FiMapPin size={10} className="text-brand-orange" /> {maskAddress(reel.creator)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <FiPhone size={10} className="text-brand-purple" /> {maskPhone(reel.creator?.phone)}
+                    </span>
+                    {reel.creator?.is_subscribed_verified && (
+                      <span className="flex items-center gap-1 text-emerald-400">
+                        <FiShield size={10} /> Verified
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Action Buttons Row */}
+                  <div className="grid grid-cols-4 gap-2">
+                    <button
+                      onClick={() => handleWhatsApp(reel)}
+                      className="flex flex-col items-center gap-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition border border-emerald-500/20"
+                    >
+                      <FaWhatsapp size={16} />
+                      <span className="text-[8px] font-bold">WhatsApp</span>
+                    </button>
+                    <button
+                      onClick={() => handleCallRequest(reel)}
+                      className="flex flex-col items-center gap-1 py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/20"
+                    >
+                      <FiPhone size={16} />
+                      <span className="text-[8px] font-bold">Call</span>
+                    </button>
+                    <button
+                      onClick={() => handleChat(reel)}
+                      className="flex flex-col items-center gap-1 py-2 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition border border-purple-500/20"
+                    >
+                      <FiMessageSquare size={16} />
+                      <span className="text-[8px] font-bold">Chat</span>
+                    </button>
+                    <button
+                      onClick={() => handleInquiry(reel)}
+                      className="flex flex-col items-center gap-1 py-2 rounded-xl bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition border border-orange-500/20"
+                    >
+                      <FiMessageCircle size={16} />
+                      <span className="text-[8px] font-bold">Inquiry</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
+
       {/* In-context Chat Drawer */}
       <ChatDrawer
         isOpen={chatDrawerOpen}
