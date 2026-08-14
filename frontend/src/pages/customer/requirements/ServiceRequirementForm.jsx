@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FiTool, FiDollarSign, FiMapPin, FiUpload, FiImage, FiVideo, FiX, FiClock, FiGlobe, FiAlertCircle, FiCpu, FiTarget
 } from 'react-icons/fi';
+import { SearchableCategorySelect, SearchableSubcategoryMultiSelect } from './SearchableSelects';
 
 const SERVICE_DURATION_OPTIONS = [
   { value: 'one-time', label: 'One-Time Project' },
@@ -124,22 +125,14 @@ export default function ServiceRequirementForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Service Category</label>
-          <select
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setSubcategory('');
-              setCustomCategory('');
-            }}
-            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-          >
-            {categories.map(cat => (
-              <option key={cat.id || cat._id} value={cat.name}>
-                {cat.name}
-              </option>
-            ))}
-            <option value="Other">Other (Request Admin Approval)</option>
-          </select>
+          <SearchableCategorySelect
+            category={category}
+            setCategory={setCategory}
+            categories={categories}
+            customCategory={customCategory}
+            setCustomCategory={setCustomCategory}
+            setSubcategory={setSubcategory}
+          />
           {category === 'Other' && (
             <input
               type="text"
@@ -154,22 +147,13 @@ export default function ServiceRequirementForm({
 
         <div>
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Subcategory / Specialization</label>
-          <select
-            value={subcategory}
-            onChange={(e) => {
-              setSubcategory(e.target.value);
-              setCustomSubcategory('');
-            }}
-            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-          >
-            <option value="">Select Subcategory</option>
-            {subcategories.map(sub => (
-              <option key={sub.id || sub._id} value={sub.name}>
-                {sub.name}
-              </option>
-            ))}
-            <option value="Other">Other (Request Admin Approval)</option>
-          </select>
+          <SearchableSubcategoryMultiSelect
+            subcategory={subcategory}
+            setSubcategory={setSubcategory}
+            subcategories={subcategories}
+            customSubcategory={customSubcategory}
+            setCustomSubcategory={setCustomSubcategory}
+          />
           {subcategory === 'Other' && (
             <input
               type="text"

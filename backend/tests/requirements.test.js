@@ -422,4 +422,43 @@ describe('Requirements & Quoting Bidding API Suite', () => {
     // Verify vendor wallet balance was credited
     expect(getMockDb().users[vendorId].walletBalance).toBe(4500);
   });
+
+  it('5. Should match vendors with any of the multiple subcategories in a comma-separated list', async () => {
+    const vendor2Id = new mongoose.Types.ObjectId().toString();
+    getMockDb().users[vendor2Id] = {
+      _id: vendor2Id,
+      name: 'Specialist Vendor',
+      email: 'specialist@example.com',
+      roles: ['vendor'],
+      activeRole: 'vendor',
+      kyc_status: 'approved',
+      walletBalance: 0,
+      vendorProfile: {
+        category: 'Electronics',
+        subcategory: 'Laptops',
+        city: 'Delhi',
+      },
+      location: { city: 'Delhi' },
+      toObject: function() { return this; },
+    };
+
+    const res = await request(app)
+      .post('/api/v1/requirements')
+      .set('Authorization', `Bearer ${customerToken}`)
+      .send({
+        title: 'Need Laptops or Keyboards',
+        description: 'Need new equipment for office.',
+        category: 'Electronics',
+        subcategory: 'Keyboards, Laptops',
+        budget: 15000,
+        address: 'Delhi',
+        city: 'Delhi',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    
+    const postedReq = getMockDb().requirements[res.body.data.requirement._id];
+    expect(postedReq.assignedVendorIds.map(id => id.toString())).toContain(vendor2Id);
+  });
 });

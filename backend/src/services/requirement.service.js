@@ -153,18 +153,28 @@ class RequirementService {
         const vSubcategoriesArray = Array.isArray(vp.subCategories) ? vp.subCategories.map(s => s.toLowerCase().trim()) : [];
 
         let subcategoryMatches = false;
-        if (vSubcategorySingle && (
-          vSubcategorySingle.includes(reqSubcategoryNormalized) ||
-          reqSubcategoryNormalized.includes(vSubcategorySingle.length > 2 ? vSubcategorySingle : 'xyz_no_match')
-        )) {
-          subcategoryMatches = true;
+        
+        // Split target subcategory by comma to support multi-select requirements
+        const reqSubcats = reqSubcategoryNormalized.split(',').map(s => s.trim()).filter(Boolean);
+        
+        if (reqSubcats.length > 0) {
+          subcategoryMatches = reqSubcats.some(reqSub => {
+            if (vSubcategorySingle && (
+              vSubcategorySingle.includes(reqSub) ||
+              reqSub.includes(vSubcategorySingle.length > 2 ? vSubcategorySingle : 'xyz_no_match')
+            )) {
+              return true;
+            }
+            if (vSubcategoriesArray.length > 0) {
+              return vSubcategoriesArray.some(vs =>
+                vs.includes(reqSub) ||
+                reqSub.includes(vs.length > 2 ? vs : 'xyz_no_match')
+              );
+            }
+            return false;
+          });
         }
-        if (!subcategoryMatches && vSubcategoriesArray.length > 0) {
-          subcategoryMatches = vSubcategoriesArray.some(vs =>
-            vs.includes(reqSubcategoryNormalized) ||
-            reqSubcategoryNormalized.includes(vs.length > 2 ? vs : 'xyz_no_match')
-          );
-        }
+
         // Only skip if vendor has subcategory data but doesn't match
         if ((vSubcategorySingle || vSubcategoriesArray.length > 0) && !subcategoryMatches) continue;
       }
