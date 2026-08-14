@@ -342,44 +342,54 @@ export default function CustomerHomePage() {
     }
   };
 
-  // Filter & Sort Logic for Reels & Images
-  const processedReels = useMemo(() => {
-    let result = [...reels];
+  // Unified Filter & Sort Logic for Combined Feed (Instagram-style)
+  const processedCombinedFeed = useMemo(() => {
+    let result = [...combinedFeed];
 
     // 1. Search Query
     if (filters.searchQuery.trim()) {
       const q = filters.searchQuery.toLowerCase();
-      result = result.filter((r) =>
-        (r.caption && r.caption.toLowerCase().includes(q)) ||
-        (r.creator?.name && r.creator.name.toLowerCase().includes(q)) ||
-        (r.location?.address && r.location.address.toLowerCase().includes(q)) ||
-        (r.hashtags && r.hashtags.some((h) => h.toLowerCase().includes(q)))
-      );
-    }
-
-    // 2. Type Filter (Product Reel, Service Reel, Offer Reel, Announcement, Shop promotion)
-    if (filters.type !== 'all') {
-      const targetType = filters.type.toLowerCase();
-      result = result.filter((r) => {
-        const rType = (r.reelType || r.type || r.category || '').toLowerCase();
-        const rCaption = (r.caption || '').toLowerCase();
-        return rType.includes(targetType) || rCaption.includes(targetType);
+      result = result.filter((item) => {
+        if (item.postType === 'reel') {
+          return (
+            (item.caption && item.caption.toLowerCase().includes(q)) ||
+            (item.creator?.name && item.creator.name.toLowerCase().includes(q)) ||
+            (item.location?.address && item.location.address.toLowerCase().includes(q)) ||
+            (item.hashtags && item.hashtags.some((h) => h.toLowerCase().includes(q)))
+          );
+        } else {
+          return (
+            (item.title && item.title.toLowerCase().includes(q)) ||
+            (item.description && item.description.toLowerCase().includes(q)) ||
+            (item.category && item.category.toLowerCase().includes(q)) ||
+            (item.vendor?.name && item.vendor.name.toLowerCase().includes(q))
+          );
+        }
       });
     }
 
-    // 3. Duration Filter (Under 15 sec, Under 30 sec)
-    if (filters.duration === 'under15') {
-      result = result.filter((r) => !r.duration || r.duration <= 15);
-    } else if (filters.duration === 'under30') {
-      result = result.filter((r) => !r.duration || r.duration <= 30);
+    // 2. Type Filter (Product, Service, etc.)
+    if (filters.type !== 'all') {
+      const targetType = filters.type.toLowerCase();
+      result = result.filter((item) => {
+        if (item.postType === 'reel') {
+          const rType = (item.reelType || item.type || item.category || '').toLowerCase();
+          const rCaption = (item.caption || '').toLowerCase();
+          return rType.includes(targetType) || rCaption.includes(targetType);
+        } else {
+          const itemType = (item.type || item.category || '').toLowerCase();
+          return itemType.includes(targetType);
+        }
+      });
     }
 
-    // 4. Upload Date Filter (Today, This Week, This Month)
+    // 3. Upload Date Filter
     if (filters.uploadDate !== 'all') {
       const now = new Date();
-      result = result.filter((r) => {
-        if (!r.createdAt) return true;
-        const created = new Date(r.createdAt);
+      result = result.filter((item) => {
+        const dateKey = item.createdAt || item.created_at;
+        if (!dateKey) return true;
+        const created = new Date(dateKey);
         const diffHours = (now - created) / (1000 * 60 * 60);
         if (filters.uploadDate === 'today') return diffHours <= 24;
         if (filters.uploadDate === 'this_week') return diffHours <= 24 * 7;
@@ -388,16 +398,13 @@ export default function CustomerHomePage() {
       });
     }
 
-    // 5. Popularity / Sort (Most Viewed, Most Liked, Most Shared, Most Saved, Trending)
+    // 4. Popularity / Sort
     switch (filters.popularity) {
       case 'most_viewed':
         result.sort((a, b) => (b.views || 0) - (a.views || 0));
         break;
       case 'most_liked':
         result.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
-        break;
-      case 'most_shared':
-        result.sort((a, b) => (b.sharesCount || b.shares || 0) - (a.sharesCount || a.shares || 0));
         break;
       case 'most_saved':
         result.sort((a, b) => (b.savesCount || b.saves || 0) - (a.savesCount || a.saves || 0));
@@ -407,55 +414,23 @@ export default function CustomerHomePage() {
         result.sort((a, b) => {
           if (a.isBoosted && !b.isBoosted) return -1;
           if (!a.isBoosted && b.isBoosted) return 1;
-          return (b.likesCount || 0) + (b.views || 0) - ((a.likesCount || 0) + (a.views || 0));
+          const popA = (a.likesCount || 0) + (a.views || 0);
+          const popB = (b.likesCount || 0) + (b.views || 0);
+          return popB - popA;
         });
         break;
     }
 
     return result;
-  }, [reels, filters]);
+  }, [combinedFeed, filters]);
+
+  const processedReels = useMemo(() => {
+    return processedCombinedFeed.filter(item => item.postType === 'reel');
+  }, [processedCombinedFeed]);
 
   const processedImages = useMemo(() => {
-    let result = [...images];
-
-    // 1. Search Query
-    if (filters.searchQuery.trim()) {
-      const q = filters.searchQuery.toLowerCase();
-      result = result.filter((img) =>
-        (img.title && img.title.toLowerCase().includes(q)) ||
-        (img.description && img.description.toLowerCase().includes(q)) ||
-        (img.category && img.category.toLowerCase().includes(q))
-      );
-    }
-
-    // 2. Type Filter
-    if (filters.type !== 'all') {
-      const targetType = filters.type.toLowerCase();
-      result = result.filter((img) => {
-        const itemType = (img.type || img.category || '').toLowerCase();
-        return itemType.includes(targetType);
-      });
-    }
-
-    // 3. Popularity Sort
-    switch (filters.popularity) {
-      case 'most_viewed':
-        result.sort((a, b) => (b.views || 0) - (a.views || 0));
-        break;
-      case 'most_liked':
-        result.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
-        break;
-      case 'most_saved':
-        result.sort((a, b) => (b.savesCount || 0) - (a.savesCount || 0));
-        break;
-      case 'trending':
-      default:
-        result.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
-        break;
-    }
-
-    return result;
-  }, [images, filters]);
+    return processedCombinedFeed.filter(item => item.postType !== 'reel');
+  }, [processedCombinedFeed]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -464,53 +439,11 @@ export default function CustomerHomePage() {
         filters={filters}
         onFilterChange={setFilters}
         onSearch={fetchFeedData}
-        totalResults={
-          activeTab === 'reels'
-            ? processedReels.length
-            : activeTab === 'images'
-            ? processedImages.length
-            : combinedFeed.length
-        }
+        totalResults={processedCombinedFeed.length}
       />
 
       {/* Active Special Offers & Deals */}
       <ActiveOffersPanel role="customer" />
-
-      {/* Navigation Tabs */}
-      <div className="flex justify-center border-b border-border">
-        <button
-          onClick={() => setActiveTab('combined')}
-          className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${activeTab === 'combined'
-            ? 'border-brand-purple text-brand-purple'
-            : 'border-transparent text-text-tertiary hover:text-text-primary'
-            }`}
-        >
-          <FiLayers size={16} />
-          <span>Combined Feed</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('reels')}
-          className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${activeTab === 'reels'
-            ? 'border-brand-purple text-brand-purple'
-            : 'border-transparent text-text-tertiary hover:text-text-primary'
-            }`}
-        >
-          <FiPlay size={16} />
-          <span>Video Reels</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('images')}
-          className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${activeTab === 'images'
-            ? 'border-brand-purple text-brand-purple'
-            : 'border-transparent text-text-tertiary hover:text-text-primary'
-            }`}
-        >
-          <FiBookmark size={16} />
-          <span>Image Listings</span>
-        </button>
-      </div>
 
       {/* Feed Contents */}
       {loading ? (
@@ -519,13 +452,13 @@ export default function CustomerHomePage() {
           <p className="text-xs font-medium">Loading feed...</p>
         </div>
       ) : activeTab === 'combined' ? (
-        combinedFeed.length === 0 ? (
+        processedCombinedFeed.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
             No combined posts match your filter criteria.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            {combinedFeed.map((item) => {
+            {processedCombinedFeed.map((item) => {
               const isLiked = likedMap[item._id || item.id];
               const isSaved = savedMap[item._id || item.id];
               const itemId = item._id || item.id;
