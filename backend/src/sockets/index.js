@@ -12,7 +12,7 @@ let ioInstance = null;
 const initSockets = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: config.clientUrl,
+      origin: (origin, callback) => callback(null, true),
       credentials: true,
       methods: ['GET', 'POST'],
     },

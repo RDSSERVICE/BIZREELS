@@ -1,6 +1,12 @@
 # Complete API Documentation Specification
 ## BizReels REST API v1 & Sockets Protocol
 
+> [!TIP]
+> **Interactive Swagger UI Documentation**:  
+> View and test all backend endpoints interactively in your browser at [http://localhost:5000/api-docs](http://localhost:5000/api-docs) (or [http://localhost:5000/docs](http://localhost:5000/docs)).  
+> Raw OpenAPI 3.0 specification JSON is available at `/api-docs.json`.  
+> For comprehensive architectural analysis and schema breakdown, see [SWAGGER_DOCUMENTATION.md](file:///home/rajeshh/Desktop/bizreels/BIZREELS/docs/SWAGGER_DOCUMENTATION.md).
+
 ---
 
 ## 1. Authentication Domain

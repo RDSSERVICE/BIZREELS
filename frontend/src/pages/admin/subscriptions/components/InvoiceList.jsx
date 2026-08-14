@@ -4,7 +4,9 @@ import { toast } from 'react-hot-toast';
 import { useListSubscriptionInvoicesQuery } from '../../../../features/admin/adminApi';
 import AdminStatusBadge from '../../../../features/admin/components/AdminStatusBadge';
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api/v1';
+import API_CONFIG from '../../../../config';
+
+const API_URL = API_CONFIG.BASE_URL;
 
 export default function InvoiceList() {
   const [page, setPage] = useState(1);

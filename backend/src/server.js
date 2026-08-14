@@ -79,6 +79,10 @@ const startServer = async () => {
 
     // Start listening on 0.0.0.0 for universal local interface connectivity
     server.listen(currentPort, '0.0.0.0', () => {
+      // Start automatic 30s self-ping to prevent Render server sleep
+      const { startKeepAlive } = require('./services/keepalive.service');
+      startKeepAlive(30000);
+
       logger.info(`
   ╔══════════════════════════════════════════════╗
   ║   🎬 BizReels API Server                    ║
