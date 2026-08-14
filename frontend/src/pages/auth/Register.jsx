@@ -23,7 +23,7 @@ const Register = () => {
   const refCodeFromUrl = searchParams.get('ref') || '';
 
   const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm({
-    defaultValues: { name: '', email: '', password: '', confirmPassword: '', role: 'customer', referralCode: refCodeFromUrl }
+    defaultValues: { name: '', email: '', phone: '', password: '', confirmPassword: '', role: 'customer', referralCode: refCodeFromUrl }
   });
 
   useEffect(() => {
@@ -36,9 +36,16 @@ const Register = () => {
 
   const onSubmit = async (data) => {
     try {
+      // Format phone: prepend +91 if user entered 10 digits
+      let phone = (data.phone || '').replace(/\s+/g, '');
+      if (phone && !phone.startsWith('+')) {
+        phone = `+91${phone}`;
+      }
+
       const res = await registerUser({
         name: data.name,
         email: data.email,
+        phone: phone || undefined,
         password: data.password,
         role: data.role,
         referralCode: data.referralCode
@@ -95,6 +102,36 @@ const Register = () => {
             pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' }
           })}
         />
+
+        {/* Mobile Number Field */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold tracking-wide text-brand-navy uppercase">
+            Mobile Number
+          </label>
+          <div className="flex gap-2">
+            <div className="flex items-center justify-center px-3 py-3 text-sm font-bold text-brand-navy bg-surface-tertiary border border-border rounded-premium min-w-[56px]">
+              +91
+            </div>
+            <input
+              type="tel"
+              placeholder="9876543210"
+              {...register('phone', {
+                pattern: {
+                  value: /^[6-9]\d{9}$/,
+                  message: 'Enter a valid 10-digit Indian mobile number.'
+                }
+              })}
+              className={`flex-1 px-4 py-3 text-sm transition-all duration-300 border rounded-premium bg-surface/50 text-brand-navy focus:outline-none focus:bg-surface focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple placeholder-text-tertiary ${
+                errors.phone ? 'border-error focus:border-error focus:ring-error/20' : 'border-border hover:border-brand-purple/40'
+              }`}
+              maxLength={10}
+            />
+          </div>
+          {errors.phone && (
+            <span className="text-xs font-medium text-error animate-slide-down">{errors.phone.message}</span>
+          )}
+          <span className="text-[10px] text-text-tertiary">Optional — can be used for OTP login later</span>
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold tracking-wide text-brand-navy uppercase">

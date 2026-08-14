@@ -355,4 +355,25 @@ router.post('/generate-reel', requireAuth, requireVendor, catchAsync(async (req,
   res.json(result);
 }));
 
+router.post('/generate-specifications', requireAuth, catchAsync(async (req, res) => {
+  const { title, category, subcategory, requirementType, budget_min, budget_max, otherConditions } = req.body;
+  if (!title || title.trim().length < 3) {
+    throw ApiError.badRequest('Title must be at least 3 characters');
+  }
+
+  enforceRateLimit(req.user._id.toString(), 'gen-specs', AI_RATE_LIMIT);
+
+  const result = await aiService.generateSpecifications(
+    String(title).trim(),
+    category ? String(category).trim() : 'General',
+    subcategory ? String(subcategory).trim() : '',
+    requirementType || 'product',
+    budget_min ? Number(budget_min) : null,
+    budget_max ? Number(budget_max) : null,
+    otherConditions ? String(otherConditions).trim() : ''
+  );
+
+  res.json(result);
+}));
+
 module.exports = router;

@@ -12,7 +12,7 @@ import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 import { useAuth } from '../../../context/AuthContext';
-import { useGetVendorLeadsQuery } from '../../../features/vendor/vendorApi';
+import { useGetVendorLeadsQuery, useGetVendorWalletQuery } from '../../../features/vendor/vendorApi';
 import {
   useGetRequirementsQuery,
   useSubmitQuoteMutation,
@@ -33,11 +33,26 @@ export default function VendorLeadsPage() {
   // Leads & Enquiries Queries
   const { data: leadsData, isFetching: isLeadsFetching } = useGetVendorLeadsQuery(undefined, { pollingInterval: 300000 });
   
+  // Filters & sorting for Leads
+  const [distanceKm, setDistanceKm] = useState('50');
+  const [sortBy, setSortBy] = useState('distance');
+
   // Assigned Requirements Queries (role-aware: vendor gets assigned matches)
   const { data: reqsData, isFetching: isReqsFetching, refetch: refetchReqs } = useGetRequirementsQuery(
-    { limit: 100 },
+    {
+      limit: 100,
+      lat: user?.location?.coordinates?.[1] || undefined,
+      lng: user?.location?.coordinates?.[0] || undefined,
+      distance: distanceKm !== 'any' ? distanceKm : undefined,
+      sortBy: sortBy,
+    },
     { pollingInterval: 300000 }
   );
+
+  // Vendor Wallet credits check
+  const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, { skip: !proposalReq });
+  const vendorWallet = walletData?.data || walletData || {};
+  const currentCredits = vendorWallet.credits !== undefined ? vendorWallet.credits : (vendorWallet.walletBalance || 0);
 
   const [submitQuote, { isLoading: isSubmittingQuote }] = useSubmitQuoteMutation();
 
@@ -191,6 +206,11 @@ export default function VendorLeadsPage() {
       return;
     }
 
+    if (currentCredits < 5) {
+      toast.error('Insufficient credits! Please recharge your wallet.');
+      return;
+    }
+
     try {
       const payload = {
         requirementId: proposalReq._id || proposalReq.id,
@@ -206,6 +226,7 @@ export default function VendorLeadsPage() {
       toast.success('Proposal submitted successfully! Buyer notified.');
       setProposalReq(null);
       refetchReqs();
+      if (typeof refetchWallet === 'function') refetchWallet();
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to submit proposal');
     }
@@ -337,14 +358,47 @@ export default function VendorLeadsPage() {
         )}
 
         {activeTab === 'requirement-matches' && !isReqsFetching && (
-          requirementMatches.length === 0 ? (
-            <div className="py-12 text-center text-xs text-text-tertiary space-y-2">
-              <FiInbox size={32} className="mx-auto text-brand-purple opacity-50" />
-              <p className="font-bold text-text-primary text-sm">No matched requirements found</p>
-              <p className="max-w-xs mx-auto">Requirements matching your business category and service areas will automatically appear here.</p>
+          <div className="space-y-4">
+            {/* Proximity & Sort Filter Panel */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 bg-surface-secondary/40 p-3 rounded-xl border border-border text-xs">
+              <div className="flex items-center gap-2 font-semibold text-text-secondary w-full sm:w-auto">
+                <span>Distance Filter:</span>
+                <select
+                  value={distanceKm}
+                  onChange={(e) => setDistanceKm(e.target.value)}
+                  className="bg-surface border border-border rounded-lg px-2.5 py-1 text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                >
+                  <option value="10">Within 10 km</option>
+                  <option value="25">Within 25 km</option>
+                  <option value="50">Within 50 km</option>
+                  <option value="100">Within 100 km</option>
+                  <option value="any">Any distance</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 font-semibold text-text-secondary w-full sm:w-auto sm:ml-auto">
+                <span>Sort By:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-surface border border-border rounded-lg px-2.5 py-1 text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                >
+                  <option value="distance">Proximity (Nearest first)</option>
+                  <option value="latest">Latest Posted</option>
+                  <option value="budget_high_low">Budget: High → Low</option>
+                  <option value="budget_low_high">Budget: Low → High</option>
+                </select>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
+
+            {requirementMatches.length === 0 ? (
+              <div className="py-12 text-center text-xs text-text-tertiary space-y-2">
+                <FiInbox size={32} className="mx-auto text-brand-purple opacity-50" />
+                <p className="font-bold text-text-primary text-sm">No matched requirements found</p>
+                <p className="max-w-xs mx-auto">Requirements matching your business category and service areas will automatically appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
               {requirementMatches.map((m) => {
                 const reqId = m._id || m.id;
                 const location = m.location || {};
@@ -385,7 +439,11 @@ export default function VendorLeadsPage() {
 
                       <div className="shrink-0 flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2">
                         <span className="text-xs font-black text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                          Budget: ₹{(m.budget || 0).toLocaleString('en-IN')}
+                          Budget: {m.budget_min || m.budget_max ? (
+                            `₹${(m.budget_min || 0).toLocaleString('en-IN')} - ₹${(m.budget_max || 0).toLocaleString('en-IN')}`
+                          ) : (
+                            `₹${(m.budget || 0).toLocaleString('en-IN')}`
+                          )}
                         </span>
                         <span className="text-[10px] text-text-tertiary block mt-1">
                           {m.type === 'service' || m.requirementType === 'service' ? 'Service Scope' : 'Requested Qty'}: <strong>{m.quantity || 1} {m.type === 'service' || m.requirementType === 'service' ? 'deliverables/days' : 'units'}</strong>
@@ -397,6 +455,9 @@ export default function VendorLeadsPage() {
                       <div className="flex flex-wrap items-center gap-4">
                         <span className="flex items-center gap-1">
                           <FiMapPin className="text-brand-orange" /> {locationText}
+                          {m.distance !== undefined && (
+                            <span className="font-bold text-brand-purple">({(m.distance / 1000).toFixed(1)} km away)</span>
+                          )}
                         </span>
                         <span className="flex items-center gap-1">
                           <FiClock /> {renderCountdown(m.expires_at || m.deadline)}
@@ -447,7 +508,8 @@ export default function VendorLeadsPage() {
                 );
               })}
             </div>
-          )
+          )}
+          </div>
         )}
       </div>
 
@@ -472,7 +534,29 @@ export default function VendorLeadsPage() {
                 <span className="text-text-tertiary">Customer City:</span>
                 <strong className="text-text-primary">{displayProposalReq.location?.city || 'Local'}</strong>
               </div>
+              <div className="border-t border-border/50 pt-2 mt-2 space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-text-tertiary">Your Credit Balance:</span>
+                  <strong className={`font-bold ${currentCredits < 5 ? 'text-error' : 'text-emerald-600'}`}>
+                    {currentCredits} Credits
+                  </strong>
+                </div>
+                <div className="flex justify-between text-text-secondary text-[11px]">
+                  <span>Submission Cost:</span>
+                  <strong className="text-error">-5 Credits</strong>
+                </div>
+              </div>
             </div>
+
+            {currentCredits < 5 && (
+              <div className="bg-error/10 border border-error/20 rounded-xl p-3 text-error flex items-start gap-2 text-xs font-semibold">
+                <span className="mt-0.5">⚠️</span>
+                <div>
+                  <strong className="block text-error font-bold">Insufficient Credits</strong>
+                  You do not have enough credits to submit a proposal. Please recharge your wallet balance.
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Your Price Quotation (₹) *</label>
@@ -532,8 +616,10 @@ export default function VendorLeadsPage() {
               </button>
               <button
                 type="submit"
-                disabled={isSubmittingQuote}
-                className="px-5 py-2 gradient-brand text-white font-bold rounded-xl shadow-premium hover:opacity-90 transition"
+                disabled={isSubmittingQuote || currentCredits < 5}
+                className={`px-5 py-2 gradient-brand text-white font-bold rounded-xl shadow-premium transition ${
+                  currentCredits < 5 ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+                }`}
               >
                 {isSubmittingQuote ? 'Submitting proposal...' : 'Submit Proposal Now'}
               </button>
@@ -561,7 +647,13 @@ export default function VendorLeadsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="p-3 bg-surface border border-border rounded-xl">
                 <span className="text-text-tertiary block mb-0.5">Budget Allocation</span>
-                <strong className="text-brand-purple text-sm">₹{(displayReq.budget || 0).toLocaleString('en-IN')}</strong>
+                <strong className="text-brand-purple text-sm">
+                  {displayReq.budget_min || displayReq.budget_max ? (
+                    `₹${(displayReq.budget_min || 0).toLocaleString('en-IN')} - ₹${(displayReq.budget_max || 0).toLocaleString('en-IN')}`
+                  ) : (
+                    `₹${(displayReq.budget || 0).toLocaleString('en-IN')}`
+                  )}
+                </strong>
               </div>
               <div className="p-3 bg-surface border border-border rounded-xl">
                 <span className="text-text-tertiary block mb-0.5">
@@ -584,6 +676,51 @@ export default function VendorLeadsPage() {
                 <strong className="text-text-primary text-sm capitalize">{displayReq.type || 'product'} — {displayReq.category}</strong>
               </div>
             </div>
+
+            {/* Extended Details */}
+            {(displayReq.detailedSpecifications || displayReq.address || displayReq.expectedDeliveryDate || displayReq.productCondition || displayReq.serviceModel) && (
+              <div className="p-4 bg-surface border border-border rounded-xl space-y-2.5">
+                <h5 className="font-bold text-brand-navy">Detailed Requirements</h5>
+                {displayReq.detailedSpecifications && (
+                  <div>
+                    <span className="text-text-tertiary block mb-0.5">Specifications:</span>
+                    <p className="text-text-secondary leading-relaxed bg-surface-secondary p-2.5 rounded-lg whitespace-pre-wrap font-mono">{displayReq.detailedSpecifications}</p>
+                  </div>
+                )}
+                {displayReq.address && (
+                  <div>
+                    <span className="text-text-tertiary">Venue Address:</span>{' '}
+                    <strong className="text-text-primary">{displayReq.address}</strong>
+                  </div>
+                )}
+                {displayReq.expectedDeliveryDate && (
+                  <div className="flex gap-4 text-text-primary">
+                    <div>
+                      <span className="text-text-tertiary">Fulfillment Date:</span>{' '}
+                      <strong>{new Date(displayReq.expectedDeliveryDate).toLocaleDateString('en-IN')}</strong>
+                    </div>
+                    {displayReq.expectedDeliveryTime && (
+                      <div>
+                        <span className="text-text-tertiary">Preferred Time:</span>{' '}
+                        <strong>{displayReq.expectedDeliveryTime}</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {displayReq.productCondition && (
+                  <div>
+                    <span className="text-text-tertiary">Condition Preference:</span>{' '}
+                    <strong className="capitalize">{displayReq.productCondition === 'other' ? displayReq.customProductCondition || 'Other' : displayReq.productCondition}</strong>
+                  </div>
+                )}
+                {displayReq.serviceModel && (
+                  <div>
+                    <span className="text-text-tertiary">Service Model:</span>{' '}
+                    <strong className="capitalize">{displayReq.serviceModel === 'other' ? displayReq.customServiceModel || 'Other' : displayReq.serviceModel}</strong>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Media Attachments for Vendor */}
             {((displayReq.photos && displayReq.photos.length > 0) || displayReq.video) && (

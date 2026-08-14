@@ -203,6 +203,26 @@ const adminApi = apiSlice.injectEndpoints({
       query: (params = {}) => ({ url: '/admin/requirements', params }),
       providesTags: ['Requirements'],
     }),
+    approveRequirement: builder.mutation({
+      query: (id) => ({ url: `/admin/requirements/${id}/approve`, method: 'POST' }),
+      invalidatesTags: ['Requirements', 'AdminOverview'],
+    }),
+    rejectRequirement: builder.mutation({
+      query: ({ id, reason }) => ({ url: `/admin/requirements/${id}/reject`, method: 'POST', body: { reason } }),
+      invalidatesTags: ['Requirements', 'AdminOverview'],
+    }),
+    listCategoryRequests: builder.query({
+      query: () => '/admin/category-requests',
+      providesTags: ['CategoryRequests'],
+    }),
+    approveCategoryRequest: builder.mutation({
+      query: (id) => ({ url: `/admin/category-requests/${id}/approve`, method: 'POST' }),
+      invalidatesTags: ['CategoryRequests', 'Categories', 'Requirements', 'AdminOverview'],
+    }),
+    rejectCategoryRequest: builder.mutation({
+      query: ({ id, notes }) => ({ url: `/admin/category-requests/${id}/reject`, method: 'POST', body: { notes } }),
+      invalidatesTags: ['CategoryRequests'],
+    }),
 
     // ---- Wallet Management (Complete Module) ----
     getWalletStats: builder.query({
@@ -621,6 +641,11 @@ export const {
   useListLocationsQuery,
   useCreateLocationMutation,
   useListAdminRequirementsQuery,
+  useApproveRequirementMutation,
+  useRejectRequirementMutation,
+  useListCategoryRequestsQuery,
+  useApproveCategoryRequestMutation,
+  useRejectCategoryRequestMutation,
   useManualCreditWalletMutation,
   useManualDebitWalletMutation,
   useGetWalletStatsQuery,

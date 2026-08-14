@@ -326,12 +326,22 @@ const Login = () => {
       </Button>
 
       {/* Footer Nav */}
-      <p className="text-center text-xs font-semibold text-text-secondary mt-4">
-        New to BizReels?{' '}
-        <Link to="/auth/register" className="font-bold text-brand-purple hover:underline">
-          Create Account
-        </Link>
-      </p>
+      <div className="text-center text-xs font-semibold text-text-secondary mt-4 space-y-2">
+        <p>
+          New to BizReels?{' '}
+          <Link to="/auth/register" className="font-bold text-brand-purple hover:underline">
+            Create Account
+          </Link>
+        </p>
+        <p className="text-text-tertiary">
+          Or sign in directly as:{' '}
+          <Link to="/auth/customer-login" className="font-bold text-brand-purple hover:underline">Customer</Link>
+          {' · '}
+          <Link to="/auth/vendor-login" className="font-bold text-brand-orange hover:underline">Vendor</Link>
+          {' · '}
+          <Link to="/auth/creator-login" className="font-bold text-pink-500 hover:underline">Creator</Link>
+        </p>
+      </div>
     </div>
   );
 };

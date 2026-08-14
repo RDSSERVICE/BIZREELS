@@ -25,4 +25,18 @@ router.post('/pincode-lookup', catchAsync(async (req, res) => {
   res.json(result);
 }));
 
+router.get('/states', catchAsync(async (req, res) => {
+  const result = await locationService.getStates();
+  res.json({ states: result });
+}));
+
+router.get('/districts', catchAsync(async (req, res) => {
+  const { state } = req.query;
+  if (!state) {
+    throw ApiError.badRequest('state query parameter is required');
+  }
+  const result = await locationService.getDistricts(state);
+  res.json({ districts: result });
+}));
+
 module.exports = router;

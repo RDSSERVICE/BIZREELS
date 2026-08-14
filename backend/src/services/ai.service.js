@@ -1408,6 +1408,53 @@ const generateAiReel = async (prompt) => {
   }
 };
 
+const generateSpecifications = async (title, category, subcategory, requirementType, budget_min, budget_max, otherConditions) => {
+  await ensureBudgetOrRaise(1000);
+  const started = Date.now();
+  const { model, provider } = resolveModel('title');
+
+  const prompt = `You are a helpful expert purchasing assistant.
+Generate a detailed list of specifications and technical requirements for a customer requirement.
+Please list specific options, requirements, technical specifications, and standards that local vendors should address in their quotes.
+Keep it extremely clean, formatted in Markdown, and ready to show to the customer.
+
+Input details:
+- Requirement Title: ${title}
+- Type: ${requirementType === 'product' ? 'Product' : 'Service'}
+- Category: ${category}${subcategory ? ' > ' + subcategory : ''}
+- Budget Range: ${budget_min && budget_max ? `₹${budget_min} to ₹${budget_max}` : 'Not Specified'}
+- Other custom requirements/conditions: ${otherConditions || 'None'}
+
+Response format:
+Respond in JSON format:
+{
+  "specifications": "markdown string of the detailed specifications"
+}`;
+
+  try {
+    const raw = await callGeminiAPI(
+      "You generate detailed technical and business specifications for buyer requirements in a marketplace.",
+      prompt,
+      'title'
+    );
+    const data = parseJsonStrict(raw);
+    const approxTokens = Math.max(200, Math.min(2000, Math.floor((prompt.length + raw.length) / 4)));
+    await recordTokens(approxTokens);
+
+    return {
+      ok: true,
+      specifications: data.specifications || "",
+    };
+  } catch (err) {
+    logger.warn(`AI specifications generation failed: ${err.message}`);
+    return {
+      ok: false,
+      error: err.message.slice(0, 400),
+      specifications: `**Technical Specifications for ${title}**\n\n- Standard ${requirementType === 'product' ? 'product' : 'service'} specifications apply.\n- Budget estimate: ${budget_min && budget_max ? `₹${budget_min} - ₹${budget_max}` : 'Flexible'}.`,
+    };
+  }
+};
+
 module.exports = {
   isConfigured,
   getUsageToday,
@@ -1424,4 +1471,5 @@ module.exports = {
   detectForbiddenContactDetails,
   generateAiImage,
   generateAiReel,
+  generateSpecifications,
 };

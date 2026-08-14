@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
   FiMapPin, FiSearch, FiSliders, FiPlay, FiVolume2, FiVolumeX, FiCheck,
-  FiChevronLeft, FiChevronRight, FiVideo, FiImage
+  FiChevronLeft, FiChevronRight, FiVideo, FiImage, FiMessageSquare, FiLayers
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
 import { getSocket } from '../../../lib/socket';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
 import CommentsDrawer from '../../../components/ui/CommentsDrawer';
+import ChatDrawer from '../../../components/ui/ChatDrawer';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import ReelFullscreenViewer from '../../../components/feed/ReelFullscreenViewer';
 import ImageFullscreenViewer from '../../../components/feed/ImageFullscreenViewer';
@@ -120,7 +121,8 @@ function CustomerReelMedia({ reel, muted, setMuted }) {
 
 export default function CustomerHomePage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('reels'); // 'reels' | 'images'
+  const [activeTab, setActiveTab] = useState('combined'); // 'combined' | 'reels' | 'images'
+  const [combinedFeed, setCombinedFeed] = useState([]);
   const [reels, setReels] = useState([]);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -130,6 +132,19 @@ export default function CustomerHomePage() {
   const [muted, setMuted] = useState(true);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [selectedReelId, setSelectedReelId] = useState(null);
+
+  // In-context Chat drawer state
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [chatDrawerRecipientId, setChatDrawerRecipientId] = useState(null);
+  const [chatDrawerRecipientName, setChatDrawerRecipientName] = useState('Vendor Partner');
+  const [chatDrawerRecipientAvatar, setChatDrawerRecipientAvatar] = useState(null);
+
+  const handleOpenChat = (recipientId, recipientName, recipientAvatar) => {
+    setChatDrawerRecipientId(recipientId);
+    setChatDrawerRecipientName(recipientName || 'Vendor Partner');
+    setChatDrawerRecipientAvatar(recipientAvatar);
+    setChatDrawerOpen(true);
+  };
 
   // Fullscreen viewer state
   const [reelViewerOpen, setReelViewerOpen] = useState(false);
@@ -184,7 +199,14 @@ export default function CustomerHomePage() {
   const fetchFeedData = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/v1/${activeTab === 'reels' ? 'reels' : 'listings'}`);
+      let endpoint = `/v1/listings`;
+      if (activeTab === 'reels') {
+        endpoint = `/v1/reels`;
+      } else if (activeTab === 'combined') {
+        endpoint = `/v1/feed?type=all`;
+      }
+      
+      const res = await api.get(endpoint);
       const data = res.data;
 
       if (activeTab === 'reels') {
@@ -198,7 +220,7 @@ export default function CustomerHomePage() {
                 ? data
                 : [];
         setReels(items);
-      } else {
+      } else if (activeTab === 'images') {
         const items = Array.isArray(data.data?.listings)
           ? data.data.listings
           : Array.isArray(data.data)
@@ -209,6 +231,17 @@ export default function CustomerHomePage() {
                 ? data
                 : [];
         setImages(items);
+      } else {
+        const items = Array.isArray(data.items)
+          ? data.items
+          : Array.isArray(data.data?.items)
+            ? data.data.items
+            : Array.isArray(data.data)
+              ? data.data
+              : Array.isArray(data)
+                ? data
+                : [];
+        setCombinedFeed(items);
       }
     } catch (err) {
       toast.error('Failed to load feed data');
@@ -217,11 +250,15 @@ export default function CustomerHomePage() {
     }
   };
 
-  const handleLike = async (id) => {
+  const handleLike = async (id, customPostType = null) => {
     const isLiked = !!likedMap[id];
     setLikedMap((prev) => ({ ...prev, [id]: !isLiked }));
     try {
-      if (activeTab === 'reels') {
+      const item = combinedFeed.find(x => x._id === id || x.id === id) ||
+                   reels.find(x => x._id === id || x.id === id) ||
+                   images.find(x => x._id === id || x.id === id);
+      const isReel = customPostType === 'reel' || (item?.postType === 'reel') || (activeTab === 'reels');
+      if (isReel) {
         await api.post(`/v1/reels/${id}/like`);
       } else {
         await api.post(`/v1/listings/${id}/like`);
@@ -233,11 +270,15 @@ export default function CustomerHomePage() {
     }
   };
 
-  const handleSave = async (id) => {
+  const handleSave = async (id, customPostType = null) => {
     const isSaved = !!savedMap[id];
     setSavedMap((prev) => ({ ...prev, [id]: !isSaved }));
     try {
-      if (activeTab === 'reels') {
+      const item = combinedFeed.find(x => x._id === id || x.id === id) ||
+                   reels.find(x => x._id === id || x.id === id) ||
+                   images.find(x => x._id === id || x.id === id);
+      const isReel = customPostType === 'reel' || (item?.postType === 'reel') || (activeTab === 'reels');
+      if (isReel) {
         if (isSaved) {
           await api.post(`/v1/reels/${id}/unsave`);
         } else {
@@ -423,14 +464,31 @@ export default function CustomerHomePage() {
         filters={filters}
         onFilterChange={setFilters}
         onSearch={fetchFeedData}
-        totalResults={activeTab === 'reels' ? processedReels.length : processedImages.length}
+        totalResults={
+          activeTab === 'reels'
+            ? processedReels.length
+            : activeTab === 'images'
+            ? processedImages.length
+            : combinedFeed.length
+        }
       />
 
       {/* Active Special Offers & Deals */}
       <ActiveOffersPanel role="customer" />
 
-      {/* Admin Tab Navigation */}
+      {/* Navigation Tabs */}
       <div className="flex justify-center border-b border-border">
+        <button
+          onClick={() => setActiveTab('combined')}
+          className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${activeTab === 'combined'
+            ? 'border-brand-purple text-brand-purple'
+            : 'border-transparent text-text-tertiary hover:text-text-primary'
+            }`}
+        >
+          <FiLayers size={16} />
+          <span>Combined Feed</span>
+        </button>
+
         <button
           onClick={() => setActiveTab('reels')}
           className={`flex items-center gap-2 px-6 py-3 font-bold text-xs border-b-2 transition ${activeTab === 'reels'
@@ -439,7 +497,7 @@ export default function CustomerHomePage() {
             }`}
         >
           <FiPlay size={16} />
-          <span>Reels Feed</span>
+          <span>Video Reels</span>
         </button>
 
         <button
@@ -450,7 +508,7 @@ export default function CustomerHomePage() {
             }`}
         >
           <FiBookmark size={16} />
-          <span>Image Feed</span>
+          <span>Image Listings</span>
         </button>
       </div>
 
@@ -460,6 +518,200 @@ export default function CustomerHomePage() {
           <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
           <p className="text-xs font-medium">Loading feed...</p>
         </div>
+      ) : activeTab === 'combined' ? (
+        combinedFeed.length === 0 ? (
+          <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
+            No combined posts match your filter criteria.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            {combinedFeed.map((item) => {
+              const isLiked = likedMap[item._id || item.id];
+              const isSaved = savedMap[item._id || item.id];
+              const itemId = item._id || item.id;
+
+              if (item.postType === 'reel') {
+                const isFollowing = followingMap[item.creator?._id || item.creator?.id || item.creator];
+                return (
+                  <div
+                    key={itemId}
+                    className="w-full glass border border-white/50 rounded-3xl overflow-hidden shadow-card relative self-stretch flex flex-col justify-between"
+                  >
+                    {/* Header */}
+                    <div className="p-3.5 flex items-center justify-between glass border-b border-border">
+                      <div
+                        onClick={() => navigate(`/customer/vendor/${item.creator?._id || item.creator?.id || item.creator}`)}
+                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+                      >
+                        <div className="w-9 h-9 rounded-full gradient-brand p-0.5">
+                          <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-xs font-bold text-text-primary">
+                            {item.creator?.name ? item.creator.name.charAt(0) : 'V'}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5 font-display">
+                            {item.creator?.name || 'Verified Creator'}
+                            <span className="bg-brand-purple/10 text-brand-purple text-[9px] px-1 rounded font-bold">Reel</span>
+                          </h4>
+                          <p className="text-[10px] text-text-tertiary flex items-center gap-1">
+                            <FiMapPin size={10} className="text-brand-orange" />
+                            {item.location?.address || 'Nearby'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleFollow(item.creator?._id || item.creator?.id || item.creator)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition ${isFollowing
+                          ? 'bg-surface-tertiary text-text-secondary border border-border'
+                          : 'gradient-brand text-white shadow-premium'
+                          }`}
+                      >
+                        {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
+                      </button>
+                    </div>
+
+                    {/* Reel Media */}
+                    <div
+                      onClick={() => {
+                        const idx = processedReels.findIndex(r => r._id === itemId || r.id === itemId);
+                        setReelViewerStartIndex(idx >= 0 ? idx : 0);
+                        setReelViewerOpen(true);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <CustomerReelMedia reel={item} muted={muted} setMuted={setMuted} />
+                    </div>
+
+                    {/* Action Bar */}
+                    <div className="p-4 glass space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => handleLike(itemId, 'reel')}
+                            className={`flex items-center gap-1.5 text-xs font-semibold transition ${isLiked ? 'text-brand-pink' : 'text-text-secondary hover:text-brand-pink'}`}
+                          >
+                            <FiHeart size={20} className={isLiked ? 'fill-brand-pink' : ''} />
+                            <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedReelId(itemId);
+                              setIsCommentsOpen(true);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-purple"
+                          >
+                            <FiMessageCircle size={20} />
+                            <span>{item.commentsCount || 0}</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenChat(
+                              item.creator?._id || item.creator?.id || item.creator,
+                              item.creator?.name,
+                              item.creator?.avatarUrl || item.creator?.profile_pic
+                            )}
+                            className="flex items-center gap-1.5 text-xs font-bold text-brand-purple hover:underline"
+                            title="Chat with Vendor"
+                          >
+                            <FiMessageSquare size={18} />
+                            <span>Chat</span>
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => handleSave(itemId, 'reel')}
+                          className={`transition ${isSaved ? 'text-brand-purple' : 'text-text-secondary hover:text-brand-purple'}`}
+                        >
+                          <FiBookmark size={20} className={isSaved ? 'fill-brand-purple' : ''} />
+                        </button>
+                      </div>
+                      <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 mt-1">{item.caption || item.description}</p>
+                    </div>
+                  </div>
+                );
+              } else {
+                // Listing card (Image/Products)
+                return (
+                  <div
+                    key={itemId}
+                    className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card cursor-pointer hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between self-stretch"
+                    onClick={() => {
+                      const idx = processedImages.findIndex(i => i._id === itemId || i.id === itemId);
+                      setImageViewerStartIndex(idx >= 0 ? idx : 0);
+                      setImageViewerOpen(true);
+                    }}
+                  >
+                    <div className="aspect-square bg-surface-tertiary relative overflow-hidden shrink-0">
+                      <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
+                      <div className="absolute top-3 right-3 glass px-3 py-1 rounded-full text-xs font-bold text-emerald-600 border border-border">
+                        ₹{item.price?.toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h4 className="font-bold text-sm text-text-primary font-display">{item.title}</h4>
+                        <p
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/customer/vendor/${item.vendor?._id || item.vendor?.id || item.vendor}`);
+                          }}
+                          className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition font-medium mt-1"
+                        >
+                          By {item.vendor?.name || 'Verified Vendor'}
+                        </p>
+                        {item.description && (
+                          <p className="text-xs text-text-secondary mt-1.5 line-clamp-2 leading-relaxed">{item.description}</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-border mt-3 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLike(itemId, 'listing');
+                          }}
+                          className={`flex items-center gap-1 text-xs ${isLiked ? 'text-brand-pink font-bold' : 'text-text-tertiary'}`}
+                        >
+                          <FiHeart size={16} className={isLiked ? 'fill-brand-pink' : ''} />
+                          <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenChat(
+                              item.vendor?._id || item.vendor?.id || item.vendor,
+                              item.vendor?.name,
+                              item.vendor?.avatarUrl || item.vendor?.profile_pic
+                            );
+                          }}
+                          className="text-xs text-brand-purple font-bold hover:underline flex items-center gap-1"
+                        >
+                          <FiMessageSquare size={14} />
+                          <span>Chat</span>
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSave(itemId, 'listing');
+                          }}
+                          className={`text-xs flex items-center gap-1 ${isSaved ? 'text-brand-purple font-bold' : 'text-text-tertiary'}`}
+                        >
+                          <FiBookmark size={16} className={isSaved ? 'fill-brand-purple' : ''} />
+                          <span>{isSaved ? 'Saved' : 'Save'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+            })}
+          </div>
+        )
       ) : activeTab === 'reels' ? (
         processedReels.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
@@ -528,7 +780,7 @@ export default function CustomerHomePage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <button
-                          onClick={() => handleLike(reel._id)}
+                          onClick={() => handleLike(reel._id, 'reel')}
                           className={`flex items-center gap-1.5 text-xs font-semibold transition ${isLiked ? 'text-brand-pink' : 'text-text-secondary hover:text-brand-pink'
                             }`}
                         >
@@ -548,15 +800,21 @@ export default function CustomerHomePage() {
                         </button>
 
                         <button
-                          onClick={() => handleShare(reel)}
-                          className="text-text-secondary hover:text-emerald-600 transition"
+                          onClick={() => handleOpenChat(
+                            reel.creator?._id || reel.creator,
+                            reel.creator?.name,
+                            reel.creator?.avatarUrl || reel.creator?.profile_pic
+                          )}
+                          className="flex items-center gap-1.5 text-xs font-bold text-brand-purple hover:underline"
+                          title="Chat with Vendor"
                         >
-                          <FiShare2 size={20} />
+                          <FiMessageSquare size={18} />
+                          <span>Chat</span>
                         </button>
                       </div>
 
                       <button
-                        onClick={() => handleSave(reel._id)}
+                        onClick={() => handleSave(reel._id, 'reel')}
                         className={`transition ${isSaved ? 'text-brand-purple' : 'text-text-secondary hover:text-brand-purple'}`}
                       >
                         <FiBookmark size={20} className={isSaved ? 'fill-brand-purple' : ''} />
@@ -583,7 +841,7 @@ export default function CustomerHomePage() {
               const isSaved = savedMap[item._id];
 
               return (
-                <div key={item._id} className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card cursor-pointer hover:-translate-y-1 transition-all duration-300"
+                <div key={item._id} className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card cursor-pointer hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
                   onClick={() => {
                     const idx = processedImages.findIndex(i => i._id === item._id);
                     setImageViewerStartIndex(idx >= 0 ? idx : 0);
@@ -600,7 +858,10 @@ export default function CustomerHomePage() {
                   <div className="p-4 space-y-2">
                     <h4 className="font-bold text-sm text-text-primary font-display">{item.title}</h4>
                     <p
-                      onClick={() => navigate(`/customer/vendor/${item.vendor?._id || item.vendor}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/customer/vendor/${item.vendor?._id || item.vendor}`);
+                      }}
                       className="text-xs text-text-tertiary hover:text-brand-purple cursor-pointer transition font-medium"
                     >
                       By {typeof item.vendor === 'object' && item.vendor?.name ? item.vendor.name : 'Verified Vendor'}
@@ -608,7 +869,10 @@ export default function CustomerHomePage() {
 
                     <div className="flex items-center justify-between pt-2 border-t border-border">
                       <button
-                        onClick={() => handleLike(item._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLike(item._id, 'listing');
+                        }}
                         className={`flex items-center gap-1 text-xs ${isLiked ? 'text-brand-pink font-bold' : 'text-text-tertiary'}`}
                       >
                         <FiHeart size={16} className={isLiked ? 'fill-brand-pink' : ''} />
@@ -616,7 +880,25 @@ export default function CustomerHomePage() {
                       </button>
 
                       <button
-                        onClick={() => handleSave(item._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenChat(
+                            item.vendor?._id || item.vendor?.id || item.vendor,
+                            item.vendor?.name,
+                            item.vendor?.avatarUrl || item.vendor?.profile_pic
+                          );
+                        }}
+                        className="text-xs text-brand-purple font-bold hover:underline flex items-center gap-1"
+                      >
+                        <FiMessageSquare size={14} />
+                        <span>Chat</span>
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSave(item._id, 'listing');
+                        }}
                         className={`text-xs flex items-center gap-1 ${isSaved ? 'text-brand-purple font-bold' : 'text-text-tertiary'}`}
                       >
                         <FiBookmark size={16} className={isSaved ? 'fill-brand-purple' : ''} />
@@ -634,6 +916,14 @@ export default function CustomerHomePage() {
         isOpen={isCommentsOpen}
         onClose={() => setIsCommentsOpen(false)}
         reelId={selectedReelId}
+      />
+
+      <ChatDrawer
+        isOpen={chatDrawerOpen}
+        onClose={() => setChatDrawerOpen(false)}
+        recipientId={chatDrawerRecipientId}
+        recipientName={chatDrawerRecipientName}
+        recipientAvatar={chatDrawerRecipientAvatar}
       />
 
       {/* Fullscreen Reel Viewer */}

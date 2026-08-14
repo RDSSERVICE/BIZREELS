@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  FiShoppingBag, FiDollarSign, FiMapPin, FiUpload, FiImage, FiVideo, FiX, FiTarget, FiAlertCircle
+  FiShoppingBag, FiDollarSign, FiMapPin, FiUpload, FiImage, FiVideo, FiX, FiTarget, FiAlertCircle, FiCpu
 } from 'react-icons/fi';
 
 const DISTANCE_OPTIONS = [
@@ -18,19 +18,30 @@ export default function ProductRequirementForm({
   title, setTitle,
   category, setCategory,
   subcategory, setSubcategory,
-  budget, setBudget,
+  budgetMin, setBudgetMin,
+  budgetMax, setBudgetMax,
   quantity, setQuantity,
   state, setState,
   district, setDistrict,
   city, setCity,
   pincode, setPincode,
+  address, setAddress,
   targetDistance, setTargetDistance,
   description, setDescription,
+  detailedSpecifications, setDetailedSpecifications,
+  isGeneratingSpecs, handleGenerateSpecs,
+  expectedDeliveryDate, setExpectedDeliveryDate,
+  expectedDeliveryTime, setExpectedDeliveryTime,
+  productCondition, setProductCondition,
+  customProductCondition, setCustomProductCondition,
+  customCategory, setCustomCategory,
+  customSubcategory, setCustomSubcategory,
   otherConditions, setOtherConditions,
   photos, video, uploading,
   handleImageUpload, handleVideoUpload, removePhoto, setVideo,
   resolveMediaUrl, categories, subcategories = [],
-  isLoading, onSubmit
+  isLoading, statesList = [], districtsList = [], handlePincodeChange,
+  onSubmit
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
@@ -56,6 +67,7 @@ export default function ProductRequirementForm({
             onChange={(e) => {
               setCategory(e.target.value);
               setSubcategory(''); // Reset subcategory when category changes
+              setCustomCategory('');
             }}
             className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           >
@@ -64,14 +76,28 @@ export default function ProductRequirementForm({
                 {cat.name}
               </option>
             ))}
+            <option value="Other">Other (Request Admin Approval)</option>
           </select>
+          {category === 'Other' && (
+            <input
+              type="text"
+              required
+              placeholder="Specify custom category name"
+              value={customCategory}
+              onChange={(e) => setCustomCategory(e.target.value)}
+              className="w-full px-4 py-2 mt-2 bg-surface border border-brand-purple/40 rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple animate-fade-in"
+            />
+          )}
         </div>
 
         <div>
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Subcategory</label>
           <select
             value={subcategory}
-            onChange={(e) => setSubcategory(e.target.value)}
+            onChange={(e) => {
+              setSubcategory(e.target.value);
+              setCustomSubcategory('');
+            }}
             className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           >
             <option value="">Select Subcategory</option>
@@ -80,11 +106,22 @@ export default function ProductRequirementForm({
                 {sub.name}
               </option>
             ))}
+            <option value="Other">Other (Request Admin Approval)</option>
           </select>
+          {subcategory === 'Other' && (
+            <input
+              type="text"
+              required
+              placeholder="Specify custom subcategory name"
+              value={customSubcategory}
+              onChange={(e) => setCustomSubcategory(e.target.value)}
+              className="w-full px-4 py-2 mt-2 bg-surface border border-brand-purple/40 rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple animate-fade-in"
+            />
+          )}
         </div>
       </div>
 
-      {/* Sample Image/Video Upload */}
+      {/* Reference Media Upload */}
       <div>
         <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">
           <FiImage className="inline mr-1" size={12} />
@@ -153,25 +190,38 @@ export default function ProductRequirementForm({
         </div>
       </div>
 
-      {/* Approximate Budget & Quantity */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Budget Range & Quantity */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Estimated Budget (₹) *</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Min Budget (₹)</label>
           <div className="relative">
-            <FiDollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
+            <FiDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={14} />
             <input
               type="number"
-              required
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-              placeholder="e.g. 50000"
-              className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+              value={budgetMin}
+              onChange={(e) => setBudgetMin(e.target.value)}
+              placeholder="e.g. 8000"
+              className="w-full pl-8 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
             />
           </div>
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Required Quantity (Units) *</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Max Budget (₹)</label>
+          <div className="relative">
+            <FiDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={14} />
+            <input
+              type="number"
+              value={budgetMax}
+              onChange={(e) => setBudgetMax(e.target.value)}
+              placeholder="e.g. 15000"
+              className="w-full pl-8 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Quantity Required *</label>
           <input
             type="number"
             required
@@ -193,43 +243,70 @@ export default function ProductRequirementForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State</label>
-            <div className="relative">
-              <FiMapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-purple" size={14} />
-              <input
-                type="text"
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State *</label>
+            {statesList.length > 0 ? (
+              <select
+                required
                 value={state}
-                onChange={(e) => setState(e.target.value)}
-                placeholder="e.g. Punjab"
-                className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District</label>
-            <input
-              type="text"
-              value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              placeholder="e.g. Kapurthala"
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City *</label>
-            <div className="relative">
-              <FiMapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-orange" size={14} />
+                onChange={(e) => {
+                  setState(e.target.value);
+                  setDistrict('');
+                }}
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+              >
+                <option value="">Select State</option>
+                {statesList.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            ) : (
               <input
                 type="text"
                 required
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Phagwara"
-                className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder="e.g. Maharashtra"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
-            </div>
+            )}
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District *</label>
+            {districtsList.length > 0 ? (
+              <select
+                required
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+              >
+                <option value="">Select District</option>
+                {districtsList.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                required
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                placeholder="e.g. Pune"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+              />
+            )}
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City/Town *</label>
+            <input
+              type="text"
+              required
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="e.g. Shivaji Nagar"
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+            />
           </div>
 
           <div>
@@ -237,15 +314,26 @@ export default function ProductRequirementForm({
             <input
               type="text"
               value={pincode}
-              onChange={(e) => setPincode(e.target.value)}
-              placeholder="e.g. 144401"
+              onChange={(e) => handlePincodeChange(e.target.value)}
+              placeholder="e.g. 411005"
               maxLength={6}
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             />
           </div>
         </div>
 
-        {/* Distance Selector */}
+        <div>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Delivery Address *</label>
+          <textarea
+            required
+            rows={2}
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Flat/House No., Building, Street Address, Landmark..."
+            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+          />
+        </div>
+
         <div>
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Within Distance</label>
           <select
@@ -260,30 +348,106 @@ export default function ProductRequirementForm({
         </div>
       </div>
 
-      {/* Description */}
+      {/* Description / Requirement details */}
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Detailed Specifications *</label>
+        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Brief Description *</label>
         <textarea
           required
-          rows={4}
+          rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe your exact specifications, preferred brands, delivery timeline, or additional preferences..."
+          placeholder="Briefly describe what product you need (e.g., brand preferences, core use case)..."
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
         />
+      </div>
+
+      {/* AI Detailed Specs Generator */}
+      <div>
+        <div className="flex justify-between items-center mb-1">
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Detailed Technical Specifications</label>
+          <button
+            type="button"
+            onClick={handleGenerateSpecs}
+            disabled={isGeneratingSpecs}
+            className="flex items-center gap-1.5 px-3 py-1 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-lg text-[10px] font-bold hover:bg-brand-purple hover:text-white transition disabled:opacity-50"
+          >
+            <FiCpu className={isGeneratingSpecs ? 'animate-spin' : ''} />
+            {isGeneratingSpecs ? 'Generating...' : '✨ Generate with AI'}
+          </button>
+        </div>
+        <textarea
+          rows={6}
+          value={detailedSpecifications}
+          onChange={(e) => setDetailedSpecifications(e.target.value)}
+          placeholder="Detailed options, measurements, technical parameters, model requirements. Fill manually or click 'Generate with AI' to draft..."
+          className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple font-mono"
+        />
+      </div>
+
+      {/* Expected Delivery Date & Time */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Expected Delivery Date</label>
+          <input
+            type="date"
+            value={expectedDeliveryDate}
+            onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+          />
+        </div>
+
+        <div>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Preferred Time of Delivery</label>
+          <input
+            type="text"
+            value={expectedDeliveryTime}
+            onChange={(e) => setExpectedDeliveryTime(e.target.value)}
+            placeholder="e.g. Morning 9 AM - 12 PM, Weekends only"
+            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+          />
+        </div>
+      </div>
+
+      {/* Product Condition */}
+      <div>
+        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Product Condition Preference</label>
+        <select
+          value={productCondition}
+          onChange={(e) => {
+            setProductCondition(e.target.value);
+            setCustomProductCondition('');
+          }}
+          className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+        >
+          <option value="">No Preference (Any)</option>
+          <option value="new">Brand New (Box Sealed)</option>
+          <option value="used">Used / Second Hand</option>
+          <option value="refurbished">Refurbished / Certified Pre-owned</option>
+          <option value="other">Other (Specify)</option>
+        </select>
+        {productCondition === 'other' && (
+          <input
+            type="text"
+            required
+            placeholder="Specify preferred product condition"
+            value={customProductCondition}
+            onChange={(e) => setCustomProductCondition(e.target.value)}
+            className="w-full px-4 py-2 mt-2 bg-surface border border-brand-purple/45 rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+          />
+        )}
       </div>
 
       {/* Any Other Condition */}
       <div>
         <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1 flex items-center gap-1.5">
           <FiAlertCircle size={12} className="text-brand-orange" />
-          Any Other Condition (Optional)
+          Any Other Terms & Conditions (Optional)
         </label>
         <textarea
-          rows={3}
+          rows={2}
           value={otherConditions}
           onChange={(e) => setOtherConditions(e.target.value)}
-          placeholder="e.g. Must be ISI certified, delivery within 3 days, warranty required..."
+          placeholder="e.g. Must offer minimum 6 months warranty, invoice required..."
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
         />
       </div>
@@ -291,9 +455,9 @@ export default function ProductRequirementForm({
       <button
         type="submit"
         disabled={isLoading || uploading}
-        className="w-full py-3.5 rounded-xl gradient-brand font-bold text-xs text-white shadow-premium flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60"
+        className="w-full py-3.5 rounded-xl gradient-brand font-bold text-xs text-white shadow-premium flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60 cursor-pointer"
       >
-        {isLoading ? 'Publishing Requirement...' : 'Post Product Requirement Now'}
+        {isLoading ? 'Publishing Product Requirement...' : 'Post Product Requirement Now'}
       </button>
     </form>
   );

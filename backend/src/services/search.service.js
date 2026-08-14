@@ -116,18 +116,72 @@ const searchListings = async ({
           spherical: true,
         },
       },
-      { $sort: sortSpec },
-      { $limit: limit + 1 },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'vendor',
+          foreignField: '_id',
+          as: 'vendor',
+        },
+      },
+      { $unwind: { path: '$vendor', preserveNullAndEmptyArrays: true } },
     ];
     docs = await Listing.aggregate(pipeline);
   } else {
     docs = await Listing.find(query)
-      .sort(sortSpec)
-      .limit(limit + 1);
+      .populate('vendor')
+      .lean();
   }
 
-  const hasMore = docs.length > limit;
-  const items = docs.slice(0, limit).map(serializeListing);
+  // Calculate Vendor Priority Score and score-rank documents
+  const scoredDocs = docs.map((d) => {
+    const vendor = d.vendor || {};
+    let vendorScore = 0;
+
+    // 1. Subscription plan boost
+    if (vendor.is_subscribed_verified) {
+      vendorScore += 50;
+    }
+    const plan = vendor.subscription?.plan || '';
+    if (plan.includes('Premium') || plan.includes('Gold') || plan.includes('Silver')) {
+      vendorScore += 30;
+    }
+    // 2. Average rating
+    if (vendor.rating_avg) {
+      vendorScore += vendor.rating_avg * 10;
+    }
+    // 3. Followers count
+    if (vendor.followersCount) {
+      vendorScore += Math.min(20, vendor.followersCount * 0.5);
+    }
+    // 4. Response rate
+    if (vendor.chat_response_rate) {
+      vendorScore += vendor.chat_response_rate * 0.2;
+    }
+
+    return { doc: d, vendorScore };
+  });
+
+  // Sort by vendorScore desc, and fallback to sort spec if scores match
+  scoredDocs.sort((a, b) => {
+    if (b.vendorScore !== a.vendorScore) {
+      return b.vendorScore - a.vendorScore;
+    }
+
+    if (sort === 'price_asc') {
+      return (a.doc.price || 0) - (b.doc.price || 0);
+    } else if (sort === 'price_desc') {
+      return (b.doc.price || 0) - (a.doc.price || 0);
+    } else {
+      const dateA = a.doc.createdAt || a.doc.created_at || 0;
+      const dateB = b.doc.createdAt || b.doc.created_at || 0;
+      return new Date(dateB) - new Date(dateA);
+    }
+  });
+
+  const sortedDocs = scoredDocs.map((x) => x.doc);
+  const hasMore = sortedDocs.length > limit;
+  const items = sortedDocs.slice(0, limit).map(serializeListing);
 
   return {
     items,

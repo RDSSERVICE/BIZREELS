@@ -649,11 +649,12 @@ router.post('/locations', requireAuth, requireAdmin, catchAsync(async (req, res)
 
 // ============================================================ REQUIREMENTS
 router.get('/requirements', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { status, type } = req.query;
+  const { status, type, approvalStatus } = req.query;
   const Requirement = require('../models/Requirement');
   const q = { is_deleted: { $ne: true } };
   if (status) q.status = status;
   if (type) q.type = type;
+  if (approvalStatus) q.approvalStatus = approvalStatus;
   const reqs = await Requirement.find(q)
     .populate('customer', 'name phone email')
     .populate('assignedVendorIds', 'name vendorProfile')
@@ -666,8 +667,12 @@ router.get('/requirements', requireAuth, requireAdmin, catchAsync(async (req, re
       type: r.type || r.requirementType || 'product',
       category: r.category,
       budget: r.budget || 0,
+      budget_min: r.budget_min || 0,
+      budget_max: r.budget_max || 0,
       customer_name: r.customer?.name || 'Customer',
       status: r.status || 'Pending',
+      approvalStatus: r.approvalStatus || 'approved',
+      adminRejectionReason: r.adminRejectionReason || null,
       matches_count: r.proposals_count || r.quotesCount || 0,
       created_at: r.created_at || r.createdAt,
       total_vendors_matched: r.totalVendorsMatched || 0,
@@ -675,6 +680,126 @@ router.get('/requirements', requireAuth, requireAdmin, catchAsync(async (req, re
       assigned_vendors: r.assignedVendorIds ? r.assignedVendorIds.map(v => v.name) : []
     })),
   });
+}));
+
+router.post('/requirements/:id/approve', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const requirementService = require('../services/requirement.service');
+  const reqs = await requirementService.approveRequirement(req.params.id, req.user._id);
+  res.json({ ok: true, requirement: reqs });
+}));
+
+router.post('/requirements/:id/reject', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { reason } = req.body;
+  const requirementService = require('../services/requirement.service');
+  const reqs = await requirementService.rejectRequirement(req.params.id, req.user._id, reason);
+  res.json({ ok: true, requirement: reqs });
+}));
+
+// ============================================================ CATEGORY REQUESTS
+router.get('/category-requests', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const CategoryRequest = require('../models/CategoryRequest');
+  const items = await CategoryRequest.find()
+    .populate('customer', 'name email phone')
+    .populate('requirement', 'title')
+    .sort({ createdAt: -1 });
+  res.json({ ok: true, items });
+}));
+
+router.post('/category-requests/:id/approve', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const CategoryRequest = require('../models/CategoryRequest');
+  const categoryService = require('../services/category.service');
+  const Category = require('../models/Category');
+  
+  const request = await CategoryRequest.findById(req.params.id);
+  if (!request) throw ApiError.notFound('Category request not found.');
+  if (request.status !== 'pending') throw ApiError.badRequest('Category request is already processed.');
+
+  let category = await Category.findOne({ name: request.requestedCategory, parent_id: null });
+  if (!category) {
+    category = await categoryService.createCategory(
+      request.requestedCategory,
+      null,
+      null,
+      request.requirementType
+    );
+  }
+
+  let subcategory = null;
+  if (request.requestedSubcategory) {
+    subcategory = await Category.findOne({ name: request.requestedSubcategory, parent_id: category.id || category._id });
+    if (!subcategory) {
+      subcategory = await categoryService.createCategory(
+        request.requestedSubcategory,
+        category.id || category._id,
+        null,
+        request.requirementType
+      );
+    }
+  }
+
+  request.status = 'approved';
+  request.approvedCategory = category.id || category._id;
+  request.processedBy = req.user._id;
+  request.processedAt = new Date();
+  await request.save();
+
+  const notificationService = require('../services/notification.service');
+  try {
+    await notificationService.create(
+      request.customer,
+      'requirement',
+      'Category Request Approved',
+      `Your request for category "${request.requestedCategory}" has been approved.`,
+      { requestId: request._id },
+      null,
+      'customer'
+    );
+  } catch (err) {
+    console.error('Failed to send notification for category request approval:', err);
+  }
+
+  if (request.requirement) {
+    const Requirement = require('../models/Requirement');
+    await Requirement.findByIdAndUpdate(request.requirement, {
+      category: category.name,
+      subcategory: subcategory ? subcategory.name : null,
+      customCategory: null,
+      customSubcategory: null,
+    });
+  }
+
+  res.json({ ok: true, request });
+}));
+
+router.post('/category-requests/:id/reject', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { notes } = req.body;
+  const CategoryRequest = require('../models/CategoryRequest');
+  const request = await CategoryRequest.findById(req.params.id);
+  if (!request) throw ApiError.notFound('Category request not found.');
+  if (request.status !== 'pending') throw ApiError.badRequest('Category request is already processed.');
+
+  request.status = 'rejected';
+  request.adminNotes = notes || 'Rejected by admin';
+  request.processedBy = req.user._id;
+  request.processedAt = new Date();
+  await request.save();
+
+  const notificationService = require('../services/notification.service');
+  try {
+    await notificationService.create(
+      request.customer,
+      'requirement',
+      'Category Request Rejected',
+      `Your request for category "${request.requestedCategory}" was rejected. Reason: ${notes || 'Not specified'}`,
+      { requestId: request._id, reason: notes },
+      null,
+      'customer'
+    );
+  } catch (err) {
+    console.error('Failed to send notification for category request rejection:', err);
+  }
+
+  res.json({ ok: true, request });
 }));
 
 // ============================================================ WALLET MANAGEMENT (Complete Module)

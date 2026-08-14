@@ -9,6 +9,7 @@ const AuditLog = require('../models/AuditLog');
  */
 class RequirementRepository {
   // ── Requirement operations ────────────────────────────────
+  // ── Requirement operations ────────────────────────────────
   async createRequirement(data) {
     const custId = (data.customer || data.customer_id || '').toString();
     const location = data.location || {
@@ -32,20 +33,33 @@ class RequirementRepository {
       requirementType: data.requirementType || data.type || 'product',
       type: data.requirementType || data.type || 'product',
       sub_category_id: data.sub_category_id || null,
-      budget: data.budget || data.budget_max || 0,
-      budget_max: data.budget || data.budget_max || 0,
-      budget_min: data.budget_min || 0,
+      budget: data.budget || 0,
+      budget_max: data.budget_max !== undefined ? data.budget_max : (data.budget || null),
+      budget_min: data.budget_min !== undefined ? data.budget_min : null,
       quantity: data.quantity || 1,
       deadline: data.deadline || null,
       photos: data.photos || [],
       video: data.video || null,
       location,
+      address: data.address || null,
       targetDistance: data.targetDistance || null,
       otherConditions: data.otherConditions || null,
-      status: 'Pending',
+      status: data.status || 'Pending',
       is_active: true,
       is_deleted: false,
       isDeleted: false,
+      
+      // New fields
+      detailedSpecifications: data.detailedSpecifications || null,
+      expectedDeliveryDate: data.expectedDeliveryDate || null,
+      expectedDeliveryTime: data.expectedDeliveryTime || null,
+      productCondition: data.productCondition || null,
+      customProductCondition: data.customProductCondition || null,
+      serviceModel: data.serviceModel || null,
+      customServiceModel: data.customServiceModel || null,
+      customCategory: data.customCategory || null,
+      customSubcategory: data.customSubcategory || null,
+      approvalStatus: data.approvalStatus || 'approved',
     };
     return Requirement.create(docData);
   }
@@ -85,6 +99,7 @@ class RequirementRepository {
     sortBy,
     page = 1,
     limit = 10,
+    approvalStatus,
   }) {
     const skip = (page - 1) * limit;
     const match = { is_deleted: { $ne: true }, isDeleted: { $ne: true } };
@@ -100,6 +115,12 @@ class RequirementRepository {
 
     if (vendorId) {
       match.assignedVendorIds = new mongoose.Types.ObjectId(vendorId.toString());
+      // Vendors should only see approved requirements
+      match.approvalStatus = 'approved';
+    }
+
+    if (approvalStatus) {
+      match.approvalStatus = approvalStatus;
     }
 
     if (category) {
@@ -155,19 +176,29 @@ class RequirementRepository {
       });
     } else {
       pipeline.push({ $match: match });
-
-      // Determine sort order
-      let sort = { createdAt: -1 };
-      if (sortBy) {
-        if (sortBy === 'latest') sort = { createdAt: -1 };
-        else if (sortBy === 'oldest') sort = { createdAt: 1 };
-        else if (sortBy === 'budget_high_low') sort = { budget: -1 };
-        else if (sortBy === 'budget_low_high') sort = { budget: 1 };
-        else if (sortBy === 'most_responses') sort = { quotesCount: -1 };
-        else if (sortBy === 'least_responses') sort = { quotesCount: 1 };
-      }
-      pipeline.push({ $sort: sort });
     }
+
+    // Determine sort order
+    let sort = null;
+    if (sortBy) {
+      if (sortBy === 'latest') sort = { createdAt: -1 };
+      else if (sortBy === 'oldest') sort = { createdAt: 1 };
+      else if (sortBy === 'budget_high_low') sort = { budget: -1 };
+      else if (sortBy === 'budget_low_high') sort = { budget: 1 };
+      else if (sortBy === 'most_responses') sort = { quotesCount: -1 };
+      else if (sortBy === 'least_responses') sort = { quotesCount: 1 };
+    }
+
+    // Default sorting
+    if (!sort) {
+      if (coordinates && coordinates.length === 2) {
+        sort = { distance: 1 };
+      } else {
+        sort = { createdAt: -1 };
+      }
+    }
+
+    pipeline.push({ $sort: sort });
 
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: parseInt(limit, 10) });
@@ -182,7 +213,7 @@ class RequirementRepository {
       },
     });
 
-    pipeline.push({ $unwind: '$customerDetails' });
+    pipeline.push({ $unwind: { path: '$customerDetails', preserveNullAndEmptyArrays: true } });
 
     pipeline.push({
       $project: {
@@ -193,9 +224,12 @@ class RequirementRepository {
         requirementType: 1,
         type: 1,
         budget: 1,
+        budget_min: 1,
+        budget_max: 1,
         quantity: 1,
         deadline: 1,
         location: 1,
+        address: 1,
         status: 1,
         quotesCount: 1,
         proposals_count: 1,
@@ -214,6 +248,17 @@ class RequirementRepository {
         distance: 1,
         photos: 1,
         video: 1,
+        detailedSpecifications: 1,
+        expectedDeliveryDate: 1,
+        expectedDeliveryTime: 1,
+        productCondition: 1,
+        customProductCondition: 1,
+        serviceModel: 1,
+        customServiceModel: 1,
+        customCategory: 1,
+        customSubcategory: 1,
+        approvalStatus: 1,
+        adminRejectionReason: 1,
         customer: {
           _id: '$customerDetails._id',
           name: '$customerDetails.name',

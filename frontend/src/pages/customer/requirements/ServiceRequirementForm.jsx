@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FiTool, FiDollarSign, FiMapPin, FiUpload, FiImage, FiVideo, FiX, FiClock, FiGlobe, FiAlertCircle
+  FiTool, FiDollarSign, FiMapPin, FiUpload, FiImage, FiVideo, FiX, FiClock, FiGlobe, FiAlertCircle, FiCpu, FiTarget
 } from 'react-icons/fi';
 
 const SERVICE_DURATION_OPTIONS = [
@@ -11,22 +11,45 @@ const SERVICE_DURATION_OPTIONS = [
   { value: 'monthly', label: 'Monthly Retainer' },
 ];
 
+const DISTANCE_OPTIONS = [
+  { value: '', label: 'No distance limit' },
+  { value: '5', label: 'Within 5 Km' },
+  { value: '10', label: 'Within 10 Km' },
+  { value: '25', label: 'Within 25 Km' },
+  { value: '50', label: 'Within 50 Km' },
+  { value: '100', label: 'Within 100 Km' },
+  { value: '200', label: 'Within 200 Km' },
+  { value: '500', label: 'Within 500 Km' },
+];
+
 export default function ServiceRequirementForm({
   title, setTitle,
   category, setCategory,
   subcategory, setSubcategory,
-  budget, setBudget,
+  budgetMin, setBudgetMin,
+  budgetMax, setBudgetMax,
   quantity, setQuantity,
   state, setState,
   district, setDistrict,
   city, setCity,
   pincode, setPincode,
+  address, setAddress,
+  targetDistance, setTargetDistance,
   description, setDescription,
+  detailedSpecifications, setDetailedSpecifications,
+  isGeneratingSpecs, handleGenerateSpecs,
+  expectedDeliveryDate, setExpectedDeliveryDate,
+  expectedDeliveryTime, setExpectedDeliveryTime,
+  serviceModel, setServiceModel,
+  customServiceModel, setCustomServiceModel,
+  customCategory, setCustomCategory,
+  customSubcategory, setCustomSubcategory,
   otherConditions, setOtherConditions,
   photos, video, uploading,
   handleImageUpload, handleVideoUpload, removePhoto, setVideo,
   resolveMediaUrl, categories, subcategories = [],
-  isLoading, onSubmit
+  isLoading, statesList = [], districtsList = [], handlePincodeChange,
+  onSubmit
 }) {
   const [locationType, setLocationType] = useState('on-site'); // 'on-site' | 'remote'
   const [durationType, setDurationType] = useState('one-time');
@@ -34,19 +57,17 @@ export default function ServiceRequirementForm({
   // Handle location type changes
   useEffect(() => {
     if (locationType === 'remote') {
-      // Clear address details or set to Remote placeholder
       setState('Remote');
       setDistrict('Remote');
       setCity('Online');
       setPincode('000000');
     } else {
-      // Reset if switched back to local
       setState('');
       setDistrict('');
       setCity('');
       setPincode('');
     }
-  }, [locationType]);
+  }, [locationType, setState, setDistrict, setCity, setPincode]);
 
   // Adjust placeholder for quantity depending on duration type selected
   const getQuantityLabel = () => {
@@ -107,7 +128,8 @@ export default function ServiceRequirementForm({
             value={category}
             onChange={(e) => {
               setCategory(e.target.value);
-              setSubcategory(''); // Reset subcategory when category changes
+              setSubcategory('');
+              setCustomCategory('');
             }}
             className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           >
@@ -116,14 +138,28 @@ export default function ServiceRequirementForm({
                 {cat.name}
               </option>
             ))}
+            <option value="Other">Other (Request Admin Approval)</option>
           </select>
+          {category === 'Other' && (
+            <input
+              type="text"
+              required
+              placeholder="Specify custom category name"
+              value={customCategory}
+              onChange={(e) => setCustomCategory(e.target.value)}
+              className="w-full px-4 py-2 mt-2 bg-surface border border-brand-purple/40 rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple animate-fade-in"
+            />
+          )}
         </div>
 
         <div>
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Subcategory / Specialization</label>
           <select
             value={subcategory}
-            onChange={(e) => setSubcategory(e.target.value)}
+            onChange={(e) => {
+              setSubcategory(e.target.value);
+              setCustomSubcategory('');
+            }}
             className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           >
             <option value="">Select Subcategory</option>
@@ -132,7 +168,18 @@ export default function ServiceRequirementForm({
                 {sub.name}
               </option>
             ))}
+            <option value="Other">Other (Request Admin Approval)</option>
           </select>
+          {subcategory === 'Other' && (
+            <input
+              type="text"
+              required
+              placeholder="Specify custom subcategory name"
+              value={customSubcategory}
+              onChange={(e) => setCustomSubcategory(e.target.value)}
+              className="w-full px-4 py-2 mt-2 bg-surface border border-brand-purple/40 rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple animate-fade-in"
+            />
+          )}
         </div>
       </div>
 
@@ -165,7 +212,7 @@ export default function ServiceRequirementForm({
         </div>
       </div>
 
-      {/* Sample Image/Video Reference Brief Upload */}
+      {/* Reference Design Briefs / Video Samples */}
       <div>
         <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">
           <FiImage className="inline mr-1" size={12} />
@@ -234,19 +281,32 @@ export default function ServiceRequirementForm({
         </div>
       </div>
 
-      {/* Service Budget & Location Type */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Budget Range & Location Type */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Estimated Budget (₹) *</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Min Budget (₹)</label>
           <div className="relative">
-            <FiDollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
+            <FiDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={14} />
             <input
               type="number"
-              required
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-              placeholder="e.g. 15000"
-              className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+              value={budgetMin}
+              onChange={(e) => setBudgetMin(e.target.value)}
+              placeholder="e.g. 5000"
+              className="w-full pl-8 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Max Budget (₹)</label>
+          <div className="relative">
+            <FiDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={14} />
+            <input
+              type="number"
+              value={budgetMax}
+              onChange={(e) => setBudgetMax(e.target.value)}
+              placeholder="e.g. 10000"
+              className="w-full pl-8 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
             />
           </div>
         </div>
@@ -264,7 +324,7 @@ export default function ServiceRequirementForm({
               }`}
             >
               <FiMapPin size={12} />
-              <span>On-Site Service</span>
+              <span>On-Site</span>
             </button>
             <button
               type="button"
@@ -276,52 +336,85 @@ export default function ServiceRequirementForm({
               }`}
             >
               <FiGlobe size={12} />
-              <span>Remote (Online)</span>
+              <span>Remote</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Target Address details: Show only if On-Site */}
+      {/* Target Venue Details: Show only if On-Site */}
       {locationType === 'on-site' && (
         <div className="glass rounded-xl p-4 border border-border/50 space-y-4">
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
-            <FiMapPin size={12} className="text-brand-orange" />
+            <FiTarget size={12} className="text-brand-orange" />
             Service Venue Location
           </label>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State</label>
-              <input
-                type="text"
-                value={state === 'Remote' ? '' : state}
-                onChange={(e) => setState(e.target.value)}
-                placeholder="e.g. Punjab"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-              />
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State *</label>
+              {statesList.length > 0 ? (
+                <select
+                  required
+                  value={state === 'Remote' ? '' : state}
+                  onChange={(e) => {
+                    setState(e.target.value);
+                    setDistrict('');
+                  }}
+                  className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                >
+                  <option value="">Select State</option>
+                  {statesList.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  required
+                  value={state === 'Remote' ? '' : state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder="e.g. Maharashtra"
+                  className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                />
+              )}
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District</label>
-              <input
-                type="text"
-                value={district === 'Remote' ? '' : district}
-                onChange={(e) => setDistrict(e.target.value)}
-                placeholder="e.g. Kapurthala"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
-              />
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District *</label>
+              {districtsList.length > 0 ? (
+                <select
+                  required
+                  value={district === 'Remote' ? '' : district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                >
+                  <option value="">Select District</option>
+                  {districtsList.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  required
+                  value={district === 'Remote' ? '' : district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  placeholder="e.g. Pune"
+                  className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                />
+              )}
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City *</label>
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City/Town *</label>
               <input
                 type="text"
-                required={locationType === 'on-site'}
+                required
                 value={city === 'Online' ? '' : city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Phagwara"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+                placeholder="e.g. Shivaji Nagar"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
 
@@ -330,12 +423,37 @@ export default function ServiceRequirementForm({
               <input
                 type="text"
                 value={pincode === '000000' ? '' : pincode}
-                onChange={(e) => setPincode(e.target.value)}
-                placeholder="e.g. 144401"
+                onChange={(e) => handlePincodeChange(e.target.value)}
+                placeholder="e.g. 411005"
                 maxLength={6}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Service Address/Venue *</label>
+            <textarea
+              required
+              rows={2}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Provide the complete address of the event venue / office location..."
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Within Distance</label>
+            <select
+              value={targetDistance}
+              onChange={(e) => setTargetDistance(e.target.value)}
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+            >
+              {DISTANCE_OPTIONS.map(d => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
           </div>
         </div>
       )}
@@ -351,15 +469,91 @@ export default function ServiceRequirementForm({
 
       {/* Description */}
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Detailed Service Brief & Scope of Work *</label>
+        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Brief Description *</label>
         <textarea
           required
-          rows={4}
+          rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe the scope of work, tools to be used, delivery timelines, specific milestones, or expected outcomes..."
+          placeholder="Briefly describe what service you need (e.g. editing YouTube videos, shooting wedding portrait)..."
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
         />
+      </div>
+
+      {/* AI Detailed Specs Generator */}
+      <div>
+        <div className="flex justify-between items-center mb-1">
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Detailed Scope of Work & Milestones</label>
+          <button
+            type="button"
+            onClick={handleGenerateSpecs}
+            disabled={isGeneratingSpecs}
+            className="flex items-center gap-1.5 px-3 py-1 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-lg text-[10px] font-bold hover:bg-brand-purple hover:text-white transition disabled:opacity-50"
+          >
+            <FiCpu className={isGeneratingSpecs ? 'animate-spin' : ''} />
+            {isGeneratingSpecs ? 'Generating...' : '✨ Generate with AI'}
+          </button>
+        </div>
+        <textarea
+          rows={6}
+          value={detailedSpecifications}
+          onChange={(e) => setDetailedSpecifications(e.target.value)}
+          placeholder="Detailed scope of work, tools, technologies, specific deliverables and deadlines. Fill manually or click 'Generate with AI' to draft..."
+          className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple font-mono"
+        />
+      </div>
+
+      {/* Expected Delivery Date & Time */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Expected Completion/Delivery Date</label>
+          <input
+            type="date"
+            value={expectedDeliveryDate}
+            onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+          />
+        </div>
+
+        <div>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Preferred Time of Service</label>
+          <input
+            type="text"
+            value={expectedDeliveryTime}
+            onChange={(e) => setExpectedDeliveryTime(e.target.value)}
+            placeholder="e.g. Weekends only, flexible, 9 AM - 6 PM"
+            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+          />
+        </div>
+      </div>
+
+      {/* Service Model preference */}
+      <div>
+        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Service Model Preference</label>
+        <select
+          value={serviceModel}
+          onChange={(e) => {
+            setServiceModel(e.target.value);
+            setCustomServiceModel('');
+          }}
+          className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+        >
+          <option value="">No Preference (Any)</option>
+          <option value="onsite">On-Site (Physically present at venue)</option>
+          <option value="remote">Remote (Delivered entirely online)</option>
+          <option value="hybrid">Hybrid (Mix of on-site and remote work)</option>
+          <option value="other">Other (Specify)</option>
+        </select>
+        {serviceModel === 'other' && (
+          <input
+            type="text"
+            required
+            placeholder="Specify preferred service model"
+            value={customServiceModel}
+            onChange={(e) => setCustomServiceModel(e.target.value)}
+            className="w-full px-4 py-2 mt-2 bg-surface border border-brand-purple/45 rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+          />
+        )}
       </div>
 
       {/* Any Other Condition */}
@@ -369,10 +563,10 @@ export default function ServiceRequirementForm({
           Special Requirements & Terms (Optional)
         </label>
         <textarea
-          rows={3}
+          rows={2}
           value={otherConditions}
           onChange={(e) => setOtherConditions(e.target.value)}
-          placeholder="e.g. Must bring own high-end video gear, past portfolio examples required, contract terms..."
+          placeholder="e.g. Must bring own high-end video gear, past portfolio examples required..."
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
         />
       </div>
@@ -380,7 +574,7 @@ export default function ServiceRequirementForm({
       <button
         type="submit"
         disabled={isLoading || uploading}
-        className="w-full py-3.5 rounded-xl gradient-brand font-bold text-xs text-white shadow-premium flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60"
+        className="w-full py-3.5 rounded-xl gradient-brand font-bold text-xs text-white shadow-premium flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60 cursor-pointer"
       >
         {isLoading ? 'Publishing Service brief...' : 'Post Service Brief Now'}
       </button>

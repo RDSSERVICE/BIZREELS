@@ -3,6 +3,13 @@ const mongoose = require('mongoose');
 const app = require('../src/app');
 const User = require('../src/models/User');
 
+jest.mock('../src/services/wallet.service', () => {
+  return {
+    getBalance: jest.fn().mockResolvedValue({ credits: 100, is_frozen: false }),
+    debit: jest.fn().mockResolvedValue(true),
+  };
+});
+
 const getMockDb = () => {
   if (!global.mockDb) {
     global.mockDb = {

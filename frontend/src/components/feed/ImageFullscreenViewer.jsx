@@ -9,6 +9,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { api } from '../../lib/api';
+import ChatDrawer from '../ui/ChatDrawer';
 
 /**
  * ImageFullscreenViewer
@@ -19,6 +20,12 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+
+  // In-context Chat drawer state
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [chatDrawerRecipientId, setChatDrawerRecipientId] = useState(null);
+  const [chatDrawerRecipientName, setChatDrawerRecipientName] = useState('Vendor Partner');
+  const [chatDrawerRecipientAvatar, setChatDrawerRecipientAvatar] = useState(null);
 
   const currentPost = images[currentIndex];
 
@@ -126,7 +133,7 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
     }
   };
 
-  const handleChat = async (post) => {
+  const handleChat = (post) => {
     handleTrackInteraction('chat_direct', post);
     const vendorObj = post.creator || post.vendor;
     const vendorId = vendorObj?._id || vendorObj?.id || (typeof vendorObj === 'string' ? vendorObj : null);
@@ -136,18 +143,10 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
       return;
     }
 
-    try {
-      const title = post.title || post.caption || 'Image Post';
-      await api.post('/v1/chat/messages', {
-        recipientId: vendorId,
-        text: `Hi! I saw your post "${title}" on BizReels and I am interested. Let's chat!`
-      });
-      const vendorName = encodeURIComponent(vendorObj.vendorProfile?.shopName || vendorObj.name || 'Vendor');
-      const vendorAvatar = encodeURIComponent(vendorObj.profile_pic || vendorObj.avatarUrl || '');
-      navigate(`/customer/chat?vendorId=${vendorId}&name=${vendorName}&avatar=${vendorAvatar}`);
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to open chat with vendor');
-    }
+    setChatDrawerRecipientId(vendorId);
+    setChatDrawerRecipientName(vendorObj?.vendorProfile?.shopName || vendorObj?.name || 'Vendor Partner');
+    setChatDrawerRecipientAvatar(vendorObj?.profile_pic || vendorObj?.avatarUrl || null);
+    setChatDrawerOpen(true);
   };
 
   const handleInquiry = async (post) => {
@@ -395,6 +394,14 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
           </div>
         </div>
       </div>
+      {/* In-context Chat Drawer */}
+      <ChatDrawer
+        isOpen={chatDrawerOpen}
+        onClose={() => setChatDrawerOpen(false)}
+        recipientId={chatDrawerRecipientId}
+        recipientName={chatDrawerRecipientName}
+        recipientAvatar={chatDrawerRecipientAvatar}
+      />
     </motion.div>
   );
 }

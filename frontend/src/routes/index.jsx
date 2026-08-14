@@ -19,6 +19,9 @@ const About = React.lazy(() => import('../pages/home/About'));
 const PublicLocalReelsPage = React.lazy(() => import('../pages/reels/PublicLocalReelsPage'));
 const PublicCreatorMarketplacePage = React.lazy(() => import('../pages/creator/PublicCreatorMarketplacePage'));
 const Login = React.lazy(() => import('../pages/auth/Login'));
+const CustomerLogin = React.lazy(() => import('../pages/auth/CustomerLogin'));
+const VendorLogin = React.lazy(() => import('../pages/auth/VendorLogin'));
+const CreatorLogin = React.lazy(() => import('../pages/auth/CreatorLogin'));
 const Register = React.lazy(() => import('../pages/auth/Register'));
 const ForgotPassword = React.lazy(() => import('../pages/auth/ForgotPassword'));
 const AuthCallback = React.lazy(() => import('../pages/auth/AuthCallback'));
@@ -128,6 +131,9 @@ const AppRoutes = () => {
         }
       >
         <Route path="login" element={<Login />} />
+        <Route path="customer-login" element={<CustomerLogin />} />
+        <Route path="vendor-login" element={<VendorLogin />} />
+        <Route path="creator-login" element={<CreatorLogin />} />
         <Route path="register" element={<Register />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="callback" element={<AuthCallback />} />

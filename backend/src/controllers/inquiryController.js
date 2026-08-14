@@ -19,7 +19,7 @@ class InquiryController {
       listing: listingId,
       vendor: listing.vendor._id,
       message,
-      status: 'pending',
+      status: 'sent',
     });
 
     // Notify vendor

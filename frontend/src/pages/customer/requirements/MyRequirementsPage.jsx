@@ -352,7 +352,53 @@ export default function MyRequirementsPage() {
                     )}
                   </div>
                   <h2 className="text-lg font-bold text-text-primary mt-2 font-display">{selectedReq.title}</h2>
+                  {selectedReq.approvalStatus === 'pending_approval' && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-700 flex items-start gap-2 text-xs font-semibold mt-2">
+                      <FiClock size={16} className="shrink-0 mt-0.5 text-amber-500" />
+                      <div>
+                        <strong className="block mb-0.5 text-amber-800">Pending Admin Approval</strong>
+                        This requirement is currently undergoing admin review. Once approved, it will be shared with vendors automatically.
+                      </div>
+                    </div>
+                  )}
+                  {selectedReq.approvalStatus === 'rejected' && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-700 flex items-start gap-2 text-xs font-semibold mt-2">
+                      <FiAlertTriangle size={16} className="shrink-0 mt-0.5 text-red-500" />
+                      <div>
+                        <strong className="block mb-0.5 text-red-800">Requirement Rejected by Admin</strong>
+                        Reason: {selectedReq.adminRejectionReason || 'No reason provided.'}
+                        <p className="mt-1 text-[10px] text-red-500 font-normal">Please modify details or post a new requirement brief.</p>
+                      </div>
+                    </div>
+                  )}
                   <p className="text-xs text-text-secondary mt-2 leading-relaxed whitespace-pre-wrap">{selectedReq.description}</p>
+                  {selectedReq.detailedSpecifications && (
+                    <div className="mt-3 p-3 bg-surface-secondary rounded-xl border border-border">
+                      <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Detailed Specifications</span>
+                      <p className="text-xs text-text-secondary whitespace-pre-wrap font-mono leading-relaxed">{selectedReq.detailedSpecifications}</p>
+                    </div>
+                  )}
+                  {selectedReq.address && (
+                    <div className="mt-2.5 text-xs text-text-secondary">
+                      <span className="text-text-tertiary">Venue Address:</span> <strong className="text-text-primary">{selectedReq.address}</strong>
+                    </div>
+                  )}
+                  {selectedReq.expectedDeliveryDate && (
+                    <div className="mt-2 text-xs text-text-secondary flex gap-4">
+                      <div><span className="text-text-tertiary">Expected Delivery:</span> <strong className="text-text-primary">{new Date(selectedReq.expectedDeliveryDate).toLocaleDateString('en-IN')}</strong></div>
+                      {selectedReq.expectedDeliveryTime && <div><span className="text-text-tertiary">Preferred Time:</span> <strong className="text-text-primary">{selectedReq.expectedDeliveryTime}</strong></div>}
+                    </div>
+                  )}
+                  {selectedReq.productCondition && (
+                    <div className="mt-1 text-xs text-text-secondary">
+                      <span className="text-text-tertiary">Condition Preference:</span> <strong className="text-text-primary capitalize">{selectedReq.productCondition === 'other' ? selectedReq.customProductCondition || 'Other' : selectedReq.productCondition}</strong>
+                    </div>
+                  )}
+                  {selectedReq.serviceModel && (
+                    <div className="mt-1 text-xs text-text-secondary">
+                      <span className="text-text-tertiary">Service Model:</span> <strong className="text-text-primary capitalize">{selectedReq.serviceModel === 'other' ? selectedReq.customServiceModel || 'Other' : selectedReq.serviceModel}</strong>
+                    </div>
+                  )}
                 </div>
                 <div className="text-right shrink-0">
                   <AdminStatusBadge status={selectedReq.status || 'Pending'} />
@@ -362,8 +408,14 @@ export default function MyRequirementsPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-border/50 text-xs">
                 <div className="p-3 bg-surface-secondary rounded-xl">
-                  <span className="text-text-tertiary block mb-1">Max Budget</span>
-                  <strong className="text-sm font-bold text-brand-purple">₹{(selectedReq.budget || 0).toLocaleString('en-IN')}</strong>
+                  <span className="text-text-tertiary block mb-1">Budget</span>
+                  <strong className="text-sm font-bold text-brand-purple">
+                    {selectedReq.budget_min || selectedReq.budget_max ? (
+                      `₹${(selectedReq.budget_min || 0).toLocaleString('en-IN')} - ₹${(selectedReq.budget_max || 0).toLocaleString('en-IN')}`
+                    ) : (
+                      `₹${(selectedReq.budget || 0).toLocaleString('en-IN')}`
+                    )}
+                  </strong>
                 </div>
                 <div className="p-3 bg-surface-secondary rounded-xl">
                   <span className="text-text-tertiary block mb-1">
@@ -965,6 +1017,17 @@ export default function MyRequirementsPage() {
                       {req.title}
                     </h3>
                     
+                    {req.approvalStatus === 'pending_approval' && (
+                      <span className="inline-block mt-1 text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
+                        ⌛ Pending Admin Approval
+                      </span>
+                    )}
+                    {req.approvalStatus === 'rejected' && (
+                      <div className="mt-1 text-[9px] font-bold bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded-full">
+                        ❌ Rejected: {req.adminRejectionReason || 'Violated Guidelines'}
+                      </div>
+                    )}
+                    
                     {req.description && (
                       <p className="text-xs text-text-tertiary mt-1 line-clamp-2 leading-relaxed">{req.description}</p>
                     )}
@@ -973,7 +1036,11 @@ export default function MyRequirementsPage() {
                   <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0">
                     <AdminStatusBadge status={req.status || 'Pending'} />
                     <span className="text-xs font-black text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 mt-1">
-                      Budget: ₹{(req.budget || 0).toLocaleString('en-IN')}
+                      Budget: {req.budget_min || req.budget_max ? (
+                        `₹${(req.budget_min || 0).toLocaleString('en-IN')} - ₹${(req.budget_max || 0).toLocaleString('en-IN')}`
+                      ) : (
+                        `₹${(req.budget || 0).toLocaleString('en-IN')}`
+                      )}
                     </span>
                   </div>
                 </div>

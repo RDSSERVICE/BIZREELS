@@ -10,8 +10,11 @@ class RequirementController {
   // ── Create Requirement ──────────────────────────────────
   create = asyncHandler(async (req, res) => {
     const {
-      title, description, category, subcategory, requirementType, budget, quantity, deadline,
-      lat, lng, address, city, state, pincode, district, targetDistance, otherConditions, photos, video
+      title, description, category, subcategory, requirementType, budget, budget_min, budget_max,
+      quantity, deadline, lat, lng, address, city, state, pincode, district, targetDistance,
+      otherConditions, photos, video, detailedSpecifications, expectedDeliveryDate,
+      expectedDeliveryTime, productCondition, customProductCondition, serviceModel,
+      customServiceModel, customCategory, customSubcategory
     } = req.body;
 
     const requirement = await requirementService.createRequirement({
@@ -22,6 +25,8 @@ class RequirementController {
       subcategory,
       requirementType,
       budget,
+      budget_min,
+      budget_max,
       quantity,
       deadline,
       lat,
@@ -34,7 +39,16 @@ class RequirementController {
       targetDistance,
       otherConditions,
       photos,
-      video
+      video,
+      detailedSpecifications,
+      expectedDeliveryDate,
+      expectedDeliveryTime,
+      productCondition,
+      customProductCondition,
+      serviceModel,
+      customServiceModel,
+      customCategory,
+      customSubcategory,
     }, req);
 
     return ApiResponse.created(res, 'Requirement posted successfully.', { requirement });

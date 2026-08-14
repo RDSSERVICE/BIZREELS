@@ -9,6 +9,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { api } from '../../lib/api';
+import ChatDrawer from '../ui/ChatDrawer';
 
 /**
  * ReelFullscreenViewer
@@ -20,6 +21,12 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [muted, setMuted] = useState(true);
   const containerRef = useRef(null);
+
+  // In-context Chat drawer state
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [chatDrawerRecipientId, setChatDrawerRecipientId] = useState(null);
+  const [chatDrawerRecipientName, setChatDrawerRecipientName] = useState('Vendor Partner');
+  const [chatDrawerRecipientAvatar, setChatDrawerRecipientAvatar] = useState(null);
   const videoRefs = useRef([]);
 
   const currentReel = reels[currentIndex];
@@ -115,7 +122,7 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
     }
   };
 
-  const handleChat = async (reel) => {
+  const handleChat = (reel) => {
     handleTrackInteraction('chat_direct', reel);
     const vendorObj = reel.creator;
     const vendorId = vendorObj?._id || vendorObj?.id || (typeof vendorObj === 'string' ? vendorObj : null);
@@ -125,18 +132,10 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
       return;
     }
 
-    try {
-      const title = reel.caption || 'Reel Post';
-      await api.post('/v1/chat/messages', {
-        recipientId: vendorId,
-        text: `Hi! I saw your reel "${title}" on BizReels and I am interested. Let's chat!`
-      });
-      const vendorName = encodeURIComponent(vendorObj.vendorProfile?.shopName || vendorObj.name || 'Vendor');
-      const vendorAvatar = encodeURIComponent(vendorObj.profile_pic || vendorObj.avatarUrl || '');
-      navigate(`/customer/chat?vendorId=${vendorId}&name=${vendorName}&avatar=${vendorAvatar}`);
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to open chat with vendor');
-    }
+    setChatDrawerRecipientId(vendorId);
+    setChatDrawerRecipientName(vendorObj?.vendorProfile?.shopName || vendorObj?.name || 'Vendor Partner');
+    setChatDrawerRecipientAvatar(vendorObj?.profile_pic || vendorObj?.avatarUrl || null);
+    setChatDrawerOpen(true);
   };
 
   const handleInquiry = async (reel) => {
@@ -161,19 +160,11 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
         toast.error(err?.response?.data?.message || 'Failed to submit inquiry');
       }
     } else {
-      // Fallback: If no targetListing is linked, send a direct chat message instead!
-      try {
-        await api.post('/v1/chat/messages', {
-          recipientId: vendorId,
-          text: `Hi! I want to inquire about your reel: "${reel.caption || ''}"`
-        });
-        toast.success('Inquiry sent via Chat!');
-        const vendorName = encodeURIComponent(vendorObj.vendorProfile?.shopName || vendorObj.name || 'Vendor');
-        const vendorAvatar = encodeURIComponent(vendorObj.profile_pic || vendorObj.avatarUrl || '');
-        navigate(`/customer/chat?vendorId=${vendorId}&name=${vendorName}&avatar=${vendorAvatar}`);
-      } catch (err) {
-        toast.error(err?.response?.data?.message || 'Failed to send inquiry');
-      }
+      // Fallback: If no targetListing is linked, open chat drawer instead
+      setChatDrawerRecipientId(vendorId);
+      setChatDrawerRecipientName(vendorObj?.vendorProfile?.shopName || vendorObj?.name || 'Vendor Partner');
+      setChatDrawerRecipientAvatar(vendorObj?.profile_pic || vendorObj?.avatarUrl || null);
+      setChatDrawerOpen(true);
     }
   };
 
@@ -402,6 +393,14 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
           </div>
         </div>
       </div>
+      {/* In-context Chat Drawer */}
+      <ChatDrawer
+        isOpen={chatDrawerOpen}
+        onClose={() => setChatDrawerOpen(false)}
+        recipientId={chatDrawerRecipientId}
+        recipientName={chatDrawerRecipientName}
+        recipientAvatar={chatDrawerRecipientAvatar}
+      />
     </motion.div>
   );
 }

@@ -13,8 +13,11 @@ const logger = require('../utils/logger');
 class RequirementService {
   async createRequirement(
     {
-      customerId, title, description, category, subcategory, requirementType, budget, quantity, deadline,
-      lat, lng, address, city, state, pincode, district, targetDistance, otherConditions, photos, video
+      customerId, title, description, category, subcategory, requirementType, budget, budget_min, budget_max,
+      quantity, deadline, lat, lng, address, city, state, pincode, district, targetDistance, otherConditions,
+      photos, video, detailedSpecifications, expectedDeliveryDate, expectedDeliveryTime,
+      productCondition, customProductCondition, serviceModel, customServiceModel,
+      customCategory, customSubcategory
     },
     req
   ) {
@@ -31,22 +34,65 @@ class RequirementService {
       location.coordinates = [parseFloat(lng), parseFloat(lat)];
     }
 
+    // Determine if this has custom category requiring admin approval
+    const hasCustomCategory = !!(customCategory || customSubcategory);
+    const approvalStatus = hasCustomCategory ? 'pending_approval' : 'approved';
+
+    // Compute backward-compatible budget from range
+    const budgetVal = budget ? parseFloat(budget) : (budget_min ? parseFloat(budget_min) : 0);
+
     const requirement = await requirementRepository.createRequirement({
       customer: customerId,
       title,
       description,
-      category,
-      subcategory,
+      category: customCategory || category,
+      subcategory: customSubcategory || subcategory,
       requirementType: requirementType || 'product',
-      budget: parseFloat(budget),
+      type: requirementType || 'product',
+      budget: budgetVal,
+      budget_min: budget_min ? parseFloat(budget_min) : null,
+      budget_max: budget_max ? parseFloat(budget_max) : null,
       quantity: parseInt(quantity || 1, 10),
       deadline: deadline ? new Date(deadline) : null,
       location,
+      address: address || null,
       targetDistance: targetDistance ? parseFloat(targetDistance) : null,
       otherConditions,
       photos,
       video,
+      detailedSpecifications: detailedSpecifications || null,
+      expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
+      expectedDeliveryTime: expectedDeliveryTime || null,
+      productCondition: productCondition || null,
+      customProductCondition: customProductCondition || null,
+      serviceModel: serviceModel || null,
+      customServiceModel: customServiceModel || null,
+      customCategory: customCategory || null,
+      customSubcategory: customSubcategory || null,
+      approvalStatus,
     });
+
+    // If custom category was requested, create a CategoryRequest for admin
+    if (hasCustomCategory) {
+      try {
+        const CategoryRequest = require('../models/CategoryRequest');
+        await CategoryRequest.create({
+          customer: customerId,
+          requirement: requirement._id,
+          requirementType: requirementType || 'product',
+          requestedCategory: customCategory || category,
+          requestedSubcategory: customSubcategory || subcategory || null,
+        });
+        const { emitToAdmin } = require('../sockets');
+        emitToAdmin('category_request:created', {
+          requirementId: requirement._id,
+          category: customCategory || category,
+          subcategory: customSubcategory || subcategory,
+        });
+      } catch (err) {
+        logger.warn(`Failed to create category request: ${err.message}`);
+      }
+    }
 
     // ── Auto Identify Matching Vendors ──
     const User = require('../models/User');
@@ -359,10 +405,51 @@ class RequirementService {
       throw ApiError.badRequest('This requirement is no longer open for bidding.');
     }
 
+    // Only allow bidding on approved requirements
+    if (requirement.approvalStatus && requirement.approvalStatus !== 'approved') {
+      throw ApiError.badRequest('This requirement is pending admin approval and is not open for bidding yet.');
+    }
+
     const alreadyQuoted = await requirementRepository.checkVendorHasQuoted(requirementId, vendorId);
     if (alreadyQuoted) {
       throw ApiError.badRequest('You have already submitted a quotation for this requirement.');
     }
+
+    // ── Credit Deduction: Charge vendor for bid submission ──
+    const BID_CREDIT_COST = 5; // Default cost, can be made configurable via settings
+    let creditCost = BID_CREDIT_COST;
+    try {
+      const settingsService = require('./settings.service');
+      const snap = settingsService.getIntegrationSync('bid_settings');
+      if (snap && snap.bid_credit_cost) {
+        creditCost = parseInt(snap.bid_credit_cost, 10) || BID_CREDIT_COST;
+      }
+    } catch { /* use default */ }
+
+    // Check vendor wallet balance
+    const walletService = require('./wallet.service');
+    const balance = await walletService.getBalance(vendorId);
+    if (balance.credits < creditCost) {
+      throw ApiError.badRequest(
+        `Insufficient credits. You need ${creditCost} credits to submit a bid. ` +
+        `Your current balance is ${balance.credits} credits. Please recharge your wallet.`
+      );
+    }
+    if (balance.is_frozen) {
+      throw ApiError.badRequest('Your wallet is frozen. Please contact support to submit bids.');
+    }
+
+    // Deduct credits atomically
+    const referenceId = `bid_${requirementId}_${vendorId}`;
+    await walletService.debit({
+      userId: vendorId,
+      amount: creditCost,
+      transactionType: 'bid_fee',
+      referenceId,
+      reason: `Bid submission fee for requirement: "${requirement.title}"`,
+      source: 'system',
+      meta: { requirementId, requirementTitle: requirement.title },
+    });
 
     const Quote = require('../models/Quote');
     const quote = await Quote.create({
@@ -374,8 +461,8 @@ class RequirementService {
       attachments: attachments || [],
     });
 
-    const Requirement = require('../models/Requirement');
-    const updatedReq = await Requirement.findByIdAndUpdate(
+    const RequirementModel = require('../models/Requirement');
+    const updatedReq = await RequirementModel.findByIdAndUpdate(
       requirementId,
       {
         $addToSet: { vendorsResponded: vendorId },
@@ -389,13 +476,13 @@ class RequirementService {
       userId: vendorId,
       action: 'QUOTE_CREATE',
       entityId: quote._id,
-      description: `Submitted bid of ₹${price} on requirement "${requirement.title}"`,
+      description: `Submitted bid of ₹${price} on requirement "${requirement.title}" (${creditCost} credits deducted)`,
       ip: req?.ip || '127.0.0.1',
       agent: req?.headers?.['user-agent'] || 'unknown',
     });
 
     const notificationService = require('./notification.service');
-    const notifyBuyer = await notificationService.create(
+    await notificationService.create(
       requirement.customer._id,
       'quote',
       'New Proposal Received',
@@ -405,10 +492,22 @@ class RequirementService {
       'customer'
     );
 
+    // Notify vendor about credit deduction
+    await notificationService.create(
+      vendorId,
+      'payment',
+      'Bid Credits Deducted',
+      `${creditCost} credits deducted for bid on "${requirement.title}". Remaining: ${balance.credits - creditCost} credits.`,
+      { requirementId: requirement._id, quoteId: quote._id, creditsDeducted: creditCost },
+      null,
+      'vendor'
+    );
+
     const { emitToUser, emitToAdmin } = require('../sockets');
     emitToUser(requirement.customer._id.toString(), 'proposal:submitted', { requirementId, quote });
     emitToAdmin('proposal:submitted', { requirementId, quote });
     emitToUser(vendorId.toString(), 'proposal:submitted', { requirementId, quote });
+    emitToUser(vendorId.toString(), 'wallet:updated', { creditsDeducted: creditCost });
     emitToUser(requirement.customer._id.toString(), 'requirement:updated', updatedReq);
     emitToAdmin('requirement:updated', updatedReq);
     if (updatedReq.assignedVendorIds && updatedReq.assignedVendorIds.length > 0) {
@@ -585,6 +684,103 @@ class RequirementService {
 
   async acceptProposal(quoteId, customerId, req) {
     return this.updateQuoteStatus(quoteId, 'accepted', customerId, req || { headers: {} });
+  }
+  // ── Admin Approval Workflow ──────────────────────────────
+  async approveRequirement(requirementId, adminUserId) {
+    const RequirementModel = require('../models/Requirement');
+    const requirement = await RequirementModel.findById(requirementId);
+    if (!requirement) throw ApiError.notFound('Requirement not found.');
+    if (requirement.approvalStatus === 'approved') {
+      throw ApiError.badRequest('Requirement is already approved.');
+    }
+
+    requirement.approvalStatus = 'approved';
+    requirement.approvedBy = adminUserId;
+    requirement.approvedAt = new Date();
+    requirement.adminRejectionReason = null;
+    await requirement.save();
+
+    // Now auto-assign vendors (same logic as in createRequirement)
+    const User = require('../models/User');
+    const notificationService = require('./notification.service');
+    const { emitToUser, emitToAdmin } = require('../sockets');
+
+    const vendors = await User.find({
+      roles: 'vendor', is_active: true, is_banned: { $ne: true },
+    }).select('_id vendorProfile location').lean();
+
+    const reqCat = (requirement.category || '').toLowerCase().trim();
+    const reqCity = (requirement.location?.city || '').toLowerCase().trim();
+    const matchedVendorIds = [];
+
+    for (const vendor of vendors) {
+      const vp = vendor.vendorProfile || {};
+      const vCat = (vp.category || vp.businessCategory || '').toLowerCase().trim();
+      const vCats = Array.isArray(vp.categories) ? vp.categories.map(c => c.toLowerCase().trim()) : [];
+      let catMatch = !reqCat || vCat.includes(reqCat) || vCats.some(c => c.includes(reqCat));
+      if (!catMatch) continue;
+
+      const vCity = (vendor.location?.city || vp.city || vp.address?.city || '').toLowerCase().trim();
+      if (reqCity && vCity && !vCity.includes(reqCity) && !reqCity.includes(vCity)) continue;
+
+      matchedVendorIds.push(vendor._id);
+    }
+
+    requirement.assignedVendorIds = matchedVendorIds;
+    requirement.totalVendorsMatched = matchedVendorIds.length;
+    requirement.totalVendorsNotified = matchedVendorIds.length;
+    requirement.status = matchedVendorIds.length > 0 ? 'Sent to Vendors' : 'Pending';
+    await requirement.save();
+
+    // Notify matched vendors
+    for (const vendorId of matchedVendorIds) {
+      await notificationService.create(
+        vendorId, 'requirement', 'New Approved Requirement',
+        `A new requirement "${requirement.title}" is available for bidding.`,
+        { requirementId: requirement._id }, null, 'vendor'
+      );
+      emitToUser(vendorId.toString(), 'requirement:assigned', requirement);
+    }
+
+    // Notify customer
+    await notificationService.create(
+      requirement.customer, 'requirement', 'Requirement Approved',
+      `Your requirement "${requirement.title}" has been approved and sent to matching vendors.`,
+      { requirementId: requirement._id }, null, 'customer'
+    );
+    emitToUser(requirement.customer.toString(), 'requirement:approved', requirement);
+    emitToAdmin('requirement:approved', requirement);
+
+    return requirement;
+  }
+
+  async rejectRequirement(requirementId, adminUserId, rejectionReason) {
+    const RequirementModel = require('../models/Requirement');
+    const requirement = await RequirementModel.findById(requirementId);
+    if (!requirement) throw ApiError.notFound('Requirement not found.');
+    if (requirement.approvalStatus === 'rejected') {
+      throw ApiError.badRequest('Requirement is already rejected.');
+    }
+
+    requirement.approvalStatus = 'rejected';
+    requirement.adminRejectionReason = rejectionReason || 'Rejected by admin';
+    requirement.approvedBy = adminUserId;
+    requirement.approvedAt = new Date();
+    requirement.status = 'Rejected';
+    await requirement.save();
+
+    const notificationService = require('./notification.service');
+    const { emitToUser, emitToAdmin } = require('../sockets');
+
+    await notificationService.create(
+      requirement.customer, 'requirement', 'Requirement Rejected',
+      `Your requirement "${requirement.title}" was rejected. Reason: ${rejectionReason || 'Not specified'}`,
+      { requirementId: requirement._id, reason: rejectionReason }, null, 'customer'
+    );
+    emitToUser(requirement.customer.toString(), 'requirement:rejected', requirement);
+    emitToAdmin('requirement:rejected', requirement);
+
+    return requirement;
   }
 }
 

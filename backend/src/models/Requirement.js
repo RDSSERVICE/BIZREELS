@@ -25,6 +25,7 @@ const requirementSchema = new mongoose.Schema({
     state: { type: String, default: null },
     pincode: { type: String, default: '110001' },
   },
+  address: { type: String, default: null },
   targetDistance: { type: Number, default: null },
   otherConditions: { type: String, default: null },
   urgency: { type: String, default: 'flexible' },
@@ -44,6 +45,34 @@ const requirementSchema = new mongoose.Schema({
   is_active: { type: Boolean, default: true },
   is_deleted: { type: Boolean, default: false },
   isDeleted: { type: Boolean, default: false },
+
+  // ── New Fields: Detailed Specs, Delivery, Conditions ──────────
+  detailedSpecifications: { type: String, default: null },
+  expectedDeliveryDate: { type: Date, default: null },
+  expectedDeliveryTime: { type: String, default: null },
+
+  // Product condition (new/used/refurbished/other)
+  productCondition: { type: String, enum: ['new', 'used', 'refurbished', 'other', null], default: null },
+  customProductCondition: { type: String, default: null },
+
+  // Service model (onsite/remote/hybrid/other)
+  serviceModel: { type: String, enum: ['onsite', 'remote', 'hybrid', 'other', null], default: null },
+  customServiceModel: { type: String, default: null },
+
+  // Custom category/subcategory (for "Other" option)
+  customCategory: { type: String, default: null },
+  customSubcategory: { type: String, default: null },
+
+  // ── Admin Approval Workflow ──────────────────────────────────
+  approvalStatus: {
+    type: String,
+    enum: ['pending_approval', 'approved', 'rejected'],
+    default: 'approved',
+    index: true,
+  },
+  adminRejectionReason: { type: String, default: null },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  approvedAt: { type: Date, default: null },
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });
@@ -54,6 +83,7 @@ requirementSchema.index({ assignedVendorIds: 1 });
 requirementSchema.index({ category: 1 });
 requirementSchema.index({ 'location.city': 1 });
 requirementSchema.index({ assignedVendorIds: 1, status: 1, isDeleted: 1 });
+requirementSchema.index({ approvalStatus: 1, status: 1 });
 requirementSchema.index({ title: 'text', description: 'text' }, { name: 'req_text' });
 
 module.exports = mongoose.models.Requirement || mongoose.model('Requirement', requirementSchema, 'requirements');

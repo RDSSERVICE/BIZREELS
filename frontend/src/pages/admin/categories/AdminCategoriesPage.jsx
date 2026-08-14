@@ -9,11 +9,15 @@ import {
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
   useBulkUploadCategoriesMutation,
+  useListCategoryRequestsQuery,
+  useApproveCategoryRequestMutation,
+  useRejectCategoryRequestMutation,
 } from '../../../features/admin/adminApi';
 
 const TABS = [
   { key: 'product', label: 'Product Categories & Subcategories', icon: FiPackage },
   { key: 'service', label: 'Service Categories & Subcategories', icon: FiTool },
+  { key: 'requests', label: 'User Requested Categories', icon: FiFolder },
 ];
 
 export default function AdminCategoriesPage() {
@@ -32,6 +36,38 @@ export default function AdminCategoriesPage() {
   const [createCategory] = useCreateCategoryMutation();
   const [deleteCategory] = useDeleteCategoryMutation();
   const [bulkUploadCategories] = useBulkUploadCategoriesMutation();
+
+  // Requests queries & mutations
+  const { data: requestsData, isFetching: isFetchingRequests } = useListCategoryRequestsQuery(undefined, {
+    skip: activeTab !== 'requests',
+    pollingInterval: 5000,
+  });
+  const [approveCategoryRequest, { isLoading: isApprovingRequest }] = useApproveCategoryRequestMutation();
+  const [rejectCategoryRequest, { isLoading: isRejectingRequest }] = useRejectCategoryRequestMutation();
+  const [rejectingReqId, setRejectingReqId] = useState(null);
+  const [rejectNotes, setRejectNotes] = useState('');
+
+  const handleApproveRequest = async (id) => {
+    try {
+      await approveCategoryRequest(id).unwrap();
+      toast.success('Category request approved and category created!');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to approve category request.');
+    }
+  };
+
+  const handleRejectRequestSubmit = async (e) => {
+    e.preventDefault();
+    if (!rejectNotes.trim()) return toast.error('Please specify rejection reason.');
+    try {
+      await rejectCategoryRequest({ id: rejectingReqId, notes: rejectNotes }).unwrap();
+      toast.success('Category request rejected.');
+      setRejectingReqId(null);
+      setRejectNotes('');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to reject category request.');
+    }
+  };
 
   const downloadTemplate = () => {
     const headers = ['category_name', 'category_type', 'subcategory_name', 'description', 'required_licenses'];
@@ -160,51 +196,130 @@ export default function AdminCategoriesPage() {
         title="Category & Subcategory Manager"
         subtitle="Organize product and service classifications and define required vendor licenses & certificates"
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => {
-              setUploadResult(null);
-              setSelectedFile(null);
-              setShowBulkModal(true);
-            }}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-premium cursor-pointer"
-          >
-            <FiUpload className="w-4 h-4" /> Bulk Upload (Excel/CSV)
-          </button>
-          <button
-            onClick={() => { setParentCatId(''); setSelectedLicenses([]); setShowAddModal(true); }}
-            className="px-4 py-2 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-premium"
-          >
-            <FiPlus className="w-4 h-4" /> Add Category / Subcategory
-          </button>
-        </div>
+        {activeTab !== 'requests' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                setUploadResult(null);
+                setSelectedFile(null);
+                setShowBulkModal(true);
+              }}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-premium cursor-pointer"
+            >
+              <FiUpload className="w-4 h-4" /> Bulk Upload (Excel/CSV)
+            </button>
+            <button
+              onClick={() => { setParentCatId(''); setSelectedLicenses([]); setShowAddModal(true); }}
+              className="px-4 py-2 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-premium"
+            >
+              <FiPlus className="w-4 h-4" /> Add Category / Subcategory
+            </button>
+          </div>
+        )}
       </AdminPageHeader>
 
       <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Summary Bar */}
-      <div className="glass p-4 rounded-2xl border border-white/50 flex items-center gap-6">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-brand-purple/10 text-brand-purple rounded-xl">
-            <FiFolder className="w-4 h-4" />
+      {activeTab !== 'requests' && (
+        <div className="glass p-4 rounded-2xl border border-white/50 flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-brand-purple/10 text-brand-purple rounded-xl">
+              <FiFolder className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-text-tertiary uppercase block">Parent Categories</span>
+              <span className="text-sm font-black text-text-primary font-display">{totalParent}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] font-bold text-text-tertiary uppercase block">Parent Categories</span>
-            <span className="text-sm font-black text-text-primary font-display">{totalParent}</span>
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-brand-orange/10 text-brand-orange rounded-xl">
+              <FiCornerDownRight className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-text-tertiary uppercase block">Sub-Categories</span>
+              <span className="text-sm font-black text-text-primary font-display">{totalSub}</span>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-brand-orange/10 text-brand-orange rounded-xl">
-            <FiCornerDownRight className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-text-tertiary uppercase block">Sub-Categories</span>
-            <span className="text-sm font-black text-text-primary font-display">{totalSub}</span>
-          </div>
-        </div>
-      </div>
+      )}
 
-      {isLoading ? (
+      {activeTab === 'requests' ? (
+        isFetchingRequests ? (
+          <div className="h-64 skeleton rounded-2xl" />
+        ) : !requestsData?.items || requestsData.items.length === 0 ? (
+          <div className="glass rounded-2xl p-8 text-center border border-white/50">
+            <FiFolder className="w-12 h-12 text-text-tertiary mx-auto mb-3 opacity-50" />
+            <p className="text-sm font-bold text-text-secondary">No category requests found</p>
+            <p className="text-xs text-text-tertiary mt-1">Users have not requested any custom categories yet.</p>
+          </div>
+        ) : (
+          <div className="glass rounded-2xl border border-white/50 shadow-glass overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-surface-secondary border-b border-border text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
+                    <th className="px-6 py-4">Requested Category</th>
+                    <th className="px-6 py-4">Requested Subcategory</th>
+                    <th className="px-6 py-4">Type</th>
+                    <th className="px-6 py-4">Requested By</th>
+                    <th className="px-6 py-4">Requirement</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border font-medium text-text-secondary">
+                  {requestsData.items.map((req) => (
+                    <tr key={req._id || req.id} className="hover:bg-brand-purple/5 transition-colors">
+                      <td className="px-6 py-4 font-bold text-text-primary">{req.requestedCategory}</td>
+                      <td className="px-6 py-4">{req.requestedSubcategory || '—'}</td>
+                      <td className="px-6 py-4 capitalize">{req.requirementType}</td>
+                      <td className="px-6 py-4">
+                        <div>{req.customer?.name}</div>
+                        <div className="text-[10px] text-text-tertiary">{req.customer?.email}</div>
+                      </td>
+                      <td className="px-6 py-4 italic text-text-tertiary">{req.requirement?.title || '—'}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          req.status === 'pending'
+                            ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : req.status === 'approved'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            : 'bg-red-100 text-red-800 border-red-200'
+                        }`}>
+                          {req.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {req.status === 'pending' ? (
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              onClick={() => handleApproveRequest(req._id || req.id)}
+                              disabled={isApprovingRequest}
+                              className="p-1 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition-all shadow-sm"
+                              title="Approve & Create Category"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => setRejectingReqId(req._id || req.id)}
+                              className="p-1 px-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[10px] font-bold transition-all shadow-sm"
+                              title="Reject Category"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-text-tertiary">Processed</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      ) : isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-40 skeleton rounded-2xl" />
@@ -466,6 +581,38 @@ export default function AdminCategoriesPage() {
             </div>
           )}
         </div>
+      </AdminModal>
+      {/* Rejection Modal for Requests */}
+      <AdminModal isOpen={!!rejectingReqId} onClose={() => setRejectingReqId(null)} title="Reject Category Request">
+        <form onSubmit={handleRejectRequestSubmit} className="space-y-4">
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Reason for Rejection</label>
+            <textarea
+              required
+              rows={4}
+              value={rejectNotes}
+              onChange={(e) => setRejectNotes(e.target.value)}
+              placeholder="Explain why this request is being rejected..."
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setRejectingReqId(null)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isRejectingRequest}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition"
+            >
+              Confirm Rejection
+            </button>
+          </div>
+        </form>
       </AdminModal>
     </div>
   );
