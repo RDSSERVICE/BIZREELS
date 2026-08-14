@@ -49,6 +49,13 @@ export default function VendorLeadsPage() {
     { pollingInterval: 300000 }
   );
 
+  // Proposal modal states
+  const [proposalReq, setProposalReq] = useState(null);
+  const [quotePrice, setQuotePrice] = useState('');
+  const [quoteDelivery, setQuoteDelivery] = useState('');
+  const [quoteNotes, setQuoteNotes] = useState('');
+  const [quoteAttachment, setQuoteAttachment] = useState('');
+
   // Vendor Wallet credits check
   const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, { skip: !proposalReq });
   const vendorWallet = walletData?.data || walletData || {};
@@ -63,13 +70,6 @@ export default function VendorLeadsPage() {
   const [savedIds, setSavedIds] = useState(() => {
     return JSON.parse(localStorage.getItem('vendor_saved_requirements') || '[]');
   });
-
-  // Proposal modal states
-  const [proposalReq, setProposalReq] = useState(null);
-  const [quotePrice, setQuotePrice] = useState('');
-  const [quoteDelivery, setQuoteDelivery] = useState('');
-  const [quoteNotes, setQuoteNotes] = useState('');
-  const [quoteAttachment, setQuoteAttachment] = useState('');
 
   // Requirement details modal states
   const [detailReq, setDetailReq] = useState(null);
