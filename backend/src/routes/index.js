@@ -71,6 +71,10 @@ router.use('/users', lazyLoad('./user.routes'));
 router.use('/categories', lazyLoad('./category.routes'));
 router.use('/creator-marketplace', lazyLoad('./creatorMarketplaceRoutes'));
 router.use('/location', lazyLoad('./location.routes'));
+router.use('/search', lazyLoad('./search.routes'));
+router.use('/seo', lazyLoad('./seo.routes'));
+router.use('/identity', lazyLoad('./identity.routes'));
+router.use('/onboarding', lazyLoad('./onboarding.routes'));
 
 // Referrals endpoint alias for backward compatibility (lazy loaded controller)
 router.get(['/users/me/referrals', '/users/me/referrals/'], authenticate, (req, res, next) => {

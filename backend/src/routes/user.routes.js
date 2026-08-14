@@ -122,6 +122,12 @@ router.patch('/me', requireAuth, catchAsync(async (req, res) => {
   res.json({ user: userService.serialize(updated) });
 }));
 
+router.get('/me/onboarding-checklist', requireAuth, catchAsync(async (req, res) => {
+  const onboardingService = require('../services/onboarding.service');
+  const result = await onboardingService.maybeGrantBonus(req.user._id.toString());
+  res.json(result);
+}));
+
 router.get('/me/saved', requireAuth, catchAsync(async (req, res) => {
   const Listing = require('../models/Listing');
   const savedIds = req.user.customerProfile?.savedListings || [];

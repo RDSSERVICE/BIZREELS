@@ -16,7 +16,14 @@ const config = {
   dbName: process.env.DB_NAME || 'bizreels',
 
   // ── Redis ───────────────────────────────────────────────
-  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  redis: {
+    enabled: process.env.REDIS_ENABLED === 'true',
+    url: process.env.REDIS_URL || '',
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+    password: process.env.REDIS_PASSWORD || '',
+    tls: process.env.REDIS_TLS === 'true',
+  },
 
   // ── JWT ─────────────────────────────────────────────────
   jwt: {

@@ -37,22 +37,45 @@ class MemoryOtpStore {
 
 let redisClient;
 let isRedisConnected = false;
-const redisEnabled = process.env.REDIS_ENABLED !== 'false';
 
-if (redisEnabled) {
+if (config.redis.enabled) {
   try {
-    redisClient = new Redis(config.redisUrl, {
+    const redisOptions = {
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
       retryStrategy(times) {
         if (times > 1) {
-          logger.info('Redis server not detected on localhost. Safely fell back to MemoryOtpStore.');
+          logger.info('Redis connection could not be established. Safely falling back to MemoryOtpStore.');
           return null;
         }
         return 100;
       },
-      connectTimeout: 1000,
-    });
+      connectTimeout: 10000,
+    };
+
+    // Configure SSL/TLS if config.redis.tls is true or if the REDIS_URL starts with rediss://
+    const isSecure = config.redis.tls || (config.redis.url && config.redis.url.startsWith('rediss://'));
+    if (isSecure) {
+      redisOptions.tls = {
+        rejectUnauthorized: false
+      };
+    }
+
+    if (config.redis.url) {
+      logger.info(`Initializing Redis via URL: ${config.redis.url.replace(/:[^:@\n]+@/, ':****@')}`, { service: 'redis' });
+      redisClient = new Redis(config.redis.url, redisOptions);
+    } else {
+      logger.info(`Initializing Redis via Host/Port: ${config.redis.host}:${config.redis.port}`, { service: 'redis' });
+      const connectionOptions = {
+        ...redisOptions,
+        host: config.redis.host,
+        port: config.redis.port,
+      };
+      if (config.redis.password) {
+        connectionOptions.password = config.redis.password;
+      }
+      redisClient = new Redis(connectionOptions);
+    }
 
     redisClient.on('connect', () => {
       isRedisConnected = true;
@@ -61,15 +84,15 @@ if (redisEnabled) {
 
     redisClient.on('error', (err) => {
       if (isRedisConnected) {
-        logger.info('Redis connection lost, safely fell back to MemoryOtpStore.');
+        logger.info(`Redis connection lost (${err.message}). Safely falling back to MemoryOtpStore.`, { service: 'redis' });
       }
       isRedisConnected = false;
     });
   } catch (err) {
-    logger.info('Redis initialization skipped. Using in-memory store.');
+    logger.info(`Redis initialization failed: ${err.message}. Using in-memory store.`, { service: 'redis' });
   }
 } else {
-  logger.info('Redis connection is disabled via .env. Using MemoryOtpStore directly.');
+  logger.info('Redis connection is disabled via .env. Using MemoryOtpStore directly.', { service: 'redis' });
 }
 
 const memoryStore = new MemoryOtpStore();
