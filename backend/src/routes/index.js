@@ -53,6 +53,7 @@ router.use('/ai', lazyLoad('./ai.routes'));
 router.use('/auth', lazyLoad('./authRoutes'));
 router.use('/reels', lazyLoad('./reelRoutes'));
 router.use('/listings', lazyLoad('./listingRoutes'));
+router.use('/feed', lazyLoad('./feed.routes'));
 router.use('/requirements', lazyLoad('./requirementRoutes'));
 router.use('/chat', lazyLoad('./chatRoutes'));
 router.use('/wallet', lazyLoad('./walletRoutes'));
