@@ -159,6 +159,7 @@ const listingSchema = new Schema(
     brand: {
       type: String,
       trim: true,
+      index: true,
     },
     unit: {
       type: String,

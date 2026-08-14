@@ -106,15 +106,27 @@ class ListingRepository {
       match.rating = { $gte: parseFloat(rating) };
     }
 
-    // Search query match (regex)
+    // Search query match (regex across multiple fields)
     if (search) {
-      match.title = { $regex: search, $options: 'i' };
+      const escapedSearch = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(escapedSearch, 'i');
+      match.$or = [
+        { title: regex },
+        { description: regex },
+        { category: regex },
+        { subcategory: regex },
+        { brand: regex },
+        { tags: regex },
+        { 'labels.key': regex },
+        { 'labels.value': regex }
+      ];
     }
 
     const pipeline = [];
 
     // Geolocation sorting first if coordinates [lng, lat] provided and not [0, 0]
-    if (coordinates && coordinates.length === 2 && (parseFloat(coordinates[0]) !== 0 || parseFloat(coordinates[1]) !== 0)) {
+    const hasCoordinates = coordinates && coordinates.length === 2 && (parseFloat(coordinates[0]) !== 0 || parseFloat(coordinates[1]) !== 0);
+    if (hasCoordinates) {
       const geoNear = {
         near: { type: 'Point', coordinates: [parseFloat(coordinates[0]), parseFloat(coordinates[1])] },
         distanceField: 'distance',
@@ -129,6 +141,96 @@ class ListingRepository {
       });
     } else {
       pipeline.push({ $match: match });
+    }
+
+    // Dynamic Relevance score calculation
+    if (search) {
+      pipeline.push({
+        $addFields: {
+          relevanceScore: {
+            $add: [
+              // 1. Exact title match (case-insensitive) -> 1000 points
+              {
+                $cond: [
+                  { $eq: [{ $toLower: '$title' }, search.toLowerCase()] },
+                  1000,
+                  0
+                ]
+              },
+              // 2. Title partial match -> 500 points
+              {
+                $cond: [
+                  { $regexMatch: { input: '$title', regex: search, options: 'i' } },
+                  500,
+                  0
+                ]
+              },
+              // 3. Category/brand match -> 300 points
+              {
+                $cond: [
+                  {
+                    $or: [
+                      { $regexMatch: { input: { $ifNull: ['$category', ''] }, regex: search, options: 'i' } },
+                      { $regexMatch: { input: { $ifNull: ['$subcategory', ''] }, regex: search, options: 'i' } },
+                      { $regexMatch: { input: { $ifNull: ['$brand', ''] }, regex: search, options: 'i' } }
+                    ]
+                  },
+                  300,
+                  0
+                ]
+              },
+              // 4. Description match -> 200 points
+              {
+                $cond: [
+                  { $regexMatch: { input: { $ifNull: ['$description', ''] }, regex: search, options: 'i' } },
+                  200,
+                  0
+                ]
+              },
+              // 5. Specification/label match -> 100 points
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: {
+                        $reduce: {
+                          input: { $ifNull: ['$labels', []] },
+                          initialValue: '',
+                          in: { $concat: ['$$value', ' ', '$$this.key', ' ', '$$this.value'] }
+                        }
+                      },
+                      regex: search,
+                      options: 'i'
+                    }
+                  },
+                  100,
+                  0
+                ]
+              },
+              // 6. Tags match -> 50 points
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: {
+                        $reduce: {
+                          input: { $ifNull: ['$tags', []] },
+                          initialValue: '',
+                          in: { $concat: ['$$value', ' ', '$$this'] }
+                        }
+                      },
+                      regex: search,
+                      options: 'i'
+                    }
+                  },
+                  50,
+                  0
+                ]
+              }
+            ]
+          }
+        }
+      });
     }
 
     // Personalization sorting: followedVendor desc, user interests match
@@ -148,10 +250,8 @@ class ListingRepository {
         if (user && user.customerProfile && Array.isArray(user.customerProfile.interests) && user.customerProfile.interests.length > 0) {
           const orConditions = user.customerProfile.interests.map(i => {
             if (!i.subcategory) {
-              // Only category selected: match any subcategory under this category
               return { $eq: ['$category', i.category] };
             } else {
-              // Both category and subcategory must match
               return {
                 $and: [
                   { $eq: ['$category', i.category] },
@@ -178,9 +278,32 @@ class ListingRepository {
           interestMatch: interestCond
         }
       });
-      pipeline.push({ $sort: { followedVendor: -1, interestMatch: -1, isBoosted: -1, createdAt: -1 } });
-    } else if (!coordinates) {
-      pipeline.push({ $sort: { isBoosted: -1, createdAt: -1 } });
+
+      const sortSpec = {};
+      if (search) {
+        sortSpec.relevanceScore = -1;
+      }
+      sortSpec.followedVendor = -1;
+      sortSpec.interestMatch = -1;
+      if (hasCoordinates) {
+        sortSpec.distance = 1;
+      }
+      sortSpec.isBoosted = -1;
+      sortSpec.createdAt = -1;
+
+      pipeline.push({ $sort: sortSpec });
+    } else {
+      const sortSpec = {};
+      if (search) {
+        sortSpec.relevanceScore = -1;
+      }
+      if (hasCoordinates) {
+        sortSpec.distance = 1;
+      }
+      sortSpec.isBoosted = -1;
+      sortSpec.createdAt = -1;
+
+      pipeline.push({ $sort: sortSpec });
     }
 
     // Pagination
