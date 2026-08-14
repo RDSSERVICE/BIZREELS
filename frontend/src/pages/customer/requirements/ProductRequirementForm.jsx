@@ -391,6 +391,13 @@ export default function ProductRequirementForm({
           <input
             type="date"
             value={expectedDeliveryDate}
+            min={(() => {
+              const today = new Date();
+              const yyyy = today.getFullYear();
+              const mm = String(today.getMonth() + 1).padStart(2, '0');
+              const dd = String(today.getDate()).padStart(2, '0');
+              return `${yyyy}-${mm}-${dd}`;
+            })()}
             onChange={(e) => setExpectedDeliveryDate(e.target.value)}
             className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           />
