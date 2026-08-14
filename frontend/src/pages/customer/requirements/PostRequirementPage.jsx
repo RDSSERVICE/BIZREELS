@@ -74,10 +74,12 @@ export default function PostRequirementPage() {
         const items = res.data?.items || [];
         setCategories(items);
         
-        // Auto select first top-level category on load
+        // Auto select first top-level category of type 'product' (initial type is 'product') on load
         const topLevel = items.filter(c => !c.parent_id);
-        if (topLevel.length > 0) {
-          setCategory(topLevel[0].name);
+        const typedCategories = topLevel.filter(c => c.category_type === 'product');
+        const targetCategory = typedCategories.length > 0 ? typedCategories[0] : (topLevel.length > 0 ? topLevel[0] : null);
+        if (targetCategory) {
+          setCategory(targetCategory.name);
         }
       } catch {}
     };
@@ -110,7 +112,7 @@ export default function PostRequirementPage() {
     loadDistricts();
   }, [state]);
 
-  const parentCategories = categories.filter(c => !c.parent_id);
+  const parentCategories = categories.filter(c => !c.parent_id && c.category_type === type);
   const selectedParent = parentCategories.find(c => c.name === category);
   const subcategories = selectedParent
     ? categories.filter(c => c.parent_id === selectedParent.id)
