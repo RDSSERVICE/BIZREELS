@@ -33,3 +33,10 @@ backend/src/uploads/*
 !backend/src/uploads/.gitkeep
 backend/uploads/
 
+# ── Certificates ─────────────────────────────────────────
+certs/
+*.pem
+*.key
+*.crt
+
+

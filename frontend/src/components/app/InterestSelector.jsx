@@ -80,8 +80,8 @@ export default function InterestSelector({ selected = [], setSelected }) {
             .map(c => ({
               name: c.name,
               icon: getCategoryIcon(c.name),
-              dbId: c._id,
-              subs: (c.children || []).map(sub => sub.name),
+              dbId: c._id || c.id,
+              subs: (c.children || []).map(sub => (typeof sub === 'string' ? sub : sub.name)),
             }));
           setCategories(formatted);
         }

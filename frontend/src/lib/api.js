@@ -2,7 +2,12 @@ import axios from "axios";
 
 const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || '';
 const BACKEND_URL = rawBackendUrl.replace(/\/+$/, '');
-export const API_BASE = import.meta.env.VITE_API_URL || (BACKEND_URL ? `${BACKEND_URL}/api` : '/api');
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+export const API_BASE = rawApiUrl.endsWith('/v1')
+  ? rawApiUrl.slice(0, -3)
+  : (rawApiUrl || (BACKEND_URL ? `${BACKEND_URL}/api` : '/api'));
+
+
 
 const ACCESS_KEY = "bizreels_access_token";
 const REFRESH_KEY = "bizreels_refresh_token";
