@@ -366,7 +366,7 @@ export default function CustomerChatPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-5 animate-fade-in p-2 sm:p-4 min-h-screen font-sans">
+    <div className="max-w-7xl mx-auto flex flex-col gap-5 animate-fade-in p-2 sm:p-4 min-h-screen pb-24 lg:pb-8 font-sans">
       {/* Header Banner */}
       <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -410,7 +410,7 @@ export default function CustomerChatPage() {
       </div>
 
       {/* Dual Pane Glass Chat Interface */}
-      <div className="glass rounded-3xl border border-white/50 shadow-card flex flex-col md:flex-row h-[600px] overflow-hidden">
+      <div className="glass rounded-3xl border border-white/50 shadow-card flex flex-col md:flex-row h-[550px] sm:h-[650px] overflow-hidden">
         {/* Left Thread Sidebar */}
         <div className={`w-full md:w-80 border-r border-border bg-surface-secondary/40 flex flex-col ${selectedThreadId ? 'hidden md:flex' : 'flex'}`}>
           {/* Search Box & Edit Actions */}

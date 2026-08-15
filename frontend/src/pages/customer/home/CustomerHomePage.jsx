@@ -480,11 +480,11 @@ export default function CustomerHomePage() {
           <InstagramPostSkeleton />
         </div>
       ) : processedCombinedFeed.length === 0 ? (
-        <div className="bg-white rounded-md p-12 text-center text-xs text-slate-500 border border-[#e3dccb] max-w-xl mx-auto shadow-xs font-sans">
+        <div className="bg-white rounded-md p-8 sm:p-12 text-center text-xs text-slate-500 border border-[#e3dccb] max-w-xl mx-auto shadow-xs font-sans">
           No posts match your filter criteria.
         </div>
       ) : (
-        <div className="max-w-xl mx-auto space-y-6 pb-12 font-sans">
+        <div className="w-full max-w-xl mx-auto px-1 sm:px-0 space-y-6 pb-24 lg:pb-12 font-sans">
           {processedCombinedFeed.map((item) => {
             const itemId = item._id || item.id;
             const isLiked = likedMap[itemId];
