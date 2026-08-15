@@ -11,7 +11,7 @@ const getTargetUrl = () => {
   return (
     process.env.KEEP_ALIVE_URL ||
     process.env.RENDER_EXTERNAL_URL ||
-    'https://api.bizreels.in/api/v1/health'
+    'https://bizreels-backend.onrender.com/api/v1/health'
   );
 };
 
