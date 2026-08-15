@@ -83,12 +83,16 @@ const pincodeLookup = async (pincode) => {
     }
 
     const po = entry.PostOffice[0];
+    const tehsilCandidate = po.Block && po.Block !== 'NA' ? po.Block : (po.Taluk && po.Taluk !== 'NA' ? po.Taluk : po.Name);
     const result = {
       pincode,
       area: po.Name,
       city: po.District,
+      district: po.District,
+      tehsil: tehsilCandidate,
       state: po.State,
       country: po.Country || 'India',
+      postOffices: entry.PostOffice.map(p => p.Name).filter(Boolean),
     };
 
     // Cache it
@@ -100,7 +104,7 @@ const pincodeLookup = async (pincode) => {
       );
     } catch {}
 
-    return { ...result, source: 'nominatim_pincode' };
+    return { ...result, source: 'postal_pincode' };
   } catch (err) {
     if (err.statusCode) throw err;
     logger.warn(`Pincode API failure: ${err.message}`);

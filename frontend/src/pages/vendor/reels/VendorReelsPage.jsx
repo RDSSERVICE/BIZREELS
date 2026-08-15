@@ -267,12 +267,22 @@ export default function VendorReelsPage() {
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-16">
-      {/* AI RESTRICTION NOTICE BANNER */}
-      <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start sm:items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-amber-700 font-medium">
-        <FiShield className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0 mt-0.5 sm:mt-0" />
-        <span className="leading-relaxed">
-          <strong>AI Content Guard Active:</strong> <span className="hidden sm:inline">Phone numbers, WhatsApp numbers, QR codes, emails, websites & social media handles are strictly blocked. Violations will result in vendor account blacklisting.</span><span className="sm:hidden">Contact info strictly blocked in posts.</span>
-        </span>
+      {/* VENDOR CONTENT POLICY & COMPLIANCE BANNER */}
+      <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-[11px] sm:text-xs text-amber-800 dark:text-amber-300 font-medium shadow-sm">
+        <FiShield className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="leading-relaxed space-y-1">
+          <div>
+            <strong className="font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wide mr-1">
+              Vendor Content Policy & Guidelines:
+            </strong>
+            <span>
+              Only genuine business-related reels and images (products, services, shop promotions, and offers) can be posted by vendors. Any unrelated content (such as comedy clips, TV serials, cartoons, memes, or non-business activities) will be blocked and removed by the admin.
+            </span>
+          </div>
+          <p className="text-[11px] text-rose-700 dark:text-rose-400 font-bold flex items-center gap-1 mt-0.5">
+            <span>⚠️ Posting vulgar, violent, threatening, blackmail, or any criminal material is strictly forbidden and will result in immediate vendor account blacklisting along with legal action.</span>
+          </p>
+        </div>
       </div>
 
       <AdminPageHeader

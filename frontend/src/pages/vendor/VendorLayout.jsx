@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, selectCurrentUser, setActiveRole } from '../../features/auth/authSlice';
-import { api, tokenStore } from '../../lib/api';
+import { api, tokenStore, resolveMediaUrl } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 
 const NAV_SECTIONS = [
@@ -209,7 +209,7 @@ export default function VendorLayout() {
       <div className="border-t border-border px-4 py-4">
         <div className="flex items-center gap-3 mb-3">
           <img
-            src={profileUser?.profile_pic || "/logo.png"}
+            src={resolveMediaUrl(profileUser?.profile_pic || profileUser?.avatarUrl || vendorProfile.shopLogo) || "/logo.png"}
             alt="Vendor"
             className="w-9 h-9 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm"
           />
@@ -321,7 +321,7 @@ export default function VendorLayout() {
             <NotificationBellDropdown role="vendor" />
 
             <img
-              src={profileUser?.profile_pic || "/logo.png"}
+              src={resolveMediaUrl(profileUser?.profile_pic || profileUser?.avatarUrl || vendorProfile.shopLogo) || "/logo.png"}
               alt="Vendor Profile"
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm flex-shrink-0"
             />

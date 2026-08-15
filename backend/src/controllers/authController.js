@@ -204,8 +204,21 @@ class AuthController {
 
   // ── Update Profile ─────────────────────────────────────
   updateProfile = asyncHandler(async (req, res) => {
-    const { name, avatarUrl, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile } = req.body;
-    const user = await authService.updateProfile(req.user._id, { name, avatarUrl, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile }, req);
+    const { name, avatarUrl, profile_pic, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile } = req.body;
+    const resolvedPic = avatarUrl !== undefined ? avatarUrl : profile_pic;
+    const user = await authService.updateProfile(req.user._id, { 
+      name, 
+      avatarUrl: resolvedPic, 
+      profile_pic: resolvedPic, 
+      phone, 
+      gender, 
+      occupation, 
+      dob, 
+      language, 
+      location, 
+      vendorProfile, 
+      creatorProfile 
+    }, req);
 
     return ApiResponse.ok(res, 'Profile updated successfully.', { user });
   });

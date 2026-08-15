@@ -130,6 +130,7 @@ app.use('/api/uploads', express.static(uploadsDir));
 app.use('/api/v1/uploads', express.static(uploadsDir));
 
 app.use('/uploads/processed', express.static(processedDir));
+app.use('/api/uploads/processed', express.static(processedDir));
 app.use('/api/v1/uploads/processed', express.static(processedDir));
 
 const authRoutes = require('./routes/authRoutes');

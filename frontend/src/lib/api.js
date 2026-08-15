@@ -210,7 +210,9 @@ export const mediaApi = {
  *  - a relative dev-mode path like "/api/uploads/xxx.jpg" — prefixed with BACKEND_URL
  */
 export function resolveMediaUrl(url) {
-  if (!url) return url;
+  if (!url) return '';
+  if (typeof url !== 'string') return '';
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
   if (/^https?:\/\//i.test(url)) return url;
   if (!BACKEND_URL) return url;
   return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;

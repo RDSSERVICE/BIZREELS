@@ -518,7 +518,7 @@ class AuthService {
     return this._sanitizeUser(updatedUser);
   }
 
-  async updateProfile(userId, { name, avatarUrl, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile }, req) {
+  async updateProfile(userId, { name, avatarUrl, profile_pic, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile }, req) {
     const user = await authRepository.findUserById(userId);
     if (!user) {
       throw ApiError.notFound('User not found.');
@@ -526,7 +526,11 @@ class AuthService {
 
     const updateFields = {};
     if (name) updateFields.name = name;
-    if (avatarUrl !== undefined) updateFields.avatarUrl = avatarUrl;
+    const resolvedPic = avatarUrl !== undefined ? avatarUrl : profile_pic;
+    if (resolvedPic !== undefined) {
+      updateFields.avatarUrl = resolvedPic;
+      updateFields.profile_pic = resolvedPic;
+    }
     if (phone) updateFields.phone = phone;
     if (gender) updateFields.gender = gender;
     if (occupation) updateFields.occupation = occupation;
