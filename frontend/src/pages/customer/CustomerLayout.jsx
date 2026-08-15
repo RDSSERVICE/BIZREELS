@@ -393,7 +393,7 @@ export default function CustomerLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f2ede4] flex font-sans">
+    <div className="min-h-screen bg-[#f2ede4] flex font-sans w-full max-w-full overflow-x-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-white border-r border-[#e3dccb] fixed top-0 bottom-0 left-0 z-30">
         <SidebarContent onItemClick={() => { }} />
@@ -418,7 +418,7 @@ export default function CustomerLayout() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 w-full max-w-full lg:ml-64 flex flex-col min-h-screen overflow-x-hidden">
         {/* Top Header Bar */}
         <header className="sticky top-0 z-20 bg-[#f2ede4]/95 backdrop-blur-xs border-b border-[#e3dccb] px-4 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
@@ -531,7 +531,7 @@ export default function CustomerLayout() {
         </header>
 
         {/* Page Main Viewport */}
-        <main className="flex-1 p-3 sm:p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden">
           <Outlet />
         </main>
       </div>
