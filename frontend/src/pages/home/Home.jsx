@@ -8,7 +8,7 @@ const Home = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="w-full max-w-full overflow-x-hidden">
       <SEO
         title="Watch. Discover. Shop."
         description="Discover local vendors, chat direct, deal fair. India's first visual reels commerce platform."

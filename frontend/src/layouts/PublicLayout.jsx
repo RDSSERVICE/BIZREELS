@@ -41,7 +41,7 @@ const PublicLayout = () => {
   const active = (path) => location.pathname === path;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: CREAM, fontFamily: "'Manrope', system-ui, sans-serif" }}>
+    <div className="min-h-screen flex flex-col w-full max-w-full overflow-x-hidden" style={{ backgroundColor: CREAM, fontFamily: "'Manrope', system-ui, sans-serif" }}>
 
       {/* ════════════════════════════════════════════════════════
           HEADER
@@ -56,17 +56,7 @@ const PublicLayout = () => {
           transition: 'box-shadow 0.25s',
         }}
       >
-        <div
-          style={{
-            maxWidth: 1200,
-            margin: '0 auto',
-            padding: '0 32px',
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 32,
-          }}
-        >
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4 w-full">
           {/* ── Logo ── */}
           <Link
             to="/"
@@ -358,16 +348,16 @@ const PublicLayout = () => {
       {/* ════════════════════════════════════════════════════════
           PAGE CONTENT
       ════════════════════════════════════════════════════════ */}
-      <main style={{ flex: 1 }}>
+      <main className="flex-1 w-full max-w-full min-w-0 overflow-x-hidden">
         <Outlet />
       </main>
 
       {/* ════════════════════════════════════════════════════════
           FOOTER
       ════════════════════════════════════════════════════════ */}
-      <footer style={{ backgroundColor: '#1c1a17', color: '#c9c4bb' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 28px 0' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1.5fr', gap: 40 }}>
+      <footer style={{ backgroundColor: '#1c1a17', color: '#c9c4bb' }} className="w-full max-w-full overflow-x-hidden">
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 20px 0' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
 
             {/* Brand */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
