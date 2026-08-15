@@ -134,14 +134,45 @@ export default function CustomerNotificationsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
-      <AdminPageHeader
-        icon={FiBell}
-        title={headerTitle}
-        subtitle={headerSubtitle}
-      />
+    <div className="max-w-7xl mx-auto flex flex-col gap-5 animate-fade-in p-2 sm:p-4 min-h-screen font-sans">
+      {/* Header Banner */}
+      <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">NOTIFICATIONS CENTER</span>
+          <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
+            {headerTitle.toUpperCase()}
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 max-w-md">
+            {headerSubtitle}
+          </p>
+        </div>
 
-      <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="w-10 h-10 rounded-full bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center font-black shrink-0 border border-[#1a1a1a]">
+          <FiBell size={20} />
+        </div>
+      </div>
+
+      {/* Bento Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-3 py-2 rounded-md text-xs font-extrabold flex items-center gap-2 whitespace-nowrap transition cursor-pointer border ${
+                isActive
+                  ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                  : 'bg-white border-[#e3dccb] text-slate-700 hover:bg-[#f8f4ec]'
+              }`}
+            >
+              <Icon size={14} className={isActive ? 'text-[#d99a3d]' : 'text-slate-500'} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {loading ? (
         <div className="space-y-3">

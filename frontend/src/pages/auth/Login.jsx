@@ -4,16 +4,16 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
-import { FiMail, FiLock, FiPhone, FiSmartphone, FiShoppingBag, FiShoppingCart, FiFilm } from 'react-icons/fi';
+import { FiMail, FiLock, FiPhone, FiSmartphone, FiShoppingBag, FiShoppingCart, FiFilm, FiArrowRight } from 'react-icons/fi';
 import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
 import { getRoleDashboard } from '../../lib/roleNav';
-import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import API_CONFIG from '../../config';
 
 /**
- * Premium Login Page supporting Email+Password, OTP, and Google OAuth.
+ * Login Page supporting Email+Password, OTP, and Google OAuth.
+ * Styled in Warm Editorial Bento-Brutalism format.
  */
 const Login = () => {
   const dispatch = useDispatch();
@@ -137,32 +137,34 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-5 w-full font-sans">
       {/* Title Header */}
       <div className="text-center md:text-left">
-        <h2 className="text-2xl font-black tracking-tight text-brand-navy">
-          Welcome back
+        <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] uppercase tracking-tight">
+          WELCOME BACK
         </h2>
-        <p className="text-sm text-text-secondary mt-1">
-          Access your marketplace and watch trending content.
+        <p className="text-xs text-slate-500 mt-1 font-medium">
+          Access your marketplace dashboard and watch trending content.
         </p>
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex bg-surface-tertiary p-1 rounded-premium">
+      <div className="flex bg-[#f8f4ec] p-1 rounded-md border border-[#e3dccb]">
         <button
+          type="button"
           onClick={() => { setLoginMode('email'); setOtpSent(false); }}
-          className={`flex-1 py-2 text-xs font-bold rounded-premium transition-all
-            ${loginMode === 'email' ? 'bg-surface text-brand-purple shadow-premium' : 'text-text-secondary'}
-          `}
+          className={`flex-1 py-2 text-xs font-bold rounded transition-all cursor-pointer border-none ${
+            loginMode === 'email' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
+          }`}
         >
-          Email & Password
+          Email &amp; Password
         </button>
         <button
+          type="button"
           onClick={() => setLoginMode('otp')}
-          className={`flex-1 py-2 text-xs font-bold rounded-premium transition-all
-            ${loginMode === 'otp' ? 'bg-surface text-brand-purple shadow-premium' : 'text-text-secondary'}
-          `}
+          className={`flex-1 py-2 text-xs font-bold rounded transition-all cursor-pointer border-none ${
+            loginMode === 'otp' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
+          }`}
         >
           One-Time Password (OTP)
         </button>
@@ -183,10 +185,10 @@ const Login = () => {
 
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-semibold tracking-wide text-brand-navy uppercase">
+              <label className="text-[11px] font-bold tracking-wide text-slate-700 uppercase">
                 Password
               </label>
-              <Link to="/auth/forgot-password" className="text-xs font-bold text-brand-purple hover:underline">
+              <Link to="/auth/forgot-password" className="text-xs font-bold text-[#d99a3d] hover:underline">
                 Forgot password?
               </Link>
             </div>
@@ -198,9 +200,14 @@ const Login = () => {
             />
           </div>
 
-          <Button type="submit" variant="primary" fullWidth isLoading={isEmailLoading} className="mt-2">
-            Sign In
-          </Button>
+          <button
+            type="submit"
+            disabled={isEmailLoading}
+            className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+          >
+            {isEmailLoading ? 'Signing In...' : 'Sign In'}
+            <FiArrowRight className="w-4 h-4" />
+          </button>
         </form>
       ) : (
         <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="flex flex-col gap-4">
@@ -213,25 +220,25 @@ const Login = () => {
                 {...otpForm.register('identifier', { required: 'Email or Phone is required' })}
               />
 
-              <Button
+              <button
+                type="button"
                 onClick={handleSendOtp}
-                variant="primary"
-                fullWidth
-                isLoading={isOtpRequestLoading}
-                className="mt-2"
+                disabled={isOtpRequestLoading}
+                className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
               >
-                Send OTP
-              </Button>
+                {isOtpRequestLoading ? 'Sending OTP...' : 'Send OTP'}
+                <FiArrowRight className="w-4 h-4" />
+              </button>
             </>
           ) : (
             <>
-              <div className="p-3 bg-brand-purple/5 border border-brand-purple/10 rounded-premium flex flex-col gap-1 text-center">
-                <span className="text-xs font-semibold text-brand-navy">OTP sent to:</span>
-                <span className="text-sm font-bold text-brand-purple">{otpIdentifier}</span>
+              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-md flex flex-col gap-1 text-center">
+                <span className="text-xs font-semibold text-slate-700">OTP sent to:</span>
+                <span className="text-xs font-bold text-[#d99a3d]">{otpIdentifier}</span>
                 <button
                   type="button"
                   onClick={() => setOtpSent(false)}
-                  className="text-xs font-bold text-brand-orange hover:underline mt-1"
+                  className="text-xs font-bold text-slate-600 hover:underline mt-1 cursor-pointer border-none bg-transparent"
                 >
                   Change Email/Phone
                 </button>
@@ -248,69 +255,74 @@ const Login = () => {
                 })}
               />
 
-              <Button type="submit" variant="primary" fullWidth isLoading={isOtpVerifyLoading} className="mt-2">
-                Verify & Login
-              </Button>
+              <button
+                type="submit"
+                disabled={isOtpVerifyLoading}
+                className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+              >
+                {isOtpVerifyLoading ? 'Verifying...' : 'Verify & Login'}
+                <FiArrowRight className="w-4 h-4" />
+              </button>
             </>
           )}
         </form>
       )}
 
       {/* Social login divider */}
-      <div className="relative flex py-2 items-center">
-        <div className="flex-grow border-t border-border"></div>
-        <span className="flex-shrink mx-4 text-xs text-text-tertiary font-bold uppercase tracking-wider">
+      <div className="relative flex py-1 items-center">
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
+        <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
           Or continue with
         </span>
-        <div className="flex-grow border-t border-border"></div>
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
       </div>
 
       {/* Google Login Button */}
-      <Button
+      <button
+        type="button"
         onClick={handleGoogleLogin}
-        variant="glass"
-        fullWidth
-        icon={FcGoogle}
+        className="w-full py-2.5 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-md transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-xs"
       >
-        Sign in with Google
-      </Button>
+        <FcGoogle className="w-4 h-4" />
+        <span>Sign in with Google</span>
+      </button>
 
       {/* Footer Nav */}
-      <div className="text-center text-xs font-semibold text-text-secondary mt-4 space-y-4">
+      <div className="text-center text-xs font-medium text-slate-600 mt-2 space-y-3">
         <p>
           New to BizReels?{' '}
-          <Link to="/auth/register" className="font-bold text-brand-purple hover:underline">
+          <Link to="/auth/register" className="font-bold text-[#d99a3d] hover:underline">
             Create Account
           </Link>
         </p>
         
-        <div className="flex flex-col gap-2 pt-2 border-t border-border/60">
-          <span className="text-[11px] text-text-tertiary font-bold uppercase tracking-wider block mb-1">
+        <div className="flex flex-col gap-2 pt-2 border-t border-[#e3dccb]">
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
             Or sign in directly as:
           </span>
           <div className="grid grid-cols-3 gap-2">
             <Link
               to="/auth/customer-login"
-              className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-brand-purple/10 bg-brand-purple/5 hover:bg-brand-purple/10 transition-all text-center group"
+              className="flex flex-col items-center justify-center p-2 rounded-md border border-[#e3dccb] bg-[#f8f4ec] hover:bg-[#1c1a17] hover:text-[#d99a3d] transition-all text-center group"
             >
-              <FiShoppingBag className="text-brand-purple text-base mb-1 group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] font-extrabold text-brand-purple uppercase tracking-wider">Customer</span>
+              <FiShoppingBag className="text-[#1a1a1a] group-hover:text-[#d99a3d] text-sm mb-0.5 transition-colors" />
+              <span className="text-[10px] font-extrabold text-[#1a1a1a] group-hover:text-[#d99a3d] uppercase tracking-wider">Customer</span>
             </Link>
             
             <Link
               to="/auth/vendor-login"
-              className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-brand-orange/10 bg-brand-orange/5 hover:bg-brand-orange/10 transition-all text-center group"
+              className="flex flex-col items-center justify-center p-2 rounded-md border border-[#e3dccb] bg-[#f8f4ec] hover:bg-[#1c1a17] hover:text-[#d99a3d] transition-all text-center group"
             >
-              <FiShoppingCart className="text-brand-orange text-base mb-1 group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] font-extrabold text-brand-orange uppercase tracking-wider">Vendor</span>
+              <FiShoppingCart className="text-[#1a1a1a] group-hover:text-[#d99a3d] text-sm mb-0.5 transition-colors" />
+              <span className="text-[10px] font-extrabold text-[#1a1a1a] group-hover:text-[#d99a3d] uppercase tracking-wider">Vendor</span>
             </Link>
             
             <Link
               to="/auth/creator-login"
-              className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-pink-500/10 bg-pink-500/5 hover:bg-pink-500/10 transition-all text-center group"
+              className="flex flex-col items-center justify-center p-2 rounded-md border border-[#e3dccb] bg-[#f8f4ec] hover:bg-[#1c1a17] hover:text-[#d99a3d] transition-all text-center group"
             >
-              <FiFilm className="text-pink-500 text-base mb-1 group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] font-extrabold text-pink-500 uppercase tracking-wider">Creator</span>
+              <FiFilm className="text-[#1a1a1a] group-hover:text-[#d99a3d] text-sm mb-0.5 transition-colors" />
+              <span className="text-[10px] font-extrabold text-[#1a1a1a] group-hover:text-[#d99a3d] uppercase tracking-wider">Creator</span>
             </Link>
           </div>
         </div>

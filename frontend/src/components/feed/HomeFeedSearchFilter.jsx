@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   FiSearch, FiSliders, FiMapPin, FiClock, FiTrendingUp,
   FiEye, FiHeart, FiShare2, FiBookmark, FiZap, FiX, FiCheck,
-  FiGrid, FiFilter, FiGlobe, FiRadio, FiTag
+  FiGrid, FiFilter, FiGlobe, FiRadio, FiTag, FiCornerDownLeft
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -72,51 +72,66 @@ export default function HomeFeedSearchFilter({
   };
 
   return (
-    <div className="w-full space-y-4">
-      {/* Search Input Bar */}
-      <div className="glass rounded-2xl p-3 sm:p-4 border border-white/50 shadow-card flex flex-col sm:flex-row gap-3 items-center">
-        <div className="relative flex-1 w-full">
-          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
+    <div className="sticky top-[53px] z-20 bg-[#f2ede4]/95 backdrop-blur-md pt-2 pb-2 space-y-3 font-sans transition-all -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[#e3dccb]/60">
+      
+      {/* ── Search Input & Controls Bar ── */}
+      <div className="bg-white rounded-md p-2.5 sm:p-3 border border-[#e3dccb] shadow-xs flex flex-col sm:flex-row gap-2.5 items-center">
+        {/* Search Input Box with Framed Icon */}
+        <div className="relative flex-1 w-full flex items-center gap-2 bg-[#f8f4ec] rounded-md border border-[#e3dccb] px-2.5 py-1.5 focus-within:border-[#d99a3d] focus-within:ring-2 focus-within:ring-[#d99a3d]/20 transition-all">
+          <div className="w-7 h-7 rounded bg-[#d99a3d] text-[#1a1a1a] border border-[#1a1a1a]/20 flex items-center justify-center shrink-0 shadow-xs">
+            <FiSearch size={15} />
+          </div>
+
           <input
             type="text"
             value={filters.searchQuery || ''}
             onChange={(e) => onFilterChange({ ...filters, searchQuery: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && onSearch && onSearch()}
             placeholder="Search nearby reels, products, services, announcements..."
-            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+            className="w-full bg-transparent text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none font-medium"
           />
+
+          {/* Keyboard shortcut hint pill */}
+          <div className="hidden md:flex items-center gap-1 bg-white border border-[#e3dccb] text-[9.5px] font-extrabold text-slate-400 px-1.5 py-0.5 rounded uppercase shrink-0">
+            <FiCornerDownLeft size={9} />
+            <span>Enter</span>
+          </div>
         </div>
 
+        {/* Distance Selector & Filter Toggle */}
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-          {/* Quick Distance Selector if Nearby is near_me */}
+          {/* Distance Selector */}
           {filters.nearby === 'near_me' && (
-            <select
-              value={filters.distanceKm || '50'}
-              onChange={(e) => onFilterChange({ ...filters, distanceKm: e.target.value })}
-              className="bg-surface border border-border text-xs text-brand-purple font-semibold px-3 py-2 rounded-xl focus:outline-none focus:border-brand-purple"
-            >
-              <option value="5">Within 5 km</option>
-              <option value="15">Within 15 km</option>
-              <option value="50">Within 50 km</option>
-              <option value="100">Within 100 km</option>
-              <option value="all">Everywhere</option>
-            </select>
+            <div className="relative flex items-center bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-2.5 py-1.5 text-xs font-bold text-[#1a1a1a]">
+              <FiMapPin className="text-[#d99a3d] mr-1.5 shrink-0" size={13} />
+              <select
+                value={filters.distanceKm || '50'}
+                onChange={(e) => onFilterChange({ ...filters, distanceKm: e.target.value })}
+                className="bg-transparent text-xs text-[#1a1a1a] font-bold focus:outline-none cursor-pointer border-none pr-1"
+              >
+                <option value="5">Within 5 km</option>
+                <option value="15">Within 15 km</option>
+                <option value="50">Within 50 km</option>
+                <option value="100">Within 100 km</option>
+                <option value="all">Everywhere</option>
+              </select>
+            </div>
           )}
 
           {/* Toggle Filter Drawer Button */}
           <button
             type="button"
             onClick={() => setShowDrawer(!showDrawer)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-md text-xs font-extrabold transition flex items-center gap-2 cursor-pointer border ${
               showDrawer || activeCount > 0
-                ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                : 'glass text-text-secondary border-border hover:text-text-primary'
+                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                : 'bg-[#241b15] text-[#d99a3d] border-[#d99a3d]/40 hover:border-[#d99a3d]'
             }`}
           >
-            <FiSliders size={16} />
-            <span>Filters</span>
+            <FiSliders size={14} className="text-[#d99a3d]" />
+            <span>FILTERS</span>
             {activeCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-white text-brand-purple text-[10px] font-black flex items-center justify-center">
+              <span className="w-4 h-4 rounded-full bg-[#d99a3d] text-[#1a1a1a] text-[9.5px] font-black flex items-center justify-center">
                 {activeCount}
               </span>
             )}
@@ -124,10 +139,10 @@ export default function HomeFeedSearchFilter({
         </div>
       </div>
 
-      {/* Popularity Quick Tabs */}
+      {/* ── Popularity Quick Tabs Bar ── */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1 flex-shrink-0 mr-1">
-          <FiTrendingUp size={13} /> Sort:
+        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1 flex-shrink-0 mr-1">
+          <FiTrendingUp size={13} className="text-[#d99a3d]" /> SORT BY:
         </span>
         {POPULARITY_OPTIONS.map((pop) => {
           const Icon = pop.icon;
@@ -136,56 +151,56 @@ export default function HomeFeedSearchFilter({
             <button
               key={pop.id}
               onClick={() => onFilterChange({ ...filters, popularity: pop.id })}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 whitespace-nowrap transition ${
+              className={`px-3 py-1.5 rounded-md text-xs font-extrabold flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer ${
                 isSelected
-                  ? 'bg-brand-purple/15 text-brand-purple border-brand-purple/40 shadow-sm'
-                  : 'bg-surface border-border text-text-secondary hover:border-brand-purple/30'
+                  ? 'bg-[#d99a3d] text-[#1a1a1a] border-2 border-[#241b15] shadow-xs scale-[1.02]'
+                  : 'bg-white border border-[#e3dccb] text-slate-700 hover:border-[#241b15] hover:bg-[#241b15] hover:text-[#d99a3d]'
               }`}
             >
-              <Icon size={13} />
+              <Icon size={13} className={isSelected ? 'text-[#1a1a1a]' : 'text-[#d99a3d]'} />
               <span>{pop.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Expanded Filter Drawer */}
+      {/* ── Expanded Filter Drawer ── */}
       <AnimatePresence>
         {showDrawer && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="glass rounded-3xl p-5 sm:p-6 border border-border shadow-card space-y-6 overflow-hidden"
+            className="bg-white rounded-md p-5 border border-[#e3dccb] shadow-xl space-y-5 overflow-hidden font-sans z-30 relative"
           >
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
-                <FiFilter className="text-brand-purple" />
-                <span>Home Feed Search Filters</span>
+            <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a] flex items-center gap-2">
+                <FiFilter className="text-[#d99a3d]" />
+                <span>FEED SEARCH FILTERS</span>
               </h3>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="text-xs text-brand-purple font-bold hover:underline"
+                  className="text-xs text-[#d99a3d] font-bold hover:underline cursor-pointer border-none bg-transparent"
                 >
                   Reset All
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowDrawer(false)}
-                  className="p-1 text-text-tertiary hover:text-text-primary"
+                  className="p-1 text-slate-400 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
                 >
                   <FiX size={18} />
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               
               {/* 1. Reel / Image Type */}
-              <div className="space-y-2.5">
-                <label className="text-xs font-bold text-text-primary font-display block">
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                   1. Reel / Image Type
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -195,10 +210,10 @@ export default function HomeFeedSearchFilter({
                       <button
                         key={t.id}
                         onClick={() => onFilterChange({ ...filters, type: t.id })}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
+                        className={`px-2.5 py-1 rounded text-xs font-extrabold border transition cursor-pointer ${
                           isSelected
-                            ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                            : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
+                            ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#241b15]'
+                            : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-700 hover:bg-[#241b15] hover:text-[#d99a3d]'
                         }`}
                       >
                         {t.label}
@@ -209,8 +224,8 @@ export default function HomeFeedSearchFilter({
               </div>
 
               {/* 2. Duration */}
-              <div className="space-y-2.5">
-                <label className="text-xs font-bold text-text-primary font-display block">
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                   2. Video Duration
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -220,10 +235,10 @@ export default function HomeFeedSearchFilter({
                       <button
                         key={d.id}
                         onClick={() => onFilterChange({ ...filters, duration: d.id })}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
+                        className={`px-2.5 py-1 rounded text-xs font-extrabold border transition cursor-pointer ${
                           isSelected
-                            ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                            : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
+                            ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#241b15]'
+                            : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-700 hover:bg-[#241b15] hover:text-[#d99a3d]'
                         }`}
                       >
                         {d.label}
@@ -234,9 +249,9 @@ export default function HomeFeedSearchFilter({
               </div>
 
               {/* 3. Nearby Scope */}
-              <div className="space-y-2.5">
-                <label className="text-xs font-bold text-text-primary font-display block">
-                  3. Location & Distance
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                  3. Location &amp; Distance
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {NEARBY_SCOPES.map((ns) => {
@@ -245,10 +260,10 @@ export default function HomeFeedSearchFilter({
                       <button
                         key={ns.id}
                         onClick={() => onFilterChange({ ...filters, nearby: ns.id })}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
+                        className={`px-2.5 py-1 rounded text-xs font-extrabold border transition cursor-pointer ${
                           isSelected
-                            ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                            : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
+                            ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#241b15]'
+                            : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-700 hover:bg-[#241b15] hover:text-[#d99a3d]'
                         }`}
                       >
                         {ns.label}
@@ -259,8 +274,8 @@ export default function HomeFeedSearchFilter({
               </div>
 
               {/* 4. Upload Date */}
-              <div className="space-y-2.5">
-                <label className="text-xs font-bold text-text-primary font-display block">
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                   4. Upload Date
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -270,10 +285,10 @@ export default function HomeFeedSearchFilter({
                       <button
                         key={ud.id}
                         onClick={() => onFilterChange({ ...filters, uploadDate: ud.id })}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
+                        className={`px-2.5 py-1 rounded text-xs font-extrabold border transition cursor-pointer ${
                           isSelected
-                            ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                            : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
+                            ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#241b15]'
+                            : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-700 hover:bg-[#241b15] hover:text-[#d99a3d]'
                         }`}
                       >
                         {ud.label}
@@ -284,8 +299,8 @@ export default function HomeFeedSearchFilter({
               </div>
 
               {/* 5. Popularity */}
-              <div className="space-y-2.5">
-                <label className="text-xs font-bold text-text-primary font-display block">
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                   5. Popularity Ranking
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -295,10 +310,10 @@ export default function HomeFeedSearchFilter({
                       <button
                         key={pop.id}
                         onClick={() => onFilterChange({ ...filters, popularity: pop.id })}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
+                        className={`px-2.5 py-1 rounded text-xs font-extrabold border transition cursor-pointer ${
                           isSelected
-                            ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                            : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
+                            ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#241b15]'
+                            : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-700 hover:bg-[#241b15] hover:text-[#d99a3d]'
                         }`}
                       >
                         {pop.label}

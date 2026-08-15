@@ -19,25 +19,9 @@ const Home = () => {
         {/* .wrapper */}
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: 14 }}>
           {/* .hero */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1.15fr 0.85fr',
-            backgroundColor: '#f2ede4',
-            borderRadius: 6,
-            overflow: 'hidden',
-            position: "relative",
-            zIndex: 10,
-            minHeight: 420,
-          }}>
-
+          <div className="grid grid-cols-1 md:grid-cols-12 bg-[#f2ede4] rounded-md overflow-hidden relative z-10 min-h-[420px]">
             {/* ── LEFT .left ── */}
-            <div style={{
-              position: 'relative',
-              // padding: '56px 48px 40px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-            }}>
+            <div className="md:col-span-7 p-6 sm:p-10 flex flex-col justify-center relative">
 
               {/* .headline */}
               <motion.div
@@ -136,7 +120,7 @@ const Home = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              style={{ backgroundColor: '#1c1a17', padding: '44px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', color: '#fff' }}
+              className="md:col-span-5 bg-[#241b15] p-6 sm:p-10 flex flex-col justify-center text-white"
             >
               {/* .eyebrow */}
               <p style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 1, color: '#d99a3d', textTransform: 'uppercase', marginBottom: 26 }}>
@@ -197,13 +181,13 @@ const Home = () => {
       </section>
 
       {/* ── STATS BAR ────────────────────────────────────────────── */}
-      <section style={{ backgroundColor: '#e9e4d8', padding: '0 14px 14px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <section style={{ backgroundColor: '#f2ede4' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 14px 14px' }}>
           {/* .stats-bar */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', backgroundColor: '#f2ede4', borderRadius: 6, overflow: 'hidden' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] bg-white/90 backdrop-blur-xs rounded-md overflow-hidden border border-[#e3dccb] shadow-xs">
 
             {/* .stats — 4 columns */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-[#ddd6c8]">
               {[
                 {
                   number: '12K+',
@@ -225,18 +209,18 @@ const Home = () => {
                   label: 'Business Generated',
                   svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><polyline points="3 17 9 11 13 15 21 6" /><polyline points="15 6 21 6 21 12" /></svg>,
                 },
-              ].map(({ number, label, svg }, i, arr) => (
+              ].map(({ number, label, svg }) => (
                 /* .stat */
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '26px 28px', borderRight: i < arr.length - 1 ? '1px solid #ddd6c8' : 'none' }}>
+                <div key={label} className="flex items-center gap-3 p-4 sm:p-5 lg:px-6 lg:py-5">
                   {/* .stat-icon */}
-                  <div style={{ flexShrink: 0, width: 38, height: 38, border: '1.5px solid #1a1a1a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a' }}>
+                  <div style={{ flexShrink: 0, width: 36, height: 36, border: '1.5px solid #1a1a1a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a' }}>
                     {svg}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     {/* .stat-number */}
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', lineHeight: 1.1, letterSpacing: '-0.3px' }}>{number}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', lineHeight: 1.1, letterSpacing: '-0.3px' }}>{number}</div>
                     {/* .stat-label */}
-                    <div style={{ fontSize: 12.5, fontWeight: 500, color: '#5a5a5a', marginTop: 2 }}>{label}</div>
+                    <div className="truncate" style={{ fontSize: 12, fontWeight: 500, color: '#5a5a5a', marginTop: 2 }}>{label}</div>
                   </div>
                 </div>
               ))}
@@ -245,18 +229,16 @@ const Home = () => {
             {/* .cta-panel */}
             <button
               onClick={() => navigate('/auth/register')}
-              style={{ backgroundColor: '#d99a3d', padding: '22px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, minWidth: 280, border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background .15s ease' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#c8872b'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#d99a3d'; }}
+              className="bg-[#d99a3d] hover:bg-[#c8872b] p-5 lg:px-7 lg:py-5 flex items-center justify-between gap-4 border-none cursor-pointer text-left transition-colors font-sans w-full lg:w-auto"
             >
               {/* .cta-text */}
               <div>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.3 }}>For Businesses of<br />Every Size</h3>
-                <p style={{ fontSize: 12.5, fontWeight: 500, color: '#3a2f1f', marginTop: 4, lineHeight: 1.4 }}>Start for free. Pay only<br />when you grow.</p>
+                <h3 style={{ fontSize: 14.5, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.25 }}>For Businesses of<br className="hidden sm:inline" /> Every Size</h3>
+                <p style={{ fontSize: 12, fontWeight: 500, color: '#3a2f1f', marginTop: 3, lineHeight: 1.35 }}>Start for free. Pay only<br className="hidden sm:inline" /> when you grow.</p>
               </div>
               {/* .cta-arrow */}
-              <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: '50%', backgroundColor: 'rgba(26,26,26,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+              <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: '50%', backgroundColor: 'rgba(26,26,26,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 15, height: 15 }}>
                   <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
                 </svg>
               </div>
@@ -267,13 +249,13 @@ const Home = () => {
       </section>
 
       {/* ── TRENDING PRODUCTS SECTION ─────────────────────────────── */}
-      <section style={{ backgroundColor: '#e9e4d8' }}>
+      <section style={{ backgroundColor: '#f2ede4' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 14px 14px' }}>
-          {/* .section — 3-col grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '0.85fr 2.05fr 0.8fr', gap: 6 }}>
+          {/* .section — responsive bento grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
             {/* ── LEFT: Trending list ── */}
-            <div style={{ backgroundColor: '#1c1a17', padding: '24px 20px', color: '#fff', borderRadius: 8 }}>
+            <div className="lg:col-span-4 bg-[#241b15] p-5 text-white rounded-md">
               {/* .trending-head */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
                 <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 19, lineHeight: 1.2, textTransform: 'uppercase' }}>
@@ -310,7 +292,7 @@ const Home = () => {
             </div>
 
             {/* ── MIDDLE: Product cards ── */}
-            <div style={{ backgroundColor: '#1c1a17', padding: '24px 20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, borderRadius: 8 }}>
+            <div className="lg:col-span-5 bg-[#241b15] p-5 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-md">
               {[
                 { badge: 'Featured', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=500&h=650&fit=crop', views: '2.1K', title: 'ErgoComfort Pro Premium Office Chair', category: 'Furniture' },
                 { badge: null,       img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&h=650&fit=crop', views: '1.8K', title: 'Social Media Growth Service',          category: 'Digital Marketing' },
@@ -348,7 +330,7 @@ const Home = () => {
             </div>
 
             {/* ── RIGHT: CTA panel ── */}
-            <div style={{ backgroundColor: '#d99a3d', padding: '28px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#1a1a1a', borderRadius: 8 }}>
+            <div className="lg:col-span-3 bg-[#d99a3d] p-6 text-[#1a1a1a] flex flex-col justify-between rounded-md min-h-[260px]">
               <div>
                 <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 25, lineHeight: 1.1, textTransform: 'uppercase', letterSpacing: '-0.3px' }}>
                   Create.<br />Share.<br />Generate<br />Leads.
@@ -385,22 +367,13 @@ const Home = () => {
       </section>
 
       {/* ── BROWSE BY CATEGORIES ──────────────────────────────────── */}
-      <section style={{ backgroundColor: '#e9e4d8' }}>
+      <section style={{ backgroundColor: '#f2ede4' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 14px 14px' }}>
           {/* .categories-bar */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '220px repeat(7, 1fr)',
-            alignItems: 'center',
-            backgroundColor: '#f2ede4',
-            border: '1px solid #e3dccb',
-            borderRadius: 6,
-            padding: '24px 28px',
-            gap: 10,
-          }}>
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 items-center bg-white border border-[#e3dccb] rounded-md p-4 sm:p-6 gap-4 shadow-xs">
 
             {/* .browse-intro */}
-            <div style={{ paddingRight: 20, borderRight: '1px solid #e3dccb' }}>
+            <div className="col-span-2 sm:col-span-4 md:col-span-1 pr-4 md:border-r border-[#e3dccb] pb-3 md:pb-0">
               <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.2px', color: '#1a1a1a', textTransform: 'uppercase' }}>
                 Browse by<br />Categories
               </h2>
@@ -466,13 +439,13 @@ const Home = () => {
       </section>
 
       {/* ── WHY BUSINESSES CHOOSE BIZREELS ───────────────────────── */}
-      <section style={{ backgroundColor: '#e9e4d8' }}>
+      <section style={{ backgroundColor: '#f2ede4' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 14px 14px' }}>
           {/* .section — 4-col grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
             {/* PANEL 1: Why Choose — dark */}
-            <div style={{ borderRadius: 8, overflow: 'hidden', backgroundColor: '#1c1a17', padding: '24px 22px', display: 'flex', flexDirection: 'column' }}>
+            <div className="rounded-md bg-[#241b15] p-6 flex flex-col text-white">
               <h2 style={{ fontSize: 16.5, fontWeight: 800, lineHeight: 1.3, color: '#d99a3d', textTransform: 'uppercase', marginBottom: 18 }}>
                 Why Businesses<br />Choose BizReels
               </h2>
@@ -541,8 +514,8 @@ const Home = () => {
               />
             </div>
 
-            {/* PANEL 4: Stats — cream */}
-            <div style={{ borderRadius: 8, overflow: 'hidden', backgroundColor: '#f2ede4', border: '1px solid #e3dccb', padding: '24px 22px' }}>
+            {/* PANEL 4: Stats — white card */}
+            <div style={{ borderRadius: 8, overflow: 'hidden', backgroundColor: '#ffffff', border: '1px solid #e3dccb', padding: '24px 22px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
               <h2 style={{ fontSize: 15.5, fontWeight: 800, lineHeight: 1.3, color: '#161513', textTransform: 'uppercase' }}>
                 Success by the<br />Numbers
               </h2>
@@ -586,17 +559,9 @@ const Home = () => {
 
 
       {/* ── CTA BANNER ───────────────────────────────────────────── */}
-      <section style={{ backgroundColor: '#e9e4d8' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 14px 14px' }}>
-          <div style={{
-            backgroundColor: '#c8872b',
-            borderRadius: 6,
-            padding: '22px 32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 24,
-          }}>
+      <section style={{ backgroundColor: '#f2ede4' }}>
+        <div className="p-3.5 sm:p-4">
+          <div className="bg-[#c8872b] rounded-md p-5 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ maxWidth: 1200, margin: '0 auto' }}>
             {/* Left: icon + text */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
               {/* Arrow icon box */}

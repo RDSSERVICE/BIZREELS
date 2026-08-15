@@ -11,7 +11,6 @@ import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { useAddRoleMutation } from '../../../features/auth/authApi';
 import { setCredentials, selectCurrentUser } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
-import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { api } from '../../../lib/api';
 
 const CREATOR_CATEGORIES = [
@@ -103,83 +102,10 @@ export default function BecomeCreatorPage() {
   const [instagramLink, setInstagramLink] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
   const [facebookLink, setFacebookLink] = useState('');
-  const [portfolioImages, setPortfolioImages] = useState([]);
   const [portfolioVideoLink, setPortfolioVideoLink] = useState('');
 
   // 11. Terms Declaration
   const [termsAccepted, setTermsAccepted] = useState(false);
-
-
-
-  const detectLiveLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
-      setLiveLocation(false);
-      return;
-    }
-
-    const toastId = toast.loading('Detecting your live location...');
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        let resolvedCity = '';
-        let resolvedDistrict = '';
-        let resolvedState = '';
-        let resolvedPincode = '';
-        let resolvedArea = '';
-
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const addr = data.address || {};
-
-            resolvedCity = addr.city || addr.town || addr.village || addr.suburb || '';
-            resolvedDistrict = addr.state_district || addr.county || addr.city_district || '';
-            resolvedState = addr.state || '';
-            resolvedPincode = addr.postcode || '';
-            resolvedArea = addr.suburb || addr.neighbourhood || addr.road || resolvedCity || '';
-          }
-        } catch (err) {
-          console.warn('Nominatim reverse geocode failed, using backend fallback', err);
-        }
-
-        if (!resolvedCity && !resolvedState) {
-          try {
-            const backendGeo = await api.post('/v1/location/reverse-geocode', { lat: latitude, lng: longitude });
-            const geoData = backendGeo.data || {};
-            resolvedCity = geoData.city || '';
-            resolvedState = geoData.state || '';
-            resolvedDistrict = geoData.area || '';
-            resolvedPincode = geoData.pincode || '';
-            resolvedArea = geoData.area || '';
-          } catch (e) {
-            console.warn('Backend reverseGeocode fallback failed', e);
-          }
-        }
-
-        if (resolvedCity || resolvedState) {
-          setCity(resolvedCity);
-          setDistrict(resolvedDistrict || resolvedCity);
-          setStateName(resolvedState);
-          setPincode(resolvedPincode);
-          setAreaLocality(resolvedArea || resolvedCity);
-          setLiveLocation(true);
-          toast.success(`Location auto-fetched: ${resolvedCity || resolvedArea}, ${resolvedState}`, { id: toastId });
-        } else {
-          setLiveLocation(true);
-          toast.success(`Coordinates captured: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, { id: toastId });
-        }
-      },
-      (error) => {
-        setLiveLocation(false);
-        toast.error(error.message || 'Permission denied or failed to detect location', { id: toastId });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
 
   const toggleArrayItem = (item, array, setArray) => {
     if (array.includes(item)) {
@@ -193,7 +119,6 @@ export default function BecomeCreatorPage() {
     }
   };
 
-  // Image Upload helper
   const handleImageUpload = async (e, setImageState) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -208,7 +133,7 @@ export default function BecomeCreatorPage() {
       const url = res.data?.url || res.data?.data?.url || res.url;
       if (url) {
         setImageState(url);
-        toast.success('Image uploaded!', { id: toastId });
+        toast.success('Image uploaded successfully!', { id: toastId });
       } else {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -229,83 +154,50 @@ export default function BecomeCreatorPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!fullName || !displayName) {
-      toast.error('Full Name & Display Name are required');
-      return;
-    }
-    if (!dob) {
-      toast.error('Date of Birth is required');
-      return;
-    }
-    const todayVal = new Date();
-    todayVal.setHours(23, 59, 59, 999);
-    const dobDate = new Date(dob);
-    if (dobDate > todayVal) {
-      toast.error('Date of Birth cannot be in the future.');
-      return;
-    }
-    // Calculate age
-    let age = todayVal.getFullYear() - dobDate.getFullYear();
-    const m = todayVal.getMonth() - dobDate.getMonth();
-    if (m < 0 || (m === 0 && todayVal.getDate() < dobDate.getDate())) {
-      age--;
-    }
-    if (age < 18) {
-      toast.error('Must be 18 years or older to register as a Creator.');
+      toast.error('Full Name and Display Name are required');
       return;
     }
     if (!mobileNumber) {
       toast.error('Mobile Number is required');
       return;
     }
-    if (!pincode || pincode.length !== 6) {
-      toast.error('Valid 6-digit PIN code required');
-      return;
-    }
-    if (selectedLanguages.includes('Others') && !otherLanguage.trim()) {
-      toast.error('Please specify your other language(s)');
-      return;
-    }
     if (!ageConfirmed) {
-      toast.error('Must be 18 years or older to register as a Creator');
+      toast.error('You must confirm you are 18+ years of age');
       return;
     }
     if (!termsAccepted) {
-      toast.error('Please accept Creator Terms & Declaration');
+      toast.error('Please accept the Creator Terms & Policy');
       return;
     }
 
     setLoading(true);
     try {
-      let finalLanguages = [...selectedLanguages];
-      if (finalLanguages.includes('Others') && otherLanguage.trim()) {
-        finalLanguages = finalLanguages.filter(l => l !== 'Others');
-        const customLangs = otherLanguage.split(',').map(l => l.trim()).filter(Boolean);
-        finalLanguages = [...finalLanguages, ...customLangs];
-      }
-
       const creatorProfileData = {
-        name: fullName,
-        displayName: displayName || fullName,
+        fullName,
+        displayName,
         profilePhoto,
         dob,
-        ageConfirmed: true,
+        ageConfirmed,
         gender,
         mobileNumber,
         whatsappNumber: whatsappNumber || mobileNumber,
         email,
-        location: {
+        address: {
           country,
+          pincode,
           state: stateName,
           district: district || city,
           city,
           areaLocality,
-          pincode,
           liveLocation
         },
-        categories: selectedCategories,
+        creatorCategories: selectedCategories,
         skills: selectedSkills,
-        languages: finalLanguages,
+        languages: selectedLanguages.includes('Others') && otherLanguage
+          ? [...selectedLanguages.filter((l) => l !== 'Others'), otherLanguage]
+          : selectedLanguages,
         experience,
         pricing: {
           reelPrice: Number(reelPrice) || 0,
@@ -315,39 +207,34 @@ export default function BecomeCreatorPage() {
           monthlyCollaboration: Number(monthlyCollaboration) || 0,
           negotiable
         },
-        availabilityStatus: availableNow ? 'Available Now' : 'Busy',
-        workTypes,
-        travelRadius,
+        availability: {
+          availableNow,
+          workTypes,
+          travelRadius
+        },
         portfolio: {
           instagramLink,
           youtubeLink,
           facebookLink,
-          portfolioImages,
           portfolioVideoLink
         },
+        termsAccepted: true,
+        termsAcceptedAt: new Date().toISOString(),
         verificationStatus: 'unverified',
-        contactVerified: {
-          mobile: true,
-          whatsapp: false,
-          email: !!email
-        },
         createdAt: new Date().toISOString()
       };
 
-      // 1. Update Profile in backend
       await api.patch('/v1/users/me', {
         creatorProfile: creatorProfileData,
         city: city || currentUser?.city || 'Local'
       });
 
-      // 2. Add 'creator' role
-      const roleRes = await addRoleApi({ role: 'creator' }).unwrap();
+      const roleRes = await addRoleApi({ role: 'creator', profileData: creatorProfileData }).unwrap();
       const updatedUser = roleRes.user || roleRes.data?.user || roleRes;
 
-      // 3. Switch active role to 'creator'
       try {
         await api.post('/v1/users/me/switch-role', { role: 'creator' });
-      } catch (e) { }
+      } catch (e) {}
 
       dispatch(setCredentials({
         user: {
@@ -358,100 +245,91 @@ export default function BecomeCreatorPage() {
         }
       }));
 
-      toast.success('🎉 Congratulations! Creator Studio is launched successfully!');
+      toast.success('🎉 Congratulations! Your Creator Studio is launched!');
       navigate('/creator/dashboard', { replace: true });
     } catch (err) {
-      toast.error('Failed to register creator profile');
+      toast.error('Failed to register creator profile.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-16">
-      <AdminPageHeader
-        icon={FiVideo}
-        title="Become a Verified Creator / Influencer"
-        subtitle="Monetize your creative talents! Post promotional reels, take brand photo shoots, offer video editing, UGC, or AI content services to local vendors on BizReels."
-      />
+    <div className="max-w-4xl mx-auto space-y-6 font-sans p-2 sm:p-4 min-h-screen">
+      {/* Header Banner */}
+      <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">START EARNING WITH VIDEO</span>
+          <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
+            JOIN AS A CREATOR
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 max-w-md">
+            Create product reels, shoots, and UGC videos for local business vendors and earn money on BizReels.
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="w-10 h-10 rounded-full bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center font-black shrink-0 border border-[#1a1a1a]">
+          <FiVideo size={20} />
+        </div>
+      </div>
 
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
         {/* SECTION 1: BASIC INFORMATION */}
-        <div className="glass rounded-2xl p-4 sm:p-8 border border-border shadow-card space-y-4">
-          <div className="border-b border-border pb-3 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-xl bg-brand-purple text-white flex items-center justify-center font-bold text-sm shadow-md">1</span>
+        <div className="bg-white rounded-md p-5 sm:p-6 border border-[#e3dccb] shadow-xs space-y-4">
+          <div className="border-b border-[#e3dccb] pb-3 flex items-center gap-3">
+            <span className="w-7 h-7 rounded bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">1</span>
             <div>
-              <h3 className="text-base font-bold text-text-primary font-display">Basic Information</h3>
-              <p className="text-xs text-text-tertiary">Personal branding, profile photo, and 18+ age verification</p>
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">BASIC CREATOR PROFILE</h3>
+              <p className="text-[11px] text-slate-500">Your public stage name and creator identity</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Full Legal Name *</label>
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">Full Legal Name *</label>
               <input
                 type="text"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. Rahul Sharma"
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
+                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Display / Stage Name *</label>
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">Display / Stage Name *</label>
               <input
                 type="text"
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. Rahul Media / @rahulcreates"
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
+                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Date of Birth *</label>
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">Date of Birth *</label>
               <input
                 type="date"
                 required
                 value={dob}
                 max={todayStr}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val) {
-                    const todayVal = new Date();
-                    todayVal.setHours(23, 59, 59, 999);
-                    if (new Date(val) > todayVal) {
-                      toast.error('Date of Birth cannot be in the future.');
-                      return;
-                    }
-                    // Age validation
-                    const birthDate = new Date(val);
-                    let age = todayVal.getFullYear() - birthDate.getFullYear();
-                    const m = todayVal.getMonth() - birthDate.getMonth();
-                    if (m < 0 || (m === 0 && todayVal.getDate() < birthDate.getDate())) {
-                      age--;
-                    }
-                    if (age < 18) {
-                      toast.error('Must be 18 years or older to register as a Creator.');
-                      return;
-                    }
-                  }
-                  setDob(val);
-                }}
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
+                onChange={(e) => setDob(e.target.value)}
+                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Gender (Optional)</label>
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">Gender</label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
+                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -460,460 +338,35 @@ export default function BecomeCreatorPage() {
               </select>
             </div>
           </div>
-
-          {/* Profile Photo Upload & 18+ Confirmation */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2 border-t border-border/60">
-            <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-full border border-dashed border-border bg-surface flex items-center justify-center overflow-hidden flex-shrink-0">
-                {profilePhoto ? (
-                  <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <FiCamera className="w-6 h-6 text-text-tertiary" />
-                )}
-              </div>
-              <label className="cursor-pointer px-3.5 py-2 glass border border-border rounded-xl text-xs font-bold text-brand-purple hover:bg-brand-purple/5 transition flex items-center gap-2">
-                <FiUploadCloud size={14} /> Upload Profile Photo
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, setProfilePhoto)} />
-              </label>
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer bg-surface px-3 py-2 rounded-xl border border-border">
-              <input
-                type="checkbox"
-                checked={ageConfirmed}
-                onChange={(e) => setAgeConfirmed(e.target.checked)}
-                className="w-4 h-4 rounded text-brand-purple focus:ring-brand-purple border-border"
-              />
-              <span className="text-xs font-semibold text-text-primary">I confirm I am 18+ years of age *</span>
-            </label>
-          </div>
         </div>
 
-        {/* SECTION 2: CONTACT DETAILS */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-4">
-          <div className="border-b border-border pb-3 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-xl bg-brand-pink text-white flex items-center justify-center font-bold text-sm shadow-md">2</span>
+        {/* SECTION 2: CREATOR CATEGORIES & SKILLS */}
+        <div className="bg-white rounded-md p-5 sm:p-6 border border-[#e3dccb] shadow-xs space-y-4">
+          <div className="border-b border-[#e3dccb] pb-3 flex items-center gap-3">
+            <span className="w-7 h-7 rounded bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">2</span>
             <div>
-              <h3 className="text-base font-bold text-text-primary font-display">Contact Details</h3>
-              <p className="text-xs text-text-tertiary">Direct contact channels for vendor campaign offers</p>
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">CATEGORIES &amp; SKILLS</h3>
+              <p className="text-[11px] text-slate-500">Select your content specialization and video skills</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Mobile Number *</label>
-              <div className="relative">
-                <FiPhone className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
-                <input
-                  type="tel"
-                  required
-                  value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
-                  placeholder="e.g. +91 9876543210"
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-text-secondary">WhatsApp Number</label>
-                <button
-                  type="button"
-                  onClick={() => setWhatsappNumber(mobileNumber)}
-                  className="text-[10px] text-brand-purple font-bold hover:underline"
-                >
-                  Same as Mobile
-                </button>
-              </div>
-              <div className="relative">
-                <FiMessageSquare className="absolute left-3 top-3 text-emerald-500 w-4 h-4" />
-                <input
-                  type="tel"
-                  value={whatsappNumber}
-                  onChange={(e) => setWhatsappNumber(e.target.value)}
-                  placeholder="e.g. +91 9876543210"
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Email Address</label>
-              <div className="relative">
-                <FiMail className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. creator@bizreels.in"
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 3: LOCATION & ADDRESS */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-4">
-          <div className="border-b border-border pb-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shadow-md">3</span>
-              <div>
-                <h3 className="text-base font-bold text-text-primary font-display">Location & Address</h3>
-                <p className="text-xs text-text-tertiary">Base location and address details of the creator</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-xl border border-border">
-              <span className="text-xs font-bold text-text-primary">Live Location</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={liveLocation}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    if (checked) {
-                      detectLiveLocation();
-                    } else {
-                      setLiveLocation(false);
-                    }
-                  }}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-surface-tertiary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-              </label>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">PIN Code *</label>
-              <input
-                type="text"
-                required
-                maxLength={6}
-                value={pincode}
-                onChange={(e) => setPincode(e.target.value)}
-                placeholder="6-Digit PIN Code"
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">City / Base Town</label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Auto-fetched or enter City"
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">District</label>
-              <input
-                type="text"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                placeholder="District Name"
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">State</label>
-              <input
-                type="text"
-                value={stateName}
-                onChange={(e) => setStateName(e.target.value)}
-                placeholder="State Name"
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Area / Locality</label>
-              <input
-                type="text"
-                value={areaLocality}
-                onChange={(e) => setAreaLocality(e.target.value)}
-                placeholder="Area locality"
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Country</label>
-              <input
-                type="text"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 4: CREATOR CATEGORY */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-4">
-          <div className="border-b border-border pb-3 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-md">4</span>
-            <div>
-              <h3 className="text-base font-bold text-text-primary font-display">Creator Category</h3>
-              <p className="text-xs text-text-tertiary">Select all creator roles that apply to your expertise</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2.5 pt-1">
-            {CREATOR_CATEGORIES.map((cat) => {
-              const selected = selectedCategories.includes(cat);
-              return (
-                <button
-                  type="button"
-                  key={cat}
-                  onClick={() => toggleArrayItem(cat, selectedCategories, setSelectedCategories)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${selected
-                      ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                      : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
-                    }`}
-                >
-                  {selected ? '✓ ' : '+ '} {cat}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* SECTION 5: SKILLS */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-4">
-          <div className="border-b border-border pb-3 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center font-bold text-sm shadow-md">5</span>
-            <div>
-              <h3 className="text-base font-bold text-text-primary font-display">Skills & Software Tools</h3>
-              <p className="text-xs text-text-tertiary">Technical skills and editing software masteries</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2.5 pt-1">
-            {SKILLS_LIST.map((skill) => {
-              const selected = selectedSkills.includes(skill);
-              return (
-                <button
-                  type="button"
-                  key={skill}
-                  onClick={() => toggleArrayItem(skill, selectedSkills, setSelectedSkills)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${selected
-                      ? 'bg-brand-pink text-white border-brand-pink shadow-sm'
-                      : 'bg-surface border-border text-text-secondary hover:border-brand-pink/40'
-                    }`}
-                >
-                  {selected ? '✓ ' : '+ '} {skill}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* SECTION 6: LANGUAGES */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-4">
-          <div className="border-b border-border pb-3 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-md">6</span>
-            <div>
-              <h3 className="text-base font-bold text-text-primary font-display">Languages Spoken</h3>
-              <p className="text-xs text-text-tertiary">Select all languages you create content in</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2.5 pt-1">
-            {LANGUAGES_LIST.map((lang) => {
-              const selected = selectedLanguages.includes(lang);
-              return (
-                <button
-                  type="button"
-                  key={lang}
-                  onClick={() => toggleArrayItem(lang, selectedLanguages, setSelectedLanguages)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${selected
-                      ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
-                      : 'bg-surface border-border text-text-secondary hover:border-emerald-500/40'
-                    }`}
-                >
-                  {selected ? '✓ ' : '+ '} {lang}
-                </button>
-              );
-            })}
-          </div>
-
-          {selectedLanguages.includes('Others') && (
-            <div className="mt-3 max-w-md animate-fade-in space-y-1">
-              <label className="block text-xs font-semibold text-text-secondary">Specify Other Language(s) *</label>
-              <input
-                type="text"
-                required
-                value={otherLanguage}
-                onChange={(e) => setOtherLanguage(e.target.value)}
-                placeholder="e.g. Gujarati, Spanish, French"
-                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple transition-all"
-              />
-              <span className="text-[10px] text-text-tertiary">Use commas to separate multiple languages</span>
-            </div>
-          )}
-        </div>
-
-        {/* SECTION 7: EXPERIENCE */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-4">
-          <div className="border-b border-border pb-3 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center font-bold text-sm shadow-md">7</span>
-            <div>
-              <h3 className="text-base font-bold text-text-primary font-display">Experience Level</h3>
-              <p className="text-xs text-text-tertiary">Total years of content creation or media experience</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
-            {EXPERIENCE_LEVELS.map((exp) => {
-              const selected = experience === exp;
-              return (
-                <div
-                  key={exp}
-                  onClick={() => setExperience(exp)}
-                  className={`cursor-pointer p-3 rounded-2xl border text-center font-bold text-xs transition-all ${selected
-                      ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                      : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
-                    }`}
-                >
-                  {exp}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* SECTION 8: PRICING & COMMERCIAL PACKAGES */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-5">
-          <div className="border-b border-border pb-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-teal-500 text-white flex items-center justify-center font-bold text-sm shadow-md">8</span>
-              <div>
-                <h3 className="text-base font-bold text-text-primary font-display">Pricing & Commercials (INR ₹)</h3>
-                <p className="text-xs text-text-tertiary">Set starting rates for vendor bookings</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-xl border border-border">
-              <span className="text-xs font-bold text-text-primary">Rates Negotiable</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={negotiable}
-                  onChange={(e) => setNegotiable(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-surface-tertiary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-              </label>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-1">
-            <div>
-              <label className="block text-[11px] font-semibold text-text-secondary mb-1">Reel Price (₹)</label>
-              <input
-                type="number"
-                value={reelPrice}
-                onChange={(e) => setReelPrice(e.target.value)}
-                placeholder="500"
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-text-secondary mb-1">Photo Shoot Price (₹)</label>
-              <input
-                type="number"
-                value={photoShootPrice}
-                onChange={(e) => setPhotoShootPrice(e.target.value)}
-                placeholder="1000"
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-text-secondary mb-1">Hourly Rate (₹/hr)</label>
-              <input
-                type="number"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(e.target.value)}
-                placeholder="800"
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-text-secondary mb-1">Daily Rate (₹/day)</label>
-              <input
-                type="number"
-                value={dailyRate}
-                onChange={(e) => setDailyRate(e.target.value)}
-                placeholder="4000"
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-text-secondary mb-1">Monthly Collab (₹)</label>
-              <input
-                type="number"
-                value={monthlyCollaboration}
-                onChange={(e) => setMonthlyCollaboration(e.target.value)}
-                placeholder="15000"
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 9: AVAILABILITY & WORK MODEL */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-4">
-          <div className="border-b border-border pb-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-md">9</span>
-              <div>
-                <h3 className="text-base font-bold text-text-primary font-display">Availability & Travel Setup</h3>
-                <p className="text-xs text-text-tertiary">Work models and outstation travel coverage</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-xl border border-border">
-              <span className="text-xs font-bold text-text-primary">Available Now</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={availableNow}
-                  onChange={(e) => setAvailableNow(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-surface-tertiary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-              </label>
-            </div>
-          </div>
-
-          <div className="space-y-3 pt-1">
-            <label className="block text-xs font-semibold text-text-secondary">Work Type / Availability Model</label>
-            <div className="flex flex-wrap gap-2">
-              {WORK_TYPES.map((wt) => {
-                const selected = workTypes.includes(wt);
+          <div>
+            <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-2">Select Creator Categories *</label>
+            <div className="flex flex-wrap gap-1.5">
+              {CREATOR_CATEGORIES.map((cat) => {
+                const selected = selectedCategories.includes(cat);
                 return (
                   <button
                     type="button"
-                    key={wt}
-                    onClick={() => toggleArrayItem(wt, workTypes, setWorkTypes)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${selected
-                        ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                        : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
-                      }`}
+                    key={cat}
+                    onClick={() => toggleArrayItem(cat, selectedCategories, setSelectedCategories)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-extrabold transition cursor-pointer border ${
+                      selected
+                        ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                        : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-700 hover:bg-slate-200'
+                    }`}
                   >
-                    {selected ? '✓ ' : '+ '} {wt}
+                    {cat}
                   </button>
                 );
               })}
@@ -921,98 +374,97 @@ export default function BecomeCreatorPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text-secondary mb-1">Travel Coverage Radius</label>
-            <select
-              value={travelRadius}
-              onChange={(e) => setTravelRadius(e.target.value)}
-              className="w-full sm:w-1/2 px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-            >
-              <option value="5 KM">Local City (5 KM)</option>
-              <option value="10 KM">10 KM Radius</option>
-              <option value="25 KM">25 KM Radius</option>
-              <option value="50 KM">50 KM Radius</option>
-              <option value="100 KM+">100 KM+ (Statewide / Travel)</option>
-            </select>
+            <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-2">Skills &amp; Tools</label>
+            <div className="flex flex-wrap gap-1.5">
+              {SKILLS_LIST.map((skill) => {
+                const selected = selectedSkills.includes(skill);
+                return (
+                  <button
+                    type="button"
+                    key={skill}
+                    onClick={() => toggleArrayItem(skill, selectedSkills, setSelectedSkills)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-extrabold transition cursor-pointer border ${
+                      selected
+                        ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#1c1a17] shadow-xs'
+                        : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {skill}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* SECTION 10: PORTFOLIO & SOCIAL LINKS */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-4">
-          <div className="border-b border-border pb-3 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-xl bg-pink-500 text-white flex items-center justify-center font-bold text-sm shadow-md">10</span>
+        {/* SECTION 3: PRICING TIERS */}
+        <div className="bg-white rounded-md p-5 sm:p-6 border border-[#e3dccb] shadow-xs space-y-4">
+          <div className="border-b border-[#e3dccb] pb-3 flex items-center gap-3">
+            <span className="w-7 h-7 rounded bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">3</span>
             <div>
-              <h3 className="text-base font-bold text-text-primary font-display">Portfolio & Social Handles</h3>
-              <p className="text-xs text-text-tertiary">Showcase your past work and social profiles</p>
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">COMMISSION &amp; PRICING TIERS</h3>
+              <p className="text-[11px] text-slate-500">Configure rate cards for vendors hiring your content services</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Instagram Profile Link</label>
-              <div className="relative">
-                <FaInstagram className="absolute left-3 top-[13px] text-[#E1306C] w-4 h-4" />
-                <input
-                  type="url"
-                  value={instagramLink}
-                  onChange={(e) => setInstagramLink(e.target.value)}
-                  placeholder="https://instagram.com/..."
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-                />
-              </div>
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">Product Reel Price (₹)</label>
+              <input
+                type="number"
+                value={reelPrice}
+                onChange={(e) => setReelPrice(e.target.value)}
+                placeholder="500"
+                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">YouTube Channel Link</label>
-              <div className="relative">
-                <FaYoutube className="absolute left-3 top-[13px] text-[#FF0000] w-4 h-4" />
-                <input
-                  type="url"
-                  value={youtubeLink}
-                  onChange={(e) => setYoutubeLink(e.target.value)}
-                  placeholder="https://youtube.com/..."
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-                />
-              </div>
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">Photo Shoot Rate (₹)</label>
+              <input
+                type="number"
+                value={photoShootPrice}
+                onChange={(e) => setPhotoShootPrice(e.target.value)}
+                placeholder="1000"
+                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Facebook / Other Link</label>
-              <div className="relative">
-                <FaFacebook className="absolute left-3 top-[13px] text-[#1877F2] w-4 h-4" />
-                <input
-                  type="url"
-                  value={facebookLink}
-                  onChange={(e) => setFacebookLink(e.target.value)}
-                  placeholder="https://facebook.com/..."
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-                />
-              </div>
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">Hourly Rate (₹)</label>
+              <input
+                type="number"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+                placeholder="800"
+                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+              />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-text-secondary mb-1">Sample Portfolio Video URL / Reel Link</label>
-            <input
-              type="url"
-              value={portfolioVideoLink}
-              onChange={(e) => setPortfolioVideoLink(e.target.value)}
-              placeholder="e.g. Drive link or Reel link showcasing your work"
-              className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
-            />
+            <div>
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">Monthly Collab (₹)</label>
+              <input
+                type="number"
+                value={monthlyCollaboration}
+                onChange={(e) => setMonthlyCollaboration(e.target.value)}
+                placeholder="15000"
+                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+              />
+            </div>
           </div>
         </div>
 
-        {/* SECTION 11: DECLARATION & CREATOR TERMS */}
-        <div className="glass rounded-2xl p-6 border border-border shadow-card space-y-4">
+        {/* SECTION 4: DECLARATION & TERMS */}
+        <div className="bg-white rounded-md p-5 border border-[#e3dccb] shadow-xs space-y-3">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded text-brand-purple focus:ring-brand-purple border-border"
+              className="mt-0.5 w-4 h-4 rounded text-[#1c1a17] focus:ring-[#d99a3d] border-[#e3dccb]"
             />
-            <span className="text-xs text-text-secondary leading-relaxed">
-              I hereby declare that all creator details, portfolio links, and contact channels provided are authentic. I accept the <span className="font-bold text-brand-purple underline">BizReels Creator Terms & Monetization Policy</span>.
+            <span className="text-xs text-slate-700 leading-relaxed font-medium">
+              I declare that all creator details provided are authentic and accept the <span className="font-extrabold text-[#d99a3d] underline">BizReels Creator Monetization Terms</span>.
             </span>
           </label>
         </div>
@@ -1021,10 +473,10 @@ export default function BecomeCreatorPage() {
         <button
           type="submit"
           disabled={loading || !termsAccepted}
-          className="w-full py-4 gradient-brand text-white rounded-2xl text-sm font-bold shadow-premium hover:opacity-95 transition flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-3.5 bg-[#241b15] text-[#d99a3d] border border-[#241b15] rounded-md text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#342820] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
-          <span>{loading ? 'Activating Creator Profile...' : 'Complete Registration & Launch Creator Studio'}</span>
-          <FiArrowRight size={18} />
+          <span>{loading ? 'Activating Creator Studio...' : 'Register Profile & Launch Creator Studio'}</span>
+          <FiArrowRight size={16} />
         </button>
       </form>
     </div>

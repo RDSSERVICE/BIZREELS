@@ -4,17 +4,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
-import { FiShoppingBag } from 'react-icons/fi';
+import { FiShoppingBag, FiArrowRight } from 'react-icons/fi';
 import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
-import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import API_CONFIG from '../../config';
 
-/**
- * Customer-specific Login Page.
- * Auto-selects 'customer' role — no role dropdown shown.
- */
 const CustomerLogin = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -81,94 +76,151 @@ const CustomerLogin = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-5 w-full font-sans">
       <div className="text-center md:text-left">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-3 bg-brand-purple/10 rounded-full">
-          <FiShoppingBag className="text-brand-purple" size={14} />
-          <span className="text-xs font-bold text-brand-purple uppercase tracking-wider">Customer Login</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1 mb-2 bg-[#d99a3d]/15 text-[#1a1a1a] rounded-full border border-[#d99a3d]/30">
+          <FiShoppingBag className="text-[#d99a3d]" size={13} />
+          <span className="text-[11px] font-bold uppercase tracking-wider">Customer Portal</span>
         </div>
-        <h2 className="text-2xl font-black tracking-tight text-brand-navy">
-          Welcome back, Buyer
+        <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] uppercase tracking-tight">
+          BUYER LOGIN
         </h2>
-        <p className="text-sm text-text-secondary mt-1">
+        <p className="text-xs text-slate-500 mt-1 font-medium">
           Access your marketplace, browse vendors and manage requirements.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-surface-tertiary p-1 rounded-premium">
+      <div className="flex bg-[#f8f4ec] p-1 rounded-md border border-[#e3dccb]">
         <button
+          type="button"
           onClick={() => { setLoginMode('email'); setOtpSent(false); }}
-          className={`flex-1 py-2 text-xs font-bold rounded-premium transition-all
-            ${loginMode === 'email' ? 'bg-surface text-brand-purple shadow-premium' : 'text-text-secondary'}`}
+          className={`flex-1 py-2 text-xs font-bold rounded transition-all cursor-pointer border-none ${
+            loginMode === 'email' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
+          }`}
         >
-          Email & Password
+          Email &amp; Password
         </button>
         <button
+          type="button"
           onClick={() => setLoginMode('otp')}
-          className={`flex-1 py-2 text-xs font-bold rounded-premium transition-all
-            ${loginMode === 'otp' ? 'bg-surface text-brand-purple shadow-premium' : 'text-text-secondary'}`}
+          className={`flex-1 py-2 text-xs font-bold rounded transition-all cursor-pointer border-none ${
+            loginMode === 'otp' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
+          }`}
         >
-          OTP Login
+          One-Time Password (OTP)
         </button>
       </div>
 
       {loginMode === 'email' ? (
         <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-4">
-          <Input label="Email Address" placeholder="name@example.com" error={emailForm.formState.errors.email}
-            {...emailForm.register('email', { required: 'Email is required', pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address' } })}
+          <Input
+            label="Email Address"
+            placeholder="name@example.com"
+            error={emailForm.formState.errors.email}
+            {...emailForm.register('email', { required: 'Email is required' })}
           />
+
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-semibold tracking-wide text-brand-navy uppercase">Password</label>
-              <Link to="/auth/forgot-password" className="text-xs font-bold text-brand-purple hover:underline">Forgot password?</Link>
+              <label className="text-[11px] font-bold tracking-wide text-slate-700 uppercase">Password</label>
+              <Link to="/auth/forgot-password" className="text-xs font-bold text-[#d99a3d] hover:underline">Forgot password?</Link>
             </div>
-            <Input type="password" placeholder="••••••••" error={emailForm.formState.errors.password}
-              {...emailForm.register('password', { required: 'Password is required' })} />
+            <Input
+              type="password"
+              placeholder="••••••••"
+              error={emailForm.formState.errors.password}
+              {...emailForm.register('password', { required: 'Password is required' })}
+            />
           </div>
-          <Button type="submit" variant="primary" fullWidth isLoading={isEmailLoading} className="mt-2">Sign In as Customer</Button>
+
+          <button
+            type="submit"
+            disabled={isEmailLoading}
+            className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+          >
+            {isEmailLoading ? 'Signing In...' : 'Sign In as Buyer'}
+            <FiArrowRight className="w-4 h-4" />
+          </button>
         </form>
       ) : (
         <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="flex flex-col gap-4">
           {!otpSent ? (
             <>
-              <Input label="Email or Phone Number" placeholder="name@example.com or +91XXXXXXXXXX" error={otpForm.formState.errors.identifier}
-                {...otpForm.register('identifier', { required: 'Email or Phone is required' })} />
-              <Button onClick={handleSendOtp} variant="primary" fullWidth isLoading={isOtpRequestLoading} className="mt-2">Send OTP</Button>
+              <Input
+                label="Email or Phone Number"
+                placeholder="name@example.com or +91XXXXXXXXXX"
+                error={otpForm.formState.errors.identifier}
+                {...otpForm.register('identifier', { required: 'Email or Phone is required' })}
+              />
+
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                disabled={isOtpRequestLoading}
+                className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+              >
+                {isOtpRequestLoading ? 'Sending OTP...' : 'Send OTP'}
+                <FiArrowRight className="w-4 h-4" />
+              </button>
             </>
           ) : (
             <>
-              <div className="p-3 bg-brand-purple/5 border border-brand-purple/10 rounded-premium flex flex-col gap-1 text-center">
-                <span className="text-xs font-semibold text-brand-navy">OTP sent to:</span>
-                <span className="text-sm font-bold text-brand-purple">{otpIdentifier}</span>
-                <button type="button" onClick={() => setOtpSent(false)} className="text-xs font-bold text-brand-orange hover:underline mt-1">Change</button>
+              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-md flex flex-col gap-1 text-center">
+                <span className="text-xs font-semibold text-slate-700">OTP sent to:</span>
+                <span className="text-xs font-bold text-[#d99a3d]">{otpIdentifier}</span>
+                <button
+                  type="button"
+                  onClick={() => setOtpSent(false)}
+                  className="text-xs font-bold text-slate-600 hover:underline mt-1 cursor-pointer border-none bg-transparent"
+                >
+                  Change Email/Phone
+                </button>
               </div>
-              <Input label="Enter 6-Digit OTP" placeholder="000000" error={otpForm.formState.errors.otp}
-                {...otpForm.register('otp', { required: 'OTP is required', minLength: { value: 6, message: 'OTP must be 6 digits' }, maxLength: { value: 6, message: 'OTP must be 6 digits' } })} />
-              <Button type="submit" variant="primary" fullWidth isLoading={isOtpVerifyLoading} className="mt-2">Verify & Login</Button>
+
+              <Input
+                label="Enter 6-Digit OTP"
+                placeholder="000000"
+                error={otpForm.formState.errors.otp}
+                {...otpForm.register('otp', { required: 'OTP is required' })}
+              />
+
+              <button
+                type="submit"
+                disabled={isOtpVerifyLoading}
+                className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+              >
+                {isOtpVerifyLoading ? 'Verifying...' : 'Verify & Login'}
+                <FiArrowRight className="w-4 h-4" />
+              </button>
             </>
           )}
         </form>
       )}
 
-      <div className="relative flex py-2 items-center">
-        <div className="flex-grow border-t border-border"></div>
-        <span className="flex-shrink mx-4 text-xs text-text-tertiary font-bold uppercase tracking-wider">Or continue with</span>
-        <div className="flex-grow border-t border-border"></div>
+      <div className="relative flex py-1 items-center">
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
+        <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+          Or continue with
+        </span>
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
       </div>
 
-      <Button onClick={handleGoogleLogin} variant="glass" fullWidth icon={FcGoogle}>Sign in with Google</Button>
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        className="w-full py-2.5 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-md transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-xs"
+      >
+        <FcGoogle className="w-4 h-4" />
+        <span>Sign in with Google</span>
+      </button>
 
-      <div className="text-center text-xs font-semibold text-text-secondary mt-4 space-y-2">
+      <div className="text-center text-xs font-medium text-slate-600 mt-2">
         <p>
-          New to BizReels?{' '}
-          <Link to="/auth/register" className="font-bold text-brand-purple hover:underline">Create Account</Link>
-        </p>
-        <p>
-          Are you a{' '}
-          <Link to="/auth/vendor-login" className="font-bold text-brand-orange hover:underline">Vendor</Link>
-          {' '}or{' '}
-          <Link to="/auth/creator-login" className="font-bold text-brand-pink hover:underline">Creator</Link>?
+          Need a seller or creator account?{' '}
+          <Link to="/auth/login" className="font-bold text-[#d99a3d] hover:underline">
+            Switch Portal
+          </Link>
         </p>
       </div>
     </div>

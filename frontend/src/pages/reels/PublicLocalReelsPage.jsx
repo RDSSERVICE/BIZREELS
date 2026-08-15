@@ -17,7 +17,8 @@ import {
   FiGrid,
   FiVideo,
   FiArrowRight,
-  FiShield
+  FiShield,
+  FiCheck
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { useGetReelsFeedQuery } from '../../features/reels/reelsApi';
@@ -50,11 +51,6 @@ const PublicLocalReelsPage = () => {
   const reels = reelsRes?.data || [];
   const listings = listingsRes?.data || [];
 
-  /**
-   * Main interaction guard:
-   * When an unauthenticated visitor/customer clicks on any reel or post,
-   * notify them and redirect directly to login page.
-   */
   const handleItemClick = (itemType, itemData) => {
     if (!isAuthenticated) {
       toast('Please log in to view full reels, contact vendors, and interact!', {
@@ -62,7 +58,7 @@ const PublicLocalReelsPage = () => {
         duration: 3500,
         style: {
           borderRadius: '12px',
-          background: '#1e1b4b',
+          background: '#1c1a17',
           color: '#fff',
           fontSize: '13px',
           fontWeight: '600',
@@ -70,7 +66,6 @@ const PublicLocalReelsPage = () => {
       });
       navigate('/auth/login', { state: { from: '/local-reels' } });
     } else {
-      // If user is already authenticated
       if (itemType === 'reel') {
         navigate('/feed');
       } else {
@@ -80,79 +75,178 @@ const PublicLocalReelsPage = () => {
   };
 
   return (
-    <div className="pb-16">
+    <div className="pb-16 font-sans" style={{ backgroundColor: '#f2ede4', minHeight: '100vh' }}>
       <SEO 
         title="Local Reels & Listings"
         description="Watch short-form video reels and explore product listing posts from local vendors in your area. Get custom quotes and deals!"
         url="https://bizreels.in/local-reels"
       />
-      {/* ── Page Hero Header ────────────────────────────────────────── */}
-      <section className="relative px-4 sm:px-6 lg:px-8 py-10 sm:py-14 md:py-16 overflow-hidden">
-        {/* BG decoration */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-b from-brand-purple/[0.05] via-transparent to-transparent" />
-          <div className="absolute top-[20%] right-[10%] w-[250px] h-[250px] bg-brand-purple/[0.06] rounded-full blur-[100px]" />
-        </div>
 
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative z-10">
-          <div className="flex flex-col gap-4 text-center md:text-left max-w-xl">
-            <span className="px-3.5 py-1.5 text-[11px] font-bold bg-brand-purple/[0.08] text-brand-purple rounded-full uppercase tracking-widest w-fit mx-auto md:mx-0 flex items-center gap-2 border border-brand-purple/[0.12]">
-              <FiVideo className="w-3.5 h-3.5" /> Hyper-Local Vendor Feed
-            </span>
-            <h1 className="text-[1.75rem] leading-[1.2] sm:text-[2.25rem] md:text-[2.75rem] lg:text-[3.25rem] font-black text-brand-navy">
-              Local <span className="gradient-text">Reels & Listing Posts</span>
-            </h1>
-            <p className="text-sm sm:text-base text-text-secondary leading-relaxed">
-              Explore trending video reels and product/service posts directly
-              from verified local businesses near you. Click on any reel or post
-              to sign in and connect.
-            </p>
-          </div>
+      {/* ── 1. HERO SECTION — Bento 2-Column Split ────────────────── */}
+      <section style={{ backgroundColor: '#f2ede4' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '14px 14px 0' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(1, 1fr)',
+            gap: 16,
+            backgroundColor: '#f2ede4',
+          }} className="lg:!grid-cols-[1.15fr_0.85fr]">
 
-          {!isAuthenticated && (
-            <div className="bg-white rounded-2xl p-5 border border-border/60 shadow-card flex flex-col items-center gap-3 w-full max-w-xs text-center">
-              <div className="w-11 h-11 rounded-xl bg-brand-purple/[0.08] text-brand-purple flex items-center justify-center">
-                <FiShield className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-[13px] font-bold text-brand-navy">Guest Browsing Active</h3>
-                <p className="text-xs text-text-tertiary mt-1 leading-relaxed">
-                  Click any post or reel to sign in and unlock direct vendor chats, quotes, & orders.
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/auth/login')}
-                className="w-full py-2.5 px-4 bg-brand-purple hover:bg-brand-purple-800 text-white text-[13px] font-bold rounded-xl transition-all duration-200 shadow-sm flex items-center justify-center gap-2 active:scale-[0.98]"
-                data-testid="reels-sign-in"
+            {/* ── LEFT COLUMN ── */}
+            <div style={{
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              padding: '24px 12px 16px',
+            }}>
+              {/* Eyebrow badge */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35 }}
+                className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#d99a3d]/15 text-[#1a1a1a] border border-[#d99a3d]/30 mb-4"
               >
-                <span>Sign In Now</span>
-                <FiArrowRight className="w-3.5 h-3.5" />
-              </button>
+                <FiVideo className="w-3.5 h-3.5 text-[#d99a3d]" />
+                Hyper-Local Vendor Feed
+              </motion.div>
+
+              {/* Main Headline */}
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  fontFamily: "'Archivo Black', sans-serif",
+                  fontSize: 'clamp(32px, 4.2vw, 54px)',
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.5px',
+                  color: '#1a1a1a',
+                  textTransform: 'uppercase',
+                }}
+              >
+                LOCAL REELS &amp;<br />
+                <span style={{ color: '#d99a3d', display: 'block' }}>LISTING POSTS.</span>
+              </motion.h1>
+
+              {/* Subtitle */}
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                style={{ marginTop: 20, fontSize: 15.5, lineHeight: 1.55, color: '#4a4a4a', maxWidth: 440, fontWeight: 500 }}
+              >
+                Explore trending video reels and product/service posts directly from verified local businesses near you. Click on any reel or post to sign in and connect.
+              </motion.p>
+
+              {/* Action CTAs */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.18, duration: 0.4 }}
+                style={{ display: 'flex', gap: 12, marginTop: 26, flexWrap: 'wrap' }}
+              >
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('reels-feed-container');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 22px', borderRadius: 8, fontWeight: 600, fontSize: 14.5, cursor: 'pointer', border: 'none', backgroundColor: '#d99a3d', color: '#1a1a1a', fontFamily: 'inherit', transition: 'background .15s ease' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#c8872b'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#d99a3d'; }}
+                >
+                  Explore Feed
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></svg>
+                </button>
+
+                {!isAuthenticated && (
+                  <button
+                    onClick={() => navigate('/auth/login')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 22px', borderRadius: 8, fontWeight: 600, fontSize: 14.5, cursor: 'pointer', border: '1.5px solid #d8d2c5', backgroundColor: 'transparent', color: '#1a1a1a', fontFamily: 'inherit', transition: 'border-color .15s ease' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#b8b0a0'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#d8d2c5'; }}
+                  >
+                    Sign In Now
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></svg>
+                  </button>
+                )}
+              </motion.div>
             </div>
-          )}
+
+            {/* ── RIGHT COLUMN (Onyx Bento Card) ── */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              style={{ backgroundColor: '#1c1a17', padding: '36px 32px', borderRadius: 8, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#fff' }}
+            >
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: '#d99a3d', textTransform: 'uppercase', marginBottom: 18 }}>
+                  AUTHENTIC VISUAL FEED
+                </p>
+
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', lineHeight: 1.25, marginBottom: 14 }}>
+                  Real videos from real local storefronts.
+                </h3>
+
+                <p style={{ fontSize: 13.5, lineHeight: 1.55, color: '#c9c4bb', marginBottom: 22 }}>
+                  Watch real products in motion, request quotes, and chat directly with verified vendors in your city.
+                </p>
+
+                {/* Features list */}
+                <div className="flex flex-col gap-3 pt-2 border-t border-[#3a3630]">
+                  {[
+                    '5-second live real-time video feed updates',
+                    'Direct buyer-to-vendor chat & requirement quotes',
+                    'Location-aware storefront discovery across India',
+                  ].map((text, idx) => (
+                    <div key={idx} className="flex items-start gap-3 text-xs text-[#c9c4bb] font-medium leading-normal">
+                      <div style={{ flexShrink: 0, width: 20, height: 20, border: '1.5px solid #d99a3d', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d99a3d', marginTop: 1 }}>
+                        <FiCheck style={{ width: 12, height: 12 }} />
+                      </div>
+                      <span>{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {!isAuthenticated && (
+                <button
+                  onClick={() => navigate('/auth/login')}
+                  className="mt-6 w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2 border-none cursor-pointer"
+                  data-testid="reels-sign-in"
+                >
+                  <span>Sign In To Unlock Full Feed</span>
+                  <FiArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </motion.div>
+
+          </div>
         </div>
       </section>
 
-      {/* ── Main Content Container ──────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-5 sm:gap-6">
+      {/* ── 2. MAIN FEED CONTAINER ─────────────────────────────────── */}
+      <div id="reels-feed-container" style={{ maxWidth: 1200, margin: '0 auto', padding: '14px' }} className="flex flex-col gap-5">
+        
         {/* Navigation Tabs & Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+        <div className="bg-white/90 backdrop-blur-xs rounded-md p-4 border border-[#e3dccb] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           {/* Main View Tabs */}
-          <div className="flex items-center gap-1.5 bg-surface-tertiary/50 p-1 rounded-xl border border-border/40 w-full sm:w-auto overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-2 bg-[#f8f4ec] p-1 rounded-md border border-[#e3dccb] w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('reels')}
-              className={`px-4 sm:px-5 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+              className={`px-4 py-2 rounded text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-none ${
                 activeTab === 'reels'
-                  ? 'bg-brand-purple text-white shadow-sm'
-                  : 'text-text-secondary hover:text-brand-navy hover:bg-white/60'
+                  ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs'
+                  : 'text-slate-600 hover:text-[#1a1a1a] bg-transparent'
               }`}
               data-testid="tab-vendor-reels"
             >
               <FiVideo className="w-4 h-4" />
               <span>Vendor Reels</span>
               {reels.length > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                  activeTab === 'reels' ? 'bg-white/20 text-white' : 'bg-brand-purple/10 text-brand-purple'
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  activeTab === 'reels' ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-slate-200 text-slate-700'
                 }`}>
                   {reels.length}
                 </span>
@@ -161,18 +255,18 @@ const PublicLocalReelsPage = () => {
 
             <button
               onClick={() => setActiveTab('posts')}
-              className={`px-4 sm:px-5 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+              className={`px-4 py-2 rounded text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-none ${
                 activeTab === 'posts'
-                  ? 'bg-brand-purple text-white shadow-sm'
-                  : 'text-text-secondary hover:text-brand-navy hover:bg-white/60'
+                  ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs'
+                  : 'text-slate-600 hover:text-[#1a1a1a] bg-transparent'
               }`}
               data-testid="tab-vendor-posts"
             >
               <FiShoppingBag className="w-4 h-4" />
               <span>Vendor Posts</span>
               {listings.length > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                  activeTab === 'posts' ? 'bg-white/20 text-white' : 'bg-brand-purple/10 text-brand-purple'
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  activeTab === 'posts' ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-slate-200 text-slate-700'
                 }`}>
                   {listings.length}
                 </span>
@@ -180,7 +274,7 @@ const PublicLocalReelsPage = () => {
             </button>
           </div>
 
-          {/* Quick Filters */}
+          {/* Quick Filter Buttons */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {[
               { key: 'trending', icon: FiTrendingUp, label: 'Trending' },
@@ -189,14 +283,14 @@ const PublicLocalReelsPage = () => {
               <button
                 key={f.key}
                 onClick={() => setActiveFilter(f.key)}
-                className={`px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all duration-200 flex items-center gap-1.5 ${
+                className={`px-3.5 py-2 rounded text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   activeFilter === f.key
-                    ? 'bg-brand-purple/[0.08] text-brand-purple border border-brand-purple/20'
-                    : 'text-text-tertiary hover:text-text-secondary border border-transparent hover:bg-surface-tertiary/60'
+                    ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border border-[#d99a3d]/50 font-bold'
+                    : 'text-slate-500 hover:text-slate-800 border border-transparent hover:bg-slate-100'
                 }`}
                 data-testid={`filter-${f.key}`}
               >
-                <f.icon className="w-3.5 h-3.5" /> {f.label}
+                <f.icon className="w-3.5 h-3.5 text-[#d99a3d]" /> {f.label}
               </button>
             ))}
           </div>
@@ -210,58 +304,58 @@ const PublicLocalReelsPage = () => {
                 <Loader size="lg" />
               </div>
             ) : reels.length === 0 ? (
-              <div className="bg-white rounded-2xl p-10 sm:p-14 text-center flex flex-col items-center gap-4 max-w-md mx-auto border border-border/60 shadow-card">
-                <div className="w-14 h-14 rounded-2xl bg-surface-tertiary flex items-center justify-center">
-                  <FiVideo className="w-7 h-7 text-text-tertiary" />
+              <div className="bg-white rounded-md p-10 sm:p-14 text-center flex flex-col items-center gap-3 max-w-md mx-auto border border-[#e3dccb] shadow-xs">
+                <div className="w-12 h-12 rounded-xl bg-[#f2ede4] flex items-center justify-center text-[#1a1a1a]">
+                  <FiVideo className="w-6 h-6" />
                 </div>
-                <h3 className="text-base font-bold text-brand-navy">No Vendor Reels Available</h3>
-                <p className="text-[13px] text-text-secondary leading-relaxed">
-                  Check back soon or explore vendor product & service posts.
+                <h3 className="text-sm font-bold text-[#1a1a1a]">No Vendor Reels Available</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Check back soon or explore vendor product &amp; service posts.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {reels.map((reel) => (
                   <motion.div
                     key={reel._id}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.2 }}
+                    whileHover={{ y: -3 }}
+                    transition={{ duration: 0.15 }}
                     onClick={() => handleItemClick('reel', reel)}
-                    className="group relative rounded-2xl overflow-hidden bg-black aspect-[9/16] border border-white/10 shadow-card cursor-pointer hover:shadow-xl transition-all duration-300"
+                    className="group relative rounded-md overflow-hidden bg-[#1c1a17] aspect-[9/16] border border-[#3a3630] shadow-xs cursor-pointer hover:shadow-md transition-all duration-200"
                   >
-                    {/* Thumbnail / Video Preview */}
+                    {/* Thumbnail Image */}
                     <img
                       src={resolveMediaUrl(reel.thumbnailUrl || reel.targetListing?.images?.[0]) || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80'}
                       alt={reel.caption || 'Vendor Reel'}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
                     />
 
                     {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/25 flex flex-col justify-between p-3 sm:p-4 text-white">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 flex flex-col justify-between p-3.5 text-white">
                       {/* Top Badges */}
                       <div className="flex items-center justify-between z-10">
-                        <span className="px-2 py-0.5 text-[10px] font-extrabold bg-brand-purple/90 text-white rounded-md uppercase tracking-wider backdrop-blur-sm">
+                        <span className="px-2 py-0.5 text-[9.5px] font-extrabold bg-[#d99a3d] text-[#1a1a1a] rounded uppercase tracking-wider">
                           {reel.creator?.activeRole || 'Vendor'}
                         </span>
                         {reel.isBoosted && (
-                          <span className="px-2 py-0.5 text-[9px] font-black bg-brand-orange/90 text-white rounded-md uppercase tracking-wider backdrop-blur-sm">
+                          <span className="px-2 py-0.5 text-[9px] font-extrabold bg-amber-500 text-black rounded uppercase tracking-wider">
                             Sponsored
                           </span>
                         )}
                       </div>
 
-                      {/* Center Play Icon Overlay */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white group-hover:scale-110 group-hover:bg-brand-purple/80 transition-all duration-300 shadow-lg">
-                        <FiPlay className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5 fill-white" />
+                      {/* Center Play Icon Frame */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/40 backdrop-blur-xs border-2 border-[#d99a3d] flex items-center justify-center text-[#d99a3d] group-hover:scale-110 group-hover:bg-[#d99a3d] group-hover:text-[#1a1a1a] transition-all duration-200 shadow-md">
+                        <FiPlay className="w-5 h-5 ml-0.5 fill-current" />
                       </div>
 
                       {/* Bottom Details */}
-                      <div className="flex flex-col gap-2 z-10">
+                      <div className="flex flex-col gap-1.5 z-10">
                         <div className="flex items-center gap-2">
                           <img
                             src={resolveMediaUrl(reel.creator?.avatarUrl) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'}
                             alt={reel.creator?.name}
-                            className="w-7 h-7 rounded-full object-cover border border-white/40"
+                            className="w-6 h-6 rounded-full object-cover border border-white/40"
                           />
                           <span className="text-xs font-bold truncate">
                             @{reel.creator?.name || 'Local Business'}
@@ -274,14 +368,14 @@ const PublicLocalReelsPage = () => {
 
                         {reel.location?.address && (
                           <span className="text-[10px] text-white/70 flex items-center gap-1">
-                            <FiMapPin className="w-3 h-3 text-brand-orange" /> {reel.location.address}
+                            <FiMapPin className="w-3 h-3 text-[#d99a3d]" /> {reel.location.address}
                           </span>
                         )}
 
-                        {/* Reaction counters */}
-                        <div className="flex items-center gap-3 sm:gap-4 pt-1.5 border-t border-white/10 text-[11px] text-white/80">
+                        {/* Counters */}
+                        <div className="flex items-center gap-3 pt-1.5 border-t border-white/15 text-[10.5px] text-white/80">
                           <span className="flex items-center gap-1">
-                            <FiHeart className="w-3.5 h-3.5 text-brand-pink" /> {reel.likesCount || 0}
+                            <FiHeart className="w-3.5 h-3.5 text-[#d99a3d]" /> {reel.likesCount || 0}
                           </span>
                           <span className="flex items-center gap-1">
                             <FiMessageCircle className="w-3.5 h-3.5" /> {reel.commentsCount || 0}
@@ -307,67 +401,67 @@ const PublicLocalReelsPage = () => {
                 <Loader size="lg" />
               </div>
             ) : listings.length === 0 ? (
-              <div className="bg-white rounded-2xl p-10 sm:p-14 text-center flex flex-col items-center gap-4 max-w-md mx-auto border border-border/60 shadow-card">
-                <div className="w-14 h-14 rounded-2xl bg-surface-tertiary flex items-center justify-center">
-                  <FiShoppingBag className="w-7 h-7 text-text-tertiary" />
+              <div className="bg-white rounded-md p-10 sm:p-14 text-center flex flex-col items-center gap-3 max-w-md mx-auto border border-[#e3dccb] shadow-xs">
+                <div className="w-12 h-12 rounded-xl bg-[#f2ede4] flex items-center justify-center text-[#1a1a1a]">
+                  <FiShoppingBag className="w-6 h-6" />
                 </div>
-                <h3 className="text-base font-bold text-brand-navy">No Vendor Posts Available</h3>
-                <p className="text-[13px] text-text-secondary leading-relaxed">
+                <h3 className="text-sm font-bold text-[#1a1a1a]">No Vendor Posts Available</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
                   Local vendors will list products and services here soon!
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {listings.map((item) => (
                   <motion.div
                     key={item._id}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.2 }}
+                    whileHover={{ y: -3 }}
+                    transition={{ duration: 0.15 }}
                     onClick={() => handleItemClick('post', item)}
-                    className="bg-white rounded-2xl overflow-hidden border border-border/60 shadow-card cursor-pointer flex flex-col group hover:shadow-card-hover transition-all duration-300"
+                    className="bg-white rounded-md overflow-hidden border border-[#e3dccb] shadow-xs cursor-pointer flex flex-col group hover:shadow-md transition-all duration-200"
                   >
                     {/* Media Thumbnail */}
-                    <div className="relative w-full h-40 sm:h-44 bg-surface-tertiary overflow-hidden">
+                    <div className="relative w-full h-40 bg-slate-100 overflow-hidden">
                       <img
                         src={resolveMediaUrl(item.images?.[0]) || 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=600&q=80'}
                         alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <span className="absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-brand-navy/90 text-white rounded-lg backdrop-blur-sm">
+                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider bg-[#1c1a17] text-white rounded">
                         {item.type || 'Product'}
                       </span>
                       {item.price && (
-                        <span className="absolute bottom-3 right-3 px-3 py-1 text-xs font-bold bg-brand-purple text-white rounded-xl shadow-md">
+                        <span className="absolute bottom-2.5 right-2.5 px-2.5 py-0.5 text-xs font-extrabold bg-[#d99a3d] text-[#1a1a1a] rounded shadow-xs">
                           ₹{item.price.toLocaleString('en-IN')}
                         </span>
                       )}
                     </div>
 
                     {/* Card Content */}
-                    <div className="p-4 flex flex-col gap-2.5 flex-grow justify-between">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between text-[11px] text-text-tertiary">
-                          <span className="font-bold text-brand-purple uppercase">{item.category || 'General'}</span>
+                    <div className="p-4 flex flex-col gap-2 flex-grow justify-between">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-[10.5px]">
+                          <span className="font-bold text-[#d99a3d] uppercase">{item.category || 'General'}</span>
                           {item.rating > 0 && (
-                            <span className="flex items-center gap-1 font-bold text-amber-500">
-                              <FiStar className="w-3 h-3 fill-amber-500" /> {item.rating}
+                            <span className="flex items-center gap-1 font-bold text-amber-600">
+                              <FiStar className="w-3 h-3 fill-amber-500 text-amber-500" /> {item.rating}
                             </span>
                           )}
                         </div>
-                        <h3 className="text-sm font-bold text-brand-navy group-hover:text-brand-purple transition-colors duration-200 line-clamp-1">
+                        <h3 className="text-sm font-extrabold text-[#1a1a1a] group-hover:text-[#d99a3d] transition-colors duration-150 line-clamp-1">
                           {item.title}
                         </h3>
-                        <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                           {item.description || 'Verified local vendor post.'}
                         </p>
                       </div>
 
-                      <div className="pt-2.5 border-t border-border/40 flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-text-tertiary flex items-center gap-1">
-                          <FiMapPin className="w-3 h-3 text-brand-purple" /> {item.location?.city || 'Local Vendor'}
+                      <div className="pt-2.5 border-t border-[#e3dccb] flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                          <FiMapPin className="w-3 h-3 text-[#d99a3d]" /> {item.location?.city || 'Local Vendor'}
                         </span>
-                        <span className="text-xs font-bold text-brand-purple flex items-center gap-1 group-hover:gap-1.5 transition-all duration-200">
-                          View <FiArrowRight className="w-3 h-3" />
+                        <span className="text-xs font-bold text-[#1a1a1a] flex items-center gap-1 group-hover:gap-1.5 transition-all">
+                          View Details <FiArrowRight className="w-3 h-3 text-[#d99a3d]" />
                         </span>
                       </div>
                     </div>

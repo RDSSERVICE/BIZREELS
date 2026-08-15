@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
   FiMapPin, FiSearch, FiSliders, FiPlay, FiVolume2, FiVolumeX, FiCheck,
-  FiChevronLeft, FiChevronRight, FiVideo, FiImage, FiMessageSquare, FiLayers
+  FiChevronLeft, FiChevronRight, FiVideo, FiImage, FiMessageSquare, FiLayers,
+  FiMoreHorizontal, FiSend
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
@@ -16,11 +18,76 @@ import ReelFullscreenViewer from '../../../components/feed/ReelFullscreenViewer'
 import ImageFullscreenViewer from '../../../components/feed/ImageFullscreenViewer';
 
 /**
- * CustomerReelMedia Component
- * Displays video or image media with swipe/scroll snapping navigation (no arrow buttons)
+ * Format relative time ago (Instagram style)
  */
-function CustomerReelMedia({ reel, muted, setMuted }) {
+function formatTimeAgo(dateString) {
+  if (!dateString) return 'Just now';
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Instagram-style Skeleton Loader Component
+ */
+function InstagramPostSkeleton() {
+  return (
+    <div className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs animate-pulse">
+      {/* Header Skeleton */}
+      <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-slate-200" />
+          <div className="space-y-1.5">
+            <div className="w-28 h-3 bg-slate-200 rounded" />
+            <div className="w-16 h-2.5 bg-slate-200 rounded" />
+          </div>
+        </div>
+        <div className="w-16 h-6 bg-slate-200 rounded" />
+      </div>
+
+      {/* Media Skeleton */}
+      <div className="w-full aspect-[9/16] max-h-[440px] bg-slate-200 relative flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-slate-300/60" />
+      </div>
+
+      {/* Footer Actions Skeleton */}
+      <div className="p-4 space-y-3 bg-white border-t border-[#e3dccb]">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-4">
+            <div className="w-5 h-5 bg-slate-200 rounded-full" />
+            <div className="w-5 h-5 bg-slate-200 rounded-full" />
+            <div className="w-5 h-5 bg-slate-200 rounded-full" />
+          </div>
+          <div className="w-5 h-5 bg-slate-200 rounded-full" />
+        </div>
+        <div className="w-20 h-2.5 bg-slate-200 rounded" />
+        <div className="space-y-1">
+          <div className="w-3/4 h-3 bg-slate-200 rounded" />
+          <div className="w-1/2 h-3 bg-slate-200 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * CustomerReelMedia Component with IntersectionObserver Auto-Play & Double-Tap Heart Pop
+ */
+function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showHeartPop, setShowHeartPop] = useState(false);
+  const lastTapRef = useRef(0);
 
   const rawMediaList = Array.isArray(reel.mediaUrls) && reel.mediaUrls.length > 0
     ? reel.mediaUrls
@@ -33,25 +100,60 @@ function CustomerReelMedia({ reel, muted, setMuted }) {
     Boolean(currentUrl.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i)) ||
     currentUrl.startsWith('data:video/');
 
+  // IntersectionObserver for video auto-play on scroll
+  useEffect(() => {
+    if (!isVideo || !containerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (videoRef.current) {
+            videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+          }
+        } else {
+          if (videoRef.current) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+          }
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [isVideo, currentUrl]);
+
   useEffect(() => {
     if (videoRef.current) {
-      if (muted) {
-        videoRef.current.muted = true;
-      } else {
-        videoRef.current.muted = false;
-      }
+      videoRef.current.muted = muted;
     }
   }, [muted]);
 
+  // Handle Double Tap / Double Click to Like
+  const handleContainerClick = (e) => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      setShowHeartPop(true);
+      if (onDoubleTap) onDoubleTap();
+      setTimeout(() => setShowHeartPop(false), 900);
+    }
+    lastTapRef.current = now;
+  };
+
   return (
-    <div className="relative aspect-[9/16] bg-black overflow-hidden rounded-2xl border border-white/10">
+    <div
+      ref={containerRef}
+      onClick={handleContainerClick}
+      className="relative aspect-[9/16] bg-[#241b15] overflow-hidden rounded-md border border-[#3a2c22] select-none cursor-pointer group"
+    >
       {isVideo ? (
         <video
           ref={videoRef}
           src={currentUrl}
           loop
           muted={muted}
-          autoPlay
           playsInline
           className="w-full h-full object-cover"
         />
@@ -63,16 +165,31 @@ function CustomerReelMedia({ reel, muted, setMuted }) {
         />
       )}
 
+      {/* Double Tap Heart Pop Animation */}
+      <AnimatePresence>
+        {showHeartPop && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0.5, 1.3, 1], opacity: [0, 1, 1, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
+          >
+            <FiHeart size={80} className="fill-[#d99a3d] text-[#d99a3d] drop-shadow-xl" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {isVideo && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             setMuted(!muted);
           }}
-          className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition z-20"
+          className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-xs text-white hover:bg-black/80 transition z-20 cursor-pointer border-none"
           title={muted ? 'Unmute' : 'Mute'}
         >
-          {muted ? <FiVolumeX size={16} /> : <FiVolume2 size={16} />}
+          {muted ? <FiVolumeX size={15} /> : <FiVolume2 size={15} />}
         </button>
       )}
     </div>
@@ -81,7 +198,7 @@ function CustomerReelMedia({ reel, muted, setMuted }) {
 
 export default function CustomerHomePage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('combined'); // 'combined' | 'reels' | 'images'
+  const [activeTab, setActiveTab] = useState('combined');
   const [combinedFeed, setCombinedFeed] = useState([]);
   const [reels, setReels] = useState([]);
   const [images, setImages] = useState([]);
@@ -89,6 +206,7 @@ export default function CustomerHomePage() {
   const [likedMap, setLikedMap] = useState({});
   const [savedMap, setSavedMap] = useState({});
   const [followingMap, setFollowingMap] = useState({});
+  const [expandedCaptions, setExpandedCaptions] = useState({});
   const [muted, setMuted] = useState(true);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [selectedReelId, setSelectedReelId] = useState(null);
@@ -223,7 +341,7 @@ export default function CustomerHomePage() {
       } else {
         await api.post(`/v1/listings/${id}/like`);
       }
-      toast.success(!isLiked ? 'Liked post' : 'Unliked post');
+      toast.success(!isLiked ? 'Liked post ❤️' : 'Unliked post');
     } catch (err) {
       setLikedMap((prev) => ({ ...prev, [id]: isLiked }));
       toast.error('Failed to update like status');
@@ -251,7 +369,7 @@ export default function CustomerHomePage() {
           await api.post(`/v1/listings/${id}/save-image`);
         }
       }
-      toast.success(!isSaved ? 'Saved to activities' : 'Removed from saved');
+      toast.success(!isSaved ? 'Saved post' : 'Removed from saved');
     } catch (err) {
       setSavedMap((prev) => ({ ...prev, [id]: isSaved }));
       toast.error('Failed to update saved status');
@@ -276,113 +394,61 @@ export default function CustomerHomePage() {
     }
   };
 
-  const handleShare = async (reel) => {
-    if (!reel?._id) return;
-    const shareUrl = `${window.location.origin}/reels/${reel._id}`;
-    const shareData = {
-      title: reel.title || 'BizReels',
-      text: reel.caption || 'Check out this reel on BizReels!',
-      url: shareUrl,
-    };
-
+  const handleShare = async (item) => {
+    const itemId = item._id || item.id;
+    const shareUrl = `${window.location.origin}/customer/home?post=${itemId}`;
     if (navigator.share) {
       try {
-        await navigator.share(shareData);
+        await navigator.share({
+          title: item.title || item.caption || 'BizReels',
+          text: 'Check out this post on BizReels!',
+          url: shareUrl,
+        });
         return;
       } catch (err) {
         if (err.name === 'AbortError') return;
       }
     }
-
     try {
       await navigator.clipboard.writeText(shareUrl);
-      toast.success('Link copied to clipboard!');
+      toast.success('Post link copied to clipboard!');
     } catch (err) {
       toast.error('Failed to copy link');
     }
   };
 
-  // Unified Filter & Sort Logic for Combined Feed (Instagram-style)
+  const toggleCaption = (id) => {
+    setExpandedCaptions(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const processedCombinedFeed = useMemo(() => {
-    let result = [...combinedFeed];
+    let items = combinedFeed;
+    if (activeTab === 'reels') items = reels.map(r => ({ ...r, postType: 'reel' }));
+    if (activeTab === 'images') items = images.map(i => ({ ...i, postType: 'listing' }));
 
-    // 1. Search Query
-    if (filters.searchQuery.trim()) {
-      const q = filters.searchQuery.toLowerCase();
-      result = result.filter((item) => {
-        if (item.postType === 'reel') {
-          return (
-            (item.caption && item.caption.toLowerCase().includes(q)) ||
-            (item.creator?.name && item.creator.name.toLowerCase().includes(q)) ||
-            (item.location?.address && item.location.address.toLowerCase().includes(q)) ||
-            (item.hashtags && item.hashtags.some((h) => h.toLowerCase().includes(q)))
-          );
-        } else {
-          return (
-            (item.title && item.title.toLowerCase().includes(q)) ||
-            (item.description && item.description.toLowerCase().includes(q)) ||
-            (item.category && item.category.toLowerCase().includes(q)) ||
-            (item.vendor?.name && item.vendor.name.toLowerCase().includes(q))
-          );
+    if (!filters) return items;
+
+    return items.filter((item) => {
+      if (filters.searchQuery) {
+        const query = filters.searchQuery.toLowerCase();
+        const title = (item.title || item.caption || '').toLowerCase();
+        const desc = (item.description || '').toLowerCase();
+        const vendorName = (item.vendor?.name || item.creator?.name || '').toLowerCase();
+        if (!title.includes(query) && !desc.includes(query) && !vendorName.includes(query)) {
+          return false;
         }
-      });
-    }
+      }
 
-    // 2. Type Filter (Product, Service, etc.)
-    if (filters.type !== 'all') {
-      const targetType = filters.type.toLowerCase();
-      result = result.filter((item) => {
-        if (item.postType === 'reel') {
-          const rType = (item.reelType || item.type || item.category || '').toLowerCase();
-          const rCaption = (item.caption || '').toLowerCase();
-          return rType.includes(targetType) || rCaption.includes(targetType);
-        } else {
-          const itemType = (item.type || item.category || '').toLowerCase();
-          return itemType.includes(targetType);
+      if (filters.type && filters.type !== 'all') {
+        const itemCategory = (item.category || item.reelType || '').toLowerCase();
+        if (!itemCategory.includes(filters.type.toLowerCase())) {
+          return false;
         }
-      });
-    }
+      }
 
-    // 3. Upload Date Filter
-    if (filters.uploadDate !== 'all') {
-      const now = new Date();
-      result = result.filter((item) => {
-        const dateKey = item.createdAt || item.created_at;
-        if (!dateKey) return true;
-        const created = new Date(dateKey);
-        const diffHours = (now - created) / (1000 * 60 * 60);
-        if (filters.uploadDate === 'today') return diffHours <= 24;
-        if (filters.uploadDate === 'this_week') return diffHours <= 24 * 7;
-        if (filters.uploadDate === 'this_month') return diffHours <= 24 * 30;
-        return true;
-      });
-    }
-
-    // 4. Popularity / Sort
-    switch (filters.popularity) {
-      case 'most_viewed':
-        result.sort((a, b) => (b.views || 0) - (a.views || 0));
-        break;
-      case 'most_liked':
-        result.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
-        break;
-      case 'most_saved':
-        result.sort((a, b) => (b.savesCount || b.saves || 0) - (a.savesCount || a.saves || 0));
-        break;
-      case 'trending':
-      default:
-        result.sort((a, b) => {
-          if (a.isBoosted && !b.isBoosted) return -1;
-          if (!a.isBoosted && b.isBoosted) return 1;
-          const popA = (a.likesCount || 0) + (a.views || 0);
-          const popB = (b.likesCount || 0) + (b.views || 0);
-          return popB - popA;
-        });
-        break;
-    }
-
-    return result;
-  }, [combinedFeed, filters]);
+      return true;
+    });
+  }, [combinedFeed, reels, images, activeTab, filters]);
 
   const processedReels = useMemo(() => {
     return processedCombinedFeed.filter(item => item.postType === 'reel');
@@ -393,8 +459,9 @@ export default function CustomerHomePage() {
   }, [processedCombinedFeed]);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-      {/* HOME FEED SEARCH & FILTER BAR */}
+    <div className="space-y-5 font-sans p-2 sm:p-4 min-h-screen" style={{ backgroundColor: '#f2ede4' }}>
+      
+      {/* Home Feed Search & Filters Bar */}
       <HomeFeedSearchFilter
         filters={filters}
         onFilterChange={setFilters}
@@ -405,40 +472,45 @@ export default function CustomerHomePage() {
       {/* Active Special Offers & Deals */}
       <ActiveOffersPanel role="customer" />
 
-      {/* Feed Contents */}
+      {/* Feed Contents — Instagram-like Loading & Feed Items */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-text-tertiary gap-3">
-          <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-medium">Loading feed...</p>
+        <div className="max-w-xl mx-auto space-y-6 pb-12">
+          <InstagramPostSkeleton />
+          <InstagramPostSkeleton />
+          <InstagramPostSkeleton />
         </div>
       ) : processedCombinedFeed.length === 0 ? (
-        <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border max-w-xl mx-auto">
+        <div className="bg-white rounded-md p-12 text-center text-xs text-slate-500 border border-[#e3dccb] max-w-xl mx-auto shadow-xs font-sans">
           No posts match your filter criteria.
         </div>
       ) : (
-        <div className="max-w-xl mx-auto space-y-8 pb-12">
+        <div className="max-w-xl mx-auto space-y-6 pb-12 font-sans">
           {processedCombinedFeed.map((item) => {
             const itemId = item._id || item.id;
             const isLiked = likedMap[itemId];
             const isSaved = savedMap[itemId];
+            const isExpanded = expandedCaptions[itemId];
 
             if (item.postType === 'reel') {
               const vendorId = item.creator?._id || item.creator?.id || item.creator;
               const isFollowing = followingMap[vendorId];
 
               return (
-                <div
+                <motion.div
                   key={itemId}
-                  className="w-full glass border border-white/50 rounded-3xl overflow-hidden shadow-card relative flex flex-col justify-between"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
                 >
-                  {/* Card Header */}
-                  <div className="p-3.5 flex items-center justify-between glass border-b border-border">
+                  {/* Card Header (Instagram Style) */}
+                  <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
                     <div
                       onClick={() => navigate(`/customer/vendor/${vendorId}`)}
                       className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
                     >
-                      <div className="w-9 h-9 rounded-full gradient-brand p-0.5">
-                        <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-xs font-bold text-text-primary overflow-hidden">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
+                        <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
                           {item.creator?.avatarUrl || item.creator?.profile_pic ? (
                             <img src={item.creator.avatarUrl || item.creator.profile_pic} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -447,49 +519,56 @@ export default function CustomerHomePage() {
                         </div>
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5 font-display">
+                        <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
                           {item.creator?.name || 'Verified Creator'}
-                          <span className="bg-brand-purple/10 text-brand-purple text-[9px] px-1 rounded font-bold">Reel</span>
+                          <span className="bg-[#d99a3d]/20 text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Reel</span>
                         </h4>
-                        <p className="text-[10px] text-text-tertiary flex items-center gap-1">
-                          <FiMapPin size={10} className="text-brand-orange" />
+                        <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                          <FiMapPin size={10} className="text-[#d99a3d]" />
                           {item.location?.address || 'Nearby'}
+                          <span className="mx-1">•</span>
+                          <span>{formatTimeAgo(item.createdAt)}</span>
                         </p>
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleFollow(vendorId)}
-                      className={`px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition ${isFollowing
-                        ? 'bg-surface-tertiary text-text-secondary border border-border'
-                        : 'gradient-brand text-white shadow-premium'
+                      className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
+                        ? 'bg-slate-200 text-slate-700'
+                        : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
                         }`}
                     >
                       {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
                     </button>
                   </div>
 
-                  {/* Reel Media Section */}
+                  {/* Reel Media Section (Auto-Play + Double Tap Heart) */}
                   <div
                     onClick={() => {
                       const idx = processedReels.findIndex(r => r._id === itemId || r.id === itemId);
                       setReelViewerStartIndex(idx >= 0 ? idx : 0);
                       setReelViewerOpen(true);
                     }}
-                    className="cursor-pointer"
                   >
-                    <CustomerReelMedia reel={item} muted={muted} setMuted={setMuted} />
+                    <CustomerReelMedia
+                      reel={item}
+                      muted={muted}
+                      setMuted={setMuted}
+                      onDoubleTap={() => handleLike(itemId, 'reel')}
+                    />
                   </div>
 
-                  {/* Action Bar & Details */}
-                  <div className="p-4 glass space-y-3 border-t border-border">
+                  {/* Action Bar & Details (Instagram Style) */}
+                  <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => handleLike(itemId, 'reel')}
-                          className={`flex items-center gap-1.5 text-xs font-semibold transition ${isLiked ? 'text-brand-pink' : 'text-text-secondary hover:text-brand-pink'}`}
+                          className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
+                          title="Like"
                         >
-                          <FiHeart size={20} className={isLiked ? 'fill-brand-pink' : ''} />
+                          <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
                           <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
                         </button>
 
@@ -498,10 +577,19 @@ export default function CustomerHomePage() {
                             setSelectedReelId(itemId);
                             setIsCommentsOpen(true);
                           }}
-                          className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-purple"
+                          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
+                          title="Comment"
                         >
                           <FiMessageCircle size={20} />
                           <span>{item.commentsCount || 0}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleShare(item)}
+                          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
+                          title="Share Post"
+                        >
+                          <FiSend size={18} />
                         </button>
 
                         <button
@@ -510,51 +598,69 @@ export default function CustomerHomePage() {
                             item.creator?.name,
                             item.creator?.avatarUrl || item.creator?.profile_pic
                           )}
-                          className="flex items-center gap-1.5 text-xs font-bold text-brand-purple hover:underline"
+                          className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
                           title="Chat with Vendor"
                         >
-                          <FiMessageSquare size={18} />
+                          <FiMessageSquare size={17} className="text-[#d99a3d]" />
                           <span>Chat</span>
                         </button>
                       </div>
 
                       <button
                         onClick={() => handleSave(itemId, 'reel')}
-                        className={`transition ${isSaved ? 'text-brand-purple' : 'text-text-secondary hover:text-brand-purple'}`}
+                        className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
+                        title="Save"
                       >
-                        <FiBookmark size={20} className={isSaved ? 'fill-brand-purple' : ''} />
+                        <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
                       </button>
                     </div>
 
-                    {/* Views Count */}
-                    <p className="text-[10px] font-extrabold text-text-tertiary uppercase tracking-wider">
+                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                       {(item.views || 0).toLocaleString()} views
                     </p>
 
-                    <p className="text-xs text-text-secondary leading-relaxed mt-1">
-                      <span className="font-bold text-text-primary mr-1.5">{item.creator?.name || 'Verified Creator'}</span>
-                      {item.caption || item.description}
-                    </p>
+                    {/* Expandable Caption */}
+                    <div className="text-xs text-slate-700 leading-relaxed mt-1">
+                      <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.creator?.name || 'Verified Creator'}</span>
+                      {isExpanded ? (
+                        <span>{item.caption || item.description}</span>
+                      ) : (
+                        <span>
+                          {((item.caption || item.description || '').slice(0, 90))}
+                          {(item.caption || item.description || '').length > 90 && (
+                            <button
+                              onClick={() => toggleCaption(itemId)}
+                              className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
+                            >
+                              ...more
+                            </button>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               );
             } else {
               const vendorId = item.vendor?._id || item.vendor?.id || item.vendor;
               const isFollowing = followingMap[vendorId];
 
               return (
-                <div
+                <motion.div
                   key={itemId}
-                  className="w-full glass border border-white/50 rounded-3xl overflow-hidden shadow-card relative flex flex-col justify-between animate-fade-in"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
                 >
-                  {/* Card Header */}
-                  <div className="p-3.5 flex items-center justify-between glass border-b border-border">
+                  {/* Card Header (Instagram Style) */}
+                  <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
                     <div
                       onClick={() => navigate(`/customer/vendor/${vendorId}`)}
                       className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
                     >
-                      <div className="w-9 h-9 rounded-full gradient-brand p-0.5">
-                        <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-xs font-bold text-text-primary overflow-hidden">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
+                        <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
                           {item.vendor?.avatarUrl || item.vendor?.profile_pic ? (
                             <img src={item.vendor.avatarUrl || item.vendor.profile_pic} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -563,22 +669,24 @@ export default function CustomerHomePage() {
                         </div>
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5 font-display">
+                        <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
                           {item.vendor?.name || 'Verified Vendor'}
-                          <span className="bg-emerald-500/10 text-emerald-600 text-[9px] px-1 rounded font-bold">Product</span>
+                          <span className="bg-emerald-500/15 text-emerald-700 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Product</span>
                         </h4>
-                        <p className="text-[10px] text-text-tertiary flex items-center gap-1">
-                          <FiMapPin size={10} className="text-brand-orange" />
+                        <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                          <FiMapPin size={10} className="text-[#d99a3d]" />
                           {item.vendor?.location?.address || 'Nearby'}
+                          <span className="mx-1">•</span>
+                          <span>{formatTimeAgo(item.createdAt)}</span>
                         </p>
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleFollow(vendorId)}
-                      className={`px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition ${isFollowing
-                        ? 'bg-surface-tertiary text-text-secondary border border-border'
-                        : 'gradient-brand text-white shadow-premium'
+                      className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
+                        ? 'bg-slate-200 text-slate-700'
+                        : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
                         }`}
                     >
                       {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
@@ -592,16 +700,16 @@ export default function CustomerHomePage() {
                       setImageViewerStartIndex(idx >= 0 ? idx : 0);
                       setImageViewerOpen(true);
                     }}
-                    className="cursor-pointer aspect-square bg-surface-tertiary relative overflow-hidden"
+                    className="cursor-pointer aspect-square bg-slate-100 relative overflow-hidden select-none"
                   >
                     <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
-                    <div className="absolute top-3 right-3 glass px-3 py-1 rounded-full text-xs font-bold text-emerald-600 border border-border">
+                    <div className="absolute top-3 right-3 bg-[#d99a3d] px-3 py-1 rounded text-xs font-extrabold text-[#1a1a1a] shadow-xs border border-[#1a1a1a]/10">
                       ₹{item.price?.toLocaleString()}
                     </div>
                   </div>
 
                   {/* Action Bar & Details */}
-                  <div className="p-4 glass space-y-3 border-t border-border">
+                  <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <button
@@ -609,10 +717,22 @@ export default function CustomerHomePage() {
                             e.stopPropagation();
                             handleLike(itemId, 'listing');
                           }}
-                          className={`flex items-center gap-1.5 text-xs font-semibold transition ${isLiked ? 'text-brand-pink font-bold' : 'text-text-secondary hover:text-brand-pink'}`}
+                          className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
+                          title="Like"
                         >
-                          <FiHeart size={20} className={isLiked ? 'fill-brand-pink' : ''} />
+                          <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
                           <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShare(item);
+                          }}
+                          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
+                          title="Share Post"
+                        >
+                          <FiSend size={18} />
                         </button>
 
                         <button
@@ -624,10 +744,10 @@ export default function CustomerHomePage() {
                               item.vendor?.avatarUrl || item.vendor?.profile_pic
                             );
                           }}
-                          className="flex items-center gap-1.5 text-xs font-bold text-brand-purple hover:underline"
+                          className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
                           title="Chat with Vendor"
                         >
-                          <FiMessageSquare size={18} />
+                          <FiMessageSquare size={17} className="text-[#d99a3d]" />
                           <span>Chat</span>
                         </button>
                       </div>
@@ -637,29 +757,46 @@ export default function CustomerHomePage() {
                           e.stopPropagation();
                           handleSave(itemId, 'listing');
                         }}
-                        className={`transition ${isSaved ? 'text-brand-purple' : 'text-text-secondary hover:text-brand-purple'}`}
+                        className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
+                        title="Save"
                       >
-                        <FiBookmark size={20} className={isSaved ? 'fill-brand-purple' : ''} />
+                        <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
                       </button>
                     </div>
 
                     {/* Product Title and Price */}
                     <div className="flex items-baseline justify-between mt-1">
-                      <h4 className="font-extrabold text-sm text-text-primary font-display">{item.title}</h4>
-                      <span className="text-xs font-bold text-emerald-600">₹{item.price?.toLocaleString()}</span>
+                      <h4 className="font-extrabold text-sm text-[#1a1a1a]">{item.title}</h4>
+                      <span className="text-xs font-extrabold text-[#d99a3d]">₹{item.price?.toLocaleString()}</span>
                     </div>
 
-                    <p className="text-xs text-text-secondary leading-relaxed mt-1">
-                      <span className="font-bold text-text-primary mr-1.5">{item.vendor?.name || 'Verified Vendor'}</span>
-                      {item.description}
-                    </p>
+                    {/* Expandable Caption */}
+                    <div className="text-xs text-slate-700 leading-relaxed mt-1">
+                      <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.vendor?.name || 'Verified Vendor'}</span>
+                      {isExpanded ? (
+                        <span>{item.description}</span>
+                      ) : (
+                        <span>
+                          {((item.description || '').slice(0, 90))}
+                          {(item.description || '').length > 90 && (
+                            <button
+                              onClick={() => toggleCaption(itemId)}
+                              className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
+                            >
+                              ...more
+                            </button>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               );
             }
           })}
         </div>
       )}
+
       <CommentsDrawer
         isOpen={isCommentsOpen}
         onClose={() => setIsCommentsOpen(false)}

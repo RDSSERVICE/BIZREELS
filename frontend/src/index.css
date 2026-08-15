@@ -162,3 +162,19 @@ img, video {
 .tap-feedback:active {
     transform: scale(0.95);
 }
+
+/* ── Custom Scrollbar Utility ────────────────────────────── */
+.scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+
+/* ── Backdrop blur utility helper ───────────────────────── */
+.backdrop-blur-glass {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+

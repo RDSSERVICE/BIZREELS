@@ -231,12 +231,23 @@ export default function CustomerSettingsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
-      <AdminPageHeader
-        icon={FiSettings}
-        title="Customer Settings & Profile"
-        subtitle="Manage your profile information, location autofill, preferences, and account security"
-      />
+    <div className="max-w-7xl mx-auto flex flex-col gap-5 animate-fade-in p-2 sm:p-4 min-h-screen font-sans">
+      {/* Header Banner */}
+      <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">CUSTOMER PORTAL</span>
+          <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
+            ACCOUNT &amp; PROFILE SETTINGS
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 max-w-md">
+            Manage your profile information, location autofill, preferences, and account security.
+          </p>
+        </div>
+
+        <div className="w-10 h-10 rounded-full bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center font-black shrink-0 border border-[#1a1a1a]">
+          <FiSettings size={20} />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         {/* Sidebar Navigation */}
@@ -244,39 +255,39 @@ export default function CustomerSettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition duration-200 border-l-4 whitespace-nowrap md:w-full ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-md font-extrabold text-xs transition duration-150 border whitespace-nowrap md:w-full cursor-pointer ${
               activeTab === 'profile'
-                ? 'bg-brand-purple/10 text-brand-purple border-brand-purple shadow-sm'
-                : 'bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text-primary border-transparent'
+                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                : 'bg-white text-slate-700 hover:bg-[#f8f4ec] border-[#e3dccb]'
             }`}
           >
-            <FiUser size={16} />
-            <span>Profile & Address</span>
+            <FiUser size={16} className={activeTab === 'profile' ? 'text-[#d99a3d]' : 'text-slate-500'} />
+            <span>Profile &amp; Address</span>
           </button>
           
           <button
             type="button"
             onClick={() => setActiveTab('interests')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition duration-200 border-l-4 whitespace-nowrap md:w-full ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-md font-extrabold text-xs transition duration-150 border whitespace-nowrap md:w-full cursor-pointer ${
               activeTab === 'interests'
-                ? 'bg-brand-purple/10 text-brand-purple border-brand-purple shadow-sm'
-                : 'bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text-primary border-transparent'
+                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                : 'bg-white text-slate-700 hover:bg-[#f8f4ec] border-[#e3dccb]'
             }`}
           >
-            <FiGrid size={16} />
+            <FiGrid size={16} className={activeTab === 'interests' ? 'text-[#d99a3d]' : 'text-slate-500'} />
             <span>Feed Interests</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('security')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition duration-200 border-l-4 whitespace-nowrap md:w-full ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-md font-extrabold text-xs transition duration-150 border whitespace-nowrap md:w-full cursor-pointer ${
               activeTab === 'security'
-                ? 'bg-brand-purple/10 text-brand-purple border-brand-purple shadow-sm'
-                : 'bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text-primary border-transparent'
+                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                : 'bg-white text-slate-700 hover:bg-[#f8f4ec] border-[#e3dccb]'
             }`}
           >
-            <FiLock size={16} />
+            <FiLock size={16} className={activeTab === 'security' ? 'text-[#d99a3d]' : 'text-slate-500'} />
             <span>Account Security</span>
           </button>
         </div>

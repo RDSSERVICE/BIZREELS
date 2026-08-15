@@ -24,7 +24,11 @@ import {
   FiAlertTriangle,
   FiShield,
   FiCheckSquare,
-  FiTrendingUp
+  FiTrendingUp,
+  FiZap,
+  FiCompass,
+  FiShoppingBag,
+  FiFilm
 } from 'react-icons/fi';
 import {
   selectCurrentUser,
@@ -38,7 +42,7 @@ import Button from '../components/common/Button';
 
 /**
  * Main application layout enclosing feed, search, messaging, profile, dashboard.
- * Houses role switching, notifications, responsive sidebar, and bottom mobile bar.
+ * Styled according to Warm Editorial Bento-Brutalism design system.
  */
 const AppLayout = () => {
   const navigate = useNavigate();
@@ -57,18 +61,15 @@ const AppLayout = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
 
-  // Fallback: If not logged in, redirect to login page
   if (!isAuthenticated || !user) {
     navigate('/auth/login', { replace: true });
     return null;
   }
 
-  // If activeRole is admin, redirect directly to the dedicated Admin Control Panel
   if (activeRole === 'admin') {
     navigate('/admin/dashboard', { replace: true });
     return null;
   }
-
 
   const handleRoleChange = async (newRole) => {
     try {
@@ -106,90 +107,130 @@ const AppLayout = () => {
     }
   };
 
-  const handleBecomeVendor = () => {
-    if (user?.roles.includes('vendor')) {
-      handleRoleChange('vendor');
-    } else {
-      navigate(`/profile/${user._id}?activate=vendor`);
-    }
-  };
-
-  const handleBecomeCreator = () => {
-    if (user?.roles.includes('creator')) {
-      handleRoleChange('creator');
-    } else {
-      navigate(`/profile/${user._id}?activate=creator`);
-    }
-  };
-
-  // Sidebar Menu Items — Customized per role
-  const getNavItems = () => {
+  const getNavSections = () => {
     if (activeRole === 'admin') {
-      // Admin users get a quick link to the dedicated admin panel
       return [
-        { name: 'Admin Panel', path: '/admin/dashboard', icon: FiGrid },
-        { name: 'Home', path: '/feed', icon: FiHome },
-        { name: 'Discover', path: '/search', icon: FiSearch },
-        { name: 'Settings', path: '/settings', icon: FiSettings },
+        {
+          title: 'Admin Control',
+          items: [
+            { name: 'Admin Panel', path: '/admin/dashboard', icon: FiGrid },
+            { name: 'Home Feed', path: '/feed', icon: FiTv },
+            { name: 'Discover', path: '/search', icon: FiCompass },
+            { name: 'Settings', path: '/settings', icon: FiSettings },
+          ]
+        }
       ];
     }
 
+    const dashboardPath = activeRole === 'vendor' ? '/vendor/dashboard' : activeRole === 'creator' ? '/creator/dashboard' : '/customer/dashboard';
 
     return [
-      { name: 'Home', path: '/feed', icon: FiHome },
-      { name: 'Discover', path: '/search', icon: FiSearch },
-      { name: 'Dashboard', path: '/dashboard', icon: FiGrid },
-      { name: 'Notifications', path: '/notifications', icon: FiBell },
-      { name: 'Chats', path: '/chats', icon: FiMessageSquare },
-      { name: 'Wallet', path: '/wallet', icon: FiBriefcase },
-      { name: 'Subscription', path: '/subscription', icon: FiSettings },
-      { name: 'Settings', path: '/settings', icon: FiSettings },
-      { name: 'My Profile', path: `/profile/${user._id}`, icon: FiUser }
+      {
+        title: 'Overview',
+        items: [
+          { name: 'Home Feed', path: '/feed', icon: FiTv },
+          { name: 'Discover', path: '/search', icon: FiCompass },
+          { name: 'Dashboard', path: dashboardPath, icon: FiGrid },
+        ]
+      },
+      {
+        title: 'Activity',
+        items: [
+          { name: 'Notifications', path: '/notifications', icon: FiBell },
+          { name: 'Chats & Messages', path: '/chats', icon: FiMessageSquare },
+          { name: 'Wallet & Payouts', path: '/wallet', icon: FiBriefcase },
+          { name: 'Subscription', path: '/subscription', icon: FiShield },
+        ]
+      },
+      {
+        title: 'Account',
+        items: [
+          { name: 'Settings', path: '/settings', icon: FiSettings },
+          { name: 'My Profile', path: `/profile/${user._id}`, icon: FiUser }
+        ]
+      }
     ];
   };
 
-  const navItems = getNavItems();
+  const navSections = getNavSections();
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('');
+
+  const handleHeaderSearchSubmit = (e) => {
+    e.preventDefault();
+    if (headerSearchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(headerSearchQuery.trim())}`);
+    }
+  };
 
   return (
-    <div className="relative min-h-screen bg-surface-secondary flex flex-col">
+    <div className="relative min-h-screen bg-[#f2ede4] flex flex-col font-sans">
       {/* ── Top Header ────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 w-full glass border-b border-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-40 w-full bg-[#f2ede4]/95 border-b border-[#e3dccb] px-4 md:px-6 py-2.5 flex items-center justify-between backdrop-blur-xs">
+        <div className="flex items-center gap-3 md:gap-4">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-surface-tertiary rounded-premium lg:hidden text-brand-navy"
+            className="p-2 hover:bg-white rounded-md lg:hidden text-[#1a1a1a] transition-colors border border-[#e3dccb] bg-white/50"
+            aria-label="Toggle navigation menu"
           >
             {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
           </button>
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto" />
-            <span className="hidden md:inline text-lg font-bold tracking-tight text-brand-navy">
+          
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <img src="/logo.png" alt="BizReels Logo" className="h-9 w-auto transition-transform group-hover:scale-105" />
+            <span className="hidden sm:inline text-xl font-heading font-extrabold tracking-tight text-[#1a1a1a]">
               Biz<span className="gradient-text font-black">Reels</span>
             </span>
           </Link>
+
+          {/* Role badge indicator in header */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-extrabold uppercase tracking-wider bg-[#1c1a17] text-[#d99a3d] border border-[#1c1a17]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#d99a3d]" />
+            <span>{activeRole} Mode</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Notifications */}
-          <Link to="/notifications" className="p-2 text-text-secondary hover:text-brand-purple hover:bg-surface-tertiary rounded-full transition-all relative">
+        {/* Global Quick Search Bar */}
+        <form onSubmit={handleHeaderSearchSubmit} className="hidden md:flex flex-1 max-w-xs mx-6 relative">
+          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={headerSearchQuery}
+            onChange={(e) => setHeaderSearchQuery(e.target.value)}
+            placeholder="Search products, creators, reels..."
+            className="w-full pl-9 pr-4 py-1.5 text-xs bg-white border border-[#e3dccb] rounded-md focus:outline-none focus:ring-2 focus:ring-[#d99a3d]/40 text-[#1a1a1a] placeholder-slate-400 transition-all shadow-xs"
+          />
+        </form>
+
+        <div className="flex items-center gap-3">
+          {/* Notifications button */}
+          <Link
+            to="/notifications"
+            className="p-2 text-[#1a1a1a] hover:bg-white rounded-md border border-[#e3dccb] transition-all relative"
+            title="Notifications"
+          >
             <FiBell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-orange animate-pulse" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#d99a3d] ring-2 ring-white" />
           </Link>
 
           {/* User profile & Role switcher */}
           <div className="relative">
             <button
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              className="flex items-center gap-2 p-1.5 hover:bg-surface-tertiary rounded-premium transition-all"
+              className="flex items-center gap-2 p-1 hover:bg-white rounded-md transition-all border border-transparent hover:border-[#e3dccb]"
             >
               <img
                 src={user.avatarUrl || 'https://via.placeholder.com/150'}
                 alt={user.name}
-                className="w-8 h-8 rounded-full border border-brand-purple/20 object-cover"
+                className="w-8 h-8 rounded-full border-2 border-[#d99a3d] object-cover shadow-xs"
               />
-              <span className="hidden sm:inline text-xs font-semibold text-brand-navy max-w-[80px] truncate">
-                {user.name}
-              </span>
+              <div className="hidden sm:flex flex-col items-start text-left pr-1">
+                <span className="text-xs font-extrabold text-[#1a1a1a] max-w-[100px] truncate leading-tight">
+                  {user.name}
+                </span>
+                <span className="text-[10px] font-bold text-slate-500 capitalize">
+                  {activeRole}
+                </span>
+              </div>
             </button>
 
             {/* Profile Dropdown Menu */}
@@ -198,22 +239,24 @@ const AppLayout = () => {
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsProfileMenuOpen(false)} />
                   <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-56 glass-strong shadow-modal rounded-premium border border-white/50 z-20 py-2"
+                    className="absolute right-0 mt-2 w-60 bg-white shadow-xl rounded-md border border-[#e3dccb] z-20 py-2 divide-y divide-[#e3dccb] font-sans"
                   >
-                    <div className="px-4 py-2 border-b border-border">
-                      <p className="text-sm font-bold text-brand-navy truncate">{user.name}</p>
-                      <p className="text-xs text-text-tertiary truncate">{user.email || user.phone}</p>
+                    <div className="px-4 py-2.5">
+                      <p className="text-sm font-extrabold text-[#1a1a1a] truncate">{user.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{user.email || user.phone}</p>
+                      <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-extrabold bg-[#241b15] text-[#d99a3d] uppercase">
+                        Active Role: {activeRole}
+                      </div>
                     </div>
 
-                    {/* Role Switcher Options - Hidden when active role is admin */}
                     {activeRole !== 'admin' && (
-                      <div className="px-4 py-2 border-b border-border">
-                        <p className="text-[10px] font-bold text-text-tertiary tracking-wider uppercase mb-1.5">
-                          Switch Role
+                      <div className="px-3 py-2">
+                        <p className="px-1 text-[9.5px] font-extrabold text-slate-400 tracking-wider uppercase mb-1">
+                          Switch Role Context
                         </p>
                         <div className="flex flex-col gap-1">
                           {['customer', 'vendor', 'creator'].map((r) => {
@@ -222,18 +265,17 @@ const AppLayout = () => {
                               <button
                                 key={r}
                                 onClick={() => handleRoleChange(r)}
-                                className={`flex items-center justify-between px-2 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer
-                                  ${activeRole === r
-                                    ? 'bg-brand-purple/10 text-brand-purple'
-                                    : 'hover:bg-surface-tertiary text-text-secondary'
-                                  }
-                                `}
+                                className={`flex items-center justify-between px-2.5 py-1.5 text-xs font-bold rounded transition-all cursor-pointer border-none ${
+                                  activeRole === r
+                                    ? 'bg-[#241b15] text-[#d99a3d]'
+                                    : 'hover:bg-[#f8f4ec] text-slate-700 bg-transparent'
+                                }`}
                               >
                                 <span className="capitalize">{r}</span>
                                 {activeRole === r ? (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-brand-purple" />
+                                  <span className="w-2 h-2 rounded-full bg-[#d99a3d]" />
                                 ) : !hasRole ? (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-orange/10 text-brand-orange font-bold uppercase tracking-wider">
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#d99a3d] text-[#1a1a1a] font-extrabold uppercase">
                                     Activate
                                   </span>
                                 ) : null}
@@ -244,22 +286,24 @@ const AppLayout = () => {
                       </div>
                     )}
 
-                    <Link
-                      to="/settings"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-text-secondary hover:bg-surface-tertiary transition-all"
-                    >
-                      <FiSettings className="w-4 h-4" />
-                      Account Settings
-                    </Link>
+                    <div className="py-1">
+                      <Link
+                        to="/settings"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-[#f8f4ec] transition-all"
+                      >
+                        <FiSettings className="w-4 h-4 text-slate-400" />
+                        Account Settings
+                      </Link>
 
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-error hover:bg-error-light/40 transition-all text-left"
-                    >
-                      <FiLogOut className="w-4 h-4" />
-                      Sign Out
-                    </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all text-left border-none bg-transparent cursor-pointer"
+                      >
+                        <FiLogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </div>
                   </motion.div>
                 </>
               )}
@@ -270,245 +314,136 @@ const AppLayout = () => {
 
       {/* ── Desktop Sidebar & Main Workspace ────────────────── */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar for Desktop */}
-        <aside className="hidden lg:flex w-64 glass border-r border-border flex-col p-4 gap-2 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path && location.pathname + location.search === item.path);
-            const Icon = item.icon;
-            if (item.action) {
-              return (
-                <button
-                  key={item.name}
-                  onClick={item.action}
-                  className="flex items-center gap-3 px-4 py-3 rounded-premium text-sm font-semibold transition-all duration-300 text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple text-left w-full cursor-pointer"
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  <span>{item.name}</span>
-                </button>
-              );
-            }
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-premium text-sm font-semibold transition-all duration-300
-                  ${isActive
-                    ? 'bg-brand-purple text-white shadow-premium'
-                    : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
-                  }
-                `}
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
+        {/* Grouped Sidebar for Desktop */}
+        <aside className="hidden lg:flex w-64 bg-white border-r border-[#e3dccb] flex-col p-4 gap-5 overflow-y-auto">
+          {navSections.map((section, idx) => (
+            <div key={idx} className="flex flex-col gap-1.5">
+              <span className="px-2 text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">
+                {section.title}
+              </span>
+              {section.items.map((item) => {
+                const isActive = location.pathname === item.path || (item.path && location.pathname + location.search === item.path);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`group flex items-center justify-between px-3 py-2 rounded-md text-xs font-bold transition-all duration-150 ${
+                      isActive
+                        ? 'bg-[#241b15] text-[#d99a3d] border border-[#241b15] shadow-xs'
+                        : 'text-slate-700 hover:bg-[#f8f4ec] hover:text-[#1a1a1a]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-6 h-6 rounded flex items-center justify-center border ${
+                        isActive
+                          ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#d99a3d]'
+                          : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb]'
+                      }`}>
+                        <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                      </div>
+                      <span>{item.name}</span>
+                    </div>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#d99a3d]" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </aside>
 
         {/* Responsive Mobile Drawer Navigation */}
         <AnimatePresence>
           {isSidebarOpen && (
             <>
-              <div className="fixed inset-0 z-30 lg:hidden bg-brand-navy-dark/25 backdrop-blur-xs" onClick={() => setIsSidebarOpen(false)} />
+              <div
+                className="fixed inset-0 z-30 lg:hidden bg-black/40 backdrop-blur-xs"
+                onClick={() => setIsSidebarOpen(false)}
+              />
               <motion.aside
-                initial={{ x: -260 }}
+                initial={{ x: -280 }}
                 animate={{ x: 0 }}
-                exit={{ x: -260 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed top-0 bottom-0 left-0 w-64 z-40 bg-surface flex flex-col p-4 gap-2 border-r border-border shadow-modal"
+                exit={{ x: -280 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                className="fixed top-0 bottom-0 left-0 w-72 z-40 bg-white flex flex-col p-5 gap-5 border-r border-[#e3dccb] shadow-2xl overflow-y-auto font-sans"
               >
-                <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between pb-4 border-b border-[#e3dccb]">
+                  <div className="flex items-center gap-2.5">
                     <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto" />
-                    <span className="text-lg font-bold text-brand-navy">BizReels</span>
+                    <span className="text-lg font-heading font-extrabold text-[#1a1a1a]">
+                      Biz<span className="gradient-text font-black">Reels</span>
+                    </span>
                   </div>
-                  <button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-surface-tertiary rounded-full text-text-secondary">
+                  <button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors border-none bg-transparent cursor-pointer"
+                  >
                     <FiX className="w-5 h-5" />
                   </button>
                 </div>
-                {navItems.map((item) => {
-                  const isActive = location.pathname === item.path || (item.path && location.pathname + location.search === item.path);
-                  const Icon = item.icon;
-                  if (item.action) {
-                    return (
-                      <button
-                        key={item.name}
-                        onClick={() => { item.action(); setIsSidebarOpen(false); }}
-                        className="flex items-center gap-3 px-4 py-3 rounded-premium text-sm font-semibold transition-all text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple text-left w-full cursor-pointer"
-                      >
-                        <Icon className="w-5 h-5 flex-shrink-0" />
-                        <span>{item.name}</span>
-                      </button>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setIsSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-premium text-sm font-semibold transition-all
-                        ${isActive
-                          ? 'bg-brand-purple text-white shadow-premium'
-                          : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
-                        }
-                      `}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span>{item.name}</span>
-                    </Link>
-                  );
-                })}
+
+                {navSections.map((section, idx) => (
+                  <div key={idx} className="flex flex-col gap-1">
+                    <span className="px-2 text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">
+                      {section.title}
+                    </span>
+                    {section.items.map((item) => {
+                      const isActive = location.pathname === item.path || (item.path && location.pathname + location.search === item.path);
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setIsSidebarOpen(false)}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-bold transition-all ${
+                            isActive
+                              ? 'bg-[#241b15] text-[#d99a3d] border border-[#241b15]'
+                              : 'text-slate-700 hover:bg-[#f8f4ec]'
+                          }`}
+                        >
+                          <div className={`w-6 h-6 rounded flex items-center justify-center border ${
+                            isActive
+                              ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#d99a3d]'
+                              : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb]'
+                          }`}>
+                            <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                          </div>
+                          <span>{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ))}
               </motion.aside>
             </>
           )}
         </AnimatePresence>
 
         {/* Main Work Area */}
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 pb-24 lg:pb-8">
+        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 pb-24 lg:pb-8 max-w-7xl mx-auto w-full">
           <Outlet />
         </main>
       </div>
 
       {/* ── Bottom Mobile Bar (Tablets/Phones) ───────────────── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 glass border-t border-border z-30 flex justify-around items-center py-2.5 px-2 shadow-modal safe-bottom">
-        {/* Home */}
-        <Link
-          to="/feed"
-          className={`flex flex-col items-center justify-center p-1.5 rounded-full transition-all duration-300
-            ${location.pathname === '/feed' ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
-          `}
-        >
-          <FiHome className="w-[22px] h-[22px]" />
-          <span className="text-[9px] font-bold mt-0.5">Home</span>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 border-t border-[#e3dccb] z-30 flex justify-around items-center py-2 px-2 shadow-lg backdrop-blur-xs">
+        <Link to="/feed" className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${location.pathname === '/feed' ? 'text-[#d99a3d]' : 'text-slate-500'}`}>
+          <FiTv size={18} />
+          <span>Feed</span>
         </Link>
-
-        {/* Search */}
-        <Link
-          to="/search"
-          className={`flex flex-col items-center justify-center p-1.5 rounded-full transition-all duration-300
-            ${location.pathname === '/search' ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
-          `}
-        >
-          <FiSearch className="w-[22px] h-[22px]" />
-          <span className="text-[9px] font-bold mt-0.5">Search</span>
+        <Link to="/search" className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${location.pathname === '/search' ? 'text-[#d99a3d]' : 'text-slate-500'}`}>
+          <FiCompass size={18} />
+          <span>Discover</span>
         </Link>
-
-        {/* Dynamic Plus Center Button */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
-            className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-brand-purple text-white shadow-premium hover:bg-brand-purple-800 transition-all cursor-pointer border border-brand-purple/20"
-          >
-            <FiPlusSquare className={`w-6 h-6 transition-transform duration-300 ${isPlusMenuOpen ? 'rotate-45' : ''}`} />
-          </button>
-
-          <AnimatePresence>
-            {isPlusMenuOpen && (
-              <>
-                {/* Backdrop overlay */}
-                <div
-                  className="fixed inset-0 z-40 bg-black/5"
-                  onClick={() => setIsPlusMenuOpen(false)}
-                />
-                
-                {/* Plus Popup Options */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 15 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 15 }}
-                  className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-48 bg-white/95 backdrop-blur-md border border-slate-200/50 shadow-modal rounded-2xl py-2 z-50 flex flex-col gap-0.5"
-                >
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center py-1 border-b border-slate-100">
-                    {activeRole} actions
-                  </p>
-                  
-                  {activeRole === 'customer' && (
-                    <button
-                      onClick={() => { navigate('/requirements/new'); setIsPlusMenuOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
-                    >
-                      + Post Requirement
-                    </button>
-                  )}
-
-                  {activeRole === 'vendor' && (
-                    <>
-                      <button
-                        onClick={() => { navigate('/vendor/dashboard?tab=listings&action=add-product'); setIsPlusMenuOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
-                      >
-                        + Upload Product
-                      </button>
-                      <button
-                        onClick={() => { navigate('/vendor/dashboard?tab=listings&action=add-service'); setIsPlusMenuOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
-                      >
-                        + Upload Service
-                      </button>
-                      <button
-                        onClick={() => { navigate('/reels/upload'); setIsPlusMenuOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
-                      >
-                        + Upload Reel
-                      </button>
-                      <button
-                        onClick={() => { navigate('/live'); setIsPlusMenuOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
-                      >
-                        + Live Broadcast
-                      </button>
-                    </>
-                  )}
-
-                  {activeRole === 'creator' && (
-                    <>
-                      <button
-                        onClick={() => { navigate('/creator/dashboard?tab=portfolio&action=upload'); setIsPlusMenuOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
-                      >
-                        + Upload Portfolio
-                      </button>
-                      <button
-                        onClick={() => { navigate('/creator/marketplace'); setIsPlusMenuOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
-                      >
-                        + Apply Project
-                      </button>
-                      <button
-                        onClick={() => { navigate('/reels/upload'); setIsPlusMenuOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-brand-navy hover:bg-brand-purple/5 hover:text-brand-purple transition-all text-left"
-                      >
-                        + Upload Reel Sample
-                      </button>
-                    </>
-                  )}
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Chat */}
-        <Link
-          to="/chats"
-          className={`flex flex-col items-center justify-center p-1.5 rounded-full transition-all duration-300
-            ${location.pathname === '/chats' ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
-          `}
-        >
-          <FiMessageSquare className="w-[22px] h-[22px]" />
-          <span className="text-[9px] font-bold mt-0.5">Chat</span>
+        <Link to="/chats" className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${location.pathname === '/chats' ? 'text-[#d99a3d]' : 'text-slate-500'}`}>
+          <FiMessageSquare size={18} />
+          <span>Chats</span>
         </Link>
-
-        {/* Account Profile */}
-        <Link
-          to={`/profile/${user._id}`}
-          className={`flex flex-col items-center justify-center p-1.5 rounded-full transition-all duration-300
-            ${location.pathname.startsWith('/profile') ? 'text-brand-purple' : 'text-text-tertiary hover:text-brand-purple'}
-          `}
-        >
-          <FiUser className="w-[22px] h-[22px]" />
-          <span className="text-[9px] font-bold mt-0.5">Account</span>
+        <Link to="/notifications" className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${location.pathname === '/notifications' ? 'text-[#d99a3d]' : 'text-slate-500'}`}>
+          <FiBell size={18} />
+          <span>Alerts</span>
         </Link>
       </nav>
     </div>

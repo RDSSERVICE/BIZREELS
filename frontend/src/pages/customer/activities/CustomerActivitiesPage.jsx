@@ -662,14 +662,52 @@ export default function CustomerActivitiesPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in px-4 pb-16">
-      <AdminPageHeader
-        icon={FiActivity}
-        title="Activity Dashboard"
-        subtitle="Manage your saved bookmark listings, order requests, inquiries, quote biddings, and followed seller communities"
-      />
+    <div className="max-w-7xl mx-auto flex flex-col gap-5 animate-fade-in p-2 sm:p-4 min-h-screen font-sans">
+      {/* Header Banner */}
+      <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">CUSTOMER PORTAL</span>
+          <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
+            MY ACTIVITIES &amp; SAVED CONTENT
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 max-w-md">
+            Track saved items, order requests, inquiries, quote biddings, and followed vendors.
+          </p>
+        </div>
 
-      <AdminTabBar tabs={dynamicTabs} activeTab={activeTab} onTabChange={handleTabChange} />
+        <div className="w-10 h-10 rounded-full bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center font-black shrink-0 border border-[#1a1a1a]">
+          <FiActivity size={20} />
+        </div>
+      </div>
+
+      {/* Dynamic Bento Tabs Bar */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {dynamicTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => handleTabChange(tab.key)}
+              className={`px-3 py-2 rounded-md text-xs font-extrabold flex items-center gap-2 whitespace-nowrap transition cursor-pointer border ${
+                isActive
+                  ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs scale-[1.01]'
+                  : 'bg-white border-[#e3dccb] text-slate-700 hover:bg-[#f8f4ec] hover:text-[#1a1a1a]'
+              }`}
+            >
+              <Icon size={14} className={isActive ? 'text-[#d99a3d]' : 'text-slate-500'} />
+              <span>{tab.label}</span>
+              {tab.count !== undefined && tab.count > 0 && (
+                <span className={`text-[9.5px] font-black px-1.5 py-0.2 rounded-full ${
+                  isActive ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-[#241b15] text-[#d99a3d]'
+                }`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
       {/* FILTER & CONTROL BAR */}
       <div className="glass rounded-2xl p-4 border border-white/40 shadow-card flex flex-col md:flex-row gap-4 items-center justify-between">

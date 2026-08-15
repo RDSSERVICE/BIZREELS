@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiMessageSquare, FiBriefcase, FiTool, FiSend, FiUser, FiCheck,
   FiSearch, FiPaperclip, FiPhoneCall, FiMoreVertical, FiClock, FiShield, FiPlusSquare,
-  FiTrash2, FiBellOff, FiInfo, FiExternalLink
+  FiTrash2, FiBellOff, FiInfo, FiExternalLink, FiArrowLeft
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -366,28 +366,53 @@ export default function CustomerChatPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto flex flex-col gap-5 animate-fade-in p-2 sm:p-4 min-h-screen font-sans">
       {/* Header Banner */}
-      <AdminPageHeader
-        icon={FiMessageSquare}
-        title="Live Chat & Communications"
-        subtitle="Connect in real-time with verified vendors and service providers"
-      />
+      <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">REALTIME MESSAGING</span>
+          <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
+            MESSAGES &amp; DIRECT CHATS
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 max-w-md">
+            Connect in real-time with verified vendors and service providers.
+          </p>
+        </div>
+
+        <div className="w-10 h-10 rounded-full bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center font-black shrink-0 border border-[#1a1a1a]">
+          <FiMessageSquare size={20} />
+        </div>
+      </div>
 
       {/* Tabs */}
-      <AdminTabBar
-        tabs={TABS}
-        activeTab={activeTab}
-        onTabChange={(tab) => {
-          setActiveTab(tab);
-          setSelectedThreadId(null);
-        }}
-      />
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => {
+                setActiveTab(tab.key);
+                setSelectedThreadId(null);
+              }}
+              className={`px-3 py-2 rounded-md text-xs font-extrabold flex items-center gap-2 whitespace-nowrap transition cursor-pointer border ${
+                isActive
+                  ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                  : 'bg-white border-[#e3dccb] text-slate-700 hover:bg-[#f8f4ec]'
+              }`}
+            >
+              <Icon size={14} className={isActive ? 'text-[#d99a3d]' : 'text-slate-500'} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* Dual Pane Glass Chat Interface */}
       <div className="glass rounded-3xl border border-white/50 shadow-card flex flex-col md:flex-row h-[600px] overflow-hidden">
         {/* Left Thread Sidebar */}
-        <div className="w-full md:w-80 border-r border-border bg-surface-secondary/40 flex flex-col">
+        <div className={`w-full md:w-80 border-r border-border bg-surface-secondary/40 flex flex-col ${selectedThreadId ? 'hidden md:flex' : 'flex'}`}>
           {/* Search Box & Edit Actions */}
           <div className="p-3 border-b border-border space-y-2">
             <div className="flex items-center justify-between gap-2">
@@ -541,10 +566,17 @@ export default function CustomerChatPage() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col bg-surface/80">
+          <div className={`flex-1 flex flex-col bg-surface/80 ${!selectedThreadId ? 'hidden md:flex' : 'flex'}`}>
             {/* Active Chat Header */}
             <div className="p-4 border-b border-border flex items-center justify-between glass">
               <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSelectedThreadId(null)}
+                  className="md:hidden p-1.5 text-[#1a1a1a] bg-white hover:bg-[#f8f4ec] rounded-md border border-[#e3dccb] flex items-center gap-1 text-xs font-bold shrink-0 cursor-pointer"
+                >
+                  <FiArrowLeft size={16} />
+                  <span>Back</span>
+                </button>
                 <div className="w-9 h-9 rounded-2xl gradient-brand text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   {currentThread.name ? currentThread.name.charAt(0).toUpperCase() : 'C'}
                 </div>
