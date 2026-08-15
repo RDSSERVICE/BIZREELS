@@ -104,7 +104,7 @@ const PublicCreatorMarketplacePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface-secondary pb-16">
+    <div className="pb-16">
       <SEO 
         title="Creator Marketplace"
         description="Hire professional creators to produce high-engaging video reels for your local business. Browse creator portfolios, pricing, and availability."
