@@ -146,7 +146,7 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
     <div
       ref={containerRef}
       onClick={handleContainerClick}
-      className="relative aspect-[9/16] bg-[#241b15] overflow-hidden rounded-md border border-[#3a2c22] select-none cursor-pointer group"
+      className="relative aspect-[4/5] sm:aspect-[9/16] max-h-[500px] bg-[#241b15] overflow-hidden rounded-md border border-[#3a2c22] select-none cursor-pointer group w-full flex items-center justify-center"
     >
       {isVideo ? (
         <video

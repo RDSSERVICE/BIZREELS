@@ -72,12 +72,12 @@ export default function HomeFeedSearchFilter({
   };
 
   return (
-    <div className="sticky top-[53px] z-20 bg-[#f2ede4]/95 backdrop-blur-md pt-2 pb-2 space-y-3 font-sans transition-all -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[#e3dccb]/60">
+    <div className="sticky top-[53px] z-20 bg-[#f2ede4]/95 backdrop-blur-md py-2 space-y-2.5 font-sans w-full border-b border-[#e3dccb]/60 mb-2">
       
       {/* ── Search Input & Controls Bar ── */}
-      <div className="bg-white rounded-md p-2.5 sm:p-3 border border-[#e3dccb] shadow-xs flex flex-col sm:flex-row gap-2.5 items-center">
+      <div className="bg-white rounded-md p-2 sm:p-3 border border-[#e3dccb] shadow-xs flex flex-col sm:flex-row gap-2 sm:gap-2.5 items-center w-full">
         {/* Search Input Box with Framed Icon */}
-        <div className="relative flex-1 w-full flex items-center gap-2 bg-[#f8f4ec] rounded-md border border-[#e3dccb] px-2.5 py-1.5 focus-within:border-[#d99a3d] focus-within:ring-2 focus-within:ring-[#d99a3d]/20 transition-all">
+        <div className="relative flex-1 w-full flex items-center gap-2 bg-[#f8f4ec] rounded-md border border-[#e3dccb] px-2.5 py-1.5 focus-within:border-[#d99a3d] focus-within:ring-2 focus-within:ring-[#d99a3d]/20 transition-all min-w-0">
           <div className="w-7 h-7 rounded bg-[#d99a3d] text-[#1a1a1a] border border-[#1a1a1a]/20 flex items-center justify-center shrink-0 shadow-xs">
             <FiSearch size={15} />
           </div>
@@ -87,8 +87,8 @@ export default function HomeFeedSearchFilter({
             value={filters.searchQuery || ''}
             onChange={(e) => onFilterChange({ ...filters, searchQuery: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && onSearch && onSearch()}
-            placeholder="Search nearby reels, products, services, announcements..."
-            className="w-full bg-transparent text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none font-medium"
+            placeholder="Search nearby reels, products, services..."
+            className="w-full bg-transparent text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none font-medium truncate min-w-0"
           />
 
           {/* Keyboard shortcut hint pill */}
@@ -99,11 +99,11 @@ export default function HomeFeedSearchFilter({
         </div>
 
         {/* Distance Selector & Filter Toggle */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
           {/* Distance Selector */}
           {filters.nearby === 'near_me' && (
-            <div className="relative flex items-center bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-2.5 py-1.5 text-xs font-bold text-[#1a1a1a]">
-              <FiMapPin className="text-[#d99a3d] mr-1.5 shrink-0" size={13} />
+            <div className="relative flex items-center bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-2 py-1 text-xs font-bold text-[#1a1a1a] shrink-0">
+              <FiMapPin className="text-[#d99a3d] mr-1 shrink-0" size={13} />
               <select
                 value={filters.distanceKm || '50'}
                 onChange={(e) => onFilterChange({ ...filters, distanceKm: e.target.value })}
@@ -122,13 +122,13 @@ export default function HomeFeedSearchFilter({
           <button
             type="button"
             onClick={() => setShowDrawer(!showDrawer)}
-            className={`px-3.5 py-2 rounded-md text-xs font-extrabold transition flex items-center gap-2 cursor-pointer border ${
+            className={`px-3 py-1.5 rounded-md text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer border shrink-0 ${
               showDrawer || activeCount > 0
                 ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
                 : 'bg-[#241b15] text-[#d99a3d] border-[#d99a3d]/40 hover:border-[#d99a3d]'
             }`}
           >
-            <FiSliders size={14} className="text-[#d99a3d]" />
+            <FiSliders size={13} className="text-[#d99a3d]" />
             <span>FILTERS</span>
             {activeCount > 0 && (
               <span className="w-4 h-4 rounded-full bg-[#d99a3d] text-[#1a1a1a] text-[9.5px] font-black flex items-center justify-center">
