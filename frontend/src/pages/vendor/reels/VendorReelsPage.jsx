@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FiVideo, FiCpu, FiPlay, FiCalendar, FiShield,
-  FiEye, FiHeart, FiRadio, FiPlus, FiTrash2, FiFileText, FiZap
+  FiEye, FiHeart, FiUserCheck, FiPlus, FiTrash2, FiFileText, FiZap
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
@@ -19,17 +20,16 @@ import ReelCardMediaCarousel from './ReelCardMediaCarousel';
 import CreateReelWizardModal from './CreateReelWizardModal';
 import ReelPreviewModal from './ReelPreviewModal';
 import AiReelGeneratorModal from './AiReelGeneratorModal';
-import InteractiveLiveModal from './InteractiveLiveModal';
 import ReelBoostModal from './ReelBoostModal';
 
 export default function VendorReelsPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('published');
   
   // Main Modals
   const [showPostModal, setShowPostModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showAiAdModal, setShowAiAdModal] = useState(false);
-  const [showLiveModal, setShowLiveModal] = useState(false);
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [selectedReelForBoost, setSelectedReelForBoost] = useState(null);
 
@@ -79,95 +79,6 @@ export default function VendorReelsPage() {
   // SCHEDULING
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
-
-  // GO LIVE STATE & WEBCAM STREAM
-  const [liveTitle, setLiveTitle] = useState('Live Product Showcase & Q&A');
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [activeStreamId, setActiveStreamId] = useState(null);
-  const [cameraError, setCameraError] = useState(null);
-  const liveVideoRef = useRef(null);
-  const mediaStreamRef = useRef(null);
-
-  // Initialize & Stop Camera Media Stream
-  const startCameraStream = async () => {
-    setCameraError(null);
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        mediaStreamRef.current = stream;
-        if (liveVideoRef.current) {
-          liveVideoRef.current.srcObject = stream;
-        }
-      } else {
-        setCameraError('Camera access is not supported on this browser.');
-      }
-    } catch (err) {
-      console.error('Camera access error:', err);
-      setCameraError('Could not access camera/microphone. Please check browser permissions.');
-      toast.error('Camera access permission denied or device busy');
-    }
-  };
-
-  const stopCameraStream = () => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-    if (liveVideoRef.current) {
-      liveVideoRef.current.srcObject = null;
-    }
-  };
-
-  // Start/Stop stream when showLiveModal toggles
-  useEffect(() => {
-    if (showLiveModal) {
-      startCameraStream();
-    } else {
-      stopCameraStream();
-      setIsStreaming(false);
-      setActiveStreamId(null);
-    }
-    return () => {
-      stopCameraStream();
-    };
-  }, [showLiveModal]);
-
-  const handleToggleLiveStream = async () => {
-    if (isStreaming && activeStreamId) {
-      const toastId = toast.loading('Ending live stream...');
-      try {
-        await api.post(`/v1/live/${activeStreamId}/end`);
-        setIsStreaming(false);
-        setActiveStreamId(null);
-        toast.success('Live stream ended.', { id: toastId });
-      } catch (err) {
-        toast.error(err?.response?.data?.message || 'Failed to end live stream', { id: toastId });
-      }
-    } else {
-      if (!liveTitle.trim()) {
-        toast.error('Live title is required');
-        return;
-      }
-      const toastId = toast.loading('Starting live stream...');
-      try {
-        const res = await api.post('/v1/live', {
-          title: liveTitle.trim(),
-          description: 'Live Interactive Session'
-        });
-        const stream = res.data?.data?.stream || res.data?.stream || res.data;
-        const streamId = stream?._id || stream?.id;
-        if (streamId) {
-          setActiveStreamId(streamId);
-          setIsStreaming(true);
-          toast.success('🔴 Live stream started! Video broadcast active.', { id: toastId });
-        } else {
-          toast.error('Failed to retrieve live stream ID', { id: toastId });
-        }
-      } catch (err) {
-        toast.error(err?.response?.data?.message || 'Failed to start live stream', { id: toastId });
-      }
-    }
-  };
 
   // API QUERIES & MUTATIONS
   const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 300000 });
@@ -383,10 +294,10 @@ export default function VendorReelsPage() {
             <FiCpu size={15} /> <span className="hidden sm:inline">CREATE REELS (AI)</span><span className="sm:hidden">AI REEL</span>
           </button>
           <button
-            onClick={() => setShowLiveModal(true)}
-            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-red-600 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 hover:bg-red-700"
+            onClick={() => navigate('/vendor/hire-creator')}
+            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 hover:brightness-110 shadow-sm transition"
           >
-            <FiRadio size={15} /> <span className="hidden sm:inline">GO LIVE</span><span className="sm:hidden">LIVE</span>
+            <FiUserCheck size={15} /> <span className="hidden sm:inline">HIRE CREATOR</span><span className="sm:hidden">HIRE</span>
           </button>
         </div>
       </AdminPageHeader>
@@ -587,19 +498,7 @@ export default function VendorReelsPage() {
         createReel={createReel}
       />
 
-      {/* MODAL 4: GO LIVE Interactive simulator */}
-      <InteractiveLiveModal
-        isOpen={showLiveModal}
-        onClose={() => setShowLiveModal(false)}
-        liveVideoRef={liveVideoRef}
-        isStreaming={isStreaming}
-        cameraError={cameraError}
-        liveTitle={liveTitle}
-        setLiveTitle={setLiveTitle}
-        handleToggleLiveStream={handleToggleLiveStream}
-      />
-
-      {/* MODAL 5: BOOST REEL */}
+      {/* MODAL 4: BOOST REEL */}
       <ReelBoostModal
         isOpen={showBoostModal}
         onClose={() => {

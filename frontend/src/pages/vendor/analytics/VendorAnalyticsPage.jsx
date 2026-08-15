@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FiPieChart,
   FiEye,
@@ -17,7 +17,11 @@ import {
   FiInfo,
   FiX,
   FiZap,
-  FiLoader
+  FiLoader,
+  FiRefreshCw,
+  FiActivity,
+  FiShare2,
+  FiBookmark
 } from 'react-icons/fi';
 import {
   ResponsiveContainer,
@@ -29,6 +33,8 @@ import {
   CartesianGrid
 } from 'recharts';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import { getSocket } from '../../../lib/socket';
+import toast from 'react-hot-toast';
 import {
   useGetVendorAnalyticsOverviewQuery,
   useGetVendorAnalyticsListingsQuery,
@@ -44,21 +50,73 @@ export default function VendorAnalyticsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedListingForRoi, setSelectedListingForRoi] = useState(null);
 
-  // RTK Queries
-  const { data: overviewData, isFetching: isOverviewLoading, refetch: refetchOverview } = useGetVendorAnalyticsOverviewQuery(range);
-  const { data: listingsData, isFetching: isListingsLoading, refetch: refetchListings } = useGetVendorAnalyticsListingsQuery({ range, sort: listingSort, limit: 20 });
-  const { data: timeseriesData, isFetching: isTimeseriesLoading, refetch: refetchTimeseries } = useGetVendorAnalyticsTimeseriesQuery({ range, metric });
+  // RTK Queries with auto background polling
+  const {
+    data: overviewData,
+    isFetching: isOverviewLoading,
+    refetch: refetchOverview
+  } = useGetVendorAnalyticsOverviewQuery(range, { pollingInterval: 30000 });
+
+  const {
+    data: listingsData,
+    isFetching: isListingsLoading,
+    refetch: refetchListings
+  } = useGetVendorAnalyticsListingsQuery({ range, sort: listingSort, limit: 50 }, { pollingInterval: 30000 });
+
+  const {
+    data: timeseriesData,
+    isFetching: isTimeseriesLoading,
+    refetch: refetchTimeseries
+  } = useGetVendorAnalyticsTimeseriesQuery({ range, metric }, { pollingInterval: 30000 });
+
   const [simulateTraffic, { isLoading: isSimulating }] = useSimulateVendorAnalyticsMutation();
+
+  // Socket.IO Real-time Sync
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleRealtimeUpdate = () => {
+      refetchOverview();
+      refetchListings();
+      refetchTimeseries();
+    };
+
+    socket.on('analytics:updated', handleRealtimeUpdate);
+    socket.on('inquiry:created', handleRealtimeUpdate);
+    socket.on('inquiry:updated', handleRealtimeUpdate);
+    socket.on('order:created', handleRealtimeUpdate);
+    socket.on('order:updated', handleRealtimeUpdate);
+    socket.on('notification', handleRealtimeUpdate);
+    socket.on('notification:new', handleRealtimeUpdate);
+
+    return () => {
+      socket.off('analytics:updated', handleRealtimeUpdate);
+      socket.off('inquiry:created', handleRealtimeUpdate);
+      socket.off('inquiry:updated', handleRealtimeUpdate);
+      socket.off('order:created', handleRealtimeUpdate);
+      socket.off('order:updated', handleRealtimeUpdate);
+      socket.off('notification', handleRealtimeUpdate);
+      socket.off('notification:new', handleRealtimeUpdate);
+    };
+  }, [refetchOverview, refetchListings, refetchTimeseries]);
+
+  const handleManualRefresh = () => {
+    refetchOverview();
+    refetchListings();
+    refetchTimeseries();
+    toast.success('Analytics data refreshed in real-time');
+  };
 
   const handleSimulate = async () => {
     try {
       await simulateTraffic().unwrap();
-      // Refetch queries after simulating
+      toast.success('Generated live test data & analytics events!');
       refetchOverview();
       refetchListings();
       refetchTimeseries();
     } catch (err) {
-      console.error('Simulation failed:', err);
+      toast.error('Simulation failed: ' + (err?.data?.message || err?.message));
     }
   };
 
@@ -83,8 +141,11 @@ export default function VendorAnalyticsPage() {
 
   const metricsList = [
     { key: 'views', label: 'Views' },
-    { key: 'chats', label: 'Chats Started' },
-    { key: 'deals', label: 'Deals Started' }
+    { key: 'chats', label: 'Inquiries' },
+    { key: 'wa_clicks', label: 'WhatsApp' },
+    { key: 'deals', label: 'Orders' },
+    { key: 'saves', label: 'Saves' },
+    { key: 'shares', label: 'Shares' },
   ];
 
   // Helper formatting values
@@ -96,23 +157,37 @@ export default function VendorAnalyticsPage() {
       <AdminPageHeader
         icon={FiPieChart}
         title="Vendor Analytics & Insights"
-        subtitle="Track reel views, product clicks, phone calls, WhatsApp leads, and overall customer conversion rates"
-      />
-
-      {/* Date Range Selector & Simulate Traffic Devtool */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+        subtitle="Track real-time reel views, product clicks, phone calls, WhatsApp leads, and customer conversion rates"
+      >
         <div className="flex items-center gap-2">
-          <FiCalendar className="text-slate-400" />
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-2">Timeframe:</span>
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span>Live Analytics Active</span>
+          </div>
+          <button
+            onClick={handleManualRefresh}
+            className="p-2.5 rounded-xl glass border border-border text-text-primary hover:text-brand-purple transition shadow-sm"
+            title="Refresh Live Data"
+          >
+            <FiRefreshCw size={15} className={isOverviewLoading || isListingsLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      </AdminPageHeader>
+
+      {/* Date Range Selector & Realtime Sync Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass p-4 rounded-2xl border border-white/40 shadow-sm">
+        <div className="flex items-center gap-2 flex-wrap">
+          <FiCalendar className="text-text-tertiary" />
+          <span className="text-xs font-bold text-text-secondary uppercase tracking-wider mr-1">Timeframe:</span>
+          <div className="flex bg-surface-secondary/70 p-1 rounded-xl border border-border/50">
             {ranges.map((r) => (
               <button
                 key={r.key}
                 onClick={() => setRange(r.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   range === r.key
-                    ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm font-semibold'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+                    ? 'gradient-brand text-white shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
                 {r.label}
@@ -121,89 +196,68 @@ export default function VendorAnalyticsPage() {
           </div>
         </div>
 
-        <button
-          onClick={handleSimulate}
-          disabled={isSimulating}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-slate-400 disabled:to-slate-500 text-white text-xs font-semibold rounded-xl shadow-md transition-all active:scale-[0.98]"
-        >
-          {isSimulating ? (
-            <>
-              <FiLoader className="animate-spin" /> Simulating...
-            </>
-          ) : (
-            <>
-              <FiZap /> Simulate Live Traffic
-            </>
+        <div className="flex items-center gap-2">
+          {(!kpis.views || kpis.views === 0) && (
+            <button
+              onClick={handleSimulate}
+              disabled={isSimulating}
+              className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-premium transition-all active:scale-[0.98]"
+            >
+              {isSimulating ? <FiLoader className="animate-spin" /> : <FiZap />}
+              <span>Populate Demo Traffic</span>
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {[
-          { label: 'Listing Views', value: formatVal(kpis.views), desc: 'Total product/service detail views', icon: FiEye, color: 'from-pink-500/10 to-rose-500/10 text-pink-600 border-pink-500/20' },
-          { label: 'Conversations', value: formatVal(kpis.chats_started), desc: 'Unique buyer chats initiated', icon: FiMessageCircle, color: 'from-blue-500/10 to-indigo-500/10 text-blue-600 border-blue-500/20' },
-          { label: 'WhatsApp Leads', value: formatVal(kpis.wa_clicks), desc: 'Clicks to open your WhatsApp', icon: FiPhone, color: 'from-green-500/10 to-emerald-500/10 text-green-600 border-green-500/20' },
-          { label: 'Total Leads', value: formatVal(kpis.leads), desc: 'Chatters + listing watchers', icon: FiUsers, color: 'from-purple-500/10 to-violet-500/10 text-purple-600 border-purple-500/20' },
-          { label: 'Engagement', value: `${formatVal(kpis.saves)} Saves / ${formatVal(kpis.shares)} Shares`, desc: 'User bookmarks and shares', icon: FiMousePointer, color: 'from-amber-500/10 to-yellow-500/10 text-amber-600 border-amber-500/20' },
-          { label: 'Deals Started', value: formatVal(kpis.deals_started), desc: 'Orders initiated by buyers', icon: FiTrendingUp, color: 'from-rose-500/10 to-red-500/10 text-rose-600 border-rose-500/20' },
-          { label: 'Sales Completed', value: formatVal(kpis.deals_completed), desc: 'Successfully finalized orders', icon: FiUserCheck, color: 'from-cyan-500/10 to-sky-500/10 text-cyan-600 border-cyan-500/20' },
-          { label: 'Active Listings', value: `${kpis.listings_active || 0}/${kpis.listings_total || 0}`, desc: 'Active vs total listed items', icon: FiPackage, color: 'from-indigo-500/10 to-blue-500/10 text-indigo-600 border-indigo-500/20' }
+          { label: 'Catalog Views', value: formatVal(kpis.views), desc: 'Product/service & reel page views', icon: FiEye, color: 'from-pink-500/10 to-rose-500/10 text-pink-600 border-pink-500/20' },
+          { label: 'Customer Inquiries', value: formatVal(kpis.chats_started), desc: 'Direct buyer inquiries initiated', icon: FiMessageCircle, color: 'from-blue-500/10 to-indigo-500/10 text-blue-600 border-blue-500/20' },
+          { label: 'WhatsApp Clicks', value: formatVal(kpis.wa_clicks), desc: 'Direct WhatsApp chats initiated', icon: FiPhone, color: 'from-green-500/10 to-emerald-500/10 text-green-600 border-green-500/20' },
+          { label: 'Total Leads', value: formatVal(kpis.leads), desc: 'Inquirers + listing watchers', icon: FiUsers, color: 'from-purple-500/10 to-violet-500/10 text-purple-600 border-purple-500/20' },
+          { label: 'Engagement', value: `${formatVal(kpis.saves)} Saves / ${formatVal(kpis.shares)} Shares`, desc: 'User bookmarks & social shares', icon: FiMousePointer, color: 'from-amber-500/10 to-yellow-500/10 text-amber-600 border-amber-500/20' },
+          { label: 'Orders Started', value: formatVal(kpis.deals_started), desc: 'Purchase orders placed by buyers', icon: FiTrendingUp, color: 'from-rose-500/10 to-red-500/10 text-rose-600 border-rose-500/20' },
+          { label: 'Sales Delivered', value: formatVal(kpis.deals_completed), desc: 'Successfully fulfilled orders', icon: FiUserCheck, color: 'from-cyan-500/10 to-sky-500/10 text-cyan-600 border-cyan-500/20' },
+          { label: 'Active Listings', value: `${kpis.listings_active || 0}/${kpis.listings_total || 0}`, desc: 'Active vs total listed catalog items', icon: FiPackage, color: 'from-indigo-500/10 to-blue-500/10 text-indigo-600 border-indigo-500/20' }
         ].map((c, idx) => (
           <div
             key={idx}
-            className="flex flex-col bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all group"
+            className="flex flex-col glass border border-white/40 p-5 rounded-2xl shadow-card hover:shadow-card-hover transition-all group"
           >
             <div className="flex justify-between items-start mb-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{c.label}</span>
+              <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">{c.label}</span>
               <div className={`p-2.5 rounded-xl bg-gradient-to-br border ${c.color.split(' ')[0]} ${c.color.split(' ')[1]} ${c.color.split(' ')[3]}`}>
                 <c.icon className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-800 dark:text-white mt-1 group-hover:translate-x-0.5 transition-transform">
-              {isOverviewLoading ? <div className="h-8 w-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" /> : c.value}
+            <div className="text-2xl font-black text-text-primary mt-1 group-hover:translate-x-0.5 transition-transform font-display">
+              {isOverviewLoading ? <div className="h-8 w-24 skeleton rounded-lg" /> : c.value}
             </div>
-            <span className="text-[10px] text-slate-400 mt-2 block">{c.desc}</span>
+            <span className="text-[11px] text-text-tertiary mt-2 block font-medium">{c.desc}</span>
           </div>
         ))}
       </div>
 
-      {/* Helper Banner for Empty Data */}
-      {!isOverviewLoading && !kpis.views && (
-        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h4 className="text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
-              <FiInfo /> No Customer Traffic Data Yet
-            </h4>
-            <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl">
-              Since this is a fresh test account, you haven't received any customer clicks or views. Use the simulator tool above to instantly populate 30 days of realistic customer traffic, product views, and WhatsApp clicks!
-            </p>
-          </div>
-          <button
-            onClick={handleSimulate}
-            disabled={isSimulating}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:scale-95 transition-all text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-sm shrink-0"
-          >
-            {isSimulating ? <FiLoader className="animate-spin" /> : <><FiZap /> Populate Demo Data</>}
-          </button>
-        </div>
-      )}
-
       {/* Main Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Timeseries Plot card */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Metrics Over Time</h3>
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+        <div className="lg:col-span-2 glass border border-white/40 rounded-2xl p-5 shadow-card space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider flex items-center gap-2">
+              <FiActivity className="text-brand-purple" />
+              <span>Metrics Timeline Over Period</span>
+            </h3>
+            <div className="flex flex-wrap bg-surface-secondary/70 p-1 rounded-xl border border-border/50">
               {metricsList.map((m) => (
                 <button
                   key={m.key}
                   onClick={() => setMetric(m.key)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
                     metric === m.key
-                      ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm font-semibold'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+                      ? 'bg-brand-purple text-white shadow-sm'
+                      : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
                   {m.label}
@@ -215,45 +269,45 @@ export default function VendorAnalyticsPage() {
           <div className="h-72 w-full pt-4">
             {isTimeseriesLoading ? (
               <div className="flex flex-col items-center justify-center h-full gap-2">
-                <FiLoader className="animate-spin w-8 h-8 text-indigo-500" />
-                <span className="text-xs text-slate-400">Loading timeline...</span>
+                <FiLoader className="animate-spin w-8 h-8 text-brand-purple" />
+                <span className="text-xs text-text-tertiary">Loading timeline metrics...</span>
               </div>
             ) : chartItems.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartItems} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" className="dark:stroke-slate-800" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.6} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 9 }}
-                    stroke="#9CA3AF"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    stroke="#94a3b8"
                     tickFormatter={(tick) => {
                       const parts = tick.split('-');
                       return parts.length >= 3 ? `${parts[2]}/${parts[1]}` : tick;
                     }}
                   />
-                  <YAxis tick={{ fontSize: 9 }} stroke="#9CA3AF" />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} stroke="#94a3b8" />
                   <Tooltip
                     contentStyle={{
-                      background: 'rgba(30, 41, 59, 0.95)',
-                      borderRadius: '12px',
-                      border: 'none',
+                      background: 'rgba(15, 23, 42, 0.95)',
+                      borderRadius: '14px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
                       color: '#fff',
                       fontSize: '11px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.2)'
                     }}
                     labelStyle={{ fontWeight: 'bold', color: '#cbd5e1' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="value"
-                    name={metric === 'views' ? 'Page Views' : metric === 'chats' ? 'Chats' : 'Deals'}
-                    stroke="#6366f1"
+                    name={metric === 'views' ? 'Page Views' : metric === 'chats' ? 'Inquiries' : metric === 'wa_clicks' ? 'WhatsApp Leads' : metric === 'deals' ? 'Orders' : metric === 'saves' ? 'Bookmarks' : 'Shares'}
+                    stroke="#7c3aed"
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorMetric)"
@@ -261,33 +315,33 @@ export default function VendorAnalyticsPage() {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2">
-                <FiInbox className="w-10 h-10 text-slate-300" />
-                <span className="text-xs">No traffic data recorded in this range</span>
+              <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-2">
+                <FiInbox className="w-10 h-10 text-text-tertiary/50" />
+                <span className="text-xs">No traffic data recorded in this timeframe</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Funnel chart card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div className="glass border border-white/40 rounded-2xl p-5 shadow-card flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-6">Conversion Funnel</h3>
+            <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider mb-6">Customer Conversion Funnel</h3>
             <div className="space-y-6">
               {[
-                { name: '1. Impressions / Views', count: kpis.views || 0, pct: 100, color: 'bg-indigo-500' },
-                { name: '2. WhatsApp / Chats', count: (kpis.chats_started || 0) + (kpis.wa_clicks || 0), pct: conversion.view_to_chat_pct || 0, color: 'bg-purple-500' },
-                { name: '3. Deals Started', count: kpis.deals_started || 0, pct: conversion.chat_to_deal_pct || 0, color: 'bg-pink-500' },
-                { name: '4. Deals Finalized', count: kpis.deals_completed || 0, pct: conversion.deal_to_complete_pct || 0, color: 'bg-emerald-500' }
+                { name: '1. Impressions / Views', count: kpis.views || 0, pct: 100, color: 'bg-brand-purple' },
+                { name: '2. Inquiries & WhatsApp', count: (kpis.chats_started || 0) + (kpis.wa_clicks || 0), pct: conversion.view_to_chat_pct || 0, color: 'bg-violet-500' },
+                { name: '3. Orders Initiated', count: kpis.deals_started || 0, pct: conversion.chat_to_deal_pct || 0, color: 'bg-pink-500' },
+                { name: '4. Orders Completed', count: kpis.deals_completed || 0, pct: conversion.deal_to_complete_pct || 0, color: 'bg-emerald-500' }
               ].map((step, i) => (
                 <div key={i} className="space-y-2">
                   <div className="flex justify-between text-xs font-medium">
-                    <span className="text-slate-600 dark:text-slate-400">{step.name}</span>
-                    <span className="text-slate-800 dark:text-white font-bold">
-                      {step.count} ({i === 0 ? '100%' : `${step.pct}%`})
+                    <span className="text-text-secondary">{step.name}</span>
+                    <span className="text-text-primary font-bold">
+                      {formatVal(step.count)} ({i === 0 ? '100%' : `${step.pct}%`})
                     </span>
                   </div>
-                  <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-3 bg-surface-secondary rounded-full overflow-hidden border border-border/40">
                     <div
                       className={`h-full ${step.color} rounded-full transition-all duration-1000`}
                       style={{ width: `${i === 0 ? 100 : Math.min(step.pct, 100)}%` }}
@@ -298,34 +352,34 @@ export default function VendorAnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 mt-6">
-            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Average Vendor Score</h4>
+          <div className="bg-surface-secondary/60 p-4 rounded-xl border border-border/60 mt-6">
+            <h4 className="text-xs font-bold text-text-primary mb-1">Average Store Rating</h4>
             <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-500">Rating Avg:</span>
-              <span className="font-semibold text-amber-500">★ {reviews.avg_rating || '5.0'} ({reviews.count || 0} reviews)</span>
+              <span className="text-text-tertiary">Customer Score:</span>
+              <span className="font-bold text-amber-500">★ {reviews.avg_rating || '5.0'} ({reviews.count || 0} reviews)</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Listing Performance breakdown table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 space-y-4">
+      <div className="glass border border-white/40 rounded-2xl shadow-card p-6 space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Listings Performance Breakdown</h3>
-            <p className="text-xs text-slate-400 mt-1">Detailed traffic and click breakdowns for each product and service listing</p>
+            <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Listings Performance Breakdown</h3>
+            <p className="text-xs text-text-tertiary mt-1">Detailed real-time traffic and inquiry breakdowns across all your products and services</p>
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {/* Search Input */}
             <div className="relative flex-grow sm:flex-grow-0">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
               <input
                 type="text"
                 placeholder="Filter by title..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-slate-50/50 dark:bg-slate-800/30 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full sm:w-64 pl-9 pr-4 py-2 border border-border rounded-xl text-xs bg-surface focus:outline-none focus:ring-2 focus:ring-brand-purple/20 text-text-primary"
               />
             </div>
 
@@ -333,49 +387,57 @@ export default function VendorAnalyticsPage() {
             <select
               value={listingSort}
               onChange={(e) => setListingSort(e.target.value)}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-slate-50/50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-300 focus:outline-none"
+              className="px-3 py-2 border border-border rounded-xl text-xs bg-surface text-text-primary focus:outline-none"
             >
               <option value="views">Sort by Views</option>
-              <option value="chats">Sort by Chats</option>
-              <option value="deals">Sort by Deals</option>
+              <option value="chats">Sort by Inquiries</option>
+              <option value="deals">Sort by Orders</option>
               <option value="shares">Sort by Shares</option>
+              <option value="saves">Sort by Saves</option>
             </select>
           </div>
         </div>
 
         {isListingsLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <FiLoader className="animate-spin w-8 h-8 text-indigo-500" />
-            <span className="text-xs text-slate-400">Loading listings metrics...</span>
+            <FiLoader className="animate-spin w-8 h-8 text-brand-purple" />
+            <span className="text-xs text-text-tertiary">Loading listings metrics...</span>
           </div>
         ) : filteredListings.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
-                  <th className="py-3 px-4">Listing Title</th>
+                <tr className="border-b border-border text-text-tertiary font-bold uppercase tracking-wider">
+                  <th className="py-3 px-4">Item Details</th>
                   <th className="py-3 px-4">Views</th>
-                  <th className="py-3 px-4">Chats</th>
-                  <th className="py-3 px-4">WhatsApp Clicks</th>
+                  <th className="py-3 px-4">Inquiries</th>
+                  <th className="py-3 px-4">WhatsApp</th>
                   <th className="py-3 px-4">Saves</th>
                   <th className="py-3 px-4">Shares</th>
-                  <th className="py-3 px-4">Deals</th>
-                  <th className="py-3 px-4 text-center">Boost Options</th>
+                  <th className="py-3 px-4">Orders</th>
+                  <th className="py-3 px-4 text-center">Boost Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+              <tbody className="divide-y divide-border/50">
                 {filteredListings.map((l, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                  <tr key={idx} className="hover:bg-surface-secondary/40 transition-colors">
                     <td className="py-4 px-4">
-                      <div className="font-semibold text-slate-800 dark:text-white line-clamp-1">{l.title || 'Untitled Listing'}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">ID: {l.listing_id}</div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                          l.type === 'service' ? 'bg-brand-purple/10 text-brand-purple' : 'bg-brand-orange/10 text-brand-orange'
+                        }`}>
+                          {l.type || 'Product'}
+                        </span>
+                        <div className="font-bold text-text-primary line-clamp-1">{l.title || 'Untitled Listing'}</div>
+                      </div>
+                      <div className="text-[10px] text-text-tertiary mt-0.5">Price: ₹{(l.price || 0).toLocaleString('en-IN')}</div>
                     </td>
-                    <td className="py-4 px-4 font-medium text-slate-700 dark:text-slate-300">{formatVal(l.views)}</td>
-                    <td className="py-4 px-4 text-slate-600 dark:text-slate-400">{formatVal(l.chats)}</td>
-                    <td className="py-4 px-4 text-slate-600 dark:text-slate-400">{formatVal(l.wa_clicks)}</td>
-                    <td className="py-4 px-4 text-slate-600 dark:text-slate-400">{formatVal(l.saves)}</td>
-                    <td className="py-4 px-4 text-slate-600 dark:text-slate-400">{formatVal(l.shares)}</td>
-                    <td className="py-4 px-4 font-semibold text-emerald-600 dark:text-emerald-400">{formatVal(l.deals)}</td>
+                    <td className="py-4 px-4 font-bold text-text-primary">{formatVal(l.views)}</td>
+                    <td className="py-4 px-4 text-text-secondary">{formatVal(l.chats)}</td>
+                    <td className="py-4 px-4 text-emerald-600 font-semibold">{formatVal(l.wa_clicks)}</td>
+                    <td className="py-4 px-4 text-text-secondary">{formatVal(l.saves)}</td>
+                    <td className="py-4 px-4 text-text-secondary">{formatVal(l.shares)}</td>
+                    <td className="py-4 px-4 font-bold text-emerald-600">{formatVal(l.deals)}</td>
                     <td className="py-4 px-4 text-center">
                       {l.boost_expires_at ? (
                         <button
@@ -385,7 +447,7 @@ export default function VendorAnalyticsPage() {
                           <FiZap className="w-3 h-3 animate-pulse" /> Boost ROI
                         </button>
                       ) : (
-                        <span className="text-[10px] text-slate-400 italic">No Active Boost</span>
+                        <span className="text-[10px] text-text-tertiary italic">Organic Traffic</span>
                       )}
                     </td>
                   </tr>
@@ -394,8 +456,8 @@ export default function VendorAnalyticsPage() {
             </table>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-            <FiInbox className="w-8 h-8 text-slate-300" />
+          <div className="flex flex-col items-center justify-center py-12 text-text-tertiary gap-2 border border-dashed border-border rounded-2xl">
+            <FiInbox className="w-8 h-8 opacity-50" />
             <span className="text-xs">No listings found matching search criteria</span>
           </div>
         )}
@@ -428,20 +490,20 @@ function BoostRoiModal({ listing, onClose }) {
   };
 
   const getLiftColor = (val) => {
-    if (val > 0) return 'text-emerald-600 dark:text-emerald-400 font-bold';
-    if (val < 0) return 'text-rose-600 dark:text-rose-400';
-    return 'text-slate-400';
+    if (val > 0) return 'text-emerald-600 font-bold';
+    if (val < 0) return 'text-rose-600';
+    return 'text-text-tertiary';
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
       <div
-        className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 relative flex flex-col gap-6 animate-scale-in"
+        className="w-full max-w-lg glass border border-white/50 rounded-3xl shadow-2xl p-6 relative flex flex-col gap-6 animate-scale-in bg-surface"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+          className="absolute right-4 top-4 p-2 rounded-full hover:bg-surface-secondary text-text-tertiary hover:text-text-primary transition-colors"
         >
           <FiX className="w-5 h-5" />
         </button>
@@ -452,34 +514,34 @@ function BoostRoiModal({ listing, onClose }) {
             <FiZap className="w-6 h-6 animate-bounce" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Boost ROI Performance</h3>
-            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mt-1 line-clamp-1">{listing.title}</p>
+            <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Boost ROI Performance</h3>
+            <p className="text-xs font-semibold text-brand-purple mt-1 line-clamp-1">{listing.title}</p>
           </div>
         </div>
 
         {isLoadingRoi ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <FiLoader className="animate-spin w-8 h-8 text-indigo-500" />
-            <span className="text-xs text-slate-400">Analyzing Boost Lift Performance...</span>
+            <FiLoader className="animate-spin w-8 h-8 text-brand-purple" />
+            <span className="text-xs text-text-tertiary">Analyzing Boost Lift Performance...</span>
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="text-xs bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 flex flex-col gap-2">
+            <div className="text-xs bg-surface-secondary p-4 rounded-2xl border border-border flex flex-col gap-2">
               <div className="flex justify-between">
-                <span className="text-slate-400">Boost Activated:</span>
-                <span className="font-medium text-slate-700 dark:text-slate-300">
+                <span className="text-text-tertiary">Boost Activated:</span>
+                <span className="font-medium text-text-primary">
                   {roi.boost_start ? new Date(roi.boost_start).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Boost Expires:</span>
-                <span className="font-medium text-slate-700 dark:text-slate-300">
+                <span className="text-text-tertiary">Boost Expires:</span>
+                <span className="font-medium text-text-primary">
                   {roi.boost_end ? new Date(roi.boost_end).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Boost Duration:</span>
-                <span className="font-semibold text-slate-800 dark:text-white">
+                <span className="text-text-tertiary">Boost Duration:</span>
+                <span className="font-bold text-text-primary">
                   {roi.duration_days || 7} Days
                 </span>
               </div>
@@ -487,30 +549,30 @@ function BoostRoiModal({ listing, onClose }) {
 
             {/* Performance metrics breakdown */}
             <div className="space-y-4">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lift Metrics Analysis</h4>
+              <h4 className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Lift Metrics Analysis</h4>
 
               {[
-                { name: 'Detail Page Views', b: baseline.views || 0, d: during.views || 0, l: lift.views || 0, icon: FiEye },
+                { name: 'Catalog Detail Views', b: baseline.views || 0, d: during.views || 0, l: lift.views || 0, icon: FiEye },
                 { name: 'Customer Inquiries', b: baseline.chats || 0, d: during.chats || 0, l: lift.chats || 0, icon: FiMessageCircle },
-                { name: 'Deals Started', b: baseline.deals || 0, d: during.deals || 0, l: lift.deals || 0, icon: FiTrendingUp }
+                { name: 'Orders Placed', b: baseline.deals || 0, d: during.deals || 0, l: lift.deals || 0, icon: FiTrendingUp }
               ].map((m, idx) => (
                 <div
                   key={idx}
-                  className="grid grid-cols-3 items-center py-3 border-b border-slate-100 dark:border-slate-800/60 last:border-b-0 text-xs"
+                  className="grid grid-cols-3 items-center py-3 border-b border-border/60 last:border-b-0 text-xs"
                 >
                   <div className="flex items-center gap-2">
-                    <m.icon className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-medium text-slate-700 dark:text-slate-300">{m.name}</span>
+                    <m.icon className="w-3.5 h-3.5 text-text-tertiary" />
+                    <span className="font-medium text-text-secondary">{m.name}</span>
                   </div>
-                  <div className="text-center text-slate-400">
+                  <div className="text-center text-text-tertiary">
                     <span className="block text-[9px] uppercase tracking-wider">Baseline</span>
-                    <span className="font-semibold">{m.b}</span>
+                    <span className="font-bold">{m.b}</span>
                   </div>
                   <div className="text-right">
-                    <span className="block text-[9px] text-indigo-500 uppercase tracking-wider">During Boost</span>
+                    <span className="block text-[9px] text-brand-purple uppercase tracking-wider font-bold">During Boost</span>
                     <div className="flex justify-end items-center gap-1.5 mt-0.5">
-                      <span className="font-bold text-slate-800 dark:text-white">{m.d}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 ${getLiftColor(m.l)}`}>
+                      <span className="font-bold text-text-primary">{m.d}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md bg-surface-secondary border border-border ${getLiftColor(m.l)}`}>
                         {formatLift(m.l)}
                       </span>
                     </div>
@@ -519,10 +581,10 @@ function BoostRoiModal({ listing, onClose }) {
               ))}
             </div>
 
-            <div className="flex items-start gap-2 bg-indigo-500/10 border border-indigo-500/20 p-4.5 rounded-2xl text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-              <FiInfo className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 bg-brand-purple/10 border border-brand-purple/20 p-4 rounded-2xl text-[11px] text-text-secondary leading-relaxed">
+              <FiInfo className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
               <span>
-                <strong>How Lift is calculated:</strong> We compare event traffic during the boost active window against a baseline period of equal duration directly prior to activation. A positive lift indicates higher customer engagement.
+                <strong>How Lift is calculated:</strong> We compare customer engagement during the boost active window against a baseline period of equal duration directly prior to activation. A positive lift indicates higher customer discovery.
               </span>
             </div>
           </div>
@@ -531,7 +593,7 @@ function BoostRoiModal({ listing, onClose }) {
         <div className="flex justify-end pt-2">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors active:scale-95"
+            className="px-5 py-2.5 glass border border-border hover:bg-surface-secondary text-text-primary text-xs font-bold rounded-xl transition-colors active:scale-95"
           >
             Close ROI Dashboard
           </button>

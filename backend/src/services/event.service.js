@@ -23,23 +23,35 @@ const emit = async ({ listing_id, vendor_id = null, event_type, user_id = null, 
 
   try {
     let resolvedVendorId = vendor_id;
-    if (!resolvedVendorId) {
-      const li = await Listing.findById(listing_id).select('vendor_id');
-      if (li && li.vendor_id) {
-        resolvedVendorId = li.vendor_id.toString();
+    if (!resolvedVendorId && listing_id) {
+      const li = await Listing.findById(listing_id).select('vendor vendor_id');
+      if (li) {
+        resolvedVendorId = (li.vendor || li.vendor_id)?.toString();
       }
     }
     if (!resolvedVendorId) {
       return;
     }
 
-    await ListingEvent.create({
+    const eventDoc = await ListingEvent.create({
       listing_id: listing_id.toString(),
       vendor_id: resolvedVendorId.toString(),
       event_type,
       user_id: user_id ? user_id.toString() : null,
       meta,
     });
+
+    // Notify vendor in real-time over Socket.IO
+    try {
+      const { emitToUser } = require('../sockets');
+      emitToUser(resolvedVendorId.toString(), 'analytics:updated', {
+        event_type,
+        listing_id: listing_id.toString(),
+        timestamp: eventDoc.created_at,
+      });
+    } catch (socketErr) {
+      // Non-fatal socket broadcast
+    }
   } catch (err) {
     logger.debug(`event emit err (non-fatal): ${err.message}`);
   }

@@ -170,30 +170,25 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
 
   const handleInquiry = async (reel) => {
     handleTrackInteraction('chat_inquiry', reel);
-    const vendorObj = reel.creator;
+    const vendorObj = reel.creator || reel.vendor;
     const vendorId = vendorObj?._id || vendorObj?.id || (typeof vendorObj === 'string' ? vendorObj : null);
 
     if (!vendorId) {
-      toast.error('Vendor details unavailable');
+      toast.error('Vendor details unavailable for this reel');
       return;
     }
 
-    const listingId = reel.targetListing?._id || reel.targetListing?.id || reel.targetListing;
-    if (listingId) {
-      try {
-        await api.post('/v1/inquiries', {
-          listingId,
-          message: `I'm interested in the product shown in your reel: "${reel.caption || ''}"`
-        });
-        toast.success('Inquiry sent successfully!');
-      } catch (err) {
-        toast.error(err?.response?.data?.message || 'Failed to submit inquiry');
-      }
-    } else {
-      setChatDrawerRecipientId(vendorId);
-      setChatDrawerRecipientName(vendorObj?.vendorProfile?.shopName || vendorObj?.name || 'Vendor Partner');
-      setChatDrawerRecipientAvatar(vendorObj?.profile_pic || vendorObj?.avatarUrl || null);
-      setChatDrawerOpen(true);
+    const listingId = reel.targetListing?._id || reel.targetListing?.id || (typeof reel.targetListing === 'string' ? reel.targetListing : undefined);
+    try {
+      await api.post('/v1/inquiries', {
+        reelId: reel._id || reel.id,
+        listingId: listingId || undefined,
+        vendorId: vendorId,
+        message: `I'm interested in the product shown in your reel: "${reel.caption || reel.title || 'Reel'}"`
+      });
+      toast.success(`Inquiry sent to ${vendorObj.vendorProfile?.shopName || vendorObj.name || 'Vendor'}!`);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to submit inquiry');
     }
   };
 

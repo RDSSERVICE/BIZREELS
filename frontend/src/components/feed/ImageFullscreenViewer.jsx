@@ -159,13 +159,17 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
       return;
     }
 
-    const listingId = post._id || post.id;
+    const isListing = post.type === 'product' || post.type === 'service';
+    const isReel = post.mediaType === 'image' || post.videoUrl;
+
     try {
       await api.post('/v1/inquiries', {
-        listingId,
-        message: `I'm interested in your listing: "${post.title || ''}"`
+        listingId: isListing ? (post._id || post.id) : undefined,
+        reelId: isReel ? (post._id || post.id) : undefined,
+        vendorId: vendorId,
+        message: `I'm interested in your post: "${post.title || post.caption || 'Image Post'}"`
       });
-      toast.success('Inquiry sent successfully!');
+      toast.success(`Inquiry sent to ${vendorObj.vendorProfile?.shopName || vendorObj.name || 'Vendor'}!`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to submit inquiry');
     }

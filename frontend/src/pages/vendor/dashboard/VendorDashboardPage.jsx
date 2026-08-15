@@ -224,9 +224,14 @@ export default function VendorDashboardPage() {
             <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
               <FiInbox className="text-brand-orange" />
               <span>Recent Customer Enquiries</span>
+              {leads.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-purple/10 text-brand-purple">
+                  {leads.length}
+                </span>
+              )}
             </h3>
-            <Link to="/vendor/leads" className="text-xs text-brand-purple font-bold hover:underline">
-              View All
+            <Link to="/vendor/leads?tab=all-enquiries" className="text-xs text-brand-purple font-bold hover:underline flex items-center gap-1">
+              View All →
             </Link>
           </div>
 
@@ -235,15 +240,32 @@ export default function VendorDashboardPage() {
               <p className="text-xs text-text-tertiary text-center py-4">No recent enquiries received.</p>
             ) : (
               leads.slice(0, 4).map((l, i) => (
-                <div key={l._id || i} className="glass p-3 sm:p-3.5 rounded-xl border border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs">
-                  <div>
-                    <h4 className="font-bold text-text-primary">{l.subject || l.message || 'Inquiry'}</h4>
-                    <p className="text-[11px] text-text-tertiary">Customer: {l.customerName || l.customer?.name || 'Buyer'}</p>
+                <Link
+                  key={l._id || i}
+                  to="/vendor/leads?tab=all-enquiries"
+                  className="glass p-3 sm:p-3.5 rounded-xl border border-white/5 hover:border-brand-purple/30 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs group block"
+                >
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-text-primary group-hover:text-brand-purple transition-colors truncate">
+                      {l.subject || l.message || 'Inquiry'}
+                    </h4>
+                    <p className="text-[11px] text-text-tertiary">
+                      Customer: <span className="font-medium text-text-secondary">{l.customerName || l.customer?.name || 'Buyer'}</span>
+                      {l.listing?.title && (
+                        <span className="ml-1.5 text-text-tertiary">
+                          • Listing: <span className="text-brand-purple/80">{l.listing.title}</span>
+                        </span>
+                      )}
+                    </p>
                   </div>
-                  <span className="px-2.5 py-1 bg-amber-500/10 text-amber-500 font-bold text-[10px] rounded-lg border border-amber-500/20">
-                    {l.status || 'New Inquiry'}
+                  <span className={`px-2.5 py-1 font-bold text-[10px] rounded-lg border shrink-0 ${
+                    l.status === 'replied' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                    l.status === 'closed' ? 'bg-slate-500/10 text-slate-600 border-slate-500/20' :
+                    'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                  }`}>
+                    {l.status === 'replied' ? 'Replied' : l.status === 'closed' ? 'Closed' : 'New / Sent'}
                   </span>
-                </div>
+                </Link>
               ))
             )}
           </div>

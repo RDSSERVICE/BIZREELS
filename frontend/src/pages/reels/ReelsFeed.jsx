@@ -7,6 +7,7 @@ import {
   useToggleLikeReelMutation,
   useViewReelMutation,
 } from '../../features/reels/reelsApi';
+import api from '../../lib/api';
 import VideoPlayer from '../../components/ui/VideoPlayer';
 import CommentsDrawer from '../../components/ui/CommentsDrawer';
 import Loader from '../../components/common/Loader';
@@ -311,8 +312,17 @@ const ReelsFeed = () => {
                   </button>
 
                   {/* F. Call Request */}
+                  {/* F. Call Request */}
                   <button
-                    onClick={() => toast.success('📞 Callback requested! Vendor will call your registered phone number shortly.')}
+                    onClick={() => {
+                      const creator = reel.creator || reel.vendor;
+                      const phone = creator?.phone || creator?.vendorProfile?.contactPhone;
+                      if (phone) {
+                        window.location.href = `tel:${phone}`;
+                      } else {
+                        toast.success('📞 Callback requested! Vendor will call your registered phone number shortly.');
+                      }
+                    }}
                     className="p-2.5 rounded-full bg-blue-600/80 text-white hover:bg-blue-600 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
                     title="F. Call Request"
                   >
@@ -322,7 +332,18 @@ const ReelsFeed = () => {
 
                   {/* G. Click to WhatsApp */}
                   <button
-                    onClick={() => toast.success('💬 Opening Secure WhatsApp Business Inquiry channel...')}
+                    onClick={() => {
+                      const creator = reel.creator || reel.vendor;
+                      const phone = creator?.phone || creator?.vendorProfile?.contactPhone;
+                      if (phone) {
+                        let cleanPhone = phone.replace(/[^0-9]/g, '');
+                        if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+                        const text = encodeURIComponent(`Hi! I saw your reel "${reel.caption || ''}" on BizReels and would like to inquire...`);
+                        window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
+                      } else {
+                        toast.error('Seller WhatsApp not available for this reel');
+                      }
+                    }}
                     className="p-2.5 rounded-full bg-emerald-500/80 text-white hover:bg-emerald-500 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
                     title="G. Click to WhatsApp"
                   >
@@ -332,7 +353,26 @@ const ReelsFeed = () => {
 
                   {/* H. Click to Inquiry */}
                   <button
-                    onClick={() => toast.success('📥 Inquiry sent to Vendor inbox!')}
+                    onClick={async () => {
+                      const creator = reel.creator || reel.vendor;
+                      const vendorId = creator?._id || creator?.id || (typeof creator === 'string' ? creator : null);
+                      if (!vendorId) {
+                        toast.error('Seller details unavailable for this reel');
+                        return;
+                      }
+                      try {
+                        const listingId = reel.targetListing?._id || reel.targetListing?.id || (typeof reel.targetListing === 'string' ? reel.targetListing : undefined);
+                        await api.post('/v1/inquiries', {
+                          reelId: reel._id || reel.id,
+                          listingId: listingId,
+                          vendorId: vendorId,
+                          message: `I'm interested in the product shown in your reel: "${reel.caption || reel.title || 'Reel'}"`
+                        });
+                        toast.success(`📥 Inquiry sent to ${creator.vendorProfile?.shopName || creator.name || 'Vendor'}!`);
+                      } catch (err) {
+                        toast.error(err?.response?.data?.message || 'Failed to send inquiry');
+                      }
+                    }}
                     className="p-2.5 rounded-full bg-purple-600/80 text-white hover:bg-purple-600 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
                     title="H. Click to Inquiry"
                   >

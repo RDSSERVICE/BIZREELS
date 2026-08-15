@@ -22,7 +22,13 @@ const inquirySchema = new Schema(
     listing: {
       type: Schema.Types.ObjectId,
       ref: 'Listing',
-      required: true,
+      default: null,
+      index: true,
+    },
+    reel: {
+      type: Schema.Types.ObjectId,
+      ref: 'Reel',
+      default: null,
       index: true,
     },
     message: {
@@ -36,6 +42,16 @@ const inquirySchema = new Schema(
       enum: ['sent', 'viewed', 'replied', 'closed'],
       default: 'sent',
       index: true,
+    },
+    replyMessage: {
+      type: String,
+      maxlength: 1000,
+      trim: true,
+      default: null,
+    },
+    repliedAt: {
+      type: Date,
+      default: null,
     },
     isDeleted: {
       type: Boolean,

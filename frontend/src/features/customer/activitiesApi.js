@@ -32,11 +32,11 @@ const activitiesApi = apiSlice.injectEndpoints({
 
     // ── Inquiries ────────────────────────────────────────
     getInquiries: builder.query({
-      query: (params) => ({
+      query: (params = {}) => ({
         url: '/inquiries',
-        params,
+        params: { role: 'customer', ...params },
       }),
-      providesTags: ['Chat'],
+      providesTags: ['Chat', 'Inquiries'],
     }),
     createInquiry: builder.mutation({
       query: (data) => ({

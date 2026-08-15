@@ -114,12 +114,20 @@ const vendorApi = apiSlice.injectEndpoints({
 
     // ── Leads / Enquiries ───────────────────────────────────
     getVendorLeads: builder.query({
-      query: (params = {}) => ({ url: '/leads', params }),
+      query: (params = {}) => ({ url: '/leads', params: { role: 'vendor', ...params } }),
       providesTags: ['VendorLeads'],
     }),
     replyToLead: builder.mutation({
       query: ({ id, ...body }) => ({ url: `/leads/${id}/reply`, method: 'POST', body }),
-      invalidatesTags: ['VendorLeads'],
+      invalidatesTags: ['VendorLeads', 'VendorDashboard'],
+    }),
+    closeLead: builder.mutation({
+      query: (id) => ({ url: `/leads/${id}/close`, method: 'PATCH' }),
+      invalidatesTags: ['VendorLeads', 'VendorDashboard'],
+    }),
+    deleteLead: builder.mutation({
+      query: (id) => ({ url: `/leads/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['VendorLeads', 'VendorDashboard'],
     }),
 
     // ── Orders ──────────────────────────────────────────────
@@ -226,6 +234,8 @@ export const {
   // NOTE: Boost hooks removed
   useGetVendorLeadsQuery,
   useReplyToLeadMutation,
+  useCloseLeadMutation,
+  useDeleteLeadMutation,
   useGetVendorOrdersQuery,
   useUpdateOrderStatusMutation,
   useGetVendorAnalyticsQuery,
