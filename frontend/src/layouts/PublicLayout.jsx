@@ -3,202 +3,349 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '../features/auth/authSlice';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiX, FiArrowRight, FiInstagram, FiTwitter, FiLinkedin, FiMail, FiMapPin } from 'react-icons/fi';
-import Button from '../components/common/Button';
+import {
+  FiMenu, FiX, FiArrowRight, FiSearch,
+} from 'react-icons/fi';
+
+/* ─── Brand tokens (from design image) ───────────────────────── */
+const CREAM    = '#F2EDE4';
+const GOLD     = '#C9923B';   // active nav / button fill
+const GOLD_HOV = '#B07E2E';   // button hover
+const DARK     = '#1C1C2E';   // logo text / primary text
+const GRAY     = '#555566';   // nav link default
+const BORDER   = '#D6CECC';   // Sign In button border
 
 const PublicLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthenticated = useSelector(selectIsAuthenticated);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled]     = useState(false);
 
-  // Track scroll for navbar backdrop effect
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const fn = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'About', path: '/about' },
-    { name: 'Creator Marketplace', path: '/creator-marketplace' },
-    { name: 'Local Reels', path: '/local-reels' },
+    { label: 'Home',        path: '/'                    },
+    { label: 'About',       path: '/about'               },
+    { label: 'Marketplace', path: '/creator-marketplace' },
+    { label: 'Local Reels', path: '/local-reels'         },
+    { label: 'Pricing',     path: '/pricing'             },
   ];
 
-  const isActive = (path) => location.pathname === path;
+  const active = (path) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-surface-secondary flex flex-col font-sans">
-      {/* ── Floating Top Navbar ─────────────────────────────────── */}
-      <nav
-        className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-          scrolled
-            ? 'bg-white/80 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-b border-border/60'
-            : 'bg-white/60 backdrop-blur-md border-b border-transparent'
-        }`}
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: CREAM, fontFamily: "'Manrope', system-ui, sans-serif" }}>
+
+      {/* ════════════════════════════════════════════════════════
+          HEADER
+      ════════════════════════════════════════════════════════ */}
+      <header
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          backgroundColor: CREAM,
+          boxShadow: scrolled ? '0 1px 6px rgba(0,0,0,0.07)' : 'none',
+          transition: 'box-shadow 0.25s',
+        }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group" data-testid="public-logo">
-            <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto transition-transform duration-300 group-hover:scale-105" />
-            <span className="text-lg font-extrabold tracking-tight text-brand-navy">
-              Biz<span className="gradient-text font-black">Reels</span>
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: '0 32px',
+            height: 64,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 32,
+          }}
+        >
+          {/* ── Logo ── */}
+          <Link
+            to="/"
+            data-testid="public-logo"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              textDecoration: 'none',
+              flexShrink: 0,
+            }}
+          >
+            <img
+              src="/bizreels logo transparent circle.png"
+              alt="BizReels"
+              style={{ height: 38, width: 38, objectFit: 'contain', flexShrink: 0 }}
+            />
+            <span style={{ fontSize: 18, fontWeight: 700, color: DARK, letterSpacing: '-0.3px' }}>
+              BizReels
             </span>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                data-testid={`nav-${link.name.toLowerCase().replace(/\s/g, '-')}`}
-                className={`relative px-4 py-2 text-[13px] font-semibold rounded-xl transition-all duration-200 ${
-                  isActive(link.path)
-                    ? 'text-brand-purple bg-brand-purple/[0.07]'
-                    : 'text-text-secondary hover:text-brand-navy hover:bg-surface-tertiary/60'
-                }`}
-              >
-                {link.name}
-                {isActive(link.path) && (
-                  <motion.span
-                    layoutId="nav-underline"
-                    className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-brand-purple"
-                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                  />
-                )}
-              </Link>
-            ))}
-          </div>
+          {/* ── Desktop nav links (centered, grows to fill space) ── */}
+          <nav
+            className="hidden md:flex"
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 4 }}
+          >
+            {navLinks.map(({ label, path }) => {
+              const isAct = active(path);
+              return (
+                <Link
+                  key={path}
+                  to={path}
+                  data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
+                  style={{
+                    position: 'relative',
+                    padding: '6px 16px',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: isAct ? GOLD : GRAY,
+                    textDecoration: 'none',
+                    transition: 'color 0.18s',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => { if (!isAct) e.currentTarget.style.color = DARK; }}
+                  onMouseLeave={(e) => { if (!isAct) e.currentTarget.style.color = GRAY; }}
+                >
+                  {label}
+                  {isAct && (
+                    <motion.span
+                      layoutId="nav-active-bar"
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 16,
+                        right: 16,
+                        height: 2,
+                        borderRadius: 2,
+                        backgroundColor: GOLD,
+                      }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
 
-          {/* Desktop CTA Actions */}
-          <div className="hidden md:flex items-center gap-2.5">
+          {/* ── Desktop right actions ── */}
+          <div className="hidden md:flex" style={{ alignItems: 'center', gap: 10, flexShrink: 0 }}>
+
+            {/* Search */}
+            <button
+              aria-label="Search"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                background: 'transparent',
+                border: 'none',
+                color: GRAY,
+                cursor: 'pointer',
+                transition: 'background 0.18s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <FiSearch size={17} />
+            </button>
+
             {isAuthenticated ? (
-              <Button
-                variant="primary"
+              /* Dashboard button */
+              <button
                 onClick={() => navigate('/feed')}
-                className="text-[13px] py-2.5 px-5 flex items-center gap-2 group"
                 data-testid="nav-go-to-dashboard"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 20px',
+                  fontSize: 13.5, fontWeight: 600,
+                  color: '#fff',
+                  background: GOLD,
+                  border: 'none',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  transition: 'background 0.18s, opacity 0.18s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = GOLD_HOV; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = GOLD; }}
               >
-                <span>Dashboard</span>
-                <FiArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-              </Button>
+                Dashboard <FiArrowRight size={14} />
+              </button>
             ) : (
               <>
+                {/* Sign In */}
                 <Link
                   to="/auth/login"
-                  className="text-[13px] font-semibold text-brand-purple px-4 py-2.5 hover:bg-brand-purple/[0.06] rounded-xl transition-all duration-200"
                   data-testid="nav-sign-in"
+                  style={{
+                    padding: '7px 20px',
+                    fontSize: 13.5, fontWeight: 600,
+                    color: DARK,
+                    textDecoration: 'none',
+                    border: `1px solid ${BORDER}`,
+                    borderRadius: 10,
+                    background: 'transparent',
+                    transition: 'background 0.18s',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
                   Sign In
                 </Link>
-                <Button
-                  variant="accent"
+
+                {/* Get Started */}
+                <button
                   onClick={() => navigate('/auth/register')}
-                  className="text-[13px] py-2.5 px-5 rounded-xl"
                   data-testid="nav-sign-up"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    padding: '8px 22px',
+                    fontSize: 13.5, fontWeight: 600,
+                    color: '#fff',
+                    background: GOLD,
+                    border: 'none',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    transition: 'background 0.18s',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = GOLD_HOV; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = GOLD; }}
                 >
-                  Get Started
-                </Button>
+                  Get Started <FiArrowRight size={14} />
+                </button>
               </>
             )}
           </div>
 
-          {/* Mobile Hamburger */}
+          {/* ── Mobile hamburger — hidden on md+ screens ── */}
           <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 md:hidden hover:bg-surface-tertiary rounded-xl text-brand-navy transition-colors duration-200 focus:outline-none"
+            onClick={() => setMobileOpen(!mobileOpen)}
             data-testid="mobile-menu-toggle"
             aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+            className="md:hidden flex items-center justify-center"
+            style={{
+              marginLeft: 'auto',
+              width: 36, height: 36,
+              borderRadius: 8,
+              background: 'transparent',
+              border: 'none',
+              color: DARK,
+              cursor: 'pointer',
+            }}
           >
             <AnimatePresence mode="wait" initial={false}>
-              {isMobileMenuOpen ? (
-                <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                  <FiX className="w-5 h-5" />
-                </motion.div>
+              {mobileOpen ? (
+                <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.14 }}>
+                  <FiX size={20} />
+                </motion.span>
               ) : (
-                <motion.div key="open" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                  <FiMenu className="w-5 h-5" />
-                </motion.div>
+                <motion.span key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.14 }}>
+                  <FiMenu size={20} />
+                </motion.span>
               )}
             </AnimatePresence>
           </button>
         </div>
-      </nav>
+      </header>
 
-      {/* ── Mobile Menu Overlay ─────────────────────────────────── */}
+      {/* ════════════════════════════════════════════════════════
+          MOBILE MENU
+      ════════════════════════════════════════════════════════ */}
       <AnimatePresence>
-        {isMobileMenuOpen && (
+        {mobileOpen && (
           <>
-            {/* Backdrop */}
+            {/* backdrop */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm md:hidden"
-              onClick={() => setIsMobileMenuOpen(false)}
+              key="backdrop"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setMobileOpen(false)}
+              className="md:hidden"
+              style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,0.15)' }}
             />
-            {/* Panel */}
+
+            {/* panel */}
             <motion.div
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed top-[57px] left-0 right-0 z-50 md:hidden bg-white/95 backdrop-blur-xl border-b border-border/80 shadow-xl"
+              key="panel"
+              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="md:hidden"
+              style={{
+                position: 'fixed', top: 64, left: 0, right: 0, zIndex: 50,
+                backgroundColor: CREAM,
+                borderBottom: `1px solid ${BORDER}`,
+                boxShadow: '0 6px 20px rgba(0,0,0,0.08)',
+              }}
             >
-              <div className="px-4 py-5 flex flex-col gap-1">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`text-sm font-semibold py-3 px-4 rounded-xl transition-all duration-200 ${
-                      isActive(link.path)
-                        ? 'text-brand-purple bg-brand-purple/[0.07]'
-                        : 'text-text-secondary hover:text-brand-navy hover:bg-surface-tertiary/60'
-                    }`}
-                  >
-                    {link.name}
-                  </Link>
-                ))}
+              {/* Links */}
+              <div style={{ padding: '12px 20px 8px' }}>
+                {navLinks.map(({ label, path }) => {
+                  const isAct = active(path);
+                  return (
+                    <Link
+                      key={path}
+                      to={path}
+                      onClick={() => setMobileOpen(false)}
+                      style={{
+                        display: 'block',
+                        padding: '11px 12px',
+                        fontSize: 14, fontWeight: 500,
+                        color: isAct ? GOLD : GRAY,
+                        textDecoration: 'none',
+                        borderRadius: 8,
+                        background: isAct ? `${GOLD}14` : 'transparent',
+                      }}
+                    >
+                      {label}
+                    </Link>
+                  );
+                })}
               </div>
-              <div className="px-4 pb-5 flex flex-col gap-2.5 border-t border-border/50 pt-4">
+
+              {/* CTAs */}
+              <div style={{ padding: '12px 20px 20px', borderTop: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {isAuthenticated ? (
-                  <Button
-                    variant="primary"
-                    fullWidth
-                    onClick={() => { setIsMobileMenuOpen(false); navigate('/feed'); }}
-                    className="text-sm py-3"
+                  <button
+                    onClick={() => { setMobileOpen(false); navigate('/feed'); }}
                     data-testid="mobile-go-to-dashboard"
+                    style={{ width: '100%', padding: '11px', fontSize: 14, fontWeight: 600, color: '#fff', background: GOLD, border: 'none', borderRadius: 10, cursor: 'pointer' }}
                   >
                     Go to Dashboard
-                  </Button>
+                  </button>
                 ) : (
                   <>
-                    <Button
-                      variant="accent"
-                      fullWidth
-                      onClick={() => { setIsMobileMenuOpen(false); navigate('/auth/register'); }}
-                      className="text-sm py-3"
+                    <button
+                      onClick={() => { setMobileOpen(false); navigate('/auth/register'); }}
                       data-testid="mobile-sign-up"
+                      style={{ width: '100%', padding: '11px', fontSize: 14, fontWeight: 600, color: '#fff', background: GOLD, border: 'none', borderRadius: 10, cursor: 'pointer' }}
                     >
-                      Get Started Free
-                    </Button>
+                      Get Started
+                    </button>
                     <Link
                       to="/auth/login"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-center text-sm font-semibold text-brand-purple py-2.5 hover:bg-brand-purple/[0.06] rounded-xl transition-all duration-200"
+                      onClick={() => setMobileOpen(false)}
                       data-testid="mobile-sign-in"
+                      style={{
+                        display: 'block', textAlign: 'center',
+                        padding: '11px', fontSize: 14, fontWeight: 600,
+                        color: DARK, textDecoration: 'none',
+                        border: `1px solid ${BORDER}`, borderRadius: 10,
+                      }}
                     >
-                      Already have an account? Sign In
+                      Sign In
                     </Link>
                   </>
                 )}
@@ -208,110 +355,134 @@ const PublicLayout = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Main Content Area ─────────────────────────────────────── */}
-      <main className="flex-grow">
+      {/* ════════════════════════════════════════════════════════
+          PAGE CONTENT
+      ════════════════════════════════════════════════════════ */}
+      <main style={{ flex: 1 }}>
         <Outlet />
       </main>
 
-      {/* ── Premium Footer ─────────────────────────────────────────── */}
-      <footer className="relative bg-white border-t border-border/80">
-        {/* Subtle top gradient line */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand-purple/20 to-transparent" />
+      {/* ════════════════════════════════════════════════════════
+          FOOTER
+      ════════════════════════════════════════════════════════ */}
+      <footer style={{ backgroundColor: '#1c1a17', color: '#c9c4bb' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 28px 0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1.5fr', gap: 40 }}>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
-            {/* Brand Column */}
-            <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-2.5">
-                <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto" />
-                <span className="text-lg font-extrabold text-brand-navy">
-                  Biz<span className="gradient-text font-black">Reels</span>
-                </span>
+            {/* Brand */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <img src="/bizreels logo transparent circle.png" alt="BizReels" style={{ height: 32, width: 32, objectFit: 'contain' }} />
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#d99a3d' }}>BizReels</span>
               </div>
-              <p className="text-[13px] text-text-secondary leading-relaxed max-w-xs">
-                India's first AI-powered Local Business Marketplace + Creator Reels Platform. Matching businesses with creators through visual content.
+              <p style={{ fontSize: 13, lineHeight: 1.65, color: '#8a8578', maxWidth: 220 }}>
+                The reel platform for products and services. Generate leads. Grow your business.
               </p>
-              {/* Social Icons */}
-              <div className="flex items-center gap-3 mt-1">
+              {/* Social icons */}
+              <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
                 {[
-                  { icon: FiTwitter, label: 'Twitter', href: '#' },
-                  { icon: FiInstagram, label: 'Instagram', href: '#' },
-                  { icon: FiLinkedin, label: 'LinkedIn', href: '#' },
-                ].map(({ icon: Icon, label, href }) => (
-                  <a
-                    key={label}
-                    href={href}
-                    aria-label={label}
-                    className="w-9 h-9 rounded-xl bg-surface-tertiary/70 hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple flex items-center justify-center transition-all duration-200"
+                  { label: 'Instagram', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16 }}><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg> },
+                  { label: 'YouTube', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16 }}><rect x="2" y="5" width="20" height="14" rx="3" /><polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none" /></svg> },
+                  { label: 'LinkedIn', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16 }}><rect x="2" y="2" width="20" height="20" rx="3" /><line x1="8" y1="11" x2="8" y2="16" /><line x1="8" y1="8" x2="8" y2="8.5" /><path d="M12 11v5M12 11c0-1.5 4-2 4 1v4" /></svg> },
+                  { label: 'Twitter', svg: <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 16, height: 16 }}><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg> },
+                ].map(({ label, svg }) => (
+                  <a key={label} href="#" aria-label={label}
+                    style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8578', textDecoration: 'none', transition: 'color .15s, background .15s' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#d99a3d'; e.currentTarget.style.backgroundColor = 'rgba(217,154,61,0.1)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#8a8578'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'; }}
                   >
-                    <Icon className="w-4 h-4" />
+                    {svg}
                   </a>
                 ))}
               </div>
             </div>
 
-            {/* Platform Column */}
-            <div className="flex flex-col gap-3">
-              <h4 className="text-[13px] font-bold uppercase tracking-wider text-brand-navy mb-1">Platform</h4>
+            {/* Platform */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#d99a3d', marginBottom: 6 }}>Platform</h4>
               {[
-                { name: 'Reels Feed', path: '/local-reels' },
-                { name: 'Local Marketplace', path: '/local-reels' },
-                { name: 'Creator Network', path: '/creator-marketplace' },
-              ].map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  className="text-[13px] text-text-secondary hover:text-brand-purple transition-colors duration-200 w-fit"
-                >
-                  {item.name}
-                </Link>
+                { label: 'Home',         path: '/' },
+                { label: 'Explore',      path: '/local-reels' },
+                { label: 'Categories',   path: '/creator-marketplace' },
+                { label: 'For Business', path: '/auth/register?role=vendor' },
+                { label: 'Pricing',      path: '/pricing' },
+              ].map(({ label, path }) => (
+                <Link key={label} to={path} style={{ fontSize: 13, color: '#8a8578', textDecoration: 'none', transition: 'color .15s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#f2ede4'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#8a8578'; }}
+                >{label}</Link>
               ))}
             </div>
 
-            {/* Company Column */}
-            <div className="flex flex-col gap-3">
-              <h4 className="text-[13px] font-bold uppercase tracking-wider text-brand-navy mb-1">Company</h4>
+            {/* Company */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#d99a3d', marginBottom: 6 }}>Company</h4>
               {[
-                { name: 'About Us', path: '/about' },
-                { name: 'Careers', path: '/about' },
-                { name: 'Privacy Policy', path: '/about' },
-                { name: 'Terms of Service', path: '/about' },
-              ].map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  className="text-[13px] text-text-secondary hover:text-brand-purple transition-colors duration-200 w-fit"
-                >
-                  {item.name}
-                </Link>
+                { label: 'About Us',   path: '/about' },
+                { label: 'Careers',    path: '/about' },
+                { label: 'Blog',       path: '/about' },
+                { label: 'Contact Us', path: '/about' },
+              ].map(({ label, path }) => (
+                <Link key={label} to={path} style={{ fontSize: 13, color: '#8a8578', textDecoration: 'none', transition: 'color .15s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#f2ede4'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#8a8578'; }}
+                >{label}</Link>
               ))}
             </div>
 
-            {/* Contact Column */}
-            <div className="flex flex-col gap-3">
-              <h4 className="text-[13px] font-bold uppercase tracking-wider text-brand-navy mb-1">Contact & Support</h4>
-              <span className="text-[13px] text-text-secondary flex items-center gap-2">
-                <FiMail className="w-3.5 h-3.5 text-brand-purple/60" />
-                support@bizreels.in
-              </span>
-              <span className="text-[13px] text-text-secondary flex items-center gap-2">
-                <FiMapPin className="w-3.5 h-3.5 text-brand-purple/60" />
-                New Delhi, India
-              </span>
+            {/* Resources */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#d99a3d', marginBottom: 6 }}>Resources</h4>
+              {[
+                { label: 'Help Center',      path: '/about' },
+                { label: 'Success Stories',  path: '/about' },
+                { label: 'Business Guide',   path: '/about' },
+                { label: 'Terms of Service', path: '/about' },
+                { label: 'Privacy Policy',   path: '/about' },
+              ].map(({ label, path }) => (
+                <Link key={label} to={path} style={{ fontSize: 13, color: '#8a8578', textDecoration: 'none', transition: 'color .15s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#f2ede4'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#8a8578'; }}
+                >{label}</Link>
+              ))}
             </div>
+
+            {/* Stay in the Loop */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#d99a3d', marginBottom: 6 }}>Stay in the Loop</h4>
+              <p style={{ fontSize: 13, lineHeight: 1.55, color: '#8a8578' }}>
+                Get tips, trends and updates to grow your business.
+              </p>
+              {/* Email input */}
+              <div style={{ display: 'flex', gap: 0, marginTop: 4 }}>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  style={{ flex: 1, padding: '10px 14px', fontSize: 13, backgroundColor: '#f2ede4', border: 'none', borderRadius: '6px 0 0 6px', outline: 'none', color: '#1a1a1a', fontFamily: 'inherit' }}
+                />
+                <button
+                  style={{ padding: '10px 14px', backgroundColor: '#d99a3d', border: 'none', borderRadius: '0 6px 6px 0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#c8872b'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#d99a3d'; }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+                    <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
           </div>
 
-          {/* Copyright Bar */}
-          <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-[13px] text-text-tertiary">
-            <span>&copy; {new Date().getFullYear()} BizReels Technology Pvt. Ltd. All rights reserved.</span>
-            <div className="flex items-center gap-4">
-              <Link to="/about" className="hover:text-brand-purple transition-colors duration-200">Privacy</Link>
-              <Link to="/about" className="hover:text-brand-purple transition-colors duration-200">Terms</Link>
-              <Link to="/about" className="hover:text-brand-purple transition-colors duration-200">Cookies</Link>
-            </div>
+          {/* Bottom bar */}
+          <div style={{ marginTop: 40, padding: '18px 0', borderTop: '1px solid #3a3630', textAlign: 'center' }}>
+            <span style={{ fontSize: 12, color: '#5a5652' }}>
+              © {new Date().getFullYear()} BizReels. All rights reserved.
+            </span>
           </div>
         </div>
       </footer>
+
     </div>
   );
 };

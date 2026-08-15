@@ -80,7 +80,7 @@ const PublicLocalReelsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface-secondary pb-16">
+    <div className="pb-16">
       <SEO 
         title="Local Reels & Listings"
         description="Watch short-form video reels and explore product listing posts from local vendors in your area. Get custom quotes and deals!"

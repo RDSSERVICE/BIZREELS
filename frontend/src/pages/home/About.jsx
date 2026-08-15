@@ -49,7 +49,7 @@ const About = () => {
   ];
 
   return (
-    <div className="overflow-x-hidden min-h-screen bg-surface-secondary">
+    <div className="overflow-x-hidden">
       <SEO 
         title="About Us"
         description="Learn more about BizReels - India's first AI-powered visual reels commerce platform connecting local vendors, creators, and buyers."
