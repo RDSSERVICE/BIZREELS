@@ -5,7 +5,7 @@ import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import { useGetAdminOverviewQuery } from '../../../features/admin/adminApi';
 
 export default function AdminAnalyticsPage() {
-  const { data: ov, isFetching: loading } = useGetAdminOverviewQuery(undefined, { pollingInterval: 5000 });
+  const { data: ov, isFetching: loading } = useGetAdminOverviewQuery(undefined, { pollingInterval: 30000 });
 
   const fmt = (v) => (v || 0).toLocaleString('en-IN');
   const fmtCurr = (paise) => `₹${((paise || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;

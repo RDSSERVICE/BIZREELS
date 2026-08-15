@@ -36,7 +36,7 @@ export default function AdminKycPage() {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [activeDocId, setActiveDocId] = useState(null);
 
-  const { data, isFetching } = useGetKycQueueQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useGetKycQueueQuery(undefined, { pollingInterval: 30000 });
   const [approveKyc] = useApproveKycMutation();
   const [rejectKyc] = useRejectKycMutation();
 

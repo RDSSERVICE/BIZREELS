@@ -62,7 +62,7 @@ const AuthLayout = () => {
 
         {/* Right Side: Auth Card */}
         <div className="col-span-12 lg:col-span-6 flex justify-center">
-          <div className="w-full max-w-md p-8 glass-strong rounded-2xl shadow-premium border border-white/40 flex flex-col gap-6 animate-scale-in">
+          <div className="w-full max-w-md p-5 sm:p-8 glass-strong rounded-2xl shadow-premium border border-white/40 flex flex-col gap-6 animate-scale-in">
             {/* Small Logo for mobile viewports */}
             <div className="flex lg:hidden justify-center mb-2">
               <img src="/logo.png" alt="BizReels Logo" className="h-12 w-auto" />

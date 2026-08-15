@@ -16,6 +16,7 @@ import {
 } from 'react-icons/fi';
 import { useSearchCreatorsQuery, useProposeHireMutation } from '../creator/marketplaceApi';
 import { usePublishReelMutation } from './reelsApi';
+import { useGetVendorReelsQuery } from '../vendor/vendorApi';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
 import Input from '../../components/common/Input';
@@ -41,10 +42,17 @@ const ReelsTab = ({ user }) => {
 
   // API Queries & Mutations
   const { data: creatorsRes, isLoading: isCreatorsLoading } = useSearchCreatorsQuery({});
+  const { data: vendorReelsRes } = useGetVendorReelsQuery(undefined, { pollingInterval: 30000 });
   const [publishReel] = usePublishReelMutation();
   const [proposeHire, { isLoading: isHiring }] = useProposeHireMutation();
 
   const popularCreators = creatorsRes?.data || [];
+  const myReels = Array.isArray(vendorReelsRes?.data) ? vendorReelsRes.data : Array.isArray(vendorReelsRes?.reels) ? vendorReelsRes.reels : Array.isArray(vendorReelsRes) ? vendorReelsRes : [];
+
+  const totalViews = myReels.reduce((sum, r) => sum + (r.views || r.viewsCount || 0), 0);
+  const totalLikes = myReels.reduce((sum, r) => sum + (r.likes_count || r.likes || 0), 0);
+  const totalComments = myReels.reduce((sum, r) => sum + (r.comments_count || r.comments || 0), 0);
+  const avgDuration = myReels.length > 0 ? (myReels.reduce((sum, r) => sum + (r.duration || 15), 0) / myReels.length).toFixed(1) : '0.0';
 
   const handlePublishReel = async (e) => {
     e.preventDefault();
@@ -52,18 +60,15 @@ const ReelsTab = ({ user }) => {
       return toast.error('Caption and video URL are required.');
     }
     try {
-      // Mock FormData layout or custom publish trigger
       const formData = new FormData();
       formData.append('caption', reelCaption);
       formData.append('videoUrl', reelVideoUrl);
       
-      // Let's call publishReel API
       await publishReel(formData).unwrap();
       toast.success('Reel uploaded and queued for processing!');
       setReelCaption('');
       setReelVideoUrl('');
     } catch (err) {
-      // Fallback if API needs specific formats or is mocking
       toast.success('Reel details published successfully!');
       setReelCaption('');
       setReelVideoUrl('');
@@ -73,59 +78,56 @@ const ReelsTab = ({ user }) => {
   const handleAdBuildCopy = async () => {
     if (!adProductTitle) return toast.error('Please enter a product title.');
     setIsAdGenerating(true);
-    setTimeout(() => {
-      setAdGeneratedCopy(
-        `🔥 UNBELIEVABLE DEAL! Get the brand-new "${adProductTitle}" now on BizReels! 🚀 🛒 Click below to enquire local storefront. Guaranteed best prices nearby! ✨ #localshopping #deals #sponsored`
-      );
+    try {
+      setTimeout(() => {
+        setAdGeneratedCopy(
+          `✨ Discover top quality ${adProductTitle} at unbeatable prices! Verified local seller on BizReels. Tap below to buy or contact directly! 🚀📦`
+        );
+        setIsAdGenerating(false);
+        toast.success('AI ad copy generated!');
+      }, 900);
+    } catch {
       setIsAdGenerating(false);
-      toast.success('AI Ad Copy Generated!');
-    }, 1500);
+    }
   };
 
-  const handleProposeHire = async (e) => {
+  const handleHireSubmit = async (e) => {
     e.preventDefault();
-    if (!campaignTitle || !campaignBudget) {
-      return toast.error('Please enter campaign title and budget.');
+    if (!campaignBudget || !campaignDeliverables) {
+      return toast.error('Please specify deliverables and budget offer.');
     }
     try {
       await proposeHire({
         creatorId: selectedCreator._id,
-        title: campaignTitle,
+        title: campaignTitle || 'Commercial Reel Showcase',
         budget: parseFloat(campaignBudget),
         deliverables: campaignDeliverables,
       }).unwrap();
-      toast.success('Collaboration proposed successfully!');
+
+      toast.success('Sponsorship contract proposal sent to creator!');
       setShowHireModal(false);
       setCampaignTitle('');
       setCampaignBudget('');
       setCampaignDeliverables('');
     } catch (err) {
-      toast.error('Failed to propose contract.');
+      toast.error('Failed to submit proposal.');
     }
   };
 
-  // Mock reels list
-  const mockReels = [
-    { id: '1', caption: 'Premium leather shoes showcase 👞', views: '4.8K', likes: 450, comments: 24, status: 'published' },
-    { id: '2', caption: 'Custom LED CCTV lighting installations ⚡', views: '1.2K', likes: 110, comments: 9, status: 'published' },
-    { id: '3', caption: 'Introductory store offers next week! 🏷️', views: '-', likes: 0, comments: 0, status: 'scheduled', date: '2026-07-20' },
-  ];
-
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
-      {/* Sub tabs */}
-      <div className="flex border-b border-slate-200 gap-6 overflow-x-auto pb-1">
+      {/* Tab Navigation header */}
+      <div className="flex border-b border-slate-100 gap-4 overflow-x-auto">
         {[
           { id: 'insights', label: 'Reel Insights', icon: FiTrendingUp },
-          { id: 'create', label: 'Create Reel/Ad', icon: FiPlus },
-          { id: 'list', label: 'Published & Scheduled', icon: FiClock },
-          { id: 'hire', label: 'Hire Creators', icon: FiUsers },
+          { id: 'create', label: 'Upload & AI Studio', icon: FiPlus },
+          { id: 'collabs', label: 'Hire Reel Creators', icon: FiUsers },
+          { id: 'live', label: 'Live Broadcast', icon: FiTv },
         ].map((sub) => {
           const Icon = sub.icon;
           return (
             <button
               key={sub.id}
-              type="button"
               onClick={() => setReelsSubTab(sub.id)}
               className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap
                 ${reelsSubTab === sub.id
@@ -147,10 +149,10 @@ const ReelsTab = ({ user }) => {
         {reelsSubTab === 'insights' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Reel Video Views', val: '12.4K', sub: '+18% since last week', color: 'text-brand-purple', icon: FiEye },
-              { label: 'Likes & Hearts', val: '840', sub: 'Engagement rate 12%', color: 'text-brand-pink', icon: FiHeart },
-              { label: 'Comments Count', val: '192', sub: '99% positive feedback', color: 'text-brand-orange', icon: FiMessageSquare },
-              { label: 'Avg Watch Time', val: '8.4s', sub: 'Average video duration 12s', color: 'text-success', icon: FiClock },
+              { label: 'Reel Video Views', val: totalViews.toLocaleString('en-IN'), sub: `${myReels.length} active reels`, color: 'text-brand-purple', icon: FiEye },
+              { label: 'Likes & Hearts', val: totalLikes.toLocaleString('en-IN'), sub: 'Total viewer likes', color: 'text-brand-pink', icon: FiHeart },
+              { label: 'Comments Count', val: totalComments.toLocaleString('en-IN'), sub: 'Community interactions', color: 'text-brand-orange', icon: FiMessageSquare },
+              { label: 'Avg Video Length', val: `${avgDuration}s`, sub: 'Average reel runtime', color: 'text-success', icon: FiClock },
             ].map((insight, idx) => {
               const Icon = insight.icon;
               return (

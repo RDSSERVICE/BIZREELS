@@ -140,7 +140,7 @@ export default function ChatDrawer({
           className="relative z-10 w-full max-w-md h-full bg-surface shadow-2xl border-l border-border flex flex-col"
         >
           {/* Header */}
-          <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-surface-secondary">
+          <div className="px-3 sm:px-5 py-3 sm:py-4 border-b border-border flex items-center justify-between bg-surface-secondary">
             <div className="flex items-center gap-3">
               <img
                 src={recipientAvatar || 'https://via.placeholder.com/150'}
@@ -164,7 +164,7 @@ export default function ChatDrawer({
           </div>
 
           {/* Messages list */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-surface-tertiary/20">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 bg-surface-tertiary/20">
             {isMsgLoading && !String(conversationId).startsWith('temp-') ? (
               <div className="py-20 flex justify-center">
                 <Loader size="sm" />
@@ -212,7 +212,7 @@ export default function ChatDrawer({
           </div>
 
           {/* Form Send Dock */}
-          <form onSubmit={handleSend} className="p-4 border-t border-border bg-surface-secondary flex gap-2 items-center">
+          <form onSubmit={handleSend} className="p-3 sm:p-4 border-t border-border bg-surface-secondary flex gap-2 items-center safe-bottom">
             <input
               type="text"
               placeholder={`Send message to ${recipientName}...`}

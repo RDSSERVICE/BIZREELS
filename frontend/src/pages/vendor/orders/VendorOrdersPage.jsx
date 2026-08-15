@@ -26,8 +26,8 @@ export default function VendorOrdersPage() {
     try {
       await updateOrderStatus({ id, status: newStatus }).unwrap();
       toast.success(`Order ${id} marked as ${newStatus.toUpperCase()}`);
-    } catch {
-      toast.success(`Order ${id} marked as ${newStatus.toUpperCase()}`);
+    } catch (err) {
+      toast.error(err?.data?.message || err?.message || `Failed to mark order as ${newStatus.toUpperCase()}`);
     }
   };
 

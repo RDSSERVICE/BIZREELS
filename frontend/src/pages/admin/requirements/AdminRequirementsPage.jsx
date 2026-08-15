@@ -39,7 +39,7 @@ export default function AdminRequirementsPage() {
     queryParams.type = activeTab;
   }
 
-  const { data, isFetching, refetch } = useListAdminRequirementsQuery(queryParams, { pollingInterval: 5000 });
+  const { data, isFetching, refetch } = useListAdminRequirementsQuery(queryParams, { pollingInterval: 30000 });
 
   // Socket.IO real-time update listeners for Admin dashboard
   useEffect(() => {

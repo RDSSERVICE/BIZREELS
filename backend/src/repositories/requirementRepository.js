@@ -114,9 +114,17 @@ class RequirementRepository {
     }
 
     if (vendorId) {
-      match.assignedVendorIds = new mongoose.Types.ObjectId(vendorId.toString());
+      const vObjId = mongoose.Types.ObjectId.isValid(vendorId) ? new mongoose.Types.ObjectId(vendorId.toString()) : null;
       // Vendors should only see approved requirements
       match.approvalStatus = 'approved';
+      if (vObjId) {
+        match.$or = [
+          { assignedVendorIds: vObjId },
+          { assignedVendorIds: { $exists: false } },
+          { assignedVendorIds: { $size: 0 } },
+          { assignedVendorIds: null },
+        ];
+      }
     }
 
     if (approvalStatus) {

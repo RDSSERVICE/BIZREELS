@@ -370,7 +370,7 @@ const AppLayout = () => {
       </div>
 
       {/* ── Bottom Mobile Bar (Tablets/Phones) ───────────────── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 glass border-t border-border z-30 flex justify-around items-center py-2.5 px-2 shadow-modal">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 glass border-t border-border z-30 flex justify-around items-center py-2.5 px-2 shadow-modal safe-bottom">
         {/* Home */}
         <Link
           to="/feed"

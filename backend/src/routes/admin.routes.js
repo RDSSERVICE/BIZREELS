@@ -1485,22 +1485,62 @@ router.get('/orders', requireAuth, requireAdmin, catchAsync(async (req, res) => 
   if (vendor_id) q.seller_id = vendor_id;
   if (customer_id) q.buyer_id = customer_id;
 
-  const docs = await Deal.find(q).sort({ _id: -1 }).limit(limit);
+  let OrderModel = null;
+  try {
+    OrderModel = require('../models/Order');
+  } catch (e) {
+    OrderModel = null;
+  }
+
+  const orderQuery = {};
+  if (status) orderQuery.status = status;
+  if (vendor_id) orderQuery.vendor = vendor_id;
+  if (customer_id) orderQuery.customer = customer_id;
+
+  const [deals, storeOrders] = await Promise.all([
+    Deal.find(q).sort({ _id: -1 }).limit(limit).lean(),
+    OrderModel ? OrderModel.find(orderQuery).populate('customer', 'name phone email').populate('vendor', 'name vendorProfile').populate('listing', 'title').sort({ createdAt: -1 }).limit(limit).lean() : Promise.resolve([])
+  ]);
+
+  const dealItems = deals.map(d => ({
+    id: d._id.toString(),
+    listing_id: d.listing_id ? d.listing_id.toString() : '',
+    listing_title: d.listing_title || 'Deal Agreement',
+    buyer_id: d.buyer_id,
+    seller_id: d.seller_id,
+    status: d.status || 'pending',
+    current_offer: d.current_offer,
+    final_amount: d.final_amount || d.current_offer,
+    thread_id: d.thread_id ? d.thread_id.toString() : '',
+    created_at: d.created_at || d.createdAt,
+    order_type: 'deal'
+  }));
+
+  const orderItems = storeOrders.map(o => ({
+    id: o._id.toString(),
+    listing_id: o.listing?._id ? o.listing._id.toString() : (o.listing ? o.listing.toString() : ''),
+    listing_title: o.listing?.title || 'Store Listing Order',
+    buyer_id: o.customer?._id ? o.customer._id.toString() : (o.customer ? o.customer.toString() : ''),
+    buyer_name: o.customer?.name || 'Customer',
+    seller_id: o.vendor?._id ? o.vendor._id.toString() : (o.vendor ? o.vendor.toString() : ''),
+    seller_name: o.vendor?.name || 'Vendor',
+    status: o.status || 'pending',
+    payment_status: o.paymentStatus || 'unpaid',
+    current_offer: o.price * (o.quantity || 1),
+    final_amount: o.price * (o.quantity || 1),
+    quantity: o.quantity || 1,
+    thread_id: '',
+    created_at: o.createdAt,
+    order_type: 'store_order'
+  }));
+
+  const combined = [...orderItems, ...dealItems]
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    .slice(0, limit);
 
   res.json({
-    items: docs.map(d => ({
-      id: d._id.toString(),
-      listing_id: d.listing_id ? d.listing_id.toString() : '',
-      listing_title: d.listing_title,
-      buyer_id: d.buyer_id,
-      seller_id: d.seller_id,
-      status: d.status,
-      current_offer: d.current_offer,
-      final_amount: d.final_amount || d.current_offer,
-      thread_id: d.thread_id ? d.thread_id.toString() : '',
-      created_at: d.created_at,
-    })),
-    count: docs.length,
+    items: combined,
+    count: combined.length,
   });
 }));
 

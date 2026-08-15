@@ -36,7 +36,7 @@ export default function AdminListingsPage() {
   else if (activeTab === 'expired') queryParams.status = 'expired';
   else if (activeTab === 'reported') queryParams.flagged = 'true';
 
-  const { data, isFetching } = useListAdminListingsQuery(queryParams, { pollingInterval: 5000 });
+  const { data, isFetching } = useListAdminListingsQuery(queryParams, { pollingInterval: 30000 });
   const [takedownListing] = useTakedownListingMutation();
   const [restoreListing] = useRestoreListingMutation();
   const [bulkApprove] = useBulkApproveListingsMutation();

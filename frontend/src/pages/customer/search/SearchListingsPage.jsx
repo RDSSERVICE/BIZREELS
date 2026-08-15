@@ -608,12 +608,12 @@ export default function SearchListingsPage() {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
             {/* A. Products / Services tab */}
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="bg-surface border border-border rounded-xl px-4 py-2.5 text-xs text-text-primary font-semibold focus:outline-none focus:border-brand-purple"
+              className="flex-1 sm:flex-none bg-surface border border-border rounded-xl px-3 sm:px-4 py-2.5 text-xs text-text-primary font-semibold focus:outline-none focus:border-brand-purple"
             >
               <option value="all">All Types</option>
               <option value="product">Products Only</option>
@@ -624,7 +624,7 @@ export default function SearchListingsPage() {
             <select
               value={distance}
               onChange={(e) => setDistance(e.target.value)}
-              className="bg-surface border border-border rounded-xl px-4 py-2.5 text-xs text-brand-purple font-semibold focus:outline-none focus:border-brand-purple"
+              className="flex-1 sm:flex-none bg-surface border border-border rounded-xl px-3 sm:px-4 py-2.5 text-xs text-brand-purple font-semibold focus:outline-none focus:border-brand-purple"
             >
               {DISTANCE_VALUES.map(d => (
                 <option key={d.value} value={d.value}>{d.value === 'all' ? '📍 Anywhere' : `Within ${d.label}`}</option>

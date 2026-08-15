@@ -27,7 +27,7 @@ export default function AdminOrdersPage() {
     queryParams.status = activeTab;
   }
 
-  const { data, isFetching } = useListAdminOrdersQuery(queryParams, { pollingInterval: 5000 });
+  const { data, isFetching } = useListAdminOrdersQuery(queryParams, { pollingInterval: 30000 });
   const items = data?.items || [];
 
   const columns = [

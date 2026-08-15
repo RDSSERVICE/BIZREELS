@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGetRequirementsQuery, useSubmitQuoteMutation } from '../customer/requirementsApi';
 import { useGetOrdersQuery } from '../customer/activitiesApi';
-import { useGetVendorListingsQuery } from '../vendor/vendorApi';
+import { useGetVendorListingsQuery, useGetVendorDashboardQuery, useGetVendorWalletQuery } from '../vendor/vendorApi';
 import { FiBriefcase, FiActivity, FiUsers, FiEye, FiDollarSign, FiZap, FiPlus, FiGrid, FiArrowRight } from 'react-icons/fi';
 import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
@@ -17,6 +17,8 @@ const VendorDashboardTab = ({ user, setActiveTab }) => {
   const [bidNotes, setBidNotes] = useState('');
 
   // API Queries & Mutations
+  const { data: dashboardRes } = useGetVendorDashboardQuery(undefined, { pollingInterval: 30000 });
+  const { data: walletRes } = useGetVendorWalletQuery(undefined, { pollingInterval: 30000 });
   const { data: listingsRes } = useGetVendorListingsQuery(
     { vendor: user?._id, page: 1, limit: 50 },
     { skip: !user?._id, pollingInterval: 30000 }
@@ -28,12 +30,16 @@ const VendorDashboardTab = ({ user, setActiveTab }) => {
   const { data: ordersRes } = useGetOrdersQuery(undefined, { pollingInterval: 30000 });
   const [submitBid, { isLoading: isBidding }] = useSubmitQuoteMutation();
 
+  const dashboardData = dashboardRes?.data || dashboardRes || {};
   const myListings = listingsRes?.data || [];
   const activeLeads = leadsRes?.data || [];
   const recentOrders = ordersRes?.orders || [];
 
-  const totalProducts = myListings.filter((l) => l.type === 'product').length;
-  const totalServices = myListings.filter((l) => l.type === 'service').length;
+  const totalProducts = dashboardData.totalProducts ?? myListings.filter((l) => l.type === 'product').length;
+  const totalServices = dashboardData.totalServices ?? myListings.filter((l) => l.type === 'service').length;
+  const totalViews = dashboardData.totalViews ?? myListings.reduce((sum, l) => sum + (l.views_count || l.views || 0), 0);
+  const followersCount = dashboardData.followers ?? user?.followersCount ?? 0;
+  const walletBal = walletRes?.data?.balance ?? dashboardData.walletBalance ?? user?.walletBalance ?? 0;
 
   const handlePostBid = async (e) => {
     e.preventDefault();
@@ -59,9 +65,9 @@ const VendorDashboardTab = ({ user, setActiveTab }) => {
   const stats = [
     { label: 'Products', val: totalProducts, color: 'text-brand-purple', bg: 'bg-brand-purple/10', icon: FiBriefcase },
     { label: 'Services', val: totalServices, color: 'text-brand-pink', bg: 'bg-brand-pink/10', icon: FiActivity },
-    { label: 'Followers', val: user?.followersCount || 0, color: 'text-brand-orange', bg: 'bg-brand-orange/10', icon: FiUsers },
-    { label: 'Views', val: '6.4K', color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: FiEye },
-    { label: 'Wallet', val: `₹${user?.walletBalance || 0}`, color: 'text-brand-purple', bg: 'bg-brand-purple/10', icon: FiDollarSign },
+    { label: 'Followers', val: followersCount, color: 'text-brand-orange', bg: 'bg-brand-orange/10', icon: FiUsers },
+    { label: 'Views', val: totalViews.toLocaleString('en-IN'), color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: FiEye },
+    { label: 'Wallet', val: `₹${walletBal.toLocaleString('en-IN')}`, color: 'text-brand-purple', bg: 'bg-brand-purple/10', icon: FiDollarSign },
   ];
 
   return (

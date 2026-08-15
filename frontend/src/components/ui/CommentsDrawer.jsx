@@ -75,10 +75,10 @@ const CommentsDrawer = ({
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-          className="relative z-10 w-full max-w-lg h-[65vh] bg-surface rounded-t-premium flex flex-col shadow-modal border-t border-border"
+          className="relative z-10 w-full max-w-lg h-[75vh] sm:h-[65vh] bg-surface rounded-t-2xl sm:rounded-t-premium flex flex-col shadow-modal border-t border-border"
         >
           {/* Header Bar */}
-          <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <div className="px-3 sm:px-5 py-3 sm:py-4 border-b border-border flex items-center justify-between flex-shrink-0">
             <span className="font-bold text-brand-navy text-sm">
               Comments ({comments.length})
             </span>
@@ -91,7 +91,7 @@ const CommentsDrawer = ({
           </div>
 
           {/* Comments Scroller */}
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-5 flex flex-col gap-4">
             {isLoading ? (
               <div className="py-12 flex justify-center">
                 <Loader size="sm" />
@@ -138,7 +138,7 @@ const CommentsDrawer = ({
           </div>
 
           {/* Form input dock */}
-          <form onSubmit={handlePostComment} className="p-4 border-t border-border bg-surface-secondary flex gap-2 items-center">
+          <form onSubmit={handlePostComment} className="p-3 sm:p-4 border-t border-border bg-surface-secondary flex gap-2 items-center safe-bottom flex-shrink-0">
             <input
               type="text"
               placeholder="Add a comment..."

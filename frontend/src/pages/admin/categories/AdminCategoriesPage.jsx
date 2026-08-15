@@ -32,7 +32,7 @@ export default function AdminCategoriesPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
 
-  const { data, isLoading } = useListCategoriesQuery(undefined, { pollingInterval: 4000 });
+  const { data, isLoading } = useListCategoriesQuery(undefined, { pollingInterval: 30000 });
   const [createCategory] = useCreateCategoryMutation();
   const [deleteCategory] = useDeleteCategoryMutation();
   const [bulkUploadCategories] = useBulkUploadCategoriesMutation();
@@ -40,7 +40,7 @@ export default function AdminCategoriesPage() {
   // Requests queries & mutations
   const { data: requestsData, isFetching: isFetchingRequests } = useListCategoryRequestsQuery(undefined, {
     skip: activeTab !== 'requests',
-    pollingInterval: 5000,
+    pollingInterval: 30000,
   });
   const [approveCategoryRequest, { isLoading: isApprovingRequest }] = useApproveCategoryRequestMutation();
   const [rejectCategoryRequest, { isLoading: isRejectingRequest }] = useRejectCategoryRequestMutation();

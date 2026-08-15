@@ -251,7 +251,7 @@ export default function CreatorVerificationPage() {
             </div>
           </div>
 
-          <div className="text-right sm:text-right min-w-[140px]">
+          <div className="text-right min-w-[100px] sm:min-w-[140px]">
             <span className="text-2xl font-black text-text-primary font-display">{statusData.completionPercentage}%</span>
             <span className="block text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Verification Score</span>
           </div>
@@ -286,7 +286,7 @@ export default function CreatorVerificationPage() {
       </div>
 
       {/* VERIFICATION TABS */}
-      <div className="flex items-center gap-2 border-b border-border pb-1 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-border pb-1 overflow-x-auto scrollbar-hide">
         <button
           onClick={() => setActiveTab('contacts')}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${

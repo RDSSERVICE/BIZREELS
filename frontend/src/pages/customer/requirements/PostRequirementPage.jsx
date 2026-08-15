@@ -371,7 +371,7 @@ export default function PostRequirementPage() {
         subtitle="Get instant quotes and proposals from verified local vendors & service providers"
       />
 
-      <div className="glass rounded-2xl p-6 border border-white/50 shadow-card max-w-2xl mx-auto w-full space-y-6">
+      <div className="glass rounded-2xl p-4 sm:p-6 border border-white/50 shadow-card max-w-2xl mx-auto w-full space-y-6">
         {/* Requirement Type Selector */}
         <div>
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">Requirement Type</label>

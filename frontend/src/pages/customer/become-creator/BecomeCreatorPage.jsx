@@ -378,7 +378,7 @@ export default function BecomeCreatorPage() {
       <form onSubmit={handleSubmit} className="space-y-8">
 
         {/* SECTION 1: BASIC INFORMATION */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border shadow-card space-y-4">
+        <div className="glass rounded-2xl p-4 sm:p-8 border border-border shadow-card space-y-4">
           <div className="border-b border-border pb-3 flex items-center gap-3">
             <span className="w-8 h-8 rounded-xl bg-brand-purple text-white flex items-center justify-center font-bold text-sm shadow-md">1</span>
             <div>

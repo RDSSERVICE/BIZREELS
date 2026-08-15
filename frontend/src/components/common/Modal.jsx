@@ -40,7 +40,7 @@ const Modal = ({
 
   return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
         {/* Overlay backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -57,10 +57,10 @@ const Modal = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 15 }}
           transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          className={`relative z-10 w-full glass-strong shadow-modal rounded-premium overflow-hidden border border-white/50 ${sizeClasses[size]} ${className}`}
+          className={`relative z-10 w-full glass-strong shadow-modal rounded-2xl sm:rounded-premium overflow-hidden border border-white/50 max-h-[95vh] flex flex-col ${sizeClasses[size]} ${className}`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border flex-shrink-0">
             {title && (
               <h3 className="text-lg font-bold tracking-tight text-brand-navy">
                 {title}
@@ -75,7 +75,7 @@ const Modal = ({
           </div>
 
           {/* Body */}
-          <div className="px-6 py-5 overflow-y-auto max-h-[75vh]">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 overflow-y-auto flex-1 min-h-0">
             {children}
           </div>
         </motion.div>

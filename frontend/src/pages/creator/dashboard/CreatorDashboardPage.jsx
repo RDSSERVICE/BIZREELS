@@ -331,23 +331,23 @@ export default function CreatorDashboardPage() {
       {/* CAMPAIGN INVITATIONS & COLLABORATIONS BOARD */}
       <div className="space-y-4 pt-4 border-t border-border">
         {/* Navigation tabs */}
-        <div className="flex border-b border-border gap-6 text-sm font-bold text-text-tertiary">
+        <div className="flex border-b border-border gap-3 sm:gap-6 text-xs sm:text-sm font-bold text-text-tertiary overflow-x-auto scrollbar-hide pb-0.5">
           <button
             onClick={() => setActiveTab('invitations')}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all ${activeTab === 'invitations' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
+            className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'invitations' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
           >
             Invitations ({campaigns.filter(c => c.status === 'pending').length})
           </button>
           <button
             onClick={() => setActiveTab('campaigns')}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all ${activeTab === 'campaigns' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
+            className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'campaigns' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
           >
             <FiActivity size={15} /> Active Shoot Campaigns ({campaigns.filter(c => c.status === 'accepted').length})
           </button>
           <button
             disabled={!chatRecipientId}
             onClick={() => setActiveTab('chat')}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${activeTab === 'chat' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
+            className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0 ${activeTab === 'chat' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
           >
             <FiMessageSquare size={15} /> Chat with Vendor
           </button>
