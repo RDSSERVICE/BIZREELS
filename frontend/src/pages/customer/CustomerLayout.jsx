@@ -174,7 +174,10 @@ export default function CustomerLayout() {
     setIsRoleDropdownOpen(false);
     if (targetRole === currentRole) return;
 
-    if (!roles.includes(targetRole)) {
+    const userRoles = profileUser.roles || roles || ['customer'];
+    const hasTargetRole = userRoles.includes(targetRole);
+
+    if (!hasTargetRole) {
       if (targetRole === 'vendor') navigate('/customer/become-vendor');
       else if (targetRole === 'creator') navigate('/customer/become-creator');
       return;
@@ -182,28 +185,26 @@ export default function CustomerLayout() {
 
     try {
       const res = await switchRoleApi({ role: targetRole }).unwrap();
-      const updatedUser = res.user || res.data?.user || res;
+      const updatedUser = res.user || res.data?.user || res.data || profileUser;
       dispatch(setCredentials({ user: updatedUser }));
-      toast.success(`Switched role to ${targetRole.toUpperCase()}`);
+      dispatch(setActiveRole(targetRole));
+      toast.success(`Switched active role to ${targetRole.toUpperCase()}`);
+
       if (targetRole === 'vendor') {
-        if (updatedUser?.vendorProfile?.shopName) {
-          navigate('/vendor/dashboard');
-        } else {
-          navigate('/customer/become-vendor');
-        }
+        navigate('/vendor/dashboard');
       } else if (targetRole === 'creator') {
-        if (updatedUser?.creatorProfile?.displayName) {
-          navigate('/creator/dashboard');
-        } else {
-          navigate('/customer/become-creator');
-        }
+        navigate('/creator/dashboard');
       } else if (targetRole === 'admin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/customer/home');
       }
     } catch (err) {
-      toast.error('Failed to switch role');
+      // Fallback navigation
+      dispatch(setActiveRole(targetRole));
+      if (targetRole === 'vendor') navigate('/vendor/dashboard');
+      else if (targetRole === 'creator') navigate('/creator/dashboard');
+      else navigate('/customer/home');
     }
   };
 
@@ -482,7 +483,7 @@ export default function CustomerLayout() {
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
                     <span>Customer</span>
-                    <FiCheck className="text-emerald-600" size={14} />
+                    {currentRole === 'customer' && <FiCheck className="text-emerald-600" size={14} />}
                   </button>
 
                   <button
@@ -495,6 +496,7 @@ export default function CustomerLayout() {
                         <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
                       )}
                     </div>
+                    {currentRole === 'vendor' && <FiCheck className="text-emerald-600" size={14} />}
                   </button>
 
                   <button
@@ -507,6 +509,7 @@ export default function CustomerLayout() {
                         <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
                       )}
                     </div>
+                    {currentRole === 'creator' && <FiCheck className="text-emerald-600" size={14} />}
                   </button>
                 </div>
               )}

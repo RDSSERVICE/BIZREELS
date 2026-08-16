@@ -89,19 +89,47 @@ export default function VendorLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
   const [isShopClosed, setIsShopClosed] = useState(vendorProfile.isClosed || false);
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   const toggleSection = (title) => {
     setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));
   };
 
-  const handleSwitchToCustomer = async () => {
+  const handleRoleSwitch = async (targetRole) => {
+    setIsRoleDropdownOpen(false);
+    if (targetRole === currentRole) return;
+
+    const userRoles = profileUser.roles || roles || ['vendor'];
+    const hasTargetRole = userRoles.includes(targetRole);
+
+    if (!hasTargetRole) {
+      if (targetRole === 'vendor') navigate('/customer/become-vendor');
+      else if (targetRole === 'creator') navigate('/customer/become-creator');
+      return;
+    }
+
     try {
-      const res = await switchRoleApi({ role: 'customer' }).unwrap();
-      dispatch(setCredentials({ user: res.user || res.data?.user }));
-      toast.success('Switched to Customer view');
-      navigate('/customer/home');
+      const res = await switchRoleApi({ role: targetRole }).unwrap();
+      const updatedUser = res.user || res.data?.user || res.data || profileUser;
+      dispatch(setCredentials({ user: updatedUser }));
+      dispatch(setActiveRole(targetRole));
+      toast.success(`Switched active role to ${targetRole.toUpperCase()}`);
+
+      if (targetRole === 'vendor') {
+        navigate('/vendor/dashboard');
+      } else if (targetRole === 'creator') {
+        navigate('/creator/dashboard');
+      } else if (targetRole === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/customer/home');
+      }
     } catch (err) {
-      toast.error('Failed to switch role');
+      // Fallback navigation
+      dispatch(setActiveRole(targetRole));
+      if (targetRole === 'vendor') navigate('/vendor/dashboard');
+      else if (targetRole === 'creator') navigate('/creator/dashboard');
+      else navigate('/customer/home');
     }
   };
 
@@ -331,13 +359,58 @@ export default function VendorLayout() {
               <span className="hidden sm:inline">{isShopClosed ? 'Shop Closed' : 'Shop Open'}</span>
             </button>
 
-            <button
-              onClick={handleSwitchToCustomer}
-              className="px-2 sm:px-3 py-1.5 rounded-xl glass border border-border hover:bg-surface-tertiary text-text-secondary hover:text-text-primary text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 transition"
-            >
-              <FiShield size={14} className="text-brand-purple flex-shrink-0" />
-              <span className="hidden md:inline">Switch to Customer</span>
-            </button>
+            {/* Role Switcher Pill */}
+            <div className="relative">
+              <button
+                onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#241b15] border border-[#241b15] text-[#d99a3d] hover:bg-[#342820] transition text-xs font-extrabold cursor-pointer"
+              >
+                <FiShield className="text-[#d99a3d] flex-shrink-0" size={13} />
+                <span className="uppercase hidden sm:inline">VENDOR</span>
+                <FiChevronDown size={13} />
+              </button>
+
+              {isRoleDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-md shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
+                  <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
+                    Switch Active Role
+                  </div>
+                  <button
+                    onClick={() => handleRoleSwitch('customer')}
+                    className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
+                  >
+                    <span>Customer</span>
+                    {currentRole === 'customer' && <FiCheck className="text-emerald-600" size={14} />}
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleSwitch('vendor')}
+                    className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Vendor</span>
+                      {!roles.includes('vendor') && (
+                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                      )}
+                    </div>
+                    {currentRole === 'vendor' && <FiCheck className="text-emerald-600" size={14} />}
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleSwitch('creator')}
+                    className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Creator</span>
+                      {!roles.includes('creator') && (
+                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                      )}
+                    </div>
+                    {currentRole === 'creator' && <FiCheck className="text-emerald-600" size={14} />}
+                  </button>
+                </div>
+              )}
+            </div>
 
             <NotificationBellDropdown role="vendor" />
 
