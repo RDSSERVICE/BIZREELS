@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiDollarSign, FiSave } from 'react-icons/fi';
+import { FiSave } from 'react-icons/fi';
+import { TbCurrencyRupee } from 'react-icons/tb';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { useGetCreatorPricingQuery, useUpdateCreatorPricingMutation } from '../../../features/creator/creatorApi';
@@ -37,7 +38,7 @@ export default function CreatorPricingPage() {
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
       <AdminPageHeader
-        icon={FiDollarSign}
+        icon={TbCurrencyRupee}
         title="Creator Pricing Tiers & Packages"
         subtitle="Set your reel bundle prices and hourly / day-wise shoot rates"
       />

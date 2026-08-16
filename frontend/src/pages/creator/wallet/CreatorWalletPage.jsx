@@ -1,5 +1,6 @@
 import React from 'react';
-import { FiDollarSign, FiArrowUpRight, FiArrowDownLeft } from 'react-icons/fi';
+import { FiArrowUpRight, FiArrowDownLeft } from 'react-icons/fi';
+import { TbCurrencyRupee } from 'react-icons/tb';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
@@ -61,7 +62,7 @@ export default function CreatorWalletPage() {
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
       <AdminPageHeader
-        icon={FiDollarSign}
+        icon={TbCurrencyRupee}
         title="Creator Earnings & Payout Wallet"
         subtitle="Withdraw shoot earnings directly to your bank account or UPI ID"
       >
@@ -74,7 +75,7 @@ export default function CreatorWalletPage() {
       </AdminPageHeader>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <AdminStatCard label="Total Earnings" value={`₹${balance.toLocaleString('en-IN')}`} icon={FiDollarSign} color="green" />
+        <AdminStatCard label="Total Earnings" value={`₹${balance.toLocaleString('en-IN')}`} icon={TbCurrencyRupee} color="green" />
         <AdminStatCard label="Completed Projects" value={String(payouts.length)} icon={FiArrowDownLeft} color="purple" />
         <AdminStatCard label="Pending Payouts" value={`₹${pendingAmount.toLocaleString('en-IN')}`} icon={FiArrowUpRight} color="amber" />
       </div>

@@ -4,12 +4,13 @@ import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import {
-  FiVideo, FiUser, FiFilm, FiDollarSign, FiClock, FiCreditCard,
+  FiGrid, FiUser, FiFilm, FiClock, FiCreditCard,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
   FiBarChart2, FiBriefcase, FiStar, FiMessageSquare, FiSettings
 } from 'react-icons/fi';
+import { TbCurrencyRupee } from 'react-icons/tb';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
-import { setCredentials, logout, selectCurrentUser } from '../../features/auth/authSlice';
+import { setCredentials, logout, selectCurrentUser, setActiveRole } from '../../features/auth/authSlice';
 import { api, tokenStore } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 
@@ -17,7 +18,7 @@ const NAV_SECTIONS = [
   {
     title: 'Overview',
     items: [
-      { name: 'Dashboard', path: '/creator/dashboard', icon: FiVideo },
+      { name: 'Dashboard', path: '/creator/dashboard', icon: FiGrid },
       { name: 'Settings', path: '/creator/settings', icon: FiSettings },
     ],
   },
@@ -27,7 +28,7 @@ const NAV_SECTIONS = [
       { name: 'Profile', path: '/creator/profile', icon: FiUser },
       { name: 'Verification Center', path: '/creator/verification', icon: FiShield },
       { name: 'Portfolio', path: '/creator/portfolio', icon: FiFilm },
-      { name: 'Pricing', path: '/creator/pricing', icon: FiDollarSign },
+      { name: 'Pricing', path: '/creator/pricing', icon: TbCurrencyRupee },
       { name: 'Availability', path: '/creator/availability', icon: FiClock },
     ],
   },
@@ -44,13 +45,13 @@ const NAV_SECTIONS = [
     title: 'Finance',
     items: [
       { name: 'Subscription', path: '/creator/subscription', icon: FiCreditCard },
-      { name: 'Wallet & Earnings', path: '/creator/wallet', icon: FiDollarSign },
+      { name: 'Wallet & Earnings', path: '/creator/wallet', icon: TbCurrencyRupee },
     ],
   },
 ];
 
 /**
- * CreatorLayout — Admin-style fixed sidebar layout for Creator Studio
+ * CreatorLayout — Warm Editorial Bento Sidebar Layout for Creator Studio
  */
 export default function CreatorLayout() {
   const navigate = useNavigate();
@@ -62,6 +63,8 @@ export default function CreatorLayout() {
     skip: !user && !tokenStore.getUser(),
   });
   const [switchRoleApi] = useSwitchRoleMutation();
+  const [logoutApi] = useLogoutMutation();
+
   const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
   const creatorProfile = profileUser.creatorProfile || {};
   const roles = profileUser.roles || ['customer'];
@@ -105,7 +108,6 @@ export default function CreatorLayout() {
         navigate('/customer/home');
       }
     } catch (err) {
-      // Fallback navigation
       dispatch(setActiveRole(targetRole));
       if (targetRole === 'vendor') navigate('/vendor/dashboard');
       else if (targetRole === 'creator') navigate('/creator/dashboard');
@@ -126,36 +128,37 @@ export default function CreatorLayout() {
   };
 
   const SidebarContent = ({ onItemClick }) => (
-    <div className="flex flex-col h-full">
-      {/* Logo / Brand */}
-      <div className="px-4 py-4 border-b border-border flex items-center gap-3">
-        <Link to="/creator/dashboard" className="flex items-center gap-2 group">
+    <div className="flex flex-col h-full font-sans bg-[#f8f4ec] border-r border-[#e3dccb]">
+      {/* Brand Header */}
+      <div className="px-4 py-4 bg-white border-b border-[#e3dccb] flex items-center justify-between">
+        <Link to="/creator/dashboard" className="flex items-center gap-2.5 group">
           <img src="/logo.png" alt="BizReels Logo" className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" />
           <div>
-            <span className="text-sm font-black text-text-primary font-display block leading-tight">
-              Biz<span className="gradient-text font-black">Reels</span>
+            <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm text-[#1a1a1a] block leading-tight tracking-tight">
+              BIZ<span className="text-[#d99a3d]">REELS</span>
             </span>
-            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest block">Creator Studio</span>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">CREATOR STUDIO</span>
           </div>
         </Link>
       </div>
 
       {/* Nav Sections */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-2 scrollbar-none">
         {NAV_SECTIONS.map((section) => {
           const isCollapsed = collapsedSections[section.title];
 
           return (
-            <div key={section.title}>
+            <div key={section.title} className="space-y-0.5">
               <button
+                type="button"
                 onClick={() => toggleSection(section.title)}
-                className="w-full flex items-center justify-between px-2 py-1.5 text-[9px] font-bold text-text-tertiary uppercase tracking-widest hover:text-text-secondary transition-all"
+                className="w-full flex items-center justify-between px-2 py-1 text-[9.5px] font-black text-slate-400 uppercase tracking-widest hover:text-[#1a1a1a] transition-all cursor-pointer border-none bg-transparent"
               >
-                {section.title}
+                <span>{section.title}</span>
                 {isCollapsed ? (
-                  <FiChevronRight className="w-3 h-3" />
+                  <FiChevronRight className="w-3 h-3 text-slate-400" />
                 ) : (
-                  <FiChevronDown className="w-3 h-3" />
+                  <FiChevronDown className="w-3 h-3 text-slate-400" />
                 )}
               </button>
 
@@ -165,8 +168,8 @@ export default function CreatorLayout() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
+                    transition={{ duration: 0.15 }}
+                    className="overflow-hidden space-y-0.5"
                   >
                     {section.items.map((item) => {
                       const isActive = location.pathname === item.path;
@@ -176,14 +179,24 @@ export default function CreatorLayout() {
                           key={item.path}
                           to={item.path}
                           onClick={onItemClick}
-                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 mb-0.5 ${
+                          className={`relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all duration-150 group ${
                             isActive
-                              ? 'bg-brand-purple text-white shadow-premium'
-                              : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
+                              ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs'
+                              : 'text-slate-700 hover:bg-white hover:text-[#1a1a1a] hover:shadow-2xs'
                           }`}
                         >
-                          <Icon className="w-4 h-4 flex-shrink-0" />
-                          <span className="truncate">{item.name}</span>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                                isActive
+                                  ? 'bg-[#d99a3d] text-[#1a1a1a] shadow-xs'
+                                  : 'bg-white text-slate-600 border border-[#e3dccb] group-hover:border-[#241b15] group-hover:text-[#241b15]'
+                              }`}
+                            >
+                              <Icon size={14} />
+                            </div>
+                            <span className="truncate">{item.name}</span>
+                          </div>
                         </Link>
                       );
                     })}
@@ -195,24 +208,27 @@ export default function CreatorLayout() {
         })}
       </nav>
 
-      {/* User Info + Logout */}
-      <div className="border-t border-border px-4 py-4">
-        <div className="flex items-center gap-3 mb-3">
+      {/* User Info + Logout Footer Card */}
+      <div className="border-t border-[#e3dccb] p-3 bg-white space-y-2">
+        <div className="flex items-center gap-2.5 p-1">
           <img
             src={creatorProfile.profilePhoto || profileUser?.profile_pic || "/logo.png"}
             alt="Creator"
-            className="w-9 h-9 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm"
+            className="w-9 h-9 rounded-full object-cover border border-[#e3dccb] bg-[#f8f4ec] p-0.5 shadow-xs shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-text-primary truncate">{creatorProfile.name || profileUser?.name || 'Creator'}</p>
-            <p className="text-[10px] text-text-tertiary truncate">{profileUser?.email || profileUser?.phone || 'creator'}</p>
+            <p className="text-xs font-black text-[#1a1a1a] truncate">{creatorProfile.name || profileUser?.name || 'Creator'}</p>
+            <p className="text-[10px] font-medium text-slate-400 truncate">{profileUser?.email || profileUser?.phone || 'creator'}</p>
           </div>
         </div>
+
         <button
+          type="button"
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-error bg-error/10 hover:bg-error/20 transition-all border border-error/20"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-black text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all border border-rose-200 cursor-pointer"
         >
-          <FiLogOut className="w-4 h-4" /> Sign Out
+          <FiLogOut className="w-4 h-4" />
+          <span>Sign Out</span>
         </button>
       </div>
     </div>

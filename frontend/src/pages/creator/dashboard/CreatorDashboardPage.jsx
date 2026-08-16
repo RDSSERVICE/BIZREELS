@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FiVideo, FiClock, FiDollarSign, FiStar, FiEye, FiShield,
+  FiVideo, FiClock, FiStar, FiEye, FiShield,
   FiActivity, FiCheckCircle, FiXCircle, FiPlay, FiMessageSquare,
   FiSend, FiChevronLeft, FiChevronRight, FiAlertCircle, FiUploadCloud, FiTrash
 } from 'react-icons/fi';
+import { TbCurrencyRupee } from 'react-icons/tb';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
@@ -243,7 +244,7 @@ export default function CreatorDashboardPage() {
   const stats = [
     { label: 'Total Projects', value: String(statsData.totalProjects ?? 0), icon: FiVideo, color: 'purple', trend: statsData.projectsTrend ?? 0 },
     { label: 'Pending Requests', value: String(campaigns.filter(c => c.status === 'pending').length), icon: FiClock, color: 'amber', trend: statsData.pendingRequestsTrend ?? 0 },
-    { label: 'Total Earnings', value: `₹${(statsData.totalEarnings ?? 0).toLocaleString('en-IN')}`, icon: FiDollarSign, color: 'green', trend: statsData.earningsTrend ?? 0 },
+    { label: 'Total Earnings', value: `₹${(statsData.totalEarnings ?? 0).toLocaleString('en-IN')}`, icon: TbCurrencyRupee, color: 'green', trend: statsData.earningsTrend ?? 0 },
     { label: 'Rating Reviews', value: `${statsData.rating ?? '0.0'} ★ (${statsData.reviewCount ?? 0})`, icon: FiStar, color: 'pink', trend: statsData.ratingTrend ?? 0 },
     { label: 'Portfolio Views', value: (statsData.portfolioViews ?? 0).toLocaleString(), icon: FiEye, color: 'cyan', trend: statsData.viewsTrend ?? 0 },
   ];
