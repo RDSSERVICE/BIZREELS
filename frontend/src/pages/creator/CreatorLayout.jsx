@@ -316,44 +316,47 @@ export default function CreatorLayout() {
               </button>
 
               {isRoleDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-md shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
-                  <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
-                    Switch Active Role
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setIsRoleDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-md shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
+                    <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
+                      Switch Active Role
+                    </div>
+                    <button
+                      onClick={() => handleRoleSwitch('customer')}
+                      className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
+                    >
+                      <span>Customer</span>
+                      {currentRole === 'customer' && <FiCheck className="text-emerald-600" size={14} />}
+                    </button>
+
+                    <button
+                      onClick={() => handleRoleSwitch('vendor')}
+                      className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>Vendor</span>
+                        {!roles.includes('vendor') && (
+                          <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                        )}
+                      </div>
+                      {currentRole === 'vendor' && <FiCheck className="text-emerald-600" size={14} />}
+                    </button>
+
+                    <button
+                      onClick={() => handleRoleSwitch('creator')}
+                      className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>Creator</span>
+                        {!roles.includes('creator') && (
+                          <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                        )}
+                      </div>
+                      {currentRole === 'creator' && <FiCheck className="text-emerald-600" size={14} />}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleRoleSwitch('customer')}
-                    className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
-                  >
-                    <span>Customer</span>
-                    {currentRole === 'customer' && <FiCheck className="text-emerald-600" size={14} />}
-                  </button>
-
-                  <button
-                    onClick={() => handleRoleSwitch('vendor')}
-                    className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span>Vendor</span>
-                      {!roles.includes('vendor') && (
-                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
-                      )}
-                    </div>
-                    {currentRole === 'vendor' && <FiCheck className="text-emerald-600" size={14} />}
-                  </button>
-
-                  <button
-                    onClick={() => handleRoleSwitch('creator')}
-                    className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span>Creator</span>
-                      {!roles.includes('creator') && (
-                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
-                      )}
-                    </div>
-                    {currentRole === 'creator' && <FiCheck className="text-emerald-600" size={14} />}
-                  </button>
-                </div>
+                </>
               )}
             </div>
 

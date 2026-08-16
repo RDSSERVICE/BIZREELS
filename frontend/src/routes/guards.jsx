@@ -53,13 +53,14 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  const hasAllowedRole = allowedRoles.some(r => r === activeRole || userRoles.includes(r));
+  const currentActiveRole = activeRole || user?.current_role || userRoles[0] || 'customer';
+  const hasAllowedRole = allowedRoles.includes(currentActiveRole);
 
   if (!hasAllowedRole) {
-    if (userRoles.includes('vendor')) {
+    if (currentActiveRole === 'vendor' && userRoles.includes('vendor')) {
       return <Navigate to="/vendor/dashboard" replace />;
     }
-    if (userRoles.includes('creator')) {
+    if (currentActiveRole === 'creator' && userRoles.includes('creator')) {
       return <Navigate to="/creator/dashboard" replace />;
     }
     return <Navigate to="/customer/home" replace />;

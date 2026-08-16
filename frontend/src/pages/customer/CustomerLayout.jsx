@@ -474,7 +474,9 @@ export default function CustomerLayout() {
               </button>
 
               {isRoleDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-md shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setIsRoleDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-md shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
                   <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
                     Switch Active Role
                   </div>
@@ -512,6 +514,7 @@ export default function CustomerLayout() {
                     {currentRole === 'creator' && <FiCheck className="text-emerald-600" size={14} />}
                   </button>
                 </div>
+              </>
               )}
             </div>
 
