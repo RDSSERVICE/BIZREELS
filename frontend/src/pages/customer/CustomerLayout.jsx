@@ -503,7 +503,6 @@ export default function CustomerLayout() {
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
                     <span>Customer</span>
-                    {currentRole === 'customer' && <FiCheck className="text-emerald-600" size={14} />}
                   </button>
 
                   <button
@@ -517,7 +516,6 @@ export default function CustomerLayout() {
                         <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
                       )}
                     </div>
-                    {currentRole === 'vendor' && <FiCheck className="text-emerald-600" size={14} />}
                   </button>
 
                   <button
@@ -531,7 +529,6 @@ export default function CustomerLayout() {
                         <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
                       )}
                     </div>
-                    {currentRole === 'creator' && <FiCheck className="text-emerald-600" size={14} />}
                   </button>
                 </div>
               )}
