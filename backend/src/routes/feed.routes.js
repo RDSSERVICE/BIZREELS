@@ -63,4 +63,12 @@ router.get('/reels', optionalAuth, catchAsync(async (req, res) => {
   res.json(result);
 }));
 
+router.get('/home-trending', catchAsync(async (req, res) => {
+  const result = await feedService.getHomeTrendingFeed();
+  res.json({
+    success: true,
+    data: result
+  });
+}));
+
 module.exports = router;
