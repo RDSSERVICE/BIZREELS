@@ -3,9 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiArrowRight } from 'react-icons/fi';
 import SEO from '../../components/common/SEO';
+import { useGetHomeTrendingFeedQuery } from '../../features/home/homeApi';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { data: homeFeedData, isLoading: isFeedLoading } = useGetHomeTrendingFeedQuery();
+  const feed = homeFeedData?.data || {};
+
+  const trendingList = feed.trendingProducts || [
+    { num: '01', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=100&h=100&fit=crop', title: 'Premium Office Chair', sub: 'ErgoComfort Pro', meta: '1.2K views · 86 leads' },
+    { num: '02', img: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=100&h=100&fit=crop', title: 'Digital Marketing Service', sub: 'Grow Your Brand Online', meta: '980 views · 64 leads' },
+    { num: '03', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=100&h=100&fit=crop', title: 'Solar Rooftop System', sub: 'Save Electricity Bills', meta: '875 views · 59 leads' },
+    { num: '04', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=100&h=100&fit=crop', title: 'Modern Modular Kitchen', sub: 'Designs That Inspire', meta: '765 views · 51 leads' },
+    { num: '05', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=100&h=100&fit=crop', title: 'Corporate Gift Hampers', sub: 'For Every Occasion', meta: '680 views · 48 leads' },
+  ];
+
+  const featuredCards = feed.featuredCards || [
+    { badge: 'Featured', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=500&h=650&fit=crop', views: '2.1K', title: 'ErgoComfort Pro Premium Office Chair', category: 'Furniture' },
+    { badge: null, img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&h=650&fit=crop', views: '1.8K', title: 'Social Media Growth Service', category: 'Digital Marketing' },
+    { badge: null, img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&h=650&fit=crop', views: '3.4K', title: 'Solar Rooftop System 3kW On-Grid', category: 'Energy' },
+  ];
+
+  const statsList = feed.stats || [
+    { number: '12K+', label: 'Businesses', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><rect x="2" y="4" width="20" height="16" rx="2" /><polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none" /></svg> },
+    { number: '2.4M+', label: 'Leads Generated', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" /><path d="M16 8.2a3 3 0 1 1 0 5.8" /><path d="M21.5 20c0-3-1.9-5.5-4.5-6.2" /></svg> },
+    { number: '8.7M+', label: 'Products & Services', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><path d="M6 8V6a6 6 0 0 1 12 0v2" /><rect x="3" y="8" width="18" height="13" rx="2" /></svg> },
+    { number: '₹350Cr+', label: 'Business Generated', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><polyline points="3 17 9 11 13 15 21 6" /><polyline points="15 6 21 6 21 12" /></svg> },
+  ];
 
   return (
     <div className="w-full max-w-full overflow-x-hidden">
@@ -188,39 +212,18 @@ const Home = () => {
 
             {/* .stats — 4 columns */}
             <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-[#ddd6c8]">
-              {[
-                {
-                  number: '12K+',
-                  label: 'Businesses',
-                  svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><rect x="2" y="4" width="20" height="16" rx="2" /><polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none" /></svg>,
-                },
-                {
-                  number: '2.4M+',
-                  label: 'Leads Generated',
-                  svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" /><path d="M16 8.2a3 3 0 1 1 0 5.8" /><path d="M21.5 20c0-3-1.9-5.5-4.5-6.2" /></svg>,
-                },
-                {
-                  number: '8.7M+',
-                  label: 'Products & Services',
-                  svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><path d="M6 8V6a6 6 0 0 1 12 0v2" /><rect x="3" y="8" width="18" height="13" rx="2" /></svg>,
-                },
-                {
-                  number: '₹350Cr+',
-                  label: 'Business Generated',
-                  svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><polyline points="3 17 9 11 13 15 21 6" /><polyline points="15 6 21 6 21 12" /></svg>,
-                },
-              ].map(({ number, label, svg }) => (
+              {statsList.map((stat, idx) => (
                 /* .stat */
-                <div key={label} className="flex items-center gap-3 p-4 sm:p-5 lg:px-6 lg:py-5">
+                <div key={stat.label || idx} className="flex items-center gap-3 p-4 sm:p-5 lg:px-6 lg:py-5">
                   {/* .stat-icon */}
                   <div style={{ flexShrink: 0, width: 36, height: 36, border: '1.5px solid #1a1a1a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a' }}>
-                    {svg}
+                    {stat.svg || <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><rect x="2" y="4" width="20" height="16" rx="2" /><polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none" /></svg>}
                   </div>
                   <div className="min-w-0">
                     {/* .stat-number */}
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', lineHeight: 1.1, letterSpacing: '-0.3px' }}>{number}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', lineHeight: 1.1, letterSpacing: '-0.3px' }}>{stat.number}</div>
                     {/* .stat-label */}
-                    <div className="truncate" style={{ fontSize: 12, fontWeight: 500, color: '#5a5a5a', marginTop: 2 }}>{label}</div>
+                    <div className="truncate" style={{ fontSize: 12, fontWeight: 500, color: '#5a5a5a', marginTop: 2 }}>{stat.label}</div>
                   </div>
                 </div>
               ))}
@@ -255,50 +258,47 @@ const Home = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
             {/* ── LEFT: Trending list ── */}
-            <div className="lg:col-span-4 bg-[#241b15] p-5 text-white rounded-md">
-              {/* .trending-head */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
-                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 19, lineHeight: 1.2, textTransform: 'uppercase' }}>
-                  <span style={{ color: '#d99a3d', display: 'block' }}>Trending</span>
-                  <span style={{ display: 'block', color: '#fff' }}>Products</span>
-                </div>
-                <button
-                  onClick={() => navigate('/local-reels')}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#d99a3d', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', marginTop: 2, fontFamily: 'inherit' }}
-                >
-                  View All
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></svg>
-                </button>
-              </div>
-
-              {/* Trend items */}
-              {[
-                { num: '01', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=100&h=100&fit=crop', title: 'Premium Office Chair',       sub: 'ErgoComfort Pro',         meta: '1.2K views · 86 leads' },
-                { num: '02', img: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=100&h=100&fit=crop', title: 'Digital Marketing Service',  sub: 'Grow Your Brand Online',  meta: '980 views · 64 leads' },
-                { num: '03', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=100&h=100&fit=crop', title: 'Solar Rooftop System',       sub: 'Save Electricity Bills',  meta: '875 views · 59 leads' },
-                { num: '04', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=100&h=100&fit=crop', title: 'Modern Modular Kitchen',     sub: 'Designs That Inspire',    meta: '765 views · 51 leads' },
-                { num: '05', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=100&h=100&fit=crop', title: 'Corporate Gift Hampers',     sub: 'For Every Occasion',      meta: '680 views · 48 leads' },
-              ].map(({ num, img, title, sub, meta }, i, arr) => (
-                <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: i < arr.length - 1 ? '1px solid #3a3630' : 'none' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#d99a3d', width: 20, flexShrink: 0 }}>{num}</div>
-                  <img src={img} alt={title} style={{ width: 42, height: 42, borderRadius: 6, objectFit: 'cover', flexShrink: 0, background: '#333' }} />
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: '#fff', lineHeight: 1.3 }}>{title}</div>
-                    <div style={{ fontSize: 11, color: '#8a8578', marginTop: 1 }}>{sub}</div>
-                    <div style={{ fontSize: 10.5, color: '#8a8578', marginTop: 2, fontWeight: 500 }}>{meta}</div>
+            <div className="lg:col-span-4 bg-[#241b15] p-5 text-white rounded-md flex flex-col justify-between">
+              <div>
+                {/* .trending-head */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
+                  <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 19, lineHeight: 1.2, textTransform: 'uppercase' }}>
+                    <span style={{ color: '#d99a3d', display: 'block' }}>Trending</span>
+                    <span style={{ display: 'block', color: '#fff' }}>Products</span>
                   </div>
+                  <button
+                    onClick={() => navigate('/local-reels')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#d99a3d', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', marginTop: 2, fontFamily: 'inherit' }}
+                  >
+                    View All
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></svg>
+                  </button>
                 </div>
-              ))}
+
+                {/* Trend items */}
+                {trendingList.map(({ num, img, title, sub, meta, id }, i, arr) => (
+                  <div
+                    key={id || num || i}
+                    onClick={() => navigate(id ? `/listings/search?q=${encodeURIComponent(title)}` : '/local-reels')}
+                    className="cursor-pointer group"
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: i < arr.length - 1 ? '1px solid #3a3630' : 'none' }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#d99a3d', width: 20, flexShrink: 0 }}>{num}</div>
+                    <img src={img} alt={title} style={{ width: 42, height: 42, borderRadius: 6, objectFit: 'cover', flexShrink: 0, background: '#333' }} />
+                    <div className="min-w-0">
+                      <div className="group-hover:text-[#d99a3d] transition-colors truncate" style={{ fontSize: 12.5, fontWeight: 600, color: '#fff', lineHeight: 1.3 }}>{title}</div>
+                      <div className="truncate" style={{ fontSize: 11, color: '#8a8578', marginTop: 1 }}>{sub}</div>
+                      <div className="truncate" style={{ fontSize: 10.5, color: '#8a8578', marginTop: 2, fontWeight: 500 }}>{meta}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* ── MIDDLE: Product cards ── */}
             <div className="lg:col-span-5 bg-[#241b15] p-5 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-md">
-              {[
-                { badge: 'Featured', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=500&h=650&fit=crop', views: '2.1K', title: 'ErgoComfort Pro Premium Office Chair', category: 'Furniture' },
-                { badge: null,       img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&h=650&fit=crop', views: '1.8K', title: 'Social Media Growth Service',          category: 'Digital Marketing' },
-                { badge: null,       img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&h=650&fit=crop', views: '3.4K', title: 'Solar Rooftop System 3kW On-Grid',    category: 'Energy' },
-              ].map(({ badge, img, views, title, category }) => (
-                <div key={title} style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: 10, overflow: 'hidden', backgroundColor: '#242118' }}>
+              {featuredCards.map(({ badge, img, views, title, category, id }) => (
+                <div key={id || title} style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: 10, overflow: 'hidden', backgroundColor: '#242118' }}>
                   {/* Card media */}
                   <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', flexShrink: 0 }}>
                     <img src={img} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -314,10 +314,10 @@ const Home = () => {
                   </div>
                   {/* Card body */}
                   <div style={{ padding: '14px 12px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 6 }}>{title}</h3>
+                    <h3 className="line-clamp-2" style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 6 }}>{title}</h3>
                     <span style={{ fontSize: 11.5, fontWeight: 600, color: '#d99a3d', marginBottom: 12, display: 'block', flexShrink: 0 }}>{category}</span>
                     <button
-                      onClick={() => navigate('/auth/register')}
+                      onClick={() => navigate(id ? `/listings/search?q=${encodeURIComponent(title)}` : '/auth/register')}
                       style={{ display: 'block', textAlign: 'center', background: '#d99a3d', color: '#1a1a1a', fontSize: 12.5, fontWeight: 700, padding: 9, borderRadius: 6, border: 'none', cursor: 'pointer', marginTop: 'auto', fontFamily: 'inherit', transition: 'background .15s ease', width: '100%' }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = '#c8872b'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = '#d99a3d'; }}
@@ -388,49 +388,32 @@ const Home = () => {
               </p>
             </div>
 
-            {/* Category items */}
-            {[
-              {
-                label: 'Electronics',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 28, height: 28 }}><rect x="7" y="2" width="10" height="20" rx="2" /><line x1="11" y1="18" x2="13" y2="18" /></svg>,
-              },
-              {
-                label: 'Home & Living',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 28, height: 28 }}><path d="M4 13a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3H4z" /><path d="M5 16v3M19 16v3" /><path d="M6 13V9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4" /></svg>,
-              },
-              {
-                label: 'Fashion',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 28, height: 28 }}><path d="M6 8h12l-1 13H7z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>,
-              },
-              {
-                label: 'Automotive',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 28, height: 28 }}><path d="M3 16v-2.5a2 2 0 0 1 1.3-1.9l1.8-.6L7.6 7.8A2 2 0 0 1 9.4 7h5.2a2 2 0 0 1 1.8 1.1l1.7 3.3 2 .8a2 2 0 0 1 1.3 1.9V16" /><line x1="3" y1="16" x2="21" y2="16" /><circle cx="7.5" cy="16.5" r="1.7" fill="currentColor" stroke="none" /><circle cx="16.5" cy="16.5" r="1.7" fill="currentColor" stroke="none" /></svg>,
-              },
-              {
-                label: 'Business Services',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 28, height: 28 }}><rect x="3" y="8" width="18" height="11" rx="2" /><path d="M9 8V6.5A1.5 1.5 0 0 1 10.5 5h3A1.5 1.5 0 0 1 15 6.5V8" /><line x1="3" y1="13" x2="21" y2="13" /></svg>,
-              },
-              {
-                label: 'Health & Wellness',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 28, height: 28 }}><path d="M12 21s-7-4.6-9.5-9C1 8.5 2.5 5 6 5c2 0 3.4 1.2 4 2.2C10.6 6.2 12 5 14 5c3.5 0 5 3.5 3.5 7-2.5 4.4-9.5 9-9.5 9z" /><polyline points="6 12 9 12 10.5 9 13 15 14.5 12 18 12" /></svg>,
-              },
-              {
-                label: 'More',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 28, height: 28 }}><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></svg>,
-              },
-            ].map(({ label, svg }) => (
+            {/* Category items (Backend dynamic + default fallback) */}
+            {(feed.categories && feed.categories.length > 0 ? feed.categories : [
+              { name: 'Electronics' },
+              { name: 'Home & Living' },
+              { name: 'Fashion' },
+              { name: 'Automotive' },
+              { name: 'Business Services' },
+              { name: 'Health & Wellness' },
+              { name: 'More' }
+            ]).map((cat, idx) => (
               <button
-                key={label}
-                onClick={() => navigate('/creator-marketplace')}
+                key={cat._id || cat.name || idx}
+                onClick={() => navigate(`/listings/search?category=${encodeURIComponent(cat.name)}`)}
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit' }}
                 onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
               >
                 {/* .cat-icon */}
                 <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a' }}>
-                  {svg}
+                  {cat.icon_url ? (
+                    <img src={cat.icon_url} alt={cat.name} className="w-7 h-7 object-contain" />
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 28, height: 28 }}><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></svg>
+                  )}
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', whiteSpace: 'nowrap' }}>{label}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', whiteSpace: 'nowrap' }} className="truncate max-w-[90px]">{cat.name}</span>
               </button>
             ))}
 
