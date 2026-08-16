@@ -249,8 +249,8 @@ export default function ListingCard({
             }}
             className="w-full py-2 px-3 rounded-lg bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
           >
-            <FiPackage size={13} />
-            <span>View Details & Order</span>
+            {isService ? <FiTool size={13} /> : <FiPackage size={13} />}
+            <span>{isService ? 'View & Book Service' : 'View Details & Order'}</span>
           </button>
         </div>
       </div>

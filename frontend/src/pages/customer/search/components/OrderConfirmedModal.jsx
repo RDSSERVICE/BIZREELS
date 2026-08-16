@@ -1,7 +1,7 @@
 import React from 'react';
-import { FiCheckCircle, FiPackage, FiTruck } from 'react-icons/fi';
+import { FiCheckCircle, FiCalendar, FiPackage, FiTruck } from 'react-icons/fi';
 
-export default function OrderConfirmedModal({ isOpen, onClose }) {
+export default function OrderConfirmedModal({ isOpen, onClose, isService = false }) {
   if (!isOpen) return null;
 
   return (
@@ -11,21 +11,25 @@ export default function OrderConfirmedModal({ isOpen, onClose }) {
           <FiCheckCircle size={32} />
         </div>
         <div>
-          <h3 className="text-lg font-black text-[#1a1a1a]">Order Request Confirmed!</h3>
+          <h3 className="text-lg font-black text-[#1a1a1a]">
+            {isService ? 'Service Booking Confirmed!' : 'Order Request Confirmed!'}
+          </h3>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            Your order request has been sent to the vendor. You can pay the vendor directly upon confirmation or delivery via UPI / QR / Cash.
+            {isService
+              ? 'Your service booking request has been sent to the provider. You can pay directly via UPI / QR / Cash upon appointment completion.'
+              : 'Your order request has been sent to the vendor. You can pay the vendor directly upon confirmation or delivery via UPI / QR / Cash.'}
           </p>
         </div>
 
         <div className="bg-[#f8f4ec] p-3 rounded-xl border border-[#e3dccb] text-left text-xs space-y-1.5 text-slate-600">
           <div className="flex items-center gap-2 font-bold text-[#1a1a1a]">
-            <FiTruck className="text-[#d99a3d]" />
+            {isService ? <FiCalendar className="text-[#d99a3d]" /> : <FiTruck className="text-[#d99a3d]" />}
             <span>Next Steps:</span>
           </div>
           <p className="text-[11px] leading-relaxed">
-            1. Vendor will review your order details and contact you.
+            1. Provider will review your {isService ? 'appointment time & address' : 'order details'} and contact you.
             <br />
-            2. You can track status anytime under <strong>Customer Activities → My Orders</strong>.
+            2. You can track status anytime under <strong>Customer Activities → {isService ? 'My Orders' : 'My Orders'}</strong>.
           </p>
         </div>
 

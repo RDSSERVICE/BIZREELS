@@ -722,6 +722,7 @@ export default function SearchListingsPage() {
         <OrderConfirmedModal
           isOpen={orderConfirmedModal}
           onClose={() => setOrderConfirmedModal(false)}
+          isService={selectedItem?.type === 'service'}
         />
       </div>
     </div>

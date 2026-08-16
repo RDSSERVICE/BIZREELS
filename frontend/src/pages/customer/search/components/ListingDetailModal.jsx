@@ -75,11 +75,15 @@ export default function ListingDetailModal({
   setReviewText,
   handleAddReview,
 }) {
-  const navigate = useNavigate();
+  const isService = selectedItem?.type === 'service';
+
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [orderAddress, setOrderAddress] = useState('');
   const [orderQty, setOrderQty] = useState(1);
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('09:00 AM - 12:00 PM');
+  const [bookingNotes, setBookingNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('vendor_upi'); // 'vendor_upi', 'vendor_qr', 'cod', 'bank_transfer'
   const [orderSubmitting, setOrderSubmitting] = useState(false);
 
@@ -116,7 +120,10 @@ export default function ListingDetailModal({
     try {
       await handleOrderRequest(selectedItem, {
         address: orderAddress.trim(),
-        quantity: Number(orderQty) || 1,
+        quantity: isService ? 1 : (Number(orderQty) || 1),
+        bookingDate: isService ? bookingDate : '',
+        bookingTime: isService ? bookingTime : '',
+        bookingNotes: isService ? bookingNotes : '',
         paymentMethod,
         paymentDetails: {
           method: paymentMethod,
@@ -322,29 +329,37 @@ export default function ListingDetailModal({
                   onClick={() => setShowOrderForm(!showOrderForm)}
                   className="py-2.5 px-2 rounded-xl bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
                 >
-                  <FiShoppingCart size={13} />
-                  <span className="truncate">{showOrderForm ? 'Hide Order' : 'Order Now'}</span>
+                  {isService ? <FiClock size={13} /> : <FiShoppingCart size={13} />}
+                  <span className="truncate">
+                    {showOrderForm
+                      ? isService ? 'Hide Booking' : 'Hide Order'
+                      : isService ? 'Book Service' : 'Order Now'}
+                  </span>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ── DIRECT VENDOR PAYMENT & ORDER REQUEST FORM ── */}
+        {/* ── DIRECT VENDOR PAYMENT & ORDER/BOOKING REQUEST FORM ── */}
         {showOrderForm && (
           <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-4 animate-fade-in">
             <div className="flex items-center justify-between border-b border-[#e3dccb] pb-2.5">
               <div>
                 <h3 className="text-sm font-black text-[#1a1a1a] flex items-center gap-1.5">
-                  <FiShoppingCart className="text-[#d99a3d]" />
-                  <span>Direct Vendor Order Request</span>
+                  {isService ? <FiClock className="text-[#d99a3d]" /> : <FiShoppingCart className="text-[#d99a3d]" />}
+                  <span>{isService ? 'Direct Service Booking Request' : 'Direct Vendor Order Request'}</span>
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  Payment is made directly to the vendor via UPI, QR code, or Cash on Delivery.
+                  {isService
+                    ? 'Schedule your service visit. Payment is made directly to the service provider via UPI, QR code, or Cash.'
+                    : 'Payment is made directly to the vendor via UPI, QR code, or Cash on Delivery.'}
                 </p>
               </div>
               <span className="text-xs font-black text-[#1a1a1a] bg-white px-2.5 py-1 rounded-md border border-[#e3dccb]">
-                Total: ₹{(priceVal * (Number(orderQty) || 1)).toLocaleString('en-IN')}
+                {isService
+                  ? `Charge: ₹${priceVal.toLocaleString('en-IN')}`
+                  : `Total: ₹${(priceVal * (Number(orderQty) || 1)).toLocaleString('en-IN')}`}
               </span>
             </div>
 
@@ -380,7 +395,7 @@ export default function ListingDetailModal({
                   <span>Vendor QR Code</span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Scan & pay at delivery / pickup
+                  Scan & pay at visit / delivery
                 </p>
               </div>
 
@@ -394,7 +409,7 @@ export default function ListingDetailModal({
               >
                 <div className="flex items-center gap-2 font-bold text-[#1a1a1a]">
                   <FiDollarSign className="text-emerald-600" />
-                  <span>Cash on Delivery</span>
+                  <span>{isService ? 'Cash after Service' : 'Cash on Delivery'}</span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
                   Pay cash to vendor directly
@@ -403,33 +418,98 @@ export default function ListingDetailModal({
             </div>
 
             <form onSubmit={onConfirmOrder} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <div className="sm:col-span-1 space-y-1">
-                  <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">Quantity</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={orderQty}
-                    onChange={(e) => setOrderQty(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
-                  />
-                </div>
+              {isService ? (
+                /* Service Specific Booking Inputs */
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">
+                        Preferred Booking Date *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={bookingDate}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setBookingDate(e.target.value)}
+                        className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                      />
+                    </div>
 
-                <div className="sm:col-span-3 space-y-1">
-                  <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">
-                    Delivery Address / Location Landmark *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter complete delivery address or shop pickup note..."
-                    value={orderAddress}
-                    onChange={(e) => setOrderAddress(e.target.value)}
-                    className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#d99a3d]"
-                  />
+                    <div className="space-y-1">
+                      <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">
+                        Preferred Time Slot *
+                      </label>
+                      <select
+                        value={bookingTime}
+                        onChange={(e) => setBookingTime(e.target.value)}
+                        className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                      >
+                        <option value="09:00 AM - 12:00 PM">Morning (09:00 AM - 12:00 PM)</option>
+                        <option value="12:00 PM - 03:00 PM">Afternoon (12:00 PM - 03:00 PM)</option>
+                        <option value="03:00 PM - 06:00 PM">Evening (03:00 PM - 06:00 PM)</option>
+                        <option value="06:00 PM - 09:00 PM">Night (06:00 PM - 09:00 PM)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">
+                      Service Visit Address / Location Landmark *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter complete address for service visit..."
+                      value={orderAddress}
+                      onChange={(e) => setOrderAddress(e.target.value)}
+                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#d99a3d]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">
+                      Special Requirements / Service Notes (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Please bring extra spare parts or specific tools..."
+                      value={bookingNotes}
+                      onChange={(e) => setBookingNotes(e.target.value)}
+                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#d99a3d]"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Product Specific Order Inputs */
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="sm:col-span-1 space-y-1">
+                    <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">Quantity</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={orderQty}
+                      onChange={(e) => setOrderQty(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3 space-y-1">
+                    <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">
+                      Delivery Address / Location Landmark *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter complete delivery address or shop pickup note..."
+                      value={orderAddress}
+                      onChange={(e) => setOrderAddress(e.target.value)}
+                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#d99a3d]"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-1">
                 <button
@@ -441,10 +521,12 @@ export default function ListingDetailModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={orderSubmitting || !orderAddress.trim()}
+                  disabled={orderSubmitting || !orderAddress.trim() || (isService && !bookingDate)}
                   className="px-5 py-2 rounded-lg bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-black transition shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {orderSubmitting ? 'Submitting Order...' : 'Confirm Order Request'}
+                  {orderSubmitting
+                    ? isService ? 'Submitting Booking...' : 'Submitting Order...'
+                    : isService ? 'Confirm Service Booking' : 'Confirm Order Request'}
                 </button>
               </div>
             </form>
