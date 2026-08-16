@@ -420,7 +420,7 @@ export default function CustomerLayout() {
       {/* Main Content Container */}
       <div className="flex-1 min-w-0 w-full max-w-full lg:ml-64 flex flex-col h-screen max-h-screen overflow-hidden">
         {/* Top Header Bar */}
-        <header className="shrink-0 bg-[#f2ede4] border-b border-[#e3dccb] px-4 py-3 flex items-center justify-between gap-2 z-20">
+        <header className="shrink-0 bg-[#f2ede4] border-b border-[#e3dccb] px-4 py-3 flex items-center justify-between gap-2 z-40 relative">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -473,7 +473,7 @@ export default function CustomerLayout() {
               </button>
 
               {isRoleDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-md shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-2 font-sans">
+                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-md shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
                   <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
                     Switch Active Role
                   </div>
