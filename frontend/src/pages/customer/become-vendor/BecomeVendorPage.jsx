@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   FiBriefcase, FiCheckCircle, FiDollarSign, FiFileText, FiMapPin,
   FiCreditCard, FiArrowRight, FiShield, FiUser, FiTruck, FiClock,
   FiUploadCloud, FiSearch, FiCheck, FiGlobe, FiPhone, FiMessageSquare,
-  FiMail, FiCamera, FiImage, FiCompass, FiX, FiLayers, FiPackage,
-  FiInfo, FiTag, FiNavigation, FiRefreshCw, FiAlertCircle
+  FiMail, FiCamera, FiImage, FiCompass, FiX, FiLayers, FiTag, FiNavigation
 } from 'react-icons/fi';
 import { useAddRoleMutation } from '../../../features/auth/authApi';
 import { useListCategoriesQuery } from '../../../features/admin/adminApi';
@@ -25,6 +24,35 @@ const BUSINESS_TYPES = [
   { id: 'Freelancer', label: 'Freelancer', desc: 'Independent contractor or creative professional' },
 ];
 
+// Time translation helpers
+const format24to12 = (timeStr) => {
+  if (!timeStr) return '';
+  if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let hour = parseInt(parts[0], 10);
+  const min = parts[1];
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  hour = hour ? hour : 12;
+  return `${hour.toString().padStart(2, '0')}:${min} ${ampm}`;
+};
+
+const format12to24 = (timeStr) => {
+  if (!timeStr) return '09:00';
+  if (!timeStr.includes('AM') && !timeStr.includes('PM')) return timeStr;
+  const parts = timeStr.trim().split(/\s+/);
+  if (parts.length < 2) return '09:00';
+  const ampm = parts[1].toUpperCase();
+  const timeSplit = parts[0].split(':');
+  if (timeSplit.length < 2) return '09:00';
+  let hour = parseInt(timeSplit[0], 10);
+  const min = timeSplit[1];
+  if (ampm === 'PM' && hour < 12) hour += 12;
+  if (ampm === 'AM' && hour === 12) hour = 0;
+  return `${hour.toString().padStart(2, '0')}:${min}`;
+};
+
 export default function BecomeVendorPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -35,36 +63,26 @@ export default function BecomeVendorPage() {
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
 
-  // 1. Business Model & Vendor Type
+  // 1. Business Type & Vendor Type
   const [businessType, setBusinessType] = useState('Retailer');
-  const [vendorType, setVendorType] = useState('both'); // 'both' | 'product' | 'service'
+  const [vendorType, setVendorType] = useState('both'); // 'product', 'service', 'both'
 
-  // 2. Shop Branding & Information
+  // 2. Shop / Business Info
   const [shopName, setShopName] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [businessDescription, setBusinessDescription] = useState('');
-  const [shopLogo, setShopLogo] = useState(user?.profile_pic || user?.avatarUrl || '');
-  const [shopCoverImage, setShopCoverImage] = useState('');
-
-  // 3. Category & Subcategory Selection (Fetched Dynamically from Backend)
-  const {
-    data: categoriesDataRes,
-    isLoading: categoriesLoading,
-    isError: categoriesError,
-    refetch: refetchCategories
-  } = useListCategoriesQuery();
-
+  const { data: categoriesDataRes } = useListCategoriesQuery();
   const categoriesList = categoriesDataRes?.items || categoriesDataRes?.categories || (Array.isArray(categoriesDataRes) ? categoriesDataRes : []);
 
-  const dynamicCategoriesData = useMemo(() => {
-    if (!categoriesList || categoriesList.length === 0) {
-      return {};
-    }
+  const dynamicCategoriesData = React.useMemo(() => {
     const data = {};
     const parents = categoriesList.filter(c => {
       if (c.parent_id) return false;
-      if (vendorType === 'product') return c.category_type === 'product' || !c.category_type;
-      if (vendorType === 'service') return c.category_type === 'service' || !c.category_type;
+      if (vendorType === 'product') {
+        return c.category_type === 'product' || !c.category_type;
+      }
+      if (vendorType === 'service') {
+        return c.category_type === 'service' || !c.category_type;
+      }
       return true;
     });
     const children = categoriesList.filter(c => c.parent_id);
@@ -82,31 +100,33 @@ export default function BecomeVendorPage() {
 
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedSubCategories, setSelectedSubCategories] = useState([]);
+
+  // States for searchable dropdowns & terms modal
   const [catSearch, setCatSearch] = useState('');
+  const [subSearch, setSubSearch] = useState('');
+  const [showCatDropdown, setShowCatDropdown] = useState(false);
+  const [showSubDropdown, setShowSubDropdown] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
-  // Auto-select first category when dynamic categories load from database
+  // Reset category selections when vendorType changes to prevent cross-type garbage data
   useEffect(() => {
-    const keys = Object.keys(dynamicCategoriesData);
-    if (keys.length > 0) {
-      setSelectedCategories(prev => {
-        const valid = prev.filter(c => keys.includes(c));
-        if (valid.length > 0) return valid;
-        return [keys[0]];
-      });
-      const firstCategorySubs = dynamicCategoriesData[keys[0]] || [];
-      if (firstCategorySubs.length > 0 && selectedSubCategories.length === 0) {
-        setSelectedSubCategories([firstCategorySubs[0]]);
-      }
-    }
-  }, [dynamicCategoriesData]);
+    setSelectedCategories([]);
+    setSelectedSubCategories([]);
+    setCatSearch('');
+    setSubSearch('');
+  }, [vendorType]);
 
-  // 4. Contact & Social Channels
+  const [businessDescription, setBusinessDescription] = useState('');
+  const [shopLogo, setShopLogo] = useState(user?.profile_pic || user?.avatarUrl || '');
+  const [shopCoverImage, setShopCoverImage] = useState('');
+
+  // 3. Contact Info
   const [mobileNumber, setMobileNumber] = useState(user?.phone || '');
   const [whatsappNumber, setWhatsappNumber] = useState(user?.phone || '');
   const [email, setEmail] = useState(user?.email || '');
   const [website, setWebsite] = useState('');
 
-  // 5. Business Address
+  // 4. Business Address
   const [pincode, setPincode] = useState('');
   const [stateName, setStateName] = useState('Madhya Pradesh');
   const [district, setDistrict] = useState('Indore');
@@ -115,28 +135,39 @@ export default function BecomeVendorPage() {
   const [fullAddress, setFullAddress] = useState('');
   const [googleMapLocation, setGoogleMapLocation] = useState('');
 
-  // 6. Delivery & Service Area
+  // 5. Delivery & Service Area
   const [homeDeliveryEnabled, setHomeDeliveryEnabled] = useState(true);
   const [homeDeliveryRadius, setHomeDeliveryRadius] = useState('5 km');
   const [homeDeliveryMinOrder, setHomeDeliveryMinOrder] = useState('200');
   const [homeDeliveryCharge, setHomeDeliveryCharge] = useState('30');
+
   const [courierByVendor, setCourierByVendor] = useState(true);
   const [customerVisitShop, setCustomerVisitShop] = useState(true);
+
   const [serviceAtCustomerLocation, setServiceAtCustomerLocation] = useState(false);
   const [serviceRadius, setServiceRadius] = useState('10 km');
   const [serviceMinOrder, setServiceMinOrder] = useState('500');
 
-  // 7. Business Timing
-  const [open24x7, setOpen24x7] = useState(false);
+  // 6. Business Timing
   const [openingTime, setOpeningTime] = useState('09:00 AM');
   const [closingTime, setClosingTime] = useState('09:00 PM');
   const [weeklyOff, setWeeklyOff] = useState('Sunday');
+  const [open24x7, setOpen24x7] = useState(false);
 
-  // 8. Declaration & Terms Modal
+  const toggleWeeklyOffDay = (day) => {
+    let currentDays = weeklyOff === 'None' ? [] : weeklyOff.split(', ').filter(Boolean);
+    if (currentDays.includes(day)) {
+      currentDays = currentDays.filter(d => d !== day);
+    } else {
+      currentDays = [...currentDays, day];
+    }
+    setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
+  };
+
+  // 7. Terms Declaration
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
 
-  // Auto Pincode Lookup
+  // Pincode auto-lookup
   const handlePincodeLookup = async (codeToSearch) => {
     const targetCode = codeToSearch || pincode;
     if (!targetCode || targetCode.length !== 6) return;
@@ -149,16 +180,15 @@ export default function BecomeVendorPage() {
         if (data.state) setStateName(data.state);
         if (data.district || data.city) setDistrict(data.district || data.city);
         if (data.area && !areaLocality) setAreaLocality(data.area);
-        toast.success(`Location auto-fetched: ${data.city || data.area || ''}, ${data.state || ''}`);
+        toast.success(`Location auto-fetched: ${data.city || data.area}, ${data.state}`);
       }
     } catch (err) {
-      // Ignore if offline
+      toast.error('Could not auto-fetch pincode data. Please enter address manually.');
     } finally {
       setPincodeLoading(false);
     }
   };
 
-  // Detect GPS Location
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
@@ -166,7 +196,7 @@ export default function BecomeVendorPage() {
     }
 
     setDetectingLocation(true);
-    const toastId = toast.loading('Detecting your GPS location...');
+    const toastId = toast.loading('Detecting your current location...');
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -186,19 +216,26 @@ export default function BecomeVendorPage() {
             if (data.area) setAreaLocality(data.area);
             if (data.fullAddress) setFullAddress(data.fullAddress);
             setGoogleMapLocation(`https://www.google.com/maps?q=${latitude},${longitude}`);
-            toast.success('GPS Location auto-detected!', { id: toastId });
+            toast.success('Location auto-detected successfully!', { id: toastId });
           } else {
-            toast.success('GPS coordinates saved!', { id: toastId });
+            toast.error('Unable to fetch location details.', { id: toastId });
           }
         } catch (err) {
-          setGoogleMapLocation(`https://www.google.com/maps?q=${latitude},${longitude}`);
-          toast.success('Coordinates captured successfully', { id: toastId });
+          toast.error('Failed to resolve address from coordinates.', { id: toastId });
         } finally {
           setDetectingLocation(false);
         }
       },
       (error) => {
-        toast.error('Could not detect location. Please type manually.', { id: toastId });
+        let msg = 'Failed to retrieve location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          msg = 'Location permission denied by user.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          msg = 'Location information is unavailable.';
+        } else if (error.code === error.TIMEOUT) {
+          msg = 'Location request timed out.';
+        }
+        toast.error(msg, { id: toastId });
         setDetectingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -211,55 +248,14 @@ export default function BecomeVendorPage() {
     }
   }, [pincode]);
 
-  // Universal Image Upload Helper
-  const handleImageUpload = async (e, setImageState, label) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const previewUrl = URL.createObjectURL(file);
-    setImageState(previewUrl);
-
-    const toastId = toast.loading(`Uploading ${label || 'image'}...`);
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      const res = await api.post('/v1/upload/image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      const url = res.data?.url || res.data?.data?.url || res.url;
-      if (url) {
-        setImageState(url);
-        toast.success(`${label || 'Image'} uploaded successfully!`, { id: toastId });
-      } else {
-        toast.success(`${label || 'Image'} ready!`, { id: toastId });
-      }
-    } catch (err) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setImageState(reader.result);
-        }
-        toast.success(`${label || 'Image'} attached!`, { id: toastId });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const toggleCategory = (cat) => {
     if (selectedCategories.includes(cat)) {
-      if (selectedCategories.length === 1) {
-        toast.error('Please keep at least one category selected');
-        return;
-      }
       setSelectedCategories(selectedCategories.filter(c => c !== cat));
+      // Auto-remove subcategories of the removed category
       const subsToRemove = dynamicCategoriesData[cat] || [];
       setSelectedSubCategories(selectedSubCategories.filter(s => !subsToRemove.includes(s)));
     } else {
       setSelectedCategories([...selectedCategories, cat]);
-      const newSubs = dynamicCategoriesData[cat] || [];
-      if (newSubs.length > 0) {
-        setSelectedSubCategories(prev => [...prev, newSubs[0]]);
-      }
     }
   };
 
@@ -271,50 +267,82 @@ export default function BecomeVendorPage() {
     }
   };
 
-  const filteredCategories = useMemo(() => {
+  const filteredCategories = React.useMemo(() => {
     const allCats = Object.keys(dynamicCategoriesData);
     if (!catSearch) return allCats;
     return allCats.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase()));
   }, [dynamicCategoriesData, catSearch]);
 
-  const availableSubcategories = useMemo(() => {
+  const availableSubcategories = React.useMemo(() => {
     return selectedCategories.flatMap(cat => dynamicCategoriesData[cat] || []);
   }, [dynamicCategoriesData, selectedCategories]);
 
-  const toggleWeeklyOffDay = (day) => {
-    let currentDays = weeklyOff === 'None' ? [] : weeklyOff.split(', ').filter(Boolean);
-    if (currentDays.includes(day)) {
-      currentDays = currentDays.filter(d => d !== day);
-    } else {
-      currentDays = [...currentDays, day];
+  const filteredSubcategories = React.useMemo(() => {
+    if (!subSearch) return availableSubcategories;
+    return availableSubcategories.filter(sub => sub.toLowerCase().includes(subSearch.toLowerCase()));
+  }, [availableSubcategories, subSearch]);
+
+  // Image upload helper
+  const handleImageUpload = async (e, setImageState, label) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const toastId = toast.loading(`Uploading ${label || 'image'}...`);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await api.post('/v1/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const url = res.data?.url || res.data?.data?.url || res.url;
+      if (url) {
+        setImageState(url);
+        toast.success(`${label || 'Image'} uploaded successfully!`, { id: toastId });
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImageState(reader.result);
+          toast.success(`${label || 'Image'} attached`, { id: toastId });
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageState(reader.result);
+        toast.success(`${label || 'Image'} attached`, { id: toastId });
+      };
+      reader.readAsDataURL(file);
     }
-    setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!shopName.trim()) {
+    if (!shopName) {
       toast.error('Shop / Business Name is required');
       return;
     }
-    if (!mobileNumber.trim()) {
-      toast.error('Primary Mobile Number is required');
+    if (!mobileNumber) {
+      toast.error('Mobile Number is required');
       return;
     }
     if (!pincode || pincode.length !== 6) {
       toast.error('Please enter a valid 6-digit PIN code');
       return;
     }
-    if (!fullAddress.trim()) {
+    if (!fullAddress) {
       toast.error('Full Business Address is required');
       return;
     }
-    if (selectedCategories.length === 0) {
-      toast.error('Please select at least one Business Category');
+    if (!termsAccepted) {
+      toast.error('Please accept the Vendor Declaration & Terms & Conditions');
       return;
     }
-    if (!termsAccepted) {
-      toast.error('Please accept the Vendor Terms & Conditions');
+
+    if (selectedCategories.length === 0) {
+      toast.error('Please select at least one business category');
       return;
     }
 
@@ -322,7 +350,7 @@ export default function BecomeVendorPage() {
     try {
       const vendorProfileData = {
         businessType,
-        vendorType,
+        vendorType, // Save selected vendor type (product/service/both)
         shopName: shopName.trim(),
         displayName: displayName.trim() || shopName.trim(),
         categories: selectedCategories,
@@ -379,6 +407,7 @@ export default function BecomeVendorPage() {
         createdAt: new Date().toISOString()
       };
 
+      // 1. Update Profile in backend
       await api.patch('/v1/users/me', {
         profile_pic: shopLogo || user?.profile_pic || undefined,
         avatarUrl: shopLogo || user?.avatarUrl || undefined,
@@ -386,9 +415,11 @@ export default function BecomeVendorPage() {
         city: city || user?.city || 'Local'
       });
 
+      // 2. Add 'vendor' role
       const roleRes = await addRoleApi({ role: 'vendor', profileData: vendorProfileData }).unwrap();
       const updatedUser = roleRes.user || roleRes.data?.user || roleRes;
 
+      // 3. Switch active role to 'vendor'
       try {
         await api.post('/v1/users/me/switch-role', { role: 'vendor' });
       } catch (e) {}
@@ -402,20 +433,19 @@ export default function BecomeVendorPage() {
         }
       }));
 
-      toast.success('🎉 Congratulations! Vendor Storefront registered successfully!');
+      toast.success('🎉 Congratulations! Your Vendor Portal is launched successfully!');
       navigate('/vendor/dashboard', { replace: true });
     } catch (err) {
-      console.error('Vendor registration failed:', err);
-      toast.error(err?.data?.message || 'Failed to register vendor profile. Please check details.');
+      toast.error('Failed to register vendor profile. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 font-sans p-2 sm:p-4 min-h-screen pb-16">
-      {/* Header Banner */}
-      <div className="bg-[#241b15] text-white p-6 rounded-2xl border-2 border-[#241b15] shadow-premium flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="max-w-4xl mx-auto space-y-6 font-sans p-2 sm:p-4 min-h-screen pb-16">
+      {/* Header Banner - Matching Customer Layout & Home Style */}
+      <div className="bg-[#241b15] text-white p-6 rounded-2xl border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">
             GROW YOUR LOCAL STOREFRONT &amp; REELS
@@ -424,7 +454,7 @@ export default function BecomeVendorPage() {
             REGISTER AS A BIZREELS VENDOR
           </h1>
           <p className="text-xs text-slate-300 mt-1 max-w-xl">
-            Showcase products &amp; services to verified local customers, publish promotional reels, receive inquiries, and grow your local market presence.
+            Launch your online business storefront, showcase products &amp; services, post boosted reels, receive direct inquiries, and manage orders on BizReels.
           </p>
         </div>
 
@@ -435,39 +465,15 @@ export default function BecomeVendorPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* SECTION 1: BUSINESS MODEL & CATALOG TYPE */}
+        {/* SECTION 1: BUSINESS TYPE */}
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-5">
-          <div className="border-b border-[#e3dccb] pb-3 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">1</span>
-              <div>
-                <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">
-                  BUSINESS MODEL &amp; CATALOG TYPE
-                </h3>
-                <p className="text-[11px] text-slate-500">Select what you sell and your commercial operation format</p>
-              </div>
-            </div>
-
-            {/* Catalog Type Pills */}
-            <div className="flex bg-[#f8f4ec] p-1 rounded-xl border border-[#e3dccb] gap-1">
-              {[
-                { id: 'both', label: 'Products & Services' },
-                { id: 'product', label: 'Products Only' },
-                { id: 'service', label: 'Services Only' },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setVendorType(t.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    vendorType === t.id
-                      ? 'bg-[#241b15] text-[#d99a3d] shadow-xs'
-                      : 'text-slate-600 hover:text-[#1a1a1a]'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+          <div className="border-b border-[#e3dccb] pb-3 flex items-center gap-3">
+            <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">1</span>
+            <div>
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">
+                Business Type &amp; Model
+              </h3>
+              <p className="text-[11px] text-slate-500">Select the model that best describes your commercial operations</p>
             </div>
           </div>
 
@@ -495,108 +501,21 @@ export default function BecomeVendorPage() {
           </div>
         </div>
 
-        {/* SECTION 2: SHOP IDENTITY & BRANDING */}
+        {/* SECTION 2: SHOP / BUSINESS INFORMATION */}
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-5">
           <div className="border-b border-[#e3dccb] pb-3 flex items-center gap-3">
             <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">2</span>
             <div>
               <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">
-                STORE IDENTITY, LOGO &amp; BANNER
+                Shop &amp; Business Information
               </h3>
-              <p className="text-[11px] text-slate-500">Add shop title, logo photo, cover banner and description</p>
+              <p className="text-[11px] text-slate-500">Your storefront branding, categories, and images</p>
             </div>
           </div>
 
-          {/* Photo & Banner Upload Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb]">
-            {/* Shop Logo */}
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-2xl bg-white border-2 border-[#e3dccb] overflow-hidden flex items-center justify-center relative shrink-0 shadow-xs">
-                {shopLogo ? (
-                  <img src={resolveMediaUrl(shopLogo)} alt="Shop Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-400">
-                    <FiCamera size={22} />
-                    <span className="text-[9px] font-bold mt-1">NO LOGO</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1.5 flex-1">
-                <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider block">
-                  Shop Logo / Profile Photo
-                </label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#241b15] text-[#d99a3d] text-xs font-bold rounded-lg hover:bg-[#342820] transition cursor-pointer">
-                    <FiCamera size={13} />
-                    <span>{shopLogo ? 'Change Photo' : 'Upload Logo'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleImageUpload(e, setShopLogo, 'Shop Logo')}
-                    />
-                  </label>
-                  {shopLogo && (
-                    <button
-                      type="button"
-                      onClick={() => setShopLogo('')}
-                      className="text-xs font-bold text-rose-500 hover:underline px-2 py-1"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-                <p className="text-[10px] text-slate-500">Square PNG or JPG image (Max 5MB)</p>
-              </div>
-            </div>
-
-            {/* Shop Cover Banner */}
-            <div className="flex items-center gap-4">
-              <div className="w-28 h-20 rounded-2xl bg-white border-2 border-[#e3dccb] overflow-hidden flex items-center justify-center relative shrink-0 shadow-xs">
-                {shopCoverImage ? (
-                  <img src={resolveMediaUrl(shopCoverImage)} alt="Cover Banner" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-400">
-                    <FiImage size={22} />
-                    <span className="text-[9px] font-bold mt-1">NO BANNER</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1.5 flex-1">
-                <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider block">
-                  Cover Banner <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e3dccb] text-[#1a1a1a] text-xs font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer">
-                    <FiImage size={13} />
-                    <span>{shopCoverImage ? 'Change Banner' : 'Upload Banner'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleImageUpload(e, setShopCoverImage, 'Cover Banner')}
-                    />
-                  </label>
-                  {shopCoverImage && (
-                    <button
-                      type="button"
-                      onClick={() => setShopCoverImage('')}
-                      className="text-xs font-bold text-rose-500 hover:underline px-2 py-1"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-                <p className="text-[10px] text-slate-500">Storefront header background banner</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
                 Shop / Business Name *
               </label>
               <input
@@ -604,231 +523,358 @@ export default function BecomeVendorPage() {
                 required
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
-                placeholder="e.g. Kumar Electronics & Mobiles"
-                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl px-4 py-2.5 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
+                placeholder="e.g. Trends Boutique Store"
+                className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-                Display Name / Brand Title
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
+                Display Name (Optional)
               </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="e.g. Kumar Electronics Raipur"
-                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl px-4 py-2.5 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
+                placeholder="e.g. Trends Retail Store"
+                className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
               />
             </div>
           </div>
 
+          {/* Vendor Type Selection */}
+          <div className="border-t border-[#e3dccb] pt-4">
+            <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-2">
+              Vendor Type (Product / Service / Both) *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { id: 'product', label: 'Product Vendor', desc: 'Offers categories related to physical goods and products' },
+                { id: 'service', label: 'Service Provider', desc: 'Offers categories related to local and specialized services' },
+                { id: 'both', label: 'Product & Service', desc: 'Offers both product and service categories' },
+              ].map((vt) => {
+                const selected = vendorType === vt.id;
+                return (
+                  <div
+                    key={vt.id}
+                    onClick={() => setVendorType(vt.id)}
+                    className={`cursor-pointer p-4 rounded-xl border transition-all flex flex-col justify-between ${
+                      selected
+                        ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                        : 'bg-[#f8f4ec] border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-extrabold">{vt.label}</span>
+                      {selected && <FiCheck className="text-[#d99a3d]" size={15} />}
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight">{vt.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Categories Searchable Dropdown */}
+          <div className="relative">
+            <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-2 flex justify-between items-center">
+              <span>Business Category (Select all that apply) *</span>
+              {selectedCategories.length > 0 && (
+                <span className="text-[10px] text-[#d99a3d] font-bold">Selected: {selectedCategories.length}</span>
+              )}
+            </label>
+            
+            {/* Selected category tags */}
+            {selectedCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {selectedCategories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#241b15] text-[#d99a3d] border border-[#241b15] rounded-xl text-xs font-bold shadow-xs"
+                  >
+                    <FiLayers size={12} className="text-[#d99a3d]" />
+                    {cat}
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(cat)}
+                      className="text-[#d99a3d] hover:text-rose-400 font-bold focus:outline-none ml-1 text-sm cursor-pointer"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Searchable input control */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <FiSearch className="text-slate-400 w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                value={catSearch}
+                onChange={(e) => {
+                  setCatSearch(e.target.value);
+                  setShowCatDropdown(true);
+                }}
+                onFocus={() => setShowCatDropdown(true)}
+                placeholder="Search categories (e.g. Electronics, Clothing, Salon)..."
+                className="w-full pl-9 pr-10 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCatDropdown(!showCatDropdown)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-[#1a1a1a] text-xs cursor-pointer"
+              >
+                ▼
+              </button>
+            </div>
+
+            {/* Dropdown Options */}
+            {showCatDropdown && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowCatDropdown(false)} />
+                <div className="absolute left-0 right-0 mt-1.5 max-h-60 overflow-y-auto bg-white border border-[#e3dccb] rounded-xl shadow-xl z-40 p-2 space-y-1 animate-fade-in">
+                  {filteredCategories.length === 0 ? (
+                    <p className="text-xs text-slate-400 p-3 text-center">No matching categories found</p>
+                  ) : (
+                    filteredCategories.map((cat) => {
+                      const isSelected = selectedCategories.includes(cat);
+                      return (
+                        <div
+                          key={cat}
+                          onClick={() => {
+                            toggleCategory(cat);
+                            setCatSearch('');
+                          }}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                            isSelected
+                              ? 'bg-[#241b15] text-[#d99a3d]'
+                              : 'hover:bg-[#f8f4ec] text-slate-700'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <FiLayers size={13} className={isSelected ? 'text-[#d99a3d]' : 'text-slate-400'} />
+                            {cat}
+                          </span>
+                          {isSelected && <FiCheck className="w-3.5 h-3.5 text-[#d99a3d]" />}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Sub Categories Searchable Dropdown */}
+          <div className="relative">
+            <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-2 flex justify-between items-center">
+              <span>Sub Category / Specialty (Select all that apply)</span>
+              {selectedSubCategories.length > 0 && (
+                <span className="text-[10px] text-[#d99a3d] font-bold">Selected: {selectedSubCategories.length}</span>
+              )}
+            </label>
+
+            {/* Selected subcategory tags */}
+            {selectedSubCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {selectedSubCategories.map((sub) => (
+                  <span
+                    key={sub}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#d99a3d] text-[#1a1a1a] border border-[#d99a3d] rounded-xl text-xs font-bold shadow-xs"
+                  >
+                    <FiTag size={12} />
+                    {sub}
+                    <button
+                      type="button"
+                      onClick={() => toggleSubCategory(sub)}
+                      className="text-[#1a1a1a] hover:text-rose-600 font-bold focus:outline-none ml-1 text-sm cursor-pointer"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Searchable input control */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <FiSearch className="text-slate-400 w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                disabled={selectedCategories.length === 0}
+                value={subSearch}
+                onChange={(e) => {
+                  setSubSearch(e.target.value);
+                  setShowSubDropdown(true);
+                }}
+                onFocus={() => setShowSubDropdown(true)}
+                placeholder={selectedCategories.length === 0 ? "Please select a category above first" : "Search subcategories..."}
+                className="w-full pl-9 pr-10 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all disabled:opacity-50"
+              />
+              <button
+                type="button"
+                disabled={selectedCategories.length === 0}
+                onClick={() => setShowSubDropdown(!showSubDropdown)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-[#1a1a1a] text-xs disabled:opacity-50 cursor-pointer"
+              >
+                ▼
+              </button>
+            </div>
+
+            {/* Dropdown Options */}
+            {showSubDropdown && selectedCategories.length > 0 && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowSubDropdown(false)} />
+                <div className="absolute left-0 right-0 mt-1.5 max-h-60 overflow-y-auto bg-white border border-[#e3dccb] rounded-xl shadow-xl z-40 p-2 space-y-1 animate-fade-in">
+                  {filteredSubcategories.length === 0 ? (
+                    <p className="text-xs text-slate-400 p-3 text-center">No matching subcategories found</p>
+                  ) : (
+                    filteredSubcategories.map((sub) => {
+                      const isSelected = selectedSubCategories.includes(sub);
+                      return (
+                        <div
+                          key={sub}
+                          onClick={() => {
+                            toggleSubCategory(sub);
+                            setSubSearch('');
+                          }}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                            isSelected
+                              ? 'bg-[#d99a3d] text-[#1a1a1a]'
+                              : 'hover:bg-[#f8f4ec] text-slate-700'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <FiTag size={12} className={isSelected ? 'text-[#1a1a1a]' : 'text-slate-400'} />
+                            {sub}
+                          </span>
+                          {isSelected && <FiCheck className="w-3.5 h-3.5 text-[#1a1a1a]" />}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
           <div>
-            <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-              Shop Description &amp; Specialty Offerings
+            <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
+              Business Description &amp; Specialty
             </label>
             <textarea
               rows={3}
               value={businessDescription}
               onChange={(e) => setBusinessDescription(e.target.value)}
-              placeholder="Tell buyers about your shop, top selling brands, best warranty, fast delivery, doorstep repairs..."
-              className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl p-3.5 text-xs font-medium text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all resize-none"
+              placeholder="Describe your products, services, specialization, warranty, fast delivery, and offerings..."
+              className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-medium text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all resize-none"
             />
           </div>
-        </div>
 
-        {/* SECTION 3: CATEGORIES & SUBCATEGORIES SELECTION */}
-        <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-5">
-          <div className="border-b border-[#e3dccb] pb-3 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">3</span>
-              <div>
-                <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">
-                  BUSINESS CATEGORIES &amp; SERVICES
-                </h3>
-                <p className="text-[11px] text-slate-500">Pick all product categories and sub-services you provide</p>
-              </div>
-            </div>
-
-            {/* Category Search Input */}
-            {!categoriesLoading && !categoriesError && filteredCategories.length > 0 && (
-              <div className="relative">
-                <FiSearch className="absolute left-3 top-2.5 text-slate-400 w-3.5 h-3.5" />
-                <input
-                  type="text"
-                  value={catSearch}
-                  onChange={(e) => setCatSearch(e.target.value)}
-                  placeholder="Search category..."
-                  className="pl-8 pr-3 py-1.5 text-xs font-semibold bg-[#f8f4ec] border border-[#e3dccb] rounded-lg focus:outline-none focus:border-[#d99a3d]"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* SKELETON SHIMMER LOADER */}
-          {categoriesLoading ? (
-            <div className="space-y-4 py-2">
-              <div className="space-y-2.5">
-                <div className="h-3 w-44 bg-slate-200 animate-pulse rounded"></div>
-                <div className="flex flex-wrap gap-2.5">
-                  {[130, 160, 120, 150, 140, 170, 110, 145].map((w, i) => (
-                    <div
-                      key={i}
-                      style={{ width: `${w}px` }}
-                      className="h-10 rounded-xl bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 animate-pulse border border-slate-200 flex items-center px-3.5 gap-2"
-                    >
-                      <div className="w-3.5 h-3.5 rounded bg-slate-300"></div>
-                      <div className="h-2.5 bg-slate-300 rounded flex-1"></div>
-                    </div>
-                  ))}
+          {/* Shop Logo & Cover Upload */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="bg-[#f8f4ec] p-4 rounded-xl border border-[#e3dccb]">
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-2">
+                Shop Logo / Profile Photo
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16 rounded-xl border-2 border-[#e3dccb] bg-white flex items-center justify-center overflow-hidden flex-shrink-0 shadow-xs">
+                  {shopLogo ? (
+                    <img src={resolveMediaUrl ? resolveMediaUrl(shopLogo) : shopLogo} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <FiCamera className="w-6 h-6 text-slate-400" />
+                  )}
                 </div>
-              </div>
-
-              <div className="space-y-2.5 pt-3 border-t border-[#e3dccb]/60">
-                <div className="h-3 w-36 bg-slate-200 animate-pulse rounded"></div>
-                <div className="flex flex-wrap gap-2">
-                  {[90, 110, 125, 95, 105, 115, 85].map((w, i) => (
-                    <div
-                      key={i}
-                      style={{ width: `${w}px` }}
-                      className="h-8 rounded-lg bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 animate-pulse border border-slate-200"
-                    ></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : categoriesError ? (
-            /* ERROR STATE WITH RETRY */
-            <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 text-xs text-rose-700 font-bold">
-                <FiAlertCircle size={16} />
-                <span>Could not load categories from database.</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => refetchCategories()}
-                className="px-3.5 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <FiRefreshCw size={12} />
-                <span>Retry</span>
-              </button>
-            </div>
-          ) : filteredCategories.length === 0 ? (
-            /* EMPTY STATE */
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
-              No categories found for this vendor type. Please select another business model or contact support.
-            </div>
-          ) : (
-            /* DYNAMIC CATEGORIES GRID */
-            <>
-              <div className="space-y-3">
-                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block">
-                  Primary Business Categories (Click to select multiple):
+                <label className="cursor-pointer px-3.5 py-2 bg-[#241b15] text-[#d99a3d] rounded-xl text-xs font-bold hover:bg-[#342820] transition flex items-center gap-2 shadow-xs">
+                  <FiUploadCloud size={14} /> Upload Logo
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, setShopLogo, 'Shop Logo')} />
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {filteredCategories.map((cat) => {
-                    const isSelected = selectedCategories.includes(cat);
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => toggleCategory(cat)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
-                            : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb] hover:bg-slate-100'
-                        }`}
-                      >
-                        <FiLayers size={13} className={isSelected ? 'text-[#d99a3d]' : 'text-slate-500'} />
-                        <span>{cat}</span>
-                        {isSelected && <FiCheck className="text-[#d99a3d]" size={14} />}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
+            </div>
 
-              {/* Subcategories Selector */}
-              {availableSubcategories.length > 0 && (
-                <div className="space-y-3 pt-3 border-t border-[#e3dccb]">
-                  <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block">
-                    Target Subcategories / Offerings:
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {availableSubcategories.map((sub) => {
-                      const isSelected = selectedSubCategories.includes(sub);
-                      return (
-                        <button
-                          key={sub}
-                          type="button"
-                          onClick={() => toggleSubCategory(sub)}
-                          className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#d99a3d] font-bold shadow-xs'
-                              : 'bg-white text-slate-700 border-[#e3dccb] hover:bg-slate-50'
-                          }`}
-                        >
-                          <FiTag size={11} />
-                          <span>{sub}</span>
-                          {isSelected && <FiCheck size={12} />}
-                        </button>
-                      );
-                    })}
-                  </div>
+            <div className="bg-[#f8f4ec] p-4 rounded-xl border border-[#e3dccb]">
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-2">
+                Shop Cover Banner
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="w-24 h-16 rounded-xl border-2 border-[#e3dccb] bg-white flex items-center justify-center overflow-hidden flex-shrink-0 shadow-xs">
+                  {shopCoverImage ? (
+                    <img src={resolveMediaUrl ? resolveMediaUrl(shopCoverImage) : shopCoverImage} alt="Cover" className="w-full h-full object-cover" />
+                  ) : (
+                    <FiImage className="w-6 h-6 text-slate-400" />
+                  )}
                 </div>
-              )}
-            </>
-          )}
+                <label className="cursor-pointer px-3.5 py-2 bg-white border border-[#e3dccb] text-[#1a1a1a] rounded-xl text-xs font-bold hover:bg-slate-50 transition flex items-center gap-2 shadow-xs">
+                  <FiUploadCloud size={14} /> Upload Banner
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, setShopCoverImage, 'Cover Banner')} />
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* SECTION 4: CONTACT DETAILS & CHANNELS */}
+        {/* SECTION 3: CONTACT INFORMATION */}
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-5">
           <div className="border-b border-[#e3dccb] pb-3 flex items-center gap-3">
-            <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">4</span>
+            <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">3</span>
             <div>
               <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">
-                CONTACT CHANNELS &amp; SOCIAL PRESENCE
+                Contact Channels &amp; Inquiries
               </h3>
-              <p className="text-[11px] text-slate-500">Provide direct communication links for customers</p>
+              <p className="text-[11px] text-slate-500">Direct contact channels for customer leads and inquiries</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
                 Primary Calling Mobile Number *
               </label>
               <div className="relative">
                 <FiPhone className="absolute left-3.5 top-3 text-slate-400 w-4 h-4" />
                 <input
-                  type="text"
+                  type="tel"
                   required
                   value={mobileNumber}
                   onChange={(e) => setMobileNumber(e.target.value)}
-                  placeholder="10-digit primary phone"
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  placeholder="e.g. +91 9876543210"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-                WhatsApp Chat Number
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest">
+                  WhatsApp Number
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setWhatsappNumber(mobileNumber)}
+                  className="text-[10px] text-[#d99a3d] font-bold hover:underline cursor-pointer bg-transparent border-none p-0"
+                >
+                  Same as Mobile
+                </button>
+              </div>
               <div className="relative">
-                <FiMessageSquare className="absolute left-3.5 top-3 text-slate-400 w-4 h-4" />
+                <FiMessageSquare className="absolute left-3.5 top-3 text-emerald-600 w-4 h-4" />
                 <input
-                  type="text"
+                  type="tel"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
-                  placeholder="WhatsApp number for inquiries"
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  placeholder="e.g. +91 9876543210"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
                 Business Email Address
               </label>
               <div className="relative">
@@ -837,38 +883,38 @@ export default function BecomeVendorPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="contact@yourbusiness.com"
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  placeholder="e.g. info@trendsstore.com"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-                Website / Online Catalog Link
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
+                Website / Online Catalog (Optional)
               </label>
               <div className="relative">
                 <FiGlobe className="absolute left-3.5 top-3 text-slate-400 w-4 h-4" />
                 <input
-                  type="text"
+                  type="url"
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
-                  placeholder="https://yourstore.com"
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  placeholder="e.g. https://www.trendsstore.com"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* SECTION 5: PHYSICAL STORE ADDRESS & GPS */}
+        {/* SECTION 4: BUSINESS ADDRESS & PINCODE AUTO-LOOKUP */}
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-5">
           <div className="border-b border-[#e3dccb] pb-3 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">5</span>
+              <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">4</span>
               <div>
                 <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">
-                  PHYSICAL STORE ADDRESS &amp; LOCATION
+                  Physical Store Address &amp; GPS
                 </h3>
                 <p className="text-[11px] text-slate-500">Pinpoint your shop so nearby customers can navigate to you</p>
               </div>
@@ -879,17 +925,17 @@ export default function BecomeVendorPage() {
               type="button"
               onClick={handleDetectLocation}
               disabled={detectingLocation}
-              className="px-3.5 py-1.5 bg-[#241b15] text-[#d99a3d] text-xs font-bold rounded-xl hover:bg-[#342820] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-3.5 py-1.5 bg-[#241b15] text-[#d99a3d] text-xs font-bold rounded-xl hover:bg-[#342820] transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
             >
               <FiNavigation className={detectingLocation ? 'animate-spin' : ''} size={13} />
               <span>{detectingLocation ? 'Detecting GPS...' : 'Auto-Detect Location (GPS)'}</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-                Pincode * {pincodeLoading && <span className="text-[#d99a3d] font-bold animate-pulse">(fetching...)</span>}
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
+                PIN Code * {pincodeLoading && <span className="text-[#d99a3d] font-bold animate-pulse text-[10px]">(fetching...)</span>}
               </label>
               <input
                 type="text"
@@ -897,40 +943,40 @@ export default function BecomeVendorPage() {
                 maxLength={6}
                 value={pincode}
                 onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="6-digit PIN"
-                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl px-4 py-2.5 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                placeholder="6-Digit PIN Code"
+                className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-                City / Location *
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
+                City / Town *
               </label>
               <input
                 type="text"
                 required
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Indore, Raipur, Durg"
-                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl px-4 py-2.5 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                placeholder="Auto-fetched or enter City"
+                className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
                 District
               </label>
               <input
                 type="text"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                placeholder="e.g. Indore"
-                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl px-4 py-2.5 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                placeholder="District Name"
+                className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
                 State *
               </label>
               <input
@@ -938,200 +984,234 @@ export default function BecomeVendorPage() {
                 required
                 value={stateName}
                 onChange={(e) => setStateName(e.target.value)}
-                placeholder="e.g. Madhya Pradesh"
-                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl px-4 py-2.5 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                placeholder="State Name"
+                className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
                 Area / Locality / Market Name
               </label>
               <input
                 type="text"
                 value={areaLocality}
                 onChange={(e) => setAreaLocality(e.target.value)}
-                placeholder="e.g. Near City Mall, Main Market, MG Road"
-                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl px-4 py-2.5 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                placeholder="e.g. Commercial Hub, Main Market"
+                className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-                Google Maps Link / Coordinates
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
+                Google Maps Location Link / Pin
               </label>
-              <input
-                type="text"
-                value={googleMapLocation}
-                onChange={(e) => setGoogleMapLocation(e.target.value)}
-                placeholder="https://maps.google.com/..."
-                className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl px-4 py-2.5 text-xs font-semibold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
-              />
+              <div className="relative">
+                <FiCompass className="absolute left-3.5 top-3 text-[#d99a3d] w-4 h-4" />
+                <input
+                  type="text"
+                  value={googleMapLocation}
+                  onChange={(e) => setGoogleMapLocation(e.target.value)}
+                  placeholder="https://maps.google.com/..."
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
+                />
+              </div>
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-              Full Physical Business Address *
+            <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
+              Full Physical Address *
             </label>
             <textarea
-              rows={2}
               required
+              rows={2}
               value={fullAddress}
               onChange={(e) => setFullAddress(e.target.value)}
-              placeholder="Shop No., Floor, Building Name, Street / Landmark, Pin Code..."
-              className="w-full bg-[#f8f4ec] border border-[#e3dccb] rounded-xl p-3.5 text-xs font-medium text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all resize-none"
+              placeholder="Shop No., Floor, Building Name, Street Address, Landmark..."
+              className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-medium text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all resize-none"
             />
           </div>
         </div>
 
-        {/* SECTION 6: DELIVERY & SERVICE RADIUS */}
+        {/* SECTION 5: DELIVERY & SERVICE AREA */}
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-5">
           <div className="border-b border-[#e3dccb] pb-3 flex items-center gap-3">
-            <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">6</span>
+            <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">5</span>
             <div>
               <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">
-                DELIVERY MODES &amp; SERVICE RADIUS
+                Delivery Modes &amp; Service Radius
               </h3>
-              <p className="text-[11px] text-slate-500">Configure how buyers receive your goods and services</p>
+              <p className="text-[11px] text-slate-500">Configure how customer orders and service calls are fulfilled</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Home Delivery Card */}
-            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FiTruck className="text-[#d99a3d] w-5 h-5" />
-                  <span className="text-xs font-extrabold text-[#1a1a1a] uppercase">Local Home Delivery</span>
+          {/* Home Delivery */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#f8f4ec] border border-[#e3dccb] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <FiTruck className="w-5 h-5 text-[#d99a3d]" />
+                <div>
+                  <h4 className="text-xs font-extrabold text-[#1a1a1a] uppercase">Local Home Delivery</h4>
+                  <p className="text-[10px] text-slate-500">Deliver products directly to customer doorstep</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={homeDeliveryEnabled}
-                    onChange={(e) => setHomeDeliveryEnabled(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#241b15]"></div>
-                </label>
               </div>
-
-              {homeDeliveryEnabled && (
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#e3dccb]">
-                  <div>
-                    <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Max Radius</label>
-                    <input
-                      type="text"
-                      value={homeDeliveryRadius}
-                      onChange={(e) => setHomeDeliveryRadius(e.target.value)}
-                      placeholder="e.g. 5 km"
-                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#1a1a1a]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Min Order (₹)</label>
-                    <input
-                      type="number"
-                      value={homeDeliveryMinOrder}
-                      onChange={(e) => setHomeDeliveryMinOrder(e.target.value)}
-                      placeholder="200"
-                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#1a1a1a]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Delivery Fee (₹)</label>
-                    <input
-                      type="number"
-                      value={homeDeliveryCharge}
-                      onChange={(e) => setHomeDeliveryCharge(e.target.value)}
-                      placeholder="30"
-                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#1a1a1a]"
-                    />
-                  </div>
-                </div>
-              )}
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={homeDeliveryEnabled}
+                  onChange={(e) => setHomeDeliveryEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#241b15]"></div>
+              </label>
             </div>
 
-            {/* On-Site / Doorstep Service Card */}
-            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FiCompass className="text-[#d99a3d] w-5 h-5" />
-                  <span className="text-xs font-extrabold text-[#1a1a1a] uppercase">Doorstep / On-Site Service</span>
+            {homeDeliveryEnabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-[#e3dccb]">
+                <div>
+                  <label className="block text-[9px] font-extrabold text-slate-600 uppercase mb-1">Free Delivery Radius</label>
+                  <select
+                    value={homeDeliveryRadius}
+                    onChange={(e) => setHomeDeliveryRadius(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a]"
+                  >
+                    <option value="500 mtr">500 mtr</option>
+                    <option value="1 km">1 km</option>
+                    <option value="2 km">2 km</option>
+                    <option value="5 km">5 km</option>
+                    <option value="10 km">10 km</option>
+                    <option value="15 km">15 km</option>
+                    <option value="20 km+">20 km+</option>
+                  </select>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={serviceAtCustomerLocation}
-                    onChange={(e) => setServiceAtCustomerLocation(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#241b15]"></div>
-                </label>
-              </div>
 
-              {serviceAtCustomerLocation && (
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#e3dccb]">
-                  <div>
-                    <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Service Radius</label>
-                    <input
-                      type="text"
-                      value={serviceRadius}
-                      onChange={(e) => setServiceRadius(e.target.value)}
-                      placeholder="e.g. 15 km"
-                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#1a1a1a]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Min Booking (₹)</label>
-                    <input
-                      type="number"
-                      value={serviceMinOrder}
-                      onChange={(e) => setServiceMinOrder(e.target.value)}
-                      placeholder="500"
-                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#1a1a1a]"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-[9px] font-extrabold text-slate-600 uppercase mb-1">Min Order for Free Delivery (₹)</label>
+                  <input
+                    type="number"
+                    value={homeDeliveryMinOrder}
+                    onChange={(e) => setHomeDeliveryMinOrder(e.target.value)}
+                    placeholder="e.g. 200"
+                    className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a]"
+                  />
                 </div>
-              )}
+
+                <div>
+                  <label className="block text-[9px] font-extrabold text-slate-600 uppercase mb-1">Delivery Charge Outside Radius (₹)</label>
+                  <input
+                    type="number"
+                    value={homeDeliveryCharge}
+                    onChange={(e) => setHomeDeliveryCharge(e.target.value)}
+                    placeholder="e.g. 40"
+                    className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a]"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Courier by Vendor */}
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-extrabold text-[#1a1a1a] uppercase">Courier / Parcel Shipping</h4>
+                <p className="text-[10px] text-slate-500">Ship orders nationwide via courier</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={courierByVendor}
+                  onChange={(e) => setCourierByVendor(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#241b15]"></div>
+              </label>
+            </div>
+
+            {/* Customer Visit Shop */}
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-extrabold text-[#1a1a1a] uppercase">In-Store Walk-In Visit</h4>
+                <p className="text-[10px] text-slate-500">Allow customers to visit offline shop</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={customerVisitShop}
+                  onChange={(e) => setCustomerVisitShop(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#241b15]"></div>
+              </label>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-4 pt-2">
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
-              <input
-                type="checkbox"
-                checked={customerVisitShop}
-                onChange={(e) => setCustomerVisitShop(e.target.checked)}
-                className="w-4 h-4 rounded text-[#241b15] focus:ring-[#d99a3d]"
-              />
-              <span>In-Store Walk-in / Customer Visit Allowed</span>
-            </label>
+          {/* Service at Customer Location */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#f8f4ec] border border-[#e3dccb] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <FiCompass className="w-5 h-5 text-[#d99a3d]" />
+                <div>
+                  <h4 className="text-xs font-extrabold text-[#1a1a1a] uppercase">Doorstep / On-Site Service</h4>
+                  <p className="text-[10px] text-slate-500">Provide repair, maintenance, or home visits</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={serviceAtCustomerLocation}
+                  onChange={(e) => setServiceAtCustomerLocation(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#241b15]"></div>
+              </label>
+            </div>
 
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
-              <input
-                type="checkbox"
-                checked={courierByVendor}
-                onChange={(e) => setCourierByVendor(e.target.checked)}
-                className="w-4 h-4 rounded text-[#241b15] focus:ring-[#d99a3d]"
-              />
-              <span>All-India Courier / Parcel Shipping Available</span>
-            </label>
+            {serviceAtCustomerLocation && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#e3dccb]">
+                <div>
+                  <label className="block text-[9px] font-extrabold text-slate-600 uppercase mb-1">Service Coverage Radius</label>
+                  <select
+                    value={serviceRadius}
+                    onChange={(e) => setServiceRadius(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a]"
+                  >
+                    <option value="500 mtr">500 mtr</option>
+                    <option value="1 km">1 km</option>
+                    <option value="2 km">2 km</option>
+                    <option value="5 km">5 km</option>
+                    <option value="10 km">10 km</option>
+                    <option value="15 km">15 km</option>
+                    <option value="25 km+">25 km+</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-extrabold text-slate-600 uppercase mb-1">Min Order Request Price (₹)</label>
+                  <input
+                    type="number"
+                    value={serviceMinOrder}
+                    onChange={(e) => setServiceMinOrder(e.target.value)}
+                    placeholder="e.g. 500"
+                    className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a]"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* SECTION 7: BUSINESS TIMING & WORKING HOURS */}
+        {/* SECTION 6: BUSINESS TIMING */}
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-5">
           <div className="border-b border-[#e3dccb] pb-3 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">7</span>
+              <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">6</span>
               <div>
                 <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">
-                  BUSINESS TIMING &amp; WEEKLY OFF
+                  Business Timing &amp; Working Hours
                 </h3>
-                <p className="text-[11px] text-slate-500">Show buyers your open business hours and off days</p>
+                <p className="text-[11px] text-slate-500">Set operating hours and weekly off days</p>
               </div>
             </div>
 
@@ -1151,80 +1231,73 @@ export default function BecomeVendorPage() {
           </div>
 
           {!open24x7 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-                  Opening Time
-                </label>
-                <div className="relative">
-                  <FiClock className="absolute left-3.5 top-3 text-slate-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    value={openingTime}
-                    onChange={(e) => setOpeningTime(e.target.value)}
-                    placeholder="09:00 AM"
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
-                  />
+            <div className="space-y-4 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">Opening Time</label>
+                  <div className="relative">
+                    <FiClock className="absolute left-3.5 top-3 text-slate-400 w-4 h-4" />
+                    <input
+                      type="time"
+                      value={format12to24(openingTime)}
+                      onChange={(e) => setOpeningTime(format24to12(e.target.value))}
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">Closing Time</label>
+                  <div className="relative">
+                    <FiClock className="absolute left-3.5 top-3 text-slate-400 w-4 h-4" />
+                    <input
+                      type="time"
+                      value={format12to24(closingTime)}
+                      onChange={(e) => setClosingTime(format24to12(e.target.value))}
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-1">
-                  Closing Time
-                </label>
-                <div className="relative">
-                  <FiClock className="absolute left-3.5 top-3 text-slate-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    value={closingTime}
-                    onChange={(e) => setClosingTime(e.target.value)}
-                    placeholder="09:00 PM"
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
-                  />
+                <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-2">Weekly Off Days</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                    const isSelected = weeklyOff !== 'None' && weeklyOff.split(', ').includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleWeeklyOffDay(day)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                          isSelected
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                            : 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-slate-100'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setWeeklyOff('None')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                      weeklyOff === 'None'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-slate-100'
+                    }`}
+                  >
+                    Open All Days (No Off)
+                  </button>
                 </div>
               </div>
             </div>
           )}
-
-          {/* Weekly Off Selector */}
-          <div>
-            <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block mb-2">
-              Weekly Off Day(s):
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
-                const isSelected = weeklyOff !== 'None' && weeklyOff.split(', ').includes(day);
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => toggleWeeklyOffDay(day)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
-                      isSelected
-                        ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                        : 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-slate-100'
-                    }`}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                onClick={() => setWeeklyOff('None')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
-                  weeklyOff === 'None'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                    : 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-slate-100'
-                }`}
-              >
-                Open 7 Days (No Weekly Off)
-              </button>
-            </div>
-          </div>
         </div>
 
-        {/* SECTION 8: DECLARATION & TERMS */}
+        {/* SECTION 7: DECLARATION & TERMS */}
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-4">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -1234,14 +1307,7 @@ export default function BecomeVendorPage() {
               className="mt-1 w-4 h-4 rounded text-[#241b15] focus:ring-[#d99a3d] border-[#e3dccb]"
             />
             <span className="text-xs text-slate-700 leading-relaxed font-medium">
-              I declare that all business information, prices, and address provided above are genuine and accurate. I agree to adhere to the{' '}
-              <button
-                type="button"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTermsModal(true); }}
-                className="font-extrabold text-[#d99a3d] underline cursor-pointer inline bg-transparent border-none p-0"
-              >
-                BizReels Vendor Terms of Service &amp; Community Policy
-              </button>.
+              I hereby declare that all business details, addresses, and contact numbers provided are true, valid, and authentic. I accept the <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTermsModal(true); }} className="font-extrabold text-[#d99a3d] underline cursor-pointer inline bg-transparent border-none p-0">BizReels Vendor Terms &amp; Conditions</button> and Privacy Policy.
             </span>
           </label>
         </div>
@@ -1252,48 +1318,61 @@ export default function BecomeVendorPage() {
           disabled={loading || !termsAccepted}
           className="w-full py-4 bg-[#241b15] text-[#d99a3d] border-2 border-[#241b15] rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-premium hover:bg-[#342820] transition flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
         >
-          <span>{loading ? 'Launching Vendor Portal...' : 'Register Storefront & Launch Vendor Portal'}</span>
+          <span>{loading ? 'Registering & Launching Portal...' : 'Complete Registration & Launch Vendor Portal'}</span>
           <FiArrowRight size={18} />
         </button>
       </form>
 
-      {/* TERMS MODAL */}
+      {/* Terms & Conditions Modal */}
       {showTermsModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto border border-[#e3dccb] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-[#e3dccb] rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl animate-scale-in">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-[#e3dccb] flex items-center justify-between">
               <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-base uppercase text-[#1a1a1a]">
-                BIZREELS VENDOR TERMS &amp; POLICY
+                BizReels Vendor Terms &amp; Conditions
               </h3>
               <button
+                type="button"
                 onClick={() => setShowTermsModal(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-all focus:outline-none cursor-pointer"
               >
-                <FiX size={18} />
+                <FiX size={20} />
               </button>
             </div>
 
-            <div className="text-xs text-slate-600 space-y-3 leading-relaxed">
-              <p>
-                <strong>1. Accurate Product &amp; Price Listings:</strong> Vendors must ensure that prices, warranties, and stock availability displayed on reels and product cards are authentic.
-              </p>
-              <p>
-                <strong>2. Prompt Inquiry Response:</strong> Direct chat messages and customer requirements should be answered in a timely and professional manner.
-              </p>
-              <p>
-                <strong>3. Delivery &amp; Quality Commitment:</strong> If home delivery or doorstep services are promised, the vendor is responsible for on-time fulfillment according to agreed rates.
-              </p>
-              <p>
-                <strong>4. Community Safety:</strong> Posting prohibited goods, counterfeit products, or deceptive marketing reels is strictly prohibited and leads to immediate store deactivation.
-              </p>
+            {/* Modal Body (Scrollable) */}
+            <div className="p-6 overflow-y-auto space-y-4 text-xs text-slate-600 leading-relaxed">
+              <p className="font-bold text-[#1a1a1a]">Welcome to the BizReels Vendor Storefront Program!</p>
+              <p>By registering as a vendor on BizReels, you agree to comply with and be bound by the following terms &amp; conditions:</p>
+              
+              <h4 className="font-bold text-[#1a1a1a] mt-3">1. Business Legitimacy</h4>
+              <p>You guarantee that all commercial details, shop name, address, categories, and documents submitted are correct, legitimate, and belong strictly to your legal entity or storefront.</p>
+              
+              <h4 className="font-bold text-[#1a1a1a] mt-3">2. Category Alignment</h4>
+              <p>You agree to tag your business storefront only under categories and subcategories in which you are licensed, qualified, and active. Misrepresentation of business type is grounds for account suspension.</p>
+              
+              <h4 className="font-bold text-[#1a1a1a] mt-3">3. Quotations &amp; Leads Communication</h4>
+              <p>BizReels facilitates leads matching from local customers. When posting quotes or bidding on requirements, you agree to provide authentic and transparent quotes. Unprofessional, spammy, or offensive quotes will lead to penalties.</p>
+              
+              <h4 className="font-bold text-[#1a1a1a] mt-3">4. Fees &amp; Wallet Balance</h4>
+              <p>Specific vendor tools, premium outreach credits, and lead connections are subject to credit costs/pricing. All credit transactions, deposits, and refunds are governed by the BizReels Wallet guidelines.</p>
+              
+              <h4 className="font-bold text-[#1a1a1a] mt-3">5. Delivery &amp; Service Standard</h4>
+              <p>Home delivery, services, and offline visits configured in this portal must be fulfilled with utmost customer satisfaction and quality. BizReels does not take direct responsibility for product defects or service disputes.</p>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-[#e3dccb]">
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-[#e3dccb] flex justify-end">
               <button
-                onClick={() => { setTermsAccepted(true); setShowTermsModal(false); }}
-                className="px-5 py-2.5 bg-[#241b15] text-[#d99a3d] font-bold text-xs rounded-xl hover:bg-[#342820] transition"
+                type="button"
+                onClick={() => {
+                  setTermsAccepted(true);
+                  setShowTermsModal(false);
+                }}
+                className="px-5 py-2.5 bg-[#241b15] text-[#d99a3d] font-bold text-xs rounded-xl hover:bg-[#342820] transition-all shadow-xs cursor-pointer"
               >
-                Accept &amp; Continue
+                Accept &amp; Agree
               </button>
             </div>
           </div>
