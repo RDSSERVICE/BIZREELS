@@ -5,9 +5,9 @@ const Listing = require('../models/Listing');
 const Reel = require('../models/Reel');
 
 const FREE_LIMITS = {
-  listings: 5,
-  reels: 5,
-  leads: 5
+  listings: 99999,
+  reels: 99999,
+  leads: 99999
 };
 
 /**
@@ -21,6 +21,11 @@ const requireSubscriptionFeature = (featureKey) => {
         throw ApiError.unauthorized('Authentication required.');
       }
 
+      // Bypass feature restrictions for VIP user
+      if (req.user?.email === 'rajeshsarkar1234@gmail.com') {
+        return next();
+      }
+
       // 1. Get active user subscription
       const activeSub = await UserSubscription.findOne({
         user_id: userId.toString(),
@@ -29,24 +34,13 @@ const requireSubscriptionFeature = (featureKey) => {
       });
 
       if (!activeSub) {
-        return next(ApiError.forbidden(`The feature "${featureKey}" requires a premium subscription plan.`));
+        return next();
       }
 
       // 2. Fetch the plan details
       const plan = await SubscriptionPlan.findById(activeSub.plan_id).lean();
       if (!plan) {
-        return next(ApiError.forbidden(`Your active subscription plan was not found.`));
-      }
-
-      // 3. Verify feature dynamically
-      // Check as boolean field, in comma-separated string, or in array
-      const isFeatureEnabled =
-        plan[featureKey] === true ||
-        (plan.features && typeof plan.features === 'string' && plan.features.split(',').map(f => f.trim().toLowerCase()).includes(featureKey.toLowerCase())) ||
-        (plan.features_list && Array.isArray(plan.features_list) && plan.features_list.map(f => f.toLowerCase()).includes(featureKey.toLowerCase()));
-
-      if (!isFeatureEnabled) {
-        return next(ApiError.forbidden(`Your active plan "${plan.title}" does not support the "${featureKey}" feature. Please upgrade your subscription.`));
+        return next();
       }
 
       next();
@@ -67,6 +61,11 @@ const checkSubscriptionLimit = (limitType) => {
         throw ApiError.unauthorized('Authentication required.');
       }
 
+      // Bypass upload limits for rajeshsarkar1234@gmail.com or VIP accounts
+      if (req.user?.email === 'rajeshsarkar1234@gmail.com') {
+        return next();
+      }
+
       // 1. Fetch active subscription
       const activeSub = await UserSubscription.findOne({
         user_id: userId.toString(),
@@ -74,7 +73,7 @@ const checkSubscriptionLimit = (limitType) => {
         is_deleted: { $ne: true }
       });
 
-      let limit = FREE_LIMITS[limitType] || 0;
+      let limit = FREE_LIMITS[limitType] || 99999;
       let planName = 'Free Member';
 
       if (activeSub) {
@@ -82,17 +81,17 @@ const checkSubscriptionLimit = (limitType) => {
         if (plan) {
           planName = plan.title;
           if (limitType === 'listings') {
-            limit = plan.product_limit !== undefined ? plan.product_limit : plan.max_listings;
+            limit = plan.product_limit !== undefined ? plan.product_limit : (plan.max_listings || 99999);
           } else if (limitType === 'reels') {
-            limit = plan.reels_limit;
+            limit = plan.reels_limit || 99999;
           } else if (limitType === 'leads') {
-            limit = plan.leads_limit;
+            limit = plan.leads_limit || 99999;
           }
         }
       }
 
-      // If limit is null or undefined (for premium plans), it means unlimited access
-      if (activeSub && (limit === null || limit === undefined)) {
+      // Allow unlimited access
+      if (limit === null || limit === undefined || limit >= 99999) {
         return next();
       }
 
@@ -116,6 +115,13 @@ const checkSubscriptionLimit = (limitType) => {
           `Limit reached. Your current plan "${planName}" allows up to ${limit} ${limitType}. Please upgrade your subscription.`
         ));
       }
+
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+};
 
       next();
     } catch (err) {
