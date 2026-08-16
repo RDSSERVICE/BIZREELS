@@ -53,21 +53,6 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  // Check if vendor/creator profile is incomplete before allowing dashboard access
-  const isAccessingVendor = allowedRoles.includes('vendor');
-  if (isAccessingVendor && !user?.vendorProfile?.shopName) {
-    if (location.pathname !== '/vendor/profile') {
-      return <Navigate to="/vendor/profile" replace />;
-    }
-  }
-
-  const isAccessingCreator = allowedRoles.includes('creator');
-  if (isAccessingCreator && !user?.creatorProfile?.displayName) {
-    if (location.pathname !== '/creator/profile') {
-      return <Navigate to="/creator/profile" replace />;
-    }
-  }
-
   const hasAllowedRole = allowedRoles.some(r => r === activeRole || userRoles.includes(r));
 
   if (!hasAllowedRole) {
