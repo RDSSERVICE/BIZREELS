@@ -7,10 +7,8 @@ const BACKEND_URL = rawBackendUrl.replace(/\/+$/, '');
 let socket = null;
 
 export function getSocket() {
-  if (socket && socket.connected) return socket;
-  if (socket) {
-    try { socket.disconnect(); } catch (e) {}
-  }
+  // If socket already exists (connecting, connected, or reconnecting), reuse the singleton
+  if (socket) return socket;
 
   const user = tokenStore.getUser();
   if (!user) return null;
@@ -19,7 +17,7 @@ export function getSocket() {
 
   socket = io(BACKEND_URL, {
     path: '/socket.io',
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     withCredentials: true,
     auth: token ? { token: token.startsWith('Bearer ') ? token : `Bearer ${token}` } : undefined,
     reconnection: true,
@@ -28,11 +26,11 @@ export function getSocket() {
   });
 
   socket.on('connect', () => {
-    console.log('Realtime socket connected:', socket.id);
+    // Socket connected
   });
 
   socket.on('connect_error', (err) => {
-    console.warn('Realtime socket connect error:', err.message);
+    console.warn('Realtime socket connect error:', err?.message || err);
   });
 
   return socket;

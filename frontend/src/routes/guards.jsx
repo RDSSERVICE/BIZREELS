@@ -38,13 +38,14 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
   const activeRole = useSelector(selectActiveRole);
   const user = useSelector(selectCurrentUser);
   const isLoading = useSelector(selectAuthLoading);
+  const location = useLocation();
 
   if (isLoading) {
     return <Loader fullPage />;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace />;
+    return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
   const userRoles = user?.roles || [];
@@ -55,14 +56,14 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
   // Check if vendor/creator profile is incomplete before allowing dashboard access
   const isAccessingVendor = allowedRoles.includes('vendor');
   if (isAccessingVendor && !user?.vendorProfile?.shopName) {
-    if (window.location.pathname !== '/vendor/profile') {
+    if (location.pathname !== '/vendor/profile') {
       return <Navigate to="/vendor/profile" replace />;
     }
   }
 
   const isAccessingCreator = allowedRoles.includes('creator');
   if (isAccessingCreator && !user?.creatorProfile?.displayName) {
-    if (window.location.pathname !== '/creator/profile') {
+    if (location.pathname !== '/creator/profile') {
       return <Navigate to="/creator/profile" replace />;
     }
   }

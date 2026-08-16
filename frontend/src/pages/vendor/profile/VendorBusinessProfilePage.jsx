@@ -87,7 +87,7 @@ function SearchableSelect({
     }
   }, [isOpen]);
 
-  const filteredOptions = options.filter(opt =>
+  const filteredOptions = (options || []).filter(opt =>
     String(opt).toLowerCase().includes(search.toLowerCase())
   );
 
@@ -217,7 +217,7 @@ export default function VendorBusinessProfilePage() {
   const vendorProfile = user.vendorProfile || {};
 
   const { data: categoriesDataRes } = useListCategoriesQuery();
-  const categoriesList = categoriesDataRes?.items || [];
+  const categoriesList = categoriesDataRes?.items || categoriesDataRes?.categories || (Array.isArray(categoriesDataRes) ? categoriesDataRes : []);
   const parentCategories = categoriesList.filter(c => !c.parent_id);
 
   // Form states

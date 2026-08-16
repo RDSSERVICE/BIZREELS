@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FiBell, FiShield, FiMessageSquare, FiTrendingDown, FiTag, FiClock } from 'react-icons/fi';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
@@ -58,8 +59,9 @@ export default function CustomerNotificationsPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
-  const pathname = window.location.pathname;
+  const pathname = location.pathname;
   const isVendorPortal = pathname.includes('/vendor');
   const isCreatorPortal = pathname.includes('/creator');
 
