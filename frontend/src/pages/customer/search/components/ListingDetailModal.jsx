@@ -139,7 +139,7 @@ export default function ListingDetailModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto font-sans animate-fade-in">
       <div className="bg-white border border-[#e3dccb] rounded-2xl max-w-3xl w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto animate-scale-in">
-        
+
         {/* ── Modal Header ── */}
         <div className="flex items-start justify-between border-b border-[#e3dccb] pb-4">
           <div className="flex items-center gap-3">
@@ -207,9 +207,8 @@ export default function ListingDetailModal({
                     key={idx}
                     type="button"
                     onClick={() => setSelectedImgIdx(idx)}
-                    className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition cursor-pointer shrink-0 ${
-                      selectedImgIdx === idx ? 'border-[#d99a3d]' : 'border-transparent opacity-70 hover:opacity-100'
-                    }`}
+                    className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition cursor-pointer shrink-0 ${selectedImgIdx === idx ? 'border-[#d99a3d]' : 'border-transparent opacity-70 hover:opacity-100'
+                      }`}
                   >
                     <OptimizedImage src={resolveMediaUrl(img)} alt="" className="w-full h-full object-cover" width={100} />
                   </button>
@@ -266,9 +265,8 @@ export default function ListingDetailModal({
                 <button
                   type="button"
                   onClick={() => toggleLike(itemId)}
-                  className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition cursor-pointer ${
-                    isLiked ? 'bg-red-50 border-red-300 text-red-600' : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-600 hover:text-red-500'
-                  }`}
+                  className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition cursor-pointer ${isLiked ? 'bg-red-50 border-red-300 text-red-600' : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-600 hover:text-red-500'
+                    }`}
                 >
                   <FiHeart size={16} className={isLiked ? 'fill-red-500 text-red-500' : ''} />
                   <span>{isLiked ? 'Liked' : 'Like'}</span>
@@ -277,9 +275,8 @@ export default function ListingDetailModal({
                 <button
                   type="button"
                   onClick={() => toggleSave(itemId)}
-                  className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition cursor-pointer ${
-                    isSaved ? 'bg-amber-50 border-amber-300 text-[#d99a3d]' : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-600 hover:text-[#d99a3d]'
-                  }`}
+                  className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition cursor-pointer ${isSaved ? 'bg-amber-50 border-amber-300 text-[#d99a3d]' : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-600 hover:text-[#d99a3d]'
+                    }`}
                 >
                   <FiBookmark size={16} className={isSaved ? 'fill-[#d99a3d] text-[#d99a3d]' : ''} />
                   <span>{isSaved ? 'Saved' : 'Save'}</span>
@@ -367,11 +364,10 @@ export default function ListingDetailModal({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
               <div
                 onClick={() => setPaymentMethod('vendor_upi')}
-                className={`p-3 rounded-xl border transition cursor-pointer ${
-                  paymentMethod === 'vendor_upi'
+                className={`p-3 rounded-xl border transition cursor-pointer ${paymentMethod === 'vendor_upi'
                     ? 'bg-white border-[#d99a3d] shadow-xs'
                     : 'bg-white/60 border-[#e3dccb] hover:border-slate-400'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2 font-bold text-[#1a1a1a]">
                   <FiCreditCard className="text-[#d99a3d]" />
@@ -384,11 +380,10 @@ export default function ListingDetailModal({
 
               <div
                 onClick={() => setPaymentMethod('vendor_qr')}
-                className={`p-3 rounded-xl border transition cursor-pointer ${
-                  paymentMethod === 'vendor_qr'
+                className={`p-3 rounded-xl border transition cursor-pointer ${paymentMethod === 'vendor_qr'
                     ? 'bg-white border-[#d99a3d] shadow-xs'
                     : 'bg-white/60 border-[#e3dccb] hover:border-slate-400'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2 font-bold text-[#1a1a1a]">
                   <BsQrCode className="text-[#d99a3d]" />
@@ -401,11 +396,10 @@ export default function ListingDetailModal({
 
               <div
                 onClick={() => setPaymentMethod('cod')}
-                className={`p-3 rounded-xl border transition cursor-pointer ${
-                  paymentMethod === 'cod'
+                className={`p-3 rounded-xl border transition cursor-pointer ${paymentMethod === 'cod'
                     ? 'bg-white border-[#d99a3d] shadow-xs'
                     : 'bg-white/60 border-[#e3dccb] hover:border-slate-400'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2 font-bold text-[#1a1a1a]">
                   <FiDollarSign className="text-emerald-600" />
@@ -636,5 +630,9 @@ export default function ListingDetailModal({
         </div>
       </div>
     </div>
+  );
+}
+      </div >
+    </div >
   );
 }

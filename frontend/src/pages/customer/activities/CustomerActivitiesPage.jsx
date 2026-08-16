@@ -442,6 +442,10 @@ export default function CustomerActivitiesPage() {
           isOpen={isBookModalOpen}
           onClose={() => setIsBookModalOpen(false)}
           service={selectedService}
+          onSuccess={() => {
+            if (refetchOrders) refetchOrders();
+            fetchCounts();
+          }}
         />
 
         <CancelOrderModal
