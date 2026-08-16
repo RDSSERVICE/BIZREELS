@@ -459,32 +459,49 @@ export default function CustomerHomePage() {
   }, [processedCombinedFeed]);
 
   return (
-    <div className="space-y-5 font-sans p-2 sm:p-4 min-h-screen" style={{ backgroundColor: '#f2ede4' }}>
+    <div className="flex flex-col h-full w-full font-sans bg-[#f2ede4] overflow-hidden">
       
-      {/* Home Feed Search & Filters Bar */}
-      <HomeFeedSearchFilter
-        filters={filters}
-        onFilterChange={setFilters}
-        onSearch={fetchFeedData}
-        totalResults={processedCombinedFeed.length}
-      />
+      {/* ── FIXED TOP CONTROLS & HEADER PANEL (Stationary on screen) ── */}
+      <div className="shrink-0 bg-[#f2ede4] py-1 px-1.5 sm:px-3 space-y-1 border-b border-[#e3dccb] shadow-2xs z-20">
+        {/* Home Feed Search & Filters Bar */}
+        <HomeFeedSearchFilter
+          filters={filters}
+          onFilterChange={setFilters}
+          onSearch={fetchFeedData}
+          totalResults={processedCombinedFeed.length}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-      {/* Active Special Offers & Deals */}
-      <ActiveOffersPanel role="customer" />
+        {/* Active Special Offers & Deals */}
+        <ActiveOffersPanel role="customer" />
 
-      {/* Feed Contents — Instagram-like Loading & Feed Items */}
-      {loading ? (
-        <div className="max-w-xl mx-auto space-y-6 pb-12">
-          <InstagramPostSkeleton />
-          <InstagramPostSkeleton />
-          <InstagramPostSkeleton />
+        {/* Feed Header Section */}
+        <div className="w-full max-w-5xl mx-auto px-1 py-0.5 flex items-center justify-between">
+          <h3 className="text-[11px] font-black text-[#1a1a1a] uppercase tracking-wider flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#d99a3d]"></span>
+            <span>Community Feed &amp; Local Updates</span>
+          </h3>
+          <span className="text-[10px] font-extrabold text-slate-600 bg-white/80 px-2 py-0.2 rounded border border-[#e3dccb]">
+            {processedCombinedFeed.length} {processedCombinedFeed.length === 1 ? 'Post' : 'Posts'}
+          </span>
         </div>
-      ) : processedCombinedFeed.length === 0 ? (
-        <div className="bg-white rounded-md p-8 sm:p-12 text-center text-xs text-slate-500 border border-[#e3dccb] max-w-xl mx-auto shadow-xs font-sans">
-          No posts match your filter criteria.
-        </div>
-      ) : (
-        <div className="w-full max-w-xl mx-auto px-1 sm:px-0 space-y-6 pb-24 lg:pb-12 font-sans">
+      </div>
+
+      {/* ── SCROLLABLE POSTS CONTAINER (Only posts scroll) ── */}
+      <div className="flex-1 overflow-y-auto p-2 sm:p-4 min-h-0">
+        {loading ? (
+          <div className="max-w-xl mx-auto space-y-6 pb-12 pt-2">
+            <InstagramPostSkeleton />
+            <InstagramPostSkeleton />
+            <InstagramPostSkeleton />
+          </div>
+        ) : processedCombinedFeed.length === 0 ? (
+          <div className="bg-white rounded-md p-8 sm:p-12 text-center text-xs text-slate-500 border border-[#e3dccb] max-w-xl mx-auto shadow-xs font-sans my-4">
+            No posts match your filter criteria.
+          </div>
+        ) : (
+          <div className="w-full max-w-xl mx-auto px-1 sm:px-0 space-y-6 pb-24 lg:pb-12 font-sans pt-1">
           {processedCombinedFeed.map((item) => {
             const itemId = item._id || item.id;
             const isLiked = likedMap[itemId];
@@ -796,6 +813,7 @@ export default function CustomerHomePage() {
           })}
         </div>
       )}
+      </div>
 
       <CommentsDrawer
         isOpen={isCommentsOpen}

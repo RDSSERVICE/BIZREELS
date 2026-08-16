@@ -322,7 +322,7 @@ export default function VendorHireCreatorPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-16">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans animate-fade-in pb-16 p-2 sm:p-4">
       <AdminPageHeader
         icon={FiUserCheck}
         title="Creator Discovery & Campaigns Hub"
@@ -330,25 +330,45 @@ export default function VendorHireCreatorPage() {
       />
 
       {/* Tabs bar */}
-      <div className="flex border-b border-border gap-6 text-sm font-bold text-text-tertiary">
+      <div className="flex border-b border-[#e3dccb] gap-2 text-xs font-black">
         <button
+          type="button"
           onClick={() => { setSelectedCreatorId(null); setActiveTab('discover'); }}
-          className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all ${activeTab === 'discover' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
+          className={`px-4 py-2.5 rounded-t-xl flex items-center gap-2 transition-all cursor-pointer border-t border-x ${
+            activeTab === 'discover'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+              : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb] hover:bg-white hover:text-[#1a1a1a]'
+          }`}
         >
-          <FiGrid size={16} /> Discover Creators
+          <FiGrid size={15} />
+          <span>Discover Creators</span>
         </button>
+
         <button
+          type="button"
           onClick={() => { setSelectedCreatorId(null); setActiveTab('campaigns'); }}
-          className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all ${activeTab === 'campaigns' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
+          className={`px-4 py-2.5 rounded-t-xl flex items-center gap-2 transition-all cursor-pointer border-t border-x ${
+            activeTab === 'campaigns'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+              : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb] hover:bg-white hover:text-[#1a1a1a]'
+          }`}
         >
-          <FiActivity size={16} /> Hires & Campaigns
+          <FiActivity size={15} />
+          <span>Hires &amp; Campaigns</span>
         </button>
+
         <button
+          type="button"
           disabled={!chatRecipientId}
           onClick={() => { setSelectedCreatorId(null); setActiveTab('chat'); }}
-          className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${activeTab === 'chat' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
+          className={`px-4 py-2.5 rounded-t-xl flex items-center gap-2 transition-all border-t border-x disabled:opacity-40 disabled:cursor-not-allowed ${
+            activeTab === 'chat'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+              : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb] hover:bg-white hover:text-[#1a1a1a]'
+          }`}
         >
-          <FiMessageSquare size={16} /> Collaboration Chat
+          <FiMessageSquare size={15} />
+          <span>Collaboration Chat</span>
         </button>
       </div>
 
@@ -364,17 +384,17 @@ export default function VendorHireCreatorPage() {
         /* DISCOVER CREATORS TAB */
         <div className="space-y-6">
           {/* FILTER DRAWER BAR */}
-          <div className="glass rounded-2xl p-5 border border-white/50 shadow-card space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e3dccb] shadow-2xs space-y-3.5">
+            <div className="flex flex-col sm:flex-row gap-2.5 items-center">
               {/* Search text input */}
-              <div className="relative flex-1">
-                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
+              <div className="relative flex-1 w-full flex items-center gap-2 bg-[#f8f4ec] rounded-xl border border-[#e3dccb] px-3.5 py-2 focus-within:border-[#d99a3d] focus-within:ring-1 focus-within:ring-[#d99a3d]/20 transition-all">
+                <FiSearch className="text-[#d99a3d] shrink-0" size={15} />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  placeholder="Search creator by name, bio, Category, language, skills..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                  placeholder="Search creator by name, bio, category, language, skills..."
+                  className="w-full bg-transparent text-xs font-medium text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none"
                 />
               </div>
 
@@ -382,7 +402,7 @@ export default function VendorHireCreatorPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-surface border border-border rounded-xl px-3.5 py-2.5 text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
+                className="bg-[#f8f4ec] border border-[#e3dccb] rounded-xl px-3.5 py-2 text-xs font-black text-[#1a1a1a] focus:outline-none cursor-pointer shrink-0"
               >
                 <option value="highest_rated">Highest Rated ★</option>
                 <option value="price_low_high">Price: Low to High</option>
@@ -396,10 +416,16 @@ export default function VendorHireCreatorPage() {
 
               {/* Advanced toggle */}
               <button
+                type="button"
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="px-4 py-2.5 glass border border-border rounded-xl text-xs font-bold text-text-primary hover:bg-surface-tertiary transition flex items-center gap-1.5"
+                className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer border shrink-0 ${
+                  showAdvancedFilters
+                    ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                    : 'bg-[#241b15] text-[#d99a3d] border-[#d99a3d]/40 hover:border-[#d99a3d]'
+                }`}
               >
-                <FiSliders size={14} /> Filter Drawer
+                <FiSliders size={13} className="text-[#d99a3d]" />
+                <span>Filter Drawer</span>
               </button>
             </div>
 

@@ -9,6 +9,7 @@ import {
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
   FiCheckCircle, FiMessageSquare
 } from 'react-icons/fi';
+import { TbCurrencyRupee } from 'react-icons/tb';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, selectCurrentUser, setActiveRole } from '../../features/auth/authSlice';
 import { api, tokenStore, resolveMediaUrl } from '../../lib/api';
@@ -44,7 +45,7 @@ const NAV_SECTIONS = [
     title: 'Finance',
     items: [
       { name: 'Subscription', path: '/vendor/subscription', icon: FiCreditCard },
-      { name: 'Wallet', path: '/vendor/wallet', icon: FiDollarSign },
+      { name: 'Wallet', path: '/vendor/wallet', icon: TbCurrencyRupee },
       { name: 'Credit Rates', path: '/vendor/credit-rates', icon: FiZap },
     ],
   },
@@ -130,36 +131,37 @@ export default function VendorLayout() {
   };
 
   const SidebarContent = ({ onItemClick }) => (
-    <div className="flex flex-col h-full">
-      {/* Logo / Brand */}
-      <div className="px-4 py-4 border-b border-border flex items-center gap-3">
-        <Link to="/vendor/dashboard" className="flex items-center gap-2 group">
+    <div className="flex flex-col h-full font-sans bg-[#f8f4ec] border-r border-[#e3dccb]">
+      {/* Brand Header */}
+      <div className="px-4 py-4 bg-white border-b border-[#e3dccb] flex items-center justify-between">
+        <Link to="/vendor/dashboard" className="flex items-center gap-2.5 group">
           <img src="/logo.png" alt="BizReels Logo" className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" />
           <div>
-            <span className="text-sm font-black text-text-primary font-display block leading-tight">
-              Biz<span className="gradient-text font-black">Reels</span>
+            <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm text-[#1a1a1a] block leading-tight tracking-tight">
+              BIZ<span className="text-[#d99a3d]">REELS</span>
             </span>
-            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest block">Vendor Portal</span>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">VENDOR PORTAL</span>
           </div>
         </Link>
       </div>
 
       {/* Nav Sections */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-2 scrollbar-none">
         {NAV_SECTIONS.map((section) => {
           const isCollapsed = collapsedSections[section.title];
 
           return (
-            <div key={section.title}>
+            <div key={section.title} className="space-y-0.5">
               <button
+                type="button"
                 onClick={() => toggleSection(section.title)}
-                className="w-full flex items-center justify-between px-2 py-1.5 text-[9px] font-bold text-text-tertiary uppercase tracking-widest hover:text-text-secondary transition-all"
+                className="w-full flex items-center justify-between px-2 py-1 text-[9.5px] font-black text-slate-400 uppercase tracking-widest hover:text-[#1a1a1a] transition-all cursor-pointer border-none bg-transparent"
               >
-                {section.title}
+                <span>{section.title}</span>
                 {isCollapsed ? (
-                  <FiChevronRight className="w-3 h-3" />
+                  <FiChevronRight className="w-3 h-3 text-slate-400" />
                 ) : (
-                  <FiChevronDown className="w-3 h-3" />
+                  <FiChevronDown className="w-3 h-3 text-slate-400" />
                 )}
               </button>
 
@@ -169,8 +171,8 @@ export default function VendorLayout() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
+                    transition={{ duration: 0.15 }}
+                    className="overflow-hidden space-y-0.5"
                   >
                     {section.items.map((item) => {
                       const isActive = location.pathname === item.path;
@@ -180,17 +182,33 @@ export default function VendorLayout() {
                           key={item.path}
                           to={item.path}
                           onClick={onItemClick}
-                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 mb-0.5 ${isActive
-                              ? 'bg-brand-purple text-white shadow-premium'
-                              : 'text-text-secondary hover:bg-brand-purple/5 hover:text-brand-purple'
-                            }`}
+                          className={`relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all duration-150 group ${
+                            isActive
+                              ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs'
+                              : 'text-slate-700 hover:bg-white hover:text-[#1a1a1a] hover:shadow-2xs'
+                          }`}
                         >
-                          <div className="flex items-center gap-2.5">
-                            <Icon className="w-4 h-4 flex-shrink-0" />
+                          {/* Active Gold Left Indicator */}
+                          {isActive && (
+                            <span className="w-1 h-5 bg-[#d99a3d] rounded-r-full absolute left-0" />
+                          )}
+
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {/* Icon Container Badge */}
+                            <div
+                              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                                isActive
+                                  ? 'bg-[#d99a3d] text-[#1a1a1a] shadow-xs'
+                                  : 'bg-white text-slate-600 border border-[#e3dccb] group-hover:border-[#241b15] group-hover:text-[#241b15]'
+                              }`}
+                            >
+                              <Icon size={14} />
+                            </div>
                             <span className="truncate">{item.name}</span>
                           </div>
+
                           {item.badge && (
-                            <span className="gradient-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                            <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] font-black px-1.5 py-0.2 rounded uppercase tracking-wide shrink-0">
                               {item.badge}
                             </span>
                           )}
@@ -205,24 +223,27 @@ export default function VendorLayout() {
         })}
       </nav>
 
-      {/* User Info + Logout */}
-      <div className="border-t border-border px-4 py-4">
-        <div className="flex items-center gap-3 mb-3">
+      {/* User Info + Logout Footer Card */}
+      <div className="border-t border-[#e3dccb] p-3 bg-white space-y-2">
+        <div className="flex items-center gap-2.5 p-1">
           <img
             src={resolveMediaUrl(profileUser?.profile_pic || profileUser?.avatarUrl || vendorProfile.shopLogo) || "/logo.png"}
             alt="Vendor"
-            className="w-9 h-9 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm"
+            className="w-9 h-9 rounded-full object-cover border border-[#e3dccb] bg-[#f8f4ec] p-0.5 shadow-xs shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-text-primary truncate">{vendorProfile.shopName || profileUser?.name || 'Vendor'}</p>
-            <p className="text-[10px] text-text-tertiary truncate">{profileUser?.email || profileUser?.phone || 'vendor'}</p>
+            <p className="text-xs font-black text-[#1a1a1a] truncate">{vendorProfile.shopName || profileUser?.name || 'Vendor'}</p>
+            <p className="text-[10px] font-medium text-slate-400 truncate">{profileUser?.email || profileUser?.phone || 'vendor'}</p>
           </div>
         </div>
+
         <button
+          type="button"
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-error bg-error/10 hover:bg-error/20 transition-all border border-error/20"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-black text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all border border-rose-200 cursor-pointer"
         >
-          <FiLogOut className="w-4 h-4" /> Sign Out
+          <FiLogOut className="w-4 h-4" />
+          <span>Sign Out</span>
         </button>
       </div>
     </div>

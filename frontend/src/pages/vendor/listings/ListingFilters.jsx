@@ -91,33 +91,34 @@ export default function ListingFilters({
       )}
 
       {/* Search + Filter Toggle */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 font-sans">
         {/* Search */}
         <div className="relative flex-1">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search by name, SKU, category, ID..."
             value={search}
             onChange={(e) => onSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple/20 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all"
           />
         </div>
 
         {/* Filter Toggle + Sort */}
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-black border transition flex items-center gap-1.5 cursor-pointer ${
               showFilters || statusFilter || typeFilter
-                ? 'border-brand-purple bg-brand-purple/5 text-brand-purple'
-                : 'border-border text-text-secondary hover:border-brand-purple/30'
+                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-2xs'
+                : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-700 hover:bg-white'
             }`}
           >
             <FiFilter className="w-3.5 h-3.5" />
             Filters
             {(statusFilter || typeFilter) && (
-              <span className="w-4 h-4 bg-brand-purple text-white text-[8px] font-black rounded-full flex items-center justify-center">
+              <span className="w-4 h-4 bg-[#d99a3d] text-[#241b15] text-[8px] font-black rounded-full flex items-center justify-center">
                 {(statusFilter ? 1 : 0) + (typeFilter ? 1 : 0)}
               </span>
             )}
@@ -127,26 +128,26 @@ export default function ListingFilters({
             <select
               value={sortBy}
               onChange={(e) => onSortBy(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer"
+              className="appearance-none pl-3.5 pr-8 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] cursor-pointer"
             >
               {SORT_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            <FiChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary pointer-events-none" />
+            <FiChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
           </div>
         </div>
       </div>
 
       {/* Expanded Filters Row */}
       {showFilters && (
-        <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-surface-secondary rounded-xl border border-border animate-fade-in">
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#f8f4ec] rounded-xl border border-[#e3dccb] font-sans animate-fade-in">
           <div className="flex items-center gap-2">
-            <label className="text-[10px] font-bold text-text-tertiary uppercase">Status:</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status:</label>
             <select
               value={statusFilter}
               onChange={(e) => onStatusFilter(e.target.value)}
-              className="px-3 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:border-brand-purple"
+              className="px-3 py-1.5 bg-white border border-[#e3dccb] rounded-lg text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
             >
               {STATUS_FILTERS.map(f => (
                 <option key={f.value} value={f.value}>{f.label}</option>
@@ -155,11 +156,11 @@ export default function ListingFilters({
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-[10px] font-bold text-text-tertiary uppercase">Type:</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Type:</label>
             <select
               value={typeFilter}
               onChange={(e) => onTypeFilter(e.target.value)}
-              className="px-3 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:border-brand-purple"
+              className="px-3 py-1.5 bg-white border border-[#e3dccb] rounded-lg text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
             >
               {TYPE_FILTERS.map(f => (
                 <option key={f.value} value={f.value}>{f.label}</option>
@@ -169,8 +170,9 @@ export default function ListingFilters({
 
           {(statusFilter || typeFilter) && (
             <button
+              type="button"
               onClick={() => { onStatusFilter(''); onTypeFilter(''); }}
-              className="text-[10px] font-bold text-red-500 hover:underline ml-auto"
+              className="text-[10px] font-black text-red-600 hover:underline ml-auto cursor-pointer"
             >
               Clear All Filters
             </button>

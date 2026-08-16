@@ -355,7 +355,7 @@ export default function PostRequirementPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-5 font-sans p-2 sm:p-4 min-h-screen">
+    <div className="max-w-7xl mx-auto flex flex-col gap-5 font-sans p-2 sm:p-4 pb-24 sm:pb-12 min-h-full">
       <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">CUSTOMER PORTAL</span>

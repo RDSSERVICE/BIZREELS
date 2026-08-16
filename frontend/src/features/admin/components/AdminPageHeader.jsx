@@ -6,17 +6,19 @@ import React from 'react';
  */
 export default function AdminPageHeader({ title, subtitle, icon: Icon, children }) {
   return (
-    <div className="glass rounded-2xl p-4 sm:p-5 md:p-6 border border-white/50 shadow-glass flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e3dccb] shadow-2xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 font-sans">
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 w-full sm:w-auto">
         {Icon && (
-          <div className="p-2.5 sm:p-3 gradient-brand rounded-xl sm:rounded-2xl text-white shadow-premium flex-shrink-0">
-            <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#241b15] text-[#d99a3d] border border-[#241b15] flex items-center justify-center shrink-0 shadow-xs">
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#d99a3d]" />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h2 className="text-base sm:text-lg md:text-xl font-black text-text-primary font-display truncate">{title}</h2>
+          <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-base sm:text-lg md:text-xl uppercase text-[#1a1a1a] tracking-wide truncate">
+            {title}
+          </h2>
           {subtitle && (
-            <p className="text-[10px] sm:text-xs text-text-tertiary mt-0.5 sm:mt-1 line-clamp-2">{subtitle}</p>
+            <p className="text-xs text-slate-500 font-medium mt-0.5 line-clamp-2">{subtitle}</p>
           )}
         </div>
       </div>

@@ -610,7 +610,7 @@ export default function SearchListingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f4ec] py-4 px-3 sm:px-6 font-sans">
+    <div className="min-h-full bg-[#f8f4ec] py-4 px-3 sm:px-6 pb-24 sm:pb-12 font-sans">
       <div className="max-w-6xl mx-auto space-y-5 animate-fade-in">
         
         {/* ── Page Header matching Home Feed ── */}

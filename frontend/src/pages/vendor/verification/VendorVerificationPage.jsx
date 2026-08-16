@@ -365,7 +365,7 @@ export default function VendorVerificationPage() {
   const currentBadge = BADGE_DESCRIPTIONS[statusData.tier] || BADGE_DESCRIPTIONS.unverified;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-fade-in pb-16">
+    <div className="max-w-5xl mx-auto space-y-6 font-sans animate-fade-in pb-16 p-2 sm:p-4">
       <AdminPageHeader
         icon={FiShield}
         title="Vendor Verification Center"
@@ -373,150 +373,155 @@ export default function VendorVerificationPage() {
       />
 
       {/* TOP DIALOGUE & STATUS BADGE BANNER */}
-      <div className="glass rounded-3xl p-6 sm:p-8 border border-border shadow-card relative overflow-hidden space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border pb-6">
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs relative overflow-hidden space-y-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e3dccb] pb-5">
           <div className="flex items-center gap-3">
             <span className="text-3xl">{currentBadge.icon}</span>
             <div>
               <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${currentBadge.color}`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-black border ${currentBadge.color}`}>
                   {currentBadge.label}
                 </span>
                 {statusData.tier === 'verified_vendor' && (
-                  <span className="bg-emerald-500 text-white p-1 rounded-full text-xs">
-                    <FiCheck className="w-3 h-3" />
+                  <span className="bg-emerald-600 text-white p-1 rounded-full text-xs">
+                    <FiCheck className="w-3.5 h-3.5" />
                   </span>
                 )}
               </div>
-              <p className="text-xs text-text-tertiary mt-1">{currentBadge.desc}</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">{currentBadge.desc}</p>
             </div>
           </div>
 
           <div className="text-right min-w-[100px] sm:min-w-[140px]">
-            <span className="text-2xl font-black text-text-primary font-display">{statusData.completionPercentage}%</span>
-            <span className="block text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Verification Score</span>
+            <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] tracking-tight">{statusData.completionPercentage}%</span>
+            <span className="block text-[9.5px] font-black text-slate-400 uppercase tracking-widest">Verification Score</span>
           </div>
         </div>
 
         {/* Real-time Progress Bar */}
         <div className="space-y-1.5">
-          <div className="w-full bg-surface-tertiary h-3 rounded-full overflow-hidden p-0.5 border border-border">
+          <div className="w-full bg-[#f8f4ec] h-3.5 rounded-full overflow-hidden p-0.5 border border-[#e3dccb]">
             <div
-              className="gradient-brand h-full rounded-full transition-all duration-500"
+              className="bg-[#241b15] h-full rounded-full transition-all duration-500"
               style={{ width: `${statusData.completionPercentage}%` }}
             />
           </div>
-          <p className="text-[11px] text-text-secondary flex items-center justify-between font-semibold">
-            <span>Boost ranking in local reels & search results</span>
-            <span className="text-brand-purple font-bold">Get 5x More Leads</span>
+          <p className="text-[11px] text-slate-600 flex items-center justify-between font-bold">
+            <span>Boost ranking in local reels &amp; search results</span>
+            <span className="text-[#d99a3d] font-black">Get 5x More Leads</span>
           </p>
         </div>
 
         {/* Interactive Dialogue Banner */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-brand-purple/10 via-brand-pink/10 to-brand-orange/10 border border-brand-purple/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="p-4 rounded-xl bg-[#241b15] text-white border border-[#241b15] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl gradient-brand text-white flex items-center justify-center font-bold flex-shrink-0 shadow-md">
+            <div className="w-10 h-10 rounded-lg bg-[#d99a3d] text-[#241b15] flex items-center justify-center font-black shrink-0 shadow-xs">
               <FiZap size={20} />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-text-primary">Verify & Boost Reels Trust Score</h4>
-              <p className="text-[11px] text-text-secondary">Verified vendors appear on top in local customer discovery and gain 98% higher conversion!</p>
+              <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#d99a3d] tracking-wide">VERIFY &amp; BOOST REELS TRUST SCORE</h4>
+              <p className="text-xs text-slate-300 font-medium">Verified vendors appear on top in local customer discovery and gain 98% higher conversion!</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* VERIFICATION TABS WITH SEQUENTIAL GATING */}
-      <div className="flex items-center gap-2 border-b border-border pb-1 overflow-x-auto scrollbar-hide">
+      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-2 overflow-x-auto scrollbar-hide text-xs font-black">
         <button
+          type="button"
           onClick={() => handleTabClick('contacts')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 cursor-pointer ${
             activeTab === 'contacts'
-              ? 'bg-brand-purple text-white shadow-md'
-              : 'glass text-text-secondary hover:text-text-primary'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+              : 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white'
           }`}
         >
-          <FiPhone size={14} /> Part 1: Contact Information Verification
+          <FiPhone size={14} className={activeTab === 'contacts' ? 'text-[#d99a3d]' : 'text-slate-400'} />
+          <span>Part 1: Contact Verification</span>
         </button>
 
         <button
+          type="button"
           onClick={() => handleTabClick('documents')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 ${
             activeTab === 'documents'
-              ? 'bg-brand-purple text-white shadow-md'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs cursor-pointer'
               : isPart1Complete
-              ? 'glass text-text-secondary hover:text-text-primary'
-              : 'opacity-50 cursor-not-allowed bg-surface-secondary text-text-tertiary border'
+              ? 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white cursor-pointer'
+              : 'opacity-50 cursor-not-allowed bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb]'
           }`}
         >
-          {isPart1Complete ? <FiFileText size={14} /> : <FiLock size={14} className="text-amber-500" />}
-          <span>Part 2: Identity & Documents</span>
-          {!isPart1Complete && <span className="text-[9px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded font-extrabold">LOCKED</span>}
+          {isPart1Complete ? <FiFileText size={14} className={activeTab === 'documents' ? 'text-[#d99a3d]' : 'text-slate-400'} /> : <FiLock size={14} className="text-amber-500" />}
+          <span>Part 2: Identity &amp; Documents</span>
+          {!isPart1Complete && <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-black border border-amber-300">LOCKED</span>}
         </button>
 
         <button
+          type="button"
           onClick={() => handleTabClick('payment')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 ${
             activeTab === 'payment'
-              ? 'bg-brand-purple text-white shadow-md'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs cursor-pointer'
               : (isPart1Complete && isPart2Complete)
-              ? 'glass text-text-secondary hover:text-text-primary'
-              : 'opacity-50 cursor-not-allowed bg-surface-secondary text-text-tertiary border'
+              ? 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white cursor-pointer'
+              : 'opacity-50 cursor-not-allowed bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb]'
           }`}
         >
-          {(isPart1Complete && isPart2Complete) ? <FiCreditCard size={14} /> : <FiLock size={14} className="text-amber-500" />}
+          {(isPart1Complete && isPart2Complete) ? <FiCreditCard size={14} className={activeTab === 'payment' ? 'text-[#d99a3d]' : 'text-slate-400'} /> : <FiLock size={14} className="text-amber-500" />}
           <span>Part 3: Payout Details</span>
-          {(!isPart1Complete || !isPart2Complete) && <span className="text-[9px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded font-extrabold">LOCKED</span>}
+          {(!isPart1Complete || !isPart2Complete) && <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-black border border-amber-300">LOCKED</span>}
         </button>
       </div>
 
       {/* TAB 1: CONTACT INFORMATION VERIFICATION */}
       {activeTab === 'contacts' && (
-        <div className="glass rounded-3xl p-6 sm:p-8 border border-border shadow-card space-y-6">
-          <h3 className="text-sm font-bold text-text-primary font-display border-b border-border pb-3 flex items-center gap-2">
-            <FiPhone className="text-brand-purple" />
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5 font-sans">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide border-b border-[#e3dccb] pb-3 flex items-center gap-2">
+            <FiPhone className="text-[#d99a3d]" />
             <span>Contact Channels Verification</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Mobile Number */}
-            <div className="p-4 rounded-2xl bg-surface border border-border flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-text-tertiary font-bold uppercase block">Mobile Number</span>
-                <p className="text-xs font-bold text-text-primary">{vendorProfile.mobileNumber || currentUser?.phone || 'Not set'}</p>
-                <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Mobile Number</span>
+                <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{vendorProfile.mobileNumber || currentUser?.phone || 'Not set'}</p>
+                <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
                   <FiCheckCircle size={12} /> Verified via Account OTP
                 </span>
               </div>
               <button
                 disabled
-                className="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold"
+                className="px-3 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black"
               >
                 Verified ✓
               </button>
             </div>
 
             {/* WhatsApp Number */}
-            <div className="p-4 rounded-2xl bg-surface border border-border flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-text-tertiary font-bold uppercase block">WhatsApp Number</span>
-                <p className="text-xs font-bold text-text-primary">{vendorProfile.whatsappNumber || vendorProfile.mobileNumber || 'Not set'}</p>
+                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">WhatsApp Number</span>
+                <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{vendorProfile.whatsappNumber || vendorProfile.mobileNumber || 'Not set'}</p>
                 {statusData.contactVerified?.whatsapp ? (
-                  <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
                     <FiCheckCircle size={12} /> Verified
                   </span>
                 ) : (
-                  <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1 mt-1">
+                  <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 mt-1">
                     <FiAlertCircle size={12} /> Unverified
                   </span>
                 )}
               </div>
               <button
+                type="button"
                 onClick={() => handleOpenOtpModal('whatsapp', vendorProfile.whatsappNumber || vendorProfile.mobileNumber)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition cursor-pointer ${
                   statusData.contactVerified?.whatsapp
-                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                    : 'gradient-brand text-white shadow-sm'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs'
                 }`}
               >
                 {statusData.contactVerified?.whatsapp ? 'Verified ✓' : 'Verify WhatsApp'}
@@ -524,26 +529,27 @@ export default function VendorVerificationPage() {
             </div>
 
             {/* Email Address */}
-            <div className="p-4 rounded-2xl bg-surface border border-border flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-text-tertiary font-bold uppercase block">Email Address</span>
-                <p className="text-xs font-bold text-text-primary">{vendorProfile.email || currentUser?.email || 'Not set'}</p>
+                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Email Address</span>
+                <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{vendorProfile.email || currentUser?.email || 'Not set'}</p>
                 {statusData.contactVerified?.email ? (
-                  <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
                     <FiCheckCircle size={12} /> Verified
                   </span>
                 ) : (
-                  <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1 mt-1">
+                  <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 mt-1">
                     <FiAlertCircle size={12} /> Unverified
                   </span>
                 )}
               </div>
               <button
+                type="button"
                 onClick={() => handleOpenOtpModal('email', vendorProfile.email || currentUser?.email)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition cursor-pointer ${
                   statusData.contactVerified?.email
-                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                    : 'gradient-brand text-white shadow-sm'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs'
                 }`}
               >
                 {statusData.contactVerified?.email ? 'Verified ✓' : 'Verify Email'}
@@ -551,26 +557,26 @@ export default function VendorVerificationPage() {
             </div>
 
             {/* Website URL */}
-            <div className="p-4 rounded-2xl bg-surface border border-border flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-text-tertiary font-bold uppercase block">Business Website</span>
-                <p className="text-xs font-bold text-text-primary truncate max-w-[180px]">{vendorProfile.website || 'Not provided'}</p>
+                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Business Website</span>
+                <p className="text-xs font-black text-[#1a1a1a] truncate max-w-[180px] mt-0.5">{vendorProfile.website || 'Not provided'}</p>
                 {statusData.contactVerified?.website ? (
-                  <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
                     <FiCheckCircle size={12} /> Verified
                   </span>
                 ) : (
-                  <span className="text-[10px] text-text-tertiary font-semibold block mt-1">Optional Ping Check</span>
+                  <span className="text-[10px] text-slate-400 font-bold block mt-1">Optional Ping Check</span>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => handleVerifyWebsite(vendorProfile.website)}
                 disabled={loading}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition cursor-pointer ${
                   statusData.contactVerified?.website
-                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                    : 'gradient-brand text-white shadow-sm'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs'
                 }`}
               >
                 {statusData.contactVerified?.website ? 'Verified ✓' : 'Verify Website'}
@@ -578,14 +584,14 @@ export default function VendorVerificationPage() {
             </div>
           </div>
 
-          <div className="flex justify-end pt-2 border-t border-border">
+          <div className="flex justify-end pt-3 border-t border-[#e3dccb]">
             <button
               type="button"
               onClick={() => handleTabClick('documents')}
-              className={`px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
                 isPart1Complete
-                  ? 'gradient-brand text-white shadow-premium hover:opacity-90'
-                  : 'bg-surface-secondary text-text-tertiary border border-border cursor-not-allowed'
+                  ? 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] shadow-2xs border-none'
+                  : 'bg-[#f8f4ec] text-slate-400 border border-[#e3dccb] cursor-not-allowed'
               }`}
             >
               <span>{isPart1Complete ? 'Proceed to Part 2: Identity & Business Documents' : 'Complete Part 1 to Unlock Part 2'}</span>
@@ -597,17 +603,17 @@ export default function VendorVerificationPage() {
 
       {/* TAB 2: DOCUMENTS VERIFICATION */}
       {activeTab === 'documents' && (
-        <div className="glass rounded-3xl p-6 sm:p-8 border border-border shadow-card space-y-6">
-          <h3 className="text-sm font-bold text-text-primary font-display border-b border-border pb-3 flex items-center justify-between">
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5 font-sans">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide border-b border-[#e3dccb] pb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FiFileText className="text-brand-purple" />
-              <span>Government Identity & Business Compliance Licenses</span>
+              <FiFileText className="text-[#d99a3d]" />
+              <span>Government Identity &amp; Business Compliance Licenses</span>
             </div>
-            <span className="text-xs text-brand-purple font-semibold">Instant API Verification</span>
+            <span className="text-xs text-[#d99a3d] font-black uppercase">Instant API Verification</span>
           </h3>
 
           {/* Step indicators */}
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 border-b border-border pb-4 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 border-b border-[#e3dccb] pb-4 mb-4">
             {docsSequence.map((step, idx) => {
               const isCompleted = step.key === 'dynamic'
                 ? (statusData.documents?.dynamicDocs && statusData.documents.dynamicDocs.length > 0)
@@ -618,36 +624,36 @@ export default function VendorVerificationPage() {
                   type="button"
                   key={step.key}
                   onClick={() => setCurrentDocIndex(idx)}
-                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all ${
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-brand-purple/10 text-brand-purple border-brand-purple/40 font-bold shadow-sm'
+                      ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] font-black shadow-xs'
                       : isCompleted
-                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                      : 'bg-surface-secondary text-text-tertiary border-border hover:text-text-secondary'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold'
+                      : 'bg-[#f8f4ec] text-slate-500 border-[#e3dccb] hover:text-[#1a1a1a] font-bold'
                   }`}
                 >
-                  <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-wider">Step {idx + 1}</span>
-                  <span className="text-[11px] font-bold truncate w-full mt-0.5">{step.label}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest block opacity-70">Step {idx + 1}</span>
+                  <span className="text-[11px] font-black truncate w-full mt-0.5">{step.label}</span>
                 </button>
               );
             })}
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-5">
             
             {/* 1. Aadhaar Card */}
             {currentDocIndex === 0 && (
-              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+              <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-brand-purple text-white flex items-center justify-center text-xs font-bold">A</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">A</span>
                     <div>
-                      <h4 className="text-xs font-bold text-text-primary">Aadhaar Card (Individual Identity)</h4>
-                      <p className="text-[10px] text-text-tertiary">Enter 12-digit Aadhaar number & upload front-back images</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Aadhaar Card (Individual Identity)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Enter 12-digit Aadhaar number &amp; upload front-back images</p>
                     </div>
                   </div>
                   {statusData.documents?.aadhaar?.status === 'approved' && (
-                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
                       Verified ✓
                     </span>
                   )}
@@ -660,16 +666,18 @@ export default function VendorVerificationPage() {
                     value={aadhaarNum}
                     onChange={(e) => setAadhaarNum(e.target.value)}
                     placeholder="12-Digit Aadhaar Number"
-                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary"
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                   />
 
-                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                    <FiUploadCloud size={14} /> {aadhaarFront ? 'Front Attached ✓' : 'Upload Front Image'}
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                    <span>{aadhaarFront ? 'Front Attached ✓' : 'Upload Front Image'}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarFront)} />
                   </label>
 
-                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                    <FiUploadCloud size={14} /> {aadhaarBack ? 'Back Attached ✓' : 'Upload Back Image'}
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                    <span>{aadhaarBack ? 'Back Attached ✓' : 'Upload Back Image'}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarBack)} />
                   </label>
                 </div>
@@ -678,7 +686,7 @@ export default function VendorVerificationPage() {
                   type="button"
                   onClick={() => handleVerifyDocument('aadhaar', aadhaarNum, aadhaarFront, aadhaarBack, null, 'Aadhaar Card')}
                   disabled={loading || !aadhaarNum}
-                  className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
                   Verify Aadhaar Card
                 </button>
@@ -687,17 +695,17 @@ export default function VendorVerificationPage() {
 
             {/* 2. PAN Card */}
             {currentDocIndex === 1 && (
-              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+              <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-brand-pink text-white flex items-center justify-center text-xs font-bold">P</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">P</span>
                     <div>
-                      <h4 className="text-xs font-bold text-text-primary">PAN Card (Tax Identification)</h4>
-                      <p className="text-[10px] text-text-tertiary">Enter 10-digit PAN number & upload PAN document</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">PAN Card (Tax Identification)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Enter 10-digit PAN number &amp; upload PAN document</p>
                     </div>
                   </div>
                   {statusData.documents?.pan?.status === 'approved' && (
-                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
                       Verified ✓
                     </span>
                   )}
@@ -710,16 +718,18 @@ export default function VendorVerificationPage() {
                     value={panNum}
                     onChange={(e) => setPanNum(e.target.value.toUpperCase())}
                     placeholder="e.g. ABCDE1234F"
-                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary uppercase"
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
 
-                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                    <FiUploadCloud size={14} /> {panFront ? 'Front Attached ✓' : 'Upload Front Image'}
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                    <span>{panFront ? 'Front Attached ✓' : 'Upload Front Image'}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setPanFront)} />
                   </label>
 
-                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                    <FiUploadCloud size={14} /> {panBack ? 'Back Attached ✓' : 'Upload Back Image'}
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                    <span>{panBack ? 'Back Attached ✓' : 'Upload Back Image'}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setPanBack)} />
                   </label>
                 </div>
@@ -728,7 +738,7 @@ export default function VendorVerificationPage() {
                   type="button"
                   onClick={() => handleVerifyDocument('pan', panNum, panFront, panBack, null, 'PAN Card')}
                   disabled={loading || !panNum}
-                  className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
                   Verify PAN Card
                 </button>
@@ -737,17 +747,17 @@ export default function VendorVerificationPage() {
 
             {/* 3. GST Number (Optional) */}
             {currentDocIndex === 2 && (
-              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+              <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">G</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">G</span>
                     <div>
-                      <h4 className="text-xs font-bold text-text-primary">GST Registration Certificate (Optional)</h4>
-                      <p className="text-[10px] text-text-tertiary">Enter 15-digit GSTIN & upload GST registration certificate</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">GST Registration Certificate (Optional)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Enter 15-digit GSTIN &amp; upload GST registration certificate</p>
                     </div>
                   </div>
                   {statusData.documents?.gst?.status === 'approved' && (
-                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
                       Verified ✓
                     </span>
                   )}
@@ -760,11 +770,12 @@ export default function VendorVerificationPage() {
                     value={gstNum}
                     onChange={(e) => setGstNum(e.target.value.toUpperCase())}
                     placeholder="15-Digit GSTIN (e.g. 27ABCDE1234F1Z5)"
-                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary uppercase"
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
 
-                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                    <FiUploadCloud size={14} /> {gstFile ? 'Certificate Attached ✓' : 'Upload GST Certificate'}
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                    <span>{gstFile ? 'Certificate Attached ✓' : 'Upload GST Certificate'}</span>
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setGstFile)} />
                   </label>
                 </div>
@@ -773,7 +784,7 @@ export default function VendorVerificationPage() {
                   type="button"
                   onClick={() => handleVerifyDocument('gst', gstNum, null, null, gstFile, 'GST Certificate')}
                   disabled={loading || !gstNum}
-                  className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
                   Verify GSTIN
                 </button>
@@ -782,17 +793,17 @@ export default function VendorVerificationPage() {
 
             {/* 4. Shop License (Optional) */}
             {currentDocIndex === 3 && (
-              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+              <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center text-xs font-bold">S</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">S</span>
                     <div>
-                      <h4 className="text-xs font-bold text-text-primary">Shop & Establishment License (Optional)</h4>
-                      <p className="text-[10px] text-text-tertiary">Enter license registration number & upload license document</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Shop &amp; Establishment License (Optional)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Enter license registration number &amp; upload license document</p>
                     </div>
                   </div>
                   {statusData.documents?.shopLicense?.status === 'approved' && (
-                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
                       Verified ✓
                     </span>
                   )}
@@ -804,10 +815,11 @@ export default function VendorVerificationPage() {
                     value={shopLicenseNum}
                     onChange={(e) => setShopLicenseNum(e.target.value)}
                     placeholder="License Registration No."
-                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-semibold text-text-primary"
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                   />
-                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                    <FiUploadCloud size={14} /> {shopLicenseFile ? 'License Attached ✓' : 'Upload License Document'}
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                    <span>{shopLicenseFile ? 'License Attached ✓' : 'Upload License Document'}</span>
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setShopLicenseFile)} />
                   </label>
                 </div>
@@ -816,7 +828,7 @@ export default function VendorVerificationPage() {
                   type="button"
                   onClick={() => handleVerifyDocument('shopLicense', shopLicenseNum, null, null, shopLicenseFile, 'Shop License')}
                   disabled={loading || !shopLicenseNum}
-                  className="w-full py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
                   Verify Shop License
                 </button>
@@ -825,17 +837,17 @@ export default function VendorVerificationPage() {
 
             {/* 5. Udyam Registration (Optional) */}
             {currentDocIndex === 4 && (
-              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4 animate-fade-in">
+              <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-teal-500 text-white flex items-center justify-center text-xs font-bold">M</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">M</span>
                     <div>
-                      <h4 className="text-xs font-bold text-text-primary">MSME / Udyam Registration (Optional)</h4>
-                      <p className="text-[10px] text-text-tertiary">Enter Udyam registration number (e.g. UDYAM-XX-00-000000) & upload certificate</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">MSME / Udyam Registration (Optional)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Enter Udyam registration number (e.g. UDYAM-XX-00-000000) &amp; upload certificate</p>
                     </div>
                   </div>
                   {statusData.documents?.udyamRegistration?.status === 'approved' && (
-                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold">
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
                       Verified ✓
                     </span>
                   )}
@@ -847,10 +859,11 @@ export default function VendorVerificationPage() {
                     value={udyamNum}
                     onChange={(e) => setUdyamNum(e.target.value)}
                     placeholder="Udyam Registration No. (UDYAM-XX-00-000000)"
-                    className="px-3 py-2 bg-surface-secondary border border-border rounded-xl text-xs font-semibold text-text-primary"
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                   />
-                  <label className="cursor-pointer px-3 py-2 bg-surface-secondary border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5 hover:border-brand-purple transition">
-                    <FiUploadCloud size={14} /> {udyamFile ? 'Udyam Attached ✓' : 'Upload MSME Certificate'}
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                    <span>{udyamFile ? 'Udyam Attached ✓' : 'Upload MSME Certificate'}</span>
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setUdyamFile)} />
                   </label>
                 </div>
@@ -859,7 +872,7 @@ export default function VendorVerificationPage() {
                   type="button"
                   onClick={() => handleVerifyDocument('udyamRegistration', udyamNum, null, null, udyamFile, 'Udyam Registration')}
                   disabled={loading || !udyamNum}
-                  className="w-full py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
                   Verify Udyam Registration
                 </button>
@@ -868,10 +881,10 @@ export default function VendorVerificationPage() {
 
             {/* 6. Dynamic Category Documents (Optional) */}
             {currentDocIndex === 5 && (
-              <div className="p-5 rounded-2xl bg-surface-secondary border border-border space-y-3 animate-fade-in">
-                <h4 className="text-xs font-bold text-text-primary flex items-center gap-2">
-                  <FiPlus className="text-brand-purple" />
-                  <span>Dynamic Category Business Documents (FSSAI / Food License / Driving License / Pharmacy Permit)</span>
+              <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-3 animate-fade-in">
+                <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a] flex items-center gap-2">
+                  <FiPlus className="text-[#d99a3d]" />
+                  <span>Custom Category Business Documents (FSSAI / Food License / Pharmacy Permit)</span>
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -880,7 +893,7 @@ export default function VendorVerificationPage() {
                     value={dynamicDocName}
                     onChange={(e) => setDynamicDocName(e.target.value)}
                     placeholder="Document Name (e.g. FSSAI License)"
-                    className="px-3 py-2 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                   />
 
                   <input
@@ -888,11 +901,12 @@ export default function VendorVerificationPage() {
                     value={dynamicDocNum}
                     onChange={(e) => setDynamicDocNum(e.target.value)}
                     placeholder="Reg / License No."
-                    className="px-3 py-2 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary"
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                   />
 
-                  <label className="cursor-pointer px-3 py-2 bg-surface border border-dashed border-border rounded-xl text-xs font-semibold text-text-secondary flex items-center justify-center gap-1.5">
-                    <FiUploadCloud size={14} /> {dynamicDocFile ? 'File Attached ✓' : 'Upload Document'}
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                    <span>{dynamicDocFile ? 'File Attached ✓' : 'Upload Document'}</span>
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setDynamicDocFile)} />
                   </label>
                 </div>
@@ -901,25 +915,25 @@ export default function VendorVerificationPage() {
                   type="button"
                   onClick={() => handleVerifyDocument('dynamic', dynamicDocNum, null, null, dynamicDocFile, dynamicDocName || 'Custom Business License')}
                   disabled={loading || !dynamicDocName}
-                  className="w-full py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition disabled:opacity-50"
+                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
-                  Add & Verify Document
+                  Add &amp; Verify Document
                 </button>
               </div>
             )}
           </div>
 
           {/* Wizard Footer Navigation */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border mt-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[#e3dccb] mt-6">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handlePrevDoc}
                 disabled={currentDocIndex === 0}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
                   currentDocIndex > 0
-                    ? 'bg-surface border border-border text-text-secondary hover:bg-surface-secondary shadow-sm'
-                    : 'opacity-50 cursor-not-allowed bg-surface-secondary text-text-tertiary border border-border'
+                    ? 'bg-[#f8f4ec] border border-[#e3dccb] text-[#1a1a1a] hover:bg-white'
+                    : 'opacity-50 cursor-not-allowed bg-[#f8f4ec]/60 text-slate-400 border border-[#e3dccb]'
                 }`}
               >
                 Back
@@ -928,7 +942,7 @@ export default function VendorVerificationPage() {
               <button
                 type="button"
                 onClick={handleSkipDoc}
-                className="px-5 py-2 rounded-xl bg-surface-tertiary hover:bg-surface-secondary border border-border text-text-secondary text-xs font-bold transition flex items-center gap-1.5"
+                className="px-5 py-2 rounded-xl bg-[#f8f4ec] hover:bg-white border border-[#e3dccb] text-[#1a1a1a] text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
               >
                 <span>{currentDocIndex === 5 ? 'Skip & Finish' : 'Skip & Next'}</span>
                 <FiChevronRight size={14} />
@@ -938,10 +952,10 @@ export default function VendorVerificationPage() {
             <button
               type="button"
               onClick={() => handleTabClick('payment')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
                 isPart2Complete
-                  ? 'gradient-brand text-white shadow-premium hover:opacity-90'
-                  : 'bg-surface-secondary text-text-tertiary border border-border cursor-not-allowed'
+                  ? 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] shadow-2xs border-none'
+                  : 'bg-[#f8f4ec] text-slate-400 border border-[#e3dccb] cursor-not-allowed'
               }`}
             >
               <span>{isPart2Complete ? 'Proceed to Part 3: Payout & Payment Details' : 'Submit at least 1 Document to Unlock Part 3'}</span>
@@ -953,29 +967,29 @@ export default function VendorVerificationPage() {
 
       {/* TAB 3: PAYMENT & PAYOUT DETAILS */}
       {activeTab === 'payment' && (
-        <div className="glass rounded-3xl p-6 sm:p-8 border border-border shadow-card space-y-6">
-          <h3 className="text-sm font-bold text-text-primary font-display border-b border-border pb-3 flex items-center gap-2">
-            <FiCreditCard className="text-brand-purple" />
-            <span>Bank Account & UPI Payout Details</span>
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5 font-sans">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide border-b border-[#e3dccb] pb-3 flex items-center gap-2">
+            <FiCreditCard className="text-[#d99a3d]" />
+            <span>Bank Account &amp; UPI Payout Details</span>
           </h3>
 
           <div className="space-y-4">
             {/* UPI ID */}
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">UPI ID for Payouts (API Verification)</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">UPI ID for Payouts (API Verification)</label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={upiId}
                   onChange={(e) => setUpiId(e.target.value)}
                   placeholder="e.g. shopname@upi or 9876543210@paytm"
-                  className="flex-1 px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
+                  className="flex-1 px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                 />
                 <button
                   type="button"
                   onClick={handleVerifyPayment}
                   disabled={loading || !upiId}
-                  className="px-4 py-2.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 disabled:opacity-50"
+                  className="px-4 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none shrink-0"
                 >
                   Verify UPI
                 </button>
@@ -984,29 +998,29 @@ export default function VendorVerificationPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">Bank Account Number</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Bank Account Number</label>
                 <input
                   type="text"
                   value={bankAccount}
                   onChange={(e) => setBankAccount(e.target.value)}
                   placeholder="e.g. 918273645012"
-                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">Account Holder Name</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Account Holder Name</label>
                 <input
                   type="text"
                   value={accountHolderName}
                   onChange={(e) => setAccountHolderName(e.target.value)}
                   placeholder="Name as per Bank Record"
-                  className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
+                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">IFSC Code (Auto-Lookup)</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">IFSC Code (Auto-Lookup)</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -1014,13 +1028,13 @@ export default function VendorVerificationPage() {
                     value={ifscCode}
                     onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
                     placeholder="e.g. SBIN0001234"
-                    className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary uppercase"
+                    className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
                   <button
                     type="button"
                     onClick={handleIfscLookup}
                     disabled={ifscLoading || ifscCode.length < 11}
-                    className="px-3 py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50"
+                    className="px-3.5 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black transition disabled:opacity-50 cursor-pointer border-none shrink-0"
                   >
                     {ifscLoading ? 'Lookup...' : 'Verify'}
                   </button>
@@ -1028,23 +1042,24 @@ export default function VendorVerificationPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">Bank Name & Branch</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Bank Name &amp; Branch</label>
                 <input
                   type="text"
                   readOnly
                   value={bankName ? `${bankName} (${branchName || 'Main Branch'})` : ''}
                   placeholder="Auto-populated on IFSC lookup"
-                  className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-xs font-semibold text-text-secondary"
+                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-slate-600"
                 />
               </div>
             </div>
 
             {/* Cancelled Cheque / Statement Upload */}
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Bank Statement / Cancelled Cheque (Optional)</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Bank Statement / Cancelled Cheque (Optional)</label>
               <div className="flex items-center gap-3">
-                <label className="cursor-pointer px-4 py-2.5 glass border border-border rounded-xl text-xs font-bold text-brand-purple hover:bg-brand-purple/5 transition flex items-center gap-2">
-                  <FiUploadCloud size={16} /> {statementFile ? 'Cheque / Statement Uploaded ✓' : 'Upload Bank Statement or Cheque'}
+                <label className="cursor-pointer px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] hover:bg-white transition flex items-center gap-2 shadow-2xs">
+                  <FiUploadCloud size={16} className="text-[#d99a3d]" />
+                  <span>{statementFile ? 'Cheque / Statement Uploaded ✓' : 'Upload Bank Statement or Cheque'}</span>
                   <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setStatementFile)} />
                 </label>
               </div>
@@ -1054,9 +1069,9 @@ export default function VendorVerificationPage() {
               type="button"
               onClick={handleVerifyPayment}
               disabled={loading}
-              className="w-full py-3.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-premium hover:opacity-90 transition disabled:opacity-50"
+              className="w-full py-3.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition disabled:opacity-50 cursor-pointer border-none"
             >
-              Save & Verify All Payment Details
+              Save &amp; Verify All Payment Details
             </button>
           </div>
         </div>
@@ -1064,14 +1079,14 @@ export default function VendorVerificationPage() {
 
       {/* OTP MODAL */}
       {otpModal.open && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-border rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl animate-scale-in">
-            <h4 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
-              <FiShield className="text-brand-purple" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 font-sans">
+          <div className="bg-white border-2 border-[#241b15] rounded-2xl p-5 sm:p-6 max-w-sm w-full space-y-4 shadow-2xl animate-fade-in">
+            <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2 border-b border-[#e3dccb] pb-2.5">
+              <FiShield className="text-[#d99a3d]" size={16} />
               <span>Verify {otpModal.type.toUpperCase()} OTP</span>
             </h4>
-            <p className="text-xs text-text-tertiary">
-              Enter 4-digit verification code sent to <span className="font-bold text-text-primary">{otpModal.value || 'contact'}</span>
+            <p className="text-xs text-slate-500 font-medium">
+              Enter 4-digit verification code sent to <span className="font-extrabold text-[#1a1a1a]">{otpModal.value || 'contact'}</span>
             </p>
 
             <input
@@ -1080,14 +1095,14 @@ export default function VendorVerificationPage() {
               value={otpModal.code}
               onChange={(e) => setOtpModal({ ...otpModal, code: e.target.value })}
               placeholder="e.g. 1234"
-              className="w-full text-center tracking-widest text-lg font-black py-2.5 bg-surface-secondary border border-border rounded-xl text-brand-purple"
+              className="w-full text-center tracking-widest text-lg font-black py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-[#241b15] focus:outline-none focus:border-[#d99a3d]"
             />
 
             <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setOtpModal({ open: false, type: '', value: '', code: '' })}
-                className="w-1/2 py-2 rounded-xl text-xs font-bold text-text-secondary bg-surface-tertiary"
+                className="w-1/2 py-2 rounded-xl text-xs font-bold text-slate-600 bg-[#f8f4ec] border border-[#e3dccb] hover:bg-white transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -1095,7 +1110,7 @@ export default function VendorVerificationPage() {
                 type="button"
                 onClick={handleVerifyOtp}
                 disabled={loading}
-                className="w-1/2 py-2 rounded-xl text-xs font-bold text-white gradient-brand"
+                className="w-1/2 py-2 rounded-xl text-xs font-black text-[#d99a3d] bg-[#241b15] hover:bg-[#3a2c22] transition cursor-pointer border-none shadow-2xs"
               >
                 Submit OTP
               </button>

@@ -96,13 +96,13 @@ function SearchableSelect({
     : (value || '');
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative font-sans" ref={containerRef}>
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
           {label}
         </label>
         {loading && (
-          <span className="text-[10px] text-brand-purple font-semibold animate-pulse">
+          <span className="text-[10px] text-[#d99a3d] font-black animate-pulse">
             {badgeText || 'Loading...'}
           </span>
         )}
@@ -113,36 +113,36 @@ function SearchableSelect({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-2.5 bg-surface border rounded-xl text-xs font-bold text-left flex items-center justify-between transition-all cursor-pointer ${
-          disabled ? 'opacity-50 cursor-not-allowed border-border' : 'border-border hover:border-brand-purple/50 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20'
-        } ${isOpen ? 'border-brand-purple ring-2 ring-brand-purple/20' : ''}`}
+        className={`w-full px-4 py-2.5 bg-[#f8f4ec] border rounded-xl text-xs font-black text-left flex items-center justify-between transition-all cursor-pointer ${
+          disabled ? 'opacity-50 cursor-not-allowed border-[#e3dccb]' : 'border-[#e3dccb] hover:border-[#241b15] focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20'
+        } ${isOpen ? 'border-[#241b15] ring-1 ring-[#241b15]/20' : ''}`}
       >
-        <span className={`truncate mr-2 ${displayValue ? 'text-text-primary' : 'text-text-tertiary font-normal'}`}>
+        <span className={`truncate mr-2 ${displayValue ? 'text-[#1a1a1a]' : 'text-slate-400 font-medium'}`}>
           {displayValue || placeholder}
         </span>
-        <FiChevronDown className={`w-4 h-4 text-text-tertiary shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-brand-purple' : ''}`} />
+        <FiChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-[#d99a3d]' : ''}`} />
       </button>
 
       {/* Dropdown Menu with Search */}
       {isOpen && !disabled && (
-        <div className="absolute z-50 mt-1.5 w-full bg-surface-secondary/95 backdrop-blur-xl border border-border/90 rounded-2xl shadow-xl overflow-hidden animate-scale-in min-w-[200px]">
+        <div className="absolute z-50 mt-1.5 w-full bg-white border border-[#e3dccb] rounded-2xl shadow-xl overflow-hidden animate-scale-in min-w-[200px]">
           {/* Search Input Box */}
-          <div className="p-2 border-b border-border/80 bg-surface/50">
+          <div className="p-2 border-b border-[#e3dccb] bg-[#f8f4ec]">
             <div className="relative flex items-center">
-              <FiSearch className="absolute left-3 text-text-tertiary w-3.5 h-3.5" />
+              <FiSearch className="absolute left-3 text-[#d99a3d] w-3.5 h-3.5" />
               <input
                 ref={searchInputRef}
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full pl-8 pr-7 py-1.5 bg-surface border border-border/80 rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple font-medium"
+                className="w-full pl-8 pr-7 py-1.5 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] font-bold"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 text-text-tertiary hover:text-text-primary"
+                  className="absolute right-2.5 text-slate-400 hover:text-[#1a1a1a]"
                 >
                   <FiX className="w-3.5 h-3.5" />
                 </button>
@@ -161,8 +161,8 @@ function SearchableSelect({
                 }}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-colors ${
                   value === customOptionValue
-                    ? 'bg-brand-purple/15 text-brand-purple'
-                    : 'text-brand-purple hover:bg-brand-purple/10'
+                    ? 'bg-[#241b15] text-[#d99a3d]'
+                    : 'text-[#241b15] hover:bg-[#f8f4ec]'
                 }`}
               >
                 <span>{customOptionLabel}</span>
@@ -181,19 +181,19 @@ function SearchableSelect({
                       onChange(opt);
                       setIsOpen(false);
                     }}
-                    className={`w-full px-3 py-2 rounded-xl text-xs font-medium text-left flex items-center justify-between transition-colors ${
+                    className={`w-full px-3 py-2 rounded-xl text-xs text-left flex items-center justify-between transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-brand-purple text-white font-bold'
-                        : 'text-text-primary hover:bg-surface-tertiary'
+                        ? 'bg-[#241b15] text-[#d99a3d] font-black'
+                        : 'text-[#1a1a1a] hover:bg-[#f8f4ec] font-bold'
                     }`}
                   >
                     <span className="truncate">{opt}</span>
-                    {isSelected && <FiCheck className="w-3.5 h-3.5 text-white shrink-0" />}
+                    {isSelected && <FiCheck className="w-3.5 h-3.5 text-[#d99a3d] shrink-0" />}
                   </button>
                 );
               })
             ) : (
-              <div className="px-3 py-3 text-center text-xs text-text-tertiary">
+              <div className="px-3 py-3 text-center text-xs text-slate-400 font-bold">
                 No matching results found
               </div>
             )}
@@ -684,7 +684,7 @@ export default function VendorBusinessProfilePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-12">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans animate-fade-in pb-16 p-2 sm:p-4">
       <AdminPageHeader
         icon={FiBriefcase}
         title="Business Profile & Branding"
@@ -693,22 +693,22 @@ export default function VendorBusinessProfilePage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Profile Image & Cover Banner Upload Section */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-white/50 shadow-card space-y-6">
-          <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2.5 border-b border-border pb-3">
-            <div className="p-2 rounded-xl bg-brand-purple/10 text-brand-purple">
-              <FiCamera className="w-4 h-4" />
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2.5 border-b border-[#e3dccb] pb-3">
+            <div className="w-8 h-8 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center shrink-0 shadow-2xs">
+              <FiCamera className="w-4 h-4 text-[#d99a3d]" />
             </div>
-            <span>Profile Photo & Cover Banner</span>
+            <span>Profile Photo &amp; Cover Banner</span>
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Vendor Profile Image */}
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
                 Shop Logo / Profile Picture *
               </label>
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full border-2 border-brand-purple/50 overflow-hidden bg-surface-tertiary shrink-0 relative shadow-sm">
+                <div className="w-20 h-20 rounded-2xl border-2 border-[#241b15] overflow-hidden bg-[#f8f4ec] shrink-0 relative shadow-2xs">
                   {profilePic ? (
                     <img
                       src={resolveMediaUrl(profilePic)}
@@ -720,12 +720,12 @@ export default function VendorBusinessProfilePage() {
                       }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-text-tertiary text-2xl font-bold bg-brand-purple/10 text-brand-purple">
+                    <div className="w-full h-full flex items-center justify-center text-[#d99a3d] text-2xl font-black bg-[#241b15]">
                       {shopName ? shopName.charAt(0).toUpperCase() : 'V'}
                     </div>
                   )}
                   {uploadingPic && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[10px] font-bold backdrop-blur-[1px]">
+                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white text-[10px] font-black backdrop-blur-xs">
                       Uploading...
                     </div>
                   )}
@@ -733,7 +733,7 @@ export default function VendorBusinessProfilePage() {
 
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-brand-purple/10 text-brand-purple text-xs font-bold rounded-xl hover:bg-brand-purple/20 transition cursor-pointer active:scale-95">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] text-xs font-black rounded-xl transition cursor-pointer border-none shadow-2xs">
                       <FiCamera size={14} />
                       <span>{profilePic ? 'Change Photo' : 'Upload Logo / Photo'}</span>
                       <input
@@ -747,14 +747,14 @@ export default function VendorBusinessProfilePage() {
                       <button
                         type="button"
                         onClick={() => setProfilePic('')}
-                        className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition"
+                        className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer border-none"
                         title="Remove photo"
                       >
                         <FiTrash2 size={14} />
                       </button>
                     )}
                   </div>
-                  <p className="text-[10px] text-text-tertiary">Recommended: Square JPG or PNG (Max 5MB)</p>
+                  <p className="text-[10px] text-slate-400 font-bold">Recommended: Square JPG or PNG (Max 5MB)</p>
                 </div>
               </div>
             </div>
@@ -762,20 +762,20 @@ export default function VendorBusinessProfilePage() {
             {/* Cover Banner (Optional) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
-                  Cover Banner <span className="text-emerald-500 font-semibold">(Optional)</span>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                  Cover Banner <span className="text-emerald-600 font-bold">(Optional)</span>
                 </label>
                 {coverBanner && (
                   <button
                     type="button"
                     onClick={() => setCoverBanner('')}
-                    className="text-[10px] font-bold text-rose-500 hover:underline"
+                    className="text-[10px] font-black text-rose-600 hover:underline cursor-pointer border-none bg-transparent"
                   >
                     Remove Banner
                   </button>
                 )}
               </div>
-              <div className="relative rounded-2xl overflow-hidden border border-border h-24 bg-surface-tertiary shadow-inner">
+              <div className="relative rounded-2xl overflow-hidden border border-[#e3dccb] h-24 bg-[#f8f4ec] shadow-inner">
                 {coverBanner ? (
                   <img
                     src={resolveMediaUrl(coverBanner)}
@@ -787,20 +787,20 @@ export default function VendorBusinessProfilePage() {
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full bg-cover-gradient flex items-center justify-center text-xs text-text-tertiary font-medium">
-                    No cover banner set (Displays gradient)
+                  <div className="w-full h-full bg-gradient-to-r from-[#241b15] to-[#3a2c22] flex items-center justify-center text-xs text-[#d99a3d] font-bold">
+                    No cover banner set (Displays warm dark header gradient)
                   </div>
                 )}
                 {uploadingBanner && (
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[10px] font-bold backdrop-blur-[1px]">
+                  <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white text-[10px] font-black backdrop-blur-xs">
                     Uploading Banner...
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border text-text-primary text-xs font-bold rounded-xl hover:bg-surface-tertiary transition cursor-pointer active:scale-95">
-                  <FiImage size={14} />
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#f8f4ec] border border-[#e3dccb] text-[#1a1a1a] hover:bg-white text-xs font-black rounded-xl transition cursor-pointer shadow-2xs">
+                  <FiImage size={14} className="text-[#d99a3d]" />
                   <span>{coverBanner ? 'Change Cover Banner' : 'Upload Cover Banner'}</span>
                   <input
                     type="file"
@@ -815,44 +815,44 @@ export default function VendorBusinessProfilePage() {
         </div>
 
         {/* Basic Shop Details */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-white/50 shadow-card space-y-5">
-          <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2.5 border-b border-border pb-3">
-            <div className="p-2 rounded-xl bg-brand-purple/10 text-brand-purple">
-              <FiBriefcase className="w-4 h-4" />
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2.5 border-b border-[#e3dccb] pb-3">
+            <div className="w-8 h-8 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center shrink-0 shadow-2xs">
+              <FiBriefcase className="w-4 h-4 text-[#d99a3d]" />
             </div>
             <span>Basic Shop Details</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Shop / Display Name *</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Shop / Display Name *</label>
               <input
                 type="text"
                 required
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
                 placeholder="e.g. Metro Electronics & Accessories"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Business Registered Name</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Business Registered Name</label>
               <input
                 type="text"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 placeholder="e.g. Metro Enterprises Pvt Ltd"
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Business Category *</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Business Category *</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all cursor-pointer"
+                className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all cursor-pointer"
               >
                 {parentCategories.map((cat) => (
                   <option key={cat.id} value={cat.name}>
@@ -863,16 +863,16 @@ export default function VendorBusinessProfilePage() {
             </div>
 
             {/* Timing Section */}
-            <div className="sm:col-span-2 border-t border-border pt-4 mt-2">
-              <div className="flex items-center justify-between mb-4">
+            <div className="sm:col-span-2 border-t border-[#e3dccb] pt-4 mt-2">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <div>
-                  <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider">Business Timing & Hours</h4>
-                  <p className="text-[10px] text-text-tertiary mt-0.5">Select opening/closing times and weekly off days</p>
+                  <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase tracking-wide text-[#1a1a1a]">Business Timing & Hours</h4>
+                  <p className="text-[10px] text-slate-400 font-bold mt-0.5">Select opening/closing times and weekly off days</p>
                 </div>
                 
                 {/* 24x7 Toggle */}
-                <div className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-xl border border-border">
-                  <span className="text-[10px] font-bold text-text-primary uppercase">Open 24×7</span>
+                <div className="flex items-center gap-2 bg-[#f8f4ec] px-3 py-1.5 rounded-xl border border-[#e3dccb]">
+                  <span className="text-[10px] font-black text-[#1a1a1a] uppercase">Open 24×7</span>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
@@ -880,7 +880,7 @@ export default function VendorBusinessProfilePage() {
                       onChange={(e) => setOpen24x7(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-surface-tertiary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#e3dccb] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
                   </label>
                 </div>
               </div>
@@ -888,27 +888,27 @@ export default function VendorBusinessProfilePage() {
               {!open24x7 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Opening Time</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Opening Time</label>
                     <div className="relative">
-                      <FiClock className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                      <FiClock className="absolute left-3 top-3 text-[#d99a3d] w-4 h-4" />
                       <input
                         type="time"
                         value={format12to24(openingTime)}
                         onChange={(e) => setOpeningTime(format24to12(e.target.value))}
-                        className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                        className="w-full pl-9 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Closing Time</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Closing Time</label>
                     <div className="relative">
-                      <FiClock className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                      <FiClock className="absolute left-3 top-3 text-[#d99a3d] w-4 h-4" />
                       <input
                         type="time"
                         value={format12to24(closingTime)}
                         onChange={(e) => setClosingTime(format24to12(e.target.value))}
-                        className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                        className="w-full pl-9 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
                       />
                     </div>
                   </div>
@@ -916,7 +916,7 @@ export default function VendorBusinessProfilePage() {
               )}
 
               <div className="mt-2">
-                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">Weekly Off Days</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Weekly Off Days</label>
                 <div className="flex flex-wrap gap-2">
                   {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
                     const isSelected = weeklyOff !== 'None' && weeklyOff.split(', ').includes(day);
@@ -925,10 +925,10 @@ export default function VendorBusinessProfilePage() {
                         key={day}
                         type="button"
                         onClick={() => toggleWeeklyOffDay(day)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-black transition-all border cursor-pointer ${
                           isSelected
-                            ? 'bg-red-500/10 text-red-500 border-red-500/30'
-                            : 'bg-surface hover:bg-surface-tertiary text-text-secondary border-border cursor-pointer'
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : 'bg-[#f8f4ec] hover:bg-white text-slate-700 border-[#e3dccb]'
                         }`}
                       >
                         {day}
@@ -938,10 +938,10 @@ export default function VendorBusinessProfilePage() {
                   <button
                     type="button"
                     onClick={() => setWeeklyOff('None')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-black transition-all border cursor-pointer ${
                       weeklyOff === 'None'
-                        ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
-                        : 'bg-surface hover:bg-surface-tertiary text-text-secondary border-border cursor-pointer'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-[#f8f4ec] hover:bg-white text-slate-700 border-[#e3dccb]'
                     }`}
                   >
                     Open All Days (No Off)
@@ -952,29 +952,29 @@ export default function VendorBusinessProfilePage() {
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Shop Description & Tagline</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Shop Description & Tagline</label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your shop offerings, specialty products, brands sold..."
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all resize-none"
+              className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all resize-none"
             />
           </div>
         </div>
 
         {/* Business Physical Address (Searchable Dropdowns for State, District, Tehsil, Pin Code + Text for Area) */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-white/50 shadow-card space-y-5">
-          <div className="border-b border-border pb-3 flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-brand-orange/10 text-brand-orange">
-                <FiMapPin className="w-4 h-4" />
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5">
+          <div className="border-b border-[#e3dccb] pb-3 flex items-center justify-between flex-wrap gap-2">
+            <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center shrink-0 shadow-2xs">
+                <FiMapPin className="w-4 h-4 text-[#d99a3d]" />
               </div>
               <span>Business Physical Address</span>
             </h3>
-            <span className="text-[11px] text-brand-purple font-semibold bg-brand-purple/10 px-2.5 py-1 rounded-full flex items-center gap-1">
-              <FiNavigation className="w-3 h-3" />
-              <span>Searchable Dropdowns with Instant Pincode Auto-Fill</span>
+            <span className="text-[10px] text-[#241b15] font-black bg-[#f8f4ec] border border-[#e3dccb] px-3 py-1 rounded-full flex items-center gap-1.5 uppercase tracking-wider">
+              <FiNavigation className="w-3 h-3 text-[#d99a3d]" />
+              <span>Searchable Address Dropdowns</span>
             </span>
           </div>
 
@@ -1011,7 +1011,7 @@ export default function VendorBusinessProfilePage() {
                   value={customDistrict}
                   onChange={(e) => setCustomDistrict(e.target.value)}
                   placeholder="Enter District Name"
-                  className="mt-2 w-full px-4 py-2 bg-surface border border-brand-purple/50 rounded-xl text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                  className="mt-2 w-full px-4 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] transition-all"
                 />
               )}
             </div>
@@ -1036,7 +1036,7 @@ export default function VendorBusinessProfilePage() {
                   value={customTehsil}
                   onChange={(e) => setCustomTehsil(e.target.value)}
                   placeholder="Enter Tehsil Name"
-                  className="mt-2 w-full px-4 py-2 bg-surface border border-brand-purple/50 rounded-xl text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                  className="mt-2 w-full px-4 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] transition-all"
                 />
               )}
             </div>
@@ -1076,9 +1076,9 @@ export default function VendorBusinessProfilePage() {
                       }
                     }}
                     placeholder="Enter 6-digit Pin Code"
-                    className="w-full px-4 py-2 bg-surface border border-brand-purple/50 rounded-xl text-xs text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                    className="w-full px-4 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-black focus:outline-none focus:border-[#d99a3d] transition-all"
                   />
-                  <span className="absolute right-3 top-2.5 text-[10px] font-bold text-text-tertiary">
+                  <span className="absolute right-3 top-2.5 text-[10px] font-black text-slate-400">
                     {customPincode.length}/6
                   </span>
                 </div>
@@ -1086,13 +1086,13 @@ export default function VendorBusinessProfilePage() {
             </div>
           </div>
 
-          {/* 5. Area / Street / Detailed Address Textarea (Auto-filled from Geocoding/Pincode + Editable) */}
+          {/* 5. Area / Street / Detailed Address Textarea */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
                 Area / Street / Building Address (Text Input) *
               </label>
-              <span className="text-[10px] text-text-tertiary font-medium">Auto-filled from Pin Code / Editable</span>
+              <span className="text-[10px] text-slate-400 font-bold">Auto-filled from Pin Code / Editable</span>
             </div>
             <textarea
               rows={2}
@@ -1100,18 +1100,18 @@ export default function VendorBusinessProfilePage() {
               value={areaAddress}
               onChange={(e) => setAreaAddress(e.target.value)}
               placeholder="e.g. Shop No. 12, Ground Floor, MG Road, Near City Mall, Main Market"
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all resize-none"
+              className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all resize-none"
             />
           </div>
 
           {/* Live Full Address Preview Pill */}
-          <div className="bg-surface-secondary p-3.5 rounded-xl border border-border/80 flex items-start gap-2.5 text-xs text-text-secondary">
-            <FiCheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+          <div className="bg-[#f8f4ec] p-4 rounded-xl border border-[#e3dccb] flex items-start gap-3 text-xs text-slate-700">
+            <FiCheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div className="space-y-0.5">
-              <span className="font-bold text-text-primary text-[11px] block uppercase tracking-wider">
+              <span className="font-black text-[#1a1a1a] text-[10px] block uppercase tracking-widest">
                 Full Physical Address Preview:
               </span>
-              <p className="text-xs text-text-primary font-medium">
+              <p className="text-xs text-[#1a1a1a] font-extrabold">
                 {compileFullAddress() || 'Please select State, District, and enter Area details above'}
               </p>
             </div>
@@ -1119,67 +1119,67 @@ export default function VendorBusinessProfilePage() {
         </div>
 
         {/* Online & Social Links */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-white/50 shadow-card space-y-5">
-          <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2.5 border-b border-border pb-3">
-            <div className="p-2 rounded-xl bg-brand-pink/10 text-brand-pink">
-              <FiGlobe className="w-4 h-4" />
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2.5 border-b border-[#e3dccb] pb-3">
+            <div className="w-8 h-8 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center shrink-0 shadow-2xs">
+              <FiGlobe className="w-4 h-4 text-[#d99a3d]" />
             </div>
-            <span>Online Presence & Social Links</span>
+            <span>Online Presence &amp; Social Links</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">WhatsApp Number</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">WhatsApp Number</label>
               <div className="relative">
-                <FiPhone className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                <FiPhone className="absolute left-3.5 top-3 text-[#d99a3d] w-4 h-4" />
                 <input
                   type="text"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="+91 98765 43210"
-                  className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Website URL</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Website URL</label>
               <div className="relative">
-                <FiGlobe className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                <FiGlobe className="absolute left-3.5 top-3 text-[#d99a3d] w-4 h-4" />
                 <input
                   type="text"
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
                   placeholder="https://myshop.com"
-                  className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Instagram Handle</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Instagram Handle</label>
               <div className="relative">
-                <FiInstagram className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                <FiInstagram className="absolute left-3.5 top-3 text-[#d99a3d] w-4 h-4" />
                 <input
                   type="text"
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
                   placeholder="@shopname"
-                  className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">Facebook Page</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Facebook Page</label>
               <div className="relative">
-                <FiFacebook className="absolute left-3 top-3 text-text-tertiary w-4 h-4" />
+                <FiFacebook className="absolute left-3.5 top-3 text-[#d99a3d] w-4 h-4" />
                 <input
                   type="text"
                   value={facebook}
                   onChange={(e) => setFacebook(e.target.value)}
                   placeholder="facebook.com/shopname"
-                  className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
                 />
               </div>
             </div>
@@ -1191,7 +1191,7 @@ export default function VendorBusinessProfilePage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-95 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-60"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer border-none active:scale-[0.98] disabled:opacity-60"
           >
             <FiSave className="w-4 h-4" />
             <span>{loading ? 'Saving Profile...' : 'Save Business Profile'}</span>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FiDollarSign, FiPlusCircle, FiArrowUpRight, FiArrowDownLeft, FiX, FiCheck } from 'react-icons/fi';
+import { FiPlusCircle, FiArrowUpRight, FiArrowDownLeft, FiX, FiCheck } from 'react-icons/fi';
+import { TbCurrencyRupee } from 'react-icons/tb';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
@@ -28,17 +29,15 @@ export default function VendorWalletPage() {
   const [loading, setLoading] = useState(false);
 
   const balance = walletData?.data?.balance ?? walletData?.data?.walletBalance ?? walletData?.balance ?? walletData?.walletBalance ?? 0;
-  const transactions = Array.isArray(txData?.transactions) ? txData.transactions : Array.isArray(txData?.data) ? txData.data : Array.isArray(txData?.items) ? txData.items : Array.isArray(txData) ? txData : [];
+  const rawTx = txData?.data || txData || [];
+  const transactions = Array.isArray(rawTx) ? rawTx : rawTx.transactions || [];
 
-  const totalDebits = transactions
-    .filter((tx) => tx.type === 'debit' || tx.type === 'payment' || tx.type === 'purchase')
-    .reduce((acc, tx) => acc + (tx.amount || 0), 0);
-
-  const totalCredits = balance + totalDebits;
+  const totalCredits = transactions.filter(t => t.type === 'credit' || t.type === 'deposit').reduce((acc, t) => acc + (t.amount || 0), 0);
+  const totalDebits = transactions.filter(t => t.type === 'debit' || t.type === 'withdrawal').reduce((acc, t) => acc + (t.amount || 0), 0);
 
   const handleRechargeSubmit = async (e) => {
     e.preventDefault();
-    const numAmount = Number(amount);
+    const numAmount = parseFloat(amount);
     if (!numAmount || numAmount < 10) {
       toast.error('Minimum recharge amount is ₹10');
       return;
@@ -46,93 +45,82 @@ export default function VendorWalletPage() {
 
     setLoading(true);
     try {
-      // 1. Create Razorpay Order via backend
-      const res = await api.post('/v1/payments/order', { amount_paise: numAmount * 100, purpose: 'wallet_topup' });
-
-      if (!res?.data?.razorpay_order_id) {
-        console.error('[BizReels] Payment order response missing razorpay_order_id:', res?.data);
-        throw new Error('Payment gateway initialization failed. Please check your credentials or try again later.');
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        toast.error('Failed to load payment gateway. Please check internet connection.');
+        setLoading(false);
+        return;
       }
 
-      const orderData = res.data;
+      const res = await rechargeWallet({ amount: numAmount }).unwrap();
+      const orderData = res.data || res;
 
-      console.log('[BizReels] Payment order created:', {
-        order_id: orderData.razorpay_order_id,
-        amount_paise: orderData.amount_paise,
-        key_id: orderData.key_id ? `${orderData.key_id.substring(0, 12)}...` : 'MISSING',
-      });
-
-      // 2. Load Razorpay SDK and open checkout
-      const sdkLoaded = await loadRazorpayScript();
-      if (!sdkLoaded || !window.Razorpay) {
-        console.error('[BizReels] Razorpay SDK failed to load. window.Razorpay =', window.Razorpay);
-        throw new Error('Payment gateway could not be loaded. Please check your internet connection and try again.');
+      if (!orderData?.id || !orderData?.key) {
+        toast.error('Payment initialization failed.');
+        setLoading(false);
+        return;
       }
 
       const options = {
-        key: orderData.key_id,
-        amount: orderData.amount_paise,
-        currency: 'INR',
-        name: 'BizReels Wallet Topup',
-        description: `Recharge ₹${numAmount}`,
-        order_id: orderData.razorpay_order_id,
-        handler: async (response) => {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency || 'INR',
+        name: 'BizReels Vendor Wallet',
+        description: `Wallet Recharge of ₹${numAmount}`,
+        order_id: orderData.id,
+        handler: async function (response) {
           try {
-            await api.post('/v1/payments/verify', {
+            await api.post('/v1/vendor/wallet/verify', {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
-            toast.success(`Razorpay Payment Successful! Added ₹${numAmount.toLocaleString('en-IN')} to wallet.`);
+            toast.success(`Successfully recharged ₹${numAmount} to your wallet!`);
             setIsModalOpen(false);
-            if (refetchWallet) refetchWallet();
-            if (refetchTx) refetchTx();
-          } catch (err) {
-            console.error('[BizReels] Payment verification failed:', err);
-            toast.error('Payment was received but verification failed. Please contact support.');
+            if (typeof refetchWallet === 'function') refetchWallet();
+            if (typeof refetchTx === 'function') refetchTx();
+          } catch (verifyErr) {
+            toast.error('Payment verification failed. Please contact support if amount was deducted.');
+          } finally {
+            setLoading(false);
           }
         },
         modal: {
-          ondismiss: () => {
-            console.log('[BizReels] Razorpay modal dismissed by user');
-            toast('Payment cancelled.', { icon: '⚠️' });
+          ondismiss: function () {
+            toast.error('Payment cancelled.');
             setLoading(false);
           },
         },
-        theme: { color: '#7C3AED' },
+        theme: {
+          color: '#241b15',
+        },
       };
 
-      const rzp = new window.Razorpay(options);
-
-      rzp.on('payment.failed', (response) => {
-        console.error('[BizReels] Razorpay payment failed:', {
-          code: response.error?.code,
-          description: response.error?.description,
-          source: response.error?.source,
-          step: response.error?.step,
-          reason: response.error?.reason,
-        });
-        toast.error(response.error?.description || 'Payment failed. Please try again.');
-      });
-
-      rzp.open();
-      setLoading(false);
-      return;
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
     } catch (err) {
-      toast.error(err?.data?.message || err?.message || 'Failed to recharge wallet');
-    } finally {
+      toast.error(err?.data?.message || 'Failed to initiate recharge');
       setLoading(false);
     }
   };
 
   const columns = [
     {
+      key: 'createdAt',
+      label: 'Date & Time',
+      render: (val) => (
+        <span className="text-slate-500 font-medium text-xs">
+          {val ? new Date(val).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}
+        </span>
+      ),
+    },
+    {
       key: 'description',
-      label: 'Transaction',
+      label: 'Description',
       render: (val, row) => (
-        <div>
-          <span className="font-bold text-text-primary block">{val || row.title || 'Wallet Activity'}</span>
-          <span className="text-[10px] text-text-tertiary">{row._id || row.id} • {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : row.date || 'Recent'}</span>
+        <div className="flex flex-col">
+          <span className="font-bold text-xs text-[#1a1a1a]">{val || row.type || 'Transaction'}</span>
+          {row.referenceId && <span className="text-[10px] text-slate-400">Ref: {row.referenceId}</span>}
         </div>
       ),
     },
@@ -140,10 +128,12 @@ export default function VendorWalletPage() {
       key: 'type',
       label: 'Type',
       render: (val) => (
-        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-          val === 'credit' || val === 'deposit' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-rose-500/20 text-rose-600'
+        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+          val === 'credit' || val === 'deposit'
+            ? 'bg-emerald-100 text-emerald-800'
+            : 'bg-rose-100 text-rose-800'
         }`}>
-          {val || 'credit'}
+          {val}
         </span>
       ),
     },
@@ -159,22 +149,22 @@ export default function VendorWalletPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans p-2 sm:p-4 animate-fade-in">
       <AdminPageHeader
-        icon={FiDollarSign}
+        icon={TbCurrencyRupee}
         title="Vendor Wallet & Balance"
         subtitle="Preload balance for reel boosts, ads, and manage order payouts & refunds"
       >
         <button
           onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 gradient-brand text-white rounded-xl text-xs font-bold shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
+          className="px-4 py-2 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1.5 cursor-pointer border-none"
         >
           <FiPlusCircle size={16} /> Recharge Wallet
         </button>
       </AdminPageHeader>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <AdminStatCard label="Available Balance" value={`₹${balance.toLocaleString('en-IN')}`} icon={FiDollarSign} color="green" />
+        <AdminStatCard label="Available Balance" value={`₹${balance.toLocaleString('en-IN')}`} icon={TbCurrencyRupee} color="green" />
         <AdminStatCard label="Total Credits" value={`₹${totalCredits.toLocaleString('en-IN')}`} icon={FiArrowDownLeft} color="blue" />
         <AdminStatCard label="Total Debits" value={`₹${totalDebits.toLocaleString('en-IN')}`} icon={FiArrowUpRight} color="rose" />
       </div>
@@ -189,16 +179,23 @@ export default function VendorWalletPage() {
       />
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="glass rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 border border-white/50 shadow-2xl max-w-md w-full space-y-4 bg-surface relative max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-xs sm:text-sm font-bold text-text-primary flex items-center gap-2">
-                <FiDollarSign className="text-emerald-500" size={16} />
-                Recharge Vendor Wallet
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in font-sans">
+          <div className="bg-white rounded-2xl p-5 sm:p-6 border-2 border-[#241b15] shadow-2xl max-w-md w-full space-y-4 relative max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center shrink-0 shadow-xs">
+                  <TbCurrencyRupee size={18} />
+                </div>
+                <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide">
+                  RECHARGE VENDOR WALLET
+                </h3>
+              </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition min-w-[32px] min-h-[32px] flex items-center justify-center"
+                className="p-1 rounded-lg text-slate-400 hover:text-[#1a1a1a] hover:bg-[#f8f4ec] transition cursor-pointer border-none bg-transparent"
               >
                 <FiX size={18} />
               </button>
@@ -206,19 +203,21 @@ export default function VendorWalletPage() {
 
             <form onSubmit={handleRechargeSubmit} className="space-y-4">
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
                   Select or Enter Amount (₹)
                 </label>
+                
+                {/* Preset Amount Badges */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {['500', '1000', '2500'].map((preset) => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => setAmount(preset)}
-                      className={`py-2 rounded-xl border text-[11px] sm:text-xs font-bold transition ${
+                      className={`py-2 rounded-xl text-xs font-black transition cursor-pointer border ${
                         amount === preset
-                          ? 'bg-brand-purple/10 border-brand-purple text-brand-purple shadow-sm'
-                          : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
+                          ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                          : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb] hover:bg-white'
                       }`}
                     >
                       ₹{Number(preset).toLocaleString('en-IN')}
@@ -226,8 +225,9 @@ export default function VendorWalletPage() {
                   ))}
                 </div>
 
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary font-bold text-xs">₹</span>
+                {/* Amount Input */}
+                <div className="relative flex items-center bg-[#f8f4ec] rounded-xl border border-[#e3dccb] px-3.5 py-2.5 focus-within:border-[#d99a3d] focus-within:ring-1 focus-within:ring-[#d99a3d]/20 transition-all">
+                  <span className="font-black text-[#d99a3d] text-sm mr-2">₹</span>
                   <input
                     type="number"
                     min="10"
@@ -235,35 +235,38 @@ export default function VendorWalletPage() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="Enter amount"
-                    className="w-full pl-8 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple"
+                    className="w-full bg-transparent text-sm font-black text-[#1a1a1a] focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="p-3 bg-brand-purple/5 border border-brand-purple/20 rounded-xl text-xs text-text-secondary flex items-center justify-between">
+              {/* Secured Gateway Pill */}
+              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between">
                 <span>Payment Gateway</span>
-                <span className="font-extrabold text-brand-purple flex items-center gap-1">
-                  <FiCheck size={14} /> Razorpay Secured
+                <span className="font-black text-[#1a1a1a] bg-white px-2.5 py-1 rounded-md border border-[#e3dccb] flex items-center gap-1">
+                  <FiCheck size={14} className="text-emerald-600" /> Razorpay Secured
                 </span>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2 pb-safe">
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-text-tertiary hover:text-text-primary transition min-h-[36px]"
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-[#1a1a1a] transition cursor-pointer border-none bg-transparent"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 gradient-brand text-white text-xs font-bold rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5 disabled:opacity-50 min-h-[36px]"
+                  className="px-5 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] text-xs font-black rounded-xl shadow-xs transition flex items-center gap-2 disabled:opacity-50 cursor-pointer border-none"
                 >
                   {loading ? 'Processing...' : `Pay ₹${Number(amount || 0).toLocaleString('en-IN')} via Razorpay`}
                 </button>
               </div>
             </form>
+
           </div>
         </div>
       )}

@@ -86,13 +86,13 @@ export default function ListingTable({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 font-sans">
       {/* Desktop Table */}
-      <div className="glass rounded-2xl border border-white/50 shadow-glass overflow-hidden hidden md:block">
+      <div className="bg-white rounded-2xl border border-[#e3dccb] shadow-2xs overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-[#e3dccb] bg-[#f8f4ec]">
                 <th className="px-3 py-3 text-left w-10">
                   <input
                     type="checkbox"

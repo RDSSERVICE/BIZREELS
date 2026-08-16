@@ -268,18 +268,18 @@ export default function VendorReelsPage() {
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-16">
       {/* VENDOR CONTENT POLICY & COMPLIANCE BANNER */}
-      <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-[11px] sm:text-xs text-amber-800 dark:text-amber-300 font-medium shadow-sm">
-        <FiShield className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+      <div className="p-4 rounded-2xl bg-[#f8f4ec] border border-[#e3dccb] flex items-start gap-3 text-xs text-slate-700 font-medium shadow-2xs font-sans">
+        <FiShield className="w-5 h-5 text-[#d99a3d] flex-shrink-0 mt-0.5" />
         <div className="leading-relaxed space-y-1">
           <div>
-            <strong className="font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wide mr-1">
-              Vendor Content Policy & Guidelines:
+            <strong style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs text-[#241b15] uppercase tracking-wide mr-1">
+              Vendor Content Policy &amp; Guidelines:
             </strong>
             <span>
               Only genuine business-related reels and images (products, services, shop promotions, and offers) can be posted by vendors. Any unrelated content (such as comedy clips, TV serials, cartoons, memes, or non-business activities) will be blocked and removed by the admin.
             </span>
           </div>
-          <p className="text-[11px] text-rose-700 dark:text-rose-400 font-bold flex items-center gap-1 mt-0.5">
+          <p className="text-[11px] text-rose-700 font-bold flex items-center gap-1 mt-0.5">
             <span>⚠️ Posting vulgar, violent, threatening, blackmail, or any criminal material is strictly forbidden and will result in immediate vendor account blacklisting along with legal action.</span>
           </p>
         </div>
@@ -292,20 +292,23 @@ export default function VendorReelsPage() {
       >
         <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowPostModal(true)}
-            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl gradient-brand text-white font-bold text-[11px] sm:text-xs shadow-premium flex items-center gap-1.5 hover:brightness-110"
+            className="px-3.5 py-2.5 rounded-xl bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] font-black text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer border-none"
           >
             <FiPlus size={15} /> <span className="hidden sm:inline">CREATE REEL / POST</span><span className="sm:hidden">CREATE REEL</span>
           </button>
           <button
+            type="button"
             onClick={() => setShowAiAdModal(true)}
-            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-brand-purple text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 hover:bg-brand-purple/90"
+            className="px-3.5 py-2.5 rounded-xl bg-[#d99a3d] text-[#241b15] hover:bg-[#c8892c] font-black text-xs flex items-center gap-1.5 cursor-pointer border-none shadow-2xs"
           >
             <FiCpu size={15} /> <span className="hidden sm:inline">CREATE REELS (AI)</span><span className="sm:hidden">AI REEL</span>
           </button>
           <button
+            type="button"
             onClick={() => navigate('/vendor/hire-creator')}
-            className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 hover:brightness-110 shadow-sm transition"
+            className="px-3.5 py-2.5 rounded-xl bg-[#241b15] text-white hover:bg-[#3a2c22] font-black text-xs flex items-center gap-1.5 cursor-pointer border-none shadow-2xs transition"
           >
             <FiUserCheck size={15} /> <span className="hidden sm:inline">HIRE CREATOR</span><span className="sm:hidden">HIRE</span>
           </button>
@@ -313,31 +316,31 @@ export default function VendorReelsPage() {
       </AdminPageHeader>
 
       {/* REAL-TIME REEL CATALOG STATS BANNER */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-brand-purple/20 text-center space-y-0.5 sm:space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">TOTAL REELS</span>
-          <span className="text-xl sm:text-2xl font-black text-brand-purple">{reelsList.length}</span>
-          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Catalog Posts</span>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 font-sans">
+        <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs">
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">TOTAL REELS</span>
+          <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] block">{reelsList.length}</span>
+          <span className="text-[10px] text-slate-500 font-bold block">Catalog Posts</span>
         </div>
-        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-center space-y-0.5 sm:space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">PUBLISHED</span>
-          <span className="text-xl sm:text-2xl font-black text-emerald-500">{publishedCount}</span>
-          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Live Feed</span>
+        <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs">
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">PUBLISHED</span>
+          <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-emerald-700 block">{publishedCount}</span>
+          <span className="text-[10px] text-slate-500 font-bold block">Live Feed</span>
         </div>
-        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-500/20 text-center space-y-0.5 sm:space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">SCHEDULED</span>
-          <span className="text-xl sm:text-2xl font-black text-blue-500">{scheduledCount}</span>
-          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Upcoming</span>
+        <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs">
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">SCHEDULED</span>
+          <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-blue-700 block">{scheduledCount}</span>
+          <span className="text-[10px] text-slate-500 font-bold block">Upcoming</span>
         </div>
-        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-amber-500/20 text-center space-y-0.5 sm:space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">DRAFTS</span>
-          <span className="text-xl sm:text-2xl font-black text-amber-500">{draftCount}</span>
-          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Saved Drafts</span>
+        <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs">
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">DRAFTS</span>
+          <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-amber-700 block">{draftCount}</span>
+          <span className="text-[10px] text-slate-500 font-bold block">Saved Drafts</span>
         </div>
-        <div className="glass p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-violet-500/20 text-center space-y-0.5 sm:space-y-1 col-span-2 sm:col-span-1">
-          <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-text-tertiary tracking-wider block">TOTAL VIEWS</span>
-          <span className="text-xl sm:text-2xl font-black text-violet-500">{reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()}</span>
-          <span className="text-[9px] sm:text-[10px] text-text-secondary block">Customer Views</span>
+        <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs col-span-2 sm:col-span-1">
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">TOTAL VIEWS</span>
+          <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#241b15] block">{reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()}</span>
+          <span className="text-[10px] text-slate-500 font-bold block">Customer Views</span>
         </div>
       </div>
 
@@ -345,28 +348,28 @@ export default function VendorReelsPage() {
 
       {/* Reels Grid */}
       {isFetching && !reelsList.length ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-96 skeleton rounded-2xl" />
+            <div key={i} className="h-96 bg-[#f8f4ec] animate-pulse rounded-2xl border border-[#e3dccb]" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
+        <div className="bg-white rounded-2xl p-12 text-center text-xs text-slate-500 font-bold border border-[#e3dccb] font-sans shadow-2xs">
           No {activeTab} reels found. Click "CREATE REEL / POST" to publish your first content!
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
           {filtered.map((reel) => (
-            <div key={reel._id || reel.id} className="glass rounded-2xl border border-white/50 shadow-card hover:shadow-card-hover transition-all overflow-hidden">
+            <div key={reel._id || reel.id} className="bg-white rounded-2xl border border-[#e3dccb] shadow-2xs hover:shadow-md transition-all overflow-hidden">
               <ReelCardMediaCarousel reel={reel} />
 
               <div className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-bold text-sm text-text-primary line-clamp-2">{reel.caption || reel.title || 'Service Reel'}</h4>
+                  <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs text-[#1a1a1a] line-clamp-2 uppercase">{reel.caption || reel.title || 'Service Reel'}</h4>
                   <div className="flex items-center gap-1">
                     {reel.isBoosted && (
-                      <span className="bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5" title={`Boost active until ${new Date(reel.boostExpiresAt).toLocaleDateString()}`}>
-                        <FiZap size={11} className="fill-amber-500" />
+                      <span className="bg-[#241b15] text-[#d99a3d] border border-[#241b15] px-2 py-0.5 rounded text-[10px] font-black flex items-center gap-0.5" title={`Boost active until ${new Date(reel.boostExpiresAt).toLocaleDateString()}`}>
+                        <FiZap size={11} className="fill-[#d99a3d]" />
                         Boosted
                       </span>
                     )}
@@ -374,17 +377,17 @@ export default function VendorReelsPage() {
                       <button
                         type="button"
                         onClick={() => handleOpenBoostModal(reel)}
-                        className="p-1.5 rounded-lg hover:bg-amber-500/10 text-text-tertiary hover:text-amber-500 transition flex-shrink-0 flex items-center gap-1"
+                        className="p-1.5 rounded-lg hover:bg-[#f8f4ec] text-slate-500 hover:text-[#d99a3d] transition flex-shrink-0 flex items-center gap-1 cursor-pointer"
                         title="Boost Reel"
                       >
                         <FiZap size={15} />
-                        <span className="text-[10px] font-bold">Boost</span>
+                        <span className="text-[10px] font-black">Boost</span>
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={() => handleDeleteReel(reel._id || reel.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition flex-shrink-0"
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition flex-shrink-0 cursor-pointer"
                       title="Delete Reel"
                     >
                       <FiTrash2 size={16} />
@@ -393,19 +396,19 @@ export default function VendorReelsPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-brand-purple/10 text-brand-purple">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-[#f8f4ec] text-[#241b15] border border-[#e3dccb]">
                     {reel.category || 'Service'} • {reel.subcategory || 'General'}
                   </span>
                   {reel.promotionArea && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-500/10 text-blue-600">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-blue-50 text-blue-800 border border-blue-200">
                       📍 {reel.promotionArea}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-text-tertiary border-t border-border pt-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-500 border-t border-[#e3dccb] pt-2">
                   <span className="flex items-center gap-1"><FiEye size={13} /> {reel.views !== undefined ? reel.views.toLocaleString() : 0}</span>
-                  <span className="flex items-center gap-1"><FiHeart size={13} className="text-brand-pink" /> {reel.likesCount || 0}</span>
+                  <span className="flex items-center gap-1"><FiHeart size={13} className="text-rose-600" /> {reel.likesCount || 0}</span>
                 </div>
               </div>
             </div>

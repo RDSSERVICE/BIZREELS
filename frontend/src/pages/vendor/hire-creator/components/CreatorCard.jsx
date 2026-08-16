@@ -28,38 +28,38 @@ export default function CreatorCard({ creator, onSelectDetails, onSelectHire }) 
   };
 
   return (
-    <div className="glass rounded-3xl p-5 border border-white/40 shadow-card flex flex-col justify-between space-y-4 hover:shadow-card-hover transition-all duration-300 relative overflow-hidden group">
-      {/* Background Glow Effect */}
-      <div className="absolute -right-16 -top-16 w-32 h-32 bg-brand-purple/10 rounded-full blur-2xl group-hover:bg-brand-purple/20 transition-all duration-300" />
+    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e3dccb] shadow-2xs hover:shadow-md hover:border-[#241b15] transition-all duration-200 flex flex-col justify-between space-y-3.5 font-sans relative overflow-hidden group">
       
       <div>
         {/* Top Info Header */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3.5">
           <img
-            src={creator.profile_pic}
+            src={creator.profile_pic || '/logo.png'}
             alt={name}
-            className="w-16 h-16 rounded-2xl object-cover border border-border shrink-0 shadow-sm cursor-pointer hover:scale-105 transition-transform duration-200"
+            className="w-14 h-14 rounded-xl object-cover border border-[#e3dccb] bg-[#f8f4ec] p-0.5 shrink-0 shadow-2xs cursor-pointer hover:scale-105 transition-transform"
             onClick={onSelectDetails}
           />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 truncate cursor-pointer" onClick={onSelectDetails}>
-                <h4 className="font-bold text-sm text-text-primary hover:text-brand-purple transition truncate">{name}</h4>
+            <div className="flex items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1 min-w-0 cursor-pointer" onClick={onSelectDetails}>
+                <h4 className="font-extrabold text-sm text-[#1a1a1a] hover:text-[#d99a3d] transition truncate">{name}</h4>
                 {isVerified && (
-                  <FiCheckCircle className="text-emerald-500 shrink-0" size={14} title="Verified Profile" />
+                  <FiCheckCircle className="text-emerald-600 shrink-0" size={14} title="Verified Profile" />
                 )}
               </div>
-              <span className="flex items-center gap-0.5 text-amber-500 text-xs font-bold shrink-0 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/20">
-                <FiStar size={11} className="fill-amber-500" /> {rating.toFixed(1)}
+
+              {/* Rating Badge */}
+              <span className="flex items-center gap-1 text-[#d99a3d] bg-[#241b15] text-[11px] font-black px-2 py-0.5 rounded-md shrink-0 shadow-2xs">
+                <FiStar size={11} className="fill-[#d99a3d]" /> {rating.toFixed(1)}
               </span>
             </div>
             
-            {username && <p className="text-[10px] text-text-tertiary truncate -mt-0.5 font-medium">{username}</p>}
+            {username && <p className="text-[10px] text-slate-400 truncate font-semibold">{username}</p>}
 
-            <p className="text-xs text-brand-purple font-semibold flex items-center gap-1 mt-1">
-              <span>{category}</span>
-              <span>•</span>
-              <span className="flex items-center gap-0.5 text-text-tertiary font-normal">
+            <p className="text-xs font-bold text-[#d99a3d] flex items-center gap-1 mt-1">
+              <span className="truncate">{category}</span>
+              <span className="text-slate-300">•</span>
+              <span className="flex items-center gap-0.5 text-slate-500 font-semibold shrink-0">
                 <FiMapPin size={11} /> {city}
               </span>
             </p>
@@ -67,39 +67,39 @@ export default function CreatorCard({ creator, onSelectDetails, onSelectHire }) 
         </div>
 
         {/* Bio */}
-        <p className="text-xs text-text-secondary mt-3 line-clamp-2 leading-relaxed min-h-[32px]">{bio}</p>
+        <p className="text-xs text-slate-600 mt-3 line-clamp-2 leading-relaxed min-h-[32px] font-medium">{bio}</p>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 mt-4 py-2 px-3 bg-surface-secondary/40 rounded-xl border border-white/5 text-center text-xs">
+        <div className="grid grid-cols-3 gap-1.5 mt-3 py-2 px-3 bg-[#f8f4ec] rounded-xl border border-[#e3dccb] text-center text-xs">
           <div>
-            <span className="text-[10px] text-text-tertiary font-medium block">Followers</span>
-            <span className="font-extrabold text-text-primary flex items-center justify-center gap-1">
-              <FiUsers size={11} className="text-brand-purple" /> {formatCount(followers)}
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Followers</span>
+            <span className="font-black text-[#1a1a1a] flex items-center justify-center gap-1 mt-0.5">
+              <FiUsers size={11} className="text-[#d99a3d]" /> {formatCount(followers)}
             </span>
           </div>
           <div>
-            <span className="text-[10px] text-text-tertiary font-medium block">Total Reels</span>
-            <span className="font-extrabold text-text-primary flex items-center justify-center gap-1">
-              <FiVideo size={11} className="text-violet-500" /> {reelsCount}
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Reels</span>
+            <span className="font-black text-[#1a1a1a] flex items-center justify-center gap-1 mt-0.5">
+              <FiVideo size={11} className="text-[#241b15]" /> {reelsCount}
             </span>
           </div>
           <div>
-            <span className="text-[10px] text-text-tertiary font-medium block">Campaigns</span>
-            <span className="font-extrabold text-text-primary flex items-center justify-center gap-1">
-              <FiTrendingUp size={11} className="text-emerald-500" /> {campaignsCount}
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Campaigns</span>
+            <span className="font-black text-[#1a1a1a] flex items-center justify-center gap-1 mt-0.5">
+              <FiTrendingUp size={11} className="text-emerald-700" /> {campaignsCount}
             </span>
           </div>
         </div>
 
         {/* Languages & Tags */}
-        <div className="flex flex-wrap gap-1 mt-3">
+        <div className="flex flex-wrap items-center gap-1 mt-3">
           {languagesList.map((l, i) => (
-            <span key={i} className="text-[9px] font-bold bg-white/40 border border-white/50 text-text-secondary px-2 py-0.5 rounded-full uppercase tracking-wider">
+            <span key={i} className="text-[9.5px] font-bold bg-[#f8f4ec] border border-[#e3dccb] text-slate-600 px-2 py-0.5 rounded uppercase tracking-wider">
               {String(l).trim()}
             </span>
           ))}
           {creator.availabilityStatus === 'Available' && (
-            <span className="text-[9px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded-full uppercase tracking-wider ml-auto">
+            <span className="text-[9.5px] font-black bg-emerald-100 border border-emerald-300 text-emerald-800 px-2 py-0.5 rounded uppercase tracking-wider ml-auto">
               Available
             </span>
           )}
@@ -107,25 +107,29 @@ export default function CreatorCard({ creator, onSelectDetails, onSelectHire }) 
       </div>
 
       {/* Pricing & Call-to-action Footer */}
-      <div className="pt-3 border-t border-border/60 flex items-center justify-between">
+      <div className="pt-3 border-t border-[#e3dccb] flex items-center justify-between">
         <div>
-          <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-wider block">Starting Package</span>
-          <p className="text-sm font-extrabold text-emerald-600">₹{reelPrice}</p>
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Starting Package</span>
+          <p className="text-sm font-black text-emerald-700">₹{reelPrice}</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
+            type="button"
             onClick={onSelectDetails}
-            className="px-3 py-2 glass border border-border text-text-primary font-bold text-xs rounded-xl hover:bg-surface-tertiary transition flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-[#f8f4ec] hover:bg-white text-[#1a1a1a] font-bold text-xs rounded-lg border border-[#e3dccb] transition flex items-center gap-1 cursor-pointer"
           >
-            <FiEye size={13} /> View Profile
+            <FiEye size={13} />
+            <span>Profile</span>
           </button>
 
           <button
+            type="button"
             onClick={onSelectHire}
-            className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
+            className="px-4 py-1.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] font-black text-xs rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer border-none"
           >
-            <FiSend size={13} /> Hire
+            <FiSend size={13} />
+            <span>Hire</span>
           </button>
         </div>
       </div>
