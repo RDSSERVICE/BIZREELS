@@ -106,6 +106,13 @@ export default function ListingDetailModal({
   const priceVal = Number(selectedItem.sellingPrice || selectedItem.salePrice || selectedItem.price || 0);
   const originalPrice = Number(selectedItem.actualPrice || selectedItem.regularPrice || 0);
 
+  // Realtime Cancellation Policies from service document
+  const policies = selectedItem?.serviceDetails?.policies || {};
+  const freeHours = policies.freeCancellationHours ?? 24;
+  const windowHours = policies.withinWindowHours ?? 24;
+  const windowRefund = policies.withinWindowRefundPercent ?? 50;
+  const afterRefund = policies.afterVisitRefundPercent ?? 0;
+
   // Vendor payment details (UPI / QR / Bank)
   const vendorUpi = vendorObj.vendorProfile?.upiId || vendorObj.upiId || vendorObj.vendorProfile?.upi_id || 'vendor@upi';
   const vendorPhone = vendorObj.phone || vendorObj.vendorProfile?.whatsapp || vendorObj.vendorProfile?.whatsappNumber || '';
@@ -508,6 +515,35 @@ export default function ListingDetailModal({
                       onChange={(e) => setOrderAddress(e.target.value)}
                       className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#d99a3d]"
                     />
+                  </div>
+                </div>
+              )}
+
+              {/* REALTIME SERVICE CANCELLATION & REFUND POLICY DISPLAY */}
+              {isService && (
+                <div className="p-3 bg-white border border-[#d99a3d]/30 rounded-xl space-y-1.5 shadow-xs">
+                  <span className="text-[10.5px] font-black text-[#d99a3d] uppercase tracking-wider block flex items-center gap-1">
+                    🛡️ Cancellation & Refund Policy
+                  </span>
+                  <div className="space-y-1 text-[10.5px] text-slate-600">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      <span>
+                        <strong>Free Cancellation:</strong> Up to {freeHours}h before scheduled visit (100% Refund).
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                      <span>
+                        <strong>Within {windowHours}h:</strong> {windowRefund}% Refund back to wallet/account.
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                      <span>
+                        <strong>After Visit Time:</strong> {afterRefund}% Refund.
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
