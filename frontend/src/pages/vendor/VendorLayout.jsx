@@ -78,7 +78,7 @@ export default function VendorLayout() {
   const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
   const vendorProfile = profileUser.vendorProfile || {};
   const roles = profileUser.roles || ['customer'];
-  const currentRole = profileUser.current_role || profileUser.activeRole || 'vendor';
+  const currentRole = 'vendor';
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});

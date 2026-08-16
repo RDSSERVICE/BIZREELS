@@ -31,7 +31,7 @@ export default function CustomerLayout() {
 
   const profileUser = profileData?.data?.user || profileData?.user || user || {};
   const roles = profileUser.roles || ['customer'];
-  const currentRole = profileUser.current_role || profileUser.activeRole || 'customer';
+  const currentRole = 'customer';
 
   const roleDropdownRef = useRef(null);
 

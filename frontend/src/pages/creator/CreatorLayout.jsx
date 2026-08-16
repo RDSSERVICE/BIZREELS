@@ -68,7 +68,7 @@ export default function CreatorLayout() {
   const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
   const creatorProfile = profileUser.creatorProfile || {};
   const roles = profileUser.roles || ['customer'];
-  const currentRole = profileUser.current_role || profileUser.activeRole || 'creator';
+  const currentRole = 'creator';
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
