@@ -5,6 +5,19 @@ import { FiArrowRight } from 'react-icons/fi';
 import SEO from '../../components/common/SEO';
 import { useGetHomeTrendingFeedQuery } from '../../features/home/homeApi';
 
+const getCategoryIcon = (name = '') => {
+  const n = (name || '').toLowerCase();
+  if (n.includes('electronic')) return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5"><rect x="7" y="2" width="10" height="20" rx="2" /><line x1="11" y1="18" x2="13" y2="18" /></svg>;
+  if (n.includes('fashion') || n.includes('cloth') || n.includes('apparel')) return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5"><path d="M6 8h12l-1 13H7z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>;
+  if (n.includes('home') || n.includes('furni')) return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5"><path d="M4 13a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3H4z" /><path d="M5 16v3M19 16v3" /><path d="M6 13V9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4" /></svg>;
+  if (n.includes('vehicle') || n.includes('auto') || n.includes('car')) return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5"><path d="M3 16v-2.5a2 2 0 0 1 1.3-1.9l1.8-.6L7.6 7.8A2 2 0 0 1 9.4 7h5.2a2 2 0 0 1 1.8 1.1l1.7 3.3 2 .8a2 2 0 0 1 1.3 1.9V16" /><line x1="3" y1="16" x2="21" y2="16" /><circle cx="7.5" cy="16.5" r="1.7" fill="currentColor" stroke="none" /><circle cx="16.5" cy="16.5" r="1.7" fill="currentColor" stroke="none" /></svg>;
+  if (n.includes('real estate') || n.includes('property') || n.includes('build')) return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5"><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="9" y1="6" x2="11" y2="6" /><line x1="13" y1="6" x2="15" y2="6" /><line x1="9" y1="10" x2="11" y2="10" /><line x1="13" y1="10" x2="15" y2="10" /><line x1="9" y1="14" x2="11" y2="14" /><line x1="13" y1="14" x2="15" y2="14" /><rect x="10" y="17" width="4" height="5" /></svg>;
+  if (n.includes('food') || n.includes('grocer') || n.includes('dine')) return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>;
+  if (n.includes('beauty') || n.includes('salon') || n.includes('health') || n.includes('well')) return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5"><path d="M12 21s-7-4.6-9.5-9C1 8.5 2.5 5 6 5c2 0 3.4 1.2 4 2.2C10.6 6.2 12 5 14 5c3.5 0 5 3.5 3.5 7-2.5 4.4-9.5 9-9.5 9z" /></svg>;
+  if (n.includes('digital') || n.includes('market') || n.includes('servic')) return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5"><rect x="3" y="8" width="18" height="11" rx="2" /><path d="M9 8V6.5A1.5 1.5 0 0 1 10.5 5h3A1.5 1.5 0 0 1 15 6.5V8" /><line x1="3" y1="13" x2="21" y2="13" /></svg>;
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5"><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></svg>;
+};
+
 const Home = () => {
   const navigate = useNavigate();
   const { data: homeFeedData, isLoading: isFeedLoading } = useGetHomeTrendingFeedQuery();
@@ -30,6 +43,46 @@ const Home = () => {
     { number: '8.7M+', label: 'Products & Services', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><path d="M6 8V6a6 6 0 0 1 12 0v2" /><rect x="3" y="8" width="18" height="13" rx="2" /></svg> },
     { number: '₹350Cr+', label: 'Business Generated', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><polyline points="3 17 9 11 13 15 21 6" /><polyline points="15 6 21 6 21 12" /></svg> },
   ];
+
+  // ── Dynamic 1.8s image rotation across post pool ──
+  const [activeCardIndex, setActiveCardIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveCardIndex((prev) => prev + 1);
+    }, 1800);
+    return () => clearInterval(timer);
+  }, []);
+
+  const allMediaPool = React.useMemo(() => {
+    const pool = [];
+    (feed.featuredCards || featuredCards).forEach((c) => {
+      if (c.img) pool.push(c);
+    });
+    (feed.trendingProducts || trendingList).forEach((t) => {
+      if (t.img) {
+        pool.push({
+          id: t.id,
+          badge: 'Trending',
+          img: t.img,
+          views: t.meta ? t.meta.split(' ')[0] : '1.2K',
+          title: t.title,
+          category: t.category || t.sub || 'Products'
+        });
+      }
+    });
+    return pool.length > 0 ? pool : featuredCards;
+  }, [feed]);
+
+  const displayCards = React.useMemo(() => {
+    if (allMediaPool.length === 0) return featuredCards;
+    const cards = [];
+    for (let i = 0; i < 3; i++) {
+      const idx = (activeCardIndex + i) % allMediaPool.length;
+      cards.push(allMediaPool[idx]);
+    }
+    return cards;
+  }, [allMediaPool, activeCardIndex]);
 
   return (
     <div className="w-full max-w-full overflow-x-hidden">
@@ -295,13 +348,21 @@ const Home = () => {
               </div>
             </div>
 
-            {/* ── MIDDLE: Product cards ── */}
+            {/* ── MIDDLE: Product cards (Dynamic 1.8s Rotating Posts Pool) ── */}
             <div className="lg:col-span-5 bg-[#241b15] p-5 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-md">
-              {featuredCards.map(({ badge, img, views, title, category, id }) => (
-                <div key={id || title} style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: 10, overflow: 'hidden', backgroundColor: '#242118' }}>
+              {displayCards.map(({ badge, img, views, title, category, id }, idx) => (
+                <div key={`${id || title}-${idx}`} style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: 10, overflow: 'hidden', backgroundColor: '#242118' }}>
                   {/* Card media */}
-                  <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src={img} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', flexShrink: 0, backgroundColor: '#1a1813' }}>
+                    <motion.img
+                      key={img}
+                      initial={{ opacity: 0.4, scale: 1.05 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5 }}
+                      src={img}
+                      alt={title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
                     {badge && (
                       <span style={{ position: 'absolute', top: 10, left: 10, background: '#d99a3d', color: '#1a1a1a', fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', padding: '4px 9px', borderRadius: 999, textTransform: 'uppercase' }}>
                         {badge}
@@ -369,53 +430,51 @@ const Home = () => {
       {/* ── BROWSE BY CATEGORIES ──────────────────────────────────── */}
       <section style={{ backgroundColor: '#f2ede4' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 14px 14px' }}>
-          {/* .categories-bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 items-center bg-white border border-[#e3dccb] rounded-md p-4 sm:p-6 gap-4 shadow-xs">
+          {/* .categories-bar — Simple, Sleek & Elegant Horizontal Bar */}
+          <div className="bg-white border border-[#e3dccb] rounded-xl p-4 sm:p-5 shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
 
             {/* .browse-intro */}
-            <div className="col-span-2 sm:col-span-4 md:col-span-1 pr-4 md:border-r border-[#e3dccb] pb-3 md:pb-0">
-              <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.2px', color: '#1a1a1a', textTransform: 'uppercase' }}>
-                Browse by<br />Categories
-              </h2>
-              <div style={{ width: 18, height: 2.5, background: '#1a1a1a', margin: '8px 0' }} />
-              <p style={{ fontSize: 11.5, lineHeight: 1.4, color: '#5a5a5a', fontWeight: 500, maxWidth: 150 }}>
-                Find products &amp; services that fit your needs.
-                <span style={{ display: 'inline-block', marginLeft: 4, color: '#1a1a1a' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: 11, height: 11, verticalAlign: '-1px' }}>
-                    <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
-                  </svg>
-                </span>
-              </p>
+            <div className="flex items-center gap-3 shrink-0 pr-4 lg:border-r border-[#e3dccb]">
+              <div className="w-1.5 h-8 bg-[#d99a3d] rounded-full shrink-0" />
+              <div>
+                <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 15, lineHeight: 1.1, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.2px' }}>
+                  Browse by Categories
+                </h2>
+                <p className="text-[11px] text-[#6a655b] font-medium mt-0.5">
+                  Find products &amp; services that fit your needs
+                </p>
+              </div>
             </div>
 
-            {/* Category items (Backend dynamic + default fallback) */}
-            {(feed.categories && feed.categories.length > 0 ? feed.categories : [
-              { name: 'Electronics' },
-              { name: 'Home & Living' },
-              { name: 'Fashion' },
-              { name: 'Automotive' },
-              { name: 'Business Services' },
-              { name: 'Health & Wellness' },
-              { name: 'More' }
-            ]).map((cat, idx) => (
-              <button
-                key={cat._id || cat.name || idx}
-                onClick={() => navigate(`/listings/search?category=${encodeURIComponent(cat.name)}`)}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit' }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-              >
-                {/* .cat-icon */}
-                <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a' }}>
-                  {cat.icon_url ? (
-                    <img src={cat.icon_url} alt={cat.name} className="w-7 h-7 object-contain" />
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 28, height: 28 }}><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></svg>
-                  )}
-                </div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', whiteSpace: 'nowrap' }} className="truncate max-w-[90px]">{cat.name}</span>
-              </button>
-            ))}
+            {/* Category Pills Row */}
+            <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto overflow-x-auto py-0.5">
+              {(feed.categories && feed.categories.length > 0 ? feed.categories : [
+                { name: 'Electronics' },
+                { name: 'Fashion' },
+                { name: 'Home & Living' },
+                { name: 'Vehicles' },
+                { name: 'Real Estate' },
+                { name: 'Food & Grocery' },
+                { name: 'Beauty & Salon' }
+              ]).slice(0, 7).map((cat, idx) => {
+                const catName = cat.name || 'Category';
+                return (
+                  <button
+                    key={cat._id || catName || idx}
+                    type="button"
+                    onClick={() => navigate(`/listings/search?category=${encodeURIComponent(catName)}`)}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#f8f4ec] hover:bg-[#241b15] text-[#241b15] hover:text-[#d99a3d] border border-[#e3dccb] hover:border-[#241b15] transition-all cursor-pointer shadow-2xs whitespace-nowrap group"
+                  >
+                    <span className="text-[#d99a3d] group-hover:text-[#d99a3d] shrink-0">
+                      {getCategoryIcon(catName)}
+                    </span>
+                    <span className="text-[12px] font-extrabold tracking-tight">
+                      {catName}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
           </div>
         </div>
