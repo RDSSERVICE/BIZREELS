@@ -343,7 +343,7 @@ const getHomeTrendingFeed = async () => {
         { number: totalListings > 0 ? `${totalListings.toLocaleString()}+` : '8.7M+', label: 'Products & Services' },
         { number: '₹350Cr+', label: 'Business Generated' }
       ],
-      categories: categoriesList && categoriesList.length > 0 ? categoriesList.slice(0, 7) : []
+      categories: categoriesList && categoriesList.length > 0 ? categoriesList : []
     };
   } catch (err) {
     console.error('Error fetching home trending feed:', err);

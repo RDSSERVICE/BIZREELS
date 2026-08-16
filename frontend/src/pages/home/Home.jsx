@@ -87,6 +87,33 @@ const Home = () => {
     return cards;
   }, [allMediaPool, activeCardIndex]);
 
+  // Merge backend categories with full default categories to fill space
+  const defaultCategoryList = React.useMemo(() => [
+    { name: 'Electronics' },
+    { name: 'Fashion' },
+    { name: 'Home & Living' },
+    { name: 'Vehicles' },
+    { name: 'Real Estate' },
+    { name: 'Food & Grocery' },
+    { name: 'Beauty & Salon' },
+    { name: 'Corporate Gifts' },
+    { name: 'Solar & Energy' },
+    { name: 'Digital Marketing' },
+    { name: 'Education & Training' },
+    { name: 'Health & Wellness' },
+    { name: 'Automotive Services' },
+    { name: 'Events & Weddings' },
+    { name: 'Industrial Equipment' },
+    { name: 'Travel & Tourism' }
+  ], []);
+
+  const categoriesToDisplay = React.useMemo(() => {
+    const backendCats = feed.categories || [];
+    const existingNames = new Set(backendCats.map(c => (c.name || '').toLowerCase()));
+    const fillList = defaultCategoryList.filter(d => !existingNames.has(d.name.toLowerCase()));
+    return [...backendCats, ...fillList];
+  }, [feed.categories, defaultCategoryList]);
+
   return (
     <div className="w-full max-w-full overflow-x-hidden">
       <SEO
@@ -451,20 +478,7 @@ const Home = () => {
 
             {/* Category Pills Row */}
             <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto overflow-x-auto py-0.5">
-              {(feed.categories && feed.categories.length > 0 ? feed.categories : [
-                { name: 'Electronics' },
-                { name: 'Fashion' },
-                { name: 'Home & Living' },
-                { name: 'Vehicles' },
-                { name: 'Real Estate' },
-                { name: 'Food & Grocery' },
-                { name: 'Beauty & Salon' },
-                { name: 'Corporate Gifts' },
-                { name: 'Solar & Energy' },
-                { name: 'Digital Marketing' },
-                { name: 'Education & Training' },
-                { name: 'Health & Wellness' }
-              ]).map((cat, idx) => {
+              {categoriesToDisplay.map((cat, idx) => {
                 const catName = cat.name || 'Category';
                 return (
                   <button
