@@ -23,6 +23,7 @@ const getCategoryIcon = (name = '') => {
 
 const Home = () => {
   const navigate = useNavigate();
+  const [showCategoryModal, setShowCategoryModal] = React.useState(false);
   const { data: homeFeedData, isLoading: isFeedLoading } = useGetHomeTrendingFeedQuery();
   const feed = homeFeedData?.data || {};
 
@@ -476,26 +477,39 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Category Pills Row */}
+            {/* Category Pills Row (4 items max + Explore More) */}
             <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto overflow-x-auto py-0.5">
-              {categoriesToDisplay.map((cat, idx) => {
+              {categoriesToDisplay.slice(0, 4).map((cat, idx) => {
                 const catName = cat.name || 'Category';
                 return (
                   <button
                     key={cat._id || catName || idx}
                     type="button"
                     onClick={() => navigate(`/listings/search?category=${encodeURIComponent(catName)}`)}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#f8f4ec] hover:bg-[#241b15] text-[#241b15] hover:text-[#d99a3d] border border-[#e3dccb] hover:border-[#241b15] transition-all cursor-pointer shadow-2xs whitespace-nowrap group"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#f8f4ec] hover:bg-[#241b15] text-[#241b15] hover:text-[#d99a3d] border border-[#e3dccb] hover:border-[#241b15] transition-all cursor-pointer shadow-2xs whitespace-nowrap group"
                   >
                     <span className="text-[#d99a3d] group-hover:text-[#d99a3d] shrink-0">
                       {getCategoryIcon(catName)}
                     </span>
-                    <span className="text-[12px] font-extrabold tracking-tight">
+                    <span className="text-[12.5px] font-extrabold tracking-tight">
                       {catName}
                     </span>
                   </button>
                 );
               })}
+
+              {/* Explore More Button */}
+              <button
+                type="button"
+                onClick={() => setShowCategoryModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-extrabold text-[12.5px] transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0 border border-transparent"
+              >
+                <span>Explore More</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                  <line x1="7" y1="17" x2="17" y2="7" />
+                  <polyline points="7 7 17 7 17 17" />
+                </svg>
+              </button>
             </div>
 
           </div>
@@ -659,6 +673,75 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* ── ALL CATEGORIES MODAL ── */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="bg-[#f8f4ec] border border-[#e3dccb] rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl"
+          >
+            {/* Header */}
+            <div className="bg-[#241b15] text-white p-5 flex items-center justify-between border-b border-[#3a2c22]">
+              <div>
+                <h3 className="font-black text-lg text-[#d99a3d] uppercase tracking-wide">Explore All Categories</h3>
+                <p className="text-xs text-[#a89b8d] mt-0.5">Browse marketplace by industry &amp; specialized services</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCategoryModal(false)}
+                className="w-8 h-8 rounded-full bg-[#3a2c22] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body Grid */}
+            <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto">
+              {categoriesToDisplay.map((cat, idx) => {
+                const catName = cat.name || 'Category';
+                return (
+                  <button
+                    key={cat._id || catName || idx}
+                    type="button"
+                    onClick={() => {
+                      setShowCategoryModal(false);
+                      navigate(`/listings/search?category=${encodeURIComponent(catName)}`);
+                    }}
+                    className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-white hover:bg-[#241b15] text-[#1a1a1a] hover:text-[#d99a3d] border border-[#e3dccb] hover:border-[#241b15] transition-all cursor-pointer group shadow-2xs text-center h-24"
+                  >
+                    <div className="text-[#d99a3d] group-hover:text-[#d99a3d] mb-2 p-2 rounded-lg bg-[#f8f4ec] group-hover:bg-[#3a2c22] transition-colors">
+                      {getCategoryIcon(catName)}
+                    </div>
+                    <span className="text-[12px] font-extrabold line-clamp-2 leading-tight">
+                      {catName}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-[#ede6d8] border-t border-[#e3dccb] flex items-center justify-between">
+              <span className="text-xs font-bold text-[#5a5043]">
+                {categoriesToDisplay.length} Categories Available
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCategoryModal(false);
+                  navigate('/listings/search');
+                }}
+                className="px-4 py-2 rounded-lg bg-[#241b15] text-[#d99a3d] text-xs font-bold hover:bg-[#1a1a1a] transition-all cursor-pointer"
+              >
+                View Marketplace Feed →
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
     </div>
   );
