@@ -294,23 +294,16 @@ class ReelService {
 
   // ── Fetch Feed (Recommendation Engine) ──────────────────
   async getFeed({ currentUserId, viewerId, creatorId, hashtags, lat, lng, distance, page, limit }) {
-    // Use recommendation engine for authenticated users with no specific filters
-    if (currentUserId && !creatorId && (!hashtags || hashtags.length === 0)) {
+    const userCoords = (lat && lng) ? [parseFloat(lng), parseFloat(lat)] : null;
+    const uid = currentUserId || viewerId;
+
+    // Use 5-tier recommendation engine for feed when no creator/hashtag filters are applied
+    if (!creatorId && (!hashtags || hashtags.length === 0)) {
       try {
         const recommendationService = require('./recommendation.service');
-        return await recommendationService.getRecommendedFeed(currentUserId, page, limit);
+        return await recommendationService.getRecommendedFeed(uid, page, limit, userCoords);
       } catch (err) {
         logger.warn('Recommendation engine fallback to basic feed', { error: err.message });
-      }
-    }
-
-    // For filtered queries or unauthenticated users, use basic feed
-    if (!currentUserId && !creatorId && (!hashtags || hashtags.length === 0)) {
-      try {
-        const recommendationService = require('./recommendation.service');
-        return await recommendationService.getGenericFeed(viewerId, page, limit);
-      } catch (err) {
-        logger.warn('Generic recommendation fallback to basic feed', { error: err.message });
       }
     }
 
