@@ -195,6 +195,50 @@ export default function ListingDetailDrawer({
             </div>
           )}
 
+          {/* Service Cancellation Policy */}
+          {listing.type === 'service' && (
+            <div className="p-4 bg-surface-secondary rounded-2xl border border-border space-y-2">
+              <h5 className="text-xs font-bold text-text-primary uppercase tracking-wider flex items-center justify-between">
+                <span>🛡️ Cancellation Policy</span>
+                <span className="text-[9px] text-brand-purple font-mono">Pre-Payment</span>
+              </h5>
+              {(() => {
+                const p = listing.serviceDetails?.policies || {};
+                const freeH = p.freeCancellationHours ?? 24;
+                const winH = p.withinWindowHours ?? 24;
+                const winP = p.withinWindowRefundPercent ?? 50;
+                const aftP = p.afterVisitRefundPercent ?? 0;
+                return (
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between p-2 bg-surface rounded-xl border border-border text-[11px]">
+                      <span className="text-text-secondary flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" /> Free Cancel:
+                      </span>
+                      <span className="font-bold text-emerald-700">≥ {freeH}h before visit (100% Refund)</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-surface rounded-xl border border-border text-[11px]">
+                      <span className="text-text-secondary flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-500" /> Within {winH}h:
+                      </span>
+                      <span className="font-bold text-amber-700">{winP}% Refund</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-surface rounded-xl border border-border text-[11px]">
+                      <span className="text-text-secondary flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-red-500" /> After Visit:
+                      </span>
+                      <span className="font-bold text-red-700">{aftP}% Refund</span>
+                    </div>
+                    {p.termsAndConditions && (
+                      <p className="text-[10px] text-text-tertiary pt-1 italic">
+                        Note: {p.termsAndConditions}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           {/* Tags */}
           {listing.tags?.length > 0 && (
             <div className="space-y-2">

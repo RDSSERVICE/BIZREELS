@@ -62,7 +62,19 @@ export default function VendorOrdersPage() {
                 <p className="text-xs text-text-secondary mt-0.5 font-medium">
                   Listing: {o.listing?.title || 'Standard Order Details'} (x{o.quantity || 1})
                 </p>
-                <p className="text-xs font-bold text-emerald-600 mt-1">Total: ₹{(o.price || 0).toLocaleString()}</p>
+                {o.bookingDate && (
+                  <p className="text-[11px] font-semibold text-brand-purple mt-0.5">
+                    🗓️ Scheduled Visit: {o.bookingDate} {o.bookingTime ? `at ${o.bookingTime}` : ''}
+                  </p>
+                )}
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-xs font-bold text-emerald-600">Total: ₹{(o.price || 0).toLocaleString()}</span>
+                  {o.status === 'cancelled' && (
+                    <span className="text-[11px] font-bold text-red-600 bg-red-500/10 px-2 py-0.5 rounded-lg">
+                      Refunded: ₹{(o.refundAmount ?? o.price).toLocaleString()} ({o.refundPercentage ?? 100}%)
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">

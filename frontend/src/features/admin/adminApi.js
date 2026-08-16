@@ -700,7 +700,6 @@ export const {
   useListAdminAuditLogQuery,
   useUpdateAdminProfileMutation,
   useChangeAdminPasswordMutation,
-  useGetCategoriesQuery,
   useListCategoriesQuery,
   useCreateCategoryMutation,
   useDeleteCategoryMutation,

@@ -1,68 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { FiSearch, FiMapPin, FiStar, FiShoppingBag, FiTool, FiMessageCircle, FiPackage, FiHeart, FiShare2, FiPhone, FiMessageSquare, FiShoppingCart, FiClock, FiCheck, FiFilter } from 'react-icons/fi';
-import { FaWhatsapp } from 'react-icons/fa';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { FiSearch, FiPackage, FiShoppingBag } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { api, resolveMediaUrl } from '../../../lib/api';
-import OptimizedImage from '../../../components/common/OptimizedImage';
+import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 
-const DISTANCE_VALUES = [
-  { value: 'all', label: 'Anywhere' },
-  { value: '2', label: '2 km' },
-  { value: '5', label: '5 km' },
-  { value: '10', label: '10 km' },
-  { value: '20', label: '20 km' },
-  { value: '50', label: '50 km' }
-];
-
-function OfferCountdown({ validTill }) {
-  const [timeLeft, setTimeLeft] = useState('');
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const difference = +new Date(validTill) - +new Date();
-      if (difference <= 0) {
-        setTimeLeft('Expired');
-        return;
-      }
-
-      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
-      const minutes = Math.floor((difference / 1000 / 60) % 60);
-      const seconds = Math.floor((difference / 1000) % 60);
-
-      let parts = [];
-      if (days > 0) parts.push(`${days}d`);
-      if (hours > 0 || days > 0) parts.push(`${hours}h`);
-      parts.push(`${minutes}m`);
-      parts.push(`${seconds}s`);
-
-      setTimeLeft(parts.join(' ') + ' left');
-    };
-
-    calculateTimeLeft();
-    const interval = setInterval(calculateTimeLeft, 1000);
-    return () => clearInterval(interval);
-  }, [validTill]);
-
-  if (timeLeft === 'Expired') {
-    return <span className="text-red-600 font-bold text-[10px] uppercase bg-red-100 px-2 py-0.5 rounded border border-red-200">Expired</span>;
-  }
-
-  return (
-    <span className="text-[#1a1a1a] font-black text-[10px] bg-[#d99a3d] border border-[#1a1a1a]/20 px-2 py-0.5 rounded flex items-center gap-1 w-fit animate-pulse">
-      <FiClock className="animate-spin-slow" /> {timeLeft}
-    </span>
-  );
-}
+// Subcomponents
+import SearchFiltersBar from './components/SearchFiltersBar';
+import ListingCard from './components/ListingCard';
+import ListingDetailModal from './components/ListingDetailModal';
+import OrderConfirmedModal from './components/OrderConfirmedModal';
 
 export default function SearchListingsPage() {
   const navigate = useNavigate();
   const { productId } = useParams();
+  const [searchParams] = useSearchParams();
+  const queryProductId = productId || searchParams.get('productId') || searchParams.get('id');
   const { user } = useAuth();
+
   const [query, setQuery] = useState('');
-  const [type, setType] = useState('all');
+  const [type, setType] = useState('all'); // 'all' | 'product' | 'service'
   const [category, setCategory] = useState('all');
   const [maxPrice, setMaxPrice] = useState(200000);
   const [distance, setDistance] = useState('all');
@@ -72,35 +29,6 @@ export default function SearchListingsPage() {
   const [inquiringId, setInquiringId] = useState(null);
 
   const [selectedItem, setSelectedItem] = useState(null);
-
-  useEffect(() => {
-    if (productId) {
-      const fetchSelectedProduct = async () => {
-        try {
-          const res = await api.get(`/v1/listings/${productId}`);
-          const item = res.data?.listing || res.data?.data?.listing || res.data || null;
-          if (item) {
-            setSelectedItem(item);
-          }
-        } catch (err) {
-          console.error('Failed to fetch product for direct link view:', err);
-        }
-      };
-      fetchSelectedProduct();
-    }
-  }, [productId]);
-
-  const handleSelectItem = async (item) => {
-    setSelectedItem(item);
-    if (!item) return;
-    try {
-      const listingId = item._id || item.id;
-      await api.get(`/v1/listings/${listingId}`);
-    } catch (err) {
-      console.error('Failed to trigger listing view increment:', err);
-    }
-  };
-
   const [coords, setCoords] = useState(null);
   const [geocodedCache, setGeocodedCache] = useState({});
   const [savedItems, setSavedItems] = useState({});
@@ -125,6 +53,36 @@ export default function SearchListingsPage() {
     );
   };
 
+  // Direct product modal view from link/param
+  useEffect(() => {
+    if (queryProductId) {
+      const fetchSelectedProduct = async () => {
+        try {
+          const res = await api.get(`/v1/listings/${queryProductId}`);
+          const item = res.data?.listing || res.data?.data?.listing || res.data?.data || res.data || null;
+          if (item) {
+            setSelectedItem(item);
+          }
+        } catch (err) {
+          console.error('Failed to fetch product for direct link view:', err);
+        }
+      };
+      fetchSelectedProduct();
+    }
+  }, [queryProductId]);
+
+  const handleSelectItem = async (item) => {
+    setSelectedItem(item);
+    if (!item) return;
+    try {
+      const listingId = item._id || item.id;
+      await api.get(`/v1/listings/${listingId}`);
+    } catch (err) {
+      console.warn('Failed to increment listing view count:', err);
+    }
+  };
+
+  // Fetch coordinates on mount / user location change
   useEffect(() => {
     const getCustomerCoords = async () => {
       if (user && user.location && Array.isArray(user.location.coordinates) && user.location.coordinates.length === 2) {
@@ -147,7 +105,9 @@ export default function SearchListingsPage() {
           try {
             const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
             if (apiKey) {
-              const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressQuery)}&key=${apiKey}`);
+              const res = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressQuery)}&key=${apiKey}`
+              );
               const data = await res.json();
               if (data && data.results && data.results.length > 0) {
                 const loc = data.results[0].geometry.location;
@@ -166,7 +126,7 @@ export default function SearchListingsPage() {
           (position) => {
             setCoords({
               lat: position.coords.latitude,
-              lng: position.coords.longitude
+              lng: position.coords.longitude,
             });
           },
           (error) => {
@@ -179,11 +139,12 @@ export default function SearchListingsPage() {
     getCustomerCoords();
   }, [user]);
 
+  // Fetch saved/liked interactions
   const fetchInteractions = async () => {
     try {
       const [savedRes, likedRes] = await Promise.all([
-        api.get('/v1/interactions/me/saved'),
-        api.get('/v1/interactions/me/liked')
+        api.get('/v1/interactions/me/saved').catch(() => ({ data: { items: [] } })),
+        api.get('/v1/interactions/me/liked').catch(() => ({ data: { items: [] } })),
       ]);
       const savedMap = {};
       const likedMap = {};
@@ -191,14 +152,19 @@ export default function SearchListingsPage() {
       const savedList = savedRes.data?.items || savedRes.data?.data?.items || savedRes.data || [];
       const likedList = likedRes.data?.items || likedRes.data?.data?.items || likedRes.data || [];
 
-      savedList.forEach(item => {
-        const id = item._id || item.id;
-        if (id) savedMap[id] = true;
-      });
-      likedList.forEach(item => {
-        const id = item._id || item.id;
-        if (id) likedMap[id] = true;
-      });
+      if (Array.isArray(savedList)) {
+        savedList.forEach((item) => {
+          const id = item._id || item.id || item.listing_id;
+          if (id) savedMap[id] = true;
+        });
+      }
+
+      if (Array.isArray(likedList)) {
+        likedList.forEach((item) => {
+          const id = item._id || item.id || item.listing_id;
+          if (id) likedMap[id] = true;
+        });
+      }
 
       setSavedItems(savedMap);
       setLikedItems(likedMap);
@@ -221,13 +187,286 @@ export default function SearchListingsPage() {
     loadCategories();
   }, []);
 
+  // Geocode vendor/listing locations if coordinates are [0, 0] or missing
+  useEffect(() => {
+    const geocodeVendors = async () => {
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!apiKey || listings.length === 0) return;
+
+      const locationsToGeocode = [];
+      for (const item of listings) {
+        const vendorObj = item.vendor || item.vendorId || {};
+        const city = item.city || vendorObj.city || item.location?.city;
+        const address = item.location?.address || vendorObj.location?.address || vendorObj.address;
+        const state = item.location?.state || vendorObj.location?.state || vendorObj.state;
+        const pincode = item.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
+
+        const vendorCoords =
+          vendorObj.location &&
+          Array.isArray(vendorObj.location.coordinates) &&
+          vendorObj.location.coordinates.length === 2 &&
+          (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0)
+            ? vendorObj.location.coordinates
+            : null;
+        const itemCoords =
+          item.location &&
+          Array.isArray(item.location.coordinates) &&
+          item.location.coordinates.length === 2 &&
+          (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0)
+            ? item.location.coordinates
+            : null;
+
+        const targetCoords = itemCoords || vendorCoords;
+
+        if (!targetCoords) {
+          const locStr = [address, city, state, pincode].filter(Boolean).join(', ') || city;
+          if (locStr && locStr.trim() && !geocodedCache[locStr]) {
+            locationsToGeocode.push(locStr);
+          }
+        }
+      }
+
+      const uniqueToGeocode = [...new Set(locationsToGeocode)];
+      if (uniqueToGeocode.length === 0) return;
+
+      const newCacheResults = {};
+      let updated = false;
+
+      for (const locStr of uniqueToGeocode) {
+        try {
+          const res = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locStr)}&key=${apiKey}`
+          );
+          const data = await res.json();
+          if (data && data.results && data.results.length > 0) {
+            const loc = data.results[0].geometry.location;
+            newCacheResults[locStr] = { lat: loc.lat, lng: loc.lng };
+            updated = true;
+          }
+        } catch (err) {
+          console.warn('Google Geocoding error for vendor:', locStr, err);
+        }
+      }
+
+      if (updated) {
+        setGeocodedCache((prev) => ({ ...prev, ...newCacheResults }));
+      }
+    };
+
+    geocodeVendors();
+  }, [listings, geocodedCache]);
+
+  // Fetch listing reviews
+  const fetchReviews = async (listingId) => {
+    try {
+      const res = await api.get(`/v1/reviews/listing/${listingId}`);
+      const data = res.data;
+      const list = data.data?.reviews || data.reviews || data.data || [];
+      setReviewsList(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.warn('Failed to fetch reviews:', err);
+      setReviewsList([]);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedItem) {
+      setReviewsList([]);
+      return;
+    }
+    fetchReviews(selectedItem._id || selectedItem.id);
+  }, [selectedItem]);
+
+  // Toggle Save (Bookmark)
+  const toggleSave = async (id) => {
+    const isSaved = !!savedItems[id];
+    setSavedItems((prev) => ({ ...prev, [id]: !isSaved }));
+    try {
+      const res = await api.post(`/v1/listings/${id}/save`);
+      const activeState = res.data?.active !== undefined ? res.data.active : !isSaved;
+      setSavedItems((prev) => ({ ...prev, [id]: activeState }));
+      toast.success(activeState ? '🔖 Saved to My Bookmarks!' : 'Removed from Saved');
+    } catch {
+      setSavedItems((prev) => ({ ...prev, [id]: isSaved }));
+      toast.error('Failed to update bookmark');
+    }
+  };
+
+  // Toggle Like
+  const toggleLike = async (id) => {
+    const isLiked = !!likedItems[id];
+    setLikedItems((prev) => ({ ...prev, [id]: !isLiked }));
+    try {
+      const res = await api.post(`/v1/listings/${id}/like`);
+      const activeState = res.data?.active !== undefined ? res.data.active : !isLiked;
+      setLikedItems((prev) => ({ ...prev, [id]: activeState }));
+      toast.success(activeState ? '❤️ Liked!' : 'Unliked');
+    } catch {
+      setLikedItems((prev) => ({ ...prev, [id]: isLiked }));
+      toast.error('Failed to update like status');
+    }
+  };
+
+  // Share Listing
+  const handleShare = async (item) => {
+    const itemId = item._id || item.id;
+    const shareUrl = `${window.location.origin}/customer/search?productId=${itemId}`;
+    const shareData = {
+      title: item.title || 'BizReels Listing',
+      text: `Check out "${item.title}" on BizReels!`,
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('🔗 Product link copied to clipboard!');
+    } catch {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  // WhatsApp Contact
+  const handleWhatsApp = async (item) => {
+    const vendorObj = item.vendor || item.vendorId || {};
+    const phone =
+      vendorObj.phone ||
+      vendorObj.vendorProfile?.whatsapp ||
+      vendorObj.vendorProfile?.whatsappNumber ||
+      vendorObj.whatsappNumber ||
+      '';
+    if (!phone) {
+      toast.error('WhatsApp contact is not configured for this vendor');
+      return;
+    }
+    const productLink = `${window.location.origin}/customer/search?productId=${item._id || item.id}`;
+    const text = encodeURIComponent(
+      `Hello! I found your listing "${item.title}" on BizReels.\nLink: ${productLink}\nPlease provide more details.`
+    );
+    let formattedPhone = phone.replace(/[^0-9]/g, '');
+    if (formattedPhone.length === 10) {
+      formattedPhone = '91' + formattedPhone;
+    }
+
+    try {
+      const listingId = item._id || item.id;
+      const targetUserId = vendorObj._id || vendorObj.id;
+      await api.post('/v1/users/me/track-interaction', {
+        type: 'whatsapp_contact',
+        listingId,
+        targetUserId,
+      });
+    } catch (err) {
+      console.warn('Failed to track WhatsApp interaction:', err);
+    }
+
+    window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
+  };
+
+  // Call Request
+  const handleCallRequest = async (item) => {
+    const vendorObj = item.vendor || item.vendorId || {};
+    const listingId = item._id || item.id;
+    try {
+      await api.post('/v1/inquiries', {
+        listingId,
+        message: 'Customer requested a phone callback for this listing.',
+      });
+
+      try {
+        const targetUserId = vendorObj._id || vendorObj.id;
+        await api.post('/v1/users/me/track-interaction', {
+          type: 'click_to_call',
+          listingId,
+          targetUserId,
+        });
+      } catch (trackErr) {
+        console.warn('Failed to track call interaction:', trackErr);
+      }
+
+      toast.success(
+        `📞 Callback request sent to ${vendorObj.name || vendorObj.shopName || 'Vendor'}! They will reach out soon.`
+      );
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to send call request';
+      toast.error(msg);
+    }
+  };
+
+  // Direct Vendor Order Request
+  const handleOrderRequest = async (item, orderPayload = {}) => {
+    try {
+      const listingId = item._id || item.id;
+
+      await api.post('/v1/orders', {
+        listingId,
+        quantity: orderPayload.quantity || 1,
+        address: orderPayload.address || user?.location?.address || 'Customer Primary Address',
+        paymentMethod: orderPayload.paymentMethod || 'vendor_upi',
+        paymentDetails: orderPayload.paymentDetails || null,
+      });
+
+      setOrderConfirmedModal(true);
+      toast.success('🎉 Order Request Confirmed and transmitted to Vendor!');
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to place order request';
+      toast.error(msg);
+      throw err;
+    }
+  };
+
+  // Post Review
+  const handleAddReview = async (e) => {
+    e.preventDefault();
+    if (!reviewText.trim()) return toast.error('Please enter a review comment');
+    if (!selectedItem) return;
+
+    try {
+      const targetListing = selectedItem._id || selectedItem.id;
+      await api.post('/v1/reviews', {
+        targetListingId: targetListing,
+        rating: reviewRating,
+        comment: reviewText.trim(),
+      });
+
+      setReviewText('');
+      toast.success('Review posted successfully!');
+      fetchReviews(targetListing);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to post review';
+      toast.error(msg);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchListings();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, type, category, maxPrice, distance, coords, condition, sellerType, minRating, hasOffers, shopName, openNow, deliveryType]);
+  }, [
+    query,
+    type,
+    category,
+    maxPrice,
+    distance,
+    coords,
+    condition,
+    sellerType,
+    minRating,
+    hasOffers,
+    shopName,
+    openNow,
+    deliveryType,
+  ]);
 
   const fetchListings = async () => {
     setLoading(true);
@@ -276,11 +515,21 @@ export default function SearchListingsPage() {
     setInquiringId(item._id || item.id);
     try {
       const itemId = item._id || item.id;
-      const productLink = `${window.location.origin}/customer/product/${itemId}`;
+      const productLink = `${window.location.origin}/customer/search?productId=${itemId}`;
       await api.post('/v1/chat/messages', {
         recipientId: vendorId,
-        text: `Hello! I am interested in your listing: "${item.title}". Could you share more details?\nProduct Link: ${productLink}`
+        text: `Hello! I am interested in your listing: "${item.title}". Could you share more details?\nProduct Link: ${productLink}`,
       });
+
+      try {
+        await api.post('/v1/users/me/track-interaction', {
+          type: 'chat_inquiry',
+          listingId: item._id || item.id,
+          targetUserId: vendorId,
+        });
+      } catch (trackErr) {
+        console.warn('Failed to track inquiry interaction:', trackErr);
+      }
 
       toast.success(`Inquiry sent to ${vendorObj.name || vendorObj.shopName || 'Vendor'}! Redirecting to chat...`);
       const vendorName = encodeURIComponent(vendorObj.shopName || vendorObj.name || 'Vendor');
@@ -293,190 +542,188 @@ export default function SearchListingsPage() {
     }
   };
 
+  // Calculate selected item distance formatted text
+  let detailDistStr = '';
+  if (selectedItem) {
+    const vendorObj = selectedItem.vendor || selectedItem.vendorId || {};
+    const city = selectedItem.city || vendorObj.city || selectedItem.location?.city;
+    const address = selectedItem.location?.address || vendorObj.location?.address || vendorObj.address;
+    const state = selectedItem.location?.state || vendorObj.location?.state || vendorObj.state;
+    const pincode = selectedItem.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
+    const locStr = [address, city, state, pincode].filter(Boolean).join(', ') || city;
+
+    const vendorCoords =
+      vendorObj.location &&
+      Array.isArray(vendorObj.location.coordinates) &&
+      vendorObj.location.coordinates.length === 2 &&
+      (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0)
+        ? vendorObj.location.coordinates
+        : geocodedCache[locStr]
+        ? [geocodedCache[locStr].lng, geocodedCache[locStr].lat]
+        : null;
+    const itemCoords =
+      selectedItem.location &&
+      Array.isArray(selectedItem.location.coordinates) &&
+      selectedItem.location.coordinates.length === 2 &&
+      (selectedItem.location.coordinates[0] !== 0 || selectedItem.location.coordinates[1] !== 0)
+        ? selectedItem.location.coordinates
+        : null;
+
+    const targetCoords = itemCoords || vendorCoords;
+
+    if (coords && targetCoords && (coords.lat !== 0 || coords.lng !== 0)) {
+      const [targetLng, targetLat] = targetCoords;
+      const R = 6371; // Earth radius in km
+      const dLat = (targetLat - coords.lat) * (Math.PI / 180);
+      const dLng = (targetLng - coords.lng) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(coords.lat * (Math.PI / 180)) *
+          Math.cos(targetLat * (Math.PI / 180)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const calculatedKm = R * c;
+      if (calculatedKm < 6000) {
+        detailDistStr = `${calculatedKm.toFixed(1)} km away from you`;
+      } else {
+        detailDistStr = 'Nearby';
+      }
+    } else if (
+      selectedItem.distance !== undefined &&
+      selectedItem.distance !== null &&
+      selectedItem.distance / 1000 < 6000
+    ) {
+      const km = selectedItem.distance / 1000;
+      detailDistStr = `${km.toFixed(1)} km away from you`;
+    } else if (
+      selectedItem.distanceKm !== undefined &&
+      selectedItem.distanceKm !== null &&
+      Number(selectedItem.distanceKm) < 6000
+    ) {
+      detailDistStr = `${Number(selectedItem.distanceKm).toFixed(1)} km away from you`;
+    } else {
+      detailDistStr = 'Nearby';
+    }
+  }
+
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-5 font-sans p-2 sm:p-4 min-h-screen">
-      {/* Header Banner */}
-      <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">CUSTOMER PORTAL</span>
-          <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
-            DISCOVER MARKETPLACE LISTINGS
-          </h1>
-          <p className="text-xs text-slate-300 mt-1 max-w-md">
-            Filter local products, services, and verified vendor storefronts by location, category, and price.
-          </p>
-        </div>
-
-        <div className="w-10 h-10 rounded-full bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center font-black shrink-0 border border-[#1a1a1a]">
-          <FiSearch size={20} />
-        </div>
-      </div>
-
-      {/* Search & Filter Controls Bento Container */}
-      <div className="bg-white rounded-md p-4 sm:p-5 border border-[#e3dccb] shadow-xs space-y-4">
-        {/* Top Search Input Row */}
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1 flex items-center gap-2 bg-[#f8f4ec] rounded-md border border-[#e3dccb] px-3 py-1.5 focus-within:border-[#d99a3d] focus-within:ring-2 focus-within:ring-[#d99a3d]/20 transition-all">
-            <div className="w-7 h-7 rounded bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#1a1a1a]">
-              <FiSearch size={15} />
-            </div>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by product name, service, brand, or keyword..."
-              className="w-full bg-transparent text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none font-medium"
-            />
+    <div className="min-h-screen bg-[#f8f4ec] py-4 px-3 sm:px-6 font-sans">
+      <div className="max-w-6xl mx-auto space-y-5 animate-fade-in">
+        
+        {/* ── Page Header matching Home Feed ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#e3dccb] pb-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-[#1a1a1a] tracking-tight">
+              Explore Products & Services
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Discover verified local vendors, deals, and service providers near you
+            </p>
           </div>
-
-          <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
-            {/* Products / Services filter */}
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="flex-1 sm:flex-none bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-2 text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] cursor-pointer"
-            >
-              <option value="all">All Types</option>
-              <option value="product">Products Only</option>
-              <option value="service">Services Only</option>
-            </select>
-
-            {/* Distance select */}
-            <select
-              value={distance}
-              onChange={(e) => setDistance(e.target.value)}
-              className="flex-1 sm:flex-none bg-[#241b15] text-[#d99a3d] border border-[#241b15] rounded-md px-3 py-2 text-xs font-bold focus:outline-none cursor-pointer"
-            >
-              {DISTANCE_VALUES.map(d => (
-                <option key={d.value} value={d.value}>{d.value === 'all' ? '📍 Anywhere' : `Within ${d.label}`}</option>
-              ))}
-            </select>
-          </div>
+          <span className="text-xs font-bold text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-[#e3dccb] w-fit shadow-xs">
+            {listings.length} Results Found
+          </span>
         </div>
 
-        {/* Row 2: Category & Price */}
-        <div className="flex flex-wrap items-center justify-between pt-3 border-t border-[#e3dccb] gap-4 text-xs font-bold">
-          <div className="flex items-center gap-3">
-            <span className="text-slate-500 uppercase text-[10px] tracking-wider font-extrabold">Category:</span>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="bg-[#f8f4ec] border border-[#e3dccb] rounded-md px-3 py-1.5 text-xs text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] cursor-pointer"
-            >
-              <option value="all">All Categories</option>
-              {(categories.length > 0 ? categories : [
-                { name: 'Electronics' },
-                { name: 'Fashion' },
-                { name: 'Furniture' },
-                { name: 'Services' },
-                { name: 'Automobile' },
-                { name: 'Grocery' },
-                { name: 'Healthcare' },
-                { name: 'Restaurant' },
-                { name: 'Education' },
-              ]).map(cat => (
-                <option key={cat._id || cat.id || cat.name} value={cat.name}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* ── Search & Filter Controls Bar ── */}
+        <SearchFiltersBar
+          query={query}
+          setQuery={setQuery}
+          type={type}
+          setType={setType}
+          distance={distance}
+          setDistance={setDistance}
+          category={category}
+          setCategory={setCategory}
+          categories={categories}
+          maxPrice={maxPrice}
+          setMaxPrice={setMaxPrice}
+          showAdvanced={showAdvanced}
+          setShowAdvanced={setShowAdvanced}
+          condition={condition}
+          setCondition={setCondition}
+          sellerType={sellerType}
+          setSellerType={setSellerType}
+          minRating={minRating}
+          setMinRating={setMinRating}
+          hasOffers={hasOffers}
+          setHasOffers={setHasOffers}
+          openNow={openNow}
+          setOpenNow={setOpenNow}
+          shopName={shopName}
+          setShopName={setShopName}
+          deliveryType={deliveryType}
+          toggleDeliveryType={toggleDeliveryType}
+        />
 
-          <div className="flex items-center gap-3">
-            <span className="text-[#1a1a1a] font-extrabold text-xs">Max Price: ₹{maxPrice.toLocaleString()}</span>
-            <input
-              type="range"
-              min={1000}
-              max={200000}
-              step={5000}
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
-              className="accent-[#d99a3d] cursor-pointer w-32"
-            />
-          </div>
-
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`px-3.5 py-1.5 rounded-md text-[10px] font-extrabold uppercase transition border cursor-pointer ${
-              showAdvanced
-                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
-                : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb] hover:bg-slate-200'
-            }`}
-          >
-            {showAdvanced ? '▲ Hide Advanced Filters' : '▼ Advanced Filters'}
-          </button>
-        </div>
-      </div>
-
-      {/* Grid Results */}
-      {loading ? (
-        <div className="py-20 text-center text-xs font-bold text-slate-500">Searching live database listings...</div>
-      ) : listings.length === 0 ? (
-        <div className="py-16 text-center text-xs text-slate-500 bg-white rounded-md border border-[#e3dccb] space-y-2 p-8 shadow-xs">
-          <p className="font-extrabold text-[#1a1a1a] text-sm">No listings match your search criteria</p>
-          <p className="text-xs">Try clearing search keywords or increasing max price and distance filters.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {listings.map((item) => {
-            const itemId = item._id || item.id;
-            const vendorObj = item.vendor || item.vendorId || {};
-            const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || item.vendorName || 'Verified Vendor';
-            const city = item.city || vendorObj.city || item.location?.city || 'Local';
-            const rawImage = item.images?.[0] || item.image || item.mediaUrl || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=600&q=80';
-            const imageUrl = resolveMediaUrl(rawImage);
-            const isService = item.type === 'service';
-
-            return (
-              <div
-                key={itemId}
-                className="bg-white rounded-md border border-[#e3dccb] shadow-xs hover:shadow-md transition-all overflow-hidden flex flex-col justify-between cursor-pointer"
-                onClick={() => handleSelectItem(item)}
-              >
-                <div className="aspect-video bg-slate-100 relative overflow-hidden">
-                  <OptimizedImage src={imageUrl} alt={item.title} className="w-full h-full object-cover" width={400} />
-                  <div className="absolute top-3 left-3 bg-[#241b15] text-[#d99a3d] px-2.5 py-1 rounded text-[9.5px] font-black uppercase border border-[#1a1a1a] flex items-center gap-1">
-                    {isService ? <FiTool size={11} /> : <FiShoppingBag size={11} />}
-                    {item.type || 'product'}
-                  </div>
-                  <div className="absolute top-3 right-3 bg-[#d99a3d] text-[#1a1a1a] px-2.5 py-1 rounded text-xs font-black shadow-xs border border-[#1a1a1a]/10">
-                    ₹{item.price?.toLocaleString()}
-                  </div>
-                </div>
-
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-400 mb-1">
-                      <span className="uppercase tracking-wider">{item.category || 'General'}</span>
-                      <span className="flex items-center gap-1 text-[#1a1a1a] font-extrabold bg-[#f8f4ec] px-1.5 py-0.5 rounded border border-[#e3dccb]">
-                        <FiStar size={11} className="text-[#d99a3d] fill-[#d99a3d]" />
-                        {item.rating || '4.8'}
-                      </span>
-                    </div>
-                    <h4 className="font-extrabold text-sm text-[#1a1a1a] line-clamp-2">{item.title}</h4>
-                    <p className="text-xs text-slate-500 transition mt-1 flex items-center gap-1 font-bold">
-                      <FiMapPin size={12} className="text-[#d99a3d]" />
-                      <span>{vendorName} ({city})</span>
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleInquire(item);
-                    }}
-                    disabled={inquiringId === itemId}
-                    className="w-full py-2 px-3 rounded text-xs font-black uppercase bg-[#241b15] text-[#d99a3d] hover:bg-[#342820] transition border border-[#241b15] flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-                  >
-                    <FiMessageSquare size={14} />
-                    <span>Inquire Vendor</span>
-                  </button>
-                </div>
+        {/* ── Search Results Grid ── */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-xl border border-[#e3dccb] p-4 space-y-3 animate-pulse">
+                <div className="w-full aspect-[4/3] bg-slate-200 rounded-lg" />
+                <div className="w-2/3 h-4 bg-slate-200 rounded" />
+                <div className="w-1/3 h-3 bg-slate-200 rounded" />
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        ) : listings.length === 0 ? (
+          <div className="py-16 text-center text-xs text-slate-500 bg-white rounded-xl border border-[#e3dccb] space-y-2 p-6 shadow-xs">
+            <p className="text-sm font-bold text-[#1a1a1a]">No listings match your search criteria</p>
+            <p className="text-xs">Try searching with different keywords, widening the distance, or increasing budget.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {listings.map((item) => {
+              const itemId = item._id || item.id;
+              return (
+                <ListingCard
+                  key={itemId}
+                  item={item}
+                  coords={coords}
+                  geocodedCache={geocodedCache}
+                  onSelect={handleSelectItem}
+                  isSaved={!!savedItems[itemId]}
+                  isLiked={!!likedItems[itemId]}
+                  onToggleSave={toggleSave}
+                  onToggleLike={toggleLike}
+                  onShare={handleShare}
+                  onWhatsApp={handleWhatsApp}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Full Product & Service Detail Modal with Direct Payment & Reviews ── */}
+        <ListingDetailModal
+          selectedItem={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          detailDistStr={detailDistStr}
+          savedItems={savedItems}
+          likedItems={likedItems}
+          toggleSave={toggleSave}
+          toggleLike={toggleLike}
+          handleShare={handleShare}
+          handleWhatsApp={handleWhatsApp}
+          handleCallRequest={handleCallRequest}
+          handleInquire={handleInquire}
+          handleOrderRequest={handleOrderRequest}
+          reviewsList={reviewsList}
+          reviewRating={reviewRating}
+          setReviewRating={setReviewRating}
+          reviewText={reviewText}
+          setReviewText={setReviewText}
+          handleAddReview={handleAddReview}
+        />
+
+        {/* ── Order Confirmed Popup ── */}
+        <OrderConfirmedModal
+          isOpen={orderConfirmedModal}
+          onClose={() => setOrderConfirmedModal(false)}
+        />
+      </div>
     </div>
   );
 }

@@ -144,9 +144,13 @@ const listingSchema = new Schema(
         quoteRequest: { type: Boolean, default: true },
       },
       policies: {
-        cancellationPolicy: { type: String, default: 'Free cancellation up to 2 hours before appointment.' },
-        refundPolicy: { type: String, default: 'Full refund if cancelled within policy guidelines.' },
+        cancellationPolicy: { type: String, default: 'Free cancellation up to 24 hours before appointment.' },
+        refundPolicy: { type: String, default: '50% refund if cancelled within 24 hours. 0% after visit.' },
         termsAndConditions: { type: String, default: 'Standard service agreement terms apply.' },
+        freeCancellationHours: { type: Number, default: 24, min: 0 },
+        withinWindowHours: { type: Number, default: 24, min: 0 },
+        withinWindowRefundPercent: { type: Number, default: 50, min: 0, max: 100 },
+        afterVisitRefundPercent: { type: Number, default: 0, min: 0, max: 100 },
       },
     },
     // Extended product fields

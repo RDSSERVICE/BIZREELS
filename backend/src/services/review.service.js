@@ -23,7 +23,11 @@ class ReviewService {
       
       const queryCheck = await Review.findOne({ author: authorId, targetListing: targetListingId, isDeleted: false });
       if (queryCheck) {
-        throw ApiError.badRequest('You have already submitted a review for this catalog listing.');
+        queryCheck.rating = parseInt(rating, 10);
+        queryCheck.comment = comment;
+        await queryCheck.save();
+        logger.info(`Review updated successfully: ${queryCheck._id}`, { service: 'reviews' });
+        return queryCheck;
       }
     }
 

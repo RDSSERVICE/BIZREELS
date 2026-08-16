@@ -1,101 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import {
-  FiCpu, FiMic, FiMicOff, FiUploadCloud, FiX, FiImage, FiSearch, FiCheck
-} from 'react-icons/fi';
+import React, { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import { api, mediaApi } from '../../../lib/api';
 
-function SearchableSelect({
-  label,
-  placeholder,
-  value,
-  onChange,
-  options,
-  disabled = false,
-}) {
-  const [search, setSearch] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setSearch(value || '');
-    }
-  }, [value, isOpen]);
-
-  const filteredOptions = React.useMemo(() => {
-    if (!search || search === value) return options;
-    return options.filter(opt =>
-      opt.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [options, search, value]);
-
-  return (
-    <div className="relative">
-      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setIsOpen(true);
-          }}
-          onFocus={() => {
-            setSearch('');
-            setIsOpen(true);
-          }}
-          onBlur={() => {
-            setTimeout(() => {
-              setIsOpen(false);
-              setSearch(value || '');
-            }, 200);
-          }}
-          placeholder={placeholder}
-          disabled={disabled}
-          className="w-full p-2.5 pr-8 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple transition-all disabled:opacity-50 text-text-primary animate-none"
-        />
-        <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-tertiary pointer-events-none text-[10px]">
-          ▼
-        </span>
-      </div>
-
-      {isOpen && !disabled && (
-        <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-surface border border-border rounded-xl shadow-lg z-50 p-1 space-y-0.5">
-          {filteredOptions.length === 0 ? (
-            <p className="text-xs text-text-tertiary p-2 text-center">No results found</p>
-          ) : (
-            filteredOptions.map((opt, idx) => {
-              const isSelected = opt === value;
-              return (
-                <div
-                  key={idx}
-                  onMouseDown={() => {
-                    onChange(opt);
-                    setSearch(opt);
-                    setIsOpen(false);
-                  }}
-                  className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                    isSelected
-                      ? 'bg-brand-purple/10 text-brand-purple font-bold'
-                      : 'hover:bg-white/5 text-text-secondary'
-                  }`}
-                >
-                  {opt}
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+// Subcomponents
+import ServiceBasicInfoSection from './service-form/ServiceBasicInfoSection';
+import ServiceDetailsSection from './service-form/ServiceDetailsSection';
+import ServiceLocationSection from './service-form/ServiceLocationSection';
+import ServiceAvailabilitySection from './service-form/ServiceAvailabilitySection';
+import ServiceMediaSection from './service-form/ServiceMediaSection';
+import ServiceCancellationPolicySection from './service-form/ServiceCancellationPolicySection';
 
 /**
- * ServiceFormModal — Complete 6-section service creation/editing form
- * Sections: Basic Info, Service Details, Location, Availability, Media, Lead Settings & Policies
- * Includes AI Description Generator (Gemini) with voice input
+ * ServiceFormModal — Modular 6-section service creation/editing form
+ * Sections: Basic Info, Service Details, Location, Availability, Media, Cancellation Policy
  */
 export default function ServiceFormModal({
   isOpen,
@@ -103,7 +21,6 @@ export default function ServiceFormModal({
   onSubmit,
   editData = null,
   categoriesList = [],
-  subcategoriesList = [],
   registeredCat = '',
   registeredSubcats = [],
   vendorCoords = null,
@@ -142,9 +59,13 @@ export default function ServiceFormModal({
     contactSettings: { chat: true, call: true, whatsapp: true, callbackRequest: true },
     leadSettings: { acceptLead: true, instantChat: true, callOnly: false, callbackOnly: false, quoteRequest: true },
     policies: {
-      cancellationPolicy: 'Free cancellation up to 2 hours before appointment.',
-      refundPolicy: 'Full refund if cancelled within policy guidelines.',
-      termsAndConditions: 'Standard service agreement terms apply.'
+      cancellationPolicy: 'Free cancellation up to 24 hours before visit.',
+      refundPolicy: '50% refund within 24 hours. 0% after visit.',
+      termsAndConditions: 'Standard service agreement terms apply.',
+      freeCancellationHours: 24,
+      withinWindowHours: 24,
+      withinWindowRefundPercent: 50,
+      afterVisitRefundPercent: 0,
     },
     status: 'published',
   });
@@ -156,12 +77,6 @@ export default function ServiceFormModal({
   const [coverUrlInput, setCoverUrlInput] = useState('');
   const [galleryUrlInput, setGalleryUrlInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  // AI Image generation states
-  const [coverAiPrompt, setCoverAiPrompt] = useState('');
-  const [isGeneratingCoverAi, setIsGeneratingCoverAi] = useState(false);
-  const [galleryAiPrompt, setGalleryAiPrompt] = useState('');
-  const [isGeneratingGalleryAi, setIsGeneratingGalleryAi] = useState(false);
 
   // Dynamic limits state
   const [maxLimits, setMaxLimits] = useState({ maxImages: 5, maxVideos: 1 });
@@ -175,7 +90,7 @@ export default function ServiceFormModal({
         if (data.maxImages !== undefined) {
           setMaxLimits({
             maxImages: Number(data.maxImages) || 5,
-            maxVideos: Number(data.maxVideos) || 1
+            maxVideos: Number(data.maxVideos) || 1,
           });
         }
       } catch (err) {
@@ -187,21 +102,21 @@ export default function ServiceFormModal({
     }
   }, [isOpen]);
 
-  const serviceCategories = React.useMemo(() => {
+  const serviceCategories = useMemo(() => {
     return categoriesList
-      .filter(c => !c.parent_id && (c.category_type === 'service' || !c.category_type))
-      .map(c => c.name);
+      .filter((c) => !c.parent_id && (c.category_type === 'service' || !c.category_type))
+      .map((c) => c.name);
   }, [categoriesList]);
 
-  const serviceSubcategories = React.useMemo(() => {
+  const serviceSubcategories = useMemo(() => {
     if (!form.category) return [];
     const parent = categoriesList.find(
-      c => !c.parent_id && (c.name === form.category || c.id === form.category || c._id === form.category)
+      (c) => !c.parent_id && (c.name === form.category || c.id === form.category || c._id === form.category)
     );
     if (!parent) return [];
     return categoriesList
-      .filter(c => c.parent_id === parent.id || c.parent_id === parent._id)
-      .map(c => c.name);
+      .filter((c) => c.parent_id === parent.id || c.parent_id === parent._id)
+      .map((c) => c.name);
   }, [categoriesList, form.category]);
 
   // Default to first category/subcategory if not set
@@ -220,10 +135,10 @@ export default function ServiceFormModal({
   const handleCategoryChange = (val) => {
     updateForm('category', val);
     const parent = categoriesList.find(
-      c => !c.parent_id && (c.name === val || c.id === val || c._id === val)
+      (c) => !c.parent_id && (c.name === val || c.id === val || c._id === val)
     );
     if (parent) {
-      const subs = categoriesList.filter(c => c.parent_id === parent.id || c.parent_id === parent._id);
+      const subs = categoriesList.filter((c) => c.parent_id === parent.id || c.parent_id === parent._id);
       if (subs.length > 0) {
         updateForm('subcategory', subs[0].name);
       } else {
@@ -250,18 +165,18 @@ export default function ServiceFormModal({
         priceType: sd.priceType || 'Fixed Price',
         price: editData.price || sd.price || '',
         minOrderValue: sd.minOrderValue || '',
-        duration: sd.durationText || sd.duration || '1 Hour',
-        serviceArea: sd.serviceArea || '',
-        state: sd.state || '',
-        city: sd.city || '',
+        duration: sd.duration || sd.durationText || '1 Hour',
+        serviceArea: sd.serviceArea || 'Local Area',
+        state: sd.state || 'State',
+        city: sd.city || 'City',
         pincode: sd.pincode || '',
-        homeVisitAvailable: sd.homeVisitAvailable ?? true,
-        maxTravelDistanceKm: sd.maxTravelDistanceKm ?? 15,
+        homeVisitAvailable: sd.homeVisitAvailable !== undefined ? sd.homeVisitAvailable : true,
+        maxTravelDistanceKm: sd.maxTravelDistanceKm || 15,
         availableCities: sd.availableCities || '',
         workingDays: sd.workingDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         workingHours: sd.workingHours || '09:00 AM - 08:00 PM',
         emergencyService24x7: sd.emergencyService24x7 || false,
-        advanceBookingRequired: sd.advanceBookingRequired || false,
+        advanceBookingRequired: sd.advanceBookingRequired !== undefined ? sd.advanceBookingRequired : true,
         bookingAvailability: sd.bookingAvailability || 'Immediate',
         coverImage: sd.coverImage || editData.images?.[0] || '',
         galleryImages: sd.galleryImages || editData.images?.slice(1) || [],
@@ -269,270 +184,149 @@ export default function ServiceFormModal({
         reelVideo: sd.reelVideo || '',
         contactSettings: sd.contactSettings || { chat: true, call: true, whatsapp: true, callbackRequest: true },
         leadSettings: sd.leadSettings || { acceptLead: true, instantChat: true, callOnly: false, callbackOnly: false, quoteRequest: true },
-        policies: sd.policies || {
-          cancellationPolicy: 'Free cancellation up to 2 hours before appointment.',
-          refundPolicy: 'Full refund if cancelled within policy guidelines.',
-          termsAndConditions: 'Standard service agreement terms apply.'
+        policies: {
+          cancellationPolicy: sd.policies?.cancellationPolicy || 'Free cancellation up to 24 hours before visit.',
+          refundPolicy: sd.policies?.refundPolicy || '50% refund within 24 hours. 0% after visit.',
+          termsAndConditions: sd.policies?.termsAndConditions || 'Standard service agreement terms apply.',
+          freeCancellationHours: typeof sd.policies?.freeCancellationHours === 'number' ? sd.policies.freeCancellationHours : 24,
+          withinWindowHours: typeof sd.policies?.withinWindowHours === 'number' ? sd.policies.withinWindowHours : 24,
+          withinWindowRefundPercent: typeof sd.policies?.withinWindowRefundPercent === 'number' ? sd.policies.withinWindowRefundPercent : 50,
+          afterVisitRefundPercent: typeof sd.policies?.afterVisitRefundPercent === 'number' ? sd.policies.afterVisitRefundPercent : 0,
         },
         status: editData.status || 'published',
       });
     }
   }, [editData]);
 
-  const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-
-  const [isAiGeneratingMedia, setIsAiGeneratingMedia] = useState(false);
-
-  const handleAiAutoFillMedia = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setIsAiGeneratingMedia(true);
-    const toastId = toast.loading('AI analyzing media sample in real-time...');
-    try {
-      let resource_type = 'image';
-      if (file.type.startsWith('audio')) resource_type = 'raw';
-      if (file.type.startsWith('video')) resource_type = 'video';
-
-      const uploadRes = await mediaApi.upload(file, 'listings/ai-samples', resource_type);
-      const url = uploadRes.data?.secure_url || uploadRes.data?.url || uploadRes.data?.data?.url;
-
-      if (!url) throw new Error('File upload failed');
-
-      // Now call AI API
-      const aiRes = await api.post('/v1/ai/generate-listing-content', {
-        title: aiPrompt || file.name.split('.')[0] || 'Service Sample',
-        type: 'service',
-        category_name: form.category,
-        sub_category_name: form.subcategory,
-        image_urls: resource_type === 'image' ? [url] : [],
-        audio_url: resource_type === 'raw' ? url : undefined,
-        video_url: resource_type === 'video' ? url : undefined,
-      });
-
-      const data = aiRes.data?.data || aiRes.data || aiRes;
-      if (data && data.generated) {
-        const gen = data.generated;
-        setForm(prev => ({
-          ...prev,
-          shortDescription: gen.short_description || prev.shortDescription,
-          detailedDescription: gen.description || prev.detailedDescription,
-          serviceHighlights: Array.isArray(gen.features) ? gen.features.join(', ') : prev.serviceHighlights,
-          price: gen.suggested_price_range_inr?.min || prev.price,
-        }));
-        toast.success('AI extracted service specifications & details in real-time!', { id: toastId });
-
-        // Auto-set the uploaded image or generate one if the file is not an image
-        if (resource_type === 'image') {
-          updateForm('coverImage', url);
-        } else if (resource_type !== 'image' && !form.coverImage) {
-          const generatedTitle = gen.title || form.title || file.name.split('.')[0] || 'Service';
-          toast.promise(
-            (async () => {
-              const imgRes = await api.post('/v1/ai/generate-image', {
-                prompt: `Professional high-quality service photo representing: ${generatedTitle}. Clean setting, professional lighting, realistic, 4k`,
-                width: 800,
-                height: 800,
-              });
-              if (imgRes.data && imgRes.data.success && imgRes.data.url) {
-                updateForm('coverImage', imgRes.data.url);
-                return 'AI Cover Image generated and set!';
-              }
-              throw new Error('No URL returned');
-            })(),
-            {
-              loading: 'Generating matching AI service cover image...',
-              success: '✨ AI Cover Image generated and set!',
-              error: 'Failed to generate AI cover image',
-            }
-          );
-        }
-      } else {
-        throw new Error('AI returned empty response');
-      }
-    } catch (err) {
-      toast.error('AI extraction failed: ' + (err.message || 'Error'), { id: toastId });
-    } finally {
-      setIsAiGeneratingMedia(false);
-    }
-  };
+  const updateForm = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   // AI Description Generator
-  const handleGenerateAiDescription = async (e) => {
-    if (e) e.preventDefault();
-    if (!aiPrompt.trim()) return toast.error('Please enter or dictate a prompt for AI generation');
+  const handleGenerateAiDescription = async () => {
+    const promptText = aiPrompt.trim() || `${form.category || 'Service'} ${form.subcategory || ''} service provider`;
     setIsGeneratingAiDesc(true);
-    const toastId = toast.loading('✨ Google Gemini AI is generating real-time description...');
+    const toastId = toast.loading('Gemini AI generating professional service description...');
     try {
-      const res = await api.post('/v1/ai/generate-listing-content', {
-        title: aiPrompt.trim().slice(0, 100),
+      const res = await api.post('/v1/ai/generate-description', {
+        prompt: promptText,
         type: 'service',
-        category_name: form.category,
-        sub_category_name: form.subcategory,
-        hints: aiPrompt.trim(),
+        category: form.category,
+        subcategory: form.subcategory,
+        context: {
+          serviceType: form.serviceType,
+          price: form.price,
+          duration: form.duration,
+          area: form.serviceArea,
+        },
       });
-      const responseObj = res.data?.data || res.data || {};
-      if (responseObj.ok === false) throw new Error(responseObj.error || 'AI generation failed');
-      const gen = responseObj.generated || {};
-      const generatedShort = gen.short_description || aiPrompt.trim().slice(0, 50);
-      const generatedDetailed = gen.description || (Array.isArray(gen.features) && gen.features.length > 0
-        ? `${aiPrompt.trim()}\n\nKey Highlights:\n${gen.features.map(f => `• ${f}`).join('\n')}`
-        : aiPrompt.trim());
-      setForm(prev => ({
-        ...prev,
-        shortDescription: generatedShort,
-        detailedDescription: generatedDetailed,
-      }));
-      toast.success('✨ Gemini AI Description generated in real-time!', { id: toastId });
-
-      // Auto-generate cover image in background if none is set
-      if (!form.coverImage) {
-        const generatedTitle = gen.title || form.title || aiPrompt.trim() || 'Service';
-        toast.promise(
-          (async () => {
-            const imgRes = await api.post('/v1/ai/generate-image', {
-              prompt: `Professional high-quality service photo representing: ${generatedTitle}. Clean setting, professional lighting, realistic, 4k`,
-              width: 800,
-              height: 800,
-            });
-            if (imgRes.data && imgRes.data.success && imgRes.data.url) {
-              updateForm('coverImage', imgRes.data.url);
-              return 'AI Cover Image generated and set!';
-            }
-            throw new Error('No URL returned');
-          })(),
-          {
-            loading: 'Generating matching AI service cover image...',
-            success: '✨ AI Cover Image generated and set!',
-            error: 'Failed to generate AI cover image',
-          }
-        );
+      const data = res.data?.data || res.data;
+      if (data) {
+        if (data.shortDescription) updateForm('shortDescription', data.shortDescription);
+        if (data.detailedDescription || data.description) {
+          updateForm('detailedDescription', data.detailedDescription || data.description);
+        }
+        if (data.serviceHighlights) updateForm('serviceHighlights', data.serviceHighlights);
+        if (data.aiLabels && Array.isArray(data.aiLabels)) updateForm('aiLabels', data.aiLabels);
+        toast.success('AI description generated successfully!', { id: toastId });
       }
-    } catch (err) {
-      const errMsg = err?.response?.data?.message || err?.message || 'Failed to generate AI description';
-      toast.error(`⚠️ ${errMsg}`, { id: toastId });
+    } catch {
+      toast.error('AI generation unavailable. Please enter details manually.', { id: toastId });
     } finally {
       setIsGeneratingAiDesc(false);
     }
   };
 
-  // Voice Input
+  // Web Speech API for voice prompt
   const toggleVoiceRecording = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return toast.error('Voice input is not supported in this browser.');
-    if (isListeningVoice) { setIsListeningVoice(false); return; }
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'hi-IN';
-      recognition.onstart = () => { setIsListeningVoice(true); toast.success('🎙️ Listening... Speak service details now'); };
-      recognition.onresult = (event) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) transcript += event.results[i][0].transcript;
-        if (transcript) setAiPrompt(prev => prev ? `${prev} ${transcript}` : transcript);
-      };
-      recognition.onerror = (event) => { setIsListeningVoice(false); toast.error(`Voice error: ${event.error}`); };
-      recognition.onend = () => setIsListeningVoice(false);
-      recognition.start();
-    } catch {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error('Speech recognition not supported in this browser.');
+      return;
+    }
+    if (isListeningVoice) {
       setIsListeningVoice(false);
-      toast.error('Failed to start voice input');
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-IN';
+
+    recognition.onstart = () => {
+      setIsListeningVoice(true);
+      toast('Listening... Speak service details now', { icon: '🎙️' });
+    };
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setAiPrompt((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      setIsListeningVoice(false);
+      toast.success('Voice captured!');
+    };
+    recognition.onerror = () => {
+      setIsListeningVoice(false);
+      toast.error('Voice input error. Please try again or type.');
+    };
+    recognition.onend = () => setIsListeningVoice(false);
+    recognition.start();
+  };
+
+  // AI Multimodal File upload
+  const handleAiAutoFillMedia = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const toastId = toast.loading('AI analyzing media to auto-fill service details...');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await mediaApi.post('/v1/ai/multimodal-analyze', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const result = res.data?.data || res.data;
+      if (result) {
+        if (result.title) updateForm('shortDescription', result.title);
+        if (result.description) updateForm('detailedDescription', result.description);
+        if (result.suggestedCategory) updateForm('category', result.suggestedCategory);
+        if (result.highlights) updateForm('serviceHighlights', result.highlights);
+        toast.success('Service fields auto-filled from media scan!', { id: toastId });
+      }
+    } catch {
+      toast.error('Could not auto-fill from media. Please enter manually.', { id: toastId });
     }
   };
 
-  // Image upload
-  const handleImageUpload = async (e, type = 'gallery') => {
-    const files = Array.from(e.target.files);
+  // File Upload Handlers
+  const handleImageUpload = async (e, type) => {
+    const files = Array.from(e.target.files || []);
     if (!files.length) return;
+
+    const currentCount = (form.coverImage ? 1 : 0) + form.galleryImages.length;
+    if (currentCount + files.length > maxLimits.maxImages) {
+      toast.error(`Exceeded maximum limit of ${maxLimits.maxImages} images!`);
+      return;
+    }
+
     setUploading(true);
-    const toastId = toast.loading('Uploading image(s)...');
+    const toastId = toast.loading(`Uploading ${files.length} image(s)...`);
     try {
-      const urls = [];
+      const uploadedUrls = [];
       for (const file of files) {
-        const res = await mediaApi.upload(file, 'listings/services');
-        const url = res.data?.secure_url || res.data?.url;
-        if (url) urls.push(url);
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await mediaApi.post('/v1/upload/image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        const url = res.data?.url || res.data?.data?.url;
+        if (url) uploadedUrls.push(url);
       }
-      if (type === 'cover' && urls[0]) {
-        updateForm('coverImage', urls[0]);
+      if (type === 'cover') {
+        updateForm('coverImage', uploadedUrls[0] || form.coverImage);
       } else {
-        setForm(prev => ({ ...prev, galleryImages: [...prev.galleryImages, ...urls] }));
+        updateForm('galleryImages', [...form.galleryImages, ...uploadedUrls]);
       }
-      toast.success(`Image(s) uploaded!`, { id: toastId });
+      toast.success('Images uploaded successfully!', { id: toastId });
     } catch {
-      toast.error('Image upload failed', { id: toastId });
+      toast.error('Image upload failed. Check connection/file size.', { id: toastId });
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleGenerateCoverAiImage = async () => {
-    if (!coverAiPrompt.trim()) {
-      toast.error('Please enter a prompt to generate cover image.');
-      return;
-    }
-    const totalImages = (form.coverImage ? 1 : 0) + form.galleryImages.length;
-    if (totalImages >= maxLimits.maxImages && !form.coverImage) {
-      toast.error(`Maximum allowed images is ${maxLimits.maxImages}`);
-      return;
-    }
-
-    setIsGeneratingCoverAi(true);
-    const toastId = toast.loading('AI generating cover image...');
-    try {
-      const res = await api.post('/v1/ai/generate-image', {
-        prompt: coverAiPrompt.trim(),
-        width: 800,
-        height: 800,
-      });
-
-      if (res.data && res.data.success && res.data.url) {
-        updateForm('coverImage', res.data.url);
-        setCoverAiPrompt('');
-        toast.success('AI Cover Image generated and set!', { id: toastId });
-      } else {
-        throw new Error('Invalid response from server');
-      }
-    } catch (err) {
-      const errMsg = err?.response?.data?.message || err?.message || 'Failed to generate AI image';
-      toast.error(errMsg, { id: toastId });
-    } finally {
-      setIsGeneratingCoverAi(false);
-    }
-  };
-
-  const handleGenerateGalleryAiImage = async () => {
-    if (!galleryAiPrompt.trim()) {
-      toast.error('Please enter a prompt to generate gallery image.');
-      return;
-    }
-    const totalImages = (form.coverImage ? 1 : 0) + form.galleryImages.length;
-    if (totalImages >= maxLimits.maxImages) {
-      toast.error(`Maximum allowed images is ${maxLimits.maxImages}`);
-      return;
-    }
-
-    setIsGeneratingGalleryAi(true);
-    const toastId = toast.loading('AI generating gallery image...');
-    try {
-      const res = await api.post('/v1/ai/generate-image', {
-        prompt: galleryAiPrompt.trim(),
-        width: 800,
-        height: 800,
-      });
-
-      if (res.data && res.data.success && res.data.url) {
-        setForm(prev => ({ ...prev, galleryImages: [...prev.galleryImages, res.data.url] }));
-        setGalleryAiPrompt('');
-        toast.success('AI Gallery Image generated and added!', { id: toastId });
-      } else {
-        throw new Error('Invalid response from server');
-      }
-    } catch (err) {
-      const errMsg = err?.response?.data?.message || err?.message || 'Failed to generate AI image';
-      toast.error(errMsg, { id: toastId });
-    } finally {
-      setIsGeneratingGalleryAi(false);
     }
   };
 
@@ -540,21 +334,47 @@ export default function ServiceFormModal({
     e.preventDefault();
     if (!form.shortDescription.trim()) return toast.error('Please enter service short description');
     if (!form.price) return toast.error('Please enter service price');
+
+    // Validate cancellation policy
+    const freeHours = Number(form.policies?.freeCancellationHours ?? 24);
+    const windowHours = Number(form.policies?.withinWindowHours ?? 24);
+    const windowRefund = Number(form.policies?.withinWindowRefundPercent ?? 50);
+    const afterRefund = Number(form.policies?.afterVisitRefundPercent ?? 0);
+
+    if (freeHours < 0 || windowHours < 0) {
+      return toast.error('Cancellation hours must be positive numbers');
+    }
+    if (windowRefund < 0 || windowRefund > 100 || afterRefund < 0 || afterRefund > 100) {
+      return toast.error('Refund percentages must be between 0% and 100%');
+    }
+
     setSubmitting(true);
     try {
+      const generatedCancellationSummary = `Free cancellation up to ${freeHours}h before visit. ${windowRefund}% refund within ${windowHours}h. ${afterRefund}% refund after visit.`;
+
+      const updatedPolicies = {
+        ...form.policies,
+        freeCancellationHours: freeHours,
+        withinWindowHours: windowHours,
+        withinWindowRefundPercent: windowRefund,
+        afterVisitRefundPercent: afterRefund,
+        cancellationPolicy: form.policies?.cancellationPolicy || generatedCancellationSummary,
+        refundPolicy: form.policies?.refundPolicy || `${windowRefund}% refund within ${windowHours}h window`,
+      };
       const payload = {
         type: 'service',
         category: form.category || 'Services',
         subcategory: form.subcategory || 'General',
-        title: `${form.category || 'Service'} - ${form.serviceType}`,
+        title: form.shortDescription,
         shortDescription: form.shortDescription,
-        description: form.detailedDescription,
+        description: form.detailedDescription || form.shortDescription,
         price: Number(form.price),
-        actualPrice: Number(form.price),
+        salePrice: Number(form.price),
         sellingPrice: Number(form.price),
         serviceDetails: {
           ...form,
           durationText: form.duration || '1 Hour',
+          policies: updatedPolicies,
         },
         images: form.coverImage
           ? [form.coverImage, ...form.galleryImages]
@@ -571,360 +391,76 @@ export default function ServiceFormModal({
   };
 
   return (
-    <AdminModal isOpen={isOpen} onClose={onClose} title={isEdit ? 'Edit Service Listing' : 'Add New Service (6-Section Form)'} maxWidth="max-w-3xl">
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEdit ? 'Edit Service Listing' : 'Add New Service (6-Section Form)'}
+      maxWidth="max-w-3xl"
+    >
       <form onSubmit={handleSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
         {/* SECTION 1: BASIC INFORMATION */}
-        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
-          <div className="flex justify-between items-center">
-            <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider">1. Basic Information</h4>
-            <span className="text-[10px] font-bold text-brand-purple bg-brand-purple/10 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-              <FiCpu size={12} /> AI Assisted
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <SearchableSelect
-              label="Category"
-              placeholder="Search category..."
-              value={form.category}
-              onChange={handleCategoryChange}
-              options={serviceCategories}
-            />
-            <SearchableSelect
-              label="Subcategory"
-              placeholder="Search subcategory..."
-              value={form.subcategory}
-              onChange={(val) => updateForm('subcategory', val)}
-              options={serviceSubcategories}
-            />
-          </div>
-
-          {/* AI Description Generator */}
-          <div className="p-3 rounded-xl bg-gradient-to-r from-brand-purple/10 via-brand-pink/10 to-brand-orange/10 border border-brand-purple/20 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-brand-purple flex items-center gap-1">
-                <FiCpu size={14} /> AI Description Generator (Voice & Text)
-              </span>
-              <button type="button" onClick={toggleVoiceRecording} className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${isListeningVoice ? 'bg-red-500 text-white animate-pulse' : 'bg-brand-purple text-white hover:bg-brand-purple/90'}`} title="Speak details to AI">
-                {isListeningVoice ? <FiMicOff size={12} /> : <FiMic size={12} />}
-                <span>{isListeningVoice ? 'Listening...' : 'Voice Input'}</span>
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <input type="text" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Tell AI about your service specialty or speak via mic..." className="flex-1 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple" />
-              <button type="button" onClick={handleGenerateAiDescription} disabled={isGeneratingAiDesc} className="px-3.5 py-1.5 gradient-brand text-white font-bold text-xs rounded-xl shadow-sm hover:opacity-95 transition flex items-center gap-1 disabled:opacity-50 shrink-0">
-                <FiCpu size={13} />
-                <span>{isGeneratingAiDesc ? 'Generating...' : 'Auto-Generate'}</span>
-              </button>
-            </div>
-            
-            {/* Real-time Media Auto-Fill */}
-            <div className="pt-2 border-t border-brand-purple/10 space-y-1">
-              <label className="text-[10px] font-bold text-brand-purple uppercase block">Or Upload Media for AI Specifications Auto-Fill</label>
-              <input type="file" accept="image/*,video/*,audio/*" onChange={handleAiAutoFillMedia} className="text-xs text-text-tertiary" />
-              <p className="text-[9px] text-text-tertiary">Gemini will scan your sample photo/video/voice note to extract highlights & descriptions.</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary block mb-1">Short Description *</label>
-            <input type="text" required value={form.shortDescription} onChange={(e) => updateForm('shortDescription', e.target.value)} placeholder="Brief 1-line summary..." className="w-full p-2 bg-surface border rounded-xl text-xs" />
-          </div>
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-[10px] font-bold text-text-tertiary block">Detailed Description</label>
-              <button type="button" onClick={handleGenerateAiDescription} className="text-[10px] font-bold text-brand-purple hover:underline flex items-center gap-0.5">
-                <FiCpu size={10} /> Re-generate AI Description
-              </button>
-            </div>
-            <textarea rows={4} value={form.detailedDescription} onChange={(e) => updateForm('detailedDescription', e.target.value)} placeholder="Comprehensive service breakdown..." className="w-full p-2 bg-surface border rounded-xl text-xs" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary block mb-1">Service Highlights</label>
-            <textarea rows={2} value={form.serviceHighlights} onChange={(e) => updateForm('serviceHighlights', e.target.value)} placeholder="Key features and highlights..." className="w-full p-2 bg-surface border rounded-xl text-xs" />
-          </div>
-        </div>
+        <ServiceBasicInfoSection
+          form={form}
+          updateForm={updateForm}
+          handleCategoryChange={handleCategoryChange}
+          serviceCategories={serviceCategories}
+          serviceSubcategories={serviceSubcategories}
+          aiPrompt={aiPrompt}
+          setAiPrompt={setAiPrompt}
+          isGeneratingAiDesc={isGeneratingAiDesc}
+          isListeningVoice={isListeningVoice}
+          toggleVoiceRecording={toggleVoiceRecording}
+          handleGenerateAiDescription={handleGenerateAiDescription}
+          handleAiAutoFillMedia={handleAiAutoFillMedia}
+        />
 
         {/* SECTION 2: SERVICE DETAILS */}
-        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
-          <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider">2. Service Details</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Service Type</label>
-              <select value={form.serviceType} onChange={(e) => updateForm('serviceType', e.target.value)} className="w-full p-2 bg-surface border rounded-xl text-xs">
-                <option value="At Home">At Home</option>
-                <option value="At Shop">At Shop</option>
-                <option value="Online">Online</option>
-                <option value="On-site">On-site</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Price Type</label>
-              <select value={form.priceType} onChange={(e) => updateForm('priceType', e.target.value)} className="w-full p-2 bg-surface border rounded-xl text-xs">
-                <option value="Fixed Price">Fixed Price</option>
-                <option value="Starting From">Starting From</option>
-                <option value="Per Hour">Per Hour</option>
-                <option value="Per Day">Per Day</option>
-                <option value="Per Project">Per Project</option>
-                <option value="Custom Quote">Custom Quote</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Starting Price (₹) *</label>
-              <input type="number" required value={form.price} onChange={(e) => updateForm('price', e.target.value)} placeholder="999" className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Duration *</label>
-              <input type="text" required value={form.duration} onChange={(e) => updateForm('duration', e.target.value)} placeholder="e.g. 1 Hour" className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Min Order Value (₹)</label>
-              <input type="number" value={form.minOrderValue} onChange={(e) => updateForm('minOrderValue', e.target.value)} placeholder="e.g. 500" className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Booking Availability</label>
-              <select value={form.bookingAvailability} onChange={(e) => updateForm('bookingAvailability', e.target.value)} className="w-full p-2 bg-surface border rounded-xl text-xs">
-                <option value="Immediate">Immediate</option>
-                <option value="Same Day">Same Day</option>
-                <option value="Next Day">Next Day</option>
-                <option value="2-3 Days">2-3 Days</option>
-                <option value="By Appointment">By Appointment</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <ServiceDetailsSection form={form} updateForm={updateForm} />
 
         {/* SECTION 3: LOCATION */}
-        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
-          <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider">3. Location & Service Area</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Service Area</label>
-              <input type="text" value={form.serviceArea} onChange={(e) => updateForm('serviceArea', e.target.value)} className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">City</label>
-              <input type="text" value={form.city} onChange={(e) => updateForm('city', e.target.value)} className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">State</label>
-              <input type="text" value={form.state} onChange={(e) => updateForm('state', e.target.value)} className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Pincode</label>
-              <input type="text" value={form.pincode} onChange={(e) => updateForm('pincode', e.target.value)} className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Available Cities</label>
-              <input type="text" value={form.availableCities} onChange={(e) => updateForm('availableCities', e.target.value)} placeholder="Mumbai, Pune, Delhi..." className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Max Travel (km)</label>
-              <input type="number" value={form.maxTravelDistanceKm} onChange={(e) => updateForm('maxTravelDistanceKm', e.target.value)} className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div className="flex items-center pt-4">
-              <label className="flex items-center gap-2 text-xs font-semibold">
-                <input type="checkbox" checked={form.homeVisitAvailable} onChange={(e) => updateForm('homeVisitAvailable', e.target.checked)} />
-                Home Visit Available
-              </label>
-            </div>
-          </div>
-        </div>
+        <ServiceLocationSection form={form} updateForm={updateForm} />
 
         {/* SECTION 4: AVAILABILITY */}
-        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
-          <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider">4. Availability & Working Hours</h4>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Working Hours</label>
-              <input type="text" value={form.workingHours} onChange={(e) => updateForm('workingHours', e.target.value)} className="w-full p-2 bg-surface border rounded-xl text-xs" />
-            </div>
-            <div className="flex items-center gap-4 pt-4">
-              <label className="flex items-center gap-1.5 text-xs font-semibold">
-                <input type="checkbox" checked={form.emergencyService24x7} onChange={(e) => updateForm('emergencyService24x7', e.target.checked)} />
-                Emergency Service (24×7)
-              </label>
-            </div>
-            <div className="col-span-2">
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Working Days</label>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
-                  const checked = form.workingDays.includes(day);
-                  return (
-                    <label key={day} className="flex items-center gap-1.5 text-xs cursor-pointer bg-surface border border-border px-2.5 py-1 rounded-xl">
-                      <input type="checkbox" checked={checked} onChange={(e) => {
-                        const newDays = e.target.checked ? [...form.workingDays, day] : form.workingDays.filter(d => d !== day);
-                        updateForm('workingDays', newDays);
-                      }} />
-                      {day}
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
+        <ServiceAvailabilitySection form={form} updateForm={updateForm} />
 
         {/* SECTION 5: IMAGES & MEDIA */}
-        <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
-          <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider">5. Images & Media (Max {maxLimits.maxImages})</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Cover Image</label>
-              {form.coverImage ? (
-                <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-border group">
-                  <img src={form.coverImage} alt="Cover" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => updateForm('coverImage', '')} className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-[10px]">
-                    <FiX className="w-3 h-3" />
-                  </button>
-                </div>
-              ) : (
-                ((form.coverImage ? 1 : 0) + form.galleryImages.length < maxLimits.maxImages) ? (
-                  <label className="w-24 h-24 rounded-xl border-2 border-dashed border-border hover:border-brand-purple flex flex-col items-center justify-center cursor-pointer transition gap-1">
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} className="hidden" />
-                    <FiUploadCloud className="w-5 h-5 text-text-tertiary" />
-                    <span className="text-[9px] text-text-tertiary">Upload</span>
-                  </label>
-                ) : (
-                  <div className="w-24 h-24 rounded-xl bg-surface-tertiary border border-border flex flex-col items-center justify-center text-[10px] text-text-tertiary text-center font-bold">
-                    Limit reached
-                  </div>
-                )
-              )}
+        <ServiceMediaSection
+          form={form}
+          updateForm={updateForm}
+          setForm={setForm}
+          maxLimits={maxLimits}
+          coverUrlInput={coverUrlInput}
+          setCoverUrlInput={setCoverUrlInput}
+          galleryUrlInput={galleryUrlInput}
+          setGalleryUrlInput={setGalleryUrlInput}
+          handleImageUpload={handleImageUpload}
+          uploading={uploading}
+        />
 
-              <div className="flex gap-1.5 mt-2 max-w-[240px]">
-                <input
-                  type="url"
-                  placeholder="Or paste cover URL"
-                  value={coverUrlInput}
-                  onChange={(e) => setCoverUrlInput(e.target.value)}
-                  className="flex-1 p-1.5 bg-surface border border-border rounded-xl text-[10px] outline-none focus:border-brand-purple"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!coverUrlInput.trim()) return;
-                    updateForm('coverImage', coverUrlInput.trim());
-                    setCoverUrlInput('');
-                    toast.success('Cover URL set!');
-                  }}
-                  className="px-2.5 py-1.5 bg-brand-purple text-white rounded-xl text-[10px] font-bold transition hover:bg-brand-purple/90 shrink-0"
-                >
-                  Set
-                </button>
-              </div>
-
-              {/* AI Image Generation for Cover */}
-              <div className="bg-surface p-2.5 rounded-xl border border-border space-y-1.5 mt-2 max-w-[240px]">
-                <label className="text-[8px] font-bold text-brand-purple uppercase flex items-center gap-0.5">
-                  <FiCpu className="w-3 h-3 animate-pulse" /> Cover AI Generator
-                </label>
-                <div className="flex gap-1.5">
-                  <input
-                    type="text"
-                    placeholder="Cover prompt..."
-                    value={coverAiPrompt}
-                    onChange={(e) => setCoverAiPrompt(e.target.value)}
-                    className="flex-1 p-1.5 bg-surface-secondary border border-border rounded-xl text-[10px] outline-none focus:border-brand-purple text-text-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleGenerateCoverAiImage}
-                    disabled={isGeneratingCoverAi}
-                    className="px-2 py-1.5 bg-brand-purple text-white rounded-xl text-[10px] font-bold transition hover:bg-brand-purple/90 shrink-0 flex items-center justify-center disabled:opacity-50"
-                  >
-                    {isGeneratingCoverAi ? 'Gen...' : 'AI'}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-text-tertiary block mb-1">Gallery Images</label>
-              <div className="flex flex-wrap gap-2">
-                {form.galleryImages.map((img, idx) => (
-                  <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-border group">
-                    <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
-                    <button type="button" onClick={() => setForm(prev => ({ ...prev, galleryImages: prev.galleryImages.filter((_, i) => i !== idx) }))} className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-[10px]">
-                      <FiX className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-                {((form.coverImage ? 1 : 0) + form.galleryImages.length < maxLimits.maxImages) ? (
-                  <label className="w-16 h-16 rounded-xl border-2 border-dashed border-border hover:border-brand-purple flex items-center justify-center cursor-pointer transition">
-                    <input type="file" accept="image/*" multiple onChange={(e) => handleImageUpload(e, 'gallery')} className="hidden" />
-                    {uploading ? <div className="w-4 h-4 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" /> : <FiImage className="w-4 h-4 text-text-tertiary" />}
-                  </label>
-                ) : (
-                  <div className="w-16 h-16 rounded-xl bg-surface-tertiary border border-border flex flex-col items-center justify-center text-[8px] text-text-tertiary text-center font-bold">
-                    Max reached
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-1.5 mt-2 max-w-[240px]">
-                <input
-                  type="url"
-                  placeholder="Or paste gallery image URL"
-                  value={galleryUrlInput}
-                  onChange={(e) => setGalleryUrlInput(e.target.value)}
-                  className="flex-1 p-1.5 bg-surface border border-border rounded-xl text-[10px] outline-none focus:border-brand-purple"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!galleryUrlInput.trim()) return;
-                    const totalImages = (form.coverImage ? 1 : 0) + form.galleryImages.length;
-                    if (totalImages >= maxLimits.maxImages) {
-                      toast.error(`Maximum allowed images is ${maxLimits.maxImages}`);
-                      return;
-                    }
-                    setForm(prev => ({ ...prev, galleryImages: [...prev.galleryImages, galleryUrlInput.trim()] }));
-                    setGalleryUrlInput('');
-                    toast.success('Gallery URL added!');
-                  }}
-                  className="px-2.5 py-1.5 bg-brand-purple text-white rounded-xl text-[10px] font-bold transition hover:bg-brand-purple/90 shrink-0"
-                >
-                  Add
-                </button>
-              </div>
-
-              {/* AI Image Generation for Gallery */}
-              <div className="bg-surface p-2.5 rounded-xl border border-border space-y-1.5 mt-2 max-w-[240px]">
-                <label className="text-[8px] font-bold text-brand-purple uppercase flex items-center gap-0.5">
-                  <FiCpu className="w-3 h-3 animate-pulse" /> Gallery AI Generator
-                </label>
-                <div className="flex gap-1.5">
-                  <input
-                    type="text"
-                    placeholder="Gallery prompt..."
-                    value={galleryAiPrompt}
-                    onChange={(e) => setGalleryAiPrompt(e.target.value)}
-                    className="flex-1 p-1.5 bg-surface-secondary border border-border rounded-xl text-[10px] outline-none focus:border-brand-purple text-text-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleGenerateGalleryAiImage}
-                    disabled={isGeneratingGalleryAi}
-                    className="px-2 py-1.5 bg-brand-purple text-white rounded-xl text-[10px] font-bold transition hover:bg-brand-purple/90 shrink-0 flex items-center justify-center disabled:opacity-50"
-                  >
-                    {isGeneratingGalleryAi ? 'Gen...' : 'AI'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* SECTION 6: CANCELLATION & REFUND POLICY (PRE-PAYMENT BOOKINGS) */}
+        <ServiceCancellationPolicySection form={form} updateForm={updateForm} />
 
         {/* Status */}
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Listing Status</label>
-          <select value={form.status} onChange={(e) => updateForm('status', e.target.value)} className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs">
+          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+            Listing Status
+          </label>
+          <select
+            value={form.status}
+            onChange={(e) => updateForm('status', e.target.value)}
+            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary"
+          >
             <option value="published">Published</option>
             <option value="draft">Draft</option>
             <option value="hidden">Hidden</option>
           </select>
         </div>
 
-        <button type="submit" disabled={submitting} className="w-full py-3 gradient-brand text-white rounded-xl font-bold text-xs shadow-premium disabled:opacity-50 transition">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full py-3 gradient-brand text-white rounded-xl font-bold text-xs shadow-premium disabled:opacity-50 transition"
+        >
           {submitting ? 'Saving...' : isEdit ? 'Update Service Listing' : 'Publish Service to Database'}
         </button>
       </form>

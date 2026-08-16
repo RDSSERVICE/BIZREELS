@@ -9,35 +9,76 @@ const ApiError = require('../utils/ApiError');
 
 class OrderController {
   create = asyncHandler(async (req, res) => {
-    const { listingId, quantity, address } = req.body;
+    const {
+      listingId,
+      quantity,
+      address,
+      bookingDate,
+      bookingTime,
+      scheduledVisitTime,
+      bookingNotes,
+      paymentMethod = 'vendor_upi',
+      paymentDetails = null
+    } = req.body;
+
     const listing = await Listing.findById(listingId).populate('vendor');
     if (!listing) {
       throw ApiError.notFound('Listing not found');
     }
 
     const price = (listing.salePrice || listing.price) * (quantity || 1);
-    
-    // Check wallet balance
-    if (req.user.walletBalance < price) {
-      throw ApiError.badRequest('Insufficient wallet balance to place this order.');
+    let finalPaymentStatus = 'unpaid';
+
+    // If wallet payment is explicitly chosen, check and debit wallet
+    if (paymentMethod === 'wallet') {
+      if (req.user.walletBalance < price) {
+        throw ApiError.badRequest('Insufficient wallet balance to place this order with Wallet. You can choose Vendor UPI/QR/Cash payment.');
+      }
+
+      await walletRepository.updateWalletBalance(
+        req.user._id,
+        -price,
+        'payment',
+        null,
+        `Ordered: "${listing.title}"`
+      );
+
+      await walletRepository.updateWalletBalance(
+        listing.vendor._id,
+        price,
+        'deposit',
+        null,
+        `Received payment for order: "${listing.title}"`
+      );
+
+      finalPaymentStatus = 'paid';
     }
 
-    // Debit customer, credit vendor
-    await walletRepository.updateWalletBalance(
-      req.user._id,
-      -price,
-      'payment',
-      null,
-      `Ordered: "${listing.title}"`
-    );
+    // Compute scheduled visit time if bookingDate/time provided
+    let computedVisitTime = null;
+    if (scheduledVisitTime) {
+      computedVisitTime = new Date(scheduledVisitTime);
+    } else if (bookingDate) {
+      try {
+        if (bookingTime) {
+          computedVisitTime = new Date(`${bookingDate} ${bookingTime}`);
+          if (isNaN(computedVisitTime.getTime())) computedVisitTime = new Date(bookingDate);
+        } else {
+          computedVisitTime = new Date(bookingDate);
+        }
+      } catch (e) {
+        computedVisitTime = new Date(bookingDate);
+      }
+    }
 
-    await walletRepository.updateWalletBalance(
-      listing.vendor._id,
-      price,
-      'deposit',
-      null,
-      `Received payment for order: "${listing.title}"`
-    );
+    const policies = listing.serviceDetails?.policies || {};
+    const cancellationPolicySnapshot = {
+      freeCancellationHours: typeof policies.freeCancellationHours === 'number' ? policies.freeCancellationHours : 24,
+      withinWindowHours: typeof policies.withinWindowHours === 'number' ? policies.withinWindowHours : 24,
+      withinWindowRefundPercent: typeof policies.withinWindowRefundPercent === 'number' ? policies.withinWindowRefundPercent : 50,
+      afterVisitRefundPercent: typeof policies.afterVisitRefundPercent === 'number' ? policies.afterVisitRefundPercent : 0,
+      cancellationPolicy: policies.cancellationPolicy || 'Free cancellation up to 24 hours before visit.',
+    };
 
     const order = await Order.create({
       customer: req.user._id,
@@ -46,17 +87,25 @@ class OrderController {
       quantity: quantity || 1,
       price,
       status: 'pending',
-      paymentStatus: 'paid',
-      address,
+      paymentStatus: finalPaymentStatus,
+      paymentMethod,
+      paymentDetails,
+      address: address || 'Customer Address',
+      bookingDate: bookingDate || '',
+      bookingTime: bookingTime || '',
+      scheduledVisitTime: computedVisitTime && !isNaN(computedVisitTime.getTime()) ? computedVisitTime : null,
+      cancellationPolicySnapshot,
     });
 
     // Notify vendor
+    const isService = listing.type === 'service' || !!computedVisitTime;
+    const methodLabel = paymentMethod === 'wallet' ? 'Wallet' : paymentMethod === 'cod' ? 'Cash on Delivery' : 'Vendor UPI / QR / Bank Transfer';
     const notifyVendor = await Notification.create({
       recipient: listing.vendor._id,
       sender: req.user._id,
       type: 'payment',
-      title: 'New Product Order Received',
-      message: `${req.user.name} ordered ${quantity || 1}x "${listing.title}" for ₹${price}. Paid successfully.`,
+      title: isService ? 'New Service Booking Received' : 'New Product Order Received',
+      message: `${req.user.name} placed order for ${quantity || 1}x "${listing.title}" (₹${price}) via ${methodLabel}.`,
       data: { orderId: order._id },
     });
     emitToUser(listing.vendor._id.toString(), 'notification', notifyVendor);
@@ -151,38 +200,98 @@ class OrderController {
 
   cancel = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    const { reason } = req.body || {};
     const order = await Order.findById(id).populate('listing').populate('customer').populate('vendor');
     if (!order) {
       throw ApiError.notFound('Order not found');
     }
 
-    if (order.customer._id.toString() !== req.user._id.toString()) {
+    if (order.customer._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       throw ApiError.forbidden('Unauthorized to cancel this order.');
     }
 
-    if (order.status !== 'pending') {
-      throw ApiError.badRequest('Only pending orders can be cancelled.');
+    if (['cancelled', 'rejected', 'refunded'].includes(order.status)) {
+      throw ApiError.badRequest('Order is already cancelled or finalized.');
     }
 
-    // Refund customer wallet and debit vendor
-    await walletRepository.updateWalletBalance(
-      order.customer._id,
-      order.price,
-      'refund',
-      order._id,
-      `Refund for cancelled order: "${order.listing?.title || 'Order Item'}"`
-    );
+    const isService = order.listing?.type === 'service' || !!order.scheduledVisitTime || !!order.bookingDate;
+    let refundPercent = 100;
+    let policyExplanation = 'Standard 100% full refund';
 
-    await walletRepository.updateWalletBalance(
-      order.vendor._id,
-      -order.price,
-      'payment',
-      order._id,
-      `Debit for cancelled order: "${order.listing?.title || 'Order Item'}"`
-    );
+    if (isService) {
+      const policy = order.cancellationPolicySnapshot || order.listing?.serviceDetails?.policies || {
+        freeCancellationHours: 24,
+        withinWindowHours: 24,
+        withinWindowRefundPercent: 50,
+        afterVisitRefundPercent: 0,
+      };
+
+      const freeHours = typeof policy.freeCancellationHours === 'number' ? policy.freeCancellationHours : 24;
+      const windowHours = typeof policy.withinWindowHours === 'number' ? policy.withinWindowHours : 24;
+      const windowPercent = typeof policy.withinWindowRefundPercent === 'number' ? policy.withinWindowRefundPercent : 50;
+      const afterPercent = typeof policy.afterVisitRefundPercent === 'number' ? policy.afterVisitRefundPercent : 0;
+
+      let visitTime = order.scheduledVisitTime;
+      if (!visitTime && order.bookingDate) {
+        try {
+          visitTime = new Date(`${order.bookingDate} ${order.bookingTime || '10:00 AM'}`);
+        } catch (e) {}
+      }
+
+      if (visitTime && !isNaN(new Date(visitTime).getTime())) {
+        const now = new Date();
+        const diffMs = new Date(visitTime).getTime() - now.getTime();
+        const diffHours = diffMs / (1000 * 60 * 60);
+
+        if (diffHours >= freeHours) {
+          // Free cancellation (>= freeHours before visit)
+          refundPercent = 100;
+          policyExplanation = `Free cancellation (${diffHours.toFixed(1)}h before visit >= ${freeHours}h free limit)`;
+        } else if (diffHours > 0) {
+          // Within X hours before visit
+          refundPercent = Math.max(0, Math.min(100, windowPercent));
+          policyExplanation = `Cancellation within ${windowHours}h before visit (${diffHours.toFixed(1)}h remaining): ${refundPercent}% refund`;
+        } else {
+          // After scheduled visit time
+          refundPercent = Math.max(0, Math.min(100, afterPercent));
+          policyExplanation = `Cancellation after scheduled visit time: ${refundPercent}% refund`;
+        }
+      } else {
+        refundPercent = 100;
+        policyExplanation = '100% full refund applied';
+      }
+    }
+
+    const refundAmount = Math.round((order.price * refundPercent) / 100);
+
+    // Refund customer wallet if applicable
+    if (refundAmount > 0) {
+      await walletRepository.updateWalletBalance(
+        order.customer._id,
+        refundAmount,
+        'refund',
+        order._id,
+        `Refund (${refundPercent}%) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
+      );
+    }
+
+    // Debit vendor wallet for refunded amount (vendor retains non-refunded portion)
+    if (refundAmount > 0) {
+      await walletRepository.updateWalletBalance(
+        order.vendor._id,
+        -refundAmount,
+        'payment',
+        order._id,
+        `Debit (${refundPercent}% refund) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
+      );
+    }
 
     order.status = 'cancelled';
     order.deliveryStatus = 'cancelled';
+    order.refundAmount = refundAmount;
+    order.refundPercentage = refundPercent;
+    order.cancelledAt = new Date();
+    if (reason) order.cancellationReason = reason;
     await order.save();
 
     // Notify vendor
@@ -190,9 +299,9 @@ class OrderController {
       recipient: order.vendor._id,
       sender: req.user._id,
       type: 'payment',
-      title: 'Order Cancelled by Customer',
-      message: `${req.user.name} has cancelled the order for "${order.listing?.title || 'Order Item'}". Wallet amount ₹${order.price} has been refunded.`,
-      data: { orderId: order._id },
+      title: `${isService ? 'Service Booking' : 'Order'} Cancelled`,
+      message: `${req.user.name} has cancelled "${order.listing?.title || 'Item'}". ${policyExplanation}. Wallet refund: ₹${refundAmount} (${refundPercent}%).`,
+      data: { orderId: order._id, refundAmount, refundPercent },
     });
     emitToUser(order.vendor._id.toString(), 'notification', notifyVendor);
 
@@ -201,9 +310,9 @@ class OrderController {
       recipient: order.customer._id,
       sender: req.user._id,
       type: 'payment',
-      title: 'Order Cancelled Successfully',
-      message: `Your order for "${order.listing?.title || 'Order Item'}" has been cancelled. Wallet amount ₹${order.price} refunded.`,
-      data: { orderId: order._id },
+      title: `${isService ? 'Booking' : 'Order'} Cancelled & Refunded`,
+      message: `Your cancellation for "${order.listing?.title || 'Item'}" is processed. ${policyExplanation}. ₹${refundAmount} (${refundPercent}%) credited to wallet.`,
+      data: { orderId: order._id, refundAmount, refundPercent },
     });
     emitToUser(order.customer._id.toString(), 'notification', notifyCustomer);
 
@@ -216,7 +325,12 @@ class OrderController {
       emitToAdmin('admin:update', { tags: ['AdminOrders', 'AdminOverview'] });
     } catch (err) {}
 
-    return ApiResponse.ok(res, 'Order cancelled and refunded successfully.', { order });
+    return ApiResponse.ok(res, `Cancellation processed successfully. ${policyExplanation} (₹${refundAmount} refunded).`, {
+      order,
+      refundAmount,
+      refundPercentage: refundPercent,
+      policyExplanation,
+    });
   });
 }
 
