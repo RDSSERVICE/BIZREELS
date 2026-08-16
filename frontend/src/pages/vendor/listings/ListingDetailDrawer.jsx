@@ -239,6 +239,18 @@ export default function ListingDetailDrawer({
             </div>
           )}
 
+          {/* Product Return Policy */}
+          {listing.type === 'product' && listing.returnPolicy && (
+            <div className="p-3.5 bg-surface-secondary rounded-2xl border border-border space-y-1.5">
+              <h5 className="text-xs font-bold text-text-primary uppercase tracking-wider flex items-center gap-1.5">
+                <span>🔄 Return / Replacement Policy</span>
+              </h5>
+              <p className="text-xs text-text-secondary leading-relaxed bg-surface p-2.5 rounded-xl border border-border">
+                {listing.returnPolicy}
+              </p>
+            </div>
+          )}
+
           {/* Tags */}
           {listing.tags?.length > 0 && (
             <div className="space-y-2">

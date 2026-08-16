@@ -231,6 +231,16 @@ export default function ListingCard({
             <div className="text-right">
               <div className="text-sm sm:text-base font-black text-[#1a1a1a]">
                 ₹{priceVal.toLocaleString('en-IN')}
+                {item.unit && !isService && (
+                  <span className="text-[10.5px] font-semibold text-slate-500 ml-0.5">
+                    /{item.unit}
+                  </span>
+                )}
+                {isService && (
+                  <span className="text-[10.5px] font-semibold text-slate-500 ml-0.5">
+                    /visit
+                  </span>
+                )}
               </div>
               {originalPrice > priceVal && (
                 <div className="text-[10px] text-slate-400 line-through">

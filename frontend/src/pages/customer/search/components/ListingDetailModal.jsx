@@ -233,6 +233,16 @@ export default function ListingDetailModal({
                 <span className="text-2xl sm:text-3xl font-black text-[#1a1a1a]">
                   ₹{priceVal.toLocaleString('en-IN')}
                 </span>
+                {selectedItem.unit && !isService && (
+                  <span className="text-xs font-bold text-slate-500">
+                    / {selectedItem.unit}
+                  </span>
+                )}
+                {isService && (
+                  <span className="text-xs font-bold text-slate-500">
+                    / visit
+                  </span>
+                )}
                 {originalPrice > priceVal && (
                   <span className="text-xs text-slate-400 line-through">
                     ₹{originalPrice.toLocaleString('en-IN')}
@@ -247,7 +257,51 @@ export default function ListingDetailModal({
                 {selectedItem.description || selectedItem.shortDescription || 'High quality product/service available directly from verified local shop vendor.'}
               </p>
 
-              {/* Labels / Specs */}
+              {/* Product Specifications, Unit, Warranty & Return Policy */}
+              {!isService && (
+                <div className="pt-3 border-t border-[#e3dccb] mt-3 space-y-2.5">
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {selectedItem.unit && (
+                      <span className="px-2.5 py-1 bg-[#f8f4ec] text-[#1a1a1a] rounded-lg font-bold border border-[#e3dccb]">
+                        Unit: <strong>{selectedItem.unit}</strong>
+                      </span>
+                    )}
+                    {selectedItem.minOrderQty > 1 && (
+                      <span className="px-2.5 py-1 bg-[#f8f4ec] text-[#1a1a1a] rounded-lg font-bold border border-[#e3dccb]">
+                        Min Order: <strong>{selectedItem.minOrderQty} {selectedItem.unit || 'pcs'}</strong>
+                      </span>
+                    )}
+                    {selectedItem.warranty && (
+                      <span className="px-2.5 py-1 bg-blue-50 text-blue-800 rounded-lg font-bold border border-blue-200">
+                        🛡️ {selectedItem.warranty}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Return / Replacement Policy Banner */}
+                  {selectedItem.returnPolicy && (
+                    <div className={`p-2.5 rounded-xl border text-xs flex items-start gap-2 ${
+                      selectedItem.returnPolicy.toLowerCase().includes('no return') || selectedItem.returnPolicy.toLowerCase().includes('final sale')
+                        ? 'bg-red-50/70 border-red-200 text-red-700'
+                        : 'bg-emerald-50/70 border-emerald-200 text-emerald-800'
+                    }`}>
+                      <span className="shrink-0 mt-0.5 font-bold">
+                        {selectedItem.returnPolicy.toLowerCase().includes('no return') || selectedItem.returnPolicy.toLowerCase().includes('final sale') ? '🚫' : '🔄'}
+                      </span>
+                      <div>
+                        <span className="font-extrabold block">
+                          {selectedItem.returnPolicy.toLowerCase().includes('no return') || selectedItem.returnPolicy.toLowerCase().includes('final sale')
+                            ? 'Final Sale Notice'
+                            : 'Return & Replacement Policy'}
+                        </span>
+                        <span className="text-[11px] leading-relaxed opacity-90">{selectedItem.returnPolicy}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Labels / Custom Specs */}
               {selectedItem.labels?.length > 0 && (
                 <div className="pt-3 border-t border-[#e3dccb] mt-3 space-y-1.5">
                   <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
@@ -490,31 +544,56 @@ export default function ListingDetailModal({
                 </div>
               ) : (
                 /* Product Specific Order Inputs */
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div className="sm:col-span-1 space-y-1">
-                    <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">Quantity</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={50}
-                      value={orderQty}
-                      onChange={(e) => setOrderQty(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div className="sm:col-span-1 space-y-1">
+                      <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block truncate">
+                        Qty ({selectedItem.unit || 'pcs'})
+                      </label>
+                      <input
+                        type="number"
+                        min={selectedItem.minOrderQty || 1}
+                        max={500}
+                        value={orderQty}
+                        onChange={(e) => setOrderQty(Math.max(selectedItem.minOrderQty || 1, parseInt(e.target.value) || 1))}
+                        className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3 space-y-1">
+                      <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">
+                        Delivery Address / Location Landmark *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter complete delivery address or shop pickup note..."
+                        value={orderAddress}
+                        onChange={(e) => setOrderAddress(e.target.value)}
+                        className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#d99a3d]"
+                      />
+                    </div>
                   </div>
 
-                  <div className="sm:col-span-3 space-y-1">
-                    <label className="text-[10.5px] font-extrabold text-slate-600 uppercase block">
-                      Delivery Address / Location Landmark *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter complete delivery address or shop pickup note..."
-                      value={orderAddress}
-                      onChange={(e) => setOrderAddress(e.target.value)}
-                      className="w-full bg-white border border-[#e3dccb] rounded-lg px-3 py-2 text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#d99a3d]"
-                    />
+                  {/* REALTIME PRODUCT RETURN POLICY DISPLAY */}
+                  <div className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+                    selectedItem.returnPolicy && (selectedItem.returnPolicy.toLowerCase().includes('no return') || selectedItem.returnPolicy.toLowerCase().includes('final sale'))
+                      ? 'bg-red-50/80 border-red-200 text-red-700'
+                      : 'bg-emerald-50/80 border-emerald-200 text-emerald-800'
+                  }`}>
+                    <span className="shrink-0 mt-0.5 text-base font-bold">
+                      {selectedItem.returnPolicy && (selectedItem.returnPolicy.toLowerCase().includes('no return') || selectedItem.returnPolicy.toLowerCase().includes('final sale')) ? '🚫' : '🔄'}
+                    </span>
+                    <div>
+                      <span className="font-extrabold block">
+                        {selectedItem.returnPolicy && (selectedItem.returnPolicy.toLowerCase().includes('no return') || selectedItem.returnPolicy.toLowerCase().includes('final sale'))
+                          ? 'Final Sale Notice — No Returns'
+                          : 'Return & Replacement Guarantee'}
+                      </span>
+                      <span className="text-[11px] leading-relaxed opacity-90">
+                        {selectedItem.returnPolicy || '7 Days Return / Replacement available for defective, damaged, or wrong items delivered.'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
