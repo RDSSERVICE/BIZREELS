@@ -10,6 +10,7 @@ import SearchFiltersBar from './components/SearchFiltersBar';
 import ListingCard from './components/ListingCard';
 import ListingDetailModal from './components/ListingDetailModal';
 import OrderConfirmedModal from './components/OrderConfirmedModal';
+import BookServiceModal from '../activities/components/BookServiceModal';
 
 export default function SearchListingsPage() {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export default function SearchListingsPage() {
   const [inquiringId, setInquiringId] = useState(null);
 
   const [selectedItem, setSelectedItem] = useState(null);
+  const [bookingService, setBookingService] = useState(null);
   const [coords, setCoords] = useState(null);
   const [geocodedCache, setGeocodedCache] = useState({});
   const [savedItems, setSavedItems] = useState({});
@@ -716,13 +718,25 @@ export default function SearchListingsPage() {
           reviewText={reviewText}
           setReviewText={setReviewText}
           handleAddReview={handleAddReview}
+          onOpenBookService={(service) => setBookingService(service)}
+        />
+
+        {/* ── Realtime Service Booking Modal matching Customer Activities ── */}
+        <BookServiceModal
+          isOpen={!!bookingService}
+          service={bookingService}
+          onClose={() => setBookingService(null)}
+          onSuccess={() => {
+            setBookingService(null);
+            setOrderConfirmedModal(true);
+          }}
         />
 
         {/* ── Order Confirmed Popup ── */}
         <OrderConfirmedModal
           isOpen={orderConfirmedModal}
           onClose={() => setOrderConfirmedModal(false)}
-          isService={selectedItem?.type === 'service'}
+          isService={selectedItem?.type === 'service' || !!bookingService}
         />
       </div>
     </div>

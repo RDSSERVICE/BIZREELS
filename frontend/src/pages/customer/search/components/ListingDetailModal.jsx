@@ -74,6 +74,7 @@ export default function ListingDetailModal({
   reviewText,
   setReviewText,
   handleAddReview,
+  onOpenBookService,
 }) {
   const isService = selectedItem?.type === 'service';
 
@@ -323,14 +324,20 @@ export default function ListingDetailModal({
 
                 <button
                   type="button"
-                  onClick={() => setShowOrderForm(!showOrderForm)}
+                  onClick={() => {
+                    if (isService) {
+                      if (onOpenBookService) onOpenBookService(selectedItem);
+                    } else {
+                      setShowOrderForm(!showOrderForm);
+                    }
+                  }}
                   className="py-2.5 px-2 rounded-xl bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
                 >
                   {isService ? <FiClock size={13} /> : <FiShoppingCart size={13} />}
                   <span className="truncate">
-                    {showOrderForm
-                      ? isService ? 'Hide Booking' : 'Hide Order'
-                      : isService ? 'Book Service' : 'Order Now'}
+                    {isService
+                      ? 'Book Service'
+                      : showOrderForm ? 'Hide Order' : 'Order Now'}
                   </span>
                 </button>
               </div>
@@ -630,9 +637,5 @@ export default function ListingDetailModal({
         </div>
       </div>
     </div>
-  );
-}
-      </div >
-    </div >
   );
 }

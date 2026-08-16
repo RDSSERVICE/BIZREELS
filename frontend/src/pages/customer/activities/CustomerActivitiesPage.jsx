@@ -73,7 +73,7 @@ export default function CustomerActivitiesPage() {
     try {
       const res = await api.get('/v1/users/me/activity-counts');
       if (res.data) setCounts(res.data);
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export default function CustomerActivitiesPage() {
     title: '',
     message: '',
     confirmText: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Queries
@@ -442,10 +442,6 @@ export default function CustomerActivitiesPage() {
           isOpen={isBookModalOpen}
           onClose={() => setIsBookModalOpen(false)}
           service={selectedService}
-          onSuccess={() => {
-            if (refetchOrders) refetchOrders();
-            fetchCounts();
-          }}
         />
 
         <CancelOrderModal
