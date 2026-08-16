@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,7 +7,7 @@ import {
   FiGrid, FiUser, FiPackage, FiVideo, FiZap, FiInbox, FiShoppingCart,
   FiPieChart, FiCreditCard, FiDollarSign, FiStar, FiUserCheck, FiSettings,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
-  FiCheckCircle, FiMessageSquare
+  FiCheckCircle, FiMessageSquare, FiCheck
 } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
@@ -78,7 +78,29 @@ export default function VendorLayout() {
   const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
   const vendorProfile = profileUser.vendorProfile || {};
   const roles = profileUser.roles || ['customer'];
-  const currentRole = profileUser.current_role || profileUser.activeRole || 'customer';
+  const currentRole = profileUser.current_role || profileUser.activeRole || 'vendor';
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState({});
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+
+  const roleDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target)) {
+        setIsRoleDropdownOpen(false);
+      }
+    };
+    if (isRoleDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isRoleDropdownOpen]);
 
   useEffect(() => {
     if (roles.includes('vendor') && currentRole !== 'vendor') {
@@ -86,10 +108,7 @@ export default function VendorLayout() {
     }
   }, [roles, currentRole, dispatch]);
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState({});
   const [isShopClosed, setIsShopClosed] = useState(vendorProfile.isClosed || false);
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   const toggleSection = (title) => {
     setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));

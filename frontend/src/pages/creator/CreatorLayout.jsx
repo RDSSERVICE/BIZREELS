@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import {
   FiGrid, FiUser, FiFilm, FiClock, FiCreditCard,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
-  FiBarChart2, FiBriefcase, FiStar, FiMessageSquare, FiSettings
+  FiBarChart2, FiBriefcase, FiStar, FiMessageSquare, FiSettings, FiCheck
 } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
@@ -73,6 +73,24 @@ export default function CreatorLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+
+  const roleDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target)) {
+        setIsRoleDropdownOpen(false);
+      }
+    };
+    if (isRoleDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isRoleDropdownOpen]);
 
   const toggleSection = (title) => {
     setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));
@@ -305,58 +323,59 @@ export default function CreatorLayout() {
 
           <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
             {/* Role Switcher Pill */}
-            <div className="relative">
+            <div className="relative" ref={roleDropdownRef}>
               <button
-                onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                type="button"
+                onClick={() => setIsRoleDropdownOpen((prev) => !prev)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#241b15] border border-[#241b15] text-[#d99a3d] hover:bg-[#342820] transition text-xs font-extrabold cursor-pointer"
               >
                 <FiShield className="text-[#d99a3d] flex-shrink-0" size={13} />
-                <span className="uppercase hidden sm:inline">CREATOR</span>
+                <span className="uppercase hidden sm:inline">{currentRole}</span>
                 <FiChevronDown size={13} />
               </button>
 
               {isRoleDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setIsRoleDropdownOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-md shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
-                    <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
-                      Switch Active Role
-                    </div>
-                    <button
-                      onClick={() => handleRoleSwitch('customer')}
-                      className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
-                    >
-                      <span>Customer</span>
-                      {currentRole === 'customer' && <FiCheck className="text-emerald-600" size={14} />}
-                    </button>
-
-                    <button
-                      onClick={() => handleRoleSwitch('vendor')}
-                      className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>Vendor</span>
-                        {!roles.includes('vendor') && (
-                          <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
-                        )}
-                      </div>
-                      {currentRole === 'vendor' && <FiCheck className="text-emerald-600" size={14} />}
-                    </button>
-
-                    <button
-                      onClick={() => handleRoleSwitch('creator')}
-                      className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>Creator</span>
-                        {!roles.includes('creator') && (
-                          <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
-                        )}
-                      </div>
-                      {currentRole === 'creator' && <FiCheck className="text-emerald-600" size={14} />}
-                    </button>
+                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-xl shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
+                  <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
+                    Switch Active Role
                   </div>
-                </>
+                  <button
+                    type="button"
+                    onClick={() => handleRoleSwitch('customer')}
+                    className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
+                  >
+                    <span>Customer</span>
+                    {currentRole === 'customer' && <FiCheck className="text-emerald-600" size={14} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRoleSwitch('vendor')}
+                    className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Vendor</span>
+                      {!roles.includes('vendor') && (
+                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                      )}
+                    </div>
+                    {currentRole === 'vendor' && <FiCheck className="text-emerald-600" size={14} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRoleSwitch('creator')}
+                    className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Creator</span>
+                      {!roles.includes('creator') && (
+                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                      )}
+                    </div>
+                    {currentRole === 'creator' && <FiCheck className="text-emerald-600" size={14} />}
+                  </button>
+                </div>
               )}
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,7 +10,7 @@ import {
   FiShield, FiRefreshCw, FiMenu, FiX, FiCheck
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
-import { setCredentials, logout, updateUser, selectCurrentUser } from '../../features/auth/authSlice';
+import { setCredentials, logout, updateUser, selectCurrentUser, setActiveRole } from '../../features/auth/authSlice';
 import { api, locationApi, tokenStore } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 
@@ -32,6 +32,8 @@ export default function CustomerLayout() {
   const profileUser = profileData?.data?.user || profileData?.user || user || {};
   const roles = profileUser.roles || ['customer'];
   const currentRole = profileUser.current_role || profileUser.activeRole || 'customer';
+
+  const roleDropdownRef = useRef(null);
 
   useEffect(() => {
     if (roles.includes('admin') || currentRole === 'admin') {
@@ -76,6 +78,22 @@ export default function CustomerLayout() {
   const [collapsedSections, setCollapsedSections] = useState({});
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target)) {
+        setIsRoleDropdownOpen(false);
+      }
+    };
+    if (isRoleDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isRoleDropdownOpen]);
 
   const userLoc = profileUser.location || {};
   const displayLocation = userLoc.city || profileUser.city
@@ -463,24 +481,24 @@ export default function CustomerLayout() {
             </button>
 
             {/* Role Switcher Pill */}
-            <div className="relative">
+            <div className="relative" ref={roleDropdownRef}>
               <button
-                onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                type="button"
+                onClick={() => setIsRoleDropdownOpen((prev) => !prev)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#241b15] border border-[#241b15] text-[#d99a3d] hover:bg-[#342820] transition text-xs font-extrabold cursor-pointer"
               >
                 <FiShield className="text-[#d99a3d] flex-shrink-0" size={13} />
-                <span className="uppercase hidden sm:inline">CUSTOMER</span>
+                <span className="uppercase hidden sm:inline">{currentRole}</span>
                 <FiChevronDown size={13} />
               </button>
 
               {isRoleDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setIsRoleDropdownOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-md shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
+                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-xl shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
                   <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
                     Switch Active Role
                   </div>
                   <button
+                    type="button"
                     onClick={() => handleRoleSwitch('customer')}
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
@@ -489,6 +507,7 @@ export default function CustomerLayout() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => handleRoleSwitch('vendor')}
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
@@ -502,6 +521,7 @@ export default function CustomerLayout() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => handleRoleSwitch('creator')}
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
@@ -514,7 +534,6 @@ export default function CustomerLayout() {
                     {currentRole === 'creator' && <FiCheck className="text-emerald-600" size={14} />}
                   </button>
                 </div>
-              </>
               )}
             </div>
 
