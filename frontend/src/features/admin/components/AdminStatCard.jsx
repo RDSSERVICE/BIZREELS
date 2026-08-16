@@ -1,51 +1,37 @@
 import React from 'react';
 
 /**
- * AdminStatCard — Reusable statistic card for admin dashboard
- * Responsive: adapts padding and font sizes for mobile
+ * AdminStatCard — Reusable statistic card for admin, vendor, and creator dashboards
  */
 export default function AdminStatCard({ label, value, icon: Icon, color = 'purple', trend, testId }) {
-  const colorMap = {
-    purple: { bg: 'bg-brand-purple/10', text: 'text-brand-purple', border: 'border-brand-purple/20' },
-    orange: { bg: 'bg-brand-orange/10', text: 'text-brand-orange', border: 'border-brand-orange/20' },
-    pink:   { bg: 'bg-brand-pink/10',   text: 'text-brand-pink',   border: 'border-brand-pink/20' },
-    green:  { bg: 'bg-emerald-500/10',  text: 'text-emerald-500',  border: 'border-emerald-500/20' },
-    blue:   { bg: 'bg-blue-500/10',     text: 'text-blue-500',     border: 'border-blue-500/20' },
-    amber:  { bg: 'bg-amber-500/10',    text: 'text-amber-500',    border: 'border-amber-500/20' },
-    red:    { bg: 'bg-red-500/10',      text: 'text-red-500',      border: 'border-red-500/20' },
-    indigo: { bg: 'bg-indigo-500/10',   text: 'text-indigo-500',   border: 'border-indigo-500/20' },
-    cyan:   { bg: 'bg-cyan-500/10',     text: 'text-cyan-500',     border: 'border-cyan-500/20' },
-    sky:    { bg: 'bg-sky-500/10',      text: 'text-sky-500',      border: 'border-sky-500/20' },
-    teal:   { bg: 'bg-teal-500/10',     text: 'text-teal-500',     border: 'border-teal-500/20' },
-    rose:   { bg: 'bg-rose-500/10',     text: 'text-rose-500',     border: 'border-rose-500/20' },
-    violet: { bg: 'bg-violet-500/10',   text: 'text-violet-500',   border: 'border-violet-500/20' },
-  };
-
-  const c = colorMap[color] || colorMap.purple;
-
   return (
     <div
-      className={`glass rounded-xl sm:rounded-2xl p-4 sm:p-5 border ${c.border} shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5 group`}
+      className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e3dccb] shadow-2xs hover:shadow-sm transition-all duration-200 group flex items-center justify-between gap-3 font-sans"
       data-testid={testId}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <span className="text-[9px] sm:text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
-            {label}
+      <div className="flex-1 min-w-0 space-y-1">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block truncate">
+          {label}
+        </span>
+        <h4 className="text-xl sm:text-2xl font-black text-[#1a1a1a] tracking-tight truncate">
+          {value}
+        </h4>
+        {trend !== undefined && (
+          <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded border inline-block ${
+            trend >= 0
+              ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+              : 'text-rose-700 bg-rose-50 border-rose-200'
+          }`}>
+            {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
           </span>
-          <h4 className="text-xl sm:text-2xl font-black text-text-primary mt-0.5 sm:mt-1 font-display truncate">
-            {value}
-          </h4>
-          {trend !== undefined && (
-            <span className={`text-[9px] sm:text-[10px] font-bold mt-0.5 sm:mt-1 inline-block ${trend >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-              {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
-            </span>
-          )}
-        </div>
-        <div className={`p-2.5 sm:p-3 ${c.bg} ${c.text} rounded-xl sm:rounded-2xl group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>
-          {Icon && <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
-        </div>
+        )}
       </div>
+
+      {Icon && (
+        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[#f8f4ec] text-[#241b15] border border-[#e3dccb] flex items-center justify-center shrink-0 group-hover:bg-[#241b15] group-hover:text-[#d99a3d] transition-colors shadow-2xs">
+          <Icon className="w-5 h-5" />
+        </div>
+      )}
     </div>
   );
 }

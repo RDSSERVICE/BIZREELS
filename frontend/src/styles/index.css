@@ -56,15 +56,15 @@
 
   /* ── Surface & Background ──────────────────────────────── */
   --color-surface: #FFFFFF;
-  --color-surface-secondary: #F8FAFC;
-  --color-surface-tertiary: #F1F5F9;
-  --color-border: #E2E8F0;
-  --color-border-light: #F1F5F9;
+  --color-surface-secondary: #f2ede4;
+  --color-surface-tertiary: #f8f4ec;
+  --color-border: #e3dccb;
+  --color-border-light: #ede6d8;
 
   /* ── Text ──────────────────────────────────────────────── */
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #475569;
-  --color-text-tertiary: #94A3B8;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #4a4237;
+  --color-text-tertiary: #8a8072;
   --color-text-inverse: #FFFFFF;
 
   /* ── Typography ────────────────────────────────────────── */
