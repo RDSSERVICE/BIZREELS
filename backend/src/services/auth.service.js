@@ -217,19 +217,40 @@ class AuthService {
       return response;
     }
 
-    // Fallback for email OTP if requested
+    // Email OTP sending via Resend Email Service
+    const email = typeof identifier === 'string' ? identifier.trim().toLowerCase() : '';
+    const emailService = require('./email.service');
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiryMinutes = config.otp.expiryMinutes || 5;
+
     await authRepository.createOtp({
-      identifier,
-      identifierType,
+      identifier: email,
+      identifierType: 'email',
       otp,
       purpose,
-      expiresAt: new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000),
-      maxAttempts: config.otp.maxAttempts,
+      expiresAt: new Date(Date.now() + expiryMinutes * 60 * 1000),
+      maxAttempts: config.otp.maxAttempts || 5,
     });
 
-    const result = { message: `OTP sent to ${identifier}`, expiresInMinutes: config.otp.expiryMinutes };
-    if (process.env.NODE_ENV !== 'production') {
+    // Send email via Resend
+    let emailResult;
+    if (purpose === 'forgot-password') {
+      emailResult = await emailService.sendPasswordResetOtp({ to: email, otp, expiresInMinutes: expiryMinutes });
+    } else {
+      emailResult = await emailService.sendOtpEmail({ to: email, otp, purpose, expiresInMinutes: expiryMinutes });
+    }
+
+    if (emailResult && !emailResult.success && emailResult.error) {
+      const errMsg = typeof emailResult.error === 'object' ? emailResult.error.message : emailResult.error;
+      throw ApiError.badRequest(errMsg || 'Failed to dispatch email via Resend.');
+    }
+
+    const result = {
+      message: `OTP sent successfully to ${email}`,
+      expiresInMinutes: expiryMinutes,
+    };
+
+    if (config.env === 'development' || !config.resend?.apiKey || !config.resend.apiKey.startsWith('re_')) {
       result.otp = otp;
     }
     return result;
@@ -451,29 +472,35 @@ class AuthService {
   // ══════════════════════════════════════════════════════════
 
   async forgotPassword(email) {
-    const user = await authRepository.findUserByEmail(email);
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const user = await authRepository.findUserByEmail(cleanEmail);
     if (!user) {
-      return { message: 'If an account with this email exists, an OTP has been sent.' };
+      throw ApiError.notFound('No account found with this email address. Please check your email or create a new account.');
     }
-    await this.requestOtp(email, 'email', 'forgot-password');
-    return { message: 'If an account with this email exists, an OTP has been sent.' };
+    const otpResult = await this.requestOtp(cleanEmail, 'email', 'forgot-password');
+    return { message: otpResult.message || 'Password reset OTP sent to your email.' };
   }
 
   async resetPassword(email, otp, newPassword, req) {
-    const otpDoc = await authRepository.findLatestOtp(email, 'forgot-password');
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const otpDoc = await authRepository.findLatestOtp(cleanEmail, 'forgot-password');
 
     if (!otpDoc) {
-      throw ApiError.badRequest('OTP expired or not found.');
+      throw ApiError.badRequest('OTP expired or not found. Please request a new OTP.');
+    }
+
+    if (otpDoc.isMaxAttemptsReached && otpDoc.isMaxAttemptsReached()) {
+      throw ApiError.tooMany('Maximum OTP attempts reached. Please request a new OTP.');
     }
 
     if (otpDoc.otp !== otp) {
       await otpDoc.incrementAttempts();
-      throw ApiError.badRequest('Invalid OTP.');
+      throw ApiError.badRequest('Invalid OTP code. Please check and try again.');
     }
 
     await otpDoc.markUsed();
 
-    const user = await authRepository.findUserByEmail(email);
+    const user = await authRepository.findUserByEmail(cleanEmail);
     if (!user) {
       throw ApiError.notFound('User not found.');
     }

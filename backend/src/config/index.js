@@ -62,6 +62,12 @@ const config = {
     exotelSubdomain: process.env.EXOTEL_SUBDOMAIN || 'api.exotel.com',
   },
 
+  // ── Resend Email ─────────────────────────────────────────
+  resend: {
+    apiKey: process.env.RESEND_API_KEY || '',
+    fromEmail: process.env.RESEND_FROM_EMAIL || 'BizReels <onboarding@resend.dev>',
+  },
+
   // ── Upload & Image Processing ───────────────────────────
   uploadTempDir: process.env.UPLOAD_TEMP_DIR || 'uploads/temp',
   uploadProcessedDir: process.env.UPLOAD_PROCESSED_DIR || 'uploads/processed',

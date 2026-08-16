@@ -27,19 +27,19 @@ function computeVendorVerification(user, counts = {}) {
   if (contactVerified.email || !!user.email) totalPoints += 5;
 
   // 2. Identity & Business Documents (65%)
-  if (documents.aadhaar?.status === 'approved') totalPoints += 15;
-  if (documents.pan?.status === 'approved') totalPoints += 15;
-  if (documents.gst?.status === 'approved') totalPoints += 20;
-  if (documents.shopLicense?.status === 'approved') totalPoints += 5;
-  if (documents.udyamRegistration?.status === 'approved') totalPoints += 5;
+  if (documents.aadhaar?.status === 'approved' || documents.aadhaar?.verified === true) totalPoints += 15;
+  if (documents.pan?.status === 'approved' || documents.pan?.verified === true) totalPoints += 15;
+  if (documents.gst?.status === 'approved' || documents.gst?.verified === true) totalPoints += 20;
+  if (documents.shopLicense?.status === 'approved' || documents.shopLicense?.verified === true) totalPoints += 5;
+  if (documents.udyamRegistration?.status === 'approved' || documents.udyamRegistration?.verified === true) totalPoints += 5;
 
   const hasApprovedDynamic = Array.isArray(documents.dynamicDocs) && 
-    documents.dynamicDocs.some(d => d.status === 'approved');
+    documents.dynamicDocs.some(d => d.status === 'approved' || d.verified === true);
   if (hasApprovedDynamic) totalPoints += 5;
 
   // 3. Payout & Payment Details (20%)
   const hasUpi = !!(paymentDetails.upiId && paymentDetails.upiVerified !== false);
-  const hasBank = !!(paymentDetails.bankAccount && paymentDetails.ifscCode && paymentDetails.ifscVerified !== false);
+  const hasBank = !!(paymentDetails.bankAccount && paymentDetails.ifscCode && (paymentDetails.status === 'approved' || paymentDetails.verified === true || paymentDetails.ifscVerified !== false));
 
   if (hasUpi) totalPoints += 10;
   if (hasBank) totalPoints += 10;

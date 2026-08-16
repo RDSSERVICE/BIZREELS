@@ -15,7 +15,14 @@ class AuthRepository {
 
   async findUserByEmail(email) {
     if (!email || typeof email !== 'string' || !email.trim()) return null;
-    return User.findOne({ email: email.trim().toLowerCase() }).select('+password');
+    const clean = email.trim();
+    return User.findOne({
+      $or: [
+        { email: clean.toLowerCase() },
+        { email: clean },
+        { email: { $regex: new RegExp(`^${clean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+      ],
+    }).select('+password');
   }
 
   async findUserByPhone(phone) {

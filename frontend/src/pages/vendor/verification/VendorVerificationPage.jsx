@@ -99,6 +99,31 @@ export default function VendorVerificationPage() {
   const [statementFile, setStatementFile] = useState(vendorProfile.paymentDetails?.statementChequeUrl || '');
   const [ifscLoading, setIfscLoading] = useState(false);
 
+  // Aadhaar OKYC States
+  const [aadhaarOtpSent, setAadhaarOtpSent] = useState(false);
+  const [aadhaarRefId, setAadhaarRefId] = useState('');
+  const [aadhaarOtpCode, setAadhaarOtpCode] = useState('');
+  const [aadhaarTimer, setAadhaarTimer] = useState(0);
+  const [aadhaarLoading, setAadhaarLoading] = useState(false);
+
+  // PAN & GSTIN Verification States
+  const [panLoading, setPanLoading] = useState(false);
+  const [gstLoading, setGstLoading] = useState(false);
+  const [bankLoading, setBankLoading] = useState(false);
+
+  // Countdown timer for Aadhaar OTP
+  useEffect(() => {
+    let interval = null;
+    if (aadhaarTimer > 0) {
+      interval = setInterval(() => {
+        setAadhaarTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [aadhaarTimer]);
+
   // Fetch live verification status
   const fetchStatus = async () => {
     try {
@@ -172,18 +197,20 @@ export default function VendorVerificationPage() {
   };
 
   const handleVerifyOtp = async () => {
-    if (!otpModal.code || otpModal.code.length < 4) {
-      toast.error('Enter valid 4-digit verification code (e.g. 1234)');
+    if (!otpModal.code || otpModal.code.trim().length < 4) {
+      toast.error('Enter valid verification code (e.g. 6-digit code received via email/SMS)');
       return;
     }
     setLoading(true);
+    const toastId = toast.loading(`Verifying ${otpModal.type}...`);
     try {
       const res = await api.post('/v1/vendors/me/verify-contact', {
         type: otpModal.type,
-        value: otpModal.value
+        value: otpModal.value,
+        code: otpModal.code.trim()
       });
 
-      toast.success(`🟢 ${otpModal.type.toUpperCase()} verified successfully!`);
+      toast.success(`🟢 ${otpModal.type.toUpperCase()} verified successfully!`, { id: toastId });
       setOtpModal({ open: false, type: '', value: '', code: '' });
       await fetchStatus();
 
@@ -207,25 +234,149 @@ export default function VendorVerificationPage() {
       }, 1000);
 
     } catch (err) {
-      toast.error('Failed to verify contact');
+      toast.error(err?.response?.data?.message || err.message || 'Failed to verify contact', { id: toastId });
     } finally {
       setLoading(false);
     }
   };
 
-  // Document Submit Handler
-  const handleVerifyDocument = async (docType, docNumber, frontUrl, backUrl, fileUrl, docName) => {
-    if (docType === 'aadhaar' && (!docNumber || docNumber.length !== 12)) {
-      toast.error('Please enter valid 12-digit Aadhaar Number');
-      return;
-    }
-    if (docType === 'pan' && (!docNumber || docNumber.length !== 10)) {
-      toast.error('Please enter valid 10-digit PAN Number (e.g. ABCDE1234F)');
+
+  // 1. Aadhaar Send OTP Handler (Sandbox OKYC)
+  const handleSendAadhaarOtp = async () => {
+    const cleanNum = String(aadhaarNum || '').replace(/\D/g, '');
+    if (cleanNum.length !== 12) {
+      toast.error('Please enter a valid 12-digit Aadhaar Number');
       return;
     }
 
+    setAadhaarLoading(true);
+    const toastId = toast.loading('Initiating Aadhaar OTP with Sandbox API...');
+    try {
+      const res = await api.post('/v1/vendors/me/verification/aadhaar/initiate', {
+        aadhaarNumber: cleanNum
+      });
+      const data = res.data || res;
+      if (data.success) {
+        setAadhaarOtpSent(true);
+        setAadhaarRefId(data.referenceId);
+        setAadhaarTimer(60);
+        toast.success(data.message || 'OTP sent to mobile linked with Aadhaar!', { id: toastId });
+      } else {
+        toast.error(data.message || 'Could not send Aadhaar OTP', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || 'Failed to initiate Aadhaar OTP', { id: toastId });
+    } finally {
+      setAadhaarLoading(false);
+    }
+  };
+
+  // 1. Aadhaar Verify OTP Handler (Sandbox OKYC)
+  const handleVerifyAadhaarOtp = async () => {
+    if (!aadhaarRefId) {
+      toast.error('Please click "Send OTP" first.');
+      return;
+    }
+    if (!aadhaarOtpCode || aadhaarOtpCode.trim().length < 4) {
+      toast.error('Please enter the OTP received on your Aadhaar-linked mobile.');
+      return;
+    }
+
+    setAadhaarLoading(true);
+    const toastId = toast.loading('Verifying Aadhaar OTP with Sandbox API...');
+    try {
+      const res = await api.post('/v1/vendors/me/verification/aadhaar/verify-otp', {
+        referenceId: aadhaarRefId,
+        otp: aadhaarOtpCode.trim(),
+        frontUrl: aadhaarFront,
+        backUrl: aadhaarBack
+      });
+      const data = res.data || res;
+      if (data.success) {
+        toast.success(`🟢 Aadhaar Verified! Name: ${data.verification?.fullName || 'Verified'}`, { id: toastId });
+        await fetchStatus();
+        setTimeout(() => {
+          if (currentDocIndex < 5) setCurrentDocIndex(prev => prev + 1);
+        }, 1200);
+      } else {
+        toast.error(data.message || 'Aadhaar verification failed', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || 'Aadhaar verification failed', { id: toastId });
+    } finally {
+      setAadhaarLoading(false);
+    }
+  };
+
+  // 2. PAN Instant Verification Handler (Sandbox API)
+  const handleVerifyPan = async () => {
+    const cleanPan = String(panNum || '').trim().toUpperCase();
+    if (!cleanPan || cleanPan.length !== 10) {
+      toast.error('Please enter a valid 10-digit PAN Number (e.g. ABCDE1234F)');
+      return;
+    }
+
+    setPanLoading(true);
+    const toastId = toast.loading('Verifying PAN Card with Sandbox API...');
+    try {
+      const res = await api.post('/v1/vendors/me/verification/pan', {
+        panNumber: cleanPan,
+        frontUrl: panFront,
+        backUrl: panBack
+      });
+      const data = res.data || res;
+      if (data.success) {
+        toast.success(`🟢 PAN Verified! Name: ${data.verification?.fullName || 'Taxpayer Validated'}`, { id: toastId });
+        await fetchStatus();
+        setTimeout(() => {
+          if (currentDocIndex < 5) setCurrentDocIndex(prev => prev + 1);
+        }, 1200);
+      } else {
+        toast.error(data.message || 'PAN verification failed', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || 'PAN verification failed', { id: toastId });
+    } finally {
+      setPanLoading(false);
+    }
+  };
+
+  // 3. GSTIN Instant Verification Handler (Sandbox API)
+  const handleVerifyGstin = async () => {
+    const cleanGst = String(gstNum || '').trim().toUpperCase();
+    if (!cleanGst || cleanGst.length !== 15) {
+      toast.error('Please enter a valid 15-digit GSTIN (e.g. 27ABCDE1234F1Z5)');
+      return;
+    }
+
+    setGstLoading(true);
+    const toastId = toast.loading('Verifying GSTIN with Sandbox API...');
+    try {
+      const res = await api.post('/v1/vendors/me/verification/gstin', {
+        gstinNumber: cleanGst,
+        fileUrl: gstFile
+      });
+      const data = res.data || res;
+      if (data.success) {
+        toast.success(`🟢 GSTIN Verified! Business: ${data.verification?.legalName || data.verification?.tradeName || 'Registered'}`, { id: toastId });
+        await fetchStatus();
+        setTimeout(() => {
+          if (currentDocIndex < 5) setCurrentDocIndex(prev => prev + 1);
+        }, 1200);
+      } else {
+        toast.error(data.message || 'GSTIN verification failed', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || 'GSTIN verification failed', { id: toastId });
+    } finally {
+      setGstLoading(false);
+    }
+  };
+
+  // Generic Document Submit Handler (Shop License, Udyam, Dynamic)
+  const handleVerifyDocument = async (docType, docNumber, frontUrl, backUrl, fileUrl, docName) => {
     setLoading(true);
-    const toastId = toast.loading(`Verifying ${docName || docType}...`);
+    const toastId = toast.loading(`Submitting ${docName || docType} for verification...`);
     try {
       const res = await api.post('/v1/vendors/me/verify-document', {
         docType,
@@ -236,7 +387,7 @@ export default function VendorVerificationPage() {
         docName
       });
 
-      toast.success(`🟢 ${docName || docType.toUpperCase()} verified successfully!`, { id: toastId });
+      toast.success(`🟢 ${docName || docType.toUpperCase()} submitted successfully!`, { id: toastId });
       await fetchStatus();
 
       // Reset dynamic inputs if submitted
@@ -246,14 +397,14 @@ export default function VendorVerificationPage() {
         setDynamicDocFile('');
       }
 
-      // AUTOMATIC PROGRESSION: Auto-move to next document or Part 3 after document verification
+      // AUTOMATIC PROGRESSION
       setTimeout(() => {
         if (currentDocIndex < 5) {
           setCurrentDocIndex(prev => prev + 1);
-          toast.success(`⏩ ${docName || docType.toUpperCase()} submitted! Moving to next document.`);
+          toast.success(`⏩ Moving to next document.`);
         } else {
           setActiveTab('payment');
-          toast.success('⏩ All Part 2 documents processed! Advancing to Part 3: Payout & Payment Details.');
+          toast.success('⏩ Part 2 documents submitted! Advancing to Part 3: Payout & Payment Details.');
         }
       }, 1200);
 
@@ -300,13 +451,21 @@ export default function VendorVerificationPage() {
     }
   };
 
-  // Payment Verification Handler
+  // Payment Verification Handler (Sandbox Bank & UPI)
   const handleVerifyPayment = async () => {
-    setLoading(true);
-    const toastId = toast.loading('Verifying payment details...');
+    if (!bankAccount || bankAccount.length < 8) {
+      toast.error('Please enter a valid Bank Account number.');
+      return;
+    }
+    if (!ifscCode || ifscCode.length < 11) {
+      toast.error('Please enter a valid 11-character IFSC code.');
+      return;
+    }
+
+    setBankLoading(true);
+    const toastId = toast.loading('Verifying Bank Account with Sandbox API...');
     try {
-      const res = await api.post('/v1/vendors/me/verify-payment', {
-        upiId,
+      const res = await api.post('/v1/vendors/me/verification/bank', {
         bankAccount,
         accountHolderName,
         ifscCode,
@@ -315,20 +474,67 @@ export default function VendorVerificationPage() {
         statementChequeUrl: statementFile
       });
 
-      toast.success('Payout & Payment details verified!', { id: toastId });
+      const data = res.data || res;
+      if (data.success) {
+        toast.success('🟢 Bank Account verified and saved!', { id: toastId });
+        await fetchStatus();
+      } else {
+        toast.error(data.message || 'Bank verification failed', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || 'Failed to verify payment details', { id: toastId });
+    } finally {
+      setBankLoading(false);
+    }
+  };
+
+  // UPI Only Verification Handler
+  const handleVerifyUpi = async () => {
+    if (!upiId || !upiId.includes('@')) {
+      toast.error('Please enter a valid UPI ID (e.g. shopname@upi).');
+      return;
+    }
+
+    setLoading(true);
+    const toastId = toast.loading('Validating UPI ID...');
+    try {
+      await api.post('/v1/vendors/me/verify-payment', {
+        upiId
+      });
+      toast.success('🟢 UPI ID verified and saved!', { id: toastId });
       await fetchStatus();
     } catch (err) {
-      toast.error('Failed to verify payment details', { id: toastId });
+      toast.error('Failed to verify UPI ID', { id: toastId });
     } finally {
       setLoading(false);
     }
   };
 
-  // Contact Verification OTP trigger (for Mobile, WhatsApp & Email)
-  const handleOpenOtpModal = (type, value) => {
-    setOtpModal({ open: true, type, value, code: '' });
-    toast.success(`Verification OTP code sent to ${type}: ${value || 'registered contact'}`);
+
+  // Contact Verification OTP trigger (for Mobile, WhatsApp & Email - Resend API)
+  const handleOpenOtpModal = async (type, value) => {
+    const targetValue = value || (type === 'email' ? (vendorProfile.email || currentUser?.email) : (vendorProfile.mobileNumber || currentUser?.phone));
+    if (!targetValue) {
+      toast.error(`Please configure your ${type} in profile settings first.`);
+      return;
+    }
+
+    const toastId = toast.loading(`Sending verification code to ${type}: ${targetValue}...`);
+    try {
+      const res = await api.post('/v1/vendors/me/send-contact-otp', {
+        type,
+        value: targetValue
+      });
+      const data = res.data || res;
+      setOtpModal({ open: true, type, value: targetValue, code: '' });
+      toast.success(data.message || `Verification code sent to ${targetValue}!`, { id: toastId });
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || `Failed to send OTP to ${type}`, { id: toastId });
+      // Fallback open modal anyway for testing
+      setOtpModal({ open: true, type, value: targetValue, code: '' });
+    }
   };
+
 
   // Sequential Gating Checks
   const isPart1Complete = Boolean(
@@ -648,38 +854,80 @@ export default function VendorVerificationPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">A</span>
                     <div>
-                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Aadhaar Card (Individual Identity)</h4>
-                      <p className="text-[10px] text-slate-400 font-bold">Enter 12-digit Aadhaar number &amp; upload front-back images</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Aadhaar Card (Sandbox e-KYC OTP Verification)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Verify via 12-digit Aadhaar OTP or upload document images</p>
                     </div>
                   </div>
-                  {statusData.documents?.aadhaar?.status === 'approved' && (
+                  {(statusData.documents?.aadhaar?.status === 'approved' || statusData.documents?.aadhaar?.verified) && (
                     <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                      Verified ✓
+                      Verified ✓ {statusData.documents.aadhaar.fullName ? `(${statusData.documents.aadhaar.fullName})` : ''}
                     </span>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <input
-                    type="text"
-                    maxLength={12}
-                    value={aadhaarNum}
-                    onChange={(e) => setAadhaarNum(e.target.value)}
-                    placeholder="12-Digit Aadhaar Number"
-                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
-                  />
+                {/* Aadhaar OTP Flow Section */}
+                <div className="bg-white p-4 rounded-xl border border-[#e3dccb] space-y-3">
+                  <span className="text-[10px] font-black text-[#d99a3d] uppercase tracking-wider block">Recommended: Instant Online OTP Verification</span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      maxLength={12}
+                      value={aadhaarNum}
+                      onChange={(e) => setAadhaarNum(e.target.value.replace(/\D/g, ''))}
+                      placeholder="12-Digit Aadhaar Number"
+                      disabled={aadhaarLoading || (statusData.documents?.aadhaar?.status === 'approved')}
+                      className="px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                    />
 
-                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
-                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
-                    <span>{aadhaarFront ? 'Front Attached ✓' : 'Upload Front Image'}</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarFront)} />
-                  </label>
+                    <button
+                      type="button"
+                      onClick={handleSendAadhaarOtp}
+                      disabled={aadhaarLoading || !aadhaarNum || aadhaarNum.length !== 12 || aadhaarTimer > 0 || (statusData.documents?.aadhaar?.status === 'approved')}
+                      className="py-2.5 px-4 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
+                    >
+                      {aadhaarLoading && !aadhaarOtpSent ? 'Sending OTP...' : aadhaarTimer > 0 ? `Resend in ${aadhaarTimer}s` : (aadhaarOtpSent ? 'Resend OTP' : 'Send Aadhaar OTP')}
+                    </button>
 
-                  <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
-                    <FiUploadCloud size={14} className="text-[#d99a3d]" />
-                    <span>{aadhaarBack ? 'Back Attached ✓' : 'Upload Back Image'}</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarBack)} />
-                  </label>
+                    {aadhaarOtpSent && (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          value={aadhaarOtpCode}
+                          onChange={(e) => setAadhaarOtpCode(e.target.value)}
+                          placeholder="Enter 6-digit OTP"
+                          className="w-1/2 px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] tracking-widest text-center"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleVerifyAadhaarOtp}
+                          disabled={aadhaarLoading || !aadhaarOtpCode}
+                          className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
+                        >
+                          {aadhaarLoading ? 'Verifying...' : 'Verify OTP'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Document Images Upload Section */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Document Photos (Front &amp; Back)</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                      <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                      <span>{aadhaarFront ? 'Front Attached ✓' : 'Upload Front Image'}</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarFront)} />
+                    </label>
+
+                    <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
+                      <FiUploadCloud size={14} className="text-[#d99a3d]" />
+                      <span>{aadhaarBack ? 'Back Attached ✓' : 'Upload Back Image'}</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarBack)} />
+                    </label>
+                  </div>
                 </div>
 
                 <button
@@ -688,7 +936,7 @@ export default function VendorVerificationPage() {
                   disabled={loading || !aadhaarNum}
                   className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
-                  Verify Aadhaar Card
+                  Save &amp; Submit Aadhaar Details
                 </button>
               </div>
             )}
@@ -700,13 +948,13 @@ export default function VendorVerificationPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">P</span>
                     <div>
-                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">PAN Card (Tax Identification)</h4>
-                      <p className="text-[10px] text-slate-400 font-bold">Enter 10-digit PAN number &amp; upload PAN document</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">PAN Card (Sandbox Instant API Verification)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Enter 10-digit PAN number for real-time Income Tax record verification</p>
                     </div>
                   </div>
-                  {statusData.documents?.pan?.status === 'approved' && (
+                  {(statusData.documents?.pan?.status === 'approved' || statusData.documents?.pan?.verified) && (
                     <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                      Verified ✓
+                      Verified ✓ {statusData.documents.pan.fullName ? `(${statusData.documents.pan.fullName})` : ''}
                     </span>
                   )}
                 </div>
@@ -718,6 +966,7 @@ export default function VendorVerificationPage() {
                     value={panNum}
                     onChange={(e) => setPanNum(e.target.value.toUpperCase())}
                     placeholder="e.g. ABCDE1234F"
+                    disabled={panLoading || (statusData.documents?.pan?.status === 'approved')}
                     className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
 
@@ -736,11 +985,11 @@ export default function VendorVerificationPage() {
 
                 <button
                   type="button"
-                  onClick={() => handleVerifyDocument('pan', panNum, panFront, panBack, null, 'PAN Card')}
-                  disabled={loading || !panNum}
+                  onClick={handleVerifyPan}
+                  disabled={panLoading || !panNum || panNum.length !== 10}
                   className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
-                  Verify PAN Card
+                  {panLoading ? 'Verifying with Sandbox API...' : 'Verify PAN Card (Sandbox API)'}
                 </button>
               </div>
             )}
@@ -752,13 +1001,13 @@ export default function VendorVerificationPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">G</span>
                     <div>
-                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">GST Registration Certificate (Optional)</h4>
-                      <p className="text-[10px] text-slate-400 font-bold">Enter 15-digit GSTIN &amp; upload GST registration certificate</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">GST Registration Certificate (Sandbox API)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Enter 15-digit GSTIN to auto-fetch registered business name</p>
                     </div>
                   </div>
-                  {statusData.documents?.gst?.status === 'approved' && (
+                  {(statusData.documents?.gst?.status === 'approved' || statusData.documents?.gst?.verified) && (
                     <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                      Verified ✓
+                      Verified ✓ {statusData.documents.gst.legalName ? `(${statusData.documents.gst.legalName})` : ''}
                     </span>
                   )}
                 </div>
@@ -770,6 +1019,7 @@ export default function VendorVerificationPage() {
                     value={gstNum}
                     onChange={(e) => setGstNum(e.target.value.toUpperCase())}
                     placeholder="15-Digit GSTIN (e.g. 27ABCDE1234F1Z5)"
+                    disabled={gstLoading || (statusData.documents?.gst?.status === 'approved')}
                     className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
 
@@ -782,11 +1032,11 @@ export default function VendorVerificationPage() {
 
                 <button
                   type="button"
-                  onClick={() => handleVerifyDocument('gst', gstNum, null, null, gstFile, 'GST Certificate')}
-                  disabled={loading || !gstNum}
+                  onClick={handleVerifyGstin}
+                  disabled={gstLoading || !gstNum || gstNum.length !== 15}
                   className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
-                  Verify GSTIN
+                  {gstLoading ? 'Verifying with Sandbox API...' : 'Verify GSTIN (Sandbox API)'}
                 </button>
               </div>
             )}
@@ -798,15 +1048,19 @@ export default function VendorVerificationPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">S</span>
                     <div>
-                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Shop &amp; Establishment License (Optional)</h4>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Shop &amp; Establishment License (Manual Admin Review)</h4>
                       <p className="text-[10px] text-slate-400 font-bold">Enter license registration number &amp; upload license document</p>
                     </div>
                   </div>
-                  {statusData.documents?.shopLicense?.status === 'approved' && (
+                  {statusData.documents?.shopLicense?.status === 'approved' ? (
                     <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
                       Verified ✓
                     </span>
-                  )}
+                  ) : statusData.documents?.shopLicense ? (
+                    <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-black">
+                      In Review ⏳
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -830,7 +1084,7 @@ export default function VendorVerificationPage() {
                   disabled={loading || !shopLicenseNum}
                   className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
-                  Verify Shop License
+                  Submit Shop License for Review
                 </button>
               </div>
             )}
@@ -846,11 +1100,15 @@ export default function VendorVerificationPage() {
                       <p className="text-[10px] text-slate-400 font-bold">Enter Udyam registration number (e.g. UDYAM-XX-00-000000) &amp; upload certificate</p>
                     </div>
                   </div>
-                  {statusData.documents?.udyamRegistration?.status === 'approved' && (
+                  {statusData.documents?.udyamRegistration?.status === 'approved' ? (
                     <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
                       Verified ✓
                     </span>
-                  )}
+                  ) : statusData.documents?.udyamRegistration ? (
+                    <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-black">
+                      In Review ⏳
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -874,7 +1132,7 @@ export default function VendorVerificationPage() {
                   disabled={loading || !udyamNum}
                   className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
-                  Verify Udyam Registration
+                  Submit Udyam Registration for Review
                 </button>
               </div>
             )}
@@ -917,7 +1175,7 @@ export default function VendorVerificationPage() {
                   disabled={loading || !dynamicDocName}
                   className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
-                  Add &amp; Verify Document
+                  Add &amp; Submit Document
                 </button>
               </div>
             )}
@@ -968,15 +1226,22 @@ export default function VendorVerificationPage() {
       {/* TAB 3: PAYMENT & PAYOUT DETAILS */}
       {activeTab === 'payment' && (
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5 font-sans">
-          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide border-b border-[#e3dccb] pb-3 flex items-center gap-2">
-            <FiCreditCard className="text-[#d99a3d]" />
-            <span>Bank Account &amp; UPI Payout Details</span>
-          </h3>
+          <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
+            <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
+              <FiCreditCard className="text-[#d99a3d]" />
+              <span>Bank Account &amp; UPI Payout Details (Sandbox API)</span>
+            </h3>
+            {(statusData.paymentDetails?.status === 'approved' || statusData.paymentDetails?.verified) && (
+              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                Bank Verified ✓
+              </span>
+            )}
+          </div>
 
           <div className="space-y-4">
             {/* UPI ID */}
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">UPI ID for Payouts (API Verification)</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">UPI ID for Instant Payouts</label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -987,7 +1252,7 @@ export default function VendorVerificationPage() {
                 />
                 <button
                   type="button"
-                  onClick={handleVerifyPayment}
+                  onClick={handleVerifyUpi}
                   disabled={loading || !upiId}
                   className="px-4 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none shrink-0"
                 >
@@ -1036,7 +1301,7 @@ export default function VendorVerificationPage() {
                     disabled={ifscLoading || ifscCode.length < 11}
                     className="px-3.5 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black transition disabled:opacity-50 cursor-pointer border-none shrink-0"
                   >
-                    {ifscLoading ? 'Lookup...' : 'Verify'}
+                    {ifscLoading ? 'Lookup...' : 'Lookup'}
                   </button>
                 </div>
               </div>
@@ -1068,10 +1333,10 @@ export default function VendorVerificationPage() {
             <button
               type="button"
               onClick={handleVerifyPayment}
-              disabled={loading}
+              disabled={bankLoading || !bankAccount || !ifscCode}
               className="w-full py-3.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition disabled:opacity-50 cursor-pointer border-none"
             >
-              Save &amp; Verify All Payment Details
+              {bankLoading ? 'Verifying with Sandbox API...' : 'Verify & Save Bank Account (Sandbox API)'}
             </button>
           </div>
         </div>
@@ -1086,17 +1351,18 @@ export default function VendorVerificationPage() {
               <span>Verify {otpModal.type.toUpperCase()} OTP</span>
             </h4>
             <p className="text-xs text-slate-500 font-medium">
-              Enter 4-digit verification code sent to <span className="font-extrabold text-[#1a1a1a]">{otpModal.value || 'contact'}</span>
+              Enter verification code sent to <span className="font-extrabold text-[#1a1a1a]">{otpModal.value || 'contact'}</span>
             </p>
 
             <input
               type="text"
-              maxLength={4}
+              maxLength={6}
               value={otpModal.code}
               onChange={(e) => setOtpModal({ ...otpModal, code: e.target.value })}
-              placeholder="e.g. 1234"
+              placeholder="e.g. 123456"
               className="w-full text-center tracking-widest text-lg font-black py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-[#241b15] focus:outline-none focus:border-[#d99a3d]"
             />
+
 
             <div className="flex items-center gap-2 pt-2">
               <button

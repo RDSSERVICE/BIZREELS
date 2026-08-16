@@ -26,160 +26,24 @@ async function fetchAndComputeStatus(user) {
 
 const router = express.Router();
 
+const vendorVerificationController = require('../controllers/vendorVerification.controller');
+
 // ── VENDOR VERIFICATION ENDPOINTS ─────────────────────────────
 
-router.get('/me/verification-status', requireAuth, catchAsync(async (req, res) => {
-  const user = await User.findById(req.user._id);
-  if (!user) throw ApiError.notFound('User not found');
-  
-  const statusInfo = await fetchAndComputeStatus(user);
-  res.json({ success: true, ...statusInfo });
-}));
+router.get('/me/verification-status', requireAuth, vendorVerificationController.getVerificationStatus);
+router.post('/me/send-contact-otp', requireAuth, vendorVerificationController.sendContactOtp);
+router.post('/me/verify-contact', requireAuth, vendorVerificationController.verifyContact);
+router.post('/me/verify-document', requireAuth, vendorVerificationController.verifyDocument);
+router.post('/me/verify-payment', requireAuth, vendorVerificationController.verifyPayment);
 
 
-router.post('/me/verify-contact', requireAuth, catchAsync(async (req, res) => {
-  const { type, value } = req.body;
-  if (!['mobile', 'whatsapp', 'email', 'website'].includes(type)) {
-    throw ApiError.badRequest('Invalid contact verification type');
-  }
+// Dedicated Sandbox API Verification Endpoints
+router.post('/me/verification/pan', requireAuth, vendorVerificationController.verifyPan);
+router.post('/me/verification/aadhaar/initiate', requireAuth, vendorVerificationController.initiateAadhaar);
+router.post('/me/verification/aadhaar/verify-otp', requireAuth, vendorVerificationController.verifyAadhaarOtp);
+router.post('/me/verification/gstin', requireAuth, vendorVerificationController.verifyGstin);
+router.post('/me/verification/bank', requireAuth, vendorVerificationController.verifyBank);
 
-  const user = await User.findById(req.user._id);
-  if (!user) throw ApiError.notFound('User not found');
-
-  const currentVp = user.vendorProfile || {};
-  const currentContacts = currentVp.contactVerified || {
-    mobile: !!user.phone,
-    whatsapp: false,
-    email: !!user.email,
-    website: false
-  };
-
-  currentContacts[type] = true;
-
-  if (type === 'mobile' && value) currentVp.mobileNumber = value;
-  if (type === 'whatsapp' && value) currentVp.whatsappNumber = value;
-  if (type === 'email' && value) currentVp.email = value;
-  if (type === 'website' && value) currentVp.website = value;
-
-  currentVp.contactVerified = currentContacts;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-  
-  const statusInfo = await fetchAndComputeStatus(user);
-  currentVp.verificationStatus = statusInfo.tier;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-  await user.save();
-
-  res.json({ success: true, message: `${type} verified successfully!`, ...statusInfo });
-}));
-
-router.post('/me/verify-document', requireAuth, catchAsync(async (req, res) => {
-  const { docType, docNumber, frontUrl, backUrl, fileUrl, docName } = req.body;
-  if (!docType) throw ApiError.badRequest('docType is required');
-
-  const user = await User.findById(req.user._id);
-  if (!user) throw ApiError.notFound('User not found');
-
-  const currentVp = user.vendorProfile || {};
-  const currentDocs = currentVp.documents || {};
-
-  const now = new Date();
-  const docFileUrl = fileUrl || frontUrl || backUrl || '';
-
-  if (['aadhaar', 'pan', 'gst', 'shopLicense', 'udyamRegistration'].includes(docType)) {
-    currentDocs[docType] = {
-      docNumber: docNumber || currentDocs[docType]?.docNumber || '',
-      frontUrl: frontUrl || currentDocs[docType]?.frontUrl || null,
-      backUrl: backUrl || currentDocs[docType]?.backUrl || null,
-      fileUrl: docFileUrl || currentDocs[docType]?.fileUrl || null,
-      status: 'pending',
-      verifiedAt: now
-    };
-  } else {
-    // Dynamic document (FSSAI, Driving License, Trade License, etc.)
-    const existingDynamic = currentDocs.dynamicDocs || [];
-    const filtered = existingDynamic.filter(d => d.docType !== docType && d.docName !== docName);
-    filtered.push({
-      docName: docName || docType,
-      docType,
-      docNumber: docNumber || '',
-      fileUrl: docFileUrl,
-      status: 'pending',
-      verifiedAt: now
-    });
-    currentDocs.dynamicDocs = filtered;
-  }
-
-  currentVp.documents = currentDocs;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-
-  // Sync to KycDocument model for Admin Queue visibility
-  try {
-    await KycDocument.create({
-      user_id: user._id.toString(),
-      doc_type: docName || docType,
-      doc_number: docNumber || 'SUBMITTED',
-      doc_url: docFileUrl || 'https://via.placeholder.com/400x600?text=Document+Attached',
-      status: 'pending',
-    });
-  } catch (err) {
-    console.error('Error syncing KycDocument for admin:', err.message);
-  }
-
-  const statusInfo = await fetchAndComputeStatus(user);
-  currentVp.verificationStatus = statusInfo.tier;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-  if (['verified_vendor', 'trusted_vendor', 'premium_vendor'].includes(statusInfo.tier)) {
-    user.kyc_status = 'approved';
-  } else {
-    user.kyc_status = 'pending';
-  }
-  await user.save();
-
-  res.json({ success: true, message: `${docName || docType} submitted and pending verification!`, ...statusInfo });
-}));
-
-router.post('/me/verify-payment', requireAuth, catchAsync(async (req, res) => {
-  const { upiId, bankAccount, accountHolderName, ifscCode, bankName, branchName, statementChequeUrl } = req.body;
-  
-  const user = await User.findById(req.user._id);
-  if (!user) throw ApiError.notFound('User not found');
-
-  const currentVp = user.vendorProfile || {};
-  const currentPayment = currentVp.paymentDetails || {};
-
-  if (upiId !== undefined) {
-    currentPayment.upiId = upiId;
-    currentPayment.upiVerified = !!upiId && upiId.includes('@');
-  }
-
-  if (bankAccount !== undefined) currentPayment.bankAccount = bankAccount;
-  if (accountHolderName !== undefined) currentPayment.accountHolderName = accountHolderName;
-  if (ifscCode !== undefined) {
-    currentPayment.ifscCode = ifscCode;
-    currentPayment.ifscVerified = !!ifscCode && ifscCode.length >= 11;
-  }
-  if (bankName !== undefined) currentPayment.bankName = bankName;
-  if (branchName !== undefined) currentPayment.branchName = branchName;
-  if (statementChequeUrl !== undefined) currentPayment.statementChequeUrl = statementChequeUrl;
-
-  currentPayment.verifiedAt = new Date();
-
-  currentVp.paymentDetails = currentPayment;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-
-  const statusInfo = await fetchAndComputeStatus(user);
-  currentVp.verificationStatus = statusInfo.tier;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-  await user.save();
-
-  res.json({ success: true, message: 'Payment details verified and updated successfully!', ...statusInfo });
-}));
 
 // ── VENDOR SETTINGS & CLOSE SCHEDULE ENDPOINTS ───────────────
 

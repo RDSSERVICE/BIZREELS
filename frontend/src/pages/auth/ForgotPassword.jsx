@@ -23,12 +23,12 @@ const ForgotPassword = () => {
 
   const onRequestSubmit = async (data) => {
     try {
-      await forgotPassword({ email: data.email }).unwrap();
+      const res = await forgotPassword({ email: data.email }).unwrap();
       setEmailAddress(data.email);
       setStep(2);
-      toast.success('If an account exists, a reset OTP has been sent.');
+      toast.success(res?.message || 'Password reset OTP sent to your email.');
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to request password reset.');
+      toast.error(err?.data?.message || err?.message || 'Failed to request password reset.');
     }
   };
 
