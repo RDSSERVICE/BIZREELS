@@ -61,9 +61,7 @@ const VendorLogin = () => {
 
     toast.success('Welcome back, Vendor!');
     let targetPath = '/vendor/dashboard';
-    if (!user?.vendorProfile?.shopName) {
-      targetPath = '/vendor/profile';
-    } else if (from && from.startsWith('/vendor')) {
+    if (from && from.startsWith('/vendor')) {
       targetPath = from;
     }
     navigate(targetPath, { replace: true });

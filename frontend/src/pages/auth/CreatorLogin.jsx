@@ -60,9 +60,7 @@ const CreatorLogin = () => {
 
     toast.success('Welcome back, Creator!');
     let targetPath = '/creator/dashboard';
-    if (!user?.creatorProfile?.displayName) {
-      targetPath = '/creator/profile';
-    } else if (from && from.startsWith('/creator')) {
+    if (from && from.startsWith('/creator')) {
       targetPath = from;
     }
     navigate(targetPath, { replace: true });
