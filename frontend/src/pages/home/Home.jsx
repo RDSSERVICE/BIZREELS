@@ -88,6 +88,22 @@ const Home = () => {
     return cards;
   }, [allMediaPool, activeCardIndex]);
 
+  // ── Panel 3 Dynamic Image Rotator (Every 2 seconds) ──
+  const [panelImageIndex, setPanelImageIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setPanelImageIndex((prev) => prev + 1);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const currentPanelItem = React.useMemo(() => {
+    if (!allMediaPool || allMediaPool.length === 0) return null;
+    const idx = (panelImageIndex + 1) % allMediaPool.length;
+    return allMediaPool[idx];
+  }, [allMediaPool, panelImageIndex]);
+
   // Merge backend categories with full default categories to fill space
   const defaultCategoryList = React.useMemo(() => [
     { name: 'Electronics' },
@@ -583,13 +599,34 @@ const Home = () => {
               </div>
             </div>
 
-            {/* PANEL 3: Image */}
-            <div style={{ borderRadius: 8, overflow: 'hidden', position: 'relative', minHeight: 220 }}>
-              <img
-                src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=700&fit=crop"
-                alt="BizReels app on phone"
+            {/* PANEL 3: Dynamic Image Rotator (Every 2s) */}
+            <div style={{ borderRadius: 8, overflow: 'hidden', position: 'relative', minHeight: 220, backgroundColor: '#241b15' }}>
+              <motion.img
+                key={currentPanelItem?.img || panelImageIndex}
+                initial={{ opacity: 0.35, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                src={currentPanelItem?.img || "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=700&fit=crop"}
+                alt={currentPanelItem?.title || "BizReels marketplace reel"}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
+
+              {/* Live Badge Overlay */}
+              <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', color: '#d99a3d', fontSize: 10.5, fontWeight: 800, padding: '4px 10px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 6, border: '1px solid rgba(217,154,61,0.3)' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#d99a3d', display: 'inline-block' }} className="animate-ping" />
+                <span>LIVE REEL FEED</span>
+              </div>
+
+              {/* Bottom Info Overlay */}
+              {currentPanelItem?.title && (
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 14px 12px', background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)', color: '#fff' }}>
+                  <p className="text-xs font-black truncate text-white uppercase tracking-tight">{currentPanelItem.title}</p>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <span className="text-[10px] text-[#d99a3d] font-bold">{currentPanelItem.category || 'Featured Item'}</span>
+                    <span className="text-[10px] text-[#c9c4bb] font-semibold">{currentPanelItem.views || '2.1K'} views</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* PANEL 4: Stats — white card */}
