@@ -40,6 +40,7 @@ const BecomeVendorPage = React.lazy(() => import('../pages/customer/become-vendo
 const BecomeCreatorPage = React.lazy(() => import('../pages/customer/become-creator/BecomeCreatorPage'));
 const VendorProfilePage = React.lazy(() => import('../pages/customer/vendor/VendorProfilePage'));
 const InterestSelectionPage = React.lazy(() => import('../pages/customer/onboarding/InterestSelectionPage'));
+const ListingDetailPage = React.lazy(() => import('../pages/customer/listings/ListingDetailPage'));
 
 // Vendor Pages
 const VendorDashboardPage = React.lazy(() => import('../pages/vendor/dashboard/VendorDashboardPage'));
@@ -153,7 +154,9 @@ const AppRoutes = () => {
         <Route path="post-requirement" element={<PostRequirementPage />} />
         <Route path="my-requirements" element={<MyRequirementsPage />} />
         <Route path="search" element={<SearchListingsPage />} />
-        <Route path="product/:productId" element={<SearchListingsPage />} />
+        <Route path="listings/:id" element={<ListingDetailPage />} />
+        <Route path="product/:productId" element={<ListingDetailPage />} />
+        <Route path="listing/:id" element={<ListingDetailPage />} />
         <Route path="activities" element={<CustomerActivitiesPage />} />
         <Route path="notifications" element={<CustomerNotificationsPage />} />
         <Route path="chat" element={<CustomerChatPage />} />

@@ -73,15 +73,10 @@ export default function SearchListingsPage() {
     }
   }, [queryProductId]);
 
-  const handleSelectItem = async (item) => {
-    setSelectedItem(item);
+  const handleSelectItem = (item) => {
     if (!item) return;
-    try {
-      const listingId = item._id || item.id;
-      await api.get(`/v1/listings/${listingId}`);
-    } catch (err) {
-      console.warn('Failed to increment listing view count:', err);
-    }
+    const listingId = item._id || item.id;
+    navigate(`/customer/listings/${listingId}`, { state: { listing: item } });
   };
 
   // Fetch coordinates on mount / user location change
