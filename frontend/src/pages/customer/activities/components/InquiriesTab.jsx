@@ -1,7 +1,9 @@
 import React from 'react';
-import { FiMessageSquare, FiTrash2, FiCalendar } from 'react-icons/fi';
+import { FiMessageSquare, FiClock, FiTrash2, FiExternalLink, FiUser } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import AdminStatusBadge from '../../../../features/admin/components/AdminStatusBadge';
+import { resolveMediaUrl } from '../../../../lib/api';
+
+const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
 
 export default function InquiriesTab({
   inquiries = [],
@@ -10,99 +12,96 @@ export default function InquiriesTab({
 }) {
   const navigate = useNavigate();
 
+  if (inquiries.length === 0) {
+    return (
+      <div className="py-16 text-center text-xs text-slate-500 bg-white rounded-xl border border-[#e3dccb] space-y-2 p-6 shadow-xs font-sans">
+        <div className="w-12 h-12 rounded-full bg-[#f8f4ec] text-[#d99a3d] flex items-center justify-center mx-auto mb-2 border border-[#e3dccb]">
+          <FiMessageSquare size={20} />
+        </div>
+        <p className="text-sm font-bold text-[#1a1a1a]">No direct inquiries sent</p>
+        <p className="text-xs">Inquiries sent to vendors for catalog products or custom quotes will appear here.</p>
+        <button
+          onClick={() => navigate('/customer/search')}
+          className="mt-3 px-4 py-2 bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+        >
+          Browse Vendors
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-3 font-sans">
       {inquiries.map((inq) => {
-        const isClosed = inq.status === 'closed';
-        const sellerName = inq.vendor?.vendorProfile?.shopName || inq.vendor?.name || 'Seller';
-        const itemTitle = inq.listing?.title || inq.reel?.caption || inq.reel?.title || 'Listing / Post';
-        const isReel = !!inq.reel && !inq.listing;
+        const inqId = inq._id || inq.id;
+        const vendor = inq.vendor || {};
+        const vendorName = vendor.shopName || vendor.name || 'Local Vendor';
+        const vendorAvatar = resolveMediaUrl(vendor.avatarUrl || vendor.profile_pic || DEFAULT_AVATAR);
+        const isOpen = inq.status !== 'closed' && inq.status !== 'resolved';
 
         return (
           <div
-            key={inq._id || inq.id}
-            className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300"
+            key={inqId}
+            className="bg-white rounded-xl border border-[#e3dccb] p-4 shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
           >
-            <div>
-              <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] text-text-tertiary font-bold tracking-wider uppercase font-mono">
-                    Inq ID: {inq._id?.substring(16)}
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <img
+                src={vendorAvatar}
+                alt={vendorName}
+                className="w-11 h-11 rounded-full object-cover border border-[#e3dccb] shrink-0 mt-0.5 sm:mt-0"
+                onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+              />
+
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded text-[9.5px] font-extrabold uppercase ${
+                    isOpen ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {isOpen ? 'Active' : 'Closed'}
                   </span>
-                  {isReel && (
-                    <span className="px-1.5 py-0.5 rounded bg-brand-purple/10 text-brand-purple text-[9px] font-black uppercase">
-                      Reel
-                    </span>
-                  )}
+                  <span className="text-[10px] text-slate-400">
+                    {inq.createdAt ? new Date(inq.createdAt).toLocaleDateString() : 'Recently'}
+                  </span>
                 </div>
-                <AdminStatusBadge status={inq.status} />
-              </div>
 
-              <h4 className="font-bold text-xs text-text-primary truncate">{itemTitle}</h4>
-              <p className="text-[10px] text-text-tertiary mt-0.5">
-                Seller: <span className="font-semibold text-text-secondary">{sellerName}</span>
-              </p>
-
-              {/* Customer Sent Message */}
-              <div className="p-3 bg-surface-secondary/50 rounded-xl border border-border/60 mt-3 space-y-1">
-                <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block">
-                  Your Question:
-                </span>
-                <p className="text-[10px] text-text-secondary italic line-clamp-3">"{inq.message}"</p>
-              </div>
-
-              {/* Vendor's Reply */}
-              {inq.replyMessage ? (
-                <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/30 mt-2.5 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
-                      <span>💬</span> Seller's Reply:
-                    </span>
-                    {inq.repliedAt && (
-                      <span className="text-[9px] text-emerald-600 font-medium">
-                        {new Date(inq.repliedAt).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-emerald-900 font-medium leading-relaxed mt-0.5">
-                    "{inq.replyMessage}"
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-2 text-[10px] text-amber-600 font-medium flex items-center gap-1">
-                  <span>⏳</span> Awaiting seller response...
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 mt-3 text-[10px] text-text-tertiary">
-                <FiCalendar size={11} />
-                <span>Sent: {new Date(inq.createdAt).toLocaleDateString()}</span>
+                <h4 className="font-bold text-sm text-[#1a1a1a] mt-0.5 truncate">{vendorName}</h4>
+                <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                  {inq.message || inq.subject || 'Product/Service inquiry'}
+                </p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 border-t border-border/50 pt-3">
-              <button
-                onClick={() => navigate(`/customer/chat?vendorId=${inq.vendor?._id || inq.vendor?.id}`)}
-                className="w-full py-2 gradient-brand text-white rounded-xl text-[10px] font-bold shadow-premium hover:opacity-95 transition flex items-center justify-center gap-1"
-              >
-                <FiMessageSquare size={11} /> Open Direct Chat
-              </button>
+            {/* Actions */}
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              {vendor._id && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/customer/chat?vendorId=${vendor._id || vendor.id}`)}
+                  className="px-3 py-1.5 rounded-lg bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                >
+                  <FiMessageSquare size={12} />
+                  <span>Open Chat</span>
+                </button>
+              )}
 
-              <div className="grid grid-cols-2 gap-2">
+              {isOpen && (
                 <button
-                  onClick={() => onCloseInquiry(inq._id || inq.id)}
-                  disabled={isClosed}
-                  className="py-1.5 glass border border-border text-text-secondary hover:text-brand-purple disabled:opacity-40 rounded-xl text-[10px] font-semibold transition"
+                  type="button"
+                  onClick={() => onCloseInquiry(inqId)}
+                  className="px-2.5 py-1.5 rounded-lg bg-[#f8f4ec] hover:bg-[#e3dccb] text-slate-600 text-xs font-semibold border border-[#e3dccb] transition cursor-pointer"
                 >
-                  Close Inquiry
+                  Close
                 </button>
-                <button
-                  onClick={() => onDeleteInquiry(inq._id || inq.id)}
-                  className="py-1.5 glass border border-border text-text-secondary hover:text-error hover:bg-error-light/10 rounded-xl text-[10px] font-semibold transition flex items-center justify-center gap-1"
-                >
-                  <FiTrash2 size={11} /> Delete
-                </button>
-              </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => onDeleteInquiry(inqId)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                title="Delete Inquiry"
+              >
+                <FiTrash2 size={13} />
+              </button>
             </div>
           </div>
         );

@@ -591,9 +591,13 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
   if (type === 'saved-products' || type === 'saved-services') {
     const listingType = type === 'saved-products' ? 'product' : 'service';
     const inters = await Interaction.find({ user_id: uid, type: 'save', listing_id: { $ne: null } }).select('listing_id');
-    const listingIds = inters.map(i => i.listing_id);
+    const interListingIds = inters.map(i => i.listing_id);
 
-    const query = { _id: { $in: listingIds }, type: listingType, isDeleted: { $ne: true } };
+    const userDoc = await User.findById(uid).select('customerProfile.savedListings').lean();
+    const userProfileListingIds = (userDoc?.customerProfile?.savedListings || []).map(id => id.toString());
+    const combinedListingIds = [...new Set([...interListingIds, ...userProfileListingIds])];
+
+    const query = { _id: { $in: combinedListingIds }, type: listingType, isDeleted: { $ne: true } };
     if (search) {
       query.title = { $regex: new RegExp(search, 'i') };
     }

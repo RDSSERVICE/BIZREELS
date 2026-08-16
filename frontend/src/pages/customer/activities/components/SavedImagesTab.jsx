@@ -1,59 +1,82 @@
 import React from 'react';
-import { FiExternalLink, FiTrash2 } from 'react-icons/fi';
+import { FiImage, FiTrash2, FiShare2, FiExternalLink } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import OptimizedImage from '../../../../components/common/OptimizedImage';
 import { resolveMediaUrl } from '../../../../lib/api';
+
+const DEFAULT_IMG = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=400&q=80';
 
 export default function SavedImagesTab({
   images = [],
   onRemove,
+  onShare,
 }) {
   const navigate = useNavigate();
 
+  if (images.length === 0) {
+    return (
+      <div className="py-16 text-center text-xs text-slate-500 bg-white rounded-xl border border-[#e3dccb] space-y-2 p-6 shadow-xs">
+        <p className="text-sm font-bold text-[#1a1a1a]">No saved images yet</p>
+        <p className="text-xs">Save product photos, portfolios, and banners to your personal collection.</p>
+        <button
+          onClick={() => navigate('/customer/search')}
+          className="mt-3 px-4 py-2 bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+        >
+          Browse Listings
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 font-sans">
       {images.map((img) => {
-        const coverImg = img.images?.[0] || 'https://via.placeholder.com/300';
+        const imgId = img._id || img.id;
+        const rawUrl = img.images?.[0] || img.image || img.mediaUrl || img.url || DEFAULT_IMG;
+        const url = resolveMediaUrl(rawUrl);
+
         return (
           <div
-            key={img.id || img._id}
-            className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300 hover:-translate-y-1 group"
+            key={imgId}
+            className="bg-white rounded-xl border border-[#e3dccb] shadow-xs hover:shadow-md transition-all overflow-hidden flex flex-col justify-between group"
           >
-            <div className="flex gap-4">
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/10 border border-border flex-shrink-0 relative">
-                <img
-                  src={resolveMediaUrl(coverImg)}
-                  alt={img.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[9px] uppercase tracking-wider text-brand-purple font-bold">
-                  {img.category || 'Listing'}
-                </span>
-                <h4 className="font-bold text-xs text-text-primary truncate mb-0.5">{img.title}</h4>
-                <p className="text-[10px] text-text-tertiary truncate">
-                  By <span className="font-semibold text-text-secondary">
-                    {img.vendor?.vendorProfile?.shopName || img.vendor?.name || 'Vendor'}
-                  </span>
-                </p>
-                <p className="text-xs font-bold text-brand-purple mt-2">
-                  ₹{(img.price || 0).toLocaleString()}
-                </p>
-              </div>
+            <div
+              onClick={() => navigate(`/customer/search?productId=${imgId}`)}
+              className="aspect-square bg-[#f8f4ec] relative overflow-hidden cursor-pointer"
+            >
+              <OptimizedImage
+                src={url}
+                alt={img.title || 'Saved Photo'}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                width={350}
+              />
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <button
-                onClick={() => navigate(`/customer/search?search=${img.title}`)}
-                className="py-2 gradient-brand text-white rounded-xl text-[10px] font-bold shadow-premium hover:opacity-95 transition flex items-center justify-center gap-1"
-              >
-                <FiExternalLink size={11} /> View Listing
-              </button>
-              <button
-                onClick={() => onRemove(img.id || img._id)}
-                className="py-2 glass border border-border text-text-secondary hover:text-error hover:bg-error-light/10 rounded-xl text-[10px] font-semibold transition flex items-center justify-center gap-1"
-              >
-                <FiTrash2 size={11} /> Remove
-              </button>
+
+            <div className="p-3 bg-white flex items-center justify-between border-t border-[#e3dccb]">
+              <div className="min-w-0 pr-2">
+                <h5 className="font-bold text-xs text-[#1a1a1a] truncate">{img.title || 'Saved Image'}</h5>
+                <p className="text-[10px] text-slate-400 truncate">{img.category || 'General'}</p>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onShare('image', imgId, img.title)}
+                  className="p-1 text-slate-500 hover:text-[#1a1a1a] transition cursor-pointer"
+                  title="Share"
+                >
+                  <FiShare2 size={13} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onRemove(imgId)}
+                  className="p-1 text-slate-400 hover:text-red-600 transition cursor-pointer"
+                  title="Remove"
+                >
+                  <FiTrash2 size={13} />
+                </button>
+              </div>
             </div>
           </div>
         );

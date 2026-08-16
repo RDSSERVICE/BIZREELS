@@ -1,7 +1,10 @@
 import React from 'react';
-import { FiStar, FiShoppingBag, FiTrash2, FiShare2, FiExternalLink } from 'react-icons/fi';
+import { FiStar, FiShoppingBag, FiTrash2, FiShare2, FiExternalLink, FiMapPin } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import OptimizedImage from '../../../../components/common/OptimizedImage';
 import { resolveMediaUrl } from '../../../../lib/api';
+
+const DEFAULT_PRODUCT_IMG = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=400&q=80';
 
 export default function SavedProductsTab({
   products = [],
@@ -11,89 +14,137 @@ export default function SavedProductsTab({
 }) {
   const navigate = useNavigate();
 
+  if (products.length === 0) {
+    return (
+      <div className="py-16 text-center text-xs text-slate-500 bg-white rounded-xl border border-[#e3dccb] space-y-2 p-6 shadow-xs">
+        <p className="text-sm font-bold text-[#1a1a1a]">No saved products yet</p>
+        <p className="text-xs">Browse local products and click the bookmark icon to save them for later.</p>
+        <button
+          onClick={() => navigate('/customer/search?type=product')}
+          className="mt-3 px-4 py-2 bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+        >
+          Explore Products
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 font-sans">
       {products.map((p) => {
-        const hasDiscount = p.discount > 0 || (p.actualPrice && p.sellingPrice && p.actualPrice > p.sellingPrice);
-        const origPrice = p.actualPrice || p.price || 0;
-        const salePrice = p.sellingPrice || p.salePrice || p.price || 0;
-        const inStock = p.stock > 0;
+        const itemId = p._id || p.id;
+        const vendorObj = p.vendor || p.vendorId || {};
+        const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || 'Verified Vendor';
+        const rawImg = p.images?.[0] || p.image || p.mediaUrl || DEFAULT_PRODUCT_IMG;
+        const imgUrl = resolveMediaUrl(rawImg);
+
+        const origPrice = Number(p.actualPrice || p.regularPrice || p.price || 0);
+        const salePrice = Number(p.sellingPrice || p.salePrice || p.price || 0);
+        const hasDiscount = origPrice > salePrice;
+        const inStock = p.stock === undefined || p.stock > 0;
 
         return (
           <div
-            key={p.id || p._id}
-            className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300 hover:-translate-y-1 group"
+            key={itemId}
+            className="bg-white rounded-xl border border-[#e3dccb] shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col justify-between group"
           >
-            <div className="flex gap-4">
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/10 border border-border flex-shrink-0 relative">
-                <img
-                  src={resolveMediaUrl(p.images?.[0] || 'https://via.placeholder.com/300')}
-                  alt={p.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <span className={`absolute top-1 left-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white ${inStock ? 'bg-emerald-600' : 'bg-red-600'}`}>
-                  {inStock ? 'In Stock' : 'Out of Stock'}
-                </span>
-              </div>
+            {/* Top vendor info bar */}
+            <div className="p-3 flex items-center justify-between border-b border-[#e3dccb]/70 bg-[#f8f4ec]/40">
+              <span className="text-[10px] font-extrabold uppercase text-[#d99a3d] tracking-wider truncate">
+                {p.category || 'Product'}
+              </span>
+              <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                inStock ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                {inStock ? 'In Stock' : 'Out of Stock'}
+              </span>
+            </div>
 
-              <div className="flex-1 min-w-0">
-                <span className="text-[9px] uppercase tracking-wider text-brand-purple font-bold">{p.category}</span>
-                <h4 className="font-bold text-xs text-text-primary truncate mb-0.5">{p.title}</h4>
-                <p className="text-[10px] text-text-tertiary truncate">
-                  By <span
-                    className="font-semibold text-text-secondary cursor-pointer hover:underline"
-                    onClick={() => navigate(`/customer/vendor/${p.vendor?.id || p.vendor?._id}`)}
-                  >
-                    {p.vendor?.vendorProfile?.shopName || p.vendor?.name || 'Verified Vendor'}
-                  </span>
+            {/* Media Image Area */}
+            <div
+              onClick={() => navigate(`/customer/search?productId=${itemId}`)}
+              className="aspect-[4/3] bg-[#f8f4ec] relative overflow-hidden cursor-pointer"
+            >
+              <OptimizedImage
+                src={imgUrl}
+                alt={p.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                width={400}
+              />
+              {hasDiscount && (
+                <div className="absolute bottom-2 left-2 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-xs">
+                  {Math.round(((origPrice - salePrice) / origPrice) * 100)}% OFF
+                </div>
+              )}
+            </div>
+
+            {/* Content Details */}
+            <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
+              <div>
+                <h4
+                  onClick={() => navigate(`/customer/search?productId=${itemId}`)}
+                  className="font-bold text-sm text-[#1a1a1a] hover:text-[#7c3aed] transition cursor-pointer line-clamp-1"
+                >
+                  {p.title}
+                </h4>
+
+                <p
+                  onClick={() => {
+                    const vendorId = vendorObj._id || vendorObj.id || p.vendor;
+                    if (vendorId) navigate(`/customer/vendor/${vendorId}`);
+                  }}
+                  className="text-xs text-slate-500 hover:text-[#7c3aed] cursor-pointer transition flex items-center gap-1 mt-1 truncate"
+                >
+                  <FiMapPin size={11} className="text-[#d99a3d] shrink-0" />
+                  <span>By {vendorName}</span>
                 </p>
 
-                {/* Rating */}
-                <div className="flex items-center gap-1 mt-1 text-[10px] text-yellow-500 font-bold">
-                  <FiStar size={11} fill="currentColor" />
-                  <span>{p.rating || 0}</span>
-                  <span className="text-[9px] text-text-tertiary">({p.totalReviews || 0})</span>
-                </div>
-
-                {/* Prices */}
-                <div className="flex items-center gap-1.5 mt-2">
-                  <span className="text-xs font-bold text-text-primary">₹{salePrice.toLocaleString()}</span>
-                  {hasDiscount && (
-                    <>
-                      <span className="text-[10px] text-text-tertiary line-through">₹{origPrice.toLocaleString()}</span>
-                      <span className="text-[9px] px-1 bg-red-500/10 text-red-500 rounded font-bold">
-                        {p.discount || Math.round(((origPrice - salePrice) / origPrice) * 100)}% Off
-                      </span>
-                    </>
-                  )}
+                {/* Rating & Pricing */}
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#e3dccb]">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-sm font-black text-[#1a1a1a]">₹{salePrice.toLocaleString('en-IN')}</span>
+                    {hasDiscount && (
+                      <span className="text-[10px] text-slate-400 line-through">₹{origPrice.toLocaleString('en-IN')}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#d99a3d]">
+                    <FiStar size={11} className="fill-[#d99a3d]" />
+                    <span>{p.rating || '4.8'}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <button
-                onClick={() => onAddToCart(p.id || p._id)}
-                disabled={!inStock}
-                className="py-2 gradient-brand text-white rounded-xl text-[10px] font-bold shadow-premium hover:opacity-95 transition disabled:opacity-50 flex items-center justify-center gap-1"
-              >
-                <FiShoppingBag size={11} /> Buy Now
-              </button>
-              <button
-                onClick={() => onRemove(p.id || p._id)}
-                className="py-2 glass border border-border text-text-secondary hover:text-error hover:bg-error-light/10 rounded-xl text-[10px] font-semibold transition flex items-center justify-center gap-1"
-              >
-                <FiTrash2 size={11} /> Remove
-              </button>
-            </div>
-
-            <div className="flex justify-between items-center text-[9px] text-text-tertiary border-t border-border/50 pt-2">
-              <span>Saved: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : 'Recently'}</span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => onShare('listing', p.id || p._id, p.title)} className="hover:text-brand-purple p-1">
-                  <FiShare2 size={11} />
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#e3dccb]">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/customer/search?productId=${itemId}`)}
+                  className="py-2 rounded-lg bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+                >
+                  <FiShoppingBag size={12} />
+                  <span>View / Order</span>
                 </button>
-                <button onClick={() => navigate(`/customer/search?search=${p.title}`)} className="hover:text-brand-purple p-1">
-                  <FiExternalLink size={11} />
+
+                <button
+                  type="button"
+                  onClick={() => onRemove(itemId)}
+                  className="py-2 rounded-lg bg-[#f8f4ec] hover:bg-red-50 hover:text-red-600 border border-[#e3dccb] text-slate-600 text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <FiTrash2 size={12} />
+                  <span>Remove</span>
+                </button>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1">
+                <span>Saved item</span>
+                <button
+                  type="button"
+                  onClick={() => onShare('listing', itemId, p.title)}
+                  className="p-1 text-slate-500 hover:text-[#1a1a1a] transition cursor-pointer"
+                  title="Share"
+                >
+                  <FiShare2 size={12} />
                 </button>
               </div>
             </div>

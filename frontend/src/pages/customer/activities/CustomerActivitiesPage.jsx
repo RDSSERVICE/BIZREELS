@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { FiBookmark, FiPackage, FiMessageSquare, FiDollarSign, FiUserCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 import {
@@ -99,106 +98,44 @@ export default function CustomerActivitiesPage() {
   const [reviewListingId, setReviewListingId] = useState('');
   const [reviewVendorId, setReviewVendorId] = useState('');
 
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancelLoading, setCancelLoading] = useState(false);
+
   const [selectedService, setSelectedService] = useState(null);
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const [bookingDate, setBookingDate] = useState('');
-  const [bookingTime, setBookingTime] = useState('10:00 AM');
-  const [bookingAddress, setBookingAddress] = useState('');
-  const [bookingNotes, setBookingNotes] = useState('');
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
 
-  // Cancellation & Refund Modal state
-  const [cancelOrderModal, setCancelOrderModal] = useState({
-    show: false,
-    order: null,
-    reason: '',
-    submitting: false,
-  });
-
-  // Destructive confirmations
   const [confirmModal, setConfirmModal] = useState({
-    show: false,
+    isOpen: false,
     title: '',
     message: '',
-    onConfirm: null,
+    confirmText: '',
+    onConfirm: () => {},
   });
 
-  const isCustomTab = [
-    'saved-products',
-    'saved-services',
-    'saved-reels',
-    'saved-images',
-    'click-to-called',
-    'whatsapp-contacted',
-    'chat-inquiries',
-  ].includes(activeTab);
+  // Queries
+  const { data: catData } = useListCategoriesQuery({});
+  const categoriesList = catData?.data?.categories || catData?.categories || catData?.data || [];
 
-  useEffect(() => {
-    if (!isCustomTab) return;
-    const fetchActivities = async () => {
-      setCustomLoading(true);
-      try {
-        const params = new URLSearchParams({
-          type: activeTab,
-          page: page.toString(),
-          limit: '6',
-        });
-        if (search) params.append('search', search);
-        if (sortBy) params.append('sortBy', sortBy);
-
-        const res = await api.get(`/v1/users/me/activities?${params.toString()}`);
-        if (res.data) {
-          setCustomActivities({
-            data: res.data.data || [],
-            pagination: res.data.pagination || { page: 1, limit: 6, total: res.data.data?.length || 0 },
-          });
-        }
-      } catch (err) {
-        console.error('Failed to fetch user activities:', err);
-      } finally {
-        setCustomLoading(false);
-      }
-    };
-    fetchActivities();
-  }, [activeTab, page, search, sortBy]);
-
-  // RTK Query hooks
-  const queryParams = {
-    search: search || undefined,
-    category: category || undefined,
-    status: status || undefined,
-    sortBy,
-    page,
-    limit: 6,
-    minPrice: minPrice || undefined,
-    maxPrice: maxPrice || undefined,
-  };
-
-  const { data: savedData, isLoading: savedLoading, refetch: refetchSaved } = useGetSavedListingsQuery(
-    queryParams,
-    { skip: activeTab !== 'saved-products' && activeTab !== 'saved-services' && activeTab !== 'saved-images' }
-  );
-
-  const { data: inquiriesData, isLoading: inquiriesLoading, refetch: refetchInquiries } = useGetInquiriesQuery(
-    queryParams,
-    { skip: activeTab !== 'inquiries' }
-  );
-
-  const { data: quotesData, isLoading: quotesLoading, refetch: refetchQuotes } = useGetQuotesQuery(
-    queryParams,
-    { skip: activeTab !== 'quotes' }
-  );
-
-  const { data: vendorsData, isLoading: vendorsLoading, refetch: refetchVendors } = useGetFollowingQuery(
-    queryParams,
-    { skip: activeTab !== 'following-vendors' }
-  );
-
-  const { data: ordersData, isLoading: ordersLoading, refetch: refetchOrders } = useGetOrdersQuery(
-    queryParams,
+  const { data: ordersData, refetch: refetchOrders } = useGetOrdersQuery(
+    { page, limit: 10, status: status || undefined, search: search || undefined },
     { skip: activeTab !== 'my-orders' }
   );
 
-  const { data: categoriesData } = useListCategoriesQuery();
+  const { data: inquiriesData, refetch: refetchInquiries } = useGetInquiriesQuery(
+    { page, limit: 10, search: search || undefined },
+    { skip: activeTab !== 'chat-inquiries' }
+  );
+
+  const { data: quotesData, refetch: refetchQuotes } = useGetQuotesQuery(
+    { page, limit: 10, search: search || undefined },
+    { skip: activeTab !== 'quotes' }
+  );
+
+  const { data: followingData, refetch: refetchFollowing } = useGetFollowingQuery(
+    { page, limit: 10, search: search || undefined },
+    { skip: activeTab !== 'following-vendors' }
+  );
 
   // Mutations
   const [unsaveListing] = useUnsaveListingMutation();
@@ -207,122 +144,102 @@ export default function CustomerActivitiesPage() {
   const [updateQuoteStatus] = useUpdateQuoteStatusMutation();
   const [unfollowUser] = useUnfollowUserMutation();
 
-  // Actions
+  // Custom activities fetch for dynamic saved tabs
+  const fetchCustomActivities = async () => {
+    setCustomLoading(true);
+    try {
+      const res = await api.get('/v1/users/me/activities', {
+        params: {
+          type: activeTab,
+          search: search || undefined,
+          category: category || undefined,
+          sortBy: sortBy || undefined,
+          page,
+          limit: 12,
+        },
+      });
+      if (res.data) {
+        setCustomActivities({
+          data: res.data.data || [],
+          pagination: res.data.pagination || { page: 1, limit: 12, total: 0 },
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to fetch activities:', err);
+    } finally {
+      setCustomLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      [
+        'saved-products',
+        'saved-services',
+        'saved-reels',
+        'saved-images',
+        'click-to-called',
+        'whatsapp-contacted',
+      ].includes(activeTab)
+    ) {
+      fetchCustomActivities();
+    }
+  }, [activeTab, page, search, category, sortBy]);
+
+  // Handlers
   const handleRemoveSaved = async (id) => {
     try {
-      if (isCustomTab) {
-        await api.delete(`/v1/users/me/activities/item/${id}`);
-        setCustomActivities((prev) => ({
-          ...prev,
-          data: prev.data.filter((item) => item.id !== id && item._id !== id),
-        }));
-        fetchCounts();
-        toast.success('Removed from saved activities');
-      } else {
-        await unsaveListing(id).unwrap();
-        toast.success('Listing removed from saved items');
-      }
-    } catch {
+      await api.post(`/v1/listings/${id}/unsave`);
+      toast.success('Removed from saved items');
+      fetchCustomActivities();
+      fetchCounts();
+    } catch (err) {
       toast.error('Failed to remove item');
     }
   };
 
-  const handleRemoveSavedReel = async (id) => {
-    try {
-      await api.delete(`/v1/users/me/activities/item/${id}`);
-      setCustomActivities((prev) => ({
-        ...prev,
-        data: prev.data.filter((item) => item.id !== id && item._id !== id),
-      }));
-      fetchCounts();
-      toast.success('Reel removed from saved activities');
-    } catch {
-      toast.error('Failed to remove reel');
-    }
-  };
-
-  const handleRemoveSavedImage = async (id) => {
-    try {
-      await api.delete(`/v1/users/me/activities/item/${id}`);
-      setCustomActivities((prev) => ({
-        ...prev,
-        data: prev.data.filter((item) => item.id !== id && item._id !== id),
-      }));
-      fetchCounts();
-      toast.success('Image removed from saved activities');
-    } catch {
-      toast.error('Failed to remove image');
-    }
-  };
-
-  const handleDeleteInquiry = (id) => {
-    setConfirmModal({
-      show: true,
-      title: 'Delete Inquiry Record',
-      message: 'Are you sure you want to permanently delete this inquiry record from your history?',
-      onConfirm: async () => {
-        try {
-          await deleteInquiry(id).unwrap();
-          toast.success('Inquiry record deleted');
-          setConfirmModal({ show: false, title: '', message: '', onConfirm: null });
-        } catch {
-          toast.error('Failed to delete inquiry');
-        }
-      },
-    });
-  };
-
-  const handleCloseInquiry = async (id) => {
-    try {
-      await closeInquiry(id).unwrap();
-      toast.success('Inquiry marked as closed');
-    } catch {
-      toast.error('Failed to update inquiry');
-    }
-  };
-
-  const handleUpdateQuote = async (id, newStatus, vendorName) => {
-    try {
-      await updateQuoteStatus({ quoteId: id, status: newStatus }).unwrap();
-      toast.success(`Proposal from ${vendorName} was ${newStatus.toUpperCase()}`);
-    } catch {
-      toast.error('Failed to update quotation proposal');
-    }
-  };
-
-  const handleUnfollow = (id, name) => {
-    setConfirmModal({
-      show: true,
-      title: `Unfollow ${name}`,
-      message: `Are you sure you want to stop following ${name}? You will no longer receive immediate notifications about their new listings.`,
-      onConfirm: async () => {
-        try {
-          await unfollowUser(id).unwrap();
-          toast.success(`Unfollowed ${name}`);
-          setConfirmModal({ show: false, title: '', message: '', onConfirm: null });
-        } catch {
-          toast.error('Failed to unfollow vendor');
-        }
-      },
-    });
-  };
-
-  const handleShare = (type, id, title) => {
-    const url = `${window.location.origin}/customer/search?${type}=${id}`;
+  const handleShare = async (type, id, title) => {
+    const url = `${window.location.origin}/customer/search?productId=${id}`;
     if (navigator.share) {
-      navigator.share({ title: `Check out ${title} on BizReels!`, url }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(url);
-      toast.success('Link copied to clipboard!');
+      try {
+        await navigator.share({ title: title || 'BizReels', url });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('🔗 Link copied to clipboard!');
+    } catch {
+      toast.error('Failed to copy link');
     }
   };
 
-  const handleAddToCart = (id) => {
-    toast.success('Direct purchase initiated! Redirecting to checkout...');
-    navigate(`/customer/search?buyNow=${id}`);
+  const handleOpenCancelModal = (order) => {
+    setSelectedOrder(order);
+    setCancellationReason('');
+    setIsCancelModalOpen(true);
   };
 
-  const handleOpenReview = (listingId, vendorId) => {
+  const handleConfirmCancel = async () => {
+    if (!selectedOrder) return;
+    setCancelLoading(true);
+    try {
+      await api.patch(`/v1/orders/${selectedOrder._id || selectedOrder.id}/cancel`, {
+        reason: cancellationReason,
+      });
+      toast.success('Order cancelled successfully');
+      setIsCancelModalOpen(false);
+      if (refetchOrders) refetchOrders();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to cancel order');
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const handleOpenReviewModal = (listingId, vendorId) => {
     setReviewListingId(listingId);
     setReviewVendorId(vendorId);
     setReviewRating(5);
@@ -330,400 +247,238 @@ export default function CustomerActivitiesPage() {
     setIsReviewOpen(true);
   };
 
-  const handleReviewSubmit = async (e) => {
+  const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (!reviewComment.trim()) {
-      toast.error('Please write a brief comment.');
-      return;
-    }
-    const toastId = toast.loading('Submitting review...');
+    if (!reviewComment.trim()) return toast.error('Please write a review comment');
     try {
       await api.post('/v1/reviews', {
-        listingId: reviewListingId,
-        vendorId: reviewVendorId,
+        targetListingId: reviewListingId || undefined,
+        targetUserId: reviewVendorId || undefined,
         rating: reviewRating,
-        comment: reviewComment,
+        comment: reviewComment.trim(),
       });
-      toast.success('Review submitted successfully! Thank you.', { id: toastId });
+      toast.success('Review submitted successfully!');
       setIsReviewOpen(false);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit review.', { id: toastId });
+      toast.error(err?.response?.data?.message || 'Failed to submit review');
     }
   };
 
-  const handleOpenBooking = (service) => {
+  const handleOpenBookModal = (service) => {
     setSelectedService(service);
-    setBookingDate('');
-    setBookingTime('10:00 AM');
-    setBookingAddress('');
-    setBookingNotes('');
-    setIsBookingOpen(true);
+    setIsBookModalOpen(true);
   };
 
-  const handleBookServiceSubmit = async (e) => {
-    e.preventDefault();
-    if (!bookingDate || !bookingTime || !bookingAddress) {
-      toast.error('Please fill in Date, Time, and Address.');
-      return;
-    }
-    const toastId = toast.loading('Submitting booking...');
+  const handleUnfollow = async (vendorId) => {
     try {
-      await api.post('/v1/orders', {
-        listingId: selectedService.id || selectedService._id,
-        quantity: 1,
-        bookingDate,
-        bookingTime,
-        address: `[Scheduled: ${bookingDate} at ${bookingTime}] Delivery Location: ${bookingAddress}. Remarks: ${bookingNotes || 'None'}`,
-      });
-      toast.success('Booking requested successfully! Tracking request.', { id: toastId });
-      setIsBookingOpen(false);
-      refetchOrders();
+      await unfollowUser(vendorId).unwrap();
+      toast.success('Unfollowed vendor');
+      if (refetchFollowing) refetchFollowing();
+      fetchCounts();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Booking request failed.', { id: toastId });
+      toast.error('Failed to unfollow');
     }
   };
 
-  const handleOpenCancelModal = (order) => {
-    setCancelOrderModal({
-      show: true,
-      order,
-      reason: '',
-      submitting: false,
-    });
-  };
-
-  const handleCancelOrderSubmit = async (e) => {
-    if (e) e.preventDefault();
-    const order = cancelOrderModal.order;
-    if (!order) return;
-
-    setCancelOrderModal((prev) => ({ ...prev, submitting: true }));
-    const toastId = toast.loading('Processing cancellation and calculating refund...');
+  const handleCloseInquiry = async (inqId) => {
     try {
-      const res = await api.patch(`/v1/orders/${order._id || order.id}/cancel`, {
-        reason: cancelOrderModal.reason || 'Cancelled by customer',
-      });
-      const data = res.data?.data || res.data || {};
-      toast.success(
-        data.policyExplanation || `Order cancelled. ₹${data.refundAmount ?? order.price} refunded to wallet!`,
-        { id: toastId }
-      );
-      setCancelOrderModal({ show: false, order: null, reason: '', submitting: false });
-      refetchOrders();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to cancel order.', { id: toastId });
-      setCancelOrderModal((prev) => ({ ...prev, submitting: false }));
+      await closeInquiry(inqId).unwrap();
+      toast.success('Inquiry closed');
+      if (refetchInquiries) refetchInquiries();
+    } catch {
+      toast.error('Failed to close inquiry');
     }
   };
 
-  const handlePrintInvoice = (order) => {
-    toast.success(`Generating Receipt for ${order._id || order.id}...`);
-    window.print();
-  };
-
-  const handleReorder = async (listingId, quantity, address) => {
-    const toastId = toast.loading('Reordering item...');
+  const handleDeleteInquiry = async (inqId) => {
     try {
-      await api.post('/v1/orders', {
-        listingId,
-        quantity: quantity || 1,
-        address: address || 'Default Customer Profile Delivery Address',
-      });
-      toast.success('Order placed again successfully!', { id: toastId });
-      refetchOrders();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to reorder item.', { id: toastId });
+      await deleteInquiry(inqId).unwrap();
+      toast.success('Inquiry deleted');
+      if (refetchInquiries) refetchInquiries();
+    } catch {
+      toast.error('Failed to delete inquiry');
     }
   };
 
-  const handleClearCustomLogs = () => {
-    setConfirmModal({
-      show: true,
-      title: `Clear ${activeTab.replace('-', ' ')} Logs`,
-      message: 'Are you sure you want to clear this entire activity log? This cannot be undone.',
-      onConfirm: async () => {
-        try {
-          await api.delete(`/v1/users/me/activities/clear?type=${activeTab}`);
-          setCustomActivities({ data: [], pagination: { page: 1, limit: 6, total: 0 } });
-          fetchCounts();
-          toast.success('Activities log cleared');
-          setConfirmModal({ show: false, title: '', message: '', onConfirm: null });
-        } catch {
-          toast.error('Failed to clear activities');
-        }
-      },
-    });
-  };
-
-  const openTracker = (order) => {
-    setSelectedOrder(order);
-    setIsTrackerOpen(true);
-  };
-
-  // Helper data & loading mappings
-  const getData = () => {
-    if (isCustomTab) return customActivities.data || [];
-    switch (activeTab) {
-      case 'inquiries': return inquiriesData?.data || [];
-      case 'quotes': return quotesData?.data || [];
-      case 'following-vendors': return vendorsData?.data || [];
-      case 'my-orders': return ordersData?.data || [];
-      default: return savedData?.data || [];
+  const handleUpdateQuoteStatus = async (quoteId, newStatus) => {
+    try {
+      await updateQuoteStatus({ id: quoteId, status: newStatus }).unwrap();
+      toast.success(`Quote marked as ${newStatus}`);
+      if (refetchQuotes) refetchQuotes();
+    } catch {
+      toast.error('Failed to update quote status');
     }
   };
 
-  const getLoading = () => {
-    if (isCustomTab) return customLoading;
-    switch (activeTab) {
-      case 'inquiries': return inquiriesLoading;
-      case 'quotes': return quotesLoading;
-      case 'following-vendors': return vendorsLoading;
-      case 'my-orders': return ordersLoading;
-      default: return savedLoading;
-    }
-  };
-
-  const getTotalPages = () => {
-    if (isCustomTab) {
-      const total = customActivities.pagination?.total || 0;
-      return Math.ceil(total / (customActivities.pagination?.limit || 6)) || 1;
-    }
-    let total = 0;
-    switch (activeTab) {
-      case 'inquiries': total = inquiriesData?.total || 0; break;
-      case 'quotes': total = quotesData?.total || 0; break;
-      case 'following-vendors': total = vendorsData?.total || 0; break;
-      case 'my-orders': total = ordersData?.total || 0; break;
-      default: total = savedData?.total || 0; break;
-    }
-    return Math.ceil(total / 6) || 1;
-  };
-
-  const data = getData();
-  const loading = getLoading();
-  const totalPages = getTotalPages();
-  const categoriesList = categoriesData?.data || [];
+  // Orders list extracted
+  const ordersList = ordersData?.data?.orders || ordersData?.orders || ordersData?.data || [];
+  const inquiriesList = inquiriesData?.data?.inquiries || inquiriesData?.inquiries || inquiriesData?.data || [];
+  const quotesList = quotesData?.data?.quotes || quotesData?.quotes || quotesData?.data || [];
+  const followingList = followingData?.data?.following || followingData?.following || followingData?.data || [];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12 animate-fade-in">
-      {/* HEADER */}
-      <ActivitiesHeader />
+    <div className="min-h-screen bg-[#f8f4ec] py-4 px-3 sm:px-6 font-sans">
+      <div className="max-w-6xl mx-auto space-y-5 animate-fade-in">
+        {/* Header */}
+        <ActivitiesHeader totalCount={counts.total} />
 
-      {/* DYNAMIC TAB BAR */}
-      <ActivitiesTabBar activeTab={activeTab} onTabChange={setActiveTab} counts={counts} />
+        {/* Tab Navigation Chips */}
+        <ActivitiesTabBar activeTab={activeTab} onTabChange={setActiveTab} counts={counts} />
 
-      {/* SEARCH AND FILTERS */}
-      <ActivitiesFilterBar
-        activeTab={activeTab}
-        search={search}
-        setSearch={setSearch}
-        category={category}
-        setCategory={setCategory}
-        status={status}
-        setStatus={setStatus}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        minPrice={minPrice}
-        setMinPrice={setMinPrice}
-        maxPrice={maxPrice}
-        setMaxPrice={setMaxPrice}
-        setPage={setPage}
-        categoriesList={categoriesList}
-        dataCount={data.length}
-        onClearAll={handleClearCustomLogs}
-      />
+        {/* Search & Filter Bar */}
+        <ActivitiesFilterBar
+          search={search}
+          setSearch={setSearch}
+          category={category}
+          setCategory={setCategory}
+          categories={categoriesList}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          status={status}
+          setStatus={setStatus}
+          showCategory={['saved-products', 'saved-services', 'saved-images'].includes(activeTab)}
+          showStatus={activeTab === 'my-orders'}
+          showPriceFilter={['saved-products', 'saved-services'].includes(activeTab)}
+          minPrice={minPrice}
+          setMinPrice={setMinPrice}
+          maxPrice={maxPrice}
+          setMaxPrice={setMaxPrice}
+        />
 
-      {/* CARDS DISPLAY CONTAINER */}
-      <div className="glass rounded-2xl p-6 border border-white/50 shadow-card min-h-[400px] flex flex-col justify-between">
-        {loading ? (
-          /* SKELETON LOADING GRID */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="glass rounded-2xl p-5 border border-white/30 h-64 flex flex-col justify-between">
-                <div className="flex gap-4">
-                  <div className="w-16 h-16 bg-white/20 rounded-xl flex-shrink-0"></div>
-                  <div className="space-y-2 w-full">
-                    <div className="h-4 bg-white/20 rounded w-3/4"></div>
-                    <div className="h-3 bg-white/20 rounded w-1/2"></div>
-                    <div className="h-3 bg-white/20 rounded w-5/6"></div>
-                  </div>
+        {/* ── Active Tab Content Area ── */}
+        <div className="mt-4">
+          {customLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-white rounded-xl border border-[#e3dccb] p-4 space-y-3 animate-pulse">
+                  <div className="w-full aspect-[4/3] bg-slate-200 rounded-lg" />
+                  <div className="w-2/3 h-4 bg-slate-200 rounded" />
+                  <div className="w-1/3 h-3 bg-slate-200 rounded" />
                 </div>
-                <div className="h-10 bg-white/20 rounded-xl w-full"></div>
-              </div>
-            ))}
-          </div>
-        ) : data.length === 0 ? (
-          /* EMPTY STATES */
-          <div className="flex flex-col items-center justify-center text-center py-16 space-y-4">
-            <div className="w-24 h-24 rounded-full bg-brand-purple/5 flex items-center justify-center text-brand-purple border border-brand-purple/20">
-              {activeTab.startsWith('saved') ? (
-                <FiBookmark size={40} />
-              ) : activeTab === 'my-orders' ? (
-                <FiPackage size={40} />
-              ) : activeTab === 'inquiries' ? (
-                <FiMessageSquare size={40} />
-              ) : activeTab === 'quotes' ? (
-                <FiDollarSign size={40} />
-              ) : (
-                <FiUserCheck size={40} />
+              ))}
+            </div>
+          ) : (
+            <>
+              {activeTab === 'saved-products' && (
+                <SavedProductsTab
+                  products={customActivities.data}
+                  onAddToCart={(id) => navigate(`/customer/search?productId=${id}`)}
+                  onRemove={handleRemoveSaved}
+                  onShare={handleShare}
+                />
               )}
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-bold text-text-primary">No Activities Found</h3>
-              <p className="text-xs text-text-tertiary max-w-sm">
-                We couldn't find any listings or records matching your dashboard filters. Browse feed or update filters!
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('/customer/search')}
-              className="px-4 py-2 gradient-brand text-white text-xs font-bold rounded-xl shadow-premium hover:opacity-95 transition"
-            >
-              Explore Feed & Listings
-            </button>
-          </div>
-        ) : (
-          /* ACTIVE TABS CONTENT */
-          <div>
-            {activeTab === 'saved-products' && (
-              <SavedProductsTab
-                products={data}
-                onAddToCart={handleAddToCart}
-                onRemove={handleRemoveSaved}
-                onShare={handleShare}
-              />
-            )}
 
-            {activeTab === 'saved-services' && (
-              <SavedServicesTab
-                services={data}
-                onOpenBooking={handleOpenBooking}
-                onRemove={handleRemoveSaved}
-                onShare={handleShare}
-              />
-            )}
+              {activeTab === 'saved-services' && (
+                <SavedServicesTab
+                  services={customActivities.data}
+                  onBookService={handleOpenBookModal}
+                  onRemove={handleRemoveSaved}
+                  onShare={handleShare}
+                />
+              )}
 
-            {activeTab === 'saved-reels' && (
-              <SavedReelsTab reels={data} onRemove={handleRemoveSavedReel} />
-            )}
+              {activeTab === 'saved-reels' && (
+                <SavedReelsTab
+                  reels={customActivities.data}
+                  onRemove={handleRemoveSaved}
+                  onShare={handleShare}
+                />
+              )}
 
-            {activeTab === 'saved-images' && (
-              <SavedImagesTab images={data} onRemove={handleRemoveSavedImage} />
-            )}
+              {activeTab === 'saved-images' && (
+                <SavedImagesTab
+                  images={customActivities.data}
+                  onRemove={handleRemoveSaved}
+                  onShare={handleShare}
+                />
+              )}
 
-            {['click-to-called', 'whatsapp-contacted', 'chat-inquiries'].includes(activeTab) && (
-              <ContactHistoryTab activeTab={activeTab} items={data} />
-            )}
+              {['click-to-called', 'whatsapp-contacted'].includes(activeTab) && (
+                <ContactHistoryTab
+                  interactions={customActivities.data}
+                  activeTab={activeTab}
+                />
+              )}
 
-            {activeTab === 'my-orders' && (
-              <MyOrdersTab
-                orders={data}
-                onOpenTracker={openTracker}
-                onOpenCancelModal={handleOpenCancelModal}
-                onOpenReview={handleOpenReview}
-                onPrintInvoice={handlePrintInvoice}
-                onReorder={handleReorder}
-              />
-            )}
+              {activeTab === 'my-orders' && (
+                <MyOrdersTab
+                  orders={ordersList}
+                  onTrackOrder={(order) => {
+                    setSelectedOrder(order);
+                    setIsTrackerOpen(true);
+                  }}
+                  onOpenCancelModal={handleOpenCancelModal}
+                  onOpenReviewModal={handleOpenReviewModal}
+                />
+              )}
 
-            {activeTab === 'inquiries' && (
-              <InquiriesTab
-                inquiries={data}
-                onCloseInquiry={handleCloseInquiry}
-                onDeleteInquiry={handleDeleteInquiry}
-              />
-            )}
+              {activeTab === 'chat-inquiries' && (
+                <InquiriesTab
+                  inquiries={inquiriesList}
+                  onCloseInquiry={handleCloseInquiry}
+                  onDeleteInquiry={handleDeleteInquiry}
+                />
+              )}
 
-            {activeTab === 'quotes' && (
-              <QuotesTab quotes={data} onUpdateQuote={handleUpdateQuote} />
-            )}
+              {activeTab === 'quotes' && (
+                <QuotesTab
+                  quotes={quotesList}
+                  onUpdateQuoteStatus={handleUpdateQuoteStatus}
+                />
+              )}
 
-            {(activeTab === 'following-vendors' || activeTab === 'following-services') && (
-              <FollowingVendorsTab
-                vendors={data}
-                onUnfollow={handleUnfollow}
-                onShare={handleShare}
-              />
-            )}
-          </div>
-        )}
+              {activeTab === 'following-vendors' && (
+                <FollowingVendorsTab
+                  following={followingList}
+                  onUnfollow={handleUnfollow}
+                />
+              )}
+            </>
+          )}
+        </div>
 
-        {/* PAGINATION CONTROLS */}
-        {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4 mt-8 pt-4 border-t border-border/50">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-secondary disabled:opacity-40 hover:bg-surface-secondary transition"
-            >
-              Previous
-            </button>
-            <span className="text-xs font-bold text-text-secondary">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-secondary disabled:opacity-40 hover:bg-surface-secondary transition"
-            >
-              Next
-            </button>
-          </div>
-        )}
+        {/* ── Modals ── */}
+        <BookServiceModal
+          isOpen={isBookModalOpen}
+          onClose={() => setIsBookModalOpen(false)}
+          service={selectedService}
+        />
+
+        <CancelOrderModal
+          isOpen={isCancelModalOpen}
+          onClose={() => setIsCancelModalOpen(false)}
+          order={selectedOrder}
+          reason={cancellationReason}
+          setReason={setCancellationReason}
+          onConfirm={handleConfirmCancel}
+          loading={cancelLoading}
+        />
+
+        <OrderTrackerModal
+          isOpen={isTrackerOpen}
+          onClose={() => setIsTrackerOpen(false)}
+          order={selectedOrder}
+        />
+
+        <ReviewModal
+          isOpen={isReviewOpen}
+          onClose={() => setIsReviewOpen(false)}
+          rating={reviewRating}
+          setRating={setReviewRating}
+          comment={reviewComment}
+          setComment={setReviewComment}
+          onSubmit={handleSubmitReview}
+        />
+
+        <ConfirmActionModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText}
+          onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+          onConfirm={confirmModal.onConfirm}
+        />
       </div>
-
-      {/* CONFIRMATION DIALOG MODAL */}
-      <ConfirmActionModal
-        isOpen={confirmModal.show}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        onClose={() => setConfirmModal({ show: false, title: '', message: '', onConfirm: null })}
-        onConfirm={confirmModal.onConfirm}
-      />
-
-      {/* ORDER TRACKING TIMELINE MODAL */}
-      <OrderTrackerModal
-        isOpen={isTrackerOpen}
-        order={selectedOrder}
-        onClose={() => setIsTrackerOpen(false)}
-      />
-
-      {/* LEAVE REVIEW MODAL */}
-      <ReviewModal
-        isOpen={isReviewOpen}
-        onClose={() => setIsReviewOpen(false)}
-        onSubmit={handleReviewSubmit}
-        rating={reviewRating}
-        setRating={setReviewRating}
-        comment={reviewComment}
-        setComment={setReviewComment}
-      />
-
-      {/* BOOK SERVICE DIALOG */}
-      <BookServiceModal
-        isOpen={isBookingOpen}
-        service={selectedService}
-        onClose={() => setIsBookingOpen(false)}
-        onSubmit={handleBookServiceSubmit}
-        bookingDate={bookingDate}
-        setBookingDate={setBookingDate}
-        bookingTime={bookingTime}
-        setBookingTime={setBookingTime}
-        bookingAddress={bookingAddress}
-        setBookingAddress={setBookingAddress}
-        bookingNotes={bookingNotes}
-        setBookingNotes={setBookingNotes}
-      />
-
-      {/* INTERACTIVE CANCEL & REFUND CALCULATION MODAL */}
-      <CancelOrderModal
-        isOpen={cancelOrderModal.show}
-        order={cancelOrderModal.order}
-        reason={cancelOrderModal.reason}
-        setReason={(val) => setCancelOrderModal((prev) => ({ ...prev, reason: val }))}
-        submitting={cancelOrderModal.submitting}
-        onClose={() => setCancelOrderModal({ show: false, order: null, reason: '', submitting: false })}
-        onSubmit={handleCancelOrderSubmit}
-      />
     </div>
   );
 }

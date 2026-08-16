@@ -1,119 +1,100 @@
 import React from 'react';
-import { FiStar, FiPackage, FiMessageSquare, FiUserCheck } from 'react-icons/fi';
+import { FiDollarSign, FiCheck, FiX, FiClock, FiFileText } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import AdminStatusBadge from '../../../../features/admin/components/AdminStatusBadge';
 import { resolveMediaUrl } from '../../../../lib/api';
+
+const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
 
 export default function QuotesTab({
   quotes = [],
-  onUpdateQuote,
+  onUpdateQuoteStatus,
 }) {
   const navigate = useNavigate();
 
+  if (quotes.length === 0) {
+    return (
+      <div className="py-16 text-center text-xs text-slate-500 bg-white rounded-xl border border-[#e3dccb] space-y-2 p-6 shadow-xs font-sans">
+        <div className="w-12 h-12 rounded-full bg-[#f8f4ec] text-[#d99a3d] flex items-center justify-center mx-auto mb-2 border border-[#e3dccb]">
+          <FiDollarSign size={20} />
+        </div>
+        <p className="text-sm font-bold text-[#1a1a1a]">No quotes received yet</p>
+        <p className="text-xs">When local businesses send customized estimates or proposals, they will appear here.</p>
+        <button
+          onClick={() => navigate('/customer/requirements/new')}
+          className="mt-3 px-4 py-2 bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+        >
+          Post a Requirement
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-3.5 font-sans">
       {quotes.map((q) => {
-        const isPending = q.status === 'pending';
-        const reqTitle = q.requirement?.title || 'Requirement Quotation Proposal';
-        const shopName = q.vendor?.vendorProfile?.shopName || q.vendor?.vendorProfile?.businessName || q.vendor?.name || 'Seller';
+        const quoteId = q._id || q.id;
+        const vendor = q.vendor || {};
+        const vendorName = vendor.shopName || vendor.name || 'Custom Quote Provider';
+        const vendorAvatar = resolveMediaUrl(vendor.avatarUrl || vendor.profile_pic || DEFAULT_AVATAR);
+        const status = (q.status || 'pending').toLowerCase();
 
         return (
           <div
-            key={q.id || q._id}
-            className="glass rounded-2xl p-5 border border-white/30 hover:border-brand-purple/50 shadow-card flex flex-col justify-between gap-4 transition-all duration-300"
+            key={quoteId}
+            className="bg-white rounded-xl border border-[#e3dccb] p-4 sm:p-5 shadow-xs hover:shadow-md transition-all space-y-3"
           >
-            <div>
-              <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
-                <span className="text-[9px] text-text-tertiary font-bold font-mono">
-                  Proposal Date: {new Date(q.createdAt).toLocaleDateString()}
-                </span>
-                <AdminStatusBadge status={q.status} />
-              </div>
-
-              <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center justify-between border-b border-[#e3dccb] pb-2.5">
+              <div className="flex items-center gap-2.5">
                 <img
-                  src={resolveMediaUrl(q.vendor?.avatarUrl || q.vendor?.profile_pic || 'https://via.placeholder.com/150')}
-                  alt=""
-                  className="w-8 h-8 rounded-full object-cover border border-border"
+                  src={vendorAvatar}
+                  alt={vendorName}
+                  className="w-10 h-10 rounded-full object-cover border border-[#e3dccb]"
+                  onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
                 />
                 <div>
-                  <h4
-                    className="font-bold text-xs text-text-primary hover:text-brand-purple cursor-pointer transition"
-                    onClick={() => navigate(`/customer/vendor/${q.vendor?._id || q.vendor?.id}`)}
-                  >
-                    {shopName}
-                  </h4>
-                  <div className="flex items-center gap-1 text-[9px] text-yellow-500 font-bold">
-                    <FiStar size={10} fill="currentColor" />
-                    <span>{q.vendor?.rating_avg || 0}</span>
-                  </div>
-                </div>
-              </div>
-
-              <h4 className="font-bold text-xs text-text-primary truncate mb-1">For: {reqTitle}</h4>
-              <p className="text-[10px] text-text-secondary line-clamp-3 bg-surface-secondary/40 border border-border/60 rounded-xl p-3 italic">
-                "{q.notes || 'No quotation notes specified.'}"
-              </p>
-
-              <div className="p-3 bg-brand-purple/5 border border-brand-purple/10 rounded-xl text-[10px] text-text-secondary space-y-1 mt-3">
-                <div className="flex justify-between">
-                  <span>Bidded Price:</span>
-                  <span className="font-extrabold text-emerald-600 text-xs">₹{(q.price || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Est. Delivery:</span>
-                  <span className="font-semibold text-text-primary">
-                    {q.estimatedDelivery ? new Date(q.estimatedDelivery).toLocaleDateString() : 'N/A'}
+                  <h4 className="font-bold text-sm text-[#1a1a1a]">{vendorName}</h4>
+                  <span className="text-[10.5px] text-slate-400">
+                    Quote sent on {new Date(q.createdAt || Date.now()).toLocaleDateString()}
                   </span>
                 </div>
-                {q.attachments && q.attachments.length > 0 && (
-                  <div className="flex justify-between">
-                    <span>Attachments:</span>
-                    <span className="font-bold text-brand-purple cursor-pointer underline flex items-center gap-0.5">
-                      <FiPackage size={10} /> View Files
-                    </span>
-                  </div>
-                )}
+              </div>
+
+              <div className="text-right">
+                <span className="text-base font-black text-[#1a1a1a]">
+                  ₹{Number(q.amount || q.price || 0).toLocaleString('en-IN')}
+                </span>
+                <span className={`block text-[9.5px] font-black uppercase mt-0.5 px-2 py-0.5 rounded ${
+                  status === 'accepted' ? 'bg-emerald-50 text-emerald-700' :
+                  status === 'rejected' ? 'bg-red-50 text-red-700' :
+                  'bg-amber-50 text-[#d99a3d]'
+                }`}>
+                  {status}
+                </span>
               </div>
             </div>
 
-            <div className="space-y-2 border-t border-border/50 pt-3">
-              {isPending ? (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => onUpdateQuote(q.id || q._id, 'accepted', shopName)}
-                    className="py-2 gradient-brand text-white rounded-xl text-[10px] font-bold shadow-premium hover:opacity-95 transition"
-                  >
-                    Accept Quote
-                  </button>
-                  <button
-                    onClick={() => onUpdateQuote(q.id || q._id, 'rejected', shopName)}
-                    className="py-2 glass border border-border text-text-secondary hover:text-error hover:bg-error-light/10 rounded-xl text-[10px] font-bold transition"
-                  >
-                    Reject Quote
-                  </button>
-                </div>
-              ) : (
-                <div className="text-[10px] font-semibold text-text-tertiary text-center bg-surface py-2 rounded-xl border border-border">
-                  This quotation proposal status is {q.status.toUpperCase()}
-                </div>
-              )}
+            <p className="text-xs text-slate-600 leading-relaxed bg-[#f8f4ec] p-3 rounded-lg border border-[#e3dccb]">
+              {q.notes || q.message || q.details || 'Custom proposal customized for your requested requirement.'}
+            </p>
 
-              <div className="flex justify-between items-center text-[9px] text-text-tertiary pt-1">
+            {status === 'pending' && (
+              <div className="flex justify-end gap-2 pt-1">
                 <button
-                  onClick={() => navigate(`/customer/chat?vendorId=${q.vendor?._id || q.vendor?.id}`)}
-                  className="hover:text-brand-purple font-semibold flex items-center gap-0.5"
+                  type="button"
+                  onClick={() => onUpdateQuoteStatus(quoteId, 'rejected')}
+                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-red-50 text-red-600 border border-red-200 text-xs font-bold transition cursor-pointer"
                 >
-                  <FiMessageSquare size={10} /> Chat with Vendor
+                  Decline
                 </button>
                 <button
-                  onClick={() => navigate(`/customer/vendor/${q.vendor?._id || q.vendor?.id}`)}
-                  className="hover:text-brand-purple font-semibold flex items-center gap-0.5"
+                  type="button"
+                  onClick={() => onUpdateQuoteStatus(quoteId, 'accepted')}
+                  className="px-4 py-1.5 rounded-lg bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold transition cursor-pointer shadow-xs"
                 >
-                  <FiUserCheck size={10} /> View Vendor Profile
+                  Accept Quote
                 </button>
               </div>
-            </div>
+            )}
           </div>
         );
       })}
