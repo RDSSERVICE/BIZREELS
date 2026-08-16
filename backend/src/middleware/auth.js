@@ -38,11 +38,7 @@ const authenticate = async (req, res, next) => {
       .lean();
 
     if (!user) {
-      user = await User.findOne({}).lean();
-    }
-
-    if (!user) {
-      throw ApiError.unauthorized('User account not found.');
+      throw ApiError.unauthorized('User associated with this token no longer exists.');
     }
 
     if (user.is_active === false || user.is_deleted === true || user.isActive === false || user.isDeleted === true) {
