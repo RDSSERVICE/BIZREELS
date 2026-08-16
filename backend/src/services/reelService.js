@@ -281,12 +281,12 @@ class ReelService {
     const skip = (page - 1) * limit;
 
     const [reels, total] = await Promise.all([
-      Reel.find({ isDeleted: { $ne: true } })
+      Reel.find({ creator: userId, isDeleted: { $ne: true } })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Reel.countDocuments({ isDeleted: { $ne: true } }),
+      Reel.countDocuments({ creator: userId, isDeleted: { $ne: true } }),
     ]);
 
     return { reels, total };
