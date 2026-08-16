@@ -99,14 +99,20 @@ export default function ListingDetailPage() {
       try {
         setLoading(true);
         const res = await api.get(`/v1/listings/${targetId}`);
-        const data = res.data?.data || res.data || {};
-        setItem(data);
+        const raw = res.data?.data?.listing || res.data?.listing || res.data?.data || res.data || {};
+        const listingData = raw.listing || raw;
+        if (listingData && (listingData._id || listingData.id || listingData.title)) {
+          setItem(listingData);
+        }
       } catch (err) {
         // Fallback search if direct ID fetch fails
         try {
           const searchRes = await api.get(`/v1/users/me/search-listings?query=${encodeURIComponent(targetId)}`);
           const items = searchRes.data?.data || searchRes.data || [];
-          if (items.length > 0) setItem(items[0]);
+          if (items.length > 0) {
+            const first = items[0]?.listing || items[0];
+            setItem(first);
+          }
         } catch {}
       } finally {
         setLoading(false);
@@ -187,19 +193,33 @@ export default function ListingDetailPage() {
   const itemId = item._id || item.id || targetId;
 
   // Media Gallery Setup
-  const rawImages = Array.isArray(item.images) && item.images.length > 0
-    ? item.images
-    : item.photos || item.image || item.thumbnailUrl
-      ? [item.photos || item.image || item.thumbnailUrl]
-      : ['/logo.png'];
+  let rawImagesList = [];
+  if (Array.isArray(item.images) && item.images.length > 0) {
+    rawImagesList = item.images;
+  } else if (Array.isArray(item.photos) && item.photos.length > 0) {
+    rawImagesList = item.photos;
+  } else if (Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0) {
+    rawImagesList = item.mediaUrls;
+  } else if (item.image || item.mediaUrl || item.imageUrl || item.thumbnailUrl) {
+    rawImagesList = [item.image || item.mediaUrl || item.imageUrl || item.thumbnailUrl];
+  }
 
-  const images = rawImages.map(img => typeof img === 'object' ? img.url : img).filter(Boolean);
+  if (rawImagesList.length === 0) {
+    rawImagesList = ['https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=600&q=80'];
+  }
 
-  const priceVal = Number(item.price || item.rate || 0);
-  const originalPrice = Number(item.originalPrice || item.compareAtPrice || 0);
-  const discountPercent = originalPrice > priceVal ? Math.round(((originalPrice - priceVal) / originalPrice) * 100) : 0;
+  const images = rawImagesList.map(img => {
+    if (typeof img === 'object' && img !== null) {
+      return img.url || img.src || img.secure_url || img.path || img.imageUrl;
+    }
+    return img;
+  }).filter(Boolean);
 
-  const vendorObj = item.vendor || item.vendorId || {};
+  const priceVal = Number(item.sellingPrice || item.salePrice || item.price || item.rate || item.offer_price || 0);
+  const originalPrice = Number(item.actualPrice || item.regularPrice || item.originalPrice || item.compareAtPrice || 0);
+  const discountPercent = (originalPrice > priceVal && priceVal > 0) ? Math.round(((originalPrice - priceVal) / originalPrice) * 100) : 0;
+
+  const vendorObj = item.vendor || item.vendorId || item.seller || {};
   const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || item.vendorName || 'Verified Business';
   const vendorAvatar = vendorObj.avatarUrl || vendorObj.logo || vendorObj.profile_pic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
   const city = item.city || vendorObj.city || item.location?.city || 'Local Area';
@@ -359,10 +379,14 @@ export default function ListingDetailPage() {
           {/* Left Column: Image Gallery (5 Cols) */}
           <div className="lg:col-span-6 space-y-4">
             <div className="relative aspect-square w-full rounded-2xl bg-white border border-[#e3dccb] overflow-hidden shadow-sm flex items-center justify-center">
-              <OptimizedImage
+              <img
                 src={resolveMediaUrl(images[selectedImgIdx] || images[0])}
-                alt={item.title}
-                className="w-full h-full object-contain p-4"
+                alt={item.title || 'Product Image'}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=600&q=80';
+                }}
+                className="w-full h-full object-contain p-4 transition-all duration-300"
               />
 
               {/* Type Badge */}
