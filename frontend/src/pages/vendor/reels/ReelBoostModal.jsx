@@ -53,26 +53,26 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="glass rounded-t-3xl sm:rounded-3xl p-6 border border-white/50 shadow-2xl max-w-md w-full space-y-5 bg-surface relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-md animate-fade-in font-sans">
+      <div className="bg-[#24262d] text-slate-100 border border-amber-500/30 shadow-2xl shadow-slate-950/60 rounded-t-3xl sm:rounded-3xl p-6 max-w-md w-full space-y-5 relative max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <h3 className="text-sm font-bold text-text-primary flex items-center gap-2 font-display">
-            <FiZap className="text-amber-500 fill-amber-500/20" size={18} />
+        <div className="flex items-center justify-between border-b border-amber-500/25 pb-3.5">
+          <h3 className="text-sm font-bold text-amber-300 flex items-center gap-2 font-display">
+            <FiZap className="text-amber-400 fill-amber-500/20" size={18} />
             Boost Reel Visibility
           </h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-surface-tertiary text-text-tertiary hover:text-text-primary transition"
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition border border-white/10 cursor-pointer"
           >
             <FiX size={16} />
           </button>
         </div>
 
         {/* Reel Preview Info */}
-        <div className="flex items-center gap-3 p-3 bg-surface-secondary rounded-2xl border border-border">
-          <div className="w-12 h-16 rounded-lg overflow-hidden bg-black flex-shrink-0">
+        <div className="flex items-center gap-3 p-3.5 bg-[#2b2d36] rounded-2xl border border-amber-500/25">
+          <div className="w-12 h-16 rounded-xl overflow-hidden bg-black border border-white/15 flex-shrink-0">
             {reel.videoUrl?.match(/\.(mp4|mov|webm)$/i) || reel.mediaType === 'video' ? (
               <video src={reel.videoUrl} className="w-full h-full object-cover" muted />
             ) : (
@@ -80,22 +80,22 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-text-primary line-clamp-1">{reel.caption || reel.title || 'Untitled Reel'}</p>
-            <p className="text-[10px] text-text-tertiary uppercase font-extrabold mt-0.5">{reel.category} • {reel.subcategory}</p>
+            <p className="text-xs font-bold text-white line-clamp-1">{reel.caption || reel.title || 'Untitled Reel'}</p>
+            <p className="text-[10px] text-amber-300 uppercase font-extrabold mt-0.5">{reel.category} • {reel.subcategory}</p>
           </div>
         </div>
 
         {/* Info Box */}
-        <div className="p-3 rounded-xl bg-brand-purple/5 border border-brand-purple/20 text-[10px] sm:text-xs text-brand-purple flex gap-2">
-          <FiInfo className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <p className="leading-normal">
+        <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-[11px] text-amber-200 flex gap-2.5">
+          <FiInfo className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
+          <p className="leading-relaxed">
             Boosted reels automatically rank at the <strong>top of customer feeds</strong> and local search results, driving up to 12x higher viewer engagement.
           </p>
         </div>
 
         {/* Choose Duration */}
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Boost Duration (Days)</label>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-extrabold text-amber-300 uppercase tracking-wider block">Boost Duration (Days)</label>
           <input
             type="number"
             min="1"
@@ -103,25 +103,25 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
             placeholder="Enter number of days (e.g. 5)"
             value={durationDays || ''}
             onChange={handleDaysChange}
-            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple outline-none"
+            className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-white focus:border-amber-500 outline-none"
           />
         </div>
 
         {/* Cost & Wallet Status */}
-        <div className="p-4 bg-surface-secondary rounded-2xl border border-border space-y-3">
-          <div className="flex items-center justify-between text-xs border-b border-border/60 pb-2">
-            <span className="text-text-secondary">Rate Per Day</span>
-            <span className="font-bold text-text-primary">{ratePerDay} Credits / Day</span>
+        <div className="p-4 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3">
+          <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2">
+            <span className="text-slate-300">Rate Per Day</span>
+            <span className="font-bold text-white">{ratePerDay} Credits / Day</span>
           </div>
 
-          <div className="flex items-center justify-between text-xs border-b border-border/60 pb-2">
-            <span className="text-text-secondary">Your Available Balance</span>
-            <span className="font-bold text-text-primary flex items-center"><FiDollarSign className="inline-block mt-0.5" />{availableCredits}</span>
+          <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2">
+            <span className="text-slate-300">Your Available Balance</span>
+            <span className="font-bold text-white flex items-center"><FiDollarSign className="inline-block mt-0.5" />{availableCredits}</span>
           </div>
 
           <div className="flex items-center justify-between text-xs pt-1">
-            <span className="font-bold text-brand-purple">Total Cost</span>
-            <span className="text-sm font-black text-brand-purple flex items-center">
+            <span className="font-bold text-amber-300">Total Cost</span>
+            <span className="text-sm font-black text-amber-400 flex items-center">
               <FiZap size={14} className="mr-0.5" />
               {totalCost} Credits
             </span>
@@ -130,10 +130,10 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
 
         {/* Insufficient balance alert */}
         {!hasEnoughCredits && (
-          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-2 text-xs text-red-600 animate-fade-in">
-            <FiAlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <div className="p-3.5 bg-red-500/15 border border-red-500/30 rounded-2xl flex items-start gap-2.5 text-xs text-red-200 animate-fade-in">
+            <FiAlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-400" />
             <div className="flex-1 space-y-1.5">
-              <p className="font-bold leading-none">Insufficient Credits</p>
+              <p className="font-bold leading-none text-red-300">Insufficient Credits</p>
               <p className="text-[10px] leading-relaxed">
                 You need {totalCost - availableCredits} more credits to activate this boost. Recharge your wallet to proceed.
               </p>
@@ -143,7 +143,7 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
                   onClose();
                   navigate('/vendor/wallet');
                 }}
-                className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[10px] font-bold transition shadow-sm"
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[10px] font-bold transition shadow-sm cursor-pointer"
               >
                 Recharge Wallet Now
               </button>
@@ -152,11 +152,11 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
         )}
 
         {/* Footer Actions */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 bg-surface border border-border rounded-xl text-xs font-bold text-text-secondary hover:bg-surface-tertiary transition"
+            className="flex-1 py-3.5 bg-white/10 border border-white/10 rounded-full text-xs font-bold text-slate-300 hover:bg-white/15 hover:text-white transition cursor-pointer"
           >
             Cancel
           </button>
@@ -164,10 +164,10 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
             type="button"
             disabled={isBoosting || !hasEnoughCredits || durationDays <= 0 || isDashboardLoading}
             onClick={handleConfirmBoost}
-            className={`flex-1 py-3 text-white font-bold text-xs rounded-xl shadow-premium transition flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-3.5 text-white font-extrabold text-xs rounded-full shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer border border-amber-400 ${
               isBoosting || !hasEnoughCredits || durationDays <= 0 || isDashboardLoading
-                ? 'bg-text-tertiary cursor-not-allowed opacity-50'
-                : 'gradient-brand hover:brightness-110'
+                ? 'bg-white/10 text-slate-500 cursor-not-allowed border-none shadow-none'
+                : 'bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 hover:shadow-amber-500/30 hover:scale-[1.01]'
             }`}
           >
             <FiZap size={14} />
@@ -179,3 +179,4 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
     </div>
   );
 }
+

@@ -3,18 +3,6 @@ const swaggerUi = require('swagger-ui-express');
 const fs = require('fs');
 const path = require('path');
 
-// Eager load all router modules so Express route stack is fully populated
-try {
-  const routesDir = path.join(__dirname, '../routes');
-  if (fs.existsSync(routesDir)) {
-    fs.readdirSync(routesDir).forEach((file) => {
-      if (file.endsWith('.js') && file !== 'index.js') {
-        try { require(path.join(routesDir, file)); } catch (e) {}
-      }
-    });
-  }
-} catch (e) {}
-
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -125,6 +113,7 @@ const options = {
       { name: 'Identity', description: 'Individual official document submissions (Aadhaar, PAN, GST, Bank) and Trust+ levels' },
       { name: 'SEO', description: 'Dynamic sitemaps, robots.txt, and product detail SEO metadata' },
       { name: 'Onboarding', description: 'User profile completion checklist, progress tracking, and bonus reward credits' },
+      { name: 'General', description: 'Media upload utilities, system health, and status checks' },
     ],
     paths: {
       '/auth/register': { post: { tags: ['Authentication'], summary: 'Register account', responses: { 201: { description: 'Success' } } } },
@@ -208,90 +197,133 @@ const options = {
 
 const baseSwaggerSpec = swaggerJSDoc(options);
 
-/**
- * Recursively inspects Express app router stack to auto-document any present or future API routes.
- */
-function autoDiscoverExpressRoutes(app, spec) {
-  if (!app || !app._router || !app._router.stack) return spec;
+const routeModuleMap = [
+  { file: 'upload.routes.js', prefix: '/upload' },
+  { file: 'media.routes.js', prefix: '/media' },
+  { file: 'cart.routes.js', prefix: '/cart' },
+  { file: 'ai.routes.js', prefix: '/ai' },
+  { file: 'authRoutes.js', prefix: '/auth' },
+  { file: 'reelRoutes.js', prefix: '/reels' },
+  { file: 'listingRoutes.js', prefix: '/listings' },
+  { file: 'feed.routes.js', prefix: '/feed' },
+  { file: 'requirementRoutes.js', prefix: '/requirements' },
+  { file: 'chatRoutes.js', prefix: '/chat' },
+  { file: 'walletRoutes.js', prefix: '/wallet' },
+  { file: 'transaction.routes.js', prefix: '/transactions' },
+  { file: 'hireRoutes.js', prefix: '/hires' },
+  { file: 'liveRoutes.js', prefix: '/live' },
+  { file: 'notificationRoutes.js', prefix: '/notifications' },
+  { file: 'offer.routes.js', prefix: '/offers' },
+  { file: 'reviewRoutes.js', prefix: '/reviews' },
+  { file: 'analyticsRoutes.js', prefix: '/analytics' },
+  { file: 'orderRoutes.js', prefix: '/orders' },
+  { file: 'inquiryRoutes.js', prefix: '/inquiries' },
+  { file: 'user.routes.js', prefix: '/users' },
+  { file: 'category.routes.js', prefix: '/categories' },
+  { file: 'creatorMarketplaceRoutes.js', prefix: '/creator-marketplace' },
+  { file: 'location.routes.js', prefix: '/location' },
+  { file: 'search.routes.js', prefix: '/search' },
+  { file: 'seo.routes.js', prefix: '/seo' },
+  { file: 'identity.routes.js', prefix: '/identity' },
+  { file: 'onboarding.routes.js', prefix: '/onboarding' },
+  { file: 'vendor.routes.js', prefix: '/vendors' },
+  { file: 'creator.routes.js', prefix: '/creator' },
+  { file: 'follow.routes.js', prefix: '/follow' },
+  { file: 'subscription.routes.js', prefix: '/subscriptions' },
+  { file: 'referral.routes.js', prefix: '/referrals' },
+  { file: 'admin.routes.js', prefix: '/admin' },
+  { file: 'phase4.routes.js', prefix: '' },
+  { file: 'interaction.routes.js', prefix: '' },
+  { file: 'report.routes.js', prefix: '' },
+  { file: 'kyc.routes.js', prefix: '' },
+];
 
-  const discoveredPaths = { ...spec.paths };
+function formatPathForSwagger(expressPath) {
+  let cleaned = expressPath.replace(/:([a-zA-Z0-9_]+)/g, '{$1}').replace(/\/+/g, '/');
+  if (cleaned.length > 1 && cleaned.endsWith('/')) cleaned = cleaned.slice(0, -1);
+  return cleaned;
+}
 
-  function processLayer(layer, pathPrefix = '') {
+function extractPathParameters(swaggerPath) {
+  const params = [];
+  const matches = swaggerPath.match(/\{([a-zA-Z0-9_]+)\}/g);
+  if (matches) {
+    matches.forEach((m) => {
+      const name = m.replace('{', '').replace('}', '');
+      params.push({
+        name,
+        in: 'path',
+        required: true,
+        schema: { type: 'string' },
+        description: `URL path parameter ${name}`,
+      });
+    });
+  }
+  return params;
+}
+
+function getTagForPath(cleanPath) {
+  const segments = cleanPath.split('/').filter(Boolean);
+  const rawTag = segments[0] || 'General';
+  const tagMap = {
+    auth: 'Authentication',
+    users: 'Users',
+    vendors: 'Vendors',
+    vendor: 'Vendors',
+    creator: 'Creators',
+    'creator-marketplace': 'Creators',
+    listings: 'Listings',
+    categories: 'Listings',
+    reels: 'Reels',
+    feed: 'Reels',
+    requirements: 'Requirements & Bidding',
+    wallet: 'Wallet & Ledger',
+    transactions: 'Wallet & Ledger',
+    subscription: 'Subscriptions',
+    subscriptions: 'Subscriptions',
+    cart: 'Cart & Orders',
+    orders: 'Cart & Orders',
+    chat: 'Chat & Messages',
+    notifications: 'Notifications',
+    reviews: 'Reviews & Ratings',
+    ai: 'AI Services',
+    analytics: 'Analytics',
+    kyc: 'KYC & Compliance',
+    offers: 'Offers & Campaigns',
+    location: 'Location & Search',
+    search: 'Location & Search',
+    seo: 'SEO',
+    identity: 'Identity',
+    onboarding: 'Onboarding',
+    admin: 'Admin Operations',
+    follow: 'Users',
+    follows: 'Users',
+    hires: 'Creators',
+    live: 'Reels',
+    upload: 'General',
+    media: 'General',
+    reports: 'Admin Operations',
+  };
+  return tagMap[rawTag.toLowerCase()] || (rawTag.charAt(0).toUpperCase() + rawTag.slice(1));
+}
+
+function extractRoutesFromRouter(router, prefix = '') {
+  const routes = [];
+  if (!router || !router.stack) return routes;
+
+  router.stack.forEach((layer) => {
     if (layer.route) {
-      const fullPath = (pathPrefix + layer.route.path).replace(/\/+/g, '/');
-      const cleanPath = fullPath.replace(/^\/api\/v1/, '').replace(/^\/api/, '').replace(/^\/v1/, '') || '/';
-
-      if (!layer.route.methods) return;
-
-      Object.keys(layer.route.methods).forEach((method) => {
-        if (!layer.route.methods[method]) return;
-        const httpMethod = method.toLowerCase();
-
-        if (!discoveredPaths[cleanPath]) {
-          discoveredPaths[cleanPath] = {};
-        }
-
-        if (!discoveredPaths[cleanPath][httpMethod]) {
-          const segments = cleanPath.split('/').filter(Boolean);
-          const rawTag = segments[0] || 'General';
-          const tagMap = {
-            auth: 'Authentication',
-            users: 'Users',
-            vendors: 'Vendors',
-            vendor: 'Vendors',
-            creator: 'Creators',
-            'creator-marketplace': 'Creators',
-            listings: 'Listings',
-            categories: 'Listings',
-            reels: 'Reels',
-            feed: 'Reels',
-            requirements: 'Requirements & Bidding',
-            wallet: 'Wallet & Ledger',
-            transactions: 'Wallet & Ledger',
-            subscription: 'Subscriptions',
-            subscriptions: 'Subscriptions',
-            cart: 'Cart & Orders',
-            orders: 'Cart & Orders',
-            chat: 'Chat & Messages',
-            notifications: 'Notifications',
-            reviews: 'Reviews & Ratings',
-            ai: 'AI Services',
-            analytics: 'Analytics',
-            kyc: 'KYC & Compliance',
-            offers: 'Offers & Campaigns',
-            location: 'Location & Search',
-            search: 'Location & Search',
-            admin: 'Admin Operations',
-          };
-
-          const tag = tagMap[rawTag.toLowerCase()] || (rawTag.charAt(0).toUpperCase() + rawTag.slice(1));
-          const formattedSummary = `${httpMethod.toUpperCase()} ${cleanPath}`;
-
-          discoveredPaths[cleanPath][httpMethod] = {
-            tags: [tag],
-            summary: formattedSummary,
-            description: `Auto-discovered route: ${httpMethod.toUpperCase()} ${cleanPath}`,
-            responses: {
-              200: {
-                description: 'Successful response',
-                content: {
-                  'application/json': {
-                    schema: { $ref: '#/components/schemas/ApiResponse' },
-                  },
-                },
-              },
-              400: { description: 'Validation error' },
-              401: { description: 'Unauthorized' },
-            },
-          };
-
-          if (!cleanPath.startsWith('/auth/login') && !cleanPath.startsWith('/auth/register') && cleanPath !== '/health' && cleanPath !== '/') {
-            discoveredPaths[cleanPath][httpMethod].security = [{ bearerAuth: [] }];
-          }
-        }
+      let routePath = layer.route.path;
+      let fullPath = (prefix + routePath).replace(/\/+/g, '/');
+      if (fullPath.length > 1 && fullPath.endsWith('/')) {
+        fullPath = fullPath.slice(0, -1);
+      }
+      const methods = Object.keys(layer.route.methods).filter((m) => layer.route.methods[m]);
+      methods.forEach((method) => {
+        routes.push({ path: fullPath, method: method.toLowerCase() });
       });
     } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
-      let prefix = pathPrefix;
+      let subPrefix = prefix;
       if (layer.regexp && layer.regexp.source) {
         let match = layer.regexp.source
           .replace('^\\/', '/')
@@ -299,21 +331,211 @@ function autoDiscoverExpressRoutes(app, spec) {
           .replace('\\/?(?=\\/|$)', '')
           .replace('(?=\\/|$)', '')
           .replace(/\\\//g, '/')
-          .replace(/\(\?:\(\[\^\\\/\]\+\?\)\)/g, ':id')
           .replace(/\\/g, '');
-
-        if (match && !match.startsWith('/') && match !== '$') {
-          match = '/' + match;
-        }
-        if (match && match !== '/' && match !== '^' && !match.includes('lm?')) {
-          prefix = (pathPrefix + match).replace(/\/+/g, '/');
-        }
+        if (match && !match.startsWith('/')) match = '/' + match;
+        subPrefix = (prefix + match).replace(/\/+/g, '/');
       }
-      layer.handle.stack.forEach((subLayer) => processLayer(subLayer, prefix));
+      routes.push(...extractRoutesFromRouter(layer.handle, subPrefix));
     }
-  }
+  });
 
-  app._router.stack.forEach((layer) => processLayer(layer, ''));
+  return routes;
+}
+
+/**
+ * Traverses Express routers and route modules to ensure 100% of API endpoints are documented in Swagger.
+ */
+function autoDiscoverExpressRoutes(app, spec) {
+  const discoveredPaths = { ...spec.paths };
+  const routesDir = path.join(__dirname, '../routes');
+
+  if (!fs.existsSync(routesDir)) return spec;
+
+  const processedFiles = new Set();
+
+  // 1. Process standard route modules with their base prefixes
+  routeModuleMap.forEach(({ file, prefix }) => {
+    processedFiles.add(file);
+    const fullFilePath = path.join(routesDir, file);
+    if (!fs.existsSync(fullFilePath)) return;
+
+    try {
+      const routerModule = require(fullFilePath);
+      const routes = extractRoutesFromRouter(routerModule, prefix);
+      routes.forEach(({ path: p, method }) => {
+        const cleanPath = formatPathForSwagger(p);
+        if (!discoveredPaths[cleanPath]) discoveredPaths[cleanPath] = {};
+        if (!discoveredPaths[cleanPath][method]) {
+          const pathParams = extractPathParameters(cleanPath);
+          const tag = getTagForPath(cleanPath);
+          const summary = `${method.toUpperCase()} ${cleanPath}`;
+
+          const operation = {
+            tags: [tag],
+            summary,
+            description: `Auto-documented endpoint: ${method.toUpperCase()} ${cleanPath}`,
+            responses: {
+              200: {
+                description: 'Success',
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/ApiResponse' },
+                  },
+                },
+              },
+              400: { description: 'Bad Request / Validation Error' },
+              401: { description: 'Unauthorized' },
+            },
+          };
+
+          if (pathParams.length > 0) {
+            operation.parameters = pathParams;
+          }
+
+          const isPublic =
+            cleanPath.startsWith('/auth/login') ||
+            cleanPath.startsWith('/auth/register') ||
+            cleanPath.startsWith('/auth/otp') ||
+            cleanPath.startsWith('/auth/phone') ||
+            cleanPath === '/health' ||
+            cleanPath === '/' ||
+            cleanPath.startsWith('/seo');
+
+          if (!isPublic) {
+            operation.security = [{ bearerAuth: [] }];
+          }
+
+          discoveredPaths[cleanPath][method] = operation;
+        }
+      });
+    } catch (e) {
+      // Ignore load errors
+    }
+  });
+
+  // 2. Scan any remaining files in src/routes not listed in routeModuleMap
+  try {
+    const filesInDir = fs.readdirSync(routesDir).filter((f) => f.endsWith('.js') && f !== 'index.js');
+    filesInDir.forEach((file) => {
+      if (processedFiles.has(file)) return;
+      const baseName = file.replace('.routes.js', '').replace('Routes.js', '').replace('.js', '');
+      const prefix = '/' + baseName;
+      try {
+        const routerModule = require(path.join(routesDir, file));
+        const routes = extractRoutesFromRouter(routerModule, prefix);
+        routes.forEach(({ path: p, method }) => {
+          const cleanPath = formatPathForSwagger(p);
+          if (!discoveredPaths[cleanPath]) discoveredPaths[cleanPath] = {};
+          if (!discoveredPaths[cleanPath][method]) {
+            const pathParams = extractPathParameters(cleanPath);
+            const tag = getTagForPath(cleanPath);
+            const summary = `${method.toUpperCase()} ${cleanPath}`;
+
+            const operation = {
+              tags: [tag],
+              summary,
+              description: `Auto-documented endpoint: ${method.toUpperCase()} ${cleanPath}`,
+              responses: {
+                200: { description: 'Success' },
+              },
+            };
+
+            if (pathParams.length > 0) operation.parameters = pathParams;
+            discoveredPaths[cleanPath][method] = operation;
+          }
+        });
+      } catch (e) {}
+    });
+  } catch (e) {}
+
+  // 3. Process routes registered directly on routes/index.js
+  try {
+    const indexRoutes = require(path.join(routesDir, 'index.js'));
+    const routes = extractRoutesFromRouter(indexRoutes, '');
+    routes.forEach(({ path: p, method }) => {
+      const cleanPath = formatPathForSwagger(p);
+      if (!discoveredPaths[cleanPath]) discoveredPaths[cleanPath] = {};
+      if (!discoveredPaths[cleanPath][method]) {
+        const pathParams = extractPathParameters(cleanPath);
+        const tag = getTagForPath(cleanPath);
+        const summary = `${method.toUpperCase()} ${cleanPath}`;
+
+        const operation = {
+          tags: [tag],
+          summary,
+          description: `Auto-documented endpoint: ${method.toUpperCase()} ${cleanPath}`,
+          responses: {
+            200: { description: 'Success' },
+          },
+        };
+
+        if (pathParams.length > 0) operation.parameters = pathParams;
+        discoveredPaths[cleanPath][method] = operation;
+      }
+    });
+  } catch (e) {}
+
+  // 4. Fallback inspection of Express app._router stack if passed
+  if (app && app._router && app._router.stack) {
+    function processLayer(layer, pathPrefix = '') {
+      if (layer.route) {
+        const fullPath = (pathPrefix + layer.route.path).replace(/\/+/g, '/');
+        const cleanPath = fullPath.replace(/^\/api\/v1/, '').replace(/^\/api/, '').replace(/^\/v1/, '') || '/';
+        const formattedPath = formatPathForSwagger(cleanPath);
+
+        if (!layer.route.methods) return;
+
+        Object.keys(layer.route.methods).forEach((method) => {
+          if (!layer.route.methods[method]) return;
+          const httpMethod = method.toLowerCase();
+
+          if (!discoveredPaths[formattedPath]) {
+            discoveredPaths[formattedPath] = {};
+          }
+
+          if (!discoveredPaths[formattedPath][httpMethod]) {
+            const pathParams = extractPathParameters(formattedPath);
+            const tag = getTagForPath(formattedPath);
+            const summary = `${httpMethod.toUpperCase()} ${formattedPath}`;
+
+            const operation = {
+              tags: [tag],
+              summary,
+              description: `Auto-discovered Express route: ${httpMethod.toUpperCase()} ${formattedPath}`,
+              responses: {
+                200: { description: 'Success' },
+              },
+            };
+
+            if (pathParams.length > 0) operation.parameters = pathParams;
+            discoveredPaths[formattedPath][httpMethod] = operation;
+          }
+        });
+      } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
+        let prefix = pathPrefix;
+        if (layer.regexp && layer.regexp.source) {
+          let match = layer.regexp.source
+            .replace('^\\/', '/')
+            .replace('^', '')
+            .replace('\\/?(?=\\/|$)', '')
+            .replace('(?=\\/|$)', '')
+            .replace(/\\\//g, '/')
+            .replace(/\(\?:\(\[\^\\\/\]\+\?\)\)/g, ':id')
+            .replace(/\\/g, '');
+
+          if (match && !match.startsWith('/') && match !== '$') {
+            match = '/' + match;
+          }
+          if (match && match !== '/' && match !== '^' && !match.includes('lm?')) {
+            prefix = (pathPrefix + match).replace(/\/+/g, '/');
+          }
+        }
+        layer.handle.stack.forEach((subLayer) => processLayer(subLayer, prefix));
+      }
+    }
+
+    app._router.stack.forEach((layer) => processLayer(layer, ''));
+  }
 
   return {
     ...spec,
@@ -340,3 +562,4 @@ module.exports = {
   serve: swaggerUi.serve,
   setup: (app) => swaggerUi.setup(getSwaggerSpec(app), customUiOptions),
 };
+

@@ -96,37 +96,41 @@ export default function CreateProductModal({
 
   return (
     <AdminModal isOpen={isOpen} onClose={onClose} title="Create New Product Listing" maxWidth="max-w-lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="text-xs text-text-tertiary">
+      <form onSubmit={handleSubmit} className="space-y-4 text-left font-sans">
+        <p className="text-xs text-slate-300 leading-relaxed">
           List a new product. Once created, it will be automatically selected for your Product Reel / Image Post.
         </p>
 
         {/* PRODUCT TITLE */}
         <div>
-          <label className="text-[10px] font-bold uppercase text-text-tertiary block mb-1">Product Title *</label>
+          <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
+            Product Title *
+          </label>
           <input
             type="text"
             required
             placeholder="e.g. Premium Wireless Bluetooth Headphones"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple outline-none"
+            className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition"
           />
         </div>
 
         {/* CATEGORY & SUBCATEGORY — dynamic dropdowns */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] font-bold uppercase text-text-tertiary block mb-1">Category *</label>
+            <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
+              Category *
+            </label>
             {availableCategories.length > 0 ? (
               <select
                 required
                 value={category}
                 onChange={handleCategoryChange}
-                className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs font-medium focus:border-brand-purple outline-none"
+                className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none transition"
               >
                 {availableCategories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat} value={cat} className="bg-[#1c1d22] text-slate-100">{cat}</option>
                 ))}
               </select>
             ) : (
@@ -136,21 +140,23 @@ export default function CreateProductModal({
                 placeholder="Loading categories..."
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs outline-none"
+                className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 outline-none"
               />
             )}
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase text-text-tertiary block mb-1">Sub Category</label>
+            <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
+              Sub Category
+            </label>
             {availableSubcategories.length > 0 ? (
               <select
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
-                className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs font-medium focus:border-brand-purple outline-none"
+                className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none transition"
               >
                 {availableSubcategories.map((sub) => (
-                  <option key={sub} value={sub}>{sub}</option>
+                  <option key={sub} value={sub} className="bg-[#1c1d22] text-slate-100">{sub}</option>
                 ))}
               </select>
             ) : (
@@ -159,7 +165,7 @@ export default function CreateProductModal({
                 placeholder="e.g. General"
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
-                className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs outline-none"
+                className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 outline-none"
               />
             )}
           </div>
@@ -168,7 +174,9 @@ export default function CreateProductModal({
         {/* PRICE & IMAGE URL */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] font-bold uppercase text-text-tertiary block mb-1">Price (₹) *</label>
+            <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
+              Price (₹) *
+            </label>
             <input
               type="number"
               required
@@ -176,48 +184,52 @@ export default function CreateProductModal({
               placeholder="e.g. 1499"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs outline-none"
+              className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 outline-none transition"
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase text-text-tertiary block mb-1">Image URL (Optional)</label>
+            <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
+              Image URL (Optional)
+            </label>
             <input
               type="url"
               placeholder="https://..."
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs outline-none"
+              className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 outline-none transition"
             />
           </div>
         </div>
 
         {/* DESCRIPTION */}
         <div>
-          <label className="text-[10px] font-bold uppercase text-text-tertiary block mb-1">Product Details / Description</label>
+          <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
+            Product Details / Description
+          </label>
           <textarea
             rows={3}
             placeholder="Describe features and specifications of this product..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs outline-none"
+            className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 outline-none transition"
           />
         </div>
 
         {/* ACTIONS */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 bg-surface border border-border rounded-xl font-bold text-xs text-text-secondary hover:bg-surface-secondary transition"
+            className="flex-1 py-3.5 bg-white/10 border border-white/10 text-slate-300 font-bold text-xs rounded-full hover:bg-white/15 hover:text-white transition cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="flex-1 py-2.5 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium flex items-center justify-center gap-1.5 hover:brightness-110"
+            className="flex-1 py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] transition-all flex items-center justify-center gap-1.5 border border-amber-400 cursor-pointer"
           >
-            <FiPlus size={13} />
+            <FiPlus size={14} />
             {isLoading ? 'Creating...' : 'Create & Select Product'}
           </button>
         </div>

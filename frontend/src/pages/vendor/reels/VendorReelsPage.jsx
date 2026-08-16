@@ -81,10 +81,14 @@ export default function VendorReelsPage() {
   const [scheduledDate, setScheduledDate] = useState('');
 
   // API QUERIES & MUTATIONS
-  const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 300000 });
+  const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 10000 });
   const { data: listingsData } = useGetVendorListingsQuery(undefined);
   const [createReel, { isLoading: isPublishing }] = useCreateReelMutation();
   const [deleteReel] = useDeleteReelMutation();
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const scanForForbiddenContact = (text) => {
     if (!text) return false;
@@ -290,25 +294,25 @@ export default function VendorReelsPage() {
         title="Service Reels & AI Ads Studio"
         subtitle={`Live catalog (${reelsList.length} total posts) • ${publishedCount} Published • ${scheduledCount} Scheduled • ${draftCount} Drafts • ${reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()} Total Views`}
       >
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             onClick={() => setShowPostModal(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] font-black text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer border-none"
+            className="px-4.5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer border border-amber-400"
           >
             <FiPlus size={15} /> <span className="hidden sm:inline">CREATE REEL / POST</span><span className="sm:hidden">CREATE REEL</span>
           </button>
           <button
             type="button"
             onClick={() => setShowAiAdModal(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-[#d99a3d] text-[#241b15] hover:bg-[#c8892c] font-black text-xs flex items-center gap-1.5 cursor-pointer border-none shadow-2xs"
+            className="px-4.5 py-2.5 rounded-full bg-[#2b2d36] text-amber-300 border border-amber-500/40 font-extrabold text-xs shadow-md hover:bg-[#353844] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer"
           >
             <FiCpu size={15} /> <span className="hidden sm:inline">CREATE REELS (AI)</span><span className="sm:hidden">AI REEL</span>
           </button>
           <button
             type="button"
             onClick={() => navigate('/vendor/hire-creator')}
-            className="px-3.5 py-2.5 rounded-xl bg-[#241b15] text-white hover:bg-[#3a2c22] font-black text-xs flex items-center gap-1.5 cursor-pointer border-none shadow-2xs transition"
+            className="px-4.5 py-2.5 rounded-full bg-[#2b2d36] text-white border border-white/12 font-bold text-xs shadow-md hover:bg-[#353844] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer"
           >
             <FiUserCheck size={15} /> <span className="hidden sm:inline">HIRE CREATOR</span><span className="sm:hidden">HIRE</span>
           </button>

@@ -32,13 +32,16 @@ const PURPOSE_OPTIONS = {
 };
 
 const COLOR_MAP = {
-  amber:  { active: 'bg-amber-500/10 border-amber-500 text-amber-700',  dot: 'bg-amber-500'  },
-  green:  { active: 'bg-emerald-500/10 border-emerald-500 text-emerald-700', dot: 'bg-emerald-500' },
-  blue:   { active: 'bg-blue-500/10 border-blue-500 text-blue-700',     dot: 'bg-blue-500'   },
-  purple: { active: 'bg-brand-purple/10 border-brand-purple text-brand-purple', dot: 'bg-brand-purple' },
-  red:    { active: 'bg-red-500/10 border-red-500 text-red-700',        dot: 'bg-red-500'    },
-  orange: { active: 'bg-orange-500/10 border-orange-500 text-orange-700', dot: 'bg-orange-500' },
+  amber:  { active: 'bg-amber-950/60 border-amber-500 text-amber-200 shadow-amber-500/20',  dot: 'bg-amber-500'  },
+  green:  { active: 'bg-emerald-950/60 border-emerald-500 text-emerald-200 shadow-emerald-500/20', dot: 'bg-emerald-500' },
+  blue:   { active: 'bg-blue-950/60 border-blue-500 text-blue-200 shadow-blue-500/20',     dot: 'bg-blue-500'   },
+  purple: { active: 'bg-amber-950/60 border-amber-500 text-amber-200 shadow-amber-500/20', dot: 'bg-amber-500' },
+  red:    { active: 'bg-red-950/60 border-red-500 text-red-200 shadow-red-500/20',        dot: 'bg-red-500'    },
+  orange: { active: 'bg-orange-950/60 border-orange-500 text-orange-200 shadow-orange-500/20', dot: 'bg-orange-500' },
 };
+
+
+
 
 // PROMOTION AREAS
 const PROMOTION_AREAS = [
@@ -367,24 +370,24 @@ export default function CreateReelWizardModal({
       <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2">
         
         {/* STEP INDICATOR HEADER */}
-        <div className="flex items-center justify-between border-b border-border pb-3 text-xs">
-          <span className="font-extrabold text-brand-purple uppercase tracking-wider text-[10px] sm:text-xs">
+        <div className="flex items-center justify-between border-b border-amber-500/25 pb-4 text-xs">
+          <span className="px-3.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-extrabold uppercase tracking-wider text-[10px] sm:text-xs flex items-center gap-1.5 font-display">
             Step {wizardStep} of 3: {
               wizardStep === 1 ? 'Content & Category' :
               wizardStep === 2 ? 'Media & Caption' :
               'Promotion & Audience'
             }
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {[1, 2, 3].map(s => (
               <div
                 key={s}
-                className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] transition ${
-                  wizardStep === s ? 'bg-brand-purple text-white shadow-sm' :
-                  wizardStep > s ? 'bg-emerald-500 text-white' : 'bg-surface-secondary text-text-tertiary border'
+                className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] transition-all ${
+                  wizardStep === s ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/25 border border-amber-400 scale-105 font-extrabold' :
+                  wizardStep > s ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-400 border border-white/10 font-bold'
                 }`}
               >
-                {wizardStep > s ? <FiCheck size={12} /> : s}
+                {wizardStep > s ? <FiCheck size={13} /> : s}
               </div>
             ))}
           </div>
@@ -392,86 +395,86 @@ export default function CreateReelWizardModal({
 
         {/* ── STEP 1: CONTENT TYPE, CATEGORY & PURPOSE ── */}
         {wizardStep === 1 && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-6 animate-fade-in">
             
             {/* 1. SELECT CONTENT TYPE */}
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+              <label className="text-[10px] font-extrabold text-amber-300 uppercase tracking-widest block mb-2">
                 1. Select Content Type *
               </label>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setPostType('services')}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold border transition flex flex-col items-center gap-1 ${
+                  className={`py-3.5 px-4 rounded-2xl text-xs font-bold border transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
                     postType === 'services'
-                      ? 'bg-brand-purple text-white border-brand-purple shadow-md'
-                      : 'bg-surface border-border text-text-secondary hover:border-brand-purple/50'
+                      ? 'bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white border border-amber-400 shadow-md shadow-amber-500/25 scale-[1.02] font-black'
+                      : 'bg-[#31333e] border border-white/12 text-slate-200 hover:bg-[#3b3e4c] hover:text-white hover:border-amber-500/40 font-bold'
                   }`}
                 >
-                  <FiLayers size={18} />
+                  <FiLayers size={19} />
                   <span>Service Post</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPostType('product')}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold border transition flex flex-col items-center gap-1 ${
+                  className={`py-3.5 px-4 rounded-2xl text-xs font-bold border transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
                     postType === 'product'
-                      ? 'bg-brand-purple text-white border-brand-purple shadow-md'
-                      : 'bg-surface border-border text-text-secondary hover:border-brand-purple/50'
+                      ? 'bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white border border-amber-400 shadow-md shadow-amber-500/25 scale-[1.02] font-black'
+                      : 'bg-[#31333e] border border-white/12 text-slate-200 hover:bg-[#3b3e4c] hover:text-white hover:border-amber-500/40 font-bold'
                   }`}
                 >
-                  <FiTag size={18} />
+                  <FiTag size={19} />
                   <span>Product Post</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPostType('shop')}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold border transition flex flex-col items-center gap-1 ${
+                  className={`py-3.5 px-4 rounded-2xl text-xs font-bold border transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
                     postType === 'shop'
-                      ? 'bg-brand-purple text-white border-brand-purple shadow-md'
-                      : 'bg-surface border-border text-text-secondary hover:border-brand-purple/50'
+                      ? 'bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white border border-amber-400 shadow-md shadow-amber-500/25 scale-[1.02] font-black'
+                      : 'bg-[#31333e] border border-white/12 text-slate-200 hover:bg-[#3b3e4c] hover:text-white hover:border-amber-500/40 font-bold'
                   }`}
                 >
-                  <FiVideo size={18} />
+                  <FiVideo size={19} />
                   <span>Shop / Business</span>
                 </button>
               </div>
             </div>
 
             {/* 2. SELECT CATEGORY */}
-            <div className="p-4 bg-surface-secondary rounded-2xl border border-border space-y-3">
-              <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider flex items-center gap-1.5">
+            <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
+              <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
                 <FiLayers /> 2. Select {postType === 'product' ? 'Product' : postType === 'services' ? 'Service' : 'Shop'} Category
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+                  <label className="text-[10px] font-extrabold text-slate-300 uppercase block mb-1.5">
                     Category *
                   </label>
                   <select
                     value={postCategory}
                     onChange={handleCategoryChange}
-                    className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs font-medium focus:border-brand-purple"
+                    className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition"
                   >
                     {Object.keys(dynamicCategoriesData).map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat} value={cat} className="bg-[#1c1d22] text-slate-100">{cat}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+                  <label className="text-[10px] font-extrabold text-slate-300 uppercase block mb-1.5">
                     Sub Category *
                   </label>
                   <select
                     value={postSubcategory}
                     onChange={(e) => setPostSubcategory(e.target.value)}
-                    className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs font-medium focus:border-brand-purple"
+                    className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition"
                   >
                     {(dynamicCategoriesData[postCategory] || ['General']).map(sub => (
-                      <option key={sub} value={sub}>{sub}</option>
+                      <option key={sub} value={sub} className="bg-[#1c1d22] text-slate-100">{sub}</option>
                     ))}
                   </select>
                 </div>
@@ -480,11 +483,11 @@ export default function CreateReelWizardModal({
 
             {/* 3. SELECT PURPOSE */}
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-2">
+              <label className="text-[10px] font-extrabold text-amber-300 uppercase tracking-widest block mb-2.5">
                 3. Select Post Purpose *
               </label>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(PURPOSE_OPTIONS[postType] || PURPOSE_OPTIONS.services).map(p => {
                   const isActive = postPurpose === p.key;
                   const Icon = p.icon;
@@ -501,24 +504,24 @@ export default function CreateReelWizardModal({
                         setDiscountValidity('');
                         setAnnouncementTagline('');
                       }}
-                      className={`p-3 rounded-xl text-left border-2 transition-all ${
+                      className={`p-4 rounded-2xl text-left border transition-all cursor-pointer ${
                         isActive
-                          ? colors.active + ' shadow-sm scale-[1.01]'
-                          : 'bg-surface border-border text-text-secondary hover:border-border/80 hover:shadow-sm'
+                          ? 'bg-gradient-to-br from-amber-950/70 to-amber-900/50 border-2 border-amber-500 text-amber-100 shadow-md shadow-amber-500/25 scale-[1.01]'
+                          : 'bg-[#2b2d36] border border-white/12 text-slate-200 hover:bg-[#353844] hover:border-amber-500/40 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                            isActive ? colors.dot + ' text-white' : 'bg-surface-secondary text-text-tertiary'
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                            isActive ? 'bg-amber-500 text-white shadow-sm font-bold' : 'bg-white/10 text-amber-300'
                           }`}>
-                            <Icon size={14} />
+                            <Icon size={15} />
                           </div>
-                          <span className="font-bold text-[11px]">{p.label}</span>
+                          <span className="font-bold text-xs text-white">{p.label}</span>
                         </div>
-                        {isActive && <FiCheckCircle size={14} className="flex-shrink-0" />}
+                        {isActive && <FiCheckCircle size={16} className="text-amber-400 flex-shrink-0" />}
                       </div>
-                      <span className="text-[10px] text-text-tertiary block leading-tight">{p.desc}</span>
+                      <span className="text-[11px] text-slate-300 block leading-tight pl-0.5">{p.desc}</span>
                     </button>
                   );
                 })}
@@ -526,13 +529,13 @@ export default function CreateReelWizardModal({
 
               {/* CONDITIONAL EXTRA FIELDS — Offer / Discount & Flash Sale */}
               {(postPurpose === 'Offer / Discount' || postPurpose === 'Flash Sale') && (
-                <div className="mt-3 p-3 bg-emerald-500/5 border border-emerald-500/30 rounded-xl space-y-3 animate-fade-in">
-                  <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide flex items-center gap-1">
-                    <FiPercent size={12} /> Offer Details
+                <div className="mt-3.5 p-4 bg-emerald-500/15 border border-emerald-500/35 rounded-2xl space-y-3 animate-fade-in">
+                  <p className="text-[11px] font-extrabold text-emerald-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <FiPercent size={13} /> Offer Details
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Discount % *</label>
+                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Discount % *</label>
                       <div className="relative">
                         <input
                           type="number"
@@ -541,30 +544,30 @@ export default function CreateReelWizardModal({
                           placeholder="e.g. 20"
                           value={discountPercent}
                           onChange={(e) => setDiscountPercent(e.target.value)}
-                          className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-emerald-500 outline-none pr-7"
+                          className="w-full p-3 bg-[#1c1d22] border border-emerald-500/35 rounded-xl text-xs text-white focus:border-emerald-400 outline-none pr-7"
                         />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-text-tertiary font-bold">%</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">%</span>
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Coupon Code (Optional)</label>
+                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Coupon Code (Optional)</label>
                       <input
                         type="text"
                         placeholder="e.g. SAVE20"
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                        className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-emerald-500 outline-none uppercase tracking-widest font-mono"
+                        className="w-full p-3 bg-[#1c1d22] border border-emerald-500/35 rounded-xl text-xs text-white focus:border-emerald-400 outline-none uppercase tracking-widest font-mono"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Offer Valid Till (Optional)</label>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Offer Valid Till (Optional)</label>
                     <input
                       type="date"
                       value={discountValidity}
                       min={new Date().toISOString().split('T')[0]}
                       onChange={(e) => setDiscountValidity(e.target.value)}
-                      className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-emerald-500 outline-none"
+                      className="w-full p-3 bg-[#1c1d22] border border-emerald-500/35 rounded-xl text-xs text-white focus:border-emerald-400 outline-none"
                     />
                   </div>
                 </div>
@@ -574,9 +577,9 @@ export default function CreateReelWizardModal({
               {(postPurpose === 'Announcement' || postPurpose === 'New Service Launch' ||
                 postPurpose === 'New Arrival' || postPurpose === 'Grand Opening' ||
                 postPurpose === 'Special Event' || postPurpose === 'Business Update') && (
-                <div className="mt-3 p-3 bg-blue-500/5 border border-blue-500/30 rounded-xl space-y-2 animate-fade-in">
-                  <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wide flex items-center gap-1">
-                    <FiBell size={12} /> Announcement Tagline (Optional)
+                <div className="mt-3.5 p-4 bg-amber-500/15 border border-amber-500/35 rounded-2xl space-y-2 animate-fade-in">
+                  <p className="text-[11px] font-extrabold text-amber-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <FiBell size={13} /> Announcement Tagline (Optional)
                   </p>
                   <input
                     type="text"
@@ -587,9 +590,9 @@ export default function CreateReelWizardModal({
                       'Now offering home visits & online consultations'}`}
                     value={announcementTagline}
                     onChange={(e) => setAnnouncementTagline(e.target.value)}
-                    className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-blue-500 outline-none"
+                    className="w-full p-3 bg-[#1c1d22] border border-amber-500/35 rounded-xl text-xs text-white focus:border-amber-400 outline-none"
                   />
-                  <p className="text-[10px] text-text-tertiary text-right">{announcementTagline.length}/80</p>
+                  <p className="text-[10px] text-slate-400 text-right">{announcementTagline.length}/80</p>
                 </div>
               )}
             </div>
@@ -597,7 +600,7 @@ export default function CreateReelWizardModal({
             <button
               type="button"
               onClick={() => setWizardStep(2)}
-              className="w-full py-3 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium flex items-center justify-center gap-1 hover:brightness-110"
+              className="w-full py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-400"
             >
               Continue to Media & Caption Selection →
             </button>
@@ -606,29 +609,29 @@ export default function CreateReelWizardModal({
 
         {/* ── STEP 2: SELECT ITEM & MEDIA ── */}
         {wizardStep === 2 && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-6 animate-fade-in">
             
             {/* 4. SELECT ITEM (OPTION A vs B) - ONLY FOR PRODUCT & SERVICE POSTS */}
             {postType !== 'shop' && (
-              <div className="p-4 bg-surface-secondary rounded-2xl border border-border space-y-3">
-                <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider flex items-center gap-1.5">
+              <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
+                <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
                   <FiTag /> 4. Select {postType === 'product' ? 'Product' : 'Service'}
                 </h4>
 
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   {postType === 'services' ? (
                     <div>
-                      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1.5">
                         Option A – Select Existing Listed Service
                       </label>
                       <select
                         value={selectedServiceId}
                         onChange={(e) => handleSelectExistingService(e.target.value)}
-                        className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple"
+                        className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none"
                       >
-                        <option value="">-- Choose from your listed services ({vendorServices.length}) --</option>
+                        <option value="" className="bg-[#1c1d22] text-slate-100">-- Choose from your listed services ({vendorServices.length}) --</option>
                         {vendorServices.map(s => (
-                          <option key={s._id || s.id} value={s._id || s.id}>
+                          <option key={s._id || s.id} value={s._id || s.id} className="bg-[#1c1d22] text-slate-100">
                             {s.title} (₹{s.price || s.sellingPrice || 0})
                           </option>
                         ))}
@@ -636,17 +639,17 @@ export default function CreateReelWizardModal({
                     </div>
                   ) : (
                     <div>
-                      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1.5">
                         Option A – Select Existing Listed Product
                       </label>
                       <select
                         value={selectedProductId}
                         onChange={(e) => handleSelectExistingProduct(e.target.value)}
-                        className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple"
+                        className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none"
                       >
-                        <option value="">-- Choose from your listed products ({vendorProducts.length}) --</option>
+                        <option value="" className="bg-[#1c1d22] text-slate-100">-- Choose from your listed products ({vendorProducts.length}) --</option>
                         {vendorProducts.map(p => (
-                          <option key={p._id || p.id} value={p._id || p.id}>
+                          <option key={p._id || p.id} value={p._id || p.id} className="bg-[#1c1d22] text-slate-100">
                             {p.title} (₹{p.price || p.sellingPrice || 0})
                           </option>
                         ))}
@@ -655,36 +658,36 @@ export default function CreateReelWizardModal({
                   )}
 
                   {postType === 'services' && selectedServiceData && (
-                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-800">
+                    <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-200">
                       <div className="flex items-center justify-between font-bold">
                         <span>Selected: {selectedServiceData.title}</span>
                         <span>Price: ₹{selectedServiceData.price || selectedServiceData.sellingPrice || 0}</span>
                       </div>
-                      <p className="text-[11px] text-emerald-700 line-clamp-2">
+                      <p className="text-[11px] text-emerald-300 line-clamp-2">
                         {selectedServiceData.description || 'No description provided.'}
                       </p>
                     </div>
                   )}
 
                   {postType === 'product' && selectedProductData && (
-                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-800">
+                    <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-200">
                       <div className="flex items-center justify-between font-bold">
                         <span>Selected: {selectedProductData.title}</span>
                         <span>Price: ₹{selectedProductData.price || selectedProductData.sellingPrice || 0}</span>
                       </div>
-                      <p className="text-[11px] text-emerald-700 line-clamp-2">
+                      <p className="text-[11px] text-emerald-300 line-clamp-2">
                         {selectedProductData.description || 'No description provided.'}
                       </p>
                     </div>
                   )}
 
                   {postType === 'services' && (
-                    <div className="flex items-center justify-between pt-1 border-t border-border">
-                      <span className="text-[11px] text-text-tertiary">Can't find the service?</span>
+                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                      <span className="text-[11px] text-slate-300">Can't find the service?</span>
                       <button
                         type="button"
                         onClick={() => setShowCreateServiceModal(true)}
-                        className="px-3 py-1.5 bg-brand-purple/10 text-brand-purple border border-brand-purple/30 hover:bg-brand-purple hover:text-white transition rounded-xl text-xs font-bold flex items-center gap-1"
+                        className="px-3.5 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500 hover:text-white transition rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
                       >
                         <FiPlus size={13} /> Option B – Create New Service
                       </button>
@@ -692,12 +695,12 @@ export default function CreateReelWizardModal({
                   )}
 
                   {postType === 'product' && (
-                    <div className="flex items-center justify-between pt-1 border-t border-border">
-                      <span className="text-[11px] text-text-tertiary">Can't find the product?</span>
+                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                      <span className="text-[11px] text-slate-300">Can't find the product?</span>
                       <button
                         type="button"
                         onClick={() => setShowCreateProductModal(true)}
-                        className="px-3 py-1.5 bg-brand-purple/10 text-brand-purple border border-brand-purple/30 hover:bg-brand-purple hover:text-white transition rounded-xl text-xs font-bold flex items-center gap-1"
+                        className="px-3.5 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500 hover:text-white transition rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
                       >
                         <FiPlus size={13} /> Option B – Create New Product
                       </button>
@@ -709,7 +712,7 @@ export default function CreateReelWizardModal({
 
             {/* CAPTION / POST TITLE */}
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+              <label className="text-[10px] font-extrabold text-amber-300 uppercase tracking-widest block mb-1.5">
                 Post Caption * (No Contact Info Allowed)
               </label>
               <textarea
@@ -718,13 +721,13 @@ export default function CreateReelWizardModal({
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder={`Describe your ${postType === 'product' ? 'product' : postType === 'services' ? 'service' : 'business'} highlights...`}
-                className="w-full p-3 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple"
+                className="w-full p-3.5 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition"
               />
             </div>
 
             {/* 5. SELECT MEDIA */}
-            <div className="p-4 bg-surface-secondary rounded-2xl border border-border space-y-3">
-              <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider flex items-center gap-1.5">
+            <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
+              <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
                 <FiImage /> 5. Select Media
               </h4>
 
@@ -734,8 +737,8 @@ export default function CreateReelWizardModal({
                   <button
                     type="button"
                     onClick={() => setMediaOption('service_media')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border ${
-                      mediaOption === 'service_media' ? 'bg-brand-purple text-white border-brand-purple' : 'bg-surface border-border text-text-secondary'
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
+                      mediaOption === 'service_media' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-xs' : 'bg-[#1c1d22] border-white/15 text-slate-200'
                     }`}
                   >
                     Option A – Use Item Gallery Media
@@ -743,8 +746,8 @@ export default function CreateReelWizardModal({
                   <button
                     type="button"
                     onClick={() => setMediaOption('upload_new')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border ${
-                      mediaOption === 'upload_new' ? 'bg-brand-purple text-white border-brand-purple' : 'bg-surface border-border text-text-secondary'
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
+                      mediaOption === 'upload_new' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-xs' : 'bg-[#1c1d22] border-white/15 text-slate-200'
                     }`}
                   >
                     Option B – Upload New Media
@@ -761,11 +764,11 @@ export default function CreateReelWizardModal({
                     if (gallery.length > 0) {
                       return (
                         <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <label className="text-[10px] font-bold text-text-tertiary uppercase block">
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-[10px] font-bold text-slate-300 uppercase block">
                               Select up to 5 Images/Videos from Item Gallery:
                             </label>
-                            <span className="text-[10px] font-extrabold text-brand-purple bg-brand-purple/10 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-extrabold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
                               {selectedServiceMediaUrls.length} / 5 Selected
                             </span>
                           </div>
@@ -777,7 +780,7 @@ export default function CreateReelWizardModal({
                                   key={idx}
                                   onClick={() => toggleServiceMediaUrl(url)}
                                   className={`w-20 h-20 rounded-xl overflow-hidden border-2 cursor-pointer relative transition ${
-                                    isSelected ? 'border-brand-purple ring-2 ring-brand-purple/30 scale-95' : 'border-transparent opacity-70 hover:opacity-100'
+                                    isSelected ? 'border-amber-500 ring-2 ring-amber-500/40 scale-95' : 'border-white/15 opacity-70 hover:opacity-100'
                                   }`}
                                 >
                                   {url.match(/\.(mp4|webm)(\?.*)?$/i) ? (
@@ -786,7 +789,7 @@ export default function CreateReelWizardModal({
                                     <img src={url} alt="Gallery item" className="w-full h-full object-cover" />
                                   )}
                                   {isSelected && (
-                                    <div className="absolute inset-0 bg-brand-purple/40 flex items-center justify-center font-bold text-white text-xs">
+                                    <div className="absolute inset-0 bg-amber-500/40 flex items-center justify-center font-bold text-white text-xs">
                                       <FiCheckCircle size={22} />
                                     </div>
                                   )}
@@ -798,20 +801,20 @@ export default function CreateReelWizardModal({
                       );
                     }
                     return (
-                      <p className="text-xs text-text-tertiary italic">
+                      <p className="text-xs text-slate-400 italic">
                         Selected item has no media gallery items. Switch to Upload New Media option.
                       </p>
                     );
                   })()}
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 p-1 bg-surface border border-border rounded-xl">
+                <div className="space-y-3.5">
+                  <div className="flex items-center gap-2 p-1 bg-[#1c1d22] border border-white/15 rounded-xl">
                     <button
                       type="button"
                       onClick={() => setUploadMode('file')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                        uploadMode === 'file' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        uploadMode === 'file' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-xs font-extrabold' : 'text-slate-300 hover:text-white'
                       }`}
                     >
                       <FiImage size={14} /> Upload Photos / Videos (Max 5)
@@ -819,8 +822,8 @@ export default function CreateReelWizardModal({
                     <button
                       type="button"
                       onClick={() => setUploadMode('url')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                        uploadMode === 'url' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        uploadMode === 'url' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-xs font-extrabold' : 'text-slate-300 hover:text-white'
                       }`}
                     >
                       <FiTag size={14} /> Enter Media URL
@@ -830,16 +833,16 @@ export default function CreateReelWizardModal({
                   {uploadMode === 'file' ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-text-tertiary uppercase block">
+                        <label className="text-[10px] font-bold text-slate-300 uppercase block">
                           Upload Files (Select up to 5 items) *
                         </label>
-                        <span className="text-[10px] font-extrabold text-brand-purple bg-brand-purple/10 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-extrabold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
                           {customMediaList.length} / 5 Uploaded
                         </span>
                       </div>
 
                       {customMediaList.length < 5 && (
-                        <div className="border-2 border-dashed border-brand-purple/40 hover:border-brand-purple rounded-2xl p-4 text-center bg-surface hover:bg-brand-purple/5 transition cursor-pointer relative">
+                        <div className="border-2 border-dashed border-amber-500/40 hover:border-amber-400 rounded-2xl p-5 text-center bg-white/5 hover:bg-white/10 transition cursor-pointer relative">
                           <input
                             type="file"
                             multiple
@@ -847,12 +850,12 @@ export default function CreateReelWizardModal({
                             onChange={handleFileUpload}
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                           />
-                          <div className="flex flex-col items-center gap-1 text-text-secondary">
-                            <FiImage className="w-8 h-8 text-brand-purple opacity-80 mb-1" />
-                            <span className="font-bold text-xs text-text-primary">
+                          <div className="flex flex-col items-center gap-1 text-slate-300">
+                            <FiImage className="w-8 h-8 text-amber-400 opacity-80 mb-1" />
+                            <span className="font-bold text-xs text-white">
                               Click or Drag & Drop (Select up to {5 - customMediaList.length} files)
                             </span>
-                            <span className="text-[10px] text-text-tertiary">Supports JPG, PNG, WEBP, MP4, MOV (Max 50MB)</span>
+                            <span className="text-[10px] text-slate-400">Supports JPG, PNG, WEBP, MP4, MOV (Max 50MB)</span>
                           </div>
                         </div>
                       )}
@@ -860,7 +863,7 @@ export default function CreateReelWizardModal({
                       {customMediaList.length > 0 && (
                         <div className="grid grid-cols-5 gap-2 pt-1">
                           {customMediaList.map((item, idx) => (
-                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-black border-2 border-brand-purple group shadow-sm">
+                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-900 border-2 border-amber-500 group shadow-md">
                               {item.type === 'video' ? (
                                 <video src={item.url} className="w-full h-full object-cover" />
                               ) : (
@@ -869,7 +872,7 @@ export default function CreateReelWizardModal({
                               <button
                                 type="button"
                                 onClick={() => removeCustomMediaItem(idx)}
-                                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md hover:bg-red-700 transition"
+                                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md hover:bg-red-700 transition cursor-pointer"
                               >
                                 <FiX size={12} />
                               </button>
@@ -883,7 +886,7 @@ export default function CreateReelWizardModal({
                     </div>
                   ) : (
                     <div>
-                      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">
                         Media File URL (MP4 Video or Image URL)
                       </label>
                       <input
@@ -903,18 +906,18 @@ export default function CreateReelWizardModal({
                           })();
                           setMediaType(isVid ? 'video' : 'image');
                         }}
-                        className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple"
+                        className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 focus:border-amber-500 outline-none"
                       />
                     </div>
                   )}
 
                   {postType !== 'shop' && (
-                    <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer pt-1">
+                    <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer pt-1">
                       <input
                         type="checkbox"
                         checked={saveToServiceGallery}
                         onChange={(e) => setSaveToServiceGallery(e.target.checked)}
-                        className="w-4 h-4 rounded text-brand-purple"
+                        className="w-4 h-4 rounded text-amber-500"
                       />
                       <span>Save new media to service/product gallery for future use</span>
                     </label>
@@ -927,14 +930,14 @@ export default function CreateReelWizardModal({
               <button
                 type="button"
                 onClick={() => setWizardStep(1)}
-                className="w-1/3 py-3 bg-surface border border-border font-bold text-xs rounded-xl"
+                className="w-1/3 py-3.5 bg-white/10 border border-white/10 text-slate-200 font-bold text-xs rounded-full hover:bg-white/15 hover:text-white transition cursor-pointer"
               >
                 ← Back
               </button>
               <button
                 type="button"
                 onClick={() => setWizardStep(3)}
-                className="w-2/3 py-3 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:brightness-110"
+                className="w-2/3 py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-400"
               >
                 Continue to Promotion & Audience →
               </button>
@@ -944,23 +947,23 @@ export default function CreateReelWizardModal({
 
         {/* ── STEP 3: PROMOTION AREA & AUDIENCE ── */}
         {wizardStep === 3 && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-6 animate-fade-in">
             
             {/* 6A. PROMOTION AREA */}
-            <div className="p-4 bg-surface-secondary rounded-2xl border border-border space-y-3">
-              <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider flex items-center gap-1.5">
+            <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
+              <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
                 <FiMapPin /> 6A. Promotion Area (Single Choice) *
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
                 {PROMOTION_AREAS.map((area) => (
                   <button
                     key={area}
                     type="button"
                     onClick={() => setPromotionArea(area)}
-                    className={`p-2.5 rounded-xl text-xs font-bold border transition text-center ${
+                    className={`p-2.5 rounded-xl text-xs font-bold border transition text-center cursor-pointer ${
                       promotionArea === area
-                        ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
-                        : 'bg-surface border-border text-text-secondary hover:border-brand-purple/40'
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400 shadow-md shadow-amber-500/20 scale-[1.02] font-extrabold'
+                        : 'bg-[#1c1d22] border border-white/12 text-slate-200 hover:border-amber-500/40 hover:text-white'
                     }`}
                   >
                     {area}
@@ -970,12 +973,12 @@ export default function CreateReelWizardModal({
             </div>
 
             {/* 6B. TARGET AUDIENCE */}
-            <div className="p-4 bg-surface-secondary rounded-2xl border border-border space-y-3">
-              <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider flex items-center gap-1.5">
+            <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
+              <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
                 <FiUsers /> 6B. Target Audience (Multi-Select) *
               </h4>
 
-              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-1">
+              <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
                 {PREDEFINED_AUDIENCES.map((tag) => {
                   const isSelected = selectedTargetAudiences.includes(tag);
                   return (
@@ -983,10 +986,10 @@ export default function CreateReelWizardModal({
                       key={tag}
                       type="button"
                       onClick={() => toggleAudienceTag(tag)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1 ${
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition flex items-center gap-1.5 cursor-pointer ${
                         isSelected
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                          : 'bg-surface border-border text-text-secondary hover:border-emerald-600/40'
+                          ? 'bg-emerald-500 text-white border border-emerald-400 shadow-md shadow-emerald-500/20 font-extrabold'
+                          : 'bg-[#1c1d22] border border-white/12 text-slate-200 hover:bg-white/10 hover:text-white'
                       }`}
                     >
                       {isSelected && <FiCheck size={12} />}
@@ -998,7 +1001,7 @@ export default function CreateReelWizardModal({
 
               {/* CUSTOM TARGET AUDIENCE */}
               <div className="pt-2">
-                <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+                <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1.5">
                   Custom Target Audience Description
                 </label>
                 <input
@@ -1006,7 +1009,7 @@ export default function CreateReelWizardModal({
                   placeholder="e.g. Lawyers, CA, gym members, foodies, college students"
                   value={customTargetAudience}
                   onChange={(e) => setCustomTargetAudience(e.target.value)}
-                  className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs focus:border-brand-purple"
+                  className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 focus:border-amber-500 outline-none"
                 />
               </div>
             </div>
@@ -1015,14 +1018,14 @@ export default function CreateReelWizardModal({
               <button
                 type="button"
                 onClick={() => setWizardStep(2)}
-                className="w-1/3 py-3 bg-surface border border-border font-bold text-xs rounded-xl"
+                className="w-1/3 py-3.5 bg-white/10 border border-white/10 text-slate-200 font-bold text-xs rounded-full hover:bg-white/15 hover:text-white transition cursor-pointer"
               >
                 ← Back
               </button>
               <button
                 type="button"
                 onClick={onOpenPreview}
-                className="w-2/3 py-3 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium flex items-center justify-center gap-1.5 hover:brightness-110"
+                className="w-2/3 py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-400"
               >
                 <FiEye size={15} /> Open Preview & Publish Summary →
               </button>
