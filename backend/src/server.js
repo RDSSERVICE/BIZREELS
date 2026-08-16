@@ -27,23 +27,26 @@ const startServer = async () => {
     const categoryService = require('./services/category.service');
 
     // Safely execute admin and category seeds when MongoDB connection is active
-    if (mongoose.connection.readyState === 1) {
+    const seedMarketplaceIfEmpty = async () => {
       try {
         await adminPhoneService.ensureAdminSeed();
         await categoryService.seedCategories();
+        const Listing = require('./models/Listing');
+        const count = await Listing.countDocuments();
+        if (count === 0) {
+          const { seedMarketplaceData } = require('../scripts/seedMarketplace');
+          if (seedMarketplaceData) await seedMarketplaceData();
+        }
       } catch (seedErr) {
         logger.warn(`Seed skipped: ${seedErr.message}`);
       }
+    };
+
+    if (mongoose.connection.readyState === 1) {
+      await seedMarketplaceIfEmpty();
     } else {
       logger.warn('MongoDB connection pending. Seeding will run once connected.');
-      mongoose.connection.once('connected', async () => {
-        try {
-          await adminPhoneService.ensureAdminSeed();
-          await categoryService.seedCategories();
-        } catch (seedErr) {
-          logger.warn(`Seed skipped on reconnect: ${seedErr.message}`);
-        }
-      });
+      mongoose.connection.once('connected', seedMarketplaceIfEmpty);
     }
 
     // Init Socket.io connections
