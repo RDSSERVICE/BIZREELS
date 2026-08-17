@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { setCredentials, tokenRefreshed } from '../../features/auth/authSlice';
 import { useGetMeQuery } from '../../features/auth/authApi';
 import { tokenStore } from '../../lib/api';
-import { getRoleDashboard } from '../../lib/roleNav';
+import { getRoleDashboard, getPostLoginDestination } from '../../lib/roleNav';
 import Loader from '../../components/common/Loader';
 
 /**
@@ -46,12 +46,7 @@ const AuthCallback = () => {
       );
       toast.success('Successfully logged in with Google!');
       const activeRole = user?.activeRole || user?.current_role || (user?.roles || [])[0] || 'customer';
-      let targetPath = getRoleDashboard(activeRole);
-      if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
-        targetPath = '/vendor/profile';
-      } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
-        targetPath = '/creator/profile';
-      }
+      const targetPath = getPostLoginDestination(user, activeRole);
       navigate(targetPath, { replace: true });
     }
 

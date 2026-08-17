@@ -47,8 +47,6 @@ export default function CustomerLayout() {
       profileUser._id &&
       !profileUser.customerProfile?.interestsSelectedAt &&
       !location.pathname.includes('choose-interests') &&
-      !location.pathname.includes('become-vendor') &&
-      !location.pathname.includes('become-creator') &&
       !location.pathname.includes('settings')
     ) {
       navigate('/customer/choose-interests', { replace: true });
@@ -196,8 +194,8 @@ export default function CustomerLayout() {
     const hasTargetRole = userRoles.includes(targetRole);
 
     if (!hasTargetRole) {
-      if (targetRole === 'vendor') navigate('/customer/become-vendor');
-      else if (targetRole === 'creator') navigate('/customer/become-creator');
+      if (targetRole === 'vendor') navigate('/vendor/onboarding');
+      else if (targetRole === 'creator') navigate('/creator/onboarding');
       return;
     }
 
@@ -244,13 +242,13 @@ export default function CustomerLayout() {
     { label: 'Search Listings', path: '/customer/search', icon: FiCompass },
     {
       label: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? 'Vendor Portal' : 'Become a Vendor',
-      path: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? '/vendor/dashboard' : '/customer/become-vendor',
+      path: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? '/vendor/dashboard' : '/vendor/onboarding',
       icon: FiShoppingBag,
       highlight: !(roles.includes('vendor') && profileUser?.vendorProfile?.shopName)
     },
     {
       label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? 'Creator Portal' : 'Become a Creator',
-      path: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? '/creator/dashboard' : '/customer/become-creator',
+      path: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? '/creator/dashboard' : '/creator/onboarding',
       icon: FiFilm,
       highlight: !(roles.includes('creator') && profileUser?.creatorProfile?.displayName)
     },

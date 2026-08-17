@@ -7,7 +7,7 @@ import {
   FiGrid, FiUser, FiPackage, FiVideo, FiZap, FiInbox, FiShoppingCart,
   FiPieChart, FiCreditCard, FiDollarSign, FiStar, FiUserCheck, FiSettings,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
-  FiCheckCircle, FiMessageSquare, FiCheck
+  FiCheckCircle, FiMessageSquare, FiCheck, FiFileText
 } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
@@ -27,6 +27,7 @@ const NAV_SECTIONS = [
     title: 'Business',
     items: [
       { name: 'Business Profile', path: '/vendor/profile', icon: FiUser },
+      { name: 'Onboarding Details', path: '/vendor/onboarding-details', icon: FiFileText },
       { name: 'Verification Center', path: '/vendor/verification', icon: FiShield, badge: 'Badge' },
       { name: 'My Listings', path: '/vendor/listings', icon: FiPackage },
       { name: 'Reels & AI Ads', path: '/vendor/reels', icon: FiVideo },
@@ -122,8 +123,8 @@ export default function VendorLayout() {
     const hasTargetRole = userRoles.includes(targetRole);
 
     if (!hasTargetRole) {
-      if (targetRole === 'vendor') navigate('/customer/become-vendor');
-      else if (targetRole === 'creator') navigate('/customer/become-creator');
+      if (targetRole === 'vendor') navigate('/vendor/onboarding');
+      else if (targetRole === 'creator') navigate('/creator/onboarding');
       return;
     }
 

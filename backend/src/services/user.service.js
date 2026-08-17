@@ -51,6 +51,10 @@ const updateProfile = async (userId, updates) => {
 
   const user = await User.findByIdAndUpdate(userId, { $set: clean }, { returnDocument: 'after' });
   if (!user) throw ApiError.notFound('User not found');
+  try {
+    const cache = require('../utils/cache');
+    await cache.deleteCache(`user:auth:${userId}`);
+  } catch (err) {}
   return user;
 };
 

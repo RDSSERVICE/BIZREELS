@@ -268,15 +268,31 @@ class SandboxVerificationService {
     const cleanOtp = String(otp).trim();
 
     try {
-      const res = await this.request('POST', '/kyc/aadhaar/okyc/otp/verify', {
-        '@entity': 'in.co.sandbox.kyc.aadhaar.okyc.request',
-        reference_id: referenceId,
-        otp: cleanOtp
-      });
+      let res;
+      try {
+        res = await this.request('POST', '/kyc/aadhaar/okyc/otp/verify', {
+          '@entity': 'in.co.sandbox.kyc.aadhaar.okyc.request',
+          reference_id: referenceId,
+          otp: cleanOtp
+        });
+      } catch (err1) {
+        // If reference_id was string/number mismatch, retry with alternative type
+        const isNum = !isNaN(Number(referenceId));
+        const altRefId = isNum ? (typeof referenceId === 'string' ? Number(referenceId) : String(referenceId)) : referenceId;
+        if (altRefId !== referenceId) {
+          res = await this.request('POST', '/kyc/aadhaar/okyc/otp/verify', {
+            '@entity': 'in.co.sandbox.kyc.aadhaar.okyc.request',
+            reference_id: altRefId,
+            otp: cleanOtp
+          });
+        } else {
+          throw err1;
+        }
+      }
 
       const data = res.data || res;
       const innerData = data.data || data;
-      const isVerified = data.status === 'VALID' || data.status === 'SUCCESS' || innerData.status === 'VALID' || innerData.status === 'SUCCESS' || !!innerData.name || !!innerData.full_name || res.code === 200;
+      const isVerified = (data.status === 'VALID' || data.status === 'SUCCESS' || innerData.status === 'VALID' || innerData.status === 'SUCCESS' || !!innerData.name || !!innerData.full_name) && (data.status !== 'FAILED' && innerData.status !== 'FAILED');
 
       return {
         success: true,
@@ -291,13 +307,15 @@ class SandboxVerificationService {
         verifiedAt: new Date()
       };
     } catch (err) {
-      console.error('[Sandbox Aadhaar OTP Verify Error]:', err.message);
+      const rawErr = err.raw || err.response?.data || {};
+      const errorMsg = rawErr.data?.message || rawErr.message || rawErr.error?.message || rawErr.error || err.message;
+      console.error('[Sandbox Aadhaar OTP Verify Error]:', errorMsg, rawErr);
 
       return {
         success: false,
         verified: false,
         status: 'failed',
-        message: err.message || 'Invalid or expired Aadhaar OTP code. Please check and try again.'
+        message: errorMsg || 'Invalid or expired Aadhaar OTP code. Please check and try again.'
       };
     }
   }

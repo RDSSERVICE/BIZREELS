@@ -10,7 +10,7 @@ import VendorLayout from '../pages/vendor/VendorLayout';
 import CreatorLayout from '../pages/creator/CreatorLayout';
 
 // Guards
-import { PrivateRoute, RoleRoute, PublicRoute, RequireAdmin } from './guards';
+import { PrivateRoute, RoleRoute, PublicRoute, RequireAdmin, OnboardingRoute } from './guards';
 import Loader from '../components/common/Loader';
 
 // Public & Auth Pages
@@ -36,8 +36,8 @@ const CustomerActivitiesPage = React.lazy(() => import('../pages/customer/activi
 const CustomerNotificationsPage = React.lazy(() => import('../pages/customer/notifications/CustomerNotificationsPage'));
 const CustomerChatPage = React.lazy(() => import('../pages/customer/chat/CustomerChatPage'));
 const CustomerSettingsPage = React.lazy(() => import('../pages/customer/settings/CustomerSettingsPage'));
-const BecomeVendorPage = React.lazy(() => import('../pages/customer/become-vendor/BecomeVendorPage'));
-const BecomeCreatorPage = React.lazy(() => import('../pages/customer/become-creator/BecomeCreatorPage'));
+const BecomeVendorPage = React.lazy(() => import('../pages/vendor/onboarding/BecomeVendorPage'));
+const BecomeCreatorPage = React.lazy(() => import('../pages/creator/onboarding/BecomeCreatorPage'));
 const VendorProfilePage = React.lazy(() => import('../pages/customer/vendor/VendorProfilePage'));
 const InterestSelectionPage = React.lazy(() => import('../pages/customer/onboarding/InterestSelectionPage'));
 const ListingDetailPage = React.lazy(() => import('../pages/customer/listings/ListingDetailPage'));
@@ -161,12 +161,23 @@ const AppRoutes = () => {
         <Route path="notifications" element={<CustomerNotificationsPage />} />
         <Route path="chat" element={<CustomerChatPage />} />
         <Route path="settings" element={<CustomerSettingsPage />} />
-        <Route path="become-vendor" element={<BecomeVendorPage />} />
-        <Route path="become-creator" element={<BecomeCreatorPage />} />
         <Route path="vendor/:vendorId" element={<VendorProfilePage />} />
         <Route path="choose-interests" element={<InterestSelectionPage />} />
+        {/* Backward compatibility: old onboarding URLs redirect to new namespace */}
+        <Route path="become-vendor" element={<Navigate to="/vendor/onboarding" replace />} />
+        <Route path="become-creator" element={<Navigate to="/creator/onboarding" replace />} />
         <Route path="" element={<Navigate to="home" replace />} />
       </Route>
+
+      {/* ── Vendor Onboarding Route (auth required, no vendor role needed) ── */}
+      <Route
+        path="/vendor/onboarding"
+        element={
+          <OnboardingRoute targetRole="vendor">
+            <BecomeVendorPage />
+          </OnboardingRoute>
+        }
+      />
 
       {/* ── Vendor Portal Routes ────────────────────────────── */}
       <Route
@@ -181,6 +192,8 @@ const AppRoutes = () => {
       >
         <Route path="dashboard" element={<VendorDashboardPage />} />
         <Route path="profile" element={<VendorBusinessProfilePage />} />
+        <Route path="onboarding-details" element={<BecomeVendorPage isEditMode={true} />} />
+        <Route path="setup-details" element={<Navigate to="/vendor/onboarding-details" replace />} />
         <Route path="verification" element={<VendorVerificationPage />} />
         <Route path="listings" element={<VendorListingsPage />} />
         <Route path="reels" element={<VendorReelsPage />} />
@@ -200,6 +213,16 @@ const AppRoutes = () => {
         <Route path="" element={<Navigate to="dashboard" replace />} />
       </Route>
 
+      {/* ── Creator Onboarding Route (auth required, no creator role needed) ── */}
+      <Route
+        path="/creator/onboarding"
+        element={
+          <OnboardingRoute targetRole="creator">
+            <BecomeCreatorPage />
+          </OnboardingRoute>
+        }
+      />
+
       {/* ── Creator Portal Routes ───────────────────────────── */}
       <Route
         path="/creator"
@@ -213,6 +236,8 @@ const AppRoutes = () => {
       >
         <Route path="dashboard" element={<CreatorDashboardPage />} />
         <Route path="profile" element={<CreatorProfilePage />} />
+        <Route path="onboarding-details" element={<BecomeCreatorPage isEditMode={true} />} />
+        <Route path="setup-details" element={<Navigate to="/creator/onboarding-details" replace />} />
         <Route path="verification" element={<CreatorVerificationPage />} />
         <Route path="portfolio" element={<CreatorPortfolioPage />} />
         <Route path="pricing" element={<CreatorPricingPage />} />

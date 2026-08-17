@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { FiUser, FiSave } from 'react-icons/fi';
+import { FiUser, FiSave, FiFileText } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import { api, tokenStore } from '../../../lib/api';
@@ -99,6 +100,24 @@ export default function CreatorProfilePage() {
         title="Creator Profile Details"
         subtitle="Update your stage name, bio pitch, language fluencies, and travel availability"
       />
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-2 flex-wrap">
+        <Link
+          to="/creator/profile"
+          className="px-4 py-2 rounded-xl text-xs font-black bg-[#241b15] text-[#d99a3d] shadow-xs flex items-center gap-2"
+        >
+          <FiUser className="w-3.5 h-3.5" />
+          <span>Basic Profile</span>
+        </Link>
+        <Link
+          to="/creator/onboarding-details"
+          className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-[#1a1a1a] hover:bg-[#f8f4ec] transition flex items-center gap-2"
+        >
+          <FiFileText className="w-3.5 h-3.5" />
+          <span>Full Creator Setup Details</span>
+        </Link>
+      </div>
 
       <form onSubmit={handleSave} className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
         {/* Profile Photo Upload Section */}

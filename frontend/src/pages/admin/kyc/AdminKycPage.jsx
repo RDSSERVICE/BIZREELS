@@ -296,6 +296,93 @@ export default function AdminKycPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Verified Government IDs & Compliance Records */}
+                  <h5 className="font-extrabold text-[11px] uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded">Verified Government IDs &amp; Banking</h5>
+                  <div className="space-y-2 text-xs">
+                    {/* Aadhaar Record */}
+                    {activeGroup.user.vendorProfile?.documents?.aadhaar && (
+                      <div className="bg-surface-secondary/50 p-2.5 rounded-xl border border-border/50 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-text-primary flex items-center gap-1 text-[11px]">
+                            <FiCheck className="text-emerald-500" /> Aadhaar (UIDAI Verified)
+                          </span>
+                          <span className="text-[9px] font-mono text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded font-bold uppercase">
+                            {activeGroup.user.vendorProfile.documents.aadhaar.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 text-[10px] text-text-secondary">
+                          <p><span className="text-text-tertiary">Name:</span> <strong className="text-text-primary">{activeGroup.user.vendorProfile.documents.aadhaar.fullName || '—'}</strong></p>
+                          <p><span className="text-text-tertiary">Aadhaar No:</span> <strong className="text-text-primary font-mono">{activeGroup.user.vendorProfile.documents.aadhaar.maskedNumber || '—'}</strong></p>
+                          <p><span className="text-text-tertiary">Gender/DOB:</span> {activeGroup.user.vendorProfile.documents.aadhaar.gender || '—'} {activeGroup.user.vendorProfile.documents.aadhaar.dob ? `(${activeGroup.user.vendorProfile.documents.aadhaar.dob})` : ''}</p>
+                          <p><span className="text-text-tertiary">Ref ID:</span> <span className="font-mono text-[9px]">{activeGroup.user.vendorProfile.documents.aadhaar.referenceId || 'OKYC_VERIFIED'}</span></p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* PAN Record */}
+                    {activeGroup.user.vendorProfile?.documents?.pan && (
+                      <div className="bg-surface-secondary/50 p-2.5 rounded-xl border border-border/50 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-text-primary flex items-center gap-1 text-[11px]">
+                            <FiCheck className="text-emerald-500" /> PAN Card (Income Tax NSDL)
+                          </span>
+                          <span className="text-[9px] font-mono text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded font-bold uppercase">
+                            {activeGroup.user.vendorProfile.documents.pan.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 text-[10px] text-text-secondary">
+                          <p><span className="text-text-tertiary">Taxpayer:</span> <strong className="text-text-primary">{activeGroup.user.vendorProfile.documents.pan.fullName || '—'}</strong></p>
+                          <p><span className="text-text-tertiary">PAN No:</span> <strong className="text-text-primary font-mono uppercase">{activeGroup.user.vendorProfile.documents.pan.docNumber || '—'}</strong></p>
+                          <p><span className="text-text-tertiary">Category:</span> {activeGroup.user.vendorProfile.documents.pan.category || 'Individual'}</p>
+                          <p><span className="text-text-tertiary">Ref:</span> <span className="font-mono text-[9px]">{activeGroup.user.vendorProfile.documents.pan.referenceId || 'PAN_VALID'}</span></p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* GSTIN Record */}
+                    {activeGroup.user.vendorProfile?.documents?.gst && (
+                      <div className="bg-surface-secondary/50 p-2.5 rounded-xl border border-border/50 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-text-primary flex items-center gap-1 text-[11px]">
+                            <FiCheck className="text-emerald-500" /> GST Registration (GSTIN)
+                          </span>
+                          <span className="text-[9px] font-mono text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded font-bold uppercase">
+                            {activeGroup.user.vendorProfile.documents.gst.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 text-[10px] text-text-secondary">
+                          <p><span className="text-text-tertiary">Trade Name:</span> <strong className="text-text-primary">{activeGroup.user.vendorProfile.documents.gst.tradeName || '—'}</strong></p>
+                          <p><span className="text-text-tertiary">GSTIN:</span> <strong className="text-text-primary font-mono uppercase">{activeGroup.user.vendorProfile.documents.gst.docNumber || '—'}</strong></p>
+                          <p><span className="text-text-tertiary">Legal Name:</span> {activeGroup.user.vendorProfile.documents.gst.legalName || '—'}</p>
+                          <p><span className="text-text-tertiary">State:</span> {activeGroup.user.vendorProfile.documents.gst.state || 'Registered'}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Bank & Payout Record */}
+                    {activeGroup.user.vendorProfile?.paymentDetails && (
+                      <div className="bg-surface-secondary/50 p-2.5 rounded-xl border border-border/50 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-text-primary flex items-center gap-1 text-[11px]">
+                            <FiCheck className="text-emerald-500" /> Bank &amp; Settlement Account
+                          </span>
+                          <span className="text-[9px] font-mono text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded font-bold uppercase">
+                            {activeGroup.user.vendorProfile.paymentDetails.status || 'Active'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 text-[10px] text-text-secondary">
+                          <p><span className="text-text-tertiary">Holder:</span> <strong className="text-text-primary">{activeGroup.user.vendorProfile.paymentDetails.verifiedAccountName || activeGroup.user.vendorProfile.paymentDetails.accountHolderName || '—'}</strong></p>
+                          <p><span className="text-text-tertiary">Account:</span> <strong className="text-text-primary font-mono">{activeGroup.user.vendorProfile.paymentDetails.maskedAccount || activeGroup.user.vendorProfile.paymentDetails.bankAccount || '—'}</strong></p>
+                          <p><span className="text-text-tertiary">Bank &amp; Branch:</span> {activeGroup.user.vendorProfile.paymentDetails.bankName || 'Bank'} ({activeGroup.user.vendorProfile.paymentDetails.branchName || 'Main'})</p>
+                          <p><span className="text-text-tertiary">IFSC:</span> <strong className="text-text-primary font-mono uppercase">{activeGroup.user.vendorProfile.paymentDetails.ifscCode || '—'}</strong></p>
+                          {activeGroup.user.vendorProfile.paymentDetails.upiId && (
+                            <p className="col-span-2"><span className="text-text-tertiary">UPI ID:</span> <span className="font-mono text-emerald-600 font-bold">{activeGroup.user.vendorProfile.paymentDetails.upiId}</span></p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

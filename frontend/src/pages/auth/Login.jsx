@@ -7,7 +7,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { FiMail, FiLock, FiPhone, FiSmartphone, FiShoppingBag, FiShoppingCart, FiFilm, FiArrowRight } from 'react-icons/fi';
 import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
-import { getRoleDashboard } from '../../lib/roleNav';
+import { getRoleDashboard, getPostLoginDestination } from '../../lib/roleNav';
 import Input from '../../components/common/Input';
 import API_CONFIG from '../../config';
 
@@ -49,18 +49,13 @@ const Login = () => {
       if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        let targetPath = getRoleDashboard(activeRole);
+        let targetPath = getPostLoginDestination(user, activeRole);
         if (from && from !== '/feed' && from !== '/auth/login') {
           if (activeRole === 'customer' && !from.startsWith('/vendor') && !from.startsWith('/creator')) {
             targetPath = from;
           } else if (from.startsWith(`/${activeRole}`)) {
             targetPath = from;
           }
-        }
-        if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
-          targetPath = '/vendor/profile';
-        } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
-          targetPath = '/creator/profile';
         }
         navigate(targetPath, { replace: true });
       }
@@ -112,18 +107,13 @@ const Login = () => {
       if (roles.includes('admin') || activeRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        let targetPath = getRoleDashboard(activeRole);
+        let targetPath = getPostLoginDestination(user, activeRole);
         if (from && from !== '/feed' && from !== '/auth/login') {
           if (activeRole === 'customer' && !from.startsWith('/vendor') && !from.startsWith('/creator')) {
             targetPath = from;
           } else if (from.startsWith(`/${activeRole}`)) {
             targetPath = from;
           }
-        }
-        if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
-          targetPath = '/vendor/profile';
-        } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
-          targetPath = '/creator/profile';
         }
         navigate(targetPath, { replace: true });
       }

@@ -60,3 +60,46 @@ export function getRoleDashboard(role) {
   }
 }
 
+/**
+ * Returns the onboarding route for a given role.
+ */
+export function getRoleOnboarding(role) {
+  switch (role) {
+    case 'vendor':
+      return '/vendor/onboarding';
+    case 'creator':
+      return '/creator/onboarding';
+    default:
+      return '/customer/home';
+  }
+}
+
+/**
+ * Checks if onboarding is complete for a given role.
+ * Uses backend profile fields as the source of truth.
+ */
+export function isOnboardingComplete(user, role) {
+  if (!user) return false;
+  switch (role) {
+    case 'vendor':
+      return !!(user.vendorProfile?.shopName);
+    case 'creator':
+      return !!(user.creatorProfile?.displayName);
+    case 'customer':
+      return true; // customers don't have a separate onboarding gate
+    default:
+      return true;
+  }
+}
+
+/**
+ * Returns the correct post-login destination for a user based on their role and onboarding status.
+ */
+export function getPostLoginDestination(user, role) {
+  if (role === 'admin') return '/admin/dashboard';
+  if ((role === 'vendor' || role === 'creator') && !isOnboardingComplete(user, role)) {
+    return getRoleOnboarding(role);
+  }
+  return getRoleDashboard(role);
+}
+

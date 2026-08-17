@@ -54,7 +54,14 @@ const CreatorLogin = () => {
 
     if (!roles.includes(ROLE)) {
       toast.error('Your account does not have Creator access. Please register as a creator first.');
-      navigate('/customer/become-creator', { replace: true });
+      navigate('/creator/onboarding', { replace: true });
+      return;
+    }
+
+    // Check onboarding completion
+    if (!user?.creatorProfile?.displayName) {
+      toast.success('Welcome! Please complete your creator setup.');
+      navigate('/creator/onboarding', { replace: true });
       return;
     }
 

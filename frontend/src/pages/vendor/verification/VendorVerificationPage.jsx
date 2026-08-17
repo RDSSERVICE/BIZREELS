@@ -54,17 +54,23 @@ export default function VendorVerificationPage() {
   const [currentDocIndex, setCurrentDocIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [statusData, setStatusData] = useState({
-    completionPercentage: 20,
+    completionPercentage: 0,
     tier: vendorProfile.verificationStatus || 'unverified',
     badgeLabel: 'Unverified',
     badgeColor: '⚪',
-    contactVerified: vendorProfile.contactVerified || { mobile: true, whatsapp: false, email: false, website: false },
+    contactVerified: {
+      mobile: Boolean(vendorProfile.contactVerified?.mobile || currentUser?.isPhoneVerified),
+      whatsapp: Boolean(vendorProfile.contactVerified?.whatsapp),
+      email: Boolean(vendorProfile.contactVerified?.email || currentUser?.isEmailVerified),
+      website: Boolean(vendorProfile.contactVerified?.website)
+    },
     documents: vendorProfile.documents || {},
     paymentDetails: vendorProfile.paymentDetails || {}
   });
 
   // OTP Modal State for contact verification
   const [otpModal, setOtpModal] = useState({ open: false, type: '', value: '', code: '' });
+  const [websiteInput, setWebsiteInput] = useState(vendorProfile.website || '');
 
   // Document Forms
   const [aadhaarNum, setAadhaarNum] = useState(vendorProfile.documents?.aadhaar?.docNumber || '');
@@ -175,10 +181,13 @@ export default function VendorVerificationPage() {
 
   // Direct Website Verification (No OTP needed for Website)
   const handleVerifyWebsite = async (url) => {
-    const targetUrl = url || vendorProfile.website;
-    if (!targetUrl || targetUrl.trim() === '') {
-      toast.error('❌ Please configure your website URL in settings before verifying.');
+    let targetUrl = (url || websiteInput || vendorProfile.website || '').trim();
+    if (!targetUrl) {
+      toast.error('❌ Please enter your website URL before verifying.');
       return;
+    }
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      targetUrl = `https://${targetUrl}`;
     }
     setLoading(true);
     const toastId = toast.loading('Pinging and verifying website URL...');
@@ -192,9 +201,27 @@ export default function VendorVerificationPage() {
         ...prev,
         contactVerified: { ...prev.contactVerified, website: true }
       }));
+      setWebsiteInput(targetUrl);
       await fetchStatus();
+
+      // Update Redux state
+      if (currentUser) {
+        dispatch(setCredentials({
+          user: {
+            ...currentUser,
+            vendorProfile: {
+              ...vendorProfile,
+              website: targetUrl,
+              contactVerified: {
+                ...(vendorProfile.contactVerified || {}),
+                website: true
+              }
+            }
+          }
+        }));
+      }
     } catch (err) {
-      toast.error('Failed to verify website URL', { id: toastId });
+      toast.error(err?.response?.data?.message || err.message || 'Failed to verify website URL', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -703,15 +730,27 @@ export default function VendorVerificationPage() {
               <div>
                 <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Mobile Number</span>
                 <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{vendorProfile.mobileNumber || currentUser?.phone || 'Not set'}</p>
-                <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
-                  <FiCheckCircle size={12} /> Verified via Account OTP
-                </span>
+                {statusData.contactVerified?.mobile ? (
+                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
+                    <FiCheckCircle size={12} /> Verified
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 mt-1">
+                    <FiAlertCircle size={12} /> Unverified
+                  </span>
+                )}
               </div>
               <button
-                disabled
-                className="px-3 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black"
+                type="button"
+                disabled={Boolean(statusData.contactVerified?.mobile)}
+                onClick={() => handleOpenOtpModal('mobile', vendorProfile.mobileNumber || currentUser?.phone)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition ${
+                  statusData.contactVerified?.mobile
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
+                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer'
+                }`}
               >
-                Verified ✓
+                {statusData.contactVerified?.mobile ? 'Verified ✓' : 'Verify Mobile'}
               </button>
             </div>
 
@@ -774,30 +813,50 @@ export default function VendorVerificationPage() {
             </div>
 
             {/* Website URL */}
-            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
-              <div>
-                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Business Website</span>
-                <p className="text-xs font-black text-[#1a1a1a] truncate max-w-[180px] mt-0.5">{vendorProfile.website || 'Not provided'}</p>
-                {statusData.contactVerified?.website ? (
-                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
-                    <FiCheckCircle size={12} /> Verified
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex flex-col justify-between gap-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Business Website</span>
+                  {statusData.contactVerified?.website ? (
+                    <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-0.5">
+                      <FiCheckCircle size={12} /> Verified URL
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 font-bold block mt-0.5">Enter URL &amp; ping to verify</span>
+                  )}
+                </div>
+                {statusData.contactVerified?.website && (
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-black">
+                    Verified ✓
                   </span>
-                ) : (
-                  <span className="text-[10px] text-slate-400 font-bold block mt-1">Optional Ping Check</span>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => handleVerifyWebsite(vendorProfile.website)}
-                disabled={loading || Boolean(statusData.contactVerified?.website)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition ${
-                  statusData.contactVerified?.website
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
-                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer'
-                }`}
-              >
-                {statusData.contactVerified?.website ? 'Verified ✓' : 'Verify Website'}
-              </button>
+
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <FiGlobe className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
+                  <input
+                    type="url"
+                    value={websiteInput}
+                    onChange={(e) => setWebsiteInput(e.target.value)}
+                    placeholder="e.g. https://yourbusiness.com"
+                    disabled={statusData.contactVerified?.website}
+                    className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-[#e3dccb] rounded-lg text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] disabled:bg-slate-100 disabled:text-slate-500"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleVerifyWebsite(websiteInput)}
+                  disabled={loading || !websiteInput?.trim() || Boolean(statusData.contactVerified?.website)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black border transition whitespace-nowrap ${
+                    statusData.contactVerified?.website
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
+                      : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer disabled:opacity-50'
+                  }`}
+                >
+                  {loading ? 'Verifying...' : statusData.contactVerified?.website ? 'Verified ✓' : 'Verify'}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -923,6 +982,38 @@ export default function VendorVerificationPage() {
                   </div>
                 </div>
 
+                {/* Verified Aadhaar Details Badge */}
+                {statusData.documents?.aadhaar && (statusData.documents.aadhaar.status === 'approved' || statusData.documents.aadhaar.verified) && (
+                  <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
+                    <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                      <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
+                        <FiCheckCircle className="text-emerald-600" size={16} /> Aadhaar Record Verified (UIDAI e-KYC Sandbox)
+                      </span>
+                      <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black">
+                        Active Gov Record
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Full Name (UIDAI)</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.aadhaar.fullName || 'Verified Citizen'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Masked Aadhaar</span>
+                        <strong className="text-slate-900 text-xs font-mono font-bold">{statusData.documents.aadhaar.maskedNumber || 'XXXX XXXX ****'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Gender / DOB</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.aadhaar.gender || '—'} {statusData.documents.aadhaar.dob ? `(${statusData.documents.aadhaar.dob})` : ''}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Reference ID</span>
+                        <strong className="text-slate-900 text-[10px] font-mono truncate block">{statusData.documents.aadhaar.referenceId || 'OKYC_VERIFIED'}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Document Images Upload Section */}
                 <div className="space-y-2">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Document Photos (Front &amp; Back)</span>
@@ -998,6 +1089,38 @@ export default function VendorVerificationPage() {
                   </label>
                 </div>
 
+                {/* Verified PAN Details Badge */}
+                {statusData.documents?.pan && (statusData.documents.pan.status === 'approved' || statusData.documents.pan.verified) && (
+                  <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
+                    <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                      <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
+                        <FiCheckCircle className="text-emerald-600" size={16} /> Income Tax Record Verified (NSDL Sandbox)
+                      </span>
+                      <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black">
+                        Active Taxpayer
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Taxpayer Name</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.pan.fullName || 'Taxpayer Validated'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">PAN Number</span>
+                        <strong className="text-slate-900 text-xs font-mono font-bold uppercase">{statusData.documents.pan.docNumber || panNum}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Category</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.pan.category || 'Individual'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Reference ID</span>
+                        <strong className="text-slate-900 text-[10px] font-mono truncate block">{statusData.documents.pan.referenceId || 'PAN_VALIDATED'}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={handleVerifyPan}
@@ -1048,6 +1171,38 @@ export default function VendorVerificationPage() {
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setGstFile)} />
                   </label>
                 </div>
+
+                {/* Verified GSTIN Details Badge */}
+                {statusData.documents?.gst && (statusData.documents.gst.status === 'approved' || statusData.documents.gst.verified) && (
+                  <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
+                    <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                      <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
+                        <FiCheckCircle className="text-emerald-600" size={16} /> GST Portal Registration Verified
+                      </span>
+                      <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black uppercase">
+                        {statusData.documents.gst.gstStatus || 'Active'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Business Trade Name</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.tradeName || statusData.documents.gst.legalName || 'Registered Entity'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Legal Business Name</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.legalName || '—'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Registered GSTIN</span>
+                        <strong className="text-slate-900 text-xs font-mono font-bold uppercase">{statusData.documents.gst.docNumber || gstNum}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">State / Jurisdiction</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.state || 'Registered'}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="button"
@@ -1352,6 +1507,38 @@ export default function VendorVerificationPage() {
                 </label>
               </div>
             </div>
+
+            {/* Verified Bank Details Badge */}
+            {statusData.paymentDetails && (statusData.paymentDetails.status === 'approved' || statusData.paymentDetails.verified) && (
+              <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
+                <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                  <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
+                    <FiCheckCircle className="text-emerald-600" size={16} /> Bank Account Verified (NPCI Penny Drop)
+                  </span>
+                  <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black">
+                    Active Settlement Account
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Account Holder</span>
+                    <strong className="text-slate-900 text-xs font-bold">{statusData.paymentDetails.verifiedAccountName || statusData.paymentDetails.accountHolderName || accountHolderName || 'Verified Holder'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Bank &amp; Branch</span>
+                    <strong className="text-slate-900 text-xs font-bold">{statusData.paymentDetails.bankName || bankName || 'Bank'} {statusData.paymentDetails.branchName || branchName ? `(${statusData.paymentDetails.branchName || branchName})` : ''}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">IFSC Code</span>
+                    <strong className="text-slate-900 text-xs font-mono font-bold uppercase">{statusData.paymentDetails.ifscCode || ifscCode}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Bank Account No</span>
+                    <strong className="text-slate-900 text-xs font-mono font-bold">{statusData.paymentDetails.maskedAccount || statusData.paymentDetails.bankAccount || bankAccount}</strong>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <button
               type="button"

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   FiBriefcase, FiMapPin, FiGlobe, FiPhone, FiClock, FiSave, FiInstagram,
   FiFacebook, FiCamera, FiImage, FiTrash2, FiNavigation, FiCheckCircle,
-  FiSearch, FiChevronDown, FiCheck, FiX
+  FiSearch, FiChevronDown, FiCheck, FiX, FiFileText
 } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { useListCategoriesQuery } from '../../../features/admin/adminApi';
@@ -690,6 +691,24 @@ export default function VendorBusinessProfilePage() {
         title="Business Profile & Branding"
         subtitle="Manage shop identity, logo, searchable address dropdowns, business timing, and social links"
       />
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-2 flex-wrap">
+        <Link
+          to="/vendor/profile"
+          className="px-4 py-2 rounded-xl text-xs font-black bg-[#241b15] text-[#d99a3d] shadow-xs flex items-center gap-2"
+        >
+          <FiBriefcase className="w-3.5 h-3.5" />
+          <span>Branding & Quick Info</span>
+        </Link>
+        <Link
+          to="/vendor/onboarding-details"
+          className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-[#1a1a1a] hover:bg-[#f8f4ec] transition flex items-center gap-2"
+        >
+          <FiFileText className="w-3.5 h-3.5" />
+          <span>Full Onboarding & Business Setup Details</span>
+        </Link>
+      </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Profile Image & Cover Banner Upload Section */}

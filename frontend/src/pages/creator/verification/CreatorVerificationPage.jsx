@@ -44,11 +44,15 @@ export default function CreatorVerificationPage() {
   const [activeTab, setActiveTab] = useState('contacts');
   const [loading, setLoading] = useState(false);
   const [statusData, setStatusData] = useState({
-    completionPercentage: 20,
+    completionPercentage: 0,
     tier: creatorProfile.verificationStatus || 'unverified',
     badgeLabel: 'Unverified Creator',
     badgeColor: '⚪',
-    contactVerified: creatorProfile.contactVerified || { mobile: true, whatsapp: false, email: false },
+    contactVerified: {
+      mobile: Boolean(creatorProfile.contactVerified?.mobile || currentUser?.isPhoneVerified),
+      whatsapp: Boolean(creatorProfile.contactVerified?.whatsapp),
+      email: Boolean(creatorProfile.contactVerified?.email || currentUser?.isEmailVerified)
+    },
     documents: creatorProfile.documents || {},
     paymentDetails: creatorProfile.paymentDetails || {}
   });
@@ -335,15 +339,27 @@ export default function CreatorVerificationPage() {
               <div>
                 <span className="text-[10px] text-text-tertiary font-bold uppercase block">Mobile Number</span>
                 <p className="text-xs font-bold text-text-primary">{creatorProfile.mobileNumber || currentUser?.phone || 'Not set'}</p>
-                <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-                  <FiCheckCircle size={12} /> Verified via Account
-                </span>
+                {statusData.contactVerified?.mobile ? (
+                  <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+                    <FiCheckCircle size={12} /> Verified
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1 mt-1">
+                    <FiAlertCircle size={12} /> Unverified
+                  </span>
+                )}
               </div>
               <button
-                disabled
-                className="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-xl text-xs font-bold"
+                type="button"
+                disabled={Boolean(statusData.contactVerified?.mobile)}
+                onClick={() => handleOpenOtpModal('mobile', creatorProfile.mobileNumber || currentUser?.phone)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition ${
+                  statusData.contactVerified?.mobile
+                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 cursor-not-allowed opacity-90'
+                    : 'bg-brand-purple text-white hover:bg-brand-purple/90 cursor-pointer shadow-md'
+                }`}
               >
-                Verified ✓
+                {statusData.contactVerified?.mobile ? 'Verified ✓' : 'Verify Mobile'}
               </button>
             </div>
 

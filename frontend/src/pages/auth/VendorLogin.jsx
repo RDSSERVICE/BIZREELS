@@ -55,7 +55,14 @@ const VendorLogin = () => {
 
     if (!roles.includes(ROLE)) {
       toast.error('Your account does not have Vendor access. Please register as a vendor first.');
-      navigate('/customer/become-vendor', { replace: true });
+      navigate('/vendor/onboarding', { replace: true });
+      return;
+    }
+
+    // Check onboarding completion
+    if (!user?.vendorProfile?.shopName) {
+      toast.success('Welcome! Please complete your vendor setup.');
+      navigate('/vendor/onboarding', { replace: true });
       return;
     }
 

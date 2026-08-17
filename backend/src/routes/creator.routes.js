@@ -12,10 +12,10 @@ const router = express.Router();
  */
 function computeCreatorVerification(user) {
   const cp = user.creatorProfile || {};
-  const contactVerified = cp.contactVerified || {
-    mobile: !!user.phone,
-    whatsapp: false,
-    email: !!user.email
+  const contactVerified = {
+    mobile: Boolean(cp.contactVerified?.mobile || user.isPhoneVerified),
+    whatsapp: Boolean(cp.contactVerified?.whatsapp),
+    email: Boolean(cp.contactVerified?.email || user.isEmailVerified)
   };
   const documents = cp.documents || {};
   const paymentDetails = cp.paymentDetails || {};
@@ -88,10 +88,10 @@ router.post('/me/verify-contact', authenticate, catchAsync(async (req, res) => {
   if (!user) throw ApiError.notFound('User not found');
 
   const currentCp = user.creatorProfile || {};
-  const currentContacts = currentCp.contactVerified || {
-    mobile: !!user.phone,
-    whatsapp: false,
-    email: !!user.email
+  const currentContacts = {
+    mobile: Boolean(currentCp.contactVerified?.mobile || user.isPhoneVerified),
+    whatsapp: Boolean(currentCp.contactVerified?.whatsapp),
+    email: Boolean(currentCp.contactVerified?.email || user.isEmailVerified)
   };
 
   currentContacts[type] = true;

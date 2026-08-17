@@ -545,7 +545,7 @@ class AuthService {
     return this._sanitizeUser(updatedUser);
   }
 
-  async updateProfile(userId, { name, avatarUrl, profile_pic, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile }, req) {
+  async updateProfile(userId, { name, avatarUrl, profile_pic, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile, city }, req) {
     const user = await authRepository.findUserById(userId);
     if (!user) {
       throw ApiError.notFound('User not found.');
@@ -574,12 +574,13 @@ class AuthService {
       updateFields.dob = dob;
     }
     if (language) updateFields.language = language;
+    if (city !== undefined) updateFields.city = city;
     if (location) {
       updateFields.location = {
         type: 'Point',
         coordinates: location.coordinates || [0, 0],
         address: location.address,
-        city: location.city,
+        city: location.city || city,
         district: location.district,
         state: location.state,
         pincode: location.pincode

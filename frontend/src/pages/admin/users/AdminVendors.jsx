@@ -686,15 +686,16 @@ export default function AdminVendors() {
                       {[
                         ['Email', vendorDetail.profile.email],
                         ['Phone', vendorDetail.profile.phone],
-                        ['KYC verification', vendorDetail.profile.kyc_status.toUpperCase()],
-                        ['Wallet status', vendorDetail.wallet.is_frozen ? 'Frozen' : 'Active'],
-                        ['GSTIN', vendorDetail.profile.vendorProfile?.gst || '—'],
-                        ['PAN number', vendorDetail.profile.vendorProfile?.pan || '—'],
-                        ['Aadhaar number', vendorDetail.profile.vendorProfile?.aadhaar || '—'],
+                        ['KYC Status', vendorDetail.profile.kyc_status?.toUpperCase() || 'PENDING'],
+                        ['Verification Tier', vendorDetail.profile.vendorProfile?.verificationStatus || 'BASIC'],
+                        ['GSTIN', vendorDetail.profile.vendorProfile?.documents?.gst?.docNumber || vendorDetail.profile.vendorProfile?.gst || '—'],
+                        ['GST Business Name', vendorDetail.profile.vendorProfile?.documents?.gst?.tradeName || vendorDetail.profile.vendorProfile?.documents?.gst?.legalName || '—'],
+                        ['PAN number', vendorDetail.profile.vendorProfile?.documents?.pan?.docNumber || vendorDetail.profile.vendorProfile?.pan || '—'],
+                        ['PAN Taxpayer Name', vendorDetail.profile.vendorProfile?.documents?.pan?.fullName || '—'],
+                        ['Aadhaar (UIDAI)', vendorDetail.profile.vendorProfile?.documents?.aadhaar?.maskedNumber || vendorDetail.profile.vendorProfile?.aadhaar || '—'],
+                        ['Aadhaar Holder', vendorDetail.profile.vendorProfile?.documents?.aadhaar?.fullName || '—'],
                         ['Shop category', vendorDetail.profile.vendorProfile?.category || '—'],
                         ['Registered on', new Date(vendorDetail.profile.created_at).toLocaleString()],
-                        ['Last login', vendorDetail.profile.lastLoginAt ? new Date(vendorDetail.profile.lastLoginAt).toLocaleString() : 'Never'],
-                        ['Last login IP', vendorDetail.profile.lastLoginIp || '—']
                       ].map(([label, val]) => (
                         <div key={label} className="bg-surface-secondary p-2.5 rounded-xl border border-border/50">
                           <span className="text-[9px] font-bold text-text-tertiary uppercase block">{label}</span>
@@ -716,9 +717,11 @@ export default function AdminVendors() {
                     {/* Settlement details */}
                     <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1 pt-2">Settlement Details</h5>
                     <div className="bg-surface-secondary p-3 rounded-xl border border-border text-xs text-text-secondary space-y-1">
-                      <p><span className="font-bold text-text-primary">Bank Account:</span> {vendorDetail.profile.vendorProfile?.paymentDetails?.bankAccount || '—'}</p>
-                      <p><span className="font-bold text-text-primary">IFSC Code:</span> {vendorDetail.profile.vendorProfile?.paymentDetails?.ifscCode || '—'}</p>
-                      <p><span className="font-bold text-text-primary">UPI ID:</span> {vendorDetail.profile.vendorProfile?.paymentDetails?.upiId || '—'}</p>
+                      <p><span className="font-bold text-text-primary">Holder:</span> {vendorDetail.profile.vendorProfile?.paymentDetails?.verifiedAccountName || vendorDetail.profile.vendorProfile?.paymentDetails?.accountHolderName || '—'}</p>
+                      <p><span className="font-bold text-text-primary">Bank &amp; Branch:</span> {vendorDetail.profile.vendorProfile?.paymentDetails?.bankName || 'Bank'} {vendorDetail.profile.vendorProfile?.paymentDetails?.branchName ? `(${vendorDetail.profile.vendorProfile?.paymentDetails?.branchName})` : ''}</p>
+                      <p><span className="font-bold text-text-primary">Bank Account:</span> {vendorDetail.profile.vendorProfile?.paymentDetails?.maskedAccount || vendorDetail.profile.vendorProfile?.paymentDetails?.bankAccount || '—'}</p>
+                      <p><span className="font-bold text-text-primary">IFSC Code:</span> <span className="font-mono uppercase">{vendorDetail.profile.vendorProfile?.paymentDetails?.ifscCode || '—'}</span></p>
+                      <p><span className="font-bold text-text-primary">UPI ID:</span> <span className="font-mono text-emerald-600 font-bold">{vendorDetail.profile.vendorProfile?.paymentDetails?.upiId || '—'}</span></p>
                     </div>
                   </div>
 

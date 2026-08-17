@@ -125,11 +125,11 @@ const verifyContact = catchAsync(async (req, res) => {
   if (!user) throw ApiError.notFound('User not found');
 
   const currentVp = user.vendorProfile || {};
-  const currentContacts = currentVp.contactVerified || {
-    mobile: !!user.phone,
-    whatsapp: false,
-    email: !!user.email,
-    website: false
+  const currentContacts = {
+    mobile: Boolean(currentVp.contactVerified?.mobile || user.isPhoneVerified),
+    whatsapp: Boolean(currentVp.contactVerified?.whatsapp),
+    email: Boolean(currentVp.contactVerified?.email || user.isEmailVerified),
+    website: Boolean(currentVp.contactVerified?.website)
   };
 
   // Validate OTP code for email

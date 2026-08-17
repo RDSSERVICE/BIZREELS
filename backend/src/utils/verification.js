@@ -10,11 +10,11 @@ const mongoose = require('mongoose');
  */
 function computeVendorVerification(user, counts = {}) {
   const vp = user.vendorProfile || {};
-  const contactVerified = vp.contactVerified || {
-    mobile: !!user.phone,
-    whatsapp: false,
-    email: !!user.email,
-    website: false
+  const contactVerified = {
+    mobile: Boolean(vp.contactVerified?.mobile || user.isPhoneVerified),
+    whatsapp: Boolean(vp.contactVerified?.whatsapp),
+    email: Boolean(vp.contactVerified?.email || user.isEmailVerified),
+    website: Boolean(vp.contactVerified?.website)
   };
   const documents = vp.documents || {};
   const paymentDetails = vp.paymentDetails || {};
@@ -22,9 +22,9 @@ function computeVendorVerification(user, counts = {}) {
   let totalPoints = 0;
 
   // 1. Contact Verification (15%)
-  if (contactVerified.mobile || !!user.phone) totalPoints += 5;
+  if (contactVerified.mobile) totalPoints += 5;
   if (contactVerified.whatsapp) totalPoints += 5;
-  if (contactVerified.email || !!user.email) totalPoints += 5;
+  if (contactVerified.email) totalPoints += 5;
 
   // 2. Identity & Business Documents (65%)
   if (documents.aadhaar?.status === 'approved' || documents.aadhaar?.verified === true) totalPoints += 15;
