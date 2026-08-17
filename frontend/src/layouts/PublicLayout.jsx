@@ -70,7 +70,7 @@ const PublicLayout = () => {
             }}
           >
             <img
-              src="/bizreels logo transparent circle.png"
+              src="/logo.png"
               alt="BizReels"
               style={{ height: 38, width: 38, objectFit: 'contain', flexShrink: 0 }}
             />
@@ -362,7 +362,7 @@ const PublicLayout = () => {
             {/* Brand */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <img src="/bizreels logo transparent circle.png" alt="BizReels" style={{ height: 32, width: 32, objectFit: 'contain' }} />
+                <img src="/logo.png" alt="BizReels" style={{ height: 32, width: 32, objectFit: 'contain' }} />
                 <span style={{ fontSize: 16, fontWeight: 700, color: '#d99a3d' }}>BizReels</span>
               </div>
               <p style={{ fontSize: 13, lineHeight: 1.65, color: '#8a8578', maxWidth: 220 }}>
