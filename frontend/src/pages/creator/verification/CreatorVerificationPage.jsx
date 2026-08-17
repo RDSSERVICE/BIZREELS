@@ -363,11 +363,13 @@ export default function CreatorVerificationPage() {
                 )}
               </div>
               <button
+                type="button"
+                disabled={Boolean(statusData.contactVerified?.whatsapp)}
                 onClick={() => handleOpenOtpModal('whatsapp', creatorProfile.whatsappNumber || creatorProfile.mobileNumber)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
                   statusData.contactVerified?.whatsapp
-                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                    : 'gradient-brand text-white shadow-sm'
+                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 cursor-not-allowed opacity-90'
+                    : 'gradient-brand text-white shadow-sm cursor-pointer'
                 }`}
               >
                 {statusData.contactVerified?.whatsapp ? 'Verified ✓' : 'Verify WhatsApp'}
@@ -390,11 +392,13 @@ export default function CreatorVerificationPage() {
                 )}
               </div>
               <button
+                type="button"
+                disabled={Boolean(statusData.contactVerified?.email)}
                 onClick={() => handleOpenOtpModal('email', creatorProfile.email || currentUser?.email)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
                   statusData.contactVerified?.email
-                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                    : 'gradient-brand text-white shadow-sm'
+                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 cursor-not-allowed opacity-90'
+                    : 'gradient-brand text-white shadow-sm cursor-pointer'
                 }`}
               >
                 {statusData.contactVerified?.email ? 'Verified ✓' : 'Verify Email'}

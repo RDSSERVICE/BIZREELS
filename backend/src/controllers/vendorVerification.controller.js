@@ -43,6 +43,14 @@ const sendContactOtp = catchAsync(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
 
+  if (user.vendorProfile?.contactVerified?.[type]) {
+    return res.json({
+      success: true,
+      alreadyVerified: true,
+      message: `${type.toUpperCase()} is already verified.`
+    });
+  }
+
   const targetValue = value || (type === 'email' ? (user.vendorProfile?.email || user.email) : (user.vendorProfile?.mobileNumber || user.phone));
   if (!targetValue) {
     throw ApiError.badRequest(`Please provide a valid ${type}`);

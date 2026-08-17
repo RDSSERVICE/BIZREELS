@@ -188,6 +188,10 @@ export default function VendorVerificationPage() {
         value: targetUrl
       });
       toast.success('🟢 Website URL verified successfully!', { id: toastId });
+      setStatusData(prev => ({
+        ...prev,
+        contactVerified: { ...prev.contactVerified, website: true }
+      }));
       await fetchStatus();
     } catch (err) {
       toast.error('Failed to verify website URL', { id: toastId });
@@ -211,6 +215,11 @@ export default function VendorVerificationPage() {
       });
 
       toast.success(`🟢 ${otpModal.type.toUpperCase()} verified successfully!`, { id: toastId });
+      const currentVerified = { ...statusData.contactVerified, [otpModal.type]: true };
+      setStatusData(prev => ({
+        ...prev,
+        contactVerified: currentVerified
+      }));
       setOtpModal({ open: false, type: '', value: '', code: '' });
       await fetchStatus();
 
@@ -221,7 +230,7 @@ export default function VendorVerificationPage() {
             ...currentUser,
             vendorProfile: {
               ...vendorProfile,
-              contactVerified: { ...statusData.contactVerified, [otpModal.type]: true }
+              contactVerified: currentVerified
             }
           }
         }));
@@ -723,11 +732,12 @@ export default function VendorVerificationPage() {
               </div>
               <button
                 type="button"
+                disabled={Boolean(statusData.contactVerified?.whatsapp)}
                 onClick={() => handleOpenOtpModal('whatsapp', vendorProfile.whatsappNumber || vendorProfile.mobileNumber)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition ${
                   statusData.contactVerified?.whatsapp
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
+                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer'
                 }`}
               >
                 {statusData.contactVerified?.whatsapp ? 'Verified ✓' : 'Verify WhatsApp'}
@@ -751,11 +761,12 @@ export default function VendorVerificationPage() {
               </div>
               <button
                 type="button"
+                disabled={Boolean(statusData.contactVerified?.email)}
                 onClick={() => handleOpenOtpModal('email', vendorProfile.email || currentUser?.email)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition ${
                   statusData.contactVerified?.email
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
+                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer'
                 }`}
               >
                 {statusData.contactVerified?.email ? 'Verified ✓' : 'Verify Email'}
@@ -778,11 +789,11 @@ export default function VendorVerificationPage() {
               <button
                 type="button"
                 onClick={() => handleVerifyWebsite(vendorProfile.website)}
-                disabled={loading}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition cursor-pointer ${
+                disabled={loading || Boolean(statusData.contactVerified?.website)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition ${
                   statusData.contactVerified?.website
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
+                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer'
                 }`}
               >
                 {statusData.contactVerified?.website ? 'Verified ✓' : 'Verify Website'}
@@ -933,10 +944,14 @@ export default function VendorVerificationPage() {
                 <button
                   type="button"
                   onClick={() => handleVerifyDocument('aadhaar', aadhaarNum, aadhaarFront, aadhaarBack, null, 'Aadhaar Card')}
-                  disabled={loading || !aadhaarNum}
-                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
+                  disabled={loading || !aadhaarNum || (statusData.documents?.aadhaar?.status === 'approved')}
+                  className={`w-full py-2.5 rounded-xl text-xs font-black shadow-2xs transition border-none ${
+                    statusData.documents?.aadhaar?.status === 'approved'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
+                      : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
+                  }`}
                 >
-                  Save &amp; Submit Aadhaar Details
+                  {statusData.documents?.aadhaar?.status === 'approved' ? 'Aadhaar Verified ✓' : 'Save & Submit Aadhaar Details'}
                 </button>
               </div>
             )}
@@ -986,10 +1001,14 @@ export default function VendorVerificationPage() {
                 <button
                   type="button"
                   onClick={handleVerifyPan}
-                  disabled={panLoading || !panNum || panNum.length !== 10}
-                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
+                  disabled={panLoading || !panNum || panNum.length !== 10 || (statusData.documents?.pan?.status === 'approved')}
+                  className={`w-full py-2.5 rounded-xl text-xs font-black shadow-2xs transition border-none ${
+                    statusData.documents?.pan?.status === 'approved'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
+                      : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
+                  }`}
                 >
-                  {panLoading ? 'Verifying with Sandbox API...' : 'Verify PAN Card (Sandbox API)'}
+                  {statusData.documents?.pan?.status === 'approved' ? 'PAN Verified ✓' : panLoading ? 'Verifying with Sandbox API...' : 'Verify PAN Card (Sandbox API)'}
                 </button>
               </div>
             )}
@@ -1033,10 +1052,14 @@ export default function VendorVerificationPage() {
                 <button
                   type="button"
                   onClick={handleVerifyGstin}
-                  disabled={gstLoading || !gstNum || gstNum.length !== 15}
-                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
+                  disabled={gstLoading || !gstNum || gstNum.length !== 15 || (statusData.documents?.gst?.status === 'approved')}
+                  className={`w-full py-2.5 rounded-xl text-xs font-black shadow-2xs transition border-none ${
+                    statusData.documents?.gst?.status === 'approved'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
+                      : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
+                  }`}
                 >
-                  {gstLoading ? 'Verifying with Sandbox API...' : 'Verify GSTIN (Sandbox API)'}
+                  {statusData.documents?.gst?.status === 'approved' ? 'GSTIN Verified ✓' : gstLoading ? 'Verifying with Sandbox API...' : 'Verify GSTIN (Sandbox API)'}
                 </button>
               </div>
             )}
@@ -1333,10 +1356,14 @@ export default function VendorVerificationPage() {
             <button
               type="button"
               onClick={handleVerifyPayment}
-              disabled={bankLoading || !bankAccount || !ifscCode}
-              className="w-full py-3.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition disabled:opacity-50 cursor-pointer border-none"
+              disabled={bankLoading || !bankAccount || !ifscCode || (statusData.paymentDetails?.status === 'approved')}
+              className={`w-full py-3.5 rounded-xl text-xs font-black shadow-xs transition border-none ${
+                statusData.paymentDetails?.status === 'approved'
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
+                  : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
+              }`}
             >
-              {bankLoading ? 'Verifying with Sandbox API...' : 'Verify & Save Bank Account (Sandbox API)'}
+              {statusData.paymentDetails?.status === 'approved' ? 'Bank Account Verified ✓' : bankLoading ? 'Verifying with Sandbox API...' : 'Verify & Save Bank Account (Sandbox API)'}
             </button>
           </div>
         </div>

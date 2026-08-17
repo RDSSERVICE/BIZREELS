@@ -163,12 +163,14 @@ class SandboxVerificationService {
       let res;
       try {
         res = await this.request('POST', '/kyc/pan/verify', {
+          '@entity': 'in.co.sandbox.kyc.pan_verification.request',
           pan: pan,
           consent: 'Y',
           reason: 'Vendor KYC Onboarding'
         });
       } catch (e1) {
         res = await this.request('POST', '/kyc/pan', {
+          '@entity': 'in.co.sandbox.kyc.pan_verification.request',
           pan: pan,
           consent: 'Y',
           reason: 'Vendor KYC Onboarding'
@@ -218,26 +220,37 @@ class SandboxVerificationService {
 
     try {
       const res = await this.request('POST', '/kyc/aadhaar/okyc/otp', {
+        '@entity': 'in.co.sandbox.kyc.aadhaar.okyc.otp.request',
         aadhaar_number: cleanAadhaar,
         consent: 'Y',
         reason: 'Vendor Identity Verification'
       });
 
       const data = res.data || res;
-      const refId = data.reference_id || data.ref_id || data.referenceId;
+      const innerData = data.data || data;
+      const refId = innerData.reference_id || innerData.ref_id || innerData.referenceId || data.reference_id || data.ref_id || data.referenceId;
 
       return {
         success: true,
         referenceId: refId,
         maskedAadhaar: this.maskAadhaar(cleanAadhaar),
-        message: data.message || 'Aadhaar OTP sent successfully to linked mobile number.',
-        validity: data.validity || 600
+        message: data.message || innerData.message || 'Aadhaar OTP sent successfully to your registered mobile number.',
+        validity: innerData.validity || data.validity || 600
       };
     } catch (err) {
-      console.error('[Sandbox Aadhaar OTP Initiate Error]:', err.message);
+      const errorMsg = err.message || '';
+      console.error('[Sandbox Aadhaar OTP Initiate Error]:', errorMsg);
+
+      let friendlyMsg = errorMsg;
+      if (errorMsg.toLowerCase().includes('source unavailable')) {
+        friendlyMsg = 'Aadhaar verification service (UIDAI) is temporarily busy. Please try sending OTP again in a few moments, or upload your Aadhaar document card images below.';
+      } else if (!friendlyMsg) {
+        friendlyMsg = 'Failed to initiate Aadhaar OTP. Please check the Aadhaar number and try again.';
+      }
+
       return {
         success: false,
-        message: err.message || 'Failed to initiate Aadhaar OTP. Please try again.'
+        message: friendlyMsg
       };
     }
   }
@@ -256,31 +269,35 @@ class SandboxVerificationService {
 
     try {
       const res = await this.request('POST', '/kyc/aadhaar/okyc/otp/verify', {
+        '@entity': 'in.co.sandbox.kyc.aadhaar.okyc.request',
         reference_id: referenceId,
         otp: cleanOtp
       });
 
       const data = res.data || res;
-      const isVerified = data.status === 'VALID' || data.status === 'SUCCESS' || !!data.name || res.code === 200;
+      const innerData = data.data || data;
+      const isVerified = data.status === 'VALID' || data.status === 'SUCCESS' || innerData.status === 'VALID' || innerData.status === 'SUCCESS' || !!innerData.name || !!innerData.full_name || res.code === 200;
 
       return {
         success: true,
         verified: isVerified,
         status: isVerified ? 'approved' : 'failed',
         referenceId: referenceId,
-        fullName: data.name || data.full_name || '',
-        gender: data.gender || '',
-        dob: data.dob || '',
-        maskedNumber: data.aadhaar_number ? this.maskAadhaar(data.aadhaar_number) : 'XXXX XXXX ****',
+        fullName: innerData.name || innerData.full_name || data.full_name || '',
+        gender: innerData.gender || data.gender || '',
+        dob: innerData.dob || data.dob || '',
+        maskedNumber: innerData.aadhaar_number ? this.maskAadhaar(innerData.aadhaar_number) : (innerData.masked_aadhaar_number || this.maskAadhaar(cleanOtp)),
+        message: innerData.message || data.message || (isVerified ? 'Aadhaar verified successfully!' : 'Aadhaar OTP verification failed'),
         verifiedAt: new Date()
       };
     } catch (err) {
       console.error('[Sandbox Aadhaar OTP Verify Error]:', err.message);
+
       return {
         success: false,
         verified: false,
         status: 'failed',
-        message: err.message || 'Aadhaar OTP verification failed. Please check the code.'
+        message: err.message || 'Invalid or expired Aadhaar OTP code. Please check and try again.'
       };
     }
   }
