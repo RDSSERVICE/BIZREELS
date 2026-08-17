@@ -23,13 +23,18 @@ export default function ServiceFormModal({
   categoriesList = [],
   registeredCat = '',
   registeredSubcats = [],
+  onboardedCategories = [],
+  onboardedSubcategories = [],
   vendorCoords = null,
 }) {
   const isEdit = !!editData;
 
+  const defaultCat = editData?.category || registeredCat || (onboardedCategories && onboardedCategories[0]) || '';
+  const defaultSub = editData?.subcategory || (registeredSubcats && registeredSubcats[0]) || (onboardedSubcategories && onboardedSubcategories[0]) || '';
+
   const [form, setForm] = useState({
-    category: registeredCat || '',
-    subcategory: registeredSubcats[0] || '',
+    category: defaultCat,
+    subcategory: defaultSub,
     shortDescription: '',
     detailedDescription: '',
     serviceHighlights: '',
@@ -102,32 +107,77 @@ export default function ServiceFormModal({
     }
   }, [isOpen]);
 
-  const serviceCategories = useMemo(() => {
-    return categoriesList
-      .filter((c) => !c.parent_id && (c.category_type === 'service' || !c.category_type))
+  const allMasterServiceCats = useMemo(() => {
+    const filtered = categoriesList
+      .filter((c) => !c.parent_id && c.category_type === 'service')
       .map((c) => c.name);
+    if (filtered.length > 0) return filtered;
+    return ['Services', 'Real Estate', 'Beauty & Salon', 'Health & Fitness', 'Education & Coaching', 'Professional Services'];
   }, [categoriesList]);
+
+  const serviceCategories = useMemo(() => {
+    const onboarded = (onboardedCategories && onboardedCategories.length > 0)
+      ? onboardedCategories
+      : (registeredCat ? [registeredCat] : []);
+
+    const validOnboardedServiceCats = onboarded.filter((catName) => {
+      const catObj = categoriesList.find(
+        (c) => !c.parent_id && (c.name === catName || c.id === catName || c._id === catName)
+      );
+      if (catObj) {
+        return catObj.category_type === 'service';
+      }
+      return allMasterServiceCats.includes(catName);
+    });
+
+    if (validOnboardedServiceCats.length > 0) {
+      return validOnboardedServiceCats;
+    }
+
+    return allMasterServiceCats;
+  }, [categoriesList, onboardedCategories, registeredCat, allMasterServiceCats]);
 
   const serviceSubcategories = useMemo(() => {
     if (!form.category) return [];
+
     const parent = categoriesList.find(
       (c) => !c.parent_id && (c.name === form.category || c.id === form.category || c._id === form.category)
     );
-    if (!parent) return [];
-    return categoriesList
-      .filter((c) => c.parent_id === parent.id || c.parent_id === parent._id)
-      .map((c) => c.name);
-  }, [categoriesList, form.category]);
+
+    let subsFromMaster = [];
+    if (parent) {
+      subsFromMaster = categoriesList
+        .filter((c) => (c.parent_id === parent.id || c.parent_id === parent._id) && (c.category_type === 'service' || !c.category_type))
+        .map((c) => c.name);
+    }
+
+    const onboardedSubs = (onboardedSubcategories && onboardedSubcategories.length > 0)
+      ? onboardedSubcategories
+      : (registeredSubcats || []);
+
+    if (onboardedSubs.length > 0) {
+      const matched = subsFromMaster.filter(s => onboardedSubs.includes(s));
+      const others = subsFromMaster.filter(s => !onboardedSubs.includes(s));
+      if (matched.length > 0) {
+        return [...matched, ...others];
+      }
+      if (subsFromMaster.length === 0) {
+        return onboardedSubs;
+      }
+    }
+
+    return subsFromMaster.length > 0 ? subsFromMaster : ['General', 'Consultation', 'Standard Service'];
+  }, [categoriesList, form.category, onboardedSubcategories, registeredSubcats]);
 
   // Default to first category/subcategory if not set
   useEffect(() => {
-    if (!form.category && serviceCategories.length > 0) {
+    if ((!form.category || !serviceCategories.includes(form.category)) && serviceCategories.length > 0) {
       updateForm('category', serviceCategories[0]);
     }
   }, [serviceCategories, form.category]);
 
   useEffect(() => {
-    if (!form.subcategory && serviceSubcategories.length > 0) {
+    if ((!form.subcategory || !serviceSubcategories.includes(form.subcategory)) && serviceSubcategories.length > 0) {
       updateForm('subcategory', serviceSubcategories[0]);
     }
   }, [serviceSubcategories, form.subcategory]);
@@ -138,14 +188,15 @@ export default function ServiceFormModal({
       (c) => !c.parent_id && (c.name === val || c.id === val || c._id === val)
     );
     if (parent) {
-      const subs = categoriesList.filter((c) => c.parent_id === parent.id || c.parent_id === parent._id);
+      const subs = categoriesList.filter((c) => (c.parent_id === parent.id || c.parent_id === parent._id) && (c.category_type === 'service' || !c.category_type));
       if (subs.length > 0) {
-        updateForm('subcategory', subs[0].name);
+        const onboardedMatch = (onboardedSubcategories || []).find(os => subs.some(s => s.name === os));
+        updateForm('subcategory', onboardedMatch || subs[0].name);
       } else {
-        updateForm('subcategory', 'General');
+        updateForm('subcategory', (onboardedSubcategories && onboardedSubcategories[0]) || 'General');
       }
     } else {
-      updateForm('subcategory', 'General');
+      updateForm('subcategory', (onboardedSubcategories && onboardedSubcategories[0]) || 'General');
     }
   };
 
@@ -459,7 +510,7 @@ export default function ServiceFormModal({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-3 gradient-brand text-white rounded-xl font-bold text-xs shadow-premium disabled:opacity-50 transition"
+          className="w-full py-3.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl font-black text-xs shadow-2xs disabled:opacity-50 transition cursor-pointer border-none"
         >
           {submitting ? 'Saving...' : isEdit ? 'Update Service Listing' : 'Publish Service to Database'}
         </button>

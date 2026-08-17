@@ -119,49 +119,49 @@ export default function ListingTable({
                 const image = row.images?.[0];
 
                 return (
-                  <tr key={lid} className={`border-b border-border/50 hover:bg-brand-purple/5 transition-colors ${isSelected ? 'bg-brand-purple/5' : ''}`}>
+                  <tr key={lid} className={`border-b border-[#e3dccb] hover:bg-[#f8f4ec]/60 transition-colors ${isSelected ? 'bg-[#f8f4ec]' : ''}`}>
                     <td className="px-3 py-3">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => onToggleSelect(lid)}
-                        className="w-3.5 h-3.5 rounded border-border accent-brand-purple cursor-pointer"
+                        className="w-3.5 h-3.5 rounded border-[#e3dccb] accent-[#241b15] cursor-pointer"
                       />
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-surface-secondary border border-border overflow-hidden flex-shrink-0">
+                        <div className="w-12 h-12 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] overflow-hidden flex-shrink-0">
                           {image ? (
                             <img src={image} alt={row.title} className="w-full h-full object-cover" loading="lazy" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-text-tertiary">
+                            <div className="w-full h-full flex items-center justify-center text-slate-400">
                               <FiPackage className="w-5 h-5" />
                             </div>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <span className="font-bold text-xs text-text-primary block truncate max-w-[200px]">{row.title}</span>
-                          <span className="text-[9px] text-text-tertiary uppercase">{row.category} • {row.subcategory || 'General'}</span>
-                          {row.sku && <span className="text-[9px] text-text-tertiary block">SKU: {row.sku}</span>}
+                          <span className="font-black text-xs text-[#1a1a1a] block truncate max-w-[200px]">{row.title}</span>
+                          <span className="text-[9px] text-slate-500 font-bold uppercase">{row.category} • {row.subcategory || 'General'}</span>
+                          {row.sku && <span className="text-[9px] text-slate-400 block font-mono">SKU: {row.sku}</span>}
                         </div>
                       </div>
                     </td>
                     <td className="px-3 py-3">
                       <div>
-                        <span className="font-bold text-xs text-emerald-600">₹{(row.sellingPrice || row.price || 0).toLocaleString('en-IN')}</span>
+                        <span className="font-black text-xs text-emerald-700">₹{(row.sellingPrice || row.price || 0).toLocaleString('en-IN')}</span>
                         {row.actualPrice && row.actualPrice > (row.sellingPrice || row.price || 0) && (
-                          <span className="text-[9px] text-text-tertiary line-through block">₹{row.actualPrice.toLocaleString('en-IN')}</span>
+                          <span className="text-[9px] text-slate-400 line-through block">₹{row.actualPrice.toLocaleString('en-IN')}</span>
                         )}
                         {row.discount > 0 && (
-                          <span className="text-[9px] text-emerald-500 font-bold">{row.discount}% off</span>
+                          <span className="text-[9px] text-[#d99a3d] font-black">{row.discount}% off</span>
                         )}
                       </div>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
                         row.type === 'service'
-                          ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
-                          : 'bg-purple-500/10 text-purple-600 border border-purple-500/20'
+                          ? 'bg-[#f8f4ec] text-[#241b15] border border-[#e3dccb]'
+                          : 'bg-[#241b15] text-[#d99a3d] border border-[#241b15]'
                       }`}>
                         {row.type}
                       </span>
@@ -173,34 +173,34 @@ export default function ListingTable({
                       {renderStockBadge(row)}
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex items-center gap-3 text-[9px] text-text-tertiary">
-                        <span className="flex items-center gap-0.5" title="Views"><FiEye className="w-3 h-3" /> {row.views || 0}</span>
-                        <span className="flex items-center gap-0.5" title="Likes"><FiHeart className="w-3 h-3" /> {row.likes || 0}</span>
-                        <span className="flex items-center gap-0.5" title="Orders"><FiShoppingCart className="w-3 h-3" /> {row.orders_count || 0}</span>
+                      <div className="flex items-center gap-3 text-[9px] text-slate-500 font-bold">
+                        <span className="flex items-center gap-0.5" title="Views"><FiEye className="w-3 h-3 text-slate-400" /> {row.views || 0}</span>
+                        <span className="flex items-center gap-0.5" title="Likes"><FiHeart className="w-3 h-3 text-slate-400" /> {row.likes || 0}</span>
+                        <span className="flex items-center gap-0.5" title="Orders"><FiShoppingCart className="w-3 h-3 text-slate-400" /> {row.orders_count || 0}</span>
                         {row.rating > 0 && <span className="flex items-center gap-0.5 text-amber-500" title="Rating"><FiStar className="w-3 h-3" /> {row.rating.toFixed(1)}</span>}
                       </div>
                     </td>
                     <td className="px-3 py-3">
-                      <span className="text-[9px] text-text-tertiary">{formatDate(row.createdAt)}</span>
+                      <span className="text-[9px] text-slate-500 font-bold">{formatDate(row.createdAt)}</span>
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex items-center justify-end gap-0.5">
-                        <button onClick={() => onView(row)} className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition" title="View Details">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => onView(row)} className="p-1.5 rounded-lg hover:bg-[#241b15] text-slate-500 hover:text-[#d99a3d] transition cursor-pointer border-none" title="View Details">
                           <FiBarChart2 className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => onEdit(row)} className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition" title="Edit">
+                        <button onClick={() => onEdit(row)} className="p-1.5 rounded-lg hover:bg-[#241b15] text-slate-500 hover:text-[#d99a3d] transition cursor-pointer border-none" title="Edit">
                           <FiEdit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => onDuplicate(row)} className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition" title="Duplicate">
+                        <button onClick={() => onDuplicate(row)} className="p-1.5 rounded-lg hover:bg-[#241b15] text-slate-500 hover:text-[#d99a3d] transition cursor-pointer border-none" title="Duplicate">
                           <FiCopy className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => onToggleVisibility(row)} className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition" title={statusAction.label}>
+                        <button onClick={() => onToggleVisibility(row, statusAction.newStatus)} className="p-1.5 rounded-lg hover:bg-[#241b15] text-slate-500 hover:text-[#d99a3d] transition cursor-pointer border-none" title={statusAction.label}>
                           <statusAction.icon className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => onShare(row)} className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition" title="Share">
+                        <button onClick={() => onShare(row)} className="p-1.5 rounded-lg hover:bg-[#241b15] text-slate-500 hover:text-[#d99a3d] transition cursor-pointer border-none" title="Share">
                           <FiShare2 className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => onDelete(row)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition" title="Delete">
+                        <button onClick={() => onDelete(row)} className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition cursor-pointer border-none" title="Delete">
                           <FiTrash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -233,7 +233,7 @@ export default function ListingTable({
           const image = row.images?.[0];
 
           return (
-            <div key={lid} className={`glass rounded-xl border shadow-card hover:shadow-card-hover transition-all overflow-hidden ${isSelected ? 'border-brand-purple/40 bg-brand-purple/5' : 'border-white/50'}`}>
+            <div key={lid} className={`bg-white rounded-2xl border border-[#e3dccb] shadow-2xs transition-all overflow-hidden ${isSelected ? 'border-[#241b15] bg-[#f8f4ec]/50' : ''}`}>
               <div className="p-4 space-y-3">
                 {/* Top Row: Checkbox + Image + Title */}
                 <div className="flex items-start gap-3">
@@ -241,24 +241,24 @@ export default function ListingTable({
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => onToggleSelect(lid)}
-                    className="w-3.5 h-3.5 mt-1 rounded border-border accent-brand-purple cursor-pointer flex-shrink-0"
+                    className="w-3.5 h-3.5 mt-1 rounded border-[#e3dccb] accent-[#241b15] cursor-pointer flex-shrink-0"
                   />
-                  <div className="w-14 h-14 rounded-xl bg-surface-secondary border border-border overflow-hidden flex-shrink-0">
+                  <div className="w-14 h-14 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] overflow-hidden flex-shrink-0">
                     {image ? (
                       <img src={image} alt={row.title} className="w-full h-full object-cover" loading="lazy" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-text-tertiary">
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">
                         <FiPackage className="w-5 h-5" />
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="font-bold text-xs text-text-primary block truncate">{row.title}</span>
-                    <span className="text-[9px] text-text-tertiary uppercase block">{row.category}</span>
+                    <span className="font-black text-xs text-[#1a1a1a] block truncate">{row.title}</span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase block">{row.category}</span>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="font-bold text-xs text-emerald-600">₹{(row.sellingPrice || row.price || 0).toLocaleString('en-IN')}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
-                        row.type === 'service' ? 'bg-blue-500/10 text-blue-600' : 'bg-purple-500/10 text-purple-600'
+                      <span className="font-black text-xs text-emerald-700">₹{(row.sellingPrice || row.price || 0).toLocaleString('en-IN')}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
+                        row.type === 'service' ? 'bg-[#f8f4ec] text-[#241b15] border border-[#e3dccb]' : 'bg-[#241b15] text-[#d99a3d]'
                       }`}>{row.type}</span>
                     </div>
                   </div>
@@ -266,20 +266,20 @@ export default function ListingTable({
                 </div>
 
                 {/* Stats Row */}
-                <div className="flex items-center gap-4 text-[9px] text-text-tertiary px-7">
-                  <span className="flex items-center gap-0.5"><FiEye className="w-3 h-3" /> {row.views || 0}</span>
-                  <span className="flex items-center gap-0.5"><FiHeart className="w-3 h-3" /> {row.likes || 0}</span>
-                  <span className="flex items-center gap-0.5"><FiShoppingCart className="w-3 h-3" /> {row.orders_count || 0}</span>
+                <div className="flex items-center gap-4 text-[9px] text-slate-500 font-bold px-7">
+                  <span className="flex items-center gap-0.5"><FiEye className="w-3 h-3 text-slate-400" /> {row.views || 0}</span>
+                  <span className="flex items-center gap-0.5"><FiHeart className="w-3 h-3 text-slate-400" /> {row.likes || 0}</span>
+                  <span className="flex items-center gap-0.5"><FiShoppingCart className="w-3 h-3 text-slate-400" /> {row.orders_count || 0}</span>
                   {row.type === 'product' && renderStockBadge(row)}
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end gap-1 pt-2 border-t border-border">
-                  <button onClick={() => onView(row)} className="p-2 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition" title="View"><FiBarChart2 className="w-4 h-4" /></button>
-                  <button onClick={() => onEdit(row)} className="p-2 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition" title="Edit"><FiEdit2 className="w-4 h-4" /></button>
-                  <button onClick={() => onDuplicate(row)} className="p-2 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition" title="Duplicate"><FiCopy className="w-4 h-4" /></button>
-                  <button onClick={() => onToggleVisibility(row)} className="p-2 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition" title={statusAction.label}><statusAction.icon className="w-4 h-4" /></button>
-                  <button onClick={() => onDelete(row)} className="p-2 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition" title="Delete"><FiTrash2 className="w-4 h-4" /></button>
+                <div className="flex items-center justify-end gap-1 pt-2 border-t border-[#e3dccb]">
+                  <button onClick={() => onView(row)} className="p-2 rounded-lg hover:bg-[#241b15] text-slate-500 hover:text-[#d99a3d] transition cursor-pointer border-none" title="View"><FiBarChart2 className="w-4 h-4" /></button>
+                  <button onClick={() => onEdit(row)} className="p-2 rounded-lg hover:bg-[#241b15] text-slate-500 hover:text-[#d99a3d] transition cursor-pointer border-none" title="Edit"><FiEdit2 className="w-4 h-4" /></button>
+                  <button onClick={() => onDuplicate(row)} className="p-2 rounded-lg hover:bg-[#241b15] text-slate-500 hover:text-[#d99a3d] transition cursor-pointer border-none" title="Duplicate"><FiCopy className="w-4 h-4" /></button>
+                  <button onClick={() => onToggleVisibility(row, statusAction.newStatus)} className="p-2 rounded-lg hover:bg-[#241b15] text-slate-500 hover:text-[#d99a3d] transition cursor-pointer border-none" title={statusAction.label}><statusAction.icon className="w-4 h-4" /></button>
+                  <button onClick={() => onDelete(row)} className="p-2 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition cursor-pointer border-none" title="Delete"><FiTrash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             </div>

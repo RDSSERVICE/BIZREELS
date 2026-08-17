@@ -35,6 +35,22 @@ const CATEGORIES = [
 
 const CITIES = ['All Cities', 'Delhi NCR', 'Mumbai', 'Bangalore', 'Kolkata'];
 
+const getAvailabilityStatus = (availability) => {
+  if (!availability) return 'Available';
+  if (typeof availability === 'string') return availability;
+  if (typeof availability === 'object') {
+    if (availability.status) return String(availability.status);
+    if (availability.availableNow === false) return 'Busy';
+    if (availability.availableNow === true) return 'Available';
+    if (availability.isAvailable === false) return 'Busy';
+    if (availability.isAvailable === true) return 'Available';
+  }
+  if (typeof availability === 'boolean') {
+    return availability ? 'Available' : 'Busy';
+  }
+  return 'Available';
+};
+
 const PublicCreatorMarketplacePage = () => {
   const navigate = useNavigate();
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -369,8 +385,8 @@ const PublicCreatorMarketplacePage = () => {
                         <FiMapPin className="w-3 h-3 text-[#d99a3d] flex-shrink-0" />
                         <span className="truncate">{creator.city || 'India'}</span>
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${creator.availability?.toLowerCase() === 'busy' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'}`}>
-                        {creator.availability || 'Available'}
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${getAvailabilityStatus(creator.availability).toLowerCase() === 'busy' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'}`}>
+                        {getAvailabilityStatus(creator.availability)}
                       </span>
                     </div>
                   </div>
@@ -443,8 +459,8 @@ const PublicCreatorMarketplacePage = () => {
                   {selectedCreator.isVerified && (
                     <FiCheckCircle className="text-[#d99a3d] shrink-0" size={16} />
                   )}
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${selectedCreator.availability?.toLowerCase() === 'busy' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'}`}>
-                    {selectedCreator.availability || 'Available'}
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${getAvailabilityStatus(selectedCreator.availability).toLowerCase() === 'busy' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'}`}>
+                    {getAvailabilityStatus(selectedCreator.availability)}
                   </span>
                 </div>
                 <p className="text-xs text-[#d99a3d] font-bold mt-0.5">{selectedCreator.category}</p>

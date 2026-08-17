@@ -25,8 +25,8 @@ export default function SearchableSelect({
   }, [options, search, value]);
 
   return (
-    <div className="relative">
-      <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+    <div className="relative font-sans">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
         {label}
       </label>
       <div className="relative">
@@ -49,17 +49,17 @@ export default function SearchableSelect({
           }}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full p-2.5 pr-8 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple transition-all disabled:opacity-50 text-text-primary"
+          className="w-full p-2.5 pr-8 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] transition-all disabled:opacity-50"
         />
-        <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-tertiary pointer-events-none text-[10px]">
+        <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 pointer-events-none text-[10px]">
           ▼
         </span>
       </div>
 
       {isOpen && !disabled && (
-        <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-surface border border-border rounded-xl shadow-lg z-50 p-1 space-y-0.5">
+        <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-[#e3dccb] rounded-xl shadow-xl z-50 p-1 space-y-0.5">
           {filteredOptions.length === 0 ? (
-            <p className="text-xs text-text-tertiary p-2 text-center">No results found</p>
+            <p className="text-xs text-slate-400 p-2 text-center">No results found</p>
           ) : (
             filteredOptions.map((opt, idx) => {
               const isSelected = opt === value;
@@ -71,10 +71,10 @@ export default function SearchableSelect({
                     setSearch(opt);
                     setIsOpen(false);
                   }}
-                  className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                  className={`px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${
                     isSelected
-                      ? 'bg-brand-purple/10 text-brand-purple font-bold'
-                      : 'hover:bg-white/5 text-text-secondary'
+                      ? 'bg-[#241b15] text-[#d99a3d]'
+                      : 'hover:bg-[#f8f4ec] text-[#1a1a1a]'
                   }`}
                 >
                   {opt}

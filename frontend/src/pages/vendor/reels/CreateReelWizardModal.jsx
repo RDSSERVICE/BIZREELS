@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import {
   FiLayers, FiTag, FiVideo, FiCheckCircle, FiCheck, FiImage, FiX, FiMapPin, FiUsers, FiEye, FiPlus,
   FiPercent, FiZap, FiBell, FiStar, FiGift, FiCalendar, FiAlertCircle
@@ -8,6 +9,7 @@ import AdminModal from '../../../features/admin/components/AdminModal';
 import CreateServiceModal from './CreateServiceModal';
 import CreateProductModal from './CreateProductModal';
 import { useListCategoriesQuery } from '../../../features/admin/adminApi';
+import { selectCurrentUser } from '../../../features/auth/authSlice';
 
 // PURPOSE OPTIONS PER POST TYPE
 const PURPOSE_OPTIONS = {
@@ -39,9 +41,6 @@ const COLOR_MAP = {
   red:    { active: 'bg-red-950/60 border-red-500 text-red-200 shadow-red-500/20',        dot: 'bg-red-500'    },
   orange: { active: 'bg-orange-950/60 border-orange-500 text-orange-200 shadow-orange-500/20', dot: 'bg-orange-500' },
 };
-
-
-
 
 // PROMOTION AREAS
 const PROMOTION_AREAS = [
@@ -140,6 +139,31 @@ export default function CreateReelWizardModal({
   const [showCreateServiceModal, setShowCreateServiceModal] = useState(false);
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
 
+  const currentUser = useSelector(selectCurrentUser);
+  const vendorProfile = currentUser?.vendorProfile || {};
+
+  const onboardedCategories = React.useMemo(() => {
+    let cats = [];
+    if (Array.isArray(vendorProfile.categories) && vendorProfile.categories.length > 0) {
+      cats = [...vendorProfile.categories];
+    } else if (vendorProfile.category) {
+      cats = [vendorProfile.category];
+    } else if (vendorProfile.businessCategory) {
+      cats = [vendorProfile.businessCategory];
+    }
+    return cats.filter(Boolean);
+  }, [vendorProfile]);
+
+  const onboardedSubcategories = React.useMemo(() => {
+    let subs = [];
+    if (Array.isArray(vendorProfile.subcategories) && vendorProfile.subcategories.length > 0) {
+      subs = [...vendorProfile.subcategories];
+    } else if (vendorProfile.subcategory) {
+      subs = [vendorProfile.subcategory];
+    }
+    return subs.filter(Boolean);
+  }, [vendorProfile]);
+
   // Fetch dynamic categories from admin settings
   const { data: categoriesDataRes } = useListCategoriesQuery();
   const categoriesList = categoriesDataRes?.items || [];
@@ -149,11 +173,14 @@ export default function CreateReelWizardModal({
     const parents = categoriesList.filter(c => {
       if (c.parent_id) return false;
       if (postType === 'services') {
-        return c.category_type === 'service' || !c.category_type;
+        // STRICTLY service categories only
+        return c.category_type === 'service';
       }
       if (postType === 'product') {
+        // STRICTLY product categories only
         return c.category_type === 'product' || !c.category_type;
       }
+      // 'shop' posts: include all categories
       return true;
     });
     const children = categoriesList.filter(c => c.parent_id);
@@ -163,21 +190,72 @@ export default function CreateReelWizardModal({
       const subcategories = children
         .filter(child => child.parent_id === parentId)
         .map(child => child.name);
-      data[parent.name] = subcategories;
+      data[parent.name] = subcategories.length > 0 ? subcategories : ['General'];
     });
 
-    return data;
-  }, [categoriesList, postType]);
+    // Fallback if no matching categories in database
+    if (Object.keys(data).length === 0) {
+      if (postType === 'services') {
+        data['Services'] = ['Plumber', 'Electrician', 'Carpenter', 'AC Repair', 'Cleaning', 'Painter', 'General'];
+        data['Beauty & Salon'] = ['Men Salon', 'Women Salon', 'Spa', 'Makeup'];
+        data['Real Estate'] = ['Rent', 'Buy', 'Sell', 'PG/Hostel'];
+        data['Health & Fitness'] = ['Gym', 'Yoga', 'Doctor', 'Medical Store'];
+        data['Education & Coaching'] = ['School', 'Coaching', 'Tuition', 'Skill Courses'];
+      } else if (postType === 'product') {
+        data['Electronics'] = ['Mobile', 'Laptop', 'TV', 'Home Appliances', 'Accessories'];
+        data['Fashion'] = ['Men', 'Women', 'Kids', 'Footwear', 'Accessories'];
+        data['Home & Furniture'] = ['Furniture', 'Kitchen', 'Decor', 'Bedding'];
+        data['Vehicles'] = ['Car', 'Bike', 'Scooter', 'Commercial'];
+        data['Food & Grocery'] = ['Restaurants', 'Grocery', 'Bakery', 'Sweets'];
+      } else {
+        data['General Business'] = ['General'];
+      }
+    }
 
-  // Set default category / subcategory dynamically from DB data
+    // Prioritize vendor's onboarded categories that match this postType
+    if (onboardedCategories.length > 0) {
+      const filteredData = {};
+      const matchingOnboardedCats = onboardedCategories.filter(catName => {
+        return Object.prototype.hasOwnProperty.call(data, catName);
+      });
+
+      if (matchingOnboardedCats.length > 0) {
+        matchingOnboardedCats.forEach(catName => {
+          let subs = data[catName] || ['General'];
+          if (onboardedSubcategories.length > 0) {
+            const matchedSubs = subs.filter(s => onboardedSubcategories.includes(s));
+            const otherSubs = subs.filter(s => !onboardedSubcategories.includes(s));
+            subs = [...matchedSubs, ...otherSubs];
+          }
+          filteredData[catName] = subs;
+        });
+
+        // Add the remaining categories of the same type
+        Object.keys(data).forEach(catName => {
+          if (!filteredData[catName]) {
+            filteredData[catName] = data[catName];
+          }
+        });
+
+        return filteredData;
+      }
+    }
+
+    return data;
+  }, [categoriesList, postType, onboardedCategories, onboardedSubcategories]);
+
+  // Set default category / subcategory dynamically when postType or dynamicCategoriesData changes
   useEffect(() => {
     const available = Object.keys(dynamicCategoriesData);
     if (available.length > 0) {
       if (!postCategory || !available.includes(postCategory)) {
-        setPostCategory(available[0]);
+        const firstCat = available[0];
+        setPostCategory(firstCat);
+        const firstSubs = dynamicCategoriesData[firstCat] || ['General'];
+        setPostSubcategory(firstSubs[0] || 'General');
       }
     }
-  }, [dynamicCategoriesData, postCategory, setPostCategory]);
+  }, [postType, dynamicCategoriesData]); // eslint-disable-line
 
   useEffect(() => {
     if (postCategory && dynamicCategoriesData[postCategory]) {

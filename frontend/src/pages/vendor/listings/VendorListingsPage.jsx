@@ -42,9 +42,31 @@ export default function VendorListingsPage() {
   const vendorProfile = currentUser?.vendorProfile || {};
   const vendorId = currentUser?._id || currentUser?.id;
 
-  // Registered info
-  const registeredCat = vendorProfile.category || vendorProfile.businessCategory || '';
-  const registeredSubcats = vendorProfile.subcategories || [];
+  // Registered & Onboarded Categories info
+  const onboardedCategories = React.useMemo(() => {
+    let cats = [];
+    if (Array.isArray(vendorProfile.categories) && vendorProfile.categories.length > 0) {
+      cats = [...vendorProfile.categories];
+    } else if (vendorProfile.category) {
+      cats = [vendorProfile.category];
+    } else if (vendorProfile.businessCategory) {
+      cats = [vendorProfile.businessCategory];
+    }
+    return cats.filter(Boolean);
+  }, [vendorProfile]);
+
+  const onboardedSubcategories = React.useMemo(() => {
+    let subs = [];
+    if (Array.isArray(vendorProfile.subcategories) && vendorProfile.subcategories.length > 0) {
+      subs = [...vendorProfile.subcategories];
+    } else if (vendorProfile.subcategory) {
+      subs = [vendorProfile.subcategory];
+    }
+    return subs.filter(Boolean);
+  }, [vendorProfile]);
+
+  const registeredCat = onboardedCategories[0] || vendorProfile.category || vendorProfile.businessCategory || '';
+  const registeredSubcats = onboardedSubcategories.length > 0 ? onboardedSubcategories : (vendorProfile.subcategories || []);
 
   // Geolocation
   const [vendorCoords, setVendorCoords] = useState(null);
@@ -177,41 +199,39 @@ export default function VendorListingsPage() {
   // Tab counts
   const productsCount = allListings.filter(i => i.type === 'product').length;
   const servicesCount = allListings.filter(i => i.type === 'service').length;
-  const publishedCount = allListings.filter(i => (i.status || 'published') === 'published').length;
-  const draftCount = allListings.filter(i => i.status === 'draft').length;
-  const hiddenCount = allListings.filter(i => i.status === 'hidden').length;
+  const offersCount = offersList.length;
 
   const dynamicTabs = [
-    { key: 'products', label: 'Products', icon: FiShoppingBag, count: productsCount },
-    { key: 'services', label: 'Services', icon: FiTool, count: servicesCount },
-    { key: 'offers', label: 'Dynamic Offers', icon: FiPercent, count: offersList.length },
-    { key: 'published', label: 'Published', count: publishedCount },
-    { key: 'draft', label: 'Draft', count: draftCount },
-    { key: 'hidden', label: 'Hidden', count: hiddenCount },
+    { key: 'products', label: 'Products Catalog', icon: FiShoppingBag, badge: productsCount },
+    { key: 'services', label: 'Services Catalog', icon: FiTool, badge: servicesCount },
+    { key: 'offers', label: 'Dynamic Offers', icon: FiPercent, badge: offersCount },
   ];
 
   // Filtering
   const filteredListings = allListings.filter(item => {
-    const itemStatus = item.status || 'published';
-    if (activeTab === 'products') return item.type === 'product';
-    if (activeTab === 'services') return item.type === 'service';
-    if (activeTab === 'draft') return itemStatus === 'draft';
-    if (activeTab === 'published') return itemStatus === 'published';
-    if (activeTab === 'hidden') return itemStatus === 'hidden';
-    return true;
-  }).filter(item => {
-    // Dropdown filters
-    if (statusFilter && item.status !== statusFilter) return false;
+    if (activeTab === 'products' && item.type !== 'product') return false;
+    if (activeTab === 'services' && item.type !== 'service') return false;
+
+    if (search) {
+      const q = search.toLowerCase();
+      const titleMatch = (item.title || '').toLowerCase().includes(q);
+      const skuMatch = (item.productDetails?.sku || item.sku || '').toLowerCase().includes(q);
+      const catMatch = (item.category || '').toLowerCase().includes(q);
+      const idMatch = (item._id || item.id || '').toLowerCase().includes(q);
+      if (!titleMatch && !skuMatch && !catMatch && !idMatch) return false;
+    }
+
+    if (statusFilter) {
+      if (statusFilter === 'out_of_stock') {
+        if (item.type !== 'product' || (item.stock ?? 0) > 0) return false;
+      } else if ((item.status || 'published') !== statusFilter) {
+        return false;
+      }
+    }
+
     if (typeFilter && item.type !== typeFilter) return false;
-    // Search
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      item.title?.toLowerCase().includes(q) ||
-      item.sku?.toLowerCase().includes(q) ||
-      item.category?.toLowerCase().includes(q) ||
-      String(item._id || item.id).toLowerCase().includes(q)
-    );
+
+    return true;
   });
 
   // Sorting
@@ -311,7 +331,7 @@ export default function VendorListingsPage() {
   };
 
   const handleDuplicateRow = async (row) => {
-    const toastId = toast.loading('Duplicating listing in real-time...');
+    const toastId = toast.loading('Duplicating listing in database...');
     try {
       await duplicateListing(row._id || row.id).unwrap();
       toast.success('Listing duplicated successfully!', { id: toastId });
@@ -321,16 +341,14 @@ export default function VendorListingsPage() {
     }
   };
 
-  const handleToggleRowVisibility = async (row) => {
-    const lid = row._id || row.id;
-    const nextStatus = row.status === 'hidden' ? 'published' : 'hidden';
-    const toastId = toast.loading(`Changing visibility to ${nextStatus}...`);
+  const handleToggleRowVisibility = async (row, newStatus) => {
+    const toastId = toast.loading(`Updating status to ${newStatus}...`);
     try {
-      await toggleVisibility({ id: lid, status: nextStatus }).unwrap();
-      toast.success(`Listing status is now ${nextStatus}!`, { id: toastId });
+      await toggleVisibility({ id: row._id || row.id, status: newStatus }).unwrap();
+      toast.success(`Listing ${newStatus === 'published' ? 'published' : 'hidden'}!`, { id: toastId });
       refetchListings();
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to change visibility', { id: toastId });
+      toast.error(err?.data?.message || 'Failed to update visibility', { id: toastId });
     }
   };
 
@@ -338,12 +356,12 @@ export default function VendorListingsPage() {
     const lid = row._id || row.id;
     setConfirmAction({
       title: 'Delete Listing',
-      message: `Are you sure you want to delete "${row.title}"? This cannot be undone.`,
+      message: `Are you sure you want to permanently delete "${row.title}"?`,
       onConfirm: async () => {
         setConfirmAction(prev => ({ ...prev, loading: true }));
         try {
           await deleteListing(lid).unwrap();
-          toast.success('Listing deleted successfully!');
+          toast.success('Listing deleted!');
           setShowConfirm(false);
           refetchListings();
         } catch (err) {
@@ -356,18 +374,17 @@ export default function VendorListingsPage() {
     setShowConfirm(true);
   };
 
-  const handleStockUpdate = async (id, stockQty) => {
-    const toastId = toast.loading('Updating inventory...');
+  const handleStockUpdate = async (id, newStock) => {
+    const toastId = toast.loading('Updating inventory stock...');
     try {
-      await updateStock({ id, stock: stockQty }).unwrap();
-      toast.success('Inventory updated successfully!', { id: toastId });
+      await updateStock({ id, stock: newStock }).unwrap();
+      toast.success('Stock updated in real-time!', { id: toastId });
       refetchListings();
-      // Update local state if drawer is open
-      if (selectedListingDetails?._id === id || selectedListingDetails?.id === id) {
-        setSelectedListingDetails(prev => ({ ...prev, stock: stockQty }));
+      if (selectedListingDetails && (selectedListingDetails._id === id || selectedListingDetails.id === id)) {
+        setSelectedListingDetails(prev => ({ ...prev, stock: newStock }));
       }
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to update inventory', { id: toastId });
+      toast.error(err?.data?.message || 'Failed to update stock', { id: toastId });
     }
   };
 
@@ -480,7 +497,7 @@ export default function VendorListingsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto pb-24">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto pb-24 font-sans">
       {/* Header & Sub Banner */}
       <ListingHeader
         registeredCat={registeredCat}
@@ -489,13 +506,34 @@ export default function VendorListingsPage() {
         onShowAddModal={() => setShowAddChoice(true)}
       />
 
-      {/* Tabs */}
-      <div className="border-b border-border flex items-center justify-between overflow-x-auto scrollbar-none">
-        <AdminTabBar
-          tabs={dynamicTabs}
-          activeTab={activeTab}
-          onTabChange={(tab) => { setActiveTab(tab); setSelectedIds([]); }}
-        />
+      {/* Custom Warm Segmented Tabs matching vendor/profile */}
+      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-3 overflow-x-auto scrollbar-none">
+        {dynamicTabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => { setActiveTab(tab.key); setSelectedIds([]); }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+                isActive
+                  ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs border-none'
+                  : 'bg-[#f8f4ec] text-slate-600 hover:text-[#1a1a1a] hover:bg-white border border-[#e3dccb]'
+              }`}
+            >
+              {Icon && <Icon size={14} className={isActive ? 'text-[#d99a3d]' : 'text-slate-400'} />}
+              <span>{tab.label}</span>
+              {tab.badge !== undefined && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  isActive ? 'bg-[#d99a3d] text-[#241b15]' : 'bg-[#e3dccb] text-slate-700'
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Search & Filters */}
@@ -574,6 +612,8 @@ export default function VendorListingsPage() {
           subcategoriesList={subcategoriesList}
           registeredCat={registeredCat}
           registeredSubcats={registeredSubcats}
+          onboardedCategories={onboardedCategories}
+          onboardedSubcategories={onboardedSubcategories}
           vendorCoords={vendorCoords}
         />
       )}
@@ -589,6 +629,8 @@ export default function VendorListingsPage() {
           subcategoriesList={subcategoriesList}
           registeredCat={registeredCat}
           registeredSubcats={registeredSubcats}
+          onboardedCategories={onboardedCategories}
+          onboardedSubcategories={onboardedSubcategories}
           vendorCoords={vendorCoords}
         />
       )}
@@ -618,7 +660,7 @@ export default function VendorListingsPage() {
         />
       )}
 
-      {/* Reusable Confirm Dialog */}
+      {/* Confirmation Dialog */}
       {showConfirm && (
         <ConfirmDialog
           isOpen={showConfirm}

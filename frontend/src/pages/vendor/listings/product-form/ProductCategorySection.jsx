@@ -9,11 +9,11 @@ export default function ProductCategorySection({
   productSubcategories = [],
 }) {
   return (
-    <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
-      <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider">
-        Category & Classification
+    <div className="space-y-3 p-4 bg-[#f8f4ec] rounded-2xl border border-[#e3dccb] font-sans">
+      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a] tracking-wider">
+        Category &amp; Classification
       </h4>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <SearchableSelect
           label="Category"
           placeholder="Search category..."

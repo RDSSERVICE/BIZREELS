@@ -22,13 +22,18 @@ export default function ProductFormModal({
   categoriesList = [],
   registeredCat = '',
   registeredSubcats = [],
+  onboardedCategories = [],
+  onboardedSubcategories = [],
   vendorCoords = null,
 }) {
   const isEdit = !!editData;
 
+  const defaultCat = editData?.category || registeredCat || (onboardedCategories && onboardedCategories[0]) || '';
+  const defaultSub = editData?.subcategory || (registeredSubcats && registeredSubcats[0]) || (onboardedSubcategories && onboardedSubcategories[0]) || '';
+
   const [form, setForm] = useState({
-    category: registeredCat || '',
-    subcategory: registeredSubcats[0] || '',
+    category: defaultCat,
+    subcategory: defaultSub,
     title: '',
     shortDescription: '',
     description: '',
@@ -111,32 +116,77 @@ export default function ProductFormModal({
     }
   }, [isOpen]);
 
-  const productCategories = useMemo(() => {
-    return categoriesList
+  const allMasterProductCats = useMemo(() => {
+    const filtered = categoriesList
       .filter((c) => !c.parent_id && (c.category_type === 'product' || !c.category_type))
       .map((c) => c.name);
+    if (filtered.length > 0) return filtered;
+    return ['Electronics', 'Fashion', 'Home & Furniture', 'Vehicles', 'Food & Grocery'];
   }, [categoriesList]);
+
+  const productCategories = useMemo(() => {
+    const onboarded = (onboardedCategories && onboardedCategories.length > 0)
+      ? onboardedCategories
+      : (registeredCat ? [registeredCat] : []);
+
+    const validOnboardedProductCats = onboarded.filter((catName) => {
+      const catObj = categoriesList.find(
+        (c) => !c.parent_id && (c.name === catName || c.id === catName || c._id === catName)
+      );
+      if (catObj) {
+        return catObj.category_type === 'product' || !catObj.category_type;
+      }
+      return allMasterProductCats.includes(catName);
+    });
+
+    if (validOnboardedProductCats.length > 0) {
+      return validOnboardedProductCats;
+    }
+
+    return allMasterProductCats;
+  }, [categoriesList, onboardedCategories, registeredCat, allMasterProductCats]);
 
   const productSubcategories = useMemo(() => {
     if (!form.category) return [];
+
     const parent = categoriesList.find(
       (c) => !c.parent_id && (c.name === form.category || c.id === form.category || c._id === form.category)
     );
-    if (!parent) return [];
-    return categoriesList
-      .filter((c) => c.parent_id === parent.id || c.parent_id === parent._id)
-      .map((c) => c.name);
-  }, [categoriesList, form.category]);
+
+    let subsFromMaster = [];
+    if (parent) {
+      subsFromMaster = categoriesList
+        .filter((c) => (c.parent_id === parent.id || c.parent_id === parent._id) && (c.category_type === 'product' || !c.category_type))
+        .map((c) => c.name);
+    }
+
+    const onboardedSubs = (onboardedSubcategories && onboardedSubcategories.length > 0)
+      ? onboardedSubcategories
+      : (registeredSubcats || []);
+
+    if (onboardedSubs.length > 0) {
+      const matched = subsFromMaster.filter(s => onboardedSubs.includes(s));
+      const others = subsFromMaster.filter(s => !onboardedSubs.includes(s));
+      if (matched.length > 0) {
+        return [...matched, ...others];
+      }
+      if (subsFromMaster.length === 0) {
+        return onboardedSubs;
+      }
+    }
+
+    return subsFromMaster.length > 0 ? subsFromMaster : ['General'];
+  }, [categoriesList, form.category, onboardedSubcategories, registeredSubcats]);
 
   // Default to first category/subcategory if not set
   useEffect(() => {
-    if (!form.category && productCategories.length > 0) {
+    if ((!form.category || !productCategories.includes(form.category)) && productCategories.length > 0) {
       updateForm('category', productCategories[0]);
     }
   }, [productCategories, form.category]);
 
   useEffect(() => {
-    if (!form.subcategory && productSubcategories.length > 0) {
+    if ((!form.subcategory || !productSubcategories.includes(form.subcategory)) && productSubcategories.length > 0) {
       updateForm('subcategory', productSubcategories[0]);
     }
   }, [productSubcategories, form.subcategory]);
@@ -147,14 +197,15 @@ export default function ProductFormModal({
       (c) => !c.parent_id && (c.name === val || c.id === val || c._id === val)
     );
     if (parent) {
-      const subs = categoriesList.filter((c) => c.parent_id === parent.id || c.parent_id === parent._id);
+      const subs = categoriesList.filter((c) => (c.parent_id === parent.id || c.parent_id === parent._id) && (c.category_type === 'product' || !c.category_type));
       if (subs.length > 0) {
-        updateForm('subcategory', subs[0].name);
+        const onboardedMatch = (onboardedSubcategories || []).find(os => subs.some(s => s.name === os));
+        updateForm('subcategory', onboardedMatch || subs[0].name);
       } else {
-        updateForm('subcategory', 'General');
+        updateForm('subcategory', (onboardedSubcategories && onboardedSubcategories[0]) || 'General');
       }
     } else {
-      updateForm('subcategory', 'General');
+      updateForm('subcategory', (onboardedSubcategories && onboardedSubcategories[0]) || 'General');
     }
   };
 
@@ -560,7 +611,7 @@ export default function ProductFormModal({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-3 gradient-brand text-white rounded-xl font-bold text-xs shadow-premium disabled:opacity-50 transition"
+          className="w-full py-3.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl font-black text-xs shadow-2xs disabled:opacity-50 transition cursor-pointer border-none"
         >
           {submitting ? 'Saving...' : isEdit ? 'Update Product Listing' : 'Publish Product to Marketplace'}
         </button>

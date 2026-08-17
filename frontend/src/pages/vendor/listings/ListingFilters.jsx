@@ -56,32 +56,32 @@ export default function ListingFilters({
     <div className="space-y-3">
       {/* Bulk Action Bar */}
       {selectedCount > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-brand-purple/5 border border-brand-purple/20 rounded-xl animate-fade-in">
-          <span className="text-xs font-bold text-brand-purple">
-            {selectedCount} selected
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-[#241b15] text-[#d99a3d] border border-[#241b15] rounded-xl shadow-2xs animate-fade-in font-sans">
+          <span className="text-xs font-black text-[#d99a3d]">
+            {selectedCount} item{selectedCount > 1 ? 's' : ''} selected
           </span>
           <div className="flex items-center gap-2 ml-auto">
             <button
               onClick={onBulkPublish}
-              className="px-3 py-1.5 bg-emerald-500 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-600 transition flex items-center gap-1"
+              className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-black rounded-lg hover:bg-emerald-700 transition flex items-center gap-1 cursor-pointer border-none"
             >
               <FiEye className="w-3 h-3" /> Publish
             </button>
             <button
               onClick={onBulkHide}
-              className="px-3 py-1.5 bg-amber-500 text-white text-[10px] font-bold rounded-lg hover:bg-amber-600 transition flex items-center gap-1"
+              className="px-3 py-1.5 bg-[#d99a3d] text-[#241b15] text-[10px] font-black rounded-lg hover:bg-[#c8892c] transition flex items-center gap-1 cursor-pointer border-none"
             >
               <FiEyeOff className="w-3 h-3" /> Hide
             </button>
             <button
               onClick={onBulkDelete}
-              className="px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold rounded-lg hover:bg-red-600 transition flex items-center gap-1"
+              className="px-3 py-1.5 bg-rose-600 text-white text-[10px] font-black rounded-lg hover:bg-rose-700 transition flex items-center gap-1 cursor-pointer border-none"
             >
               <FiTrash2 className="w-3 h-3" /> Delete
             </button>
             <button
               onClick={onClearSelection}
-              className="p-1.5 rounded-lg hover:bg-surface-tertiary text-text-tertiary transition"
+              className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition cursor-pointer border-none"
               title="Clear selection"
             >
               <FiX className="w-3.5 h-3.5" />

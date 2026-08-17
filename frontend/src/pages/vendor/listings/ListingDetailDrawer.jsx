@@ -64,13 +64,15 @@ export default function ListingDetailDrawer({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md h-full glass-strong shadow-modal border-l border-white/50 animate-slide-in-right overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex justify-end font-sans">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={onClose} />
+      <div className="relative w-full max-w-md h-full bg-white shadow-2xl border-l border-[#e3dccb] animate-slide-in-right overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-border bg-surface/80 backdrop-blur-md">
-          <h3 className="text-sm font-bold text-text-primary font-display truncate pr-2">Listing Details</h3>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-surface-tertiary text-text-tertiary hover:text-text-primary transition">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-[#241b15] bg-[#241b15] text-white">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm font-black text-[#d99a3d] uppercase tracking-wider truncate pr-2">
+            Listing Details
+          </h3>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition cursor-pointer border-none">
             <FiX className="w-4 h-4" />
           </button>
         </div>
@@ -78,21 +80,23 @@ export default function ListingDetailDrawer({
         <div className="p-5 space-y-5">
           {/* Image + Title */}
           <div className="flex gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-surface-secondary border border-border overflow-hidden flex-shrink-0">
+            <div className="w-20 h-20 rounded-2xl bg-[#f8f4ec] border border-[#e3dccb] overflow-hidden flex-shrink-0">
               {image ? (
                 <img src={image} alt={listing.title} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center"><FiPackage className="w-8 h-8 text-text-tertiary" /></div>
+                <div className="w-full h-full flex items-center justify-center"><FiPackage className="w-8 h-8 text-slate-400" /></div>
               )}
             </div>
             <div className="flex-1 min-w-0 space-y-1">
-              <h4 className="font-bold text-sm text-text-primary truncate">{listing.title}</h4>
-              <p className="text-[10px] text-text-tertiary uppercase">{listing.category} • {listing.subcategory || 'General'}</p>
+              <h4 className="font-black text-sm text-[#1a1a1a] truncate">{listing.title}</h4>
+              <p className="text-[10px] text-slate-500 font-bold uppercase">{listing.category} • {listing.subcategory || 'General'}</p>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-emerald-600">₹{sellingPrice.toLocaleString('en-IN')}</span>
+                <span className="font-black text-sm text-emerald-700">₹{sellingPrice.toLocaleString('en-IN')}</span>
                 <AdminStatusBadge status={listing.status || 'published'} />
               </div>
-              <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${listing.type === 'service' ? 'bg-blue-500/10 text-blue-600' : 'bg-purple-500/10 text-purple-600'}`}>
+              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                listing.type === 'service' ? 'bg-[#f8f4ec] text-[#241b15] border border-[#e3dccb]' : 'bg-[#241b15] text-[#d99a3d]'
+              }`}>
                 {listing.type}
               </span>
             </div>
@@ -100,39 +104,41 @@ export default function ListingDetailDrawer({
 
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => { onEdit(listing); onClose(); }} className="flex-1 py-2 px-3 bg-brand-purple/10 text-brand-purple text-xs font-bold rounded-xl hover:bg-brand-purple/20 transition flex items-center justify-center gap-1.5">
+            <button onClick={() => { onEdit(listing); onClose(); }} className="flex-1 py-2.5 px-3 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] text-xs font-black rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer border-none">
               <FiEdit2 className="w-3.5 h-3.5" /> Edit
             </button>
-            <button onClick={() => { onDuplicate(listing); onClose(); }} className="flex-1 py-2 px-3 bg-surface border border-border text-text-secondary text-xs font-bold rounded-xl hover:bg-surface-secondary transition flex items-center justify-center gap-1.5">
+            <button onClick={() => { onDuplicate(listing); onClose(); }} className="flex-1 py-2.5 px-3 bg-[#f8f4ec] border border-[#e3dccb] text-[#1a1a1a] text-xs font-bold rounded-xl hover:bg-white transition flex items-center justify-center gap-1.5 cursor-pointer">
               <FiCopy className="w-3.5 h-3.5" /> Duplicate
             </button>
-            <button onClick={() => onToggleVisibility(listing)} className="flex-1 py-2 px-3 bg-amber-500/10 text-amber-600 text-xs font-bold rounded-xl hover:bg-amber-500/20 transition flex items-center justify-center gap-1.5">
+            <button onClick={() => onToggleVisibility(listing, listing.status === 'hidden' ? 'published' : 'hidden')} className="flex-1 py-2.5 px-3 bg-[#d99a3d] text-[#241b15] hover:bg-[#c8892c] text-xs font-black rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer border-none">
               <FiEyeOff className="w-3.5 h-3.5" /> {listing.status === 'hidden' ? 'Publish' : 'Hide'}
             </button>
-            <button onClick={() => { onDelete(listing); onClose(); }} className="py-2 px-3 bg-red-500/10 text-red-500 text-xs font-bold rounded-xl hover:bg-red-500/20 transition flex items-center justify-center gap-1.5">
+            <button onClick={() => { onDelete(listing); onClose(); }} className="py-2.5 px-3 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border-none">
               <FiTrash2 className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {/* Inventory Section (Products only) */}
           {listing.type === 'product' && (
-            <div className="p-4 bg-surface-secondary rounded-2xl border border-border space-y-3">
-              <h5 className="text-xs font-bold text-text-primary uppercase tracking-wider">Inventory</h5>
+            <div className="p-4 bg-[#f8f4ec] rounded-2xl border border-[#e3dccb] space-y-3">
+              <h5 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs text-[#1a1a1a] uppercase tracking-wider">
+                Inventory
+              </h5>
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-2xl font-black text-text-primary">{stock}</span>
-                  <span className="text-xs text-text-tertiary ml-1">in stock</span>
+                  <span className="text-2xl font-black text-[#1a1a1a]">{stock}</span>
+                  <span className="text-xs text-slate-500 font-bold ml-1">in stock</span>
                 </div>
                 {stock <= 0 ? (
-                  <span className="px-2.5 py-1 bg-red-500/10 text-red-500 text-[10px] font-bold rounded-lg flex items-center gap-1">
+                  <span className="px-2.5 py-1 bg-rose-100 text-rose-700 border border-rose-300 text-[10px] font-black rounded-lg flex items-center gap-1">
                     <FiAlertTriangle className="w-3 h-3" /> OUT OF STOCK
                   </span>
                 ) : stock <= threshold ? (
-                  <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 text-[10px] font-bold rounded-lg flex items-center gap-1">
+                  <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-black rounded-lg flex items-center gap-1">
                     <FiAlertTriangle className="w-3 h-3" /> LOW STOCK
                   </span>
                 ) : (
-                  <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 text-[10px] font-bold rounded-lg">IN STOCK</span>
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black rounded-lg">IN STOCK</span>
                 )}
               </div>
               {/* Quick stock update */}
@@ -143,31 +149,33 @@ export default function ListingDetailDrawer({
                   value={stockInput}
                   onChange={(e) => setStockInput(e.target.value)}
                   placeholder="Update stock quantity"
-                  className="flex-1 p-2 bg-surface border border-border rounded-xl text-xs"
+                  className="flex-1 p-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                 />
                 <button
                   onClick={handleStockUpdate}
                   disabled={updatingStock || (!stockInput && stockInput !== 0)}
-                  className="px-3 py-2 bg-brand-purple text-white text-xs font-bold rounded-xl disabled:opacity-50"
+                  className="px-4 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] text-xs font-black rounded-xl shadow-2xs disabled:opacity-50 cursor-pointer border-none"
                 >
                   {updatingStock ? '...' : 'Update'}
                 </button>
               </div>
-              <p className="text-[9px] text-text-tertiary">Low stock alert threshold: {threshold} units</p>
+              <p className="text-[9px] text-slate-400 font-bold">Low stock alert threshold: {threshold} units</p>
             </div>
           )}
 
           {/* Analytics Grid */}
           <div className="space-y-3">
-            <h5 className="text-xs font-bold text-text-primary uppercase tracking-wider">Live Analytics</h5>
+            <h5 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs text-[#1a1a1a] uppercase tracking-wider">
+              Live Analytics
+            </h5>
             <div className="grid grid-cols-2 gap-2.5">
               {stats.map((stat, i) => (
-                <div key={i} className="p-3 bg-surface-secondary rounded-xl border border-border space-y-1">
+                <div key={i} className="p-3 bg-[#f8f4ec] rounded-xl border border-[#e3dccb] space-y-1">
                   <div className="flex items-center gap-1.5">
                     <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
-                    <span className="text-[9px] font-bold text-text-tertiary uppercase">{stat.label}</span>
+                    <span className="text-[9px] font-black text-slate-400 uppercase">{stat.label}</span>
                   </div>
-                  <span className="text-sm font-black text-text-primary">{stat.value}</span>
+                  <span className="text-sm font-black text-[#1a1a1a]">{stat.value}</span>
                 </div>
               ))}
             </div>
@@ -176,8 +184,10 @@ export default function ListingDetailDrawer({
           {/* Details */}
           {listing.description && (
             <div className="space-y-2">
-              <h5 className="text-xs font-bold text-text-primary uppercase tracking-wider">Description</h5>
-              <p className="text-xs text-text-secondary leading-relaxed">{listing.description}</p>
+              <h5 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs text-[#1a1a1a] uppercase tracking-wider">
+                Description
+              </h5>
+              <p className="text-xs text-slate-600 leading-relaxed">{listing.description}</p>
             </div>
           )}
 
