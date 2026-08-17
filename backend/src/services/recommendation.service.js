@@ -43,7 +43,7 @@ class RecommendationService {
         const userDoc = await User.findById(userId)
           .select('customerProfile.interests location')
           .lean();
-        
+
         if (userDoc?.customerProfile?.interests) {
           userInterests = userDoc.customerProfile.interests.filter(i => i.category);
           userCategories = [...new Set(userInterests.map(i => i.category).filter(Boolean))];
@@ -69,7 +69,7 @@ class RecommendationService {
           .limit(300)
           .lean();
         viewedIds = recentViews.map(v => v.reel_id);
-      } catch (err) {}
+      } catch (err) { }
     }
 
     // 3. Fetch candidate pools for all 5 Tiers
@@ -451,7 +451,7 @@ class RecommendationService {
           reelId: { $in: reelIds },
         }).lean();
         likedReelIds = new Set(likes.map(l => l.reelId.toString()));
-      } catch (err) {}
+      } catch (err) { }
     }
 
     return reels.map(r => {
