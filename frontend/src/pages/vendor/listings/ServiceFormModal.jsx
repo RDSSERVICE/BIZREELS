@@ -43,6 +43,32 @@ export default function ServiceFormModal({
     serviceType: 'At Home',
     priceType: 'Fixed Price',
     price: '',
+    customPricing: {
+      pricingModel: 'price_range',
+      minPrice: '',
+      maxPrice: '',
+      unitRate: '',
+      unitType: 'per Sq. Ft.',
+      customUnitType: '',
+      inspectionFee: '',
+      deductibleFromBill: true,
+      leadTimeToQuote: 'Within 2 Hours',
+      advanceDepositPercent: '0',
+      pricingNotes: '',
+      tiers: [
+        { name: 'Basic', price: '', description: '' },
+        { name: 'Standard', price: '', description: '' },
+        { name: 'Premium', price: '', description: '' },
+      ],
+    },
+    priceTypeDetails: {
+      maxPriceEstimate: '',
+      startingCondition: '',
+      minBillableHours: '1 Hour',
+      dailyShiftHours: '8 Hours Shift',
+      projectScope: '',
+      fixedIncludes: '',
+    },
     minOrderValue: '',
     duration: '1 Hour',
     serviceArea: 'Local Metropolitan Region',
@@ -215,6 +241,32 @@ export default function ServiceFormModal({
         serviceType: sd.serviceType || 'At Home',
         priceType: sd.priceType || 'Fixed Price',
         price: editData.price || sd.price || '',
+        customPricing: sd.customPricing || {
+          pricingModel: 'price_range',
+          minPrice: editData.price || sd.price || '',
+          maxPrice: '',
+          unitRate: '',
+          unitType: 'per Sq. Ft.',
+          customUnitType: '',
+          inspectionFee: '',
+          deductibleFromBill: true,
+          leadTimeToQuote: 'Within 2 Hours',
+          advanceDepositPercent: '0',
+          pricingNotes: '',
+          tiers: [
+            { name: 'Basic', price: '', description: '' },
+            { name: 'Standard', price: '', description: '' },
+            { name: 'Premium', price: '', description: '' },
+          ],
+        },
+        priceTypeDetails: sd.priceTypeDetails || {
+          maxPriceEstimate: '',
+          startingCondition: '',
+          minBillableHours: '1 Hour',
+          dailyShiftHours: '8 Hours Shift',
+          projectScope: '',
+          fixedIncludes: '',
+        },
         minOrderValue: sd.minOrderValue || '',
         duration: sd.duration || sd.durationText || '1 Hour',
         serviceArea: sd.serviceArea || 'Local Area',
@@ -264,9 +316,12 @@ export default function ServiceFormModal({
         subcategory: form.subcategory,
         context: {
           serviceType: form.serviceType,
+          priceType: form.priceType,
           price: form.price,
           duration: form.duration,
           area: form.serviceArea,
+          customPricing: form.customPricing,
+          priceTypeDetails: form.priceTypeDetails,
         },
       });
       const data = res.data?.data || res.data;
@@ -384,7 +439,25 @@ export default function ServiceFormModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.shortDescription.trim()) return toast.error('Please enter service short description');
-    if (!form.price) return toast.error('Please enter service price');
+
+    const isCustom =
+      form.priceType === 'Custom Quote' ||
+      form.priceType === 'Custom' ||
+      form.priceType === 'Custom / Quote Based';
+
+    let resolvedPrice = Number(form.price);
+    if (!form.price && form.price !== 0) {
+      if (isCustom) {
+        const cp = form.customPricing || {};
+        resolvedPrice = Number(cp.minPrice || cp.unitRate || cp.inspectionFee || cp.tiers?.[0]?.price || 0);
+      } else {
+        return toast.error('Please enter service price');
+      }
+    }
+
+    if (isNaN(resolvedPrice) || resolvedPrice < 0) {
+      resolvedPrice = 0;
+    }
 
     // Validate cancellation policy
     const freeHours = Number(form.policies?.freeCancellationHours ?? 24);
@@ -419,11 +492,12 @@ export default function ServiceFormModal({
         title: form.shortDescription,
         shortDescription: form.shortDescription,
         description: form.detailedDescription || form.shortDescription,
-        price: Number(form.price),
-        salePrice: Number(form.price),
-        sellingPrice: Number(form.price),
+        price: resolvedPrice,
+        salePrice: resolvedPrice,
+        sellingPrice: resolvedPrice,
         serviceDetails: {
           ...form,
+          price: resolvedPrice,
           durationText: form.duration || '1 Hour',
           policies: updatedPolicies,
         },

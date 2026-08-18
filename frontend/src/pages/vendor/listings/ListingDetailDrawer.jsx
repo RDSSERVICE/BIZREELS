@@ -205,6 +205,79 @@ export default function ListingDetailDrawer({
             </div>
           )}
 
+          {/* Service Pricing Breakdown */}
+          {listing.type === 'service' && (
+            <div className="p-4 bg-[#f8f4ec] rounded-2xl border border-[#e3dccb] space-y-2">
+              <h5 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs text-[#1a1a1a] uppercase tracking-wider flex items-center justify-between">
+                <span>💰 Pricing Structure</span>
+                <span className="text-[10px] text-brand-purple font-mono font-bold">
+                  {listing.serviceDetails?.priceType || 'Fixed Price'}
+                </span>
+              </h5>
+              {(() => {
+                const sd = listing.serviceDetails || {};
+                const cp = sd.customPricing;
+                if (!cp) {
+                  return (
+                    <div className="flex items-center justify-between text-xs p-2 bg-white rounded-xl border border-[#e3dccb]">
+                      <span className="text-slate-500 font-bold">Base Price:</span>
+                      <span className="font-extrabold text-[#1a1a1a]">₹{(listing.price || 0).toLocaleString('en-IN')}</span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-1.5 text-xs">
+                    {cp.pricingModel === 'price_range' && (
+                      <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-[#e3dccb]">
+                        <span className="text-slate-500 font-bold">Estimated Range:</span>
+                        <span className="font-extrabold text-emerald-800">
+                          ₹{Number(cp.minPrice || listing.price || 0).toLocaleString()} — ₹{Number(cp.maxPrice || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    {cp.pricingModel === 'unit_rate' && (
+                      <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-[#e3dccb]">
+                        <span className="text-slate-500 font-bold">Unit Rate:</span>
+                        <span className="font-extrabold text-blue-800">
+                          ₹{Number(cp.unitRate || listing.price || 0).toLocaleString()} / {cp.unitType || 'Unit'}
+                        </span>
+                      </div>
+                    )}
+                    {cp.pricingModel === 'inspection_fee' && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-[#e3dccb]">
+                          <span className="text-slate-500 font-bold">Inspection / Visit Fee:</span>
+                          <span className="font-extrabold text-amber-800">
+                            ₹{Number(cp.inspectionFee || listing.price || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 italic pl-1">
+                          {cp.deductibleFromBill !== false ? '✓ Deductible from final bill' : 'Non-deductible visit fee'}
+                        </p>
+                      </div>
+                    )}
+                    {cp.pricingModel === 'tiered' && Array.isArray(cp.tiers) && (
+                      <div className="space-y-1">
+                        {cp.tiers.filter(t => t.price).map((tier, tidx) => (
+                          <div key={tidx} className="flex items-center justify-between p-1.5 bg-white rounded-lg border border-[#e3dccb] text-[11px]">
+                            <span className="font-bold text-brand-purple">{tier.name}:</span>
+                            <span className="font-black">₹{Number(tier.price).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {cp.pricingNotes && (
+                      <p className="text-[10px] text-slate-500 pt-1 italic">
+                        Note: {cp.pricingNotes}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           {/* Service Cancellation Policy */}
           {listing.type === 'service' && (
             <div className="p-4 bg-surface-secondary rounded-2xl border border-border space-y-2">

@@ -1455,10 +1455,90 @@ Respond in JSON format:
   }
 };
 
+const generateDescription = async ({ prompt, type = 'service', category, subcategory, context = {} }) => {
+  await ensureBudgetOrRaise(800);
+  const started = Date.now();
+  const { model, provider } = resolveModel('listing');
+
+  const systemInstruction =
+    'You are BizReels AI, an elite e-commerce and local services listing specialist for Indian businesses.\n' +
+    'Your mission is to generate persuasive, accurate, high-converting, and SEO-friendly listing content.\n\n' +
+    'CRITICAL INSTRUCTIONS:\n' +
+    '1. PRICING AWARENESS:\n' +
+    '   - Fixed Price: Highlight transparent, all-inclusive standard pricing with no hidden charges.\n' +
+    '   - Starting From: Mention starting base rates and clarify that extra requirements/parts are quoted accurately.\n' +
+    '   - Per Hour Rate: Highlight skilled technician productivity, punctuality, and flexible hourly booking.\n' +
+    '   - Per Day Shift: Focus on professional dedication for full-day shifts and project milestones.\n' +
+    '   - Per Project: Emphasize complete turnkey delivery, quality assurance, and end-to-end execution.\n' +
+    '   - Custom Quote / Inspection Fee: Highlight transparent diagnosis, fair inspection charges (deductible on billing), and customized quotes.\n' +
+    '2. TRUST & CREDIBILITY: Incorporate verified service, prompt doorstep turnaround, quality tools, hygiene standards, and customer warranty.\n' +
+    '3. FORMATTING: Return ONLY a valid JSON object with: shortDescription, detailedDescription, serviceHighlights, aiLabels.\n' +
+    '4. LANGUAGE & TONE: Professional yet approachable, using INR (₹) symbols and terminology familiar to Indian customers.';
+
+  const userPrompt = `
+Generate marketplace listing content based on the details below:
+
+User Request / Topic: "${prompt || 'Top Quality Service'}"
+Listing Type: ${type}
+Category: ${category || 'Services'}
+Subcategory: ${subcategory || 'General'}
+
+Provided Context & Pricing Details:
+${JSON.stringify(context, null, 2)}
+
+Respond with STRICT JSON format:
+{
+  "shortDescription": "1-2 sentence catchy summary under 140 characters",
+  "detailedDescription": "Detailed overview explaining what the service is, process, why choose this vendor, and customer benefits (120-220 words)",
+  "serviceHighlights": "• Verified & Trained Specialists\\n• On-time Doorstep Delivery\\n• Transparent Pricing with No Hidden Fees\\n• 30-Day Service Guarantee",
+  "aiLabels": ["Verified Tech", "Fast Service", "Top Rated", "Best Value"]
+}
+`;
+
+  try {
+    const raw = await callGeminiAPI(systemInstruction, userPrompt, 'listing');
+    const data = parseJsonStrict(raw);
+    const approxTokens = Math.max(300, Math.min(2500, Math.floor((userPrompt.length + raw.length) / 4)));
+    await recordTokens(approxTokens);
+
+    return {
+      ok: true,
+      shortDescription: data.shortDescription || data.title || '',
+      detailedDescription: data.detailedDescription || data.description || '',
+      serviceHighlights: data.serviceHighlights || '',
+      aiLabels: Array.isArray(data.aiLabels) ? data.aiLabels : ['Verified', 'Top Rated'],
+      meta: {
+        latency_ms: Date.now() - started,
+        model_used: model,
+        provider,
+        tokens_used: approxTokens,
+      },
+    };
+  } catch (err) {
+    logger.warn(`AI generateDescription failed: ${err.message}`);
+    // Fallback template
+    const catTitle = `${category || ''} ${subcategory || ''}`.trim() || 'Service';
+    return {
+      ok: false,
+      shortDescription: `Professional ${catTitle} provided by experienced and verified experts.`,
+      detailedDescription: `Get top-quality ${catTitle} with complete peace of mind. Our verified specialists ensure prompt, reliable, and hygienic service at transparent prices. Contact us today for quick booking!`,
+      serviceHighlights: `• Experienced & Verified Experts\n• Transparent & Competitive Rates\n• Punctual Doorstep Service\n• 100% Satisfaction Guarantee`,
+      aiLabels: ['Fast Service', 'Top Rated', 'Verified Tech'],
+      meta: {
+        latency_ms: Date.now() - started,
+        model_used: model,
+        provider,
+        error: err.message,
+      },
+    };
+  }
+};
+
 module.exports = {
   isConfigured,
   getUsageToday,
   generateListingContent,
+  generateDescription,
   transcribeAudio,
   improveDescription,
   ping,
@@ -1473,3 +1553,4 @@ module.exports = {
   generateAiReel,
   generateSpecifications,
 };
+

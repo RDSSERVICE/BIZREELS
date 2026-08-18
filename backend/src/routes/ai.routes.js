@@ -376,4 +376,25 @@ router.post('/generate-specifications', requireAuth, catchAsync(async (req, res)
   res.json(result);
 }));
 
+router.post('/generate-description', requireAuth, catchAsync(async (req, res) => {
+  const { prompt, type = 'service', category, subcategory, context = {} } = req.body;
+
+  enforceRateLimit(req.user._id.toString(), 'gen-desc', LIGHT_LIMIT);
+
+  const result = await aiService.generateDescription({
+    prompt: prompt ? String(prompt).trim() : '',
+    type: type || 'service',
+    category: category ? String(category).trim() : '',
+    subcategory: subcategory ? String(subcategory).trim() : '',
+    context: typeof context === 'object' && context !== null ? context : {},
+  });
+
+  res.json({
+    success: true,
+    data: result,
+    ...result,
+  });
+}));
+
 module.exports = router;
+

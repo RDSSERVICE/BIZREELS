@@ -116,6 +116,7 @@ const listingSchema = new Schema(
     serviceDetails: {
       serviceType: { type: String, default: 'On-site' },
       priceType: { type: String, default: 'Fixed Price' },
+      customPricing: { type: Schema.Types.Mixed, default: null },
       minOrderValue: { type: Number, default: 0 },
       durationText: { type: String, default: '1 Hour' },
       serviceArea: { type: String, default: '' },
