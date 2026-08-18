@@ -9,6 +9,7 @@ import { setCredentials } from '../../features/auth/authSlice';
 import { getRoleDashboard } from '../../lib/roleNav';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import RoleQuickSwitcher from '../../components/auth/RoleQuickSwitcher';
 import API_CONFIG from '../../config';
 
 /**
@@ -205,12 +206,14 @@ const Register = () => {
         Sign up with Google
       </Button>
 
-      <p className="text-center text-xs font-semibold text-text-secondary mt-4">
+      <p className="text-center text-xs font-semibold text-text-secondary mt-2">
         Already have an account?{' '}
-        <Link to="/auth/login" className="font-bold text-brand-purple hover:underline">
+        <Link to="/auth/login" className="font-bold text-[#d99a3d] hover:underline">
           Sign In
         </Link>
       </p>
+
+      <RoleQuickSwitcher />
     </div>
   );
 };

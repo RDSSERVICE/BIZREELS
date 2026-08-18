@@ -9,6 +9,7 @@ import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation 
 import { setCredentials } from '../../features/auth/authSlice';
 import { getRoleDashboard, getPostLoginDestination } from '../../lib/roleNav';
 import Input from '../../components/common/Input';
+import RoleQuickSwitcher from '../../components/auth/RoleQuickSwitcher';
 import API_CONFIG from '../../config';
 
 /**
@@ -286,36 +287,7 @@ const Login = () => {
           </Link>
         </p>
         
-        <div className="flex flex-col gap-2 pt-2 border-t border-[#e3dccb]">
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
-            Or sign in directly as:
-          </span>
-          <div className="grid grid-cols-3 gap-2">
-            <Link
-              to="/auth/customer-login"
-              className="flex flex-col items-center justify-center p-2 rounded-md border border-[#e3dccb] bg-[#f8f4ec] hover:bg-[#1c1a17] hover:text-[#d99a3d] transition-all text-center group"
-            >
-              <FiShoppingBag className="text-[#1a1a1a] group-hover:text-[#d99a3d] text-sm mb-0.5 transition-colors" />
-              <span className="text-[10px] font-extrabold text-[#1a1a1a] group-hover:text-[#d99a3d] uppercase tracking-wider">Customer</span>
-            </Link>
-            
-            <Link
-              to="/auth/vendor-login"
-              className="flex flex-col items-center justify-center p-2 rounded-md border border-[#e3dccb] bg-[#f8f4ec] hover:bg-[#1c1a17] hover:text-[#d99a3d] transition-all text-center group"
-            >
-              <FiShoppingCart className="text-[#1a1a1a] group-hover:text-[#d99a3d] text-sm mb-0.5 transition-colors" />
-              <span className="text-[10px] font-extrabold text-[#1a1a1a] group-hover:text-[#d99a3d] uppercase tracking-wider">Vendor</span>
-            </Link>
-            
-            <Link
-              to="/auth/creator-login"
-              className="flex flex-col items-center justify-center p-2 rounded-md border border-[#e3dccb] bg-[#f8f4ec] hover:bg-[#1c1a17] hover:text-[#d99a3d] transition-all text-center group"
-            >
-              <FiFilm className="text-[#1a1a1a] group-hover:text-[#d99a3d] text-sm mb-0.5 transition-colors" />
-              <span className="text-[10px] font-extrabold text-[#1a1a1a] group-hover:text-[#d99a3d] uppercase tracking-wider">Creator</span>
-            </Link>
-          </div>
-        </div>
+      <RoleQuickSwitcher />
       </div>
     </div>
   );

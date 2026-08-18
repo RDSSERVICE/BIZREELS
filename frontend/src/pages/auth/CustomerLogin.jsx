@@ -8,6 +8,7 @@ import { FiShoppingBag, FiArrowRight } from 'react-icons/fi';
 import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
 import Input from '../../components/common/Input';
+import RoleQuickSwitcher from '../../components/auth/RoleQuickSwitcher';
 import API_CONFIG from '../../config';
 
 const CustomerLogin = () => {
@@ -215,14 +216,7 @@ const CustomerLogin = () => {
         <span>Sign in with Google</span>
       </button>
 
-      <div className="text-center text-xs font-medium text-slate-600 mt-2">
-        <p>
-          Need a seller or creator account?{' '}
-          <Link to="/auth/login" className="font-bold text-[#d99a3d] hover:underline">
-            Switch Portal
-          </Link>
-        </p>
-      </div>
+      <RoleQuickSwitcher />
     </div>
   );
 };
