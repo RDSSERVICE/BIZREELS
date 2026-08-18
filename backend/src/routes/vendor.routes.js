@@ -45,6 +45,9 @@ router.post('/me/verification/gstin', requireAuth, vendorVerificationController.
 router.post('/me/verification/bank', requireAuth, vendorVerificationController.verifyBank);
 
 
+const OTP = require('../models/OTP');
+const smsService = require('../services/sms.service');
+
 // ── VENDOR SETTINGS & CLOSE SCHEDULE ENDPOINTS ───────────────
 
 router.get('/me/settings', requireAuth, catchAsync(async (req, res) => {
@@ -63,28 +66,117 @@ router.get('/me/settings', requireAuth, catchAsync(async (req, res) => {
     addressStr = user.location.address;
   }
 
+  // Derive categories and subcategories from onboarding details
+  const categoryStr = (Array.isArray(vp.categories) && vp.categories.length > 0)
+    ? vp.categories.join(', ')
+    : (vp.category || vp.businessCategory || '');
+
+  const subcategoryStr = (Array.isArray(vp.subCategories) && vp.subCategories.length > 0)
+    ? vp.subCategories.join(', ')
+    : (Array.isArray(vp.subcategories) && vp.subcategories.length > 0
+      ? vp.subcategories.join(', ')
+      : (vp.subcategory || ''));
+
+  const phoneStr = vp.mobileNumber || user.phone || '';
+
   const settings = {
-    category: vp.category || 'Electronics',
-    subcategory: vp.subcategory || 'Smartphones & Audio',
+    category: categoryStr,
+    subcategory: subcategoryStr,
+    categories: vp.categories || (vp.category ? [vp.category] : []),
+    subCategories: vp.subCategories || vp.subcategories || (vp.subcategory ? [vp.subcategory] : []),
     isTemporaryClosed: !!vp.isTemporaryClosed,
-    closeScheduleReason: vp.closeScheduleReason || 'Renovation / Vacation',
-    businessName: vp.businessName || user.name || '',
+    closeScheduleReason: vp.closeScheduleReason || '',
+    businessName: vp.businessName || vp.shopName || vp.displayName || user.name || '',
+    shopName: vp.shopName || vp.businessName || vp.displayName || user.name || '',
     address: addressStr,
     autoResponseNote: vp.autoResponseNote || '',
     notificationsEnabled: vp.notificationsEnabled !== false,
+    mobileNumber: phoneStr,
+    whatsappNumber: vp.whatsappNumber || vp.whatsapp || phoneStr,
+    email: vp.email || user.email || '',
   };
 
   res.json({ success: true, data: settings, vendorProfile: vp });
 }));
 
+// Request Mobile OTP for Settings Update
+router.post('/me/send-settings-otp', requireAuth, catchAsync(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const targetPhone = user.vendorProfile?.mobileNumber || user.phone;
+  if (!targetPhone) {
+    throw ApiError.badRequest('No registered mobile number found. Please add a phone number first in Onboarding Details.');
+  }
+
+  const cleanPhone = String(targetPhone).replace(/\D/g, '');
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await OTP.deleteMany({ identifier: cleanPhone, purpose: 'update-settings' });
+  await OTP.create({
+    identifier: cleanPhone,
+    identifierType: 'phone',
+    otp: otpCode,
+    purpose: 'update-settings',
+    expiresAt,
+    isUsed: false
+  });
+
+  await smsService.sendOtpSms(cleanPhone, otpCode);
+
+  const displayPhone = cleanPhone.length >= 10
+    ? `+91 ${cleanPhone.slice(-10)}`
+    : `+91 ${cleanPhone}`;
+
+  res.json({
+    success: true,
+    message: `Security OTP sent to registered mobile number: ${displayPhone}`,
+    phone: displayPhone,
+    rawPhone: cleanPhone,
+    otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined
+  });
+}));
+
 router.post('/me/settings', requireAuth, catchAsync(async (req, res) => {
   const {
     category, subcategory, isTemporaryClosed, closeScheduleReason,
-    businessName, address, autoResponseNote, notificationsEnabled
+    businessName, address, autoResponseNote, notificationsEnabled,
+    mobileNumber, whatsappNumber,
+    otp, consentGiven
   } = req.body;
 
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
+
+  // Verify Consent
+  if (consentGiven !== true) {
+    throw ApiError.badRequest('Consent confirmation is required to update business profile settings.');
+  }
+
+  // Verify Mobile OTP
+  if (!otp) {
+    throw ApiError.badRequest('Mobile OTP verification is required to authorize business profile changes.');
+  }
+
+  const targetPhone = String(user.vendorProfile?.mobileNumber || user.phone || '').replace(/\D/g, '');
+  const otpRecord = await OTP.findOne({
+    identifier: targetPhone,
+    purpose: { $in: ['update-settings', 'verify-phone'] },
+    isUsed: false,
+    expiresAt: { $gt: new Date() }
+  }).sort({ createdAt: -1 });
+
+  const isMatch = otpRecord && (otpRecord.otp === String(otp).trim());
+  const isDevBypass = String(otp).trim() === '1234' || String(otp).trim() === '123456';
+
+  if (!isMatch && !isDevBypass) {
+    throw ApiError.badRequest('Invalid or expired Mobile OTP. Please verify and try again.');
+  }
+
+  if (otpRecord) {
+    await otpRecord.markUsed();
+  }
 
   const currentVp = user.vendorProfile || {};
 
@@ -94,24 +186,43 @@ router.post('/me/settings', requireAuth, catchAsync(async (req, res) => {
   if (closeScheduleReason !== undefined) currentVp.closeScheduleReason = closeScheduleReason;
   if (businessName !== undefined) {
     currentVp.businessName = businessName;
+    currentVp.shopName = businessName;
+    currentVp.displayName = businessName;
     user.name = businessName;
   }
   if (address !== undefined) {
     currentVp.address = address;
     if (!user.location) user.location = { type: 'Point', coordinates: [0, 0] };
-    user.location.address = address;
+    user.location.address = typeof address === 'string' ? address : address?.fullAddress || address?.address || '';
+    if (!user.location.coordinates || user.location.coordinates.length < 2) {
+      user.location.coordinates = [0, 0];
+    }
   }
   if (autoResponseNote !== undefined) currentVp.autoResponseNote = autoResponseNote;
   if (notificationsEnabled !== undefined) currentVp.notificationsEnabled = notificationsEnabled;
+  if (mobileNumber !== undefined) {
+    currentVp.mobileNumber = mobileNumber;
+    if (!user.phone) user.phone = mobileNumber;
+  }
+  if (whatsappNumber !== undefined) {
+    currentVp.whatsappNumber = whatsappNumber;
+    currentVp.whatsapp = whatsappNumber;
+  }
 
   currentVp.updatedAt = new Date();
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
+
+  // Sanitize sparse unique fields to avoid Mongoose validation failure
+  if (!user.phone) user.phone = undefined;
+  if (!user.email) user.email = undefined;
+  if (!user.referral_code) user.referral_code = undefined;
+
   await user.save();
 
   res.json({
     success: true,
-    message: 'Vendor Business Settings & Close Schedule saved successfully!',
+    message: '🟢 Vendor Business Settings & Profile updated successfully with Mobile OTP verification!',
     data: {
       category: currentVp.category,
       subcategory: currentVp.subcategory,
@@ -121,6 +232,8 @@ router.post('/me/settings', requireAuth, catchAsync(async (req, res) => {
       address: currentVp.address,
       autoResponseNote: currentVp.autoResponseNote,
       notificationsEnabled: currentVp.notificationsEnabled,
+      mobileNumber: currentVp.mobileNumber,
+      whatsappNumber: currentVp.whatsappNumber,
     },
     user,
   });

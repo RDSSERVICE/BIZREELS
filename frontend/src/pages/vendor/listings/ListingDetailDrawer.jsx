@@ -249,6 +249,52 @@ export default function ListingDetailDrawer({
             </div>
           )}
 
+          {/* Shipping & Delivery Details */}
+          {(() => {
+            const ship = listing.shippingDetails || listing.productDetails?.shippingDetails;
+            if (!ship || (!ship.weight && !ship.dimensions && !ship.shippingType)) return null;
+            return (
+              <div className="p-3.5 bg-[#f8f4ec] rounded-2xl border border-[#e3dccb] space-y-2">
+                <h5 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs text-[#1a1a1a] uppercase tracking-wider flex items-center justify-between">
+                  <span>📦 Shipping &amp; Package Specifications</span>
+                  {ship.freeShipping && (
+                    <span className="text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-black">
+                      FREE SHIPPING
+                    </span>
+                  )}
+                </h5>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {ship.weight && (
+                    <div className="bg-white p-2.5 rounded-xl border border-[#e3dccb]">
+                      <span className="text-[9px] font-black text-slate-400 uppercase block">Weight</span>
+                      <span className="font-bold text-[#1a1a1a]">{ship.weight}</span>
+                    </div>
+                  )}
+                  {ship.dimensions && (
+                    <div className="bg-white p-2.5 rounded-xl border border-[#e3dccb]">
+                      <span className="text-[9px] font-black text-slate-400 uppercase block">Dimensions (L×W×H)</span>
+                      <span className="font-bold text-[#1a1a1a]">{ship.dimensions}</span>
+                    </div>
+                  )}
+                  {ship.shippingType && (
+                    <div className="bg-white p-2.5 rounded-xl border border-[#e3dccb]">
+                      <span className="text-[9px] font-black text-slate-400 uppercase block">Payment / Dispatch</span>
+                      <span className="font-bold text-[#1a1a1a]">
+                        {ship.shippingType === 'prepaid' ? '💳 Prepaid Only' : ship.shippingType === 'cod' ? '💵 COD Only' : '🔄 COD & Prepaid'}
+                      </span>
+                    </div>
+                  )}
+                  {ship.estimatedDays && (
+                    <div className="bg-white p-2.5 rounded-xl border border-[#e3dccb]">
+                      <span className="text-[9px] font-black text-slate-400 uppercase block">Est. Delivery</span>
+                      <span className="font-bold text-[#1a1a1a]">{ship.estimatedDays} Days</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Product Return Policy */}
           {listing.type === 'product' && listing.returnPolicy && (
             <div className="p-3.5 bg-surface-secondary rounded-2xl border border-border space-y-1.5">

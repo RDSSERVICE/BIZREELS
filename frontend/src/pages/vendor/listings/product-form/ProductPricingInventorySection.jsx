@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FiCheck, FiX, FiRefreshCw, FiAlertCircle } from 'react-icons/fi';
+import {
+  FiCheck, FiX, FiRefreshCw, FiAlertCircle, FiTruck, FiBox,
+  FiDollarSign, FiPercent, FiCreditCard, FiPackage, FiLayers, FiHelpCircle
+} from 'react-icons/fi';
 
 const STANDARD_UNITS = [
   { value: 'piece', label: 'Piece (Pcs)' },
@@ -19,6 +22,10 @@ const STANDARD_UNITS = [
   { value: 'carton', label: 'Carton' },
   { value: 'roll', label: 'Roll' },
   { value: 'sqft', label: 'Square Feet (sq. ft)' },
+  { value: 'quintal', label: 'Quintal (q)' },
+  { value: 'tonne', label: 'Tonne (t)' },
+  { value: 'bottle', label: 'Bottle' },
+  { value: 'plate', label: 'Plate' },
   { value: 'other', label: 'Other (Custom Unit)...' },
 ];
 
@@ -32,13 +39,26 @@ const STANDARD_CONDITIONS = [
   'Other / Custom condition',
 ];
 
-export default function ProductPricingInventorySection({ form, updateForm }) {
+export default function ProductPricingInventorySection({ form, updateForm, generateSKU }) {
   // Unit other state
   const isPredefinedUnit = STANDARD_UNITS.some((u) => u.value === form.unit && u.value !== 'other');
   const [selectedUnitType, setSelectedUnitType] = useState(
     isPredefinedUnit ? form.unit : form.unit ? 'other' : 'piece'
   );
-  const [customUnit, setCustomUnit] = useState(isPredefinedUnit ? '' : form.unit || '');
+  const [customUnit, setCustomUnit] = useState(isPredefinedUnit ? '' : (form.unit === 'other' ? '' : form.unit || ''));
+
+  // Sync selectedUnitType if form.unit changes externally
+  useEffect(() => {
+    if (form.unit) {
+      const match = STANDARD_UNITS.some((u) => u.value === form.unit && u.value !== 'other');
+      if (match) {
+        setSelectedUnitType(form.unit);
+      } else {
+        setSelectedUnitType('other');
+        setCustomUnit(form.unit === 'other' ? '' : form.unit);
+      }
+    }
+  }, [form.unit]);
 
   // Return policy state
   const isNoReturn =
@@ -70,6 +90,17 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
   const handleCustomUnitChange = (val) => {
     setCustomUnit(val);
     updateForm('unit', val.trim() || 'other');
+  };
+
+  // Auto SKU generator if not passed
+  const handleAutoSKU = () => {
+    if (typeof generateSKU === 'function') {
+      generateSKU();
+    } else {
+      const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const ts = Date.now().toString().slice(-4);
+      updateForm('sku', `SKU-${rand}-${ts}`);
+    }
   };
 
   // Sync return policy string to form
@@ -122,6 +153,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
     }
   }, []);
 
+  // Pricing calculations
   const calcDiscount = (actual, selling) => {
     const act = Number(actual);
     const sel = Number(selling);
@@ -143,95 +175,93 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
     updateForm('discount', disc);
   };
 
+  const handleDiscountChange = (val) => {
+    updateForm('discount', val);
+    const act = Number(form.actualPrice);
+    const disc = Number(val);
+    if (act > 0 && disc >= 0 && disc <= 100) {
+      const calculatedSelling = Math.round(act - (act * disc) / 100);
+      updateForm('sellingPrice', calculatedSelling);
+    }
+  };
+
+  // Shipping Details Helpers
+  const shipping = form.shippingDetails || {};
+
+  const updateShipping = (key, val) => {
+    const updated = {
+      ...shipping,
+      [key]: val,
+    };
+
+    // Auto format combined dimensions string
+    const l = key === 'length' ? val : updated.length || '';
+    const w = key === 'width' ? val : updated.width || '';
+    const h = key === 'height' ? val : updated.height || '';
+    const dimUnit = key === 'dimensionUnit' ? val : updated.dimensionUnit || 'cm';
+    if (l && w && h) {
+      updated.dimensions = `${l} × ${w} × ${h} ${dimUnit}`;
+    }
+
+    // Auto format combined weight string
+    const wt = key === 'weight' ? val : updated.weight || '';
+    const wtUnit = key === 'weightUnit' ? val : updated.weightUnit || 'kg';
+    if (wt) {
+      updated.weightString = `${wt} ${wtUnit}`;
+    }
+
+    updateForm('shippingDetails', updated);
+  };
+
   return (
-    <div className="space-y-4 p-4 bg-surface-secondary rounded-2xl border border-border">
-      <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider flex items-center justify-between">
-        <span>Pricing & Inventory</span>
-      </h4>
+    <div className="space-y-5 p-4 bg-surface-secondary rounded-2xl border border-border font-sans">
+      {/* ── SECTION HEADER ── */}
+      <div className="flex items-center justify-between border-b border-border pb-2.5">
+        <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider flex items-center gap-2">
+          <FiDollarSign className="text-brand-purple" />
+          <span>Pricing &amp; Inventory Configuration</span>
+        </h4>
+        <span className="text-[10px] font-bold text-text-tertiary">
+          Flow: SKU → Unit → Stock → Actual Price → GST% → Selling Price → Discount%
+        </span>
+      </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* MRP / Actual Price */}
+      {/* ── PRICING & INVENTORY FLOW GRID ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        
+        {/* 1. SKU Code */}
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary block mb-1">
-            MRP / Actual Price (₹)
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block">
+              1. SKU Code
+            </label>
+            <button
+              type="button"
+              onClick={handleAutoSKU}
+              className="text-[9px] font-bold text-brand-purple hover:underline flex items-center gap-0.5 cursor-pointer bg-transparent border-none"
+            >
+              <FiRefreshCw size={9} /> Auto-Generate
+            </button>
+          </div>
           <input
-            type="number"
-            value={form.actualPrice}
-            onChange={(e) => handleActualPriceChange(e.target.value)}
-            placeholder="1499"
-            className="w-full p-2 bg-surface border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+            type="text"
+            value={form.sku}
+            onChange={(e) => updateForm('sku', e.target.value)}
+            placeholder="e.g. SKU-PROD-001"
+            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs font-mono font-bold text-text-primary focus:outline-none focus:border-brand-purple"
           />
         </div>
 
-        {/* Selling Price */}
-        <div>
-          <label className="text-[10px] font-bold text-text-tertiary block mb-1">
-            Selling Price (₹) *
-          </label>
-          <input
-            type="number"
-            required
-            value={form.sellingPrice}
-            onChange={(e) => handleSellingPriceChange(e.target.value)}
-            placeholder="999"
-            className="w-full p-2 bg-surface border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-          />
-        </div>
-
-        {/* Discount Auto Calc */}
-        <div>
-          <label className="text-[10px] font-bold text-text-tertiary block mb-1">
-            Discount (%)
-          </label>
-          <input
-            type="number"
-            value={form.discount}
-            onChange={(e) => updateForm('discount', e.target.value)}
-            placeholder="Auto"
-            className="w-full p-2 bg-surface border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-          />
-        </div>
-
-        {/* Stock Quantity */}
-        <div>
-          <label className="text-[10px] font-bold text-text-tertiary block mb-1">
-            Stock Quantity *
-          </label>
-          <input
-            type="number"
-            required
-            value={form.stock}
-            onChange={(e) => updateForm('stock', e.target.value)}
-            placeholder="10"
-            className="w-full p-2 bg-surface border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-          />
-        </div>
-
-        {/* Min Order Qty */}
-        <div>
-          <label className="text-[10px] font-bold text-text-tertiary block mb-1">
-            Min Order Qty
-          </label>
-          <input
-            type="number"
-            value={form.minOrderQty}
-            onChange={(e) => updateForm('minOrderQty', e.target.value)}
-            placeholder="1"
-            className="w-full p-2 bg-surface border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-          />
-        </div>
-
-        {/* Unit with Other (Custom) Option */}
-        <div className={selectedUnitType === 'other' ? 'col-span-2 sm:col-span-2' : ''}>
-          <label className="text-[10px] font-bold text-text-tertiary block mb-1">
-            Unit / Quantity Type
+        {/* 2. Unit / Quantity Type (with Other Option) */}
+        <div className={selectedUnitType === 'other' ? 'sm:col-span-2' : ''}>
+          <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
+            2. Unit / Quantity Type *
           </label>
           <div className="flex gap-2">
             <select
               value={selectedUnitType}
               onChange={(e) => handleUnitSelect(e.target.value)}
-              className="w-full p-2 bg-surface border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer"
+              className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-bold focus:outline-none focus:border-brand-purple cursor-pointer"
             >
               {STANDARD_UNITS.map((u) => (
                 <option key={u.value} value={u.value}>
@@ -240,36 +270,130 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
               ))}
             </select>
 
+            {/* Custom Unit text input when "Other" is chosen */}
             {selectedUnitType === 'other' && (
               <input
                 type="text"
                 required
                 value={customUnit}
                 onChange={(e) => handleCustomUnitChange(e.target.value)}
-                placeholder="Enter custom unit (e.g. Roll, Sq. Ft, Bottle)..."
-                className="w-full p-2 bg-surface border border-brand-purple rounded-xl text-xs text-text-primary focus:outline-none"
+                placeholder="Enter custom unit (e.g. Bottle, Sheet, Drum)..."
+                className="w-full p-2.5 bg-surface border-2 border-brand-purple rounded-xl text-xs font-bold text-text-primary focus:outline-none animate-fade-in"
               />
             )}
           </div>
         </div>
 
-        {/* GST Rate */}
+        {/* 3. Stock Quantity */}
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary block mb-1">
-            GST Rate (%)
+          <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
+            3. Stock Quantity *
           </label>
           <input
             type="number"
-            value={form.gst}
-            onChange={(e) => updateForm('gst', e.target.value)}
-            placeholder="18"
-            className="w-full p-2 bg-surface border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+            required
+            min="0"
+            value={form.stock}
+            onChange={(e) => updateForm('stock', e.target.value)}
+            placeholder="e.g. 25"
+            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple"
           />
         </div>
 
-        {/* Warranty */}
+        {/* 4. Actual Price / MRP */}
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary block mb-1">
+          <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
+            4. Actual Price / MRP (₹) *
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              min="0"
+              required
+              value={form.actualPrice}
+              onChange={(e) => handleActualPriceChange(e.target.value)}
+              placeholder="e.g. 1499"
+              className="w-full pl-6 pr-3 py-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple"
+            />
+            <span className="absolute left-2.5 top-3 text-text-tertiary text-xs font-bold">₹</span>
+          </div>
+        </div>
+
+        {/* 5. GST Rate (%) */}
+        <div>
+          <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
+            5. GST Rate (%)
+          </label>
+          <div className="flex gap-1.5">
+            <select
+              value={form.gst || '0'}
+              onChange={(e) => updateForm('gst', e.target.value)}
+              className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer"
+            >
+              <option value="0">0% (GST Exempt / Nil)</option>
+              <option value="5">5% (Essential Goods)</option>
+              <option value="12">12% (Standard Low)</option>
+              <option value="18">18% (Standard General)</option>
+              <option value="28">28% (Luxury / Premium)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* 6. Selling Price (with GST) */}
+        <div>
+          <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
+            6. Selling Price (with GST) (₹) *
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              min="0"
+              required
+              value={form.sellingPrice}
+              onChange={(e) => handleSellingPriceChange(e.target.value)}
+              placeholder="e.g. 999"
+              className="w-full pl-6 pr-3 py-2.5 bg-surface border-2 border-brand-purple/40 rounded-xl text-xs font-black text-brand-purple focus:outline-none focus:border-brand-purple shadow-2xs"
+            />
+            <span className="absolute left-2.5 top-3 text-brand-purple text-xs font-black">₹</span>
+          </div>
+        </div>
+
+        {/* 7. Discount (%) */}
+        <div>
+          <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
+            7. Discount (%)
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={form.discount}
+              onChange={(e) => handleDiscountChange(e.target.value)}
+              placeholder="Auto"
+              className="w-full pr-7 pl-3 py-2.5 bg-surface border border-border rounded-xl text-xs font-black text-emerald-600 focus:outline-none focus:border-brand-purple"
+            />
+            <span className="absolute right-2.5 top-3 text-emerald-600 text-xs font-bold">%</span>
+          </div>
+        </div>
+
+        {/* Min Order Qty & Warranty */}
+        <div>
+          <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
+            Min Order Quantity
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={form.minOrderQty || 1}
+            onChange={(e) => updateForm('minOrderQty', e.target.value)}
+            placeholder="1"
+            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-bold focus:outline-none focus:border-brand-purple"
+          />
+        </div>
+
+        <div>
+          <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
             Warranty Details
           </label>
           <input
@@ -277,9 +401,243 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
             value={form.warranty}
             onChange={(e) => updateForm('warranty', e.target.value)}
             placeholder="e.g. 1 Year Brand Warranty"
-            className="w-full p-2 bg-surface border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary font-bold focus:outline-none focus:border-brand-purple"
           />
         </div>
+
+      </div>
+
+      {/* Pricing Summary Breakdown Banner */}
+      {(Number(form.actualPrice) > 0 || Number(form.sellingPrice) > 0) && (
+        <div className="p-3 bg-surface rounded-xl border border-border flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-4 flex-wrap">
+            <span>MRP: <strong className="text-text-primary font-mono font-bold">₹{Number(form.actualPrice || 0).toLocaleString()}</strong></span>
+            <span>Selling Price: <strong className="text-brand-purple font-mono font-black">₹{Number(form.sellingPrice || 0).toLocaleString()}</strong></span>
+            {Number(form.discount) > 0 && (
+              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[10px] font-black">
+                {form.discount}% OFF (Save ₹{(Number(form.actualPrice) - Number(form.sellingPrice)).toLocaleString()})
+              </span>
+            )}
+            {form.gst && Number(form.gst) > 0 && (
+              <span className="text-[11px] text-text-tertiary">
+                Includes {form.gst}% GST
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] text-text-tertiary font-medium">Unit: <strong>{form.unit || 'piece'}</strong></span>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          3. SHIPPING SPECIFICATION SECTION (Weight, Dimensions, COD/Prepaid)
+      ───────────────────────────────────────────────────────────── */}
+      <div className="p-4 bg-surface rounded-2xl border border-border space-y-4 shadow-2xs">
+        <div className="flex items-center justify-between border-b border-border pb-2.5">
+          <label className="text-xs font-black text-text-primary uppercase tracking-wide flex items-center gap-2">
+            <FiTruck className="text-[#d99a3d]" size={16} />
+            <span>3. Shipping &amp; Package Specifications</span>
+          </label>
+          <span className="text-[10px] text-text-tertiary font-bold">
+            Weight, Dimensions (L/W/H), &amp; Payment Type
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          
+          {/* A. Weight Specification */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block">
+              Package Weight *
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={shipping.weight || ''}
+                onChange={(e) => updateShipping('weight', e.target.value)}
+                placeholder="e.g. 0.5"
+                className="w-full p-2.5 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple"
+              />
+              <select
+                value={shipping.weightUnit || 'kg'}
+                onChange={(e) => updateShipping('weightUnit', e.target.value)}
+                className="w-24 p-2.5 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer"
+              >
+                <option value="kg">kg</option>
+                <option value="g">gram (g)</option>
+                <option value="lb">lb</option>
+              </select>
+            </div>
+            <p className="text-[9.5px] text-text-tertiary font-medium">Gross weight with packaging box</p>
+          </div>
+
+          {/* B. Dimensions (Length × Width × Height) */}
+          <div className="sm:col-span-2 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block">
+                Package Dimensions (Length × Width × Height) *
+              </label>
+              <span className="text-[10px] text-brand-purple font-mono font-bold">
+                {shipping.length && shipping.width && shipping.height
+                  ? `${shipping.length} × ${shipping.width} × ${shipping.height} ${shipping.dimensionUnit || 'cm'}`
+                  : 'L × W × H'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2">
+              {/* Length */}
+              <div>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={shipping.length || ''}
+                  onChange={(e) => updateShipping('length', e.target.value)}
+                  placeholder="Length"
+                  className="w-full p-2.5 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary text-center focus:outline-none focus:border-brand-purple"
+                />
+                <span className="text-[9px] text-text-tertiary text-center block mt-0.5 font-bold">Length (L)</span>
+              </div>
+
+              {/* Width */}
+              <div>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={shipping.width || ''}
+                  onChange={(e) => updateShipping('width', e.target.value)}
+                  placeholder="Width"
+                  className="w-full p-2.5 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary text-center focus:outline-none focus:border-brand-purple"
+                />
+                <span className="text-[9px] text-text-tertiary text-center block mt-0.5 font-bold">Width (W)</span>
+              </div>
+
+              {/* Height */}
+              <div>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={shipping.height || ''}
+                  onChange={(e) => updateShipping('height', e.target.value)}
+                  placeholder="Height"
+                  className="w-full p-2.5 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary text-center focus:outline-none focus:border-brand-purple"
+                />
+                <span className="text-[9px] text-text-tertiary text-center block mt-0.5 font-bold">Height (H)</span>
+              </div>
+
+              {/* Dimension Unit */}
+              <div>
+                <select
+                  value={shipping.dimensionUnit || 'cm'}
+                  onChange={(e) => updateShipping('dimensionUnit', e.target.value)}
+                  className="w-full p-2.5 bg-surface-secondary border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer"
+                >
+                  <option value="cm">cm</option>
+                  <option value="inch">inch</option>
+                  <option value="mm">mm</option>
+                  <option value="m">m</option>
+                </select>
+                <span className="text-[9px] text-text-tertiary text-center block mt-0.5 font-bold">Unit</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* C. Shipping & Payment Type (COD / Prepayment / Both) */}
+        <div className="pt-3 border-t border-border space-y-2">
+          <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block">
+            Shipping &amp; Payment Acceptance Type *
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            
+            {/* Both COD & Prepaid */}
+            <button
+              type="button"
+              onClick={() => updateShipping('shippingType', 'both')}
+              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                (shipping.shippingType === 'both' || !shipping.shippingType)
+                  ? 'bg-brand-purple/10 border-brand-purple text-brand-purple shadow-2xs font-bold'
+                  : 'bg-surface-secondary text-text-secondary border-border hover:border-text-tertiary'
+              }`}
+            >
+              <div>
+                <div className="font-black text-xs">🔄 Both COD &amp; Prepaid</div>
+                <div className="text-[10px] text-text-tertiary mt-0.5">Accept Online &amp; Cash on Delivery</div>
+              </div>
+              {(shipping.shippingType === 'both' || !shipping.shippingType) && <FiCheck className="text-brand-purple shrink-0" size={16} />}
+            </button>
+
+            {/* Prepaid Only */}
+            <button
+              type="button"
+              onClick={() => updateShipping('shippingType', 'prepaid')}
+              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                shipping.shippingType === 'prepaid'
+                  ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-2xs font-bold'
+                  : 'bg-surface-secondary text-text-secondary border-border hover:border-text-tertiary'
+              }`}
+            >
+              <div>
+                <div className="font-black text-xs">💳 Prepaid Only</div>
+                <div className="text-[10px] text-text-tertiary mt-0.5">Online Payment Only (UPI, Card, NetBanking)</div>
+              </div>
+              {shipping.shippingType === 'prepaid' && <FiCheck className="text-blue-600 shrink-0" size={16} />}
+            </button>
+
+            {/* COD Only */}
+            <button
+              type="button"
+              onClick={() => updateShipping('shippingType', 'cod')}
+              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                shipping.shippingType === 'cod'
+                  ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs font-bold'
+                  : 'bg-surface-secondary text-text-secondary border-border hover:border-text-tertiary'
+              }`}
+            >
+              <div>
+                <div className="font-black text-xs">💵 COD Only</div>
+                <div className="text-[10px] text-text-tertiary mt-0.5">Cash on Delivery on arrival</div>
+              </div>
+              {shipping.shippingType === 'cod' && <FiCheck className="text-emerald-600 shrink-0" size={16} />}
+            </button>
+
+          </div>
+        </div>
+
+        {/* D. Free Shipping Toggle & Estimated Days */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+          <label className="flex items-center gap-2 text-xs font-bold text-text-primary cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={shipping.freeShipping || false}
+              onChange={(e) => updateShipping('freeShipping', e.target.checked)}
+              className="w-4 h-4 text-brand-purple rounded border-border focus:ring-brand-purple cursor-pointer"
+            />
+            <span>Free Shipping Available for this Product (No delivery charges)</span>
+          </label>
+
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-black text-text-tertiary uppercase whitespace-nowrap">
+              Est. Delivery:
+            </label>
+            <select
+              value={shipping.estimatedDays || 5}
+              onChange={(e) => updateShipping('estimatedDays', Number(e.target.value))}
+              className="px-2.5 py-1.5 bg-surface-secondary border border-border rounded-lg text-xs font-bold text-text-primary cursor-pointer focus:outline-none"
+            >
+              <option value="1">1 Day (Express)</option>
+              <option value="2">2-3 Business Days</option>
+              <option value="5">4-5 Business Days (Standard)</option>
+              <option value="7">6-7 Business Days</option>
+              <option value="10">8-10 Business Days</option>
+            </select>
+          </div>
+        </div>
+
       </div>
 
       {/* ── RETURN POLICY SECTION (YES / NO + MULTI-CONDITION SELECTOR) ── */}
@@ -389,7 +747,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
               </div>
             </div>
 
-            {/* Custom Condition Input when selected or optional addition */}
+            {/* Custom Condition Input */}
             {selectedConditions.includes('Other / Custom condition') && (
               <div className="space-y-1 animate-fade-in">
                 <label className="text-[10px] font-bold text-text-tertiary block">
@@ -417,22 +775,6 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
         )}
       </div>
 
-      {/* Free Shipping Option */}
-      <div className="flex items-center gap-3 pt-1">
-        <label className="flex items-center gap-1.5 text-xs font-semibold text-text-primary cursor-pointer">
-          <input
-            type="checkbox"
-            checked={form.shippingDetails?.freeShipping}
-            onChange={(e) =>
-              updateForm('shippingDetails', {
-                ...form.shippingDetails,
-                freeShipping: e.target.checked,
-              })
-            }
-          />
-          Free Shipping Available for this Product
-        </label>
-      </div>
     </div>
   );
 }

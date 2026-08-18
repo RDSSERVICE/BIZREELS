@@ -7,7 +7,6 @@ import {
   FiSearch, FiChevronDown, FiCheck, FiX, FiFileText
 } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
-import { useListCategoriesQuery } from '../../../features/admin/adminApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import api, { tokenStore, resolveMediaUrl } from '../../../lib/api';
 import toast from 'react-hot-toast';
@@ -216,10 +215,6 @@ export default function VendorBusinessProfilePage() {
 
   const user = profileRes?.data?.user || profileRes?.user || authUser || {};
   const vendorProfile = user.vendorProfile || {};
-
-  const { data: categoriesDataRes } = useListCategoriesQuery();
-  const categoriesList = categoriesDataRes?.items || categoriesDataRes?.categories || (Array.isArray(categoriesDataRes) ? categoriesDataRes : []);
-  const parentCategories = categoriesList.filter(c => !c.parent_id);
 
   // Form states
   const [shopName, setShopName] = useState('');
@@ -864,21 +859,6 @@ export default function VendorBusinessProfilePage() {
                 placeholder="e.g. Metro Enterprises Pvt Ltd"
                 className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
               />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Business Category *</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all cursor-pointer"
-              >
-                {parentCategories.map((cat) => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
             </div>
 
             {/* Timing Section */}

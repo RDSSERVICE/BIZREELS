@@ -35,7 +35,7 @@ const emailService = require('../services/email.service');
 // 2. SEND CONTACT OTP (Resend API for Email / Phone OTP)
 // ─────────────────────────────────────────────────────────────
 const sendContactOtp = catchAsync(async (req, res) => {
-  const { type, value } = req.body;
+  const { type, value, reverify } = req.body;
   if (!['mobile', 'whatsapp', 'email'].includes(type)) {
     throw ApiError.badRequest('Invalid contact verification type');
   }
@@ -43,7 +43,7 @@ const sendContactOtp = catchAsync(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
 
-  if (user.vendorProfile?.contactVerified?.[type]) {
+  if (!reverify && !value && user.vendorProfile?.contactVerified?.[type]) {
     return res.json({
       success: true,
       alreadyVerified: true,
@@ -291,14 +291,14 @@ const verifyPan = catchAsync(async (req, res) => {
 // 4. AADHAAR OKYC (OTP INITIATE & VERIFY - SANDBOX API)
 // ─────────────────────────────────────────────────────────────
 const initiateAadhaar = catchAsync(async (req, res) => {
-  const { aadhaarNumber } = req.body;
+  const { aadhaarNumber, reverify } = req.body;
   if (!aadhaarNumber) throw ApiError.badRequest('Aadhaar number is required');
 
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
 
   const currentDocs = user.vendorProfile?.documents || {};
-  if (currentDocs.aadhaar?.status === 'approved') {
+  if (!reverify && currentDocs.aadhaar?.status === 'approved' && !aadhaarNumber) {
     return res.json({
       success: true,
       alreadyVerified: true,

@@ -3,7 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import {
   FiShield, FiCheckCircle, FiAlertCircle, FiPhone, FiMessageSquare,
   FiMail, FiGlobe, FiFileText, FiCreditCard, FiUploadCloud, FiCheck,
-  FiLock, FiZap, FiStar, FiChevronRight, FiPlus, FiTrash2, FiRefreshCw
+  FiLock, FiZap, FiStar, FiChevronRight, FiPlus, FiTrash2, FiRefreshCw,
+  FiEdit2, FiX, FiInfo
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -68,9 +69,33 @@ export default function VendorVerificationPage() {
     paymentDetails: vendorProfile.paymentDetails || {}
   });
 
-  // OTP Modal State for contact verification
-  const [otpModal, setOtpModal] = useState({ open: false, type: '', value: '', code: '' });
+  // Edit / Re-verification Modes for verified items
+  const [editContactMode, setEditContactMode] = useState({
+    mobile: false,
+    whatsapp: false,
+    email: false,
+    website: false,
+  });
+
+  const [editDocMode, setEditDocMode] = useState({
+    aadhaar: false,
+    pan: false,
+    gst: false,
+    shopLicense: false,
+    udyamRegistration: false,
+    dynamic: false,
+  });
+
+  const [editPaymentMode, setEditPaymentMode] = useState(false);
+
+  // Editable Contact Inputs
+  const [mobileInput, setMobileInput] = useState(vendorProfile.mobileNumber || currentUser?.phone || '');
+  const [whatsappInput, setWhatsappInput] = useState(vendorProfile.whatsappNumber || vendorProfile.mobileNumber || currentUser?.phone || '');
+  const [emailInput, setEmailInput] = useState(vendorProfile.email || currentUser?.email || '');
   const [websiteInput, setWebsiteInput] = useState(vendorProfile.website || '');
+
+  // OTP Modal State for contact verification
+  const [otpModal, setOtpModal] = useState({ open: false, type: '', value: '', code: '', reverify: false });
 
   // Document Forms
   const [aadhaarNum, setAadhaarNum] = useState(vendorProfile.documents?.aadhaar?.docNumber || '');
@@ -179,7 +204,7 @@ export default function VendorVerificationPage() {
     }
   };
 
-  // Direct Website Verification (No OTP needed for Website)
+  // Direct Website Verification
   const handleVerifyWebsite = async (url) => {
     let targetUrl = (url || websiteInput || vendorProfile.website || '').trim();
     if (!targetUrl) {
@@ -202,6 +227,7 @@ export default function VendorVerificationPage() {
         contactVerified: { ...prev.contactVerified, website: true }
       }));
       setWebsiteInput(targetUrl);
+      setEditContactMode(prev => ({ ...prev, website: false }));
       await fetchStatus();
 
       // Update Redux state
@@ -227,6 +253,30 @@ export default function VendorVerificationPage() {
     }
   };
 
+  // Contact Verification OTP trigger
+  const handleOpenOtpModal = async (type, value, isReverify = false) => {
+    const targetValue = value || (type === 'email' ? (emailInput || vendorProfile.email || currentUser?.email) : type === 'whatsapp' ? (whatsappInput || vendorProfile.whatsappNumber || currentUser?.phone) : (mobileInput || vendorProfile.mobileNumber || currentUser?.phone));
+    if (!targetValue) {
+      toast.error(`Please enter a valid ${type} before verifying.`);
+      return;
+    }
+
+    const toastId = toast.loading(`Sending verification code to ${type}: ${targetValue}...`);
+    try {
+      const res = await api.post('/v1/vendors/me/send-contact-otp', {
+        type,
+        value: targetValue,
+        reverify: isReverify
+      });
+      const data = res.data || res;
+      setOtpModal({ open: true, type, value: targetValue, code: '', reverify: isReverify });
+      toast.success(data.message || `Verification code sent to ${targetValue}!`, { id: toastId });
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || `Failed to send OTP to ${type}`, { id: toastId });
+      setOtpModal({ open: true, type, value: targetValue, code: '', reverify: isReverify });
+    }
+  };
+
   const handleVerifyOtp = async () => {
     if (!otpModal.code || otpModal.code.trim().length < 4) {
       toast.error('Enter valid verification code (e.g. 6-digit code received via email/SMS)');
@@ -235,7 +285,7 @@ export default function VendorVerificationPage() {
     setLoading(true);
     const toastId = toast.loading(`Verifying ${otpModal.type}...`);
     try {
-      const res = await api.post('/v1/vendors/me/verify-contact', {
+      await api.post('/v1/vendors/me/verify-contact', {
         type: otpModal.type,
         value: otpModal.value,
         code: otpModal.code.trim()
@@ -247,7 +297,10 @@ export default function VendorVerificationPage() {
         ...prev,
         contactVerified: currentVerified
       }));
-      setOtpModal({ open: false, type: '', value: '', code: '' });
+
+      // Exit edit mode for this contact type
+      setEditContactMode(prev => ({ ...prev, [otpModal.type]: false }));
+      setOtpModal({ open: false, type: '', value: '', code: '', reverify: false });
       await fetchStatus();
 
       // Update Redux state
@@ -257,17 +310,14 @@ export default function VendorVerificationPage() {
             ...currentUser,
             vendorProfile: {
               ...vendorProfile,
-              contactVerified: currentVerified
+              contactVerified: currentVerified,
+              ...(otpModal.type === 'mobile' ? { mobileNumber: otpModal.value } : {}),
+              ...(otpModal.type === 'whatsapp' ? { whatsappNumber: otpModal.value } : {}),
+              ...(otpModal.type === 'email' ? { email: otpModal.value } : {})
             }
           }
         }));
       }
-
-      // AUTOMATIC PROGRESSION: Auto-move to Part 2 (documents) after contact verification
-      setTimeout(() => {
-        setActiveTab('documents');
-        toast.success('⏩ Part 1 Contact Verified! Automatically advancing to Part 2: Identity & Business Documents.');
-      }, 1000);
 
     } catch (err) {
       toast.error(err?.response?.data?.message || err.message || 'Failed to verify contact', { id: toastId });
@@ -275,7 +325,6 @@ export default function VendorVerificationPage() {
       setLoading(false);
     }
   };
-
 
   // 1. Aadhaar Send OTP Handler (Sandbox OKYC)
   const handleSendAadhaarOtp = async () => {
@@ -289,7 +338,8 @@ export default function VendorVerificationPage() {
     const toastId = toast.loading('Initiating Aadhaar OTP with Sandbox API...');
     try {
       const res = await api.post('/v1/vendors/me/verification/aadhaar/initiate', {
-        aadhaarNumber: cleanNum
+        aadhaarNumber: cleanNum,
+        reverify: editDocMode.aadhaar
       });
       const data = res.data || res;
       if (data.success) {
@@ -330,10 +380,8 @@ export default function VendorVerificationPage() {
       const data = res.data || res;
       if (data.success) {
         toast.success(`🟢 Aadhaar Verified! Name: ${data.verification?.fullName || 'Verified'}`, { id: toastId });
+        setEditDocMode(prev => ({ ...prev, aadhaar: false }));
         await fetchStatus();
-        setTimeout(() => {
-          if (currentDocIndex < 5) setCurrentDocIndex(prev => prev + 1);
-        }, 1200);
       } else {
         toast.error(data.message || 'Aadhaar verification failed', { id: toastId });
       }
@@ -363,10 +411,8 @@ export default function VendorVerificationPage() {
       const data = res.data || res;
       if (data.success) {
         toast.success(`🟢 PAN Verified! Name: ${data.verification?.fullName || 'Taxpayer Validated'}`, { id: toastId });
+        setEditDocMode(prev => ({ ...prev, pan: false }));
         await fetchStatus();
-        setTimeout(() => {
-          if (currentDocIndex < 5) setCurrentDocIndex(prev => prev + 1);
-        }, 1200);
       } else {
         toast.error(data.message || 'PAN verification failed', { id: toastId });
       }
@@ -395,10 +441,8 @@ export default function VendorVerificationPage() {
       const data = res.data || res;
       if (data.success) {
         toast.success(`🟢 GSTIN Verified! Business: ${data.verification?.legalName || data.verification?.tradeName || 'Registered'}`, { id: toastId });
+        setEditDocMode(prev => ({ ...prev, gst: false }));
         await fetchStatus();
-        setTimeout(() => {
-          if (currentDocIndex < 5) setCurrentDocIndex(prev => prev + 1);
-        }, 1200);
       } else {
         toast.error(data.message || 'GSTIN verification failed', { id: toastId });
       }
@@ -414,7 +458,7 @@ export default function VendorVerificationPage() {
     setLoading(true);
     const toastId = toast.loading(`Submitting ${docName || docType} for verification...`);
     try {
-      const res = await api.post('/v1/vendors/me/verify-document', {
+      await api.post('/v1/vendors/me/verify-document', {
         docType,
         docNumber,
         frontUrl,
@@ -424,46 +468,18 @@ export default function VendorVerificationPage() {
       });
 
       toast.success(`🟢 ${docName || docType.toUpperCase()} submitted successfully!`, { id: toastId });
+      setEditDocMode(prev => ({ ...prev, [docType]: false }));
       await fetchStatus();
 
-      // Reset dynamic inputs if submitted
       if (docType === 'dynamic') {
         setDynamicDocName('');
         setDynamicDocNum('');
         setDynamicDocFile('');
       }
-
-      // AUTOMATIC PROGRESSION
-      setTimeout(() => {
-        if (currentDocIndex < 5) {
-          setCurrentDocIndex(prev => prev + 1);
-          toast.success(`⏩ Moving to next document.`);
-        } else {
-          setActiveTab('payment');
-          toast.success('⏩ Part 2 documents submitted! Advancing to Part 3: Payout & Payment Details.');
-        }
-      }, 1200);
-
     } catch (err) {
       toast.error(`Failed to verify ${docType}`, { id: toastId });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSkipDoc = () => {
-    if (currentDocIndex < 5) {
-      setCurrentDocIndex(prev => prev + 1);
-      toast.success('⏩ Document skipped. Moving to next document.');
-    } else {
-      setActiveTab('payment');
-      toast.success('⏩ Moving to Part 3: Payout & Payment Details.');
-    }
-  };
-
-  const handlePrevDoc = () => {
-    if (currentDocIndex > 0) {
-      setCurrentDocIndex(prev => prev - 1);
     }
   };
 
@@ -513,6 +529,7 @@ export default function VendorVerificationPage() {
       const data = res.data || res;
       if (data.success) {
         toast.success('🟢 Bank Account verified and saved!', { id: toastId });
+        setEditPaymentMode(false);
         await fetchStatus();
       } else {
         toast.error(data.message || 'Bank verification failed', { id: toastId });
@@ -524,54 +541,6 @@ export default function VendorVerificationPage() {
     }
   };
 
-  // UPI Only Verification Handler
-  const handleVerifyUpi = async () => {
-    if (!upiId || !upiId.includes('@')) {
-      toast.error('Please enter a valid UPI ID (e.g. shopname@upi).');
-      return;
-    }
-
-    setLoading(true);
-    const toastId = toast.loading('Validating UPI ID...');
-    try {
-      await api.post('/v1/vendors/me/verify-payment', {
-        upiId
-      });
-      toast.success('🟢 UPI ID verified and saved!', { id: toastId });
-      await fetchStatus();
-    } catch (err) {
-      toast.error('Failed to verify UPI ID', { id: toastId });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  // Contact Verification OTP trigger (for Mobile, WhatsApp & Email - Resend API)
-  const handleOpenOtpModal = async (type, value) => {
-    const targetValue = value || (type === 'email' ? (vendorProfile.email || currentUser?.email) : (vendorProfile.mobileNumber || currentUser?.phone));
-    if (!targetValue) {
-      toast.error(`Please configure your ${type} in profile settings first.`);
-      return;
-    }
-
-    const toastId = toast.loading(`Sending verification code to ${type}: ${targetValue}...`);
-    try {
-      const res = await api.post('/v1/vendors/me/send-contact-otp', {
-        type,
-        value: targetValue
-      });
-      const data = res.data || res;
-      setOtpModal({ open: true, type, value: targetValue, code: '' });
-      toast.success(data.message || `Verification code sent to ${targetValue}!`, { id: toastId });
-    } catch (err) {
-      toast.error(err?.response?.data?.message || err.message || `Failed to send OTP to ${type}`, { id: toastId });
-      // Fallback open modal anyway for testing
-      setOtpModal({ open: true, type, value: targetValue, code: '' });
-    }
-  };
-
-
   // Sequential Gating Checks
   const isPart1Complete = Boolean(
     statusData.contactVerified?.mobile ||
@@ -582,100 +551,86 @@ export default function VendorVerificationPage() {
   const isPart2Complete = Boolean(
     statusData.documents?.aadhaar?.status === 'approved' ||
     statusData.documents?.pan?.status === 'approved' ||
-    statusData.documents?.gst?.status === 'approved' ||
-    statusData.documents?.shopLicense?.status === 'approved' ||
-    statusData.documents?.udyamRegistration?.status === 'approved' ||
-    (statusData.documents && Object.keys(statusData.documents).length > 0)
+    statusData.documents?.gst?.status === 'approved'
   );
 
-  const handleTabClick = (targetTab) => {
-    if (targetTab === 'documents' && !isPart1Complete) {
-      toast.error('🔒 Locked: Complete Part 1 (Contact Information Verification) to unlock Part 2.');
+  const handleTabClick = (tab) => {
+    if (tab === 'documents' && !isPart1Complete) {
+      toast.error('🔒 Complete Part 1 (Contact Verification) to unlock Part 2.');
       return;
     }
-    if (targetTab === 'payment' && (!isPart1Complete || !isPart2Complete)) {
-      if (!isPart1Complete) {
-        toast.error('🔒 Locked: Complete Part 1 (Contact Verification) first.');
-      } else {
-        toast.error('🔒 Locked: Complete Part 2 (Identity & Business Documents) to unlock Part 3.');
-      }
+    if (tab === 'payment' && (!isPart1Complete || !isPart2Complete)) {
+      toast.error('🔒 Complete Part 1 & Part 2 first to unlock Part 3.');
       return;
     }
-    setActiveTab(targetTab);
+    setActiveTab(tab);
   };
 
-  const currentBadge = BADGE_DESCRIPTIONS[statusData.tier] || BADGE_DESCRIPTIONS.unverified;
+  const badgeInfo = BADGE_DESCRIPTIONS[statusData.tier] || BADGE_DESCRIPTIONS.unverified;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 font-sans animate-fade-in pb-16 p-2 sm:p-4">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-16 font-sans p-2 sm:p-4">
       <AdminPageHeader
         icon={FiShield}
-        title="Vendor Verification Center"
-        subtitle="Verify your business contacts, government registration IDs, and payout details to get verified buyer trust & boost customer leads."
+        title="Vendor Verification & Trust Center"
+        subtitle="Manage business trust tier, verify contact credentials, identity documents, and settlement accounts with edit options"
       />
 
-      {/* TOP DIALOGUE & STATUS BADGE BANNER */}
-      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs relative overflow-hidden space-y-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e3dccb] pb-5">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{currentBadge.icon}</span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-black border ${currentBadge.color}`}>
-                  {currentBadge.label}
-                </span>
-                {statusData.tier === 'verified_vendor' && (
-                  <span className="bg-emerald-600 text-white p-1 rounded-full text-xs">
-                    <FiCheck className="w-3.5 h-3.5" />
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-500 font-medium mt-1">{currentBadge.desc}</p>
-            </div>
+      {/* Progress & Badge Status Hero Card */}
+      <div className="bg-[#241b15] text-white p-6 rounded-2xl border-2 border-[#241b15] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-2 max-w-xl">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{badgeInfo.icon}</span>
+            <span className="text-xs font-black text-[#d99a3d] uppercase tracking-widest">
+              Current Trust Tier: {badgeInfo.label}
+            </span>
           </div>
-
-          <div className="text-right min-w-[100px] sm:min-w-[140px]">
-            <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] tracking-tight">{statusData.completionPercentage}%</span>
-            <span className="block text-[9.5px] font-black text-slate-400 uppercase tracking-widest">Verification Score</span>
-          </div>
-        </div>
-
-        {/* Real-time Progress Bar */}
-        <div className="space-y-1.5">
-          <div className="w-full bg-[#f8f4ec] h-3.5 rounded-full overflow-hidden p-0.5 border border-[#e3dccb]">
-            <div
-              className="bg-[#241b15] h-full rounded-full transition-all duration-500"
-              style={{ width: `${statusData.completionPercentage}%` }}
-            />
-          </div>
-          <p className="text-[11px] text-slate-600 flex items-center justify-between font-bold">
-            <span>Boost ranking in local reels &amp; search results</span>
-            <span className="text-[#d99a3d] font-black">Get 5x More Leads</span>
+          <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
+            Trust &amp; Compliance Center
+          </h2>
+          <p className="text-xs text-slate-300">
+            {badgeInfo.desc}
           </p>
         </div>
 
-        {/* Interactive Dialogue Banner */}
-        <div className="p-4 rounded-xl bg-[#241b15] text-white border border-[#241b15] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#d99a3d] text-[#241b15] flex items-center justify-center font-black shrink-0 shadow-xs">
-              <FiZap size={20} />
-            </div>
-            <div>
-              <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#d99a3d] tracking-wide">VERIFY &amp; BOOST REELS TRUST SCORE</h4>
-              <p className="text-xs text-slate-300 font-medium">Verified vendors appear on top in local customer discovery and gain 98% higher conversion!</p>
-            </div>
+        {/* Progress Circular Badge */}
+        <div className="flex items-center gap-4 bg-[#1a1410] p-4 rounded-xl border border-[#3a2c22] shrink-0">
+          <div className="w-14 h-14 rounded-full bg-[#241b15] border-2 border-[#d99a3d] flex flex-col items-center justify-center text-center shadow-inner">
+            <span className="text-xs font-black text-[#d99a3d]">{statusData.completionPercentage || 0}%</span>
+            <span className="text-[8px] text-slate-400 font-bold uppercase">Ready</span>
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-slate-200 block">Verification Progress</span>
+            <span className="text-[10px] text-[#d99a3d] font-bold block">
+              {isPart1Complete && isPart2Complete ? '3/3 Complete' : isPart1Complete ? '2/3 In Progress' : '1/3 Contacts Pending'}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* VERIFICATION TABS WITH SEQUENTIAL GATING */}
-      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-2 overflow-x-auto scrollbar-hide text-xs font-black">
+      {/* Quick Edit Guidance Note */}
+      <div className="bg-[#f8f4ec] border border-[#e3dccb] rounded-2xl p-4 flex items-start gap-3">
+        <div className="w-8 h-8 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center shrink-0">
+          <FiEdit2 size={16} />
+        </div>
+        <div>
+          <h4 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wide">
+            Edit &amp; Re-Verification Options Enabled
+          </h4>
+          <p className="text-xs text-slate-600 mt-0.5">
+            Aap kisi bhi verified contact (Mobile, WhatsApp, Email, Website), document ya bank account ko "Edit / Change" button par click karke update ya badal sakte hain.
+          </p>
+        </div>
+      </div>
+
+      {/* STEP TABS HEADER */}
+      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-2 flex-wrap">
         <button
           type="button"
-          onClick={() => handleTabClick('contacts')}
+          onClick={() => setActiveTab('contacts')}
           className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 cursor-pointer ${
             activeTab === 'contacts'
-              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] font-black shadow-xs'
               : 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white'
           }`}
         >
@@ -688,7 +643,7 @@ export default function VendorVerificationPage() {
           onClick={() => handleTabClick('documents')}
           className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 ${
             activeTab === 'documents'
-              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs cursor-pointer'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] font-black shadow-xs cursor-pointer'
               : isPart1Complete
               ? 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white cursor-pointer'
               : 'opacity-50 cursor-not-allowed bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb]'
@@ -704,7 +659,7 @@ export default function VendorVerificationPage() {
           onClick={() => handleTabClick('payment')}
           className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 ${
             activeTab === 'payment'
-              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs cursor-pointer'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] font-black shadow-xs cursor-pointer'
               : (isPart1Complete && isPart2Complete)
               ? 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white cursor-pointer'
               : 'opacity-50 cursor-not-allowed bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb]'
@@ -716,148 +671,308 @@ export default function VendorVerificationPage() {
         </button>
       </div>
 
-      {/* TAB 1: CONTACT INFORMATION VERIFICATION */}
+      {/* ─────────────────────────────────────────────────────────────
+          TAB 1: CONTACT INFORMATION VERIFICATION
+      ───────────────────────────────────────────────────────────── */}
       {activeTab === 'contacts' && (
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5 font-sans">
           <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide border-b border-[#e3dccb] pb-3 flex items-center gap-2">
             <FiPhone className="text-[#d99a3d]" />
-            <span>Contact Channels Verification</span>
+            <span>Contact Channels Verification &amp; Edit Options</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Mobile Number */}
-            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
-              <div>
-                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Mobile Number</span>
-                <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{vendorProfile.mobileNumber || currentUser?.phone || 'Not set'}</p>
-                {statusData.contactVerified?.mobile ? (
-                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
-                    <FiCheckCircle size={12} /> Verified
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 mt-1">
-                    <FiAlertCircle size={12} /> Unverified
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                disabled={Boolean(statusData.contactVerified?.mobile)}
-                onClick={() => handleOpenOtpModal('mobile', vendorProfile.mobileNumber || currentUser?.phone)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition ${
-                  statusData.contactVerified?.mobile
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
-                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer'
-                }`}
-              >
-                {statusData.contactVerified?.mobile ? 'Verified ✓' : 'Verify Mobile'}
-              </button>
-            </div>
-
-            {/* WhatsApp Number */}
-            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
-              <div>
-                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">WhatsApp Number</span>
-                <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{vendorProfile.whatsappNumber || vendorProfile.mobileNumber || 'Not set'}</p>
-                {statusData.contactVerified?.whatsapp ? (
-                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
-                    <FiCheckCircle size={12} /> Verified
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 mt-1">
-                    <FiAlertCircle size={12} /> Unverified
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                disabled={Boolean(statusData.contactVerified?.whatsapp)}
-                onClick={() => handleOpenOtpModal('whatsapp', vendorProfile.whatsappNumber || vendorProfile.mobileNumber)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition ${
-                  statusData.contactVerified?.whatsapp
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
-                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer'
-                }`}
-              >
-                {statusData.contactVerified?.whatsapp ? 'Verified ✓' : 'Verify WhatsApp'}
-              </button>
-            </div>
-
-            {/* Email Address */}
-            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between">
-              <div>
-                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Email Address</span>
-                <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{vendorProfile.email || currentUser?.email || 'Not set'}</p>
-                {statusData.contactVerified?.email ? (
-                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
-                    <FiCheckCircle size={12} /> Verified
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 mt-1">
-                    <FiAlertCircle size={12} /> Unverified
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                disabled={Boolean(statusData.contactVerified?.email)}
-                onClick={() => handleOpenOtpModal('email', vendorProfile.email || currentUser?.email)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition ${
-                  statusData.contactVerified?.email
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
-                    : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer'
-                }`}
-              >
-                {statusData.contactVerified?.email ? 'Verified ✓' : 'Verify Email'}
-              </button>
-            </div>
-
-            {/* Website URL */}
-            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex flex-col justify-between gap-2.5">
-              <div className="flex items-center justify-between">
+            
+            {/* 1. Mobile Number */}
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex flex-col justify-between gap-3">
+              <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Business Website</span>
-                  {statusData.contactVerified?.website ? (
-                    <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-0.5">
-                      <FiCheckCircle size={12} /> Verified URL
+                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Mobile Number</span>
+                  <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{mobileInput || vendorProfile.mobileNumber || currentUser?.phone || 'Not set'}</p>
+                  {statusData.contactVerified?.mobile && !editContactMode.mobile ? (
+                    <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
+                      <FiCheckCircle size={12} /> Verified Phone
                     </span>
                   ) : (
-                    <span className="text-[10px] text-slate-500 font-bold block mt-0.5">Enter URL &amp; ping to verify</span>
+                    <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 mt-1">
+                      <FiAlertCircle size={12} /> {editContactMode.mobile ? 'Editing Mobile Number' : 'Unverified'}
+                    </span>
                   )}
                 </div>
-                {statusData.contactVerified?.website && (
+
+                {statusData.contactVerified?.mobile && !editContactMode.mobile && (
                   <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-black">
                     Verified ✓
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <FiGlobe className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
+              {editContactMode.mobile ? (
+                <div className="space-y-2 pt-2 border-t border-[#e3dccb]">
                   <input
-                    type="url"
-                    value={websiteInput}
-                    onChange={(e) => setWebsiteInput(e.target.value)}
-                    placeholder="e.g. https://yourbusiness.com"
-                    disabled={statusData.contactVerified?.website}
-                    className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-[#e3dccb] rounded-lg text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] disabled:bg-slate-100 disabled:text-slate-500"
+                    type="tel"
+                    value={mobileInput}
+                    onChange={(e) => setMobileInput(e.target.value)}
+                    placeholder="Enter new mobile number"
+                    className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-lg text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                   />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenOtpModal('mobile', mobileInput, true)}
+                      className="flex-1 py-1.5 bg-[#241b15] text-[#d99a3d] rounded-lg text-xs font-black hover:bg-[#3a2c22] cursor-pointer border-none shadow-2xs"
+                    >
+                      Send OTP &amp; Verify
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditContactMode(prev => ({ ...prev, mobile: false }))}
+                      className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleVerifyWebsite(websiteInput)}
-                  disabled={loading || !websiteInput?.trim() || Boolean(statusData.contactVerified?.website)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-black border transition whitespace-nowrap ${
-                    statusData.contactVerified?.website
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 cursor-not-allowed opacity-90'
-                      : 'bg-[#241b15] text-[#d99a3d] border-[#241b15] hover:bg-[#3a2c22] shadow-2xs cursor-pointer disabled:opacity-50'
-                  }`}
-                >
-                  {loading ? 'Verifying...' : statusData.contactVerified?.website ? 'Verified ✓' : 'Verify'}
-                </button>
-              </div>
+              ) : (
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e3dccb]">
+                  {statusData.contactVerified?.mobile ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditContactMode(prev => ({ ...prev, mobile: true }))}
+                      className="px-3 py-1.5 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-[#f8f4ec] rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiEdit2 size={12} className="text-[#d99a3d]" />
+                      <span>Edit / Change Mobile</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenOtpModal('mobile', mobileInput || vendorProfile.mobileNumber || currentUser?.phone)}
+                      className="px-3.5 py-1.5 bg-[#241b15] text-[#d99a3d] rounded-lg text-xs font-black hover:bg-[#3a2c22] cursor-pointer border-none shadow-2xs"
+                    >
+                      Verify Mobile OTP
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* 2. WhatsApp Number */}
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex flex-col justify-between gap-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">WhatsApp Number</span>
+                  <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{whatsappInput || vendorProfile.whatsappNumber || vendorProfile.mobileNumber || 'Not set'}</p>
+                  {statusData.contactVerified?.whatsapp && !editContactMode.whatsapp ? (
+                    <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
+                      <FiCheckCircle size={12} /> Verified WhatsApp
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 mt-1">
+                      <FiAlertCircle size={12} /> {editContactMode.whatsapp ? 'Editing WhatsApp' : 'Unverified'}
+                    </span>
+                  )}
+                </div>
+
+                {statusData.contactVerified?.whatsapp && !editContactMode.whatsapp && (
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-black">
+                    Verified ✓
+                  </span>
+                )}
+              </div>
+
+              {editContactMode.whatsapp ? (
+                <div className="space-y-2 pt-2 border-t border-[#e3dccb]">
+                  <input
+                    type="tel"
+                    value={whatsappInput}
+                    onChange={(e) => setWhatsappInput(e.target.value)}
+                    placeholder="Enter new WhatsApp number"
+                    className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-lg text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenOtpModal('whatsapp', whatsappInput, true)}
+                      className="flex-1 py-1.5 bg-[#241b15] text-[#d99a3d] rounded-lg text-xs font-black hover:bg-[#3a2c22] cursor-pointer border-none shadow-2xs"
+                    >
+                      Send OTP &amp; Verify
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditContactMode(prev => ({ ...prev, whatsapp: false }))}
+                      className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e3dccb]">
+                  {statusData.contactVerified?.whatsapp ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditContactMode(prev => ({ ...prev, whatsapp: true }))}
+                      className="px-3 py-1.5 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-[#f8f4ec] rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiEdit2 size={12} className="text-[#d99a3d]" />
+                      <span>Edit / Change WhatsApp</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenOtpModal('whatsapp', whatsappInput || vendorProfile.whatsappNumber || vendorProfile.mobileNumber)}
+                      className="px-3.5 py-1.5 bg-[#241b15] text-[#d99a3d] rounded-lg text-xs font-black hover:bg-[#3a2c22] cursor-pointer border-none shadow-2xs"
+                    >
+                      Verify WhatsApp OTP
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 3. Email Address */}
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex flex-col justify-between gap-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Email Address</span>
+                  <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{emailInput || vendorProfile.email || currentUser?.email || 'Not set'}</p>
+                  {statusData.contactVerified?.email && !editContactMode.email ? (
+                    <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
+                      <FiCheckCircle size={12} /> Verified Email
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 mt-1">
+                      <FiAlertCircle size={12} /> {editContactMode.email ? 'Editing Email Address' : 'Unverified'}
+                    </span>
+                  )}
+                </div>
+
+                {statusData.contactVerified?.email && !editContactMode.email && (
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-black">
+                    Verified ✓
+                  </span>
+                )}
+              </div>
+
+              {editContactMode.email ? (
+                <div className="space-y-2 pt-2 border-t border-[#e3dccb]">
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="Enter new email address"
+                    className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-lg text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenOtpModal('email', emailInput, true)}
+                      className="flex-1 py-1.5 bg-[#241b15] text-[#d99a3d] rounded-lg text-xs font-black hover:bg-[#3a2c22] cursor-pointer border-none shadow-2xs"
+                    >
+                      Send OTP &amp; Verify
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditContactMode(prev => ({ ...prev, email: false }))}
+                      className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e3dccb]">
+                  {statusData.contactVerified?.email ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditContactMode(prev => ({ ...prev, email: true }))}
+                      className="px-3 py-1.5 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-[#f8f4ec] rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiEdit2 size={12} className="text-[#d99a3d]" />
+                      <span>Edit / Change Email</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenOtpModal('email', emailInput || vendorProfile.email || currentUser?.email)}
+                      className="px-3.5 py-1.5 bg-[#241b15] text-[#d99a3d] rounded-lg text-xs font-black hover:bg-[#3a2c22] cursor-pointer border-none shadow-2xs"
+                    >
+                      Verify Email OTP
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 4. Website URL */}
+            <div className="p-4 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex flex-col justify-between gap-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Business Website</span>
+                  <p className="text-xs font-black text-[#1a1a1a] mt-0.5">{websiteInput || vendorProfile.website || 'Not set'}</p>
+                  {statusData.contactVerified?.website && !editContactMode.website ? (
+                    <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mt-1">
+                      <FiCheckCircle size={12} /> Verified URL
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 font-bold block mt-1">Enter URL &amp; ping to verify</span>
+                  )}
+                </div>
+
+                {statusData.contactVerified?.website && !editContactMode.website && (
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-black">
+                    Verified ✓
+                  </span>
+                )}
+              </div>
+
+              {editContactMode.website || !statusData.contactVerified?.website ? (
+                <div className="space-y-2 pt-2 border-t border-[#e3dccb]">
+                  <div className="relative">
+                    <FiGlobe className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
+                    <input
+                      type="url"
+                      value={websiteInput}
+                      onChange={(e) => setWebsiteInput(e.target.value)}
+                      placeholder="e.g. https://yourbusiness.com"
+                      className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-[#e3dccb] rounded-lg text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleVerifyWebsite(websiteInput)}
+                      disabled={loading || !websiteInput?.trim()}
+                      className="flex-1 py-1.5 bg-[#241b15] text-[#d99a3d] rounded-lg text-xs font-black hover:bg-[#3a2c22] cursor-pointer border-none shadow-2xs disabled:opacity-50"
+                    >
+                      {loading ? 'Verifying...' : 'Ping & Verify Website'}
+                    </button>
+                    {statusData.contactVerified?.website && (
+                      <button
+                        type="button"
+                        onClick={() => setEditContactMode(prev => ({ ...prev, website: false }))}
+                        className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e3dccb]">
+                  <button
+                    type="button"
+                    onClick={() => setEditContactMode(prev => ({ ...prev, website: true }))}
+                    className="px-3 py-1.5 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-[#f8f4ec] rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FiEdit2 size={12} className="text-[#d99a3d]" />
+                    <span>Edit / Change URL</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
           </div>
 
           <div className="flex justify-end pt-3 border-t border-[#e3dccb]">
@@ -877,15 +992,17 @@ export default function VendorVerificationPage() {
         </div>
       )}
 
-      {/* TAB 2: DOCUMENTS VERIFICATION */}
+      {/* ─────────────────────────────────────────────────────────────
+          TAB 2: DOCUMENTS VERIFICATION (WITH EDIT / RE-VERIFY)
+      ───────────────────────────────────────────────────────────── */}
       {activeTab === 'documents' && (
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5 font-sans">
           <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide border-b border-[#e3dccb] pb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FiFileText className="text-[#d99a3d]" />
-              <span>Government Identity &amp; Business Compliance Licenses</span>
+              <span>Government Identity &amp; Compliance Documents</span>
             </div>
-            <span className="text-xs text-[#d99a3d] font-black uppercase">Instant API Verification</span>
+            <span className="text-xs text-[#d99a3d] font-black uppercase">Instant API Verification &amp; Edit Options</span>
           </h3>
 
           {/* Step indicators */}
@@ -893,7 +1010,7 @@ export default function VendorVerificationPage() {
             {docsSequence.map((step, idx) => {
               const isCompleted = step.key === 'dynamic'
                 ? (statusData.documents?.dynamicDocs && statusData.documents.dynamicDocs.length > 0)
-                : statusData.documents?.[step.key]?.status === 'approved' || statusData.documents?.[step.key];
+                : (statusData.documents?.[step.key]?.status === 'approved' || statusData.documents?.[step.key]?.verified);
               const isActive = currentDocIndex === idx;
               return (
                 <button
@@ -920,7 +1037,7 @@ export default function VendorVerificationPage() {
             {/* 1. Aadhaar Card */}
             {currentDocIndex === 0 && (
               <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">A</span>
                     <div>
@@ -929,9 +1046,29 @@ export default function VendorVerificationPage() {
                     </div>
                   </div>
                   {(statusData.documents?.aadhaar?.status === 'approved' || statusData.documents?.aadhaar?.verified) && (
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                      Verified ✓ {statusData.documents.aadhaar.fullName ? `(${statusData.documents.aadhaar.fullName})` : ''}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                        Verified ✓ {statusData.documents.aadhaar.fullName ? `(${statusData.documents.aadhaar.fullName})` : ''}
+                      </span>
+                      {!editDocMode.aadhaar ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, aadhaar: true }))}
+                          className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <FiEdit2 size={12} className="text-[#d99a3d]" />
+                          <span>Edit / Change Aadhaar</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, aadhaar: false }))}
+                          className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -946,14 +1083,14 @@ export default function VendorVerificationPage() {
                       value={aadhaarNum}
                       onChange={(e) => setAadhaarNum(e.target.value.replace(/\D/g, ''))}
                       placeholder="12-Digit Aadhaar Number"
-                      disabled={aadhaarLoading || (statusData.documents?.aadhaar?.status === 'approved')}
+                      disabled={aadhaarLoading || (statusData.documents?.aadhaar?.status === 'approved' && !editDocMode.aadhaar)}
                       className="px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                     />
 
                     <button
                       type="button"
                       onClick={handleSendAadhaarOtp}
-                      disabled={aadhaarLoading || !aadhaarNum || aadhaarNum.length !== 12 || aadhaarTimer > 0 || (statusData.documents?.aadhaar?.status === 'approved')}
+                      disabled={aadhaarLoading || !aadhaarNum || aadhaarNum.length !== 12 || aadhaarTimer > 0 || (statusData.documents?.aadhaar?.status === 'approved' && !editDocMode.aadhaar)}
                       className="py-2.5 px-4 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                     >
                       {aadhaarLoading && !aadhaarOtpSent ? 'Sending OTP...' : aadhaarTimer > 0 ? `Resend in ${aadhaarTimer}s` : (aadhaarOtpSent ? 'Resend OTP' : 'Send Aadhaar OTP')}
@@ -1035,14 +1172,14 @@ export default function VendorVerificationPage() {
                 <button
                   type="button"
                   onClick={() => handleVerifyDocument('aadhaar', aadhaarNum, aadhaarFront, aadhaarBack, null, 'Aadhaar Card')}
-                  disabled={loading || !aadhaarNum || (statusData.documents?.aadhaar?.status === 'approved')}
+                  disabled={loading || !aadhaarNum || (statusData.documents?.aadhaar?.status === 'approved' && !editDocMode.aadhaar)}
                   className={`w-full py-2.5 rounded-xl text-xs font-black shadow-2xs transition border-none ${
-                    statusData.documents?.aadhaar?.status === 'approved'
+                    statusData.documents?.aadhaar?.status === 'approved' && !editDocMode.aadhaar
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
                       : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
                   }`}
                 >
-                  {statusData.documents?.aadhaar?.status === 'approved' ? 'Aadhaar Verified ✓' : 'Save & Submit Aadhaar Details'}
+                  {statusData.documents?.aadhaar?.status === 'approved' && !editDocMode.aadhaar ? 'Aadhaar Verified ✓' : 'Save & Submit Aadhaar Details'}
                 </button>
               </div>
             )}
@@ -1050,7 +1187,7 @@ export default function VendorVerificationPage() {
             {/* 2. PAN Card */}
             {currentDocIndex === 1 && (
               <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">P</span>
                     <div>
@@ -1059,9 +1196,29 @@ export default function VendorVerificationPage() {
                     </div>
                   </div>
                   {(statusData.documents?.pan?.status === 'approved' || statusData.documents?.pan?.verified) && (
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                      Verified ✓ {statusData.documents.pan.fullName ? `(${statusData.documents.pan.fullName})` : ''}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                        Verified ✓ {statusData.documents.pan.fullName ? `(${statusData.documents.pan.fullName})` : ''}
+                      </span>
+                      {!editDocMode.pan ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, pan: true }))}
+                          className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <FiEdit2 size={12} className="text-[#d99a3d]" />
+                          <span>Edit / Change PAN</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, pan: false }))}
+                          className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -1072,7 +1229,7 @@ export default function VendorVerificationPage() {
                     value={panNum}
                     onChange={(e) => setPanNum(e.target.value.toUpperCase())}
                     placeholder="e.g. ABCDE1234F"
-                    disabled={panLoading || (statusData.documents?.pan?.status === 'approved')}
+                    disabled={panLoading || (statusData.documents?.pan?.status === 'approved' && !editDocMode.pan)}
                     className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
 
@@ -1124,22 +1281,22 @@ export default function VendorVerificationPage() {
                 <button
                   type="button"
                   onClick={handleVerifyPan}
-                  disabled={panLoading || !panNum || panNum.length !== 10 || (statusData.documents?.pan?.status === 'approved')}
+                  disabled={panLoading || !panNum || panNum.length !== 10 || (statusData.documents?.pan?.status === 'approved' && !editDocMode.pan)}
                   className={`w-full py-2.5 rounded-xl text-xs font-black shadow-2xs transition border-none ${
-                    statusData.documents?.pan?.status === 'approved'
+                    statusData.documents?.pan?.status === 'approved' && !editDocMode.pan
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
                       : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
                   }`}
                 >
-                  {statusData.documents?.pan?.status === 'approved' ? 'PAN Verified ✓' : panLoading ? 'Verifying with Sandbox API...' : 'Verify PAN Card (Sandbox API)'}
+                  {statusData.documents?.pan?.status === 'approved' && !editDocMode.pan ? 'PAN Verified ✓' : panLoading ? 'Verifying with Sandbox API...' : 'Verify PAN Card (Sandbox API)'}
                 </button>
               </div>
             )}
 
-            {/* 3. GST Number (Optional) */}
+            {/* 3. GST Number */}
             {currentDocIndex === 2 && (
               <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">G</span>
                     <div>
@@ -1148,9 +1305,29 @@ export default function VendorVerificationPage() {
                     </div>
                   </div>
                   {(statusData.documents?.gst?.status === 'approved' || statusData.documents?.gst?.verified) && (
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                      Verified ✓ {statusData.documents.gst.legalName ? `(${statusData.documents.gst.legalName})` : ''}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                        Verified ✓
+                      </span>
+                      {!editDocMode.gst ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, gst: true }))}
+                          className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <FiEdit2 size={12} className="text-[#d99a3d]" />
+                          <span>Edit / Change GSTIN</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, gst: false }))}
+                          className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -1160,14 +1337,14 @@ export default function VendorVerificationPage() {
                     maxLength={15}
                     value={gstNum}
                     onChange={(e) => setGstNum(e.target.value.toUpperCase())}
-                    placeholder="15-Digit GSTIN (e.g. 27ABCDE1234F1Z5)"
-                    disabled={gstLoading || (statusData.documents?.gst?.status === 'approved')}
+                    placeholder="e.g. 27ABCDE1234F1Z5"
+                    disabled={gstLoading || (statusData.documents?.gst?.status === 'approved' && !editDocMode.gst)}
                     className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
 
                   <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
                     <FiUploadCloud size={14} className="text-[#d99a3d]" />
-                    <span>{gstFile ? 'Certificate Attached ✓' : 'Upload GST Certificate'}</span>
+                    <span>{gstFile ? 'Certificate Uploaded ✓' : 'Upload GST Certificate (PDF/Image)'}</span>
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setGstFile)} />
                   </label>
                 </div>
@@ -1177,28 +1354,24 @@ export default function VendorVerificationPage() {
                   <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
                     <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
                       <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
-                        <FiCheckCircle className="text-emerald-600" size={16} /> GST Portal Registration Verified
+                        <FiCheckCircle className="text-emerald-600" size={16} /> GST Record Verified (GSTN Sandbox)
                       </span>
-                      <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black uppercase">
-                        {statusData.documents.gst.gstStatus || 'Active'}
+                      <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black">
+                        Active Tax Entity
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
                       <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Business Trade Name</span>
-                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.tradeName || statusData.documents.gst.legalName || 'Registered Entity'}</strong>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Legal / Trade Name</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.legalName || statusData.documents.gst.tradeName || 'Registered Business'}</strong>
                       </div>
                       <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Legal Business Name</span>
-                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.legalName || '—'}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Registered GSTIN</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">GSTIN Number</span>
                         <strong className="text-slate-900 text-xs font-mono font-bold uppercase">{statusData.documents.gst.docNumber || gstNum}</strong>
                       </div>
                       <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">State / Jurisdiction</span>
-                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.state || 'Registered'}</strong>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Status</span>
+                        <strong className="text-emerald-800 text-xs font-bold">{statusData.documents.gst.gstStatus || 'Active'}</strong>
                       </div>
                     </div>
                   </div>
@@ -1207,38 +1380,54 @@ export default function VendorVerificationPage() {
                 <button
                   type="button"
                   onClick={handleVerifyGstin}
-                  disabled={gstLoading || !gstNum || gstNum.length !== 15 || (statusData.documents?.gst?.status === 'approved')}
+                  disabled={gstLoading || !gstNum || gstNum.length !== 15 || (statusData.documents?.gst?.status === 'approved' && !editDocMode.gst)}
                   className={`w-full py-2.5 rounded-xl text-xs font-black shadow-2xs transition border-none ${
-                    statusData.documents?.gst?.status === 'approved'
+                    statusData.documents?.gst?.status === 'approved' && !editDocMode.gst
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
                       : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
                   }`}
                 >
-                  {statusData.documents?.gst?.status === 'approved' ? 'GSTIN Verified ✓' : gstLoading ? 'Verifying with Sandbox API...' : 'Verify GSTIN (Sandbox API)'}
+                  {statusData.documents?.gst?.status === 'approved' && !editDocMode.gst ? 'GSTIN Verified ✓' : gstLoading ? 'Verifying with Sandbox API...' : 'Verify GSTIN (Sandbox API)'}
                 </button>
               </div>
             )}
 
-            {/* 4. Shop License (Optional) */}
+            {/* 4. Shop License */}
             {currentDocIndex === 3 && (
               <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">S</span>
                     <div>
-                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Shop &amp; Establishment License (Manual Admin Review)</h4>
-                      <p className="text-[10px] text-slate-400 font-bold">Enter license registration number &amp; upload license document</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Shop &amp; Establishment Act License</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Municipal Corporation / Nagar Nigam Trade License registration</p>
                     </div>
                   </div>
-                  {statusData.documents?.shopLicense?.status === 'approved' ? (
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                      Verified ✓
-                    </span>
-                  ) : statusData.documents?.shopLicense ? (
-                    <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-black">
-                      In Review ⏳
-                    </span>
-                  ) : null}
+                  {(statusData.documents?.shopLicense?.status === 'approved' || statusData.documents?.shopLicense) && (
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                        Verified / Submitted ✓
+                      </span>
+                      {!editDocMode.shopLicense ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, shopLicense: true }))}
+                          className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <FiEdit2 size={12} className="text-[#d99a3d]" />
+                          <span>Edit License</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, shopLicense: false }))}
+                          className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1246,12 +1435,14 @@ export default function VendorVerificationPage() {
                     type="text"
                     value={shopLicenseNum}
                     onChange={(e) => setShopLicenseNum(e.target.value)}
-                    placeholder="License Registration No."
+                    placeholder="License Registration Number"
+                    disabled={loading || (statusData.documents?.shopLicense?.status === 'approved' && !editDocMode.shopLicense)}
                     className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                   />
+
                   <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
                     <FiUploadCloud size={14} className="text-[#d99a3d]" />
-                    <span>{shopLicenseFile ? 'License Attached ✓' : 'Upload License Document'}</span>
+                    <span>{shopLicenseFile ? 'License Uploaded ✓' : 'Upload License Copy'}</span>
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setShopLicenseFile)} />
                   </label>
                 </div>
@@ -1259,69 +1450,98 @@ export default function VendorVerificationPage() {
                 <button
                   type="button"
                   onClick={() => handleVerifyDocument('shopLicense', shopLicenseNum, null, null, shopLicenseFile, 'Shop License')}
-                  disabled={loading || !shopLicenseNum}
-                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
+                  disabled={loading || !shopLicenseNum || (statusData.documents?.shopLicense?.status === 'approved' && !editDocMode.shopLicense)}
+                  className={`w-full py-2.5 rounded-xl text-xs font-black shadow-2xs transition border-none ${
+                    statusData.documents?.shopLicense?.status === 'approved' && !editDocMode.shopLicense
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
+                      : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
+                  }`}
                 >
-                  Submit Shop License for Review
+                  {statusData.documents?.shopLicense?.status === 'approved' && !editDocMode.shopLicense ? 'License Verified ✓' : 'Save & Submit Shop License'}
                 </button>
               </div>
             )}
 
-            {/* 5. Udyam Registration (Optional) */}
+            {/* 5. MSME / Udyam */}
             {currentDocIndex === 4 && (
               <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">M</span>
+                    <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">U</span>
                     <div>
-                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">MSME / Udyam Registration (Optional)</h4>
-                      <p className="text-[10px] text-slate-400 font-bold">Enter Udyam registration number (e.g. UDYAM-XX-00-000000) &amp; upload certificate</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Udyam / MSME Registration Certificate</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Ministry of Micro, Small and Medium Enterprises enterprise number</p>
                     </div>
                   </div>
-                  {statusData.documents?.udyamRegistration?.status === 'approved' ? (
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                      Verified ✓
-                    </span>
-                  ) : statusData.documents?.udyamRegistration ? (
-                    <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-black">
-                      In Review ⏳
-                    </span>
-                  ) : null}
+                  {(statusData.documents?.udyamRegistration?.status === 'approved' || statusData.documents?.udyamRegistration) && (
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                        Verified / Submitted ✓
+                      </span>
+                      {!editDocMode.udyamRegistration ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, udyamRegistration: true }))}
+                          className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <FiEdit2 size={12} className="text-[#d99a3d]" />
+                          <span>Edit Udyam</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditDocMode(prev => ({ ...prev, udyamRegistration: false }))}
+                          className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     type="text"
                     value={udyamNum}
-                    onChange={(e) => setUdyamNum(e.target.value)}
-                    placeholder="Udyam Registration No. (UDYAM-XX-00-000000)"
-                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                    onChange={(e) => setUdyamNum(e.target.value.toUpperCase())}
+                    placeholder="e.g. UDYAM-XX-00-0000000"
+                    disabled={loading || (statusData.documents?.udyamRegistration?.status === 'approved' && !editDocMode.udyamRegistration)}
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
+
                   <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
                     <FiUploadCloud size={14} className="text-[#d99a3d]" />
-                    <span>{udyamFile ? 'Udyam Attached ✓' : 'Upload MSME Certificate'}</span>
+                    <span>{udyamFile ? 'Certificate Uploaded ✓' : 'Upload Udyam Certificate'}</span>
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setUdyamFile)} />
                   </label>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => handleVerifyDocument('udyamRegistration', udyamNum, null, null, udyamFile, 'Udyam Registration')}
-                  disabled={loading || !udyamNum}
-                  className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
+                  onClick={() => handleVerifyDocument('udyamRegistration', udyamNum, null, null, udyamFile, 'MSME Udyam')}
+                  disabled={loading || !udyamNum || (statusData.documents?.udyamRegistration?.status === 'approved' && !editDocMode.udyamRegistration)}
+                  className={`w-full py-2.5 rounded-xl text-xs font-black shadow-2xs transition border-none ${
+                    statusData.documents?.udyamRegistration?.status === 'approved' && !editDocMode.udyamRegistration
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
+                      : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
+                  }`}
                 >
-                  Submit Udyam Registration for Review
+                  {statusData.documents?.udyamRegistration?.status === 'approved' && !editDocMode.udyamRegistration ? 'Udyam Verified ✓' : 'Save & Submit Udyam Certificate'}
                 </button>
               </div>
             )}
 
-            {/* 6. Dynamic Category Documents (Optional) */}
+            {/* 6. Custom Document */}
             {currentDocIndex === 5 && (
-              <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-3 animate-fade-in">
-                <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a] flex items-center gap-2">
-                  <FiPlus className="text-[#d99a3d]" />
-                  <span>Custom Category Business Documents (FSSAI / Food License / Pharmacy Permit)</span>
-                </h4>
+              <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4 animate-fade-in">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">C</span>
+                  <div>
+                    <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Custom Compliance / Partnership Document</h4>
+                    <p className="text-[10px] text-slate-400 font-bold">FSSAI License, Partnership Deed, Franchise Agreement, ISO Certificate</p>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <input
@@ -1329,15 +1549,15 @@ export default function VendorVerificationPage() {
                     value={dynamicDocName}
                     onChange={(e) => setDynamicDocName(e.target.value)}
                     placeholder="Document Name (e.g. FSSAI License)"
-                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                   />
 
                   <input
                     type="text"
                     value={dynamicDocNum}
                     onChange={(e) => setDynamicDocNum(e.target.value)}
-                    placeholder="Reg / License No."
-                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                    placeholder="Registration / Serial Number"
+                    className="px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                   />
 
                   <label className="cursor-pointer px-3.5 py-2.5 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 hover:border-[#241b15] transition">
@@ -1349,41 +1569,25 @@ export default function VendorVerificationPage() {
 
                 <button
                   type="button"
-                  onClick={() => handleVerifyDocument('dynamic', dynamicDocNum, null, null, dynamicDocFile, dynamicDocName || 'Custom Business License')}
-                  disabled={loading || !dynamicDocName}
+                  onClick={() => handleVerifyDocument('dynamic', dynamicDocNum, null, null, dynamicDocFile, dynamicDocName)}
+                  disabled={loading || !dynamicDocName || !dynamicDocNum}
                   className="w-full py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                 >
-                  Add &amp; Submit Document
+                  Save &amp; Attach Custom Document
                 </button>
               </div>
             )}
+
           </div>
 
-          {/* Wizard Footer Navigation */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[#e3dccb] mt-6">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handlePrevDoc}
-                disabled={currentDocIndex === 0}
-                className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                  currentDocIndex > 0
-                    ? 'bg-[#f8f4ec] border border-[#e3dccb] text-[#1a1a1a] hover:bg-white'
-                    : 'opacity-50 cursor-not-allowed bg-[#f8f4ec]/60 text-slate-400 border border-[#e3dccb]'
-                }`}
-              >
-                Back
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSkipDoc}
-                className="px-5 py-2 rounded-xl bg-[#f8f4ec] hover:bg-white border border-[#e3dccb] text-[#1a1a1a] text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>{currentDocIndex === 5 ? 'Skip & Finish' : 'Skip & Next'}</span>
-                <FiChevronRight size={14} />
-              </button>
-            </div>
+          <div className="flex items-center justify-between pt-3 border-t border-[#e3dccb]">
+            <button
+              type="button"
+              onClick={() => setActiveTab('contacts')}
+              className="px-4 py-2.5 bg-[#f8f4ec] text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-200 transition cursor-pointer border border-[#e3dccb]"
+            >
+              ← Back to Contacts
+            </button>
 
             <button
               type="button"
@@ -1394,109 +1598,116 @@ export default function VendorVerificationPage() {
                   : 'bg-[#f8f4ec] text-slate-400 border border-[#e3dccb] cursor-not-allowed'
               }`}
             >
-              <span>{isPart2Complete ? 'Proceed to Part 3: Payout & Payment Details' : 'Submit at least 1 Document to Unlock Part 3'}</span>
+              <span>{isPart2Complete ? 'Proceed to Part 3: Payout Details' : 'Verify at least 1 document to continue'}</span>
               {isPart2Complete ? <FiChevronRight size={16} /> : <FiLock size={14} className="text-amber-500" />}
             </button>
           </div>
         </div>
       )}
 
-      {/* TAB 3: PAYMENT & PAYOUT DETAILS */}
+      {/* ─────────────────────────────────────────────────────────────
+          TAB 3: PAYMENT & SETTLEMENT DETAILS (WITH EDIT OPTION)
+      ───────────────────────────────────────────────────────────── */}
       {activeTab === 'payment' && (
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5 font-sans">
-          <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#e3dccb] pb-3">
             <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
               <FiCreditCard className="text-[#d99a3d]" />
-              <span>Bank Account &amp; UPI Payout Details (Sandbox API)</span>
+              <span>Settlement Account &amp; Payout Details</span>
             </h3>
+
             {(statusData.paymentDetails?.status === 'approved' || statusData.paymentDetails?.verified) && (
-              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                Bank Verified ✓
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                  Verified ✓
+                </span>
+                {!editPaymentMode ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditPaymentMode(true)}
+                    className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <FiEdit2 size={12} className="text-[#d99a3d]" />
+                    <span>Edit / Change Bank Account</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditPaymentMode(false)}
+                    className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
           <div className="space-y-4">
-            {/* UPI ID */}
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">UPI ID for Instant Payouts</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value)}
-                  placeholder="e.g. shopname@upi or 9876543210@paytm"
-                  className="flex-1 px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
-                />
-                <button
-                  type="button"
-                  onClick={handleVerifyUpi}
-                  disabled={loading || !upiId}
-                  className="px-4 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none shrink-0"
-                >
-                  Verify UPI
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            {/* Bank Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Bank Account Number</label>
-                <input
-                  type="text"
-                  value={bankAccount}
-                  onChange={(e) => setBankAccount(e.target.value)}
-                  placeholder="e.g. 918273645012"
-                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Account Holder Name</label>
-                <input
-                  type="text"
-                  value={accountHolderName}
-                  onChange={(e) => setAccountHolderName(e.target.value)}
-                  placeholder="Name as per Bank Record"
-                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">IFSC Code (Auto-Lookup)</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">IFSC Code *</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     maxLength={11}
                     value={ifscCode}
                     onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. SBIN0001234"
-                    className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
+                    placeholder="e.g. HDFC0001234"
+                    disabled={bankLoading || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
+                    className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-mono font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
                   <button
                     type="button"
                     onClick={handleIfscLookup}
-                    disabled={ifscLoading || ifscCode.length < 11}
-                    className="px-3.5 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black transition disabled:opacity-50 cursor-pointer border-none shrink-0"
+                    disabled={ifscLoading || ifscCode.length < 11 || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
+                    className="py-2.5 px-3 bg-[#241b15] text-[#d99a3d] text-xs font-black rounded-xl hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer border-none whitespace-nowrap shadow-2xs"
                   >
-                    {ifscLoading ? 'Lookup...' : 'Lookup'}
+                    {ifscLoading ? 'Checking...' : 'Auto-Fetch'}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Bank Name &amp; Branch</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Bank Account Number *</label>
                 <input
                   type="text"
-                  readOnly
-                  value={bankName ? `${bankName} (${branchName || 'Main Branch'})` : ''}
-                  placeholder="Auto-populated on IFSC lookup"
-                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-slate-600"
+                  value={bankAccount}
+                  onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ''))}
+                  placeholder="e.g. 50100234567890"
+                  disabled={bankLoading || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
+                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-mono font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Account Holder Name *</label>
+                <input
+                  type="text"
+                  value={accountHolderName}
+                  onChange={(e) => setAccountHolderName(e.target.value)}
+                  placeholder="As printed on Passbook / Cheque"
+                  disabled={bankLoading || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
+                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                 />
               </div>
             </div>
 
-            {/* Cancelled Cheque / Statement Upload */}
+            {/* Bank Name and Branch Auto Display */}
+            {(bankName || branchName) && (
+              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Bank &amp; Branch</span>
+                  <span className="font-bold text-[#1a1a1a]">{bankName} {branchName ? `(${branchName})` : ''}</span>
+                </div>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-black border border-emerald-300">
+                  IFSC Verified ✓
+                </span>
+              </div>
+            )}
+
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Bank Statement / Cancelled Cheque (Optional)</label>
               <div className="flex items-center gap-3">
@@ -1543,20 +1754,22 @@ export default function VendorVerificationPage() {
             <button
               type="button"
               onClick={handleVerifyPayment}
-              disabled={bankLoading || !bankAccount || !ifscCode || (statusData.paymentDetails?.status === 'approved')}
+              disabled={bankLoading || !bankAccount || !ifscCode || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
               className={`w-full py-3.5 rounded-xl text-xs font-black shadow-xs transition border-none ${
-                statusData.paymentDetails?.status === 'approved'
+                statusData.paymentDetails?.status === 'approved' && !editPaymentMode
                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
                   : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
               }`}
             >
-              {statusData.paymentDetails?.status === 'approved' ? 'Bank Account Verified ✓' : bankLoading ? 'Verifying with Sandbox API...' : 'Verify & Save Bank Account (Sandbox API)'}
+              {statusData.paymentDetails?.status === 'approved' && !editPaymentMode ? 'Bank Account Verified ✓' : bankLoading ? 'Verifying with Sandbox API...' : 'Verify & Save Bank Account (Sandbox API)'}
             </button>
           </div>
         </div>
       )}
 
-      {/* OTP MODAL */}
+      {/* ─────────────────────────────────────────────────────────────
+          OTP MODAL FOR CONTACT VERIFICATION & UPDATES
+      ───────────────────────────────────────────────────────────── */}
       {otpModal.open && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 font-sans">
           <div className="bg-white border-2 border-[#241b15] rounded-2xl p-5 sm:p-6 max-w-sm w-full space-y-4 shadow-2xl animate-fade-in">
@@ -1572,16 +1785,15 @@ export default function VendorVerificationPage() {
               type="text"
               maxLength={6}
               value={otpModal.code}
-              onChange={(e) => setOtpModal({ ...otpModal, code: e.target.value })}
+              onChange={(e) => setOtpModal({ ...otpModal, code: e.target.value.replace(/\D/g, '') })}
               placeholder="e.g. 123456"
               className="w-full text-center tracking-widest text-lg font-black py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-[#241b15] focus:outline-none focus:border-[#d99a3d]"
             />
 
-
             <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setOtpModal({ open: false, type: '', value: '', code: '' })}
+                onClick={() => setOtpModal({ open: false, type: '', value: '', code: '', reverify: false })}
                 className="w-1/2 py-2 rounded-xl text-xs font-bold text-slate-600 bg-[#f8f4ec] border border-[#e3dccb] hover:bg-white transition cursor-pointer"
               >
                 Cancel
@@ -1589,8 +1801,8 @@ export default function VendorVerificationPage() {
               <button
                 type="button"
                 onClick={handleVerifyOtp}
-                disabled={loading}
-                className="w-1/2 py-2 rounded-xl text-xs font-black text-[#d99a3d] bg-[#241b15] hover:bg-[#3a2c22] transition cursor-pointer border-none shadow-2xs"
+                disabled={loading || otpModal.code.length < 4}
+                className="w-1/2 py-2 rounded-xl text-xs font-black text-[#d99a3d] bg-[#241b15] hover:bg-[#3a2c22] transition cursor-pointer border-none shadow-2xs disabled:opacity-50"
               >
                 Submit OTP
               </button>

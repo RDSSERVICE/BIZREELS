@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   FiPackage, FiTool, FiVideo, FiEye, FiUsers, FiInbox,
-  FiShoppingCart, FiDollarSign, FiZap, FiGrid, FiShield, FiActivity, FiArrowRight, FiCpu, FiImage
+  FiShoppingCart, FiDollarSign, FiZap, FiGrid, FiShield, FiActivity, FiArrowRight
 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
@@ -92,14 +92,6 @@ export default function VendorDashboardPage() {
   const realTimeViewsCount = Math.max(metrics.totalViews || 0, reelsList.reduce((sum, r) => sum + (r.views || 0), 0));
 
   const credits = metrics.credits || { available: 0, deposited: 0, earned: 0, used: 0 };
-  const creditRates = metrics.creditRates || {
-    productListing: 1,
-    reelPost: 1,
-    aiImage: 2,
-    aiVideo30s: 15,
-    reelBoost1Day: 10,
-    validLead: 1,
-  };
 
   const stats = [
     { label: 'Total Products', value: metrics.totalProducts ?? metrics.activeListings ?? 0, icon: FiPackage, color: 'purple', trend: metrics.trends?.totalProducts ?? 0 },
@@ -370,66 +362,21 @@ export default function VendorDashboardPage() {
       {/* Welcome Modal for First-time Vendors */}
       {showWelcomeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in font-sans">
-          <div className="bg-white p-6 sm:p-8 rounded-2xl border-2 border-[#241b15] max-w-lg w-full shadow-2xl space-y-5 relative">
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-full bg-[#241b15] text-[#d99a3d] border-2 border-[#d99a3d] flex items-center justify-center mx-auto shadow-md">
-                <FiZap size={24} />
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border-2 border-[#241b15] max-w-md w-full shadow-2xl space-y-6 relative text-center">
+            <div className="space-y-3">
+              <div className="w-16 h-16 rounded-full bg-[#241b15] text-[#d99a3d] border-2 border-[#d99a3d] flex items-center justify-center mx-auto shadow-md">
+                <FiZap size={28} />
               </div>
-              <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-lg sm:text-xl uppercase text-[#1a1a1a]">
-                Welcome to BizReels Vendor Portal! 🎉
+              <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase text-[#1a1a1a] tracking-wide">
+                Welcome to BizReels! 🎉
               </h2>
-              <p className="text-xs text-slate-600">
-                You have received <span className="font-extrabold text-emerald-700">100 Free Welcome Credits</span> in your wallet!
-              </p>
-            </div>
-
-            <div className="bg-[#f8f4ec] border border-[#e3dccb] rounded-xl p-3.5 space-y-2.5 text-xs">
-              <h4 className="text-[10px] font-black text-[#1a1a1a] border-b border-[#e3dccb] pb-1 uppercase tracking-wider">
-                Credits Usage Breakdown:
-              </h4>
-              
-              <div className="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto pr-1">
-                <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-[#e3dccb]">
-                  <span className="font-bold text-[#1a1a1a] flex items-center gap-1.5">
-                    <FiPackage className="text-[#d99a3d]" size={14} /> Listing Post
-                  </span>
-                  <span className="font-black text-[#241b15]">{creditRates.productListing} Credit</span>
-                </div>
-
-                <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-[#e3dccb]">
-                  <span className="font-bold text-[#1a1a1a] flex items-center gap-1.5">
-                    <FiVideo className="text-[#d99a3d]" size={14} /> Reel Upload
-                  </span>
-                  <span className="font-black text-[#241b15]">{creditRates.reelPost} Credit</span>
-                </div>
-
-                <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-[#e3dccb]">
-                  <span className="font-bold text-[#1a1a1a] flex items-center gap-1.5">
-                    <FiImage className="text-[#d99a3d]" size={14} /> AI Image Generation
-                  </span>
-                  <span className="font-black text-[#241b15]">{creditRates.aiImage} Credits</span>
-                </div>
-
-                <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-[#e3dccb]">
-                  <span className="font-bold text-[#1a1a1a] flex items-center gap-1.5">
-                    <FiCpu className="text-[#d99a3d]" size={14} /> 30s AI Reel Creation
-                  </span>
-                  <span className="font-black text-[#241b15]">{creditRates.aiVideo30s} Credits</span>
-                </div>
-
-                <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-[#e3dccb]">
-                  <span className="font-bold text-[#1a1a1a] flex items-center gap-1.5">
-                    <FiZap className="text-[#d99a3d]" size={14} /> 1-Day Reel Boost
-                  </span>
-                  <span className="font-black text-[#241b15]">{creditRates.reelBoost1Day} Credits</span>
-                </div>
-
-                <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-[#e3dccb]">
-                  <span className="font-bold text-[#1a1a1a] flex items-center gap-1.5">
-                    <FiInbox className="text-[#d99a3d]" size={14} /> Unlock Customer Contact
-                  </span>
-                  <span className="font-black text-[#241b15]">{creditRates.validLead} Credit</span>
-                </div>
+              <div className="bg-[#f8f4ec] border border-[#e3dccb] rounded-xl p-4 my-2 space-y-1">
+                <p className="text-sm text-[#1a1a1a] font-bold">
+                  You have received <span className="font-extrabold text-emerald-700 text-base">100 Free Welcome Credits</span> in your wallet!
+                </p>
+                <p className="text-xs text-slate-500">
+                  Your vendor account is now live. Explore your dashboard and start growing your business.
+                </p>
               </div>
             </div>
 

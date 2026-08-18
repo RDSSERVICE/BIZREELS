@@ -50,7 +50,18 @@ export default function ProductFormModal({
     gst: '',
     tags: [],
     newTag: '',
-    shippingDetails: { weight: '', dimensions: '', freeShipping: false, estimatedDays: 5 },
+    shippingDetails: {
+      weight: '',
+      weightUnit: 'kg',
+      length: '',
+      width: '',
+      height: '',
+      dimensionUnit: 'cm',
+      dimensions: '',
+      shippingType: 'both',
+      freeShipping: false,
+      estimatedDays: 5
+    },
     labels: [],
     newLabelKey: '',
     newLabelVal: '',
@@ -218,6 +229,23 @@ export default function ProductFormModal({
       const selling = Number(editData.salePrice || editData.price || 0);
       const discount = actual > selling && actual > 0 ? Math.round(((actual - selling) / actual) * 100) : (prod.discount || 0);
 
+      const ship = prod.shippingDetails || {};
+      let parsedLength = ship.length || '';
+      let parsedWidth = ship.width || '';
+      let parsedHeight = ship.height || '';
+      let parsedDimUnit = ship.dimensionUnit || 'cm';
+      let parsedWeight = ship.weight || '';
+      let parsedWeightUnit = ship.weightUnit || 'kg';
+
+      if (!parsedLength && ship.dimensions) {
+        const parts = String(ship.dimensions).replace(/[^\d.xX\s]/g, '').split(/[xX]/).map(s => s.trim());
+        if (parts.length >= 3) {
+          parsedLength = parts[0] || '';
+          parsedWidth = parts[1] || '';
+          parsedHeight = parts[2] || '';
+        }
+      }
+
       setForm({
         category: editData.category || registeredCat || '',
         subcategory: editData.subcategory || '',
@@ -237,7 +265,18 @@ export default function ProductFormModal({
         gst: prod.gst || '',
         tags: editData.tags || [],
         newTag: '',
-        shippingDetails: prod.shippingDetails || { weight: '', dimensions: '', freeShipping: false, estimatedDays: 5 },
+        shippingDetails: {
+          weight: parsedWeight,
+          weightUnit: parsedWeightUnit,
+          length: parsedLength,
+          width: parsedWidth,
+          height: parsedHeight,
+          dimensionUnit: parsedDimUnit,
+          dimensions: ship.dimensions || (parsedLength ? `${parsedLength} × ${parsedWidth} × ${parsedHeight} ${parsedDimUnit}` : ''),
+          shippingType: ship.shippingType || 'both',
+          freeShipping: Boolean(ship.freeShipping),
+          estimatedDays: ship.estimatedDays || 5,
+        },
         labels: editData.labels || [],
         newLabelKey: '',
         newLabelVal: '',
@@ -556,7 +595,11 @@ export default function ProductFormModal({
         />
 
         {/* Pricing & Inventory */}
-        <ProductPricingInventorySection form={form} updateForm={updateForm} />
+        <ProductPricingInventorySection
+          form={form}
+          updateForm={updateForm}
+          generateSKU={generateSKU}
+        />
 
         {/* Images & Media */}
         <ProductMediaSection
