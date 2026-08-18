@@ -46,7 +46,9 @@ export default function VendorListingsPage() {
   const onboardedCategories = React.useMemo(() => {
     let cats = [];
     if (Array.isArray(vendorProfile.categories) && vendorProfile.categories.length > 0) {
-      cats = [...vendorProfile.categories];
+      cats = vendorProfile.categories;
+    } else if (Array.isArray(vendorProfile.selectedCategories) && vendorProfile.selectedCategories.length > 0) {
+      cats = vendorProfile.selectedCategories;
     } else if (vendorProfile.category) {
       cats = [vendorProfile.category];
     } else if (vendorProfile.businessCategory) {
@@ -58,7 +60,11 @@ export default function VendorListingsPage() {
   const onboardedSubcategories = React.useMemo(() => {
     let subs = [];
     if (Array.isArray(vendorProfile.subcategories) && vendorProfile.subcategories.length > 0) {
-      subs = [...vendorProfile.subcategories];
+      subs = vendorProfile.subcategories;
+    } else if (Array.isArray(vendorProfile.subCategories) && vendorProfile.subCategories.length > 0) {
+      subs = vendorProfile.subCategories;
+    } else if (Array.isArray(vendorProfile.selectedSubCategories) && vendorProfile.selectedSubCategories.length > 0) {
+      subs = vendorProfile.selectedSubCategories;
     } else if (vendorProfile.subcategory) {
       subs = [vendorProfile.subcategory];
     }
@@ -66,7 +72,7 @@ export default function VendorListingsPage() {
   }, [vendorProfile]);
 
   const registeredCat = onboardedCategories[0] || vendorProfile.category || vendorProfile.businessCategory || '';
-  const registeredSubcats = onboardedSubcategories.length > 0 ? onboardedSubcategories : (vendorProfile.subcategories || []);
+  const registeredSubcats = onboardedSubcategories;
 
   // Geolocation
   const [vendorCoords, setVendorCoords] = useState(null);

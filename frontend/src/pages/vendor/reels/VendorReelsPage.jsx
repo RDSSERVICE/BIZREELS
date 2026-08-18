@@ -20,6 +20,7 @@ import ReelCardMediaCarousel from './ReelCardMediaCarousel';
 import CreateReelWizardModal from './CreateReelWizardModal';
 import ReelPreviewModal from './ReelPreviewModal';
 import ReelBoostModal from './ReelBoostModal';
+import ReelBoostPromptModal from './ReelBoostPromptModal';
 
 export default function VendorReelsPage() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function VendorReelsPage() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [selectedReelForBoost, setSelectedReelForBoost] = useState(null);
+  const [showBoostPromptModal, setShowBoostPromptModal] = useState(false);
 
   const handleOpenBoostModal = (reel) => {
     setSelectedReelForBoost(reel);
@@ -119,6 +121,36 @@ export default function VendorReelsPage() {
   };
 
   const reelsList = Array.isArray(reelsData?.data) ? reelsData.data : Array.isArray(reelsData?.reels) ? reelsData.reels : Array.isArray(reelsData) ? reelsData : [];
+
+  const unboostedPublishedReels = React.useMemo(() => {
+    return reelsList.filter(
+      r => (r.status || 'published') === 'published' && !r.isBoosted && !r.is_boosted
+    );
+  }, [reelsList]);
+
+  // Trigger popup when reels page opens if there are unboosted published reels (checked per session)
+  useEffect(() => {
+    if (unboostedPublishedReels.length > 0) {
+      const isDismissedThisSession = sessionStorage.getItem('vendor_reel_boost_prompt_dismissed');
+      if (!isDismissedThisSession) {
+        const timer = setTimeout(() => {
+          setShowBoostPromptModal(true);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [unboostedPublishedReels.length]);
+
+  const handleDismissBoostPrompt = () => {
+    setShowBoostPromptModal(false);
+    sessionStorage.setItem('vendor_reel_boost_prompt_dismissed', 'true');
+  };
+
+  const handleSelectReelToBoostFromPrompt = (reel) => {
+    setShowBoostPromptModal(false);
+    sessionStorage.setItem('vendor_reel_boost_prompt_dismissed', 'true');
+    handleOpenBoostModal(reel);
+  };
 
   const publishedCount = reelsList.filter(r => (r.status || 'published') === 'published').length;
   const scheduledCount = reelsList.filter(r => r.status === 'scheduled').length;
@@ -507,6 +539,14 @@ export default function VendorReelsPage() {
         }}
         reel={selectedReelForBoost}
         refetchReels={refetch}
+      />
+
+      {/* MODAL 4: UNBOOSTED REEL PROMOTION PROMPT */}
+      <ReelBoostPromptModal
+        isOpen={showBoostPromptModal}
+        onClose={handleDismissBoostPrompt}
+        unboostedReels={unboostedPublishedReels}
+        onSelectReelToBoost={handleSelectReelToBoostFromPrompt}
       />
     </div>
   );

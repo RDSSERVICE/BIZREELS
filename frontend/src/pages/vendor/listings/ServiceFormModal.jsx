@@ -160,6 +160,11 @@ export default function ServiceFormModal({
       return validOnboardedServiceCats;
     }
 
+    if (onboarded.length > 0) {
+      // Vendor has onboarding categories, but none are service
+      return [];
+    }
+
     return allMasterServiceCats;
   }, [categoriesList, onboardedCategories, registeredCat, allMasterServiceCats]);
 
@@ -173,7 +178,7 @@ export default function ServiceFormModal({
     let subsFromMaster = [];
     if (parent) {
       subsFromMaster = categoriesList
-        .filter((c) => (c.parent_id === parent.id || c.parent_id === parent._id) && (c.category_type === 'service' || !c.category_type))
+        .filter((c) => (c.parent_id === parent.id || c.parent_id === parent._id) && c.category_type === 'service')
         .map((c) => c.name);
     }
 
@@ -183,9 +188,8 @@ export default function ServiceFormModal({
 
     if (onboardedSubs.length > 0) {
       const matched = subsFromMaster.filter(s => onboardedSubs.includes(s));
-      const others = subsFromMaster.filter(s => !onboardedSubs.includes(s));
       if (matched.length > 0) {
-        return [...matched, ...others];
+        return matched; // STRICTLY ONLY onboarded subcategories
       }
       if (subsFromMaster.length === 0) {
         return onboardedSubs;

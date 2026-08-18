@@ -145,7 +145,9 @@ export default function CreateReelWizardModal({
   const onboardedCategories = React.useMemo(() => {
     let cats = [];
     if (Array.isArray(vendorProfile.categories) && vendorProfile.categories.length > 0) {
-      cats = [...vendorProfile.categories];
+      cats = vendorProfile.categories;
+    } else if (Array.isArray(vendorProfile.selectedCategories) && vendorProfile.selectedCategories.length > 0) {
+      cats = vendorProfile.selectedCategories;
     } else if (vendorProfile.category) {
       cats = [vendorProfile.category];
     } else if (vendorProfile.businessCategory) {
@@ -157,7 +159,11 @@ export default function CreateReelWizardModal({
   const onboardedSubcategories = React.useMemo(() => {
     let subs = [];
     if (Array.isArray(vendorProfile.subcategories) && vendorProfile.subcategories.length > 0) {
-      subs = [...vendorProfile.subcategories];
+      subs = vendorProfile.subcategories;
+    } else if (Array.isArray(vendorProfile.subCategories) && vendorProfile.subCategories.length > 0) {
+      subs = vendorProfile.subCategories;
+    } else if (Array.isArray(vendorProfile.selectedSubCategories) && vendorProfile.selectedSubCategories.length > 0) {
+      subs = vendorProfile.selectedSubCategories;
     } else if (vendorProfile.subcategory) {
       subs = [vendorProfile.subcategory];
     }
@@ -180,7 +186,7 @@ export default function CreateReelWizardModal({
         // STRICTLY product categories only
         return c.category_type === 'product' || !c.category_type;
       }
-      // 'shop' posts: include all categories
+      // 'shop' posts
       return true;
     });
     const children = categoriesList.filter(c => c.parent_id);
@@ -212,7 +218,7 @@ export default function CreateReelWizardModal({
       }
     }
 
-    // Prioritize vendor's onboarded categories that match this postType
+    // Strictly show ONLY vendor's onboarded categories that match this postType
     if (onboardedCategories.length > 0) {
       const filteredData = {};
       const matchingOnboardedCats = onboardedCategories.filter(catName => {
@@ -224,17 +230,11 @@ export default function CreateReelWizardModal({
           let subs = data[catName] || ['General'];
           if (onboardedSubcategories.length > 0) {
             const matchedSubs = subs.filter(s => onboardedSubcategories.includes(s));
-            const otherSubs = subs.filter(s => !onboardedSubcategories.includes(s));
-            subs = [...matchedSubs, ...otherSubs];
+            if (matchedSubs.length > 0) {
+              subs = matchedSubs; // STRICTLY ONLY onboarded subcategories
+            }
           }
           filteredData[catName] = subs;
-        });
-
-        // Add the remaining categories of the same type
-        Object.keys(data).forEach(catName => {
-          if (!filteredData[catName]) {
-            filteredData[catName] = data[catName];
-          }
         });
 
         return filteredData;

@@ -144,6 +144,11 @@ export default function ProductFormModal({
       return validOnboardedProductCats;
     }
 
+    if (onboarded.length > 0) {
+      // Vendor has onboarding categories, but none are products
+      return [];
+    }
+
     return allMasterProductCats;
   }, [categoriesList, onboardedCategories, registeredCat, allMasterProductCats]);
 
@@ -167,9 +172,8 @@ export default function ProductFormModal({
 
     if (onboardedSubs.length > 0) {
       const matched = subsFromMaster.filter(s => onboardedSubs.includes(s));
-      const others = subsFromMaster.filter(s => !onboardedSubs.includes(s));
       if (matched.length > 0) {
-        return [...matched, ...others];
+        return matched; // STRICTLY ONLY onboarded subcategories
       }
       if (subsFromMaster.length === 0) {
         return onboardedSubs;
