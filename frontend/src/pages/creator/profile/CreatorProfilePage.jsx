@@ -8,6 +8,25 @@ import { api, tokenStore } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
+const CREATOR_PROFESSIONS = [
+  'Product Reel Creator',
+  'Product Photographer / Videographer',
+  'Video Editor',
+  'Graphic Designer',
+  'UGC Creator / Brand Reviewer',
+  'Influencer / Content Creator',
+  'Voice Over Artist / Podcaster',
+  'AI Content Creator & Visualizer',
+  'Script Writer / Copywriter',
+  'Drone Videographer',
+  'Livestream Host / Model',
+  'Thumbnail & Creative Artist',
+  'Cinematographer / Filmmaker',
+  'Fashion / Lifestyle Creator',
+  'Food & Travel Vlogger',
+  'Other / Custom Creative Field'
+];
+
 export default function CreatorProfilePage() {
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state) => state.auth);
@@ -21,6 +40,8 @@ export default function CreatorProfilePage() {
   const creatorProfile = user.creatorProfile || {};
 
   const [name, setName] = useState('');
+  const [profession, setProfession] = useState('Product Reel Creator');
+  const [customProfession, setCustomProfession] = useState('');
   const [bio, setBio] = useState('');
   const [languages, setLanguages] = useState('English, Hindi');
   const [experienceYears, setExperienceYears] = useState('2');
@@ -32,6 +53,16 @@ export default function CreatorProfilePage() {
   useEffect(() => {
     if (creatorProfile) {
       setName(creatorProfile.name || user.name || '');
+
+      const currentProf = creatorProfile.profession || creatorProfile.category || user.profession || user.occupation || 'Product Reel Creator';
+      if (CREATOR_PROFESSIONS.includes(currentProf)) {
+        setProfession(currentProf);
+        setCustomProfession('');
+      } else {
+        setProfession('Other / Custom Creative Field');
+        setCustomProfession(currentProf);
+      }
+
       setBio(creatorProfile.bio || '');
       setLanguages(creatorProfile.languages || 'English, Hindi');
       setExperienceYears(creatorProfile.experienceYears || '2');
@@ -68,11 +99,16 @@ export default function CreatorProfilePage() {
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
+    const resolvedProf = profession === 'Other / Custom Creative Field' ? customProfession.trim() : profession;
     try {
       const payload = {
+        profession: resolvedProf,
+        occupation: resolvedProf,
         creatorProfile: {
           ...creatorProfile,
           name,
+          profession: resolvedProf,
+          category: resolvedProf,
           bio,
           languages,
           experienceYears,
@@ -153,6 +189,36 @@ export default function CreatorProfilePage() {
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Profession / Creator Category</label>
+            <select
+              value={profession}
+              onChange={(e) => {
+                setProfession(e.target.value);
+                if (e.target.value !== 'Other / Custom Creative Field') {
+                  setCustomProfession('');
+                }
+              }}
+              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer"
+            >
+              {CREATOR_PROFESSIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+
+            {profession === 'Other / Custom Creative Field' && (
+              <input
+                type="text"
+                value={customProfession}
+                onChange={(e) => setCustomProfession(e.target.value)}
+                placeholder="Enter custom creative specialization..."
+                className="w-full mt-2 px-4 py-2.5 bg-surface border border-brand-purple rounded-xl text-xs text-text-primary focus:outline-none animate-fade-in"
+              />
+            )}
           </div>
 
           <div>

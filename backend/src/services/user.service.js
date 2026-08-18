@@ -39,7 +39,7 @@ const switchRole = async (userId, role) => {
 
 const updateProfile = async (userId, updates) => {
   const allowed = [
-    'name', 'email', 'phone', 'gender', 'dob', 'occupation', 'language',
+    'name', 'email', 'phone', 'gender', 'dob', 'occupation', 'profession', 'language',
     'profile_pic', 'avatarUrl', 'city', 'location', 'customerProfile',
     'vendorProfile', 'creatorProfile'
   ];

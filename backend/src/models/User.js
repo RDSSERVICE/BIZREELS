@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
   gender: { type: String, default: null },
   dob: { type: String, default: null },
   occupation: { type: String, default: null },
+  profession: { type: String, default: null },
   language: { type: String, default: 'English' },
   is_active: { type: Boolean, default: true },
   is_deleted: { type: Boolean, default: false },

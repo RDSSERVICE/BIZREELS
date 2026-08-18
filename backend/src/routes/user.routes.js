@@ -375,7 +375,7 @@ router.get('/creators/public', optionalAuth, catchAsync(async (req, res) => {
 router.patch('/me', requireAuth, catchAsync(async (req, res) => {
   const userId = req.user._id;
   const {
-    name, avatarUrl, phone, gender, occupation, dob, language,
+    name, avatarUrl, phone, gender, occupation, profession, dob, language,
     location, vendorProfile, creatorProfile, city
   } = req.body;
 
@@ -385,7 +385,13 @@ router.patch('/me', requireAuth, catchAsync(async (req, res) => {
   if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
   if (phone !== undefined) updateData.phone = phone;
   if (gender !== undefined) updateData.gender = gender;
-  if (occupation !== undefined) updateData.occupation = occupation;
+  if (profession !== undefined) {
+    updateData.profession = profession;
+    updateData.occupation = profession;
+  } else if (occupation !== undefined) {
+    updateData.occupation = occupation;
+    updateData.profession = occupation;
+  }
   if (dob !== undefined) {
     if (dob) {
       const dobDate = new Date(dob);

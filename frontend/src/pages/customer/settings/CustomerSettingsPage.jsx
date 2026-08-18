@@ -11,6 +11,29 @@ import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import InterestSelector from '../../../components/app/InterestSelector';
 
+const CUSTOMER_PROFESSIONS = [
+  'Business Owner / Entrepreneur',
+  'Software Engineer / IT Professional',
+  'Retailer / Shopkeeper',
+  'Doctor / Healthcare Professional',
+  'Teacher / Educator / Professor',
+  'Student',
+  'Chartered Accountant / Financial Advisor',
+  'Lawyer / Legal Consultant',
+  'Real Estate Agent / Broker',
+  'Architect / Interior Designer',
+  'Government / Civil Services Employee',
+  'Private Sector Employee',
+  'Marketing / Sales Executive',
+  'Photographer / Videographer',
+  'Designer / Creative Artist',
+  'Homemaker',
+  'Freelancer / Consultant',
+  'Farmer / Agriculture',
+  'Technician / Electrician / Mechanic',
+  'Other / Custom Profession'
+];
+
 export default function CustomerSettingsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -31,7 +54,8 @@ export default function CustomerSettingsPage() {
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState('male');
-  const [occupation, setOccupation] = useState('');
+  const [profession, setProfession] = useState('');
+  const [customProfession, setCustomProfession] = useState('');
   const [dob, setDob] = useState('');
   const [language, setLanguage] = useState('English');
 
@@ -54,7 +78,21 @@ export default function CustomerSettingsPage() {
       setEmail(user.email || '');
       setPhone(user.phone || '');
       setGender(user.gender || 'male');
-      setOccupation(user.occupation || '');
+      
+      const userProf = user.profession || user.occupation || '';
+      if (userProf) {
+        if (CUSTOMER_PROFESSIONS.includes(userProf)) {
+          setProfession(userProf);
+          setCustomProfession('');
+        } else {
+          setProfession('Other / Custom Profession');
+          setCustomProfession(userProf);
+        }
+      } else {
+        setProfession('');
+        setCustomProfession('');
+      }
+
       setDob(user.dob || '');
       setLanguage(user.language || 'English');
 
@@ -159,13 +197,16 @@ export default function CustomerSettingsPage() {
     setSaving(true);
     const toastId = toast.loading('Saving profile changes...');
 
+    const resolvedProfession = profession === 'Other / Custom Profession' ? customProfession.trim() : profession;
+
     try {
       const payload = {
         name,
         email,
         phone,
         gender,
-        occupation,
+        profession: resolvedProfession,
+        occupation: resolvedProfession,
         dob,
         language,
         city,
@@ -339,14 +380,34 @@ export default function CustomerSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Occupation</label>
-                    <input
-                      type="text"
-                      value={occupation}
-                      onChange={(e) => setOccupation(e.target.value)}
-                      placeholder="e.g. Business Owner / Software Engineer"
-                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-                    />
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Profession / Occupation</label>
+                    <select
+                      value={profession}
+                      onChange={(e) => {
+                        setProfession(e.target.value);
+                        if (e.target.value !== 'Other / Custom Profession') {
+                          setCustomProfession('');
+                        }
+                      }}
+                      className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer"
+                    >
+                      <option value="">Select your profession...</option>
+                      {CUSTOMER_PROFESSIONS.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+
+                    {profession === 'Other / Custom Profession' && (
+                      <input
+                        type="text"
+                        value={customProfession}
+                        onChange={(e) => setCustomProfession(e.target.value)}
+                        placeholder="Enter your custom profession..."
+                        className="w-full mt-2 px-4 py-2.5 bg-surface border border-brand-purple rounded-xl text-xs text-text-primary focus:outline-none animate-fade-in"
+                      />
+                    )}
                   </div>
 
                   <div>

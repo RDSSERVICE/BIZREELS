@@ -204,6 +204,26 @@ function SearchableSelect({
   );
 }
 
+const VENDOR_PROFESSIONS = [
+  'Retailer / Shop Owner',
+  'Service Provider / Professional',
+  'Wholesaler / Bulk Supplier',
+  'Manufacturer / Factory Unit',
+  'Distributor / Channel Partner',
+  'Restaurant / Cafe / Food Business',
+  'Salon / Beauty & Wellness Expert',
+  'Healthcare / Clinic / Chemist',
+  'Contractor / Interior & Construction',
+  'Event Planner / Decorator / DJ',
+  'Gym / Fitness Trainer / Coach',
+  'Automobile / Garage / Bike Service',
+  'Electronics & Mobile Retailer',
+  'Real Estate Consultant / Property Dealer',
+  'Freelancer / Independent Contractor',
+  'Education / Coaching Institute',
+  'Other / Custom Profession'
+];
+
 export default function VendorBusinessProfilePage() {
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state) => state.auth);
@@ -219,6 +239,8 @@ export default function VendorBusinessProfilePage() {
   // Form states
   const [shopName, setShopName] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [profession, setProfession] = useState('Retailer / Shop Owner');
+  const [customProfession, setCustomProfession] = useState('');
   const [category, setCategory] = useState('Electronics');
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState('');
@@ -271,6 +293,16 @@ export default function VendorBusinessProfilePage() {
         : '';
       setShopName(cleanShopName);
       setBusinessName(vendorProfile.businessName || '');
+
+      const currentProf = vendorProfile.profession || vendorProfile.businessType || user.profession || user.occupation || 'Retailer / Shop Owner';
+      if (VENDOR_PROFESSIONS.includes(currentProf)) {
+        setProfession(currentProf);
+        setCustomProfession('');
+      } else {
+        setProfession('Other / Custom Profession');
+        setCustomProfession(currentProf);
+      }
+
       setCategory(vendorProfile.category || 'Electronics');
       setDescription(vendorProfile.description || vendorProfile.businessDescription || '');
       
@@ -615,9 +647,13 @@ export default function VendorBusinessProfilePage() {
         address: areaAddress.trim() || finalAddress,
       };
 
+      const resolvedProf = profession === 'Other / Custom Profession' ? customProfession.trim() : profession;
+
       const payload = {
         profile_pic: profilePic || undefined,
         avatarUrl: profilePic || undefined,
+        profession: resolvedProf,
+        occupation: resolvedProf,
         location: {
           type: 'Point',
           coordinates: user.location?.coordinates || [75.8577, 22.7196],
@@ -629,6 +665,8 @@ export default function VendorBusinessProfilePage() {
         },
         vendorProfile: {
           ...vendorProfile,
+          profession: resolvedProf,
+          businessType: resolvedProf,
           shopName,
           businessName,
           category,
@@ -859,6 +897,36 @@ export default function VendorBusinessProfilePage() {
                 placeholder="e.g. Metro Enterprises Pvt Ltd"
                 className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
               />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Profession / Business Type *</label>
+              <select
+                value={profession}
+                onChange={(e) => {
+                  setProfession(e.target.value);
+                  if (e.target.value !== 'Other / Custom Profession') {
+                    setCustomProfession('');
+                  }
+                }}
+                className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all cursor-pointer"
+              >
+                {VENDOR_PROFESSIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+
+              {profession === 'Other / Custom Profession' && (
+                <input
+                  type="text"
+                  value={customProfession}
+                  onChange={(e) => setCustomProfession(e.target.value)}
+                  placeholder="Enter your custom business profession / type..."
+                  className="w-full mt-2 px-4 py-2.5 bg-[#f8f4ec] border-2 border-[#d99a3d] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none animate-fade-in"
+                />
+              )}
             </div>
 
             {/* Timing Section */}

@@ -277,6 +277,7 @@ const Settings = () => {
         phone: data.phone,
         avatarUrl: data.avatarUrl,
         gender: data.gender,
+        profession: data.occupation,
         occupation: data.occupation,
         dob: data.dob || undefined,
         language: data.language,

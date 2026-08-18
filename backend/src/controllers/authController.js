@@ -204,7 +204,7 @@ class AuthController {
 
   // ── Update Profile ─────────────────────────────────────
   updateProfile = asyncHandler(async (req, res) => {
-    const { name, avatarUrl, profile_pic, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile, city } = req.body;
+    const { name, avatarUrl, profile_pic, phone, gender, occupation, profession, dob, language, location, vendorProfile, creatorProfile, city } = req.body;
     const resolvedPic = avatarUrl !== undefined ? avatarUrl : profile_pic;
     const user = await authService.updateProfile(req.user._id, { 
       name, 
@@ -213,6 +213,7 @@ class AuthController {
       phone, 
       gender, 
       occupation, 
+      profession,
       dob, 
       language, 
       location, 

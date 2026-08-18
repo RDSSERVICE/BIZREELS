@@ -545,7 +545,7 @@ class AuthService {
     return this._sanitizeUser(updatedUser);
   }
 
-  async updateProfile(userId, { name, avatarUrl, profile_pic, phone, gender, occupation, dob, language, location, vendorProfile, creatorProfile, city }, req) {
+  async updateProfile(userId, { name, avatarUrl, profile_pic, phone, gender, occupation, profession, dob, language, location, vendorProfile, creatorProfile, city }, req) {
     const user = await authRepository.findUserById(userId);
     if (!user) {
       throw ApiError.notFound('User not found.');
@@ -560,7 +560,13 @@ class AuthService {
     }
     if (phone) updateFields.phone = phone;
     if (gender) updateFields.gender = gender;
-    if (occupation) updateFields.occupation = occupation;
+    if (profession !== undefined) {
+      updateFields.profession = profession;
+      updateFields.occupation = profession;
+    } else if (occupation !== undefined) {
+      updateFields.occupation = occupation;
+      updateFields.profession = occupation;
+    }
     if (dob) {
       const dobDate = new Date(dob);
       if (isNaN(dobDate.getTime())) {
