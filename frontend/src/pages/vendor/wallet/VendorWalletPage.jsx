@@ -106,45 +106,69 @@ export default function VendorWalletPage() {
 
   const columns = [
     {
-      key: 'createdAt',
+      key: 'created_at',
       label: 'Date & Time',
-      render: (val) => (
-        <span className="text-slate-500 font-medium text-xs">
-          {val ? new Date(val).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}
-        </span>
-      ),
+      render: (val, row) => {
+        const rawDate = val || row?.created_at || row?.createdAt || row?.date || row?.timestamp;
+        if (!rawDate) return <span className="text-slate-400 font-medium text-xs">N/A</span>;
+        const d = new Date(rawDate);
+        if (isNaN(d.getTime())) return <span className="text-slate-400 font-medium text-xs">N/A</span>;
+        return (
+          <div className="flex flex-col">
+            <span className="font-bold text-xs text-[#1a1a1a]">
+              {d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium">
+              {d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'description',
       label: 'Description',
-      render: (val, row) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-xs text-[#1a1a1a]">{val || row.type || 'Transaction'}</span>
-          {row.referenceId && <span className="text-[10px] text-slate-400">Ref: {row.referenceId}</span>}
-        </div>
-      ),
+      render: (val, row) => {
+        const desc = val || row?.description || row?.admin_remarks || row?.meta?.plan_name || row?.title || row?.type || 'Transaction';
+        const refId = row?.reference_id || row?.referenceId || row?.paymentId || row?.payment_id;
+        return (
+          <div className="flex flex-col">
+            <span className="font-bold text-xs text-[#1a1a1a]">{desc}</span>
+            {refId && <span className="text-[10px] text-slate-400">Ref: {refId}</span>}
+          </div>
+        );
+      },
     },
     {
       key: 'type',
       label: 'Type',
-      render: (val) => (
-        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-          val === 'credit' || val === 'deposit'
-            ? 'bg-emerald-100 text-emerald-800'
-            : 'bg-rose-100 text-rose-800'
-        }`}>
-          {val}
-        </span>
-      ),
+      render: (val, row) => {
+        const typeStr = (val || row?.type || row?.credit_debit || 'debit').toLowerCase();
+        const isCredit = typeStr === 'credit' || typeStr === 'deposit' || typeStr === 'recharge' || typeStr === 'referral_bonus' || row?.credit_debit === 'credit';
+        return (
+          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+            isCredit
+              ? 'bg-emerald-100 text-emerald-800'
+              : 'bg-rose-100 text-rose-800'
+          }`}>
+            {isCredit ? 'Credit' : 'Debit'}
+          </span>
+        );
+      },
     },
     {
       key: 'amount',
       label: 'Amount (INR)',
-      render: (val, row) => (
-        <span className={`font-black text-xs ${row.type === 'credit' || row.type === 'deposit' ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {row.type === 'credit' || row.type === 'deposit' ? '+' : '-'}₹{(val || 0).toLocaleString('en-IN')}
-        </span>
-      ),
+      render: (val, row) => {
+        const amt = typeof val === 'number' ? val : (typeof row?.amount === 'number' ? row.amount : 0);
+        const typeStr = (row?.type || row?.credit_debit || '').toLowerCase();
+        const isCredit = typeStr === 'credit' || typeStr === 'deposit' || typeStr === 'recharge' || typeStr === 'referral_bonus' || row?.credit_debit === 'credit';
+        return (
+          <span className={`font-black text-xs ${isCredit ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {isCredit ? '+' : '-'}₹{Math.abs(amt).toLocaleString('en-IN')}
+          </span>
+        );
+      },
     },
   ];
 

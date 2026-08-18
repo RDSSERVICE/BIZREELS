@@ -1030,15 +1030,53 @@ class WalletService {
   async getRoleTransactions(userId, role, page = 1, limit = 50) {
     const IsolatedTransaction = require('../models/IsolatedTransaction.model');
     const uid = userId.toString();
-    const skip = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const parsedLimit = Math.max(1, parseInt(limit, 10) || 50);
+    const skip = (parsedPage - 1) * parsedLimit;
     const query = { userId: uid, role };
 
     const [items, total] = await Promise.all([
-      IsolatedTransaction.find(query).sort({ created_at: -1 }).skip(skip).limit(parseInt(limit)).lean(),
+      IsolatedTransaction.find(query).sort({ created_at: -1 }).skip(skip).limit(parsedLimit).lean(),
       IsolatedTransaction.countDocuments(query),
     ]);
 
-    return { items, total, page: parseInt(page), limit: parseInt(limit) };
+    if (items.length > 0) {
+      return {
+        items: items.map(t => ({
+          ...t,
+          createdAt: t.created_at || t.createdAt || new Date(),
+          created_at: t.created_at || t.createdAt || new Date(),
+        })),
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+      };
+    }
+
+    // Fallback for vendor legacy transactions in WalletTransactionV2
+    if (role === 'vendor') {
+      const WalletTransactionV2 = require('../models/WalletTransactionV2.model');
+      const [v2Items, v2Total] = await Promise.all([
+        WalletTransactionV2.find({ user_id: uid }).sort({ created_at: -1 }).skip(skip).limit(parsedLimit).lean(),
+        WalletTransactionV2.countDocuments({ user_id: uid }),
+      ]);
+      return {
+        items: v2Items.map(t => ({
+          ...t,
+          createdAt: t.created_at || t.createdAt || new Date(),
+          created_at: t.created_at || t.createdAt || new Date(),
+          type: t.credit_debit === 'credit' ? 'credit' : 'debit',
+          description: t.admin_remarks || (t.transaction_type ? t.transaction_type.replace(/_/g, ' ') : 'Wallet Transaction'),
+          reference_id: t.reference_id,
+          amount: t.amount || 0,
+        })),
+        total: v2Total,
+        page: parsedPage,
+        limit: parsedLimit,
+      };
+    }
+
+    return { items: [], total: 0, page: parsedPage, limit: parsedLimit };
   }
 }
 
