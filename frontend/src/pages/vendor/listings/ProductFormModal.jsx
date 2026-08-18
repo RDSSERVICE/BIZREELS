@@ -81,7 +81,6 @@ export default function ProductFormModal({
   // Variant helper states
   const [variantLabel, setVariantLabel] = useState('');
   const [variantValue, setVariantValue] = useState('');
-  const [variantSku, setVariantSku] = useState('');
   const [variantPriceAdj, setVariantPriceAdj] = useState('');
   const [variantImageUrl, setVariantImageUrl] = useState('');
   const [variantUploading, setVariantUploading] = useState(false);
@@ -91,16 +90,7 @@ export default function ProductFormModal({
     const ts = Date.now().toString().slice(-4);
     const skuCode = `SKU-${rand}-${ts}`;
     setForm((prev) => ({ ...prev, sku: skuCode }));
-    setVariantSku(skuCode);
     toast.success('SKU Code Auto-Generated!');
-  };
-
-  const generateVariantSKU = () => {
-    const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const ts = Date.now().toString().slice(-4);
-    const skuCode = `SKU-${rand}-${ts}`;
-    setVariantSku(skuCode);
-    toast.success('Variant SKU Auto-Generated!');
   };
 
   // Dynamic limits state
@@ -341,7 +331,7 @@ export default function ProductFormModal({
       label: variantLabel.trim(),
       type: variantLabel.trim(),
       value: variantValue.trim(),
-      sku: variantSku.trim() || `${form.sku || 'SKU'}-${variantValue.trim().toUpperCase()}`,
+      sku: `${form.sku || 'SKU'}-${variantValue.trim().toUpperCase()}`,
       price: finalVariantPrice,
       image: variantImageUrl || undefined,
     };
@@ -352,7 +342,6 @@ export default function ProductFormModal({
     }));
 
     setVariantValue('');
-    setVariantSku('');
     setVariantPriceAdj('');
     setVariantImageUrl('');
     toast.success('Variant option added!');
@@ -598,7 +587,6 @@ export default function ProductFormModal({
         <ProductPricingInventorySection
           form={form}
           updateForm={updateForm}
-          generateSKU={generateSKU}
         />
 
         {/* Images & Media */}
@@ -622,14 +610,11 @@ export default function ProductFormModal({
           setVariantLabel={setVariantLabel}
           variantValue={variantValue}
           setVariantValue={setVariantValue}
-          variantSku={variantSku}
-          setVariantSku={setVariantSku}
           variantPriceAdj={variantPriceAdj}
           setVariantPriceAdj={setVariantPriceAdj}
           variantImageUrl={variantImageUrl}
           setVariantImageUrl={setVariantImageUrl}
           variantUploading={variantUploading}
-          generateVariantSKU={generateVariantSKU}
           handleAddVariant={handleAddVariant}
           handleRemoveVariant={handleRemoveVariant}
           handleVariantImageUpload={handleVariantImageUpload}

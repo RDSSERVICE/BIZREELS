@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FiVideo, FiCpu, FiPlay, FiCalendar, FiShield,
+  FiVideo, FiPlay, FiCalendar, FiShield,
   FiEye, FiHeart, FiUserCheck, FiPlus, FiTrash2, FiFileText, FiZap
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -19,7 +19,6 @@ import {
 import ReelCardMediaCarousel from './ReelCardMediaCarousel';
 import CreateReelWizardModal from './CreateReelWizardModal';
 import ReelPreviewModal from './ReelPreviewModal';
-import AiReelGeneratorModal from './AiReelGeneratorModal';
 import ReelBoostModal from './ReelBoostModal';
 
 export default function VendorReelsPage() {
@@ -29,7 +28,6 @@ export default function VendorReelsPage() {
   // Main Modals
   const [showPostModal, setShowPostModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [showAiAdModal, setShowAiAdModal] = useState(false);
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [selectedReelForBoost, setSelectedReelForBoost] = useState(null);
 
@@ -291,7 +289,7 @@ export default function VendorReelsPage() {
 
       <AdminPageHeader
         icon={FiVideo}
-        title="Service Reels & AI Ads Studio"
+        title="Service Reels Studio"
         subtitle={`Live catalog (${reelsList.length} total posts) • ${publishedCount} Published • ${scheduledCount} Scheduled • ${draftCount} Drafts • ${reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()} Total Views`}
       >
         <div className="flex flex-wrap items-center gap-2.5">
@@ -301,13 +299,6 @@ export default function VendorReelsPage() {
             className="px-4.5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer border border-amber-400"
           >
             <FiPlus size={15} /> <span className="hidden sm:inline">CREATE REEL / POST</span><span className="sm:hidden">CREATE REEL</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAiAdModal(true)}
-            className="px-4.5 py-2.5 rounded-full bg-[#2b2d36] text-amber-300 border border-amber-500/40 font-extrabold text-xs shadow-md hover:bg-[#353844] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <FiCpu size={15} /> <span className="hidden sm:inline">CREATE REELS (AI)</span><span className="sm:hidden">AI REEL</span>
           </button>
           <button
             type="button"
@@ -507,15 +498,7 @@ export default function VendorReelsPage() {
         onPublish={handlePublishReelPost}
       />
 
-      {/* MODAL 3: CREATE REELS AI */}
-      <AiReelGeneratorModal
-        isOpen={showAiAdModal}
-        onClose={() => setShowAiAdModal(false)}
-        refetch={refetch}
-        createReel={createReel}
-      />
-
-      {/* MODAL 4: BOOST REEL */}
+      {/* MODAL 3: BOOST REEL */}
       <ReelBoostModal
         isOpen={showBoostModal}
         onClose={() => {

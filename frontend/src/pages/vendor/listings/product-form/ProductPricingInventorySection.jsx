@@ -39,7 +39,7 @@ const STANDARD_CONDITIONS = [
   'Other / Custom condition',
 ];
 
-export default function ProductPricingInventorySection({ form, updateForm, generateSKU }) {
+export default function ProductPricingInventorySection({ form, updateForm }) {
   // Unit other state
   const isPredefinedUnit = STANDARD_UNITS.some((u) => u.value === form.unit && u.value !== 'other');
   const [selectedUnitType, setSelectedUnitType] = useState(
@@ -90,17 +90,6 @@ export default function ProductPricingInventorySection({ form, updateForm, gener
   const handleCustomUnitChange = (val) => {
     setCustomUnit(val);
     updateForm('unit', val.trim() || 'other');
-  };
-
-  // Auto SKU generator if not passed
-  const handleAutoSKU = () => {
-    if (typeof generateSKU === 'function') {
-      generateSKU();
-    } else {
-      const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const ts = Date.now().toString().slice(-4);
-      updateForm('sku', `SKU-${rand}-${ts}`);
-    }
   };
 
   // Sync return policy string to form
@@ -221,41 +210,15 @@ export default function ProductPricingInventorySection({ form, updateForm, gener
           <FiDollarSign className="text-brand-purple" />
           <span>Pricing &amp; Inventory Configuration</span>
         </h4>
-        <span className="text-[10px] font-bold text-text-tertiary">
-          Flow: SKU → Unit → Stock → Actual Price → GST% → Selling Price → Discount%
-        </span>
       </div>
 
       {/* ── PRICING & INVENTORY FLOW GRID ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
         
-        {/* 1. SKU Code */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block">
-              1. SKU Code
-            </label>
-            <button
-              type="button"
-              onClick={handleAutoSKU}
-              className="text-[9px] font-bold text-brand-purple hover:underline flex items-center gap-0.5 cursor-pointer bg-transparent border-none"
-            >
-              <FiRefreshCw size={9} /> Auto-Generate
-            </button>
-          </div>
-          <input
-            type="text"
-            value={form.sku}
-            onChange={(e) => updateForm('sku', e.target.value)}
-            placeholder="e.g. SKU-PROD-001"
-            className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs font-mono font-bold text-text-primary focus:outline-none focus:border-brand-purple"
-          />
-        </div>
-
-        {/* 2. Unit / Quantity Type (with Other Option) */}
+        {/* 1. Unit / Quantity Type (with Other Option) */}
         <div className={selectedUnitType === 'other' ? 'sm:col-span-2' : ''}>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            2. Unit / Quantity Type *
+            1. Unit / Quantity Type *
           </label>
           <div className="flex gap-2">
             <select
@@ -284,10 +247,10 @@ export default function ProductPricingInventorySection({ form, updateForm, gener
           </div>
         </div>
 
-        {/* 3. Stock Quantity */}
+        {/* 2. Stock Quantity */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            3. Stock Quantity *
+            2. Stock Quantity *
           </label>
           <input
             type="number"
@@ -300,10 +263,10 @@ export default function ProductPricingInventorySection({ form, updateForm, gener
           />
         </div>
 
-        {/* 4. Actual Price / MRP */}
+        {/* 3. Actual Price / MRP */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            4. Actual Price / MRP (₹) *
+            3. Actual Price / MRP (₹) *
           </label>
           <div className="relative">
             <input
@@ -319,10 +282,10 @@ export default function ProductPricingInventorySection({ form, updateForm, gener
           </div>
         </div>
 
-        {/* 5. GST Rate (%) */}
+        {/* 4. GST Rate (%) */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            5. GST Rate (%)
+            4. GST Rate (%)
           </label>
           <div className="flex gap-1.5">
             <select
@@ -339,10 +302,10 @@ export default function ProductPricingInventorySection({ form, updateForm, gener
           </div>
         </div>
 
-        {/* 6. Selling Price (with GST) */}
+        {/* 5. Selling Price (with GST) */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            6. Selling Price (with GST) (₹) *
+            5. Selling Price (with GST) (₹) *
           </label>
           <div className="relative">
             <input
@@ -358,10 +321,10 @@ export default function ProductPricingInventorySection({ form, updateForm, gener
           </div>
         </div>
 
-        {/* 7. Discount (%) */}
+        {/* 6. Discount (%) */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            7. Discount (%)
+            6. Discount (%)
           </label>
           <div className="relative">
             <input
@@ -437,9 +400,6 @@ export default function ProductPricingInventorySection({ form, updateForm, gener
             <FiTruck className="text-[#d99a3d]" size={16} />
             <span>3. Shipping &amp; Package Specifications</span>
           </label>
-          <span className="text-[10px] text-text-tertiary font-bold">
-            Weight, Dimensions (L/W/H), &amp; Payment Type
-          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

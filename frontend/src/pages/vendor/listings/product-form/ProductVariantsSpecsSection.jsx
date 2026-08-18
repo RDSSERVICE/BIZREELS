@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiPlus, FiX, FiRefreshCw, FiUploadCloud } from 'react-icons/fi';
+import { FiPlus, FiX, FiUploadCloud } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function ProductVariantsSpecsSection({
@@ -11,14 +11,11 @@ export default function ProductVariantsSpecsSection({
   setVariantLabel,
   variantValue,
   setVariantValue,
-  variantSku,
-  setVariantSku,
   variantPriceAdj,
   setVariantPriceAdj,
   variantImageUrl,
   setVariantImageUrl,
   variantUploading,
-  generateVariantSKU,
   handleAddVariant,
   handleRemoveVariant,
   handleVariantImageUpload,
@@ -82,7 +79,7 @@ export default function ProductVariantsSpecsSection({
         </h4>
 
         <div className="p-3 bg-surface rounded-xl border border-border space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <input
               type="text"
               value={variantLabel}
@@ -97,23 +94,6 @@ export default function ProductVariantsSpecsSection({
               placeholder="Value (e.g. XL, Red)"
               className="p-2 bg-surface-secondary border rounded-xl text-xs text-text-primary"
             />
-            <div className="relative">
-              <input
-                type="text"
-                value={variantSku}
-                onChange={(e) => setVariantSku(e.target.value)}
-                placeholder="Variant SKU"
-                className="w-full p-2 pr-6 bg-surface-secondary border rounded-xl text-xs text-text-primary"
-              />
-              <button
-                type="button"
-                onClick={generateVariantSKU}
-                title="Auto SKU"
-                className="absolute right-2 top-2.5 text-brand-purple hover:opacity-80"
-              >
-                <FiRefreshCw size={11} />
-              </button>
-            </div>
             <input
               type="number"
               value={variantPriceAdj}
@@ -179,9 +159,11 @@ export default function ProductVariantsSpecsSection({
                     <span className="font-bold text-text-primary">
                       {v.label || v.type}: {v.value}
                     </span>
-                    <span className="text-[10px] text-text-tertiary ml-2 font-mono">
-                      ({v.sku || 'No SKU'})
-                    </span>
+                    {v.sku && (
+                      <span className="text-[10px] text-text-tertiary ml-2 font-mono">
+                        ({v.sku})
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
