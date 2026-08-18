@@ -7,7 +7,7 @@ import {
   FiGrid, FiUser, FiPackage, FiVideo, FiZap, FiInbox, FiShoppingCart,
   FiPieChart, FiCreditCard, FiDollarSign, FiStar, FiUserCheck, FiSettings,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
-  FiCheckCircle, FiMessageSquare, FiCheck, FiFileText
+  FiCheckCircle, FiMessageSquare, FiCheck, FiFileText, FiTv, FiFilm
 } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
@@ -15,54 +15,8 @@ import { setCredentials, logout, selectCurrentUser, setActiveRole } from '../../
 import { api, tokenStore, resolveMediaUrl } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 
-const NAV_SECTIONS = [
-  {
-    title: 'Overview',
-    items: [
-      { name: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid },
-      { name: 'Refer & Earn', path: '/vendor/referrals', icon: FiUserCheck },
-    ],
-  },
-  {
-    title: 'Business',
-    items: [
-      { name: 'Business Profile', path: '/vendor/profile', icon: FiUser },
-      { name: 'Onboarding Details', path: '/vendor/onboarding-details', icon: FiFileText },
-      { name: 'Verification Center', path: '/vendor/verification', icon: FiShield, badge: 'Badge' },
-      { name: 'My Listings', path: '/vendor/listings', icon: FiPackage },
-      { name: 'Reels & AI Ads', path: '/vendor/reels', icon: FiVideo },
-    ],
-  },
-  {
-    title: 'Sales',
-    items: [
-      { name: 'Leads / Enquiries', path: '/vendor/leads', icon: FiInbox },
-      { name: 'Order Requests', path: '/vendor/orders', icon: FiShoppingCart },
-      { name: 'Chat / Inbox', path: '/vendor/chat', icon: FiMessageSquare },
-      { name: 'Analytics', path: '/vendor/analytics', icon: FiPieChart },
-    ],
-  },
-  {
-    title: 'Finance',
-    items: [
-      { name: 'Subscription', path: '/vendor/subscription', icon: FiCreditCard },
-      { name: 'Wallet', path: '/vendor/wallet', icon: TbCurrencyRupee },
-      { name: 'Credit Rates', path: '/vendor/credit-rates', icon: FiZap },
-    ],
-  },
-  {
-    title: 'Engagement',
-    items: [
-      { name: 'Reviews', path: '/vendor/reviews', icon: FiStar },
-      { name: 'Followers', path: '/vendor/followers', icon: FiUserCheck },
-      { name: 'Hire Creator', path: '/vendor/hire-creator', icon: FiUserCheck },
-      { name: 'Settings', path: '/vendor/settings', icon: FiSettings },
-    ],
-  },
-];
-
 /**
- * VendorLayout — Admin-style fixed sidebar layout for Vendor Portal
+ * VendorLayout — Warm Editorial Bento-Brutalism layout for Vendor Portal
  */
 export default function VendorLayout() {
   const navigate = useNavigate();
@@ -178,38 +132,92 @@ export default function VendorLayout() {
     }
   };
 
+  const menuItems = [
+    // Main
+    { label: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid },
+    { label: 'My Listings', path: '/vendor/listings', icon: FiPackage },
+    { label: 'Reels & AI Ads', path: '/vendor/reels', icon: FiVideo },
+    { label: 'Leads / Enquiries', path: '/vendor/leads', icon: FiInbox },
+    { label: 'Order Requests', path: '/vendor/orders', icon: FiShoppingCart },
+    { label: 'Chat / Inbox', path: '/vendor/chat', icon: FiMessageSquare },
+
+    // Portals
+    { label: 'Customer Feed', path: '/customer/home', icon: FiTv },
+    {
+      label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? 'Creator Portal' : 'Become a Creator',
+      path: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? '/creator/dashboard' : '/creator/onboarding',
+      icon: FiFilm,
+      highlight: !(roles.includes('creator') && profileUser?.creatorProfile?.displayName)
+    },
+
+    // Business & Growth
+    { label: 'Business Profile', path: '/vendor/profile', icon: FiUser },
+    { label: 'Onboarding Details', path: '/vendor/onboarding-details', icon: FiFileText },
+    { label: 'Verification Center', path: '/vendor/verification', icon: FiShield, badge: 'BADGE' },
+    { label: 'Analytics', path: '/vendor/analytics', icon: FiPieChart },
+    { label: 'Refer & Earn', path: '/vendor/referrals', icon: FiUserCheck },
+    { label: 'Hire Creator', path: '/vendor/hire-creator', icon: FiUserCheck },
+    { label: 'Reviews', path: '/vendor/reviews', icon: FiStar },
+    { label: 'Followers', path: '/vendor/followers', icon: FiUserCheck },
+
+    // Finance & Settings
+    { label: 'Subscription', path: '/vendor/subscription', icon: FiCreditCard },
+    { label: 'Vendor Wallet', path: '/vendor/wallet', icon: TbCurrencyRupee },
+    { label: 'Credit Rates', path: '/vendor/credit-rates', icon: FiZap },
+    { label: 'Settings', path: '/vendor/settings', icon: FiSettings },
+  ];
+
+  const NAV_SECTIONS = [
+    {
+      title: 'Main',
+      items: menuItems.slice(0, 6),
+    },
+    {
+      title: 'Portals',
+      items: menuItems.slice(6, 8),
+    },
+    {
+      title: 'Business & Growth',
+      items: menuItems.slice(8, 16),
+    },
+    {
+      title: 'Finance & Account',
+      items: menuItems.slice(16),
+    },
+  ];
+
   const SidebarContent = ({ onItemClick }) => (
-    <div className="flex flex-col h-full font-sans bg-[#f8f4ec] border-r border-[#e3dccb]">
+    <div className="flex flex-col h-full bg-white font-sans border-r border-[#e3dccb]">
       {/* Brand Header */}
-      <div className="px-4 py-4 bg-white border-b border-[#e3dccb] flex items-center justify-between">
+      <div className="px-4 py-4 border-b border-[#e3dccb] flex items-center justify-between">
         <Link to="/vendor/dashboard" className="flex items-center gap-2.5 group">
           <img src="/logo.png" alt="BizReels Logo" className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" />
           <div>
-            <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm text-[#1a1a1a] block leading-tight tracking-tight">
-              BIZ<span className="text-[#d99a3d]">REELS</span>
+            <span className="text-sm font-black text-[#1a1a1a] block leading-tight font-heading">
+              Biz<span className="gradient-text font-black">Reels</span>
             </span>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">VENDOR PORTAL</span>
+            <span className="text-[9px] font-extrabold text-[#d99a3d] uppercase tracking-widest block">Vendor Portal</span>
           </div>
         </Link>
       </div>
 
       {/* Nav Sections */}
-      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-2 scrollbar-none">
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {NAV_SECTIONS.map((section) => {
           const isCollapsed = collapsedSections[section.title];
 
           return (
-            <div key={section.title} className="space-y-0.5">
+            <div key={section.title}>
               <button
                 type="button"
                 onClick={() => toggleSection(section.title)}
-                className="w-full flex items-center justify-between px-2 py-1 text-[9.5px] font-black text-slate-400 uppercase tracking-widest hover:text-[#1a1a1a] transition-all cursor-pointer border-none bg-transparent"
+                className="w-full flex items-center justify-between px-2 py-1.5 text-[9.5px] font-extrabold text-slate-400 uppercase tracking-widest hover:text-[#1a1a1a] transition-all cursor-pointer border-none bg-transparent"
               >
-                <span>{section.title}</span>
+                {section.title}
                 {isCollapsed ? (
-                  <FiChevronRight className="w-3 h-3 text-slate-400" />
+                  <FiChevronRight className="w-3 h-3" />
                 ) : (
-                  <FiChevronDown className="w-3 h-3 text-slate-400" />
+                  <FiChevronDown className="w-3 h-3" />
                 )}
               </button>
 
@@ -220,46 +228,56 @@ export default function VendorLayout() {
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className="overflow-hidden space-y-0.5"
+                    className="overflow-hidden space-y-1 mt-1"
                   >
                     {section.items.map((item) => {
-                      const isActive = location.pathname === item.path;
+                      const isActive = location.pathname === item.path || (item.path !== '/vendor/dashboard' && location.pathname.startsWith(item.path));
                       const Icon = item.icon;
+
+                      const handleClick = () => {
+                        onItemClick?.();
+                        if (item.path.startsWith('/customer/')) {
+                          handleRoleSwitch('customer');
+                        } else if (item.path.startsWith('/creator/')) {
+                          handleRoleSwitch('creator');
+                        }
+                      };
+
                       return (
                         <Link
                           key={item.path}
                           to={item.path}
-                          onClick={onItemClick}
-                          className={`relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all duration-150 group ${
+                          onClick={handleClick}
+                          className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-bold transition-all duration-150 ${
                             isActive
-                              ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs'
-                              : 'text-slate-700 hover:bg-white hover:text-[#1a1a1a] hover:shadow-2xs'
+                              ? 'bg-[#241b15] text-[#d99a3d] border border-[#241b15] shadow-xs'
+                              : 'text-slate-700 hover:bg-[#f8f4ec] hover:text-[#1a1a1a]'
                           }`}
                         >
-                          {/* Active Gold Left Indicator */}
-                          {isActive && (
-                            <span className="w-1 h-5 bg-[#d99a3d] rounded-r-full absolute left-0" />
-                          )}
-
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {/* Icon Container Badge */}
-                            <div
-                              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                                isActive
-                                  ? 'bg-[#d99a3d] text-[#1a1a1a] shadow-xs'
-                                  : 'bg-white text-slate-600 border border-[#e3dccb] group-hover:border-[#241b15] group-hover:text-[#241b15]'
-                              }`}
-                            >
-                              <Icon size={14} />
+                          <div className="flex items-center gap-2.5">
+                            {/* Framed Icon Box */}
+                            <div className={`w-6 h-6 rounded flex items-center justify-center border ${
+                              isActive
+                                ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#d99a3d]'
+                                : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb]'
+                            }`}>
+                              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                             </div>
-                            <span className="truncate">{item.name}</span>
+                            <span className="truncate">{item.label}</span>
                           </div>
 
-                          {item.badge && (
-                            <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] font-black px-1.5 py-0.2 rounded uppercase tracking-wide shrink-0">
-                              {item.badge}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {item.highlight && (
+                              <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] font-black px-1.5 py-0.2 rounded uppercase">
+                                NEW
+                              </span>
+                            )}
+                            {item.badge && (
+                              <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9.5px] font-black px-2 py-0.5 rounded-full tracking-wider uppercase shadow-2xs">
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
                         </Link>
                       );
                     })}
@@ -271,27 +289,31 @@ export default function VendorLayout() {
         })}
       </nav>
 
-      {/* User Info + Logout Footer Card */}
-      <div className="border-t border-[#e3dccb] p-3 bg-white space-y-2">
-        <div className="flex items-center gap-2.5 p-1">
-          <img
-            src={resolveMediaUrl(profileUser?.profile_pic || profileUser?.avatarUrl || vendorProfile.shopLogo) || "/logo.png"}
-            alt="Vendor"
-            className="w-9 h-9 rounded-full object-cover border border-[#e3dccb] bg-[#f8f4ec] p-0.5 shadow-xs shrink-0"
-          />
+      {/* User Info + Logout */}
+      <div className="border-t border-[#e3dccb] px-4 py-3 bg-[#f8f4ec]">
+        <div className="flex items-center gap-2.5 mb-3">
+          {profileUser?.profile_pic || profileUser?.avatarUrl || vendorProfile?.shopLogo ? (
+            <img
+              src={resolveMediaUrl(profileUser?.profile_pic || profileUser?.avatarUrl || vendorProfile?.shopLogo)}
+              alt={vendorProfile?.shopName || profileUser?.name || 'Vendor'}
+              className="w-8 h-8 rounded-full object-cover border-2 border-[#d99a3d] bg-white"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full border-2 border-[#d99a3d] bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-bold text-xs">
+              {(vendorProfile?.shopName || profileUser?.name) ? (vendorProfile?.shopName || profileUser?.name).charAt(0).toUpperCase() : <FiUser />}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-black text-[#1a1a1a] truncate">{vendorProfile.shopName || profileUser?.name || 'Vendor'}</p>
-            <p className="text-[10px] font-medium text-slate-400 truncate">{profileUser?.email || profileUser?.phone || 'vendor'}</p>
+            <p className="text-xs font-extrabold text-[#1a1a1a] truncate">{vendorProfile?.shopName || profileUser?.name || 'Vendor'}</p>
+            <p className="text-[10px] text-slate-500 truncate">{profileUser?.email || profileUser?.phone || 'vendor'}</p>
           </div>
         </div>
-
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-black text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all border border-rose-200 cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition border border-rose-200 cursor-pointer"
         >
-          <FiLogOut className="w-4 h-4" />
-          <span>Sign Out</span>
+          <FiLogOut className="w-3.5 h-3.5" /> Sign Out
         </button>
       </div>
     </div>
@@ -316,9 +338,9 @@ export default function VendorLayout() {
   const badgeInfo = getTierBadge();
 
   return (
-    <div className="min-h-screen bg-surface-secondary flex">
+    <div className="min-h-screen bg-[#f2ede4] flex font-sans">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-surface border-r border-border fixed top-0 bottom-0 left-0 z-30">
+      <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-white border-r border-[#e3dccb] fixed top-0 bottom-0 left-0 z-30">
         <SidebarContent onItemClick={() => { }} />
       </aside>
 
@@ -326,13 +348,13 @@ export default function VendorLayout() {
       <AnimatePresence>
         {isSidebarOpen && (
           <>
-            <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+            <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs lg:hidden" onClick={() => setIsSidebarOpen(false)} />
             <motion.aside
               initial={{ x: -280 }}
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 bottom-0 left-0 w-[280px] z-50 bg-surface border-r border-border shadow-modal lg:hidden"
+              className="fixed top-0 bottom-0 left-0 w-[280px] z-50 bg-white border-r border-[#e3dccb] shadow-2xl lg:hidden"
             >
               <SidebarContent onItemClick={() => setIsSidebarOpen(false)} />
             </motion.aside>
@@ -343,22 +365,24 @@ export default function VendorLayout() {
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Top Bar */}
-        <header className="sticky top-0 z-40 bg-white border-b border-[#e3dccb] shadow-2xs px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3 relative font-sans">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <header className="sticky top-0 z-40 bg-[#f2ede4] border-b border-[#e3dccb] px-4 py-3 flex items-center justify-between gap-3 relative font-sans">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 hover:bg-surface-tertiary rounded-xl lg:hidden text-text-secondary flex-shrink-0"
+              className="p-1.5 hover:bg-white rounded-md lg:hidden text-[#1a1a1a] flex-shrink-0 border border-[#e3dccb] bg-white/50 cursor-pointer"
             >
               {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
             </button>
             <div className="flex items-center gap-2 min-w-0">
               <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden flex-shrink-0" />
-              <h1 className="text-sm font-bold text-text-primary font-display hidden md:block">Vendor Portal</h1>
+              <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm text-[#1a1a1a] uppercase tracking-wide hidden md:block">
+                VENDOR PORTAL
+              </h1>
 
-              {/* Top Bar Status Badge — icon-only on very small screens */}
+              {/* Top Bar Status Badge */}
               <Link
                 to="/vendor/verification"
-                className={`px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold border flex items-center gap-1 sm:gap-1.5 transition hover:opacity-80 flex-shrink-0 ${badgeInfo.class}`}
+                className={`px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold border flex items-center gap-1.5 transition hover:opacity-80 flex-shrink-0 ${badgeInfo.class}`}
               >
                 <span>{badgeInfo.icon}</span>
                 <span className="hidden sm:inline">{badgeInfo.label}</span>
@@ -366,16 +390,16 @@ export default function VendorLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+          <div className="flex items-center gap-2.5 flex-shrink-0">
             {/* Shop Status Toggle */}
             <button
               onClick={handleToggleShopStatus}
-              className={`px-2 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 border transition ${isShopClosed
-                  ? 'bg-error/10 text-error border-error/20'
-                  : 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+              className={`px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${isShopClosed
+                  ? 'bg-rose-50 text-rose-600 border-rose-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 }`}
             >
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isShopClosed ? 'bg-error' : 'bg-emerald-500 animate-pulse'}`} />
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isShopClosed ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
               <span className="hidden sm:inline">{isShopClosed ? 'Shop Closed' : 'Shop Open'}</span>
             </button>
 
@@ -438,7 +462,7 @@ export default function VendorLayout() {
             <img
               src={resolveMediaUrl(profileUser?.profile_pic || profileUser?.avatarUrl || vendorProfile.shopLogo) || "/logo.png"}
               alt="Vendor Profile"
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-brand-purple/20 bg-white p-0.5 shadow-sm flex-shrink-0"
+              className="w-8 h-8 rounded-full object-cover border-2 border-[#d99a3d] bg-white p-0.5 shadow-xs flex-shrink-0"
             />
           </div>
         </header>
