@@ -18,7 +18,7 @@ export default function VendorSubscriptionPage() {
         subtitle="Manage your active business plan, review membership tiers, and upgrade limits"
       />
 
-      <SubscriptionTab user={user} refetchUser={refetchUser} />
+      <SubscriptionTab user={user} refetchUser={refetchUser} role="vendor" />
     </div>
   );
 }

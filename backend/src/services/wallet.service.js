@@ -400,10 +400,12 @@ class WalletService {
     const cost = planDoc.price_inr;
     const durationDays = planDoc.duration_days || 30;
     const refId = `sub_${planDoc._id}_${Date.now()}`;
+    const targetRole = planDoc.target_role || (planDoc.role === 'creator' || String(planDoc.title).toLowerCase().includes('creator') ? 'creator' : 'vendor');
 
     // Prevent duplicate subscription purchase
     const activeSub = await UserSubscription.findOne({
       user_id: uid,
+      user_role: targetRole,
       status: 'active',
       plan_id: planDoc._id.toString(),
       is_deleted: { $ne: true }
@@ -429,26 +431,86 @@ class WalletService {
 
     try {
       await session.withTransaction(async () => {
-        const wallet = await this.getOrCreateWallet(uid, session);
-        if (wallet.is_frozen) throw ApiError.badRequest('Wallet is frozen.');
+        const IsolatedWallet = require('../models/IsolatedWallet.model');
+        const IsolatedTransaction = require('../models/IsolatedTransaction.model');
 
-        const previousBalance = wallet.credits || 0;
-        if (cost > previousBalance) {
-          throw ApiError.badRequest(`Insufficient balance. Available: ₹${previousBalance}, Required: ₹${cost}`);
+        let previousBalance = 0;
+
+        if (targetRole === 'creator') {
+          // Check Creator Isolated Wallet
+          let isoWallet = await IsolatedWallet.findOne({ userId: uid, role: 'creator' }).session(session);
+          if (!isoWallet) {
+            const createdIso = await IsolatedWallet.create([{
+              userId: uid,
+              role: 'creator',
+              balance: 0,
+              currency: 'INR',
+              lifetime_earned: 0,
+              lifetime_spent: 0,
+              is_frozen: false,
+              status: 'active',
+            }], { session });
+            isoWallet = createdIso[0];
+          }
+          if (isoWallet.is_frozen) throw ApiError.badRequest('Creator wallet is frozen.');
+          previousBalance = isoWallet.balance || 0;
+          if (cost > previousBalance) {
+            throw ApiError.badRequest(`Insufficient creator wallet balance. Available: ₹${previousBalance}, Required: ₹${cost}`);
+          }
+          updatedBalance = previousBalance - cost;
+
+          await IsolatedWallet.updateOne(
+            { userId: uid, role: 'creator' },
+            { $inc: { balance: -cost, lifetime_spent: cost } },
+            { session }
+          );
+
+          await IsolatedTransaction.create([{
+            userId: uid,
+            role: 'creator',
+            walletId: isoWallet._id,
+            type: 'subscription_purchase',
+            amount: cost,
+            previous_balance: previousBalance,
+            updated_balance: updatedBalance,
+            paymentId: refId,
+            gateway: 'internal',
+            description: `Subscribed to ${planDoc.title}`,
+            reference_id: `iso_${refId}`,
+            status: 'success',
+          }], { session });
+        } else {
+          // Check Vendor Wallet
+          const wallet = await this.getOrCreateWallet(uid, session);
+          if (wallet.is_frozen) throw ApiError.badRequest('Wallet is frozen.');
+
+          previousBalance = wallet.credits || 0;
+          if (cost > previousBalance) {
+            throw ApiError.badRequest(`Insufficient balance. Available: ₹${previousBalance}, Required: ₹${cost}`);
+          }
+
+          updatedBalance = previousBalance - cost;
+
+          // Deduct wallet
+          await Wallet.updateOne(
+            { user_id: uid },
+            {
+              $inc: { credits: -cost, lifetime_spent_credits: cost },
+              $set: { updated_at: new Date().toISOString() },
+            },
+            { session }
+          );
+          await User.updateOne({ _id: userId }, { $inc: { walletBalance: -cost } }, { session });
+
+          // Sync vendor isolated wallet if exists
+          try {
+            await IsolatedWallet.updateOne(
+              { userId: uid, role: 'vendor' },
+              { $inc: { balance: -cost, lifetime_spent: cost } },
+              { session }
+            );
+          } catch (e) {}
         }
-
-        updatedBalance = previousBalance - cost;
-
-        // Deduct wallet
-        await Wallet.updateOne(
-          { user_id: uid },
-          {
-            $inc: { credits: -cost, lifetime_spent_credits: cost },
-            $set: { updated_at: new Date().toISOString() },
-          },
-          { session }
-        );
-        await User.updateOne({ _id: userId }, { $inc: { walletBalance: -cost } }, { session });
 
         // Create wallet transaction
         const user = await User.findById(userId).select('name current_role roles').session(session).lean();
@@ -457,7 +519,7 @@ class WalletService {
         const txnArr = await WalletTransactionV2.create([{
           user_id: uid,
           user_name: user?.name || 'Unknown',
-          user_role: user?.current_role || user?.roles?.[0] || 'customer',
+          user_role: targetRole,
           transaction_type: 'subscription_purchase',
           credit_debit: 'debit',
           amount: cost,
@@ -468,23 +530,22 @@ class WalletService {
           status: 'completed',
           reference_id: refId,
           admin_remarks: `Subscribed to ${planDoc.title}`,
-          meta: { plan_id: planDoc._id.toString(), plan_name: planDoc.title, duration_days: durationDays },
+          meta: { plan_id: planDoc._id.toString(), plan_name: planDoc.title, duration_days: durationDays, role: targetRole },
         }], { session });
         txn = txnArr[0];
 
-        // Deactivate existing active subscriptions
+        // Deactivate existing active subscriptions for THIS role only
         await UserSubscription.updateMany(
-          { user_id: uid, status: 'active' },
+          { user_id: uid, user_role: targetRole, status: 'active' },
           { $set: { status: 'cancelled', cancelled_at: new Date(), cancelled_reason: 'New plan purchased' } },
           { session }
         );
 
         // Create new subscription record
-        const userRole = user?.current_role || user?.roles?.[0] || 'vendor';
         await UserSubscription.create([{
           user_id: uid,
           user_name: user?.name || '',
-          user_role: userRole === 'customer' ? 'vendor' : userRole,
+          user_role: targetRole,
           plan_id: planDoc._id.toString(),
           plan_name: planDoc.title,
           plan_type: planDoc.plan_type || 'basic',
@@ -498,22 +559,29 @@ class WalletService {
           payment_method: 'wallet',
         }], { session });
 
-        // Update user subscription flag
+        // Update user subscription flag for the role
+        const subData = {
+          plan: planDoc.title,
+          plan_id: planDoc._id.toString(),
+          startedAt: new Date(),
+          expiresAt,
+          autoRenew: false,
+          status: 'active',
+        };
+
+        const updateSet = {};
+        if (targetRole === 'creator') {
+          updateSet['creatorProfile.subscription'] = subData;
+          updateSet['creatorProfile.is_subscribed_verified'] = true;
+        } else {
+          updateSet['is_subscribed_verified'] = true;
+          updateSet['subscription'] = subData;
+          updateSet['vendorProfile.subscription'] = subData;
+        }
+
         await User.updateOne(
           { _id: userId },
-          {
-            $set: {
-              is_subscribed_verified: true,
-              subscription: {
-                plan: planDoc.title,
-                plan_id: planDoc._id.toString(),
-                startedAt: new Date(),
-                expiresAt,
-                autoRenew: false,
-                status: 'active',
-              },
-            },
-          },
+          { $set: updateSet },
           { session }
         );
       });
@@ -554,9 +622,12 @@ class WalletService {
 
     const uid = userId.toString();
 
+    const targetRole = planDoc.target_role || (planDoc.role === 'creator' || String(planDoc.title).toLowerCase().includes('creator') ? 'creator' : 'vendor');
+
     // Prevent duplicate subscription purchase
     const activeSub = await UserSubscription.findOne({
       user_id: uid,
+      user_role: targetRole,
       status: 'active',
       plan_id: planDoc._id.toString(),
       is_deleted: { $ne: true }
@@ -579,7 +650,7 @@ class WalletService {
         const txnArr = await WalletTransactionV2.create([{
           user_id: uid,
           user_name: user?.name || 'Unknown',
-          user_role: user?.current_role || user?.roles?.[0] || 'customer',
+          user_role: targetRole,
           transaction_type: 'subscription_purchase',
           credit_debit: 'debit',
           amount: cost,
@@ -596,23 +667,23 @@ class WalletService {
             duration_days: durationDays,
             payment_id: paymentId || null,
             razorpay_payment_id: razorpayPaymentId || null,
+            role: targetRole,
           },
         }], { session });
         txn = txnArr[0];
 
-        // Deactivate existing active subscriptions
+        // Deactivate existing active subscriptions for THIS role only
         await UserSubscription.updateMany(
-          { user_id: uid, status: 'active' },
+          { user_id: uid, user_role: targetRole, status: 'active' },
           { $set: { status: 'cancelled', cancelled_at: new Date(), cancelled_reason: 'New plan purchased' } },
           { session }
         );
 
         // Create new subscription record
-        const userRole = user?.current_role || user?.roles?.[0] || 'vendor';
         await UserSubscription.create([{
           user_id: uid,
           user_name: user?.name || '',
-          user_role: userRole === 'customer' ? 'vendor' : userRole,
+          user_role: targetRole,
           plan_id: planDoc._id.toString(),
           plan_name: planDoc.title,
           plan_type: planDoc.plan_type || 'basic',
@@ -627,22 +698,29 @@ class WalletService {
           payment_id: razorpayPaymentId || paymentId || null,
         }], { session });
 
-        // Update user subscription flag
+        // Update user subscription flag for this role
+        const subData = {
+          plan: planDoc.title,
+          plan_id: planDoc._id.toString(),
+          startedAt: new Date(),
+          expiresAt,
+          autoRenew: false,
+          status: 'active',
+        };
+
+        const updateSet = {};
+        if (targetRole === 'creator') {
+          updateSet['creatorProfile.subscription'] = subData;
+          updateSet['creatorProfile.is_subscribed_verified'] = true;
+        } else {
+          updateSet['is_subscribed_verified'] = true;
+          updateSet['subscription'] = subData;
+          updateSet['vendorProfile.subscription'] = subData;
+        }
+
         await User.updateOne(
           { _id: userId },
-          {
-            $set: {
-              is_subscribed_verified: true,
-              subscription: {
-                plan: planDoc.title,
-                plan_id: planDoc._id.toString(),
-                startedAt: new Date(),
-                expiresAt,
-                autoRenew: false,
-                status: 'active',
-              },
-            },
-          },
+          { $set: updateSet },
           { session }
         );
       });

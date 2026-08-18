@@ -14,11 +14,16 @@ class SubscriptionController {
   // ── Get My Active Subscription ──────────────────────────
   getMySubscription = asyncHandler(async (req, res) => {
     const uid = req.user._id.toString();
-    const activeSub = await UserSubscription.findOne({
+    const role = (req.query.role || '').toLowerCase().trim();
+    const query = {
       user_id: uid,
       status: 'active',
       is_deleted: { $ne: true },
-    }).lean();
+    };
+    if (role && ['vendor', 'creator'].includes(role)) {
+      query.user_role = role;
+    }
+    const activeSub = await UserSubscription.findOne(query).lean();
 
     if (!activeSub) {
       return ApiResponse.ok(res, 'No active subscription.', {

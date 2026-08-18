@@ -3,6 +3,7 @@ import { FiCheckCircle, FiStar, FiCalendar, FiCreditCard, FiZap, FiShield } from
 import Button from '../../components/common/Button';
 import { toast } from 'react-hot-toast';
 import { useGetSubscriptionPlansQuery, useChangeSubscriptionMutation, usePurchaseSubscriptionRazorpayMutation } from '../vendor/vendorApi';
+import { useGetCreatorWalletQuery, useGetVendorWalletQuery } from '../wallet/walletApi';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { getSocket } from '../../lib/socket';
@@ -18,9 +19,9 @@ const loadRazorpayScript = () => {
   });
 };
 
-const SubscriptionTab = ({ user, refetchUser }) => {
+const SubscriptionTab = ({ user, refetchUser, role }) => {
   const { refreshMe } = useAuth();
-  const currentRole = user?.current_role || user?.roles?.[0] || 'vendor';
+  const currentRole = role || user?.current_role || (typeof window !== 'undefined' && window.location.pathname.startsWith('/creator') ? 'creator' : 'vendor');
   const roleParam = currentRole === 'creator' ? 'creator' : 'vendor';
 
   const { data: plansData, isFetching: loadingPlans, refetch: refetchPlans } = useGetSubscriptionPlansQuery(
@@ -29,6 +30,16 @@ const SubscriptionTab = ({ user, refetchUser }) => {
   );
   const [changeSubscription, { isLoading: isSubscribingWallet }] = useChangeSubscriptionMutation();
   const [purchaseRazorpay, { isLoading: isSubscribingRzp }] = usePurchaseSubscriptionRazorpayMutation();
+
+  // Role-Isolated Wallet Queries
+  const { data: creatorWalletData, refetch: refetchCreatorWallet } = useGetCreatorWalletQuery(undefined, {
+    skip: roleParam !== 'creator',
+    pollingInterval: 30000,
+  });
+  const { data: vendorWalletData, refetch: refetchVendorWallet } = useGetVendorWalletQuery(undefined, {
+    skip: roleParam !== 'vendor',
+    pollingInterval: 30000,
+  });
 
   const isSubscribing = isSubscribingWallet || isSubscribingRzp;
 
@@ -39,14 +50,30 @@ const SubscriptionTab = ({ user, refetchUser }) => {
     const handleUpdate = () => {
       refetchPlans();
       if (refetchUser) refetchUser();
+      if (roleParam === 'creator' && refetchCreatorWallet) refetchCreatorWallet();
+      if (roleParam === 'vendor' && refetchVendorWallet) refetchVendorWallet();
     };
     socket.on('subscription:updated', handleUpdate);
-    return () => socket.off('subscription:updated', handleUpdate);
-  }, [refetchPlans, refetchUser]);
+    socket.on('wallet:updated', handleUpdate);
+    return () => {
+      socket.off('subscription:updated', handleUpdate);
+      socket.off('wallet:updated', handleUpdate);
+    };
+  }, [refetchPlans, refetchUser, roleParam, refetchCreatorWallet, refetchVendorWallet]);
 
-  const currentPlan = user?.subscription?.plan || 'Free Member';
-  const planExpires = user?.subscription?.expiresAt;
-  const walletBalance = user?.walletBalance ?? 0;
+  // Role-specific Active Plan and Expiry
+  const currentPlan = roleParam === 'creator'
+    ? (user?.creatorProfile?.subscription?.plan || (user?.current_role === 'creator' ? user?.subscription?.plan : null) || 'Free Creator')
+    : (user?.vendorProfile?.subscription?.plan || user?.subscription?.plan || 'Free Member');
+
+  const planExpires = roleParam === 'creator'
+    ? (user?.creatorProfile?.subscription?.expiresAt || (user?.current_role === 'creator' ? user?.subscription?.expiresAt : null))
+    : (user?.vendorProfile?.subscription?.expiresAt || user?.subscription?.expiresAt);
+
+  // Role-isolated Wallet Balance (Creator wallet vs Vendor wallet)
+  const walletBalance = roleParam === 'creator'
+    ? (creatorWalletData?.data?.balance ?? creatorWalletData?.balance ?? 0)
+    : (vendorWalletData?.data?.balance ?? vendorWalletData?.balance ?? user?.walletBalance ?? 0);
 
   const plans = plansData?.data?.items || plansData?.items || [];
   const activePlans = plans.filter(p => p.is_active && !p.is_archived);
@@ -145,20 +172,23 @@ const SubscriptionTab = ({ user, refetchUser }) => {
 
   // Wallet-based purchase (fallback)
   const handleWalletPurchase = async (plan) => {
-    if (user?.subscription?.plan && user.subscription.plan.toLowerCase() === plan.title.toLowerCase() && user.subscription.status === 'active') {
+    if (currentPlan && currentPlan.toLowerCase() === plan.title.toLowerCase()) {
       toast.error(`You are already subscribed to the ${plan.title} plan.`);
       return;
     }
 
     if (walletBalance < plan.price_inr) {
-      return toast.error('Insufficient wallet balance. Please recharge your wallet first.');
+      return toast.error(`Insufficient ${roleParam === 'creator' ? 'Creator' : 'Vendor'} wallet balance (₹${walletBalance?.toLocaleString('en-IN')}). Please recharge or pay via Razorpay.`);
     }
-    if (window.confirm(`Upgrade/Renew subscription to ${plan.title} plan using ₹${plan.price_inr} from your wallet?`)) {
+    if (window.confirm(`Upgrade/Renew subscription to ${plan.title} plan using ₹${plan.price_inr} from your ${roleParam === 'creator' ? 'Creator' : 'Vendor'} wallet?`)) {
       try {
-        await changeSubscription({ plan: plan.id }).unwrap();
+        await changeSubscription({ plan: plan.id, role: roleParam }).unwrap();
         toast.success(`Successfully subscribed to ${plan.title}!`);
         await refreshMe();
         if (refetchUser) refetchUser();
+        if (roleParam === 'creator' && refetchCreatorWallet) refetchCreatorWallet();
+        if (roleParam === 'vendor' && refetchVendorWallet) refetchVendorWallet();
+        refetchPlans();
       } catch (err) {
         toast.error(err?.data?.message || 'Subscription purchase failed.');
       }
@@ -174,7 +204,9 @@ const SubscriptionTab = ({ user, refetchUser }) => {
             <FiStar className="w-8 h-8 fill-brand-purple/20" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Current Account Tier</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              Current {roleParam === 'creator' ? 'Creator' : 'Vendor'} Account Tier
+            </span>
             <h3 className="text-xl font-black text-brand-navy font-display mt-0.5">{currentPlan}</h3>
             {planExpires && (
               <span className="text-xs text-slate-500 mt-1 block flex items-center gap-1.5">
@@ -189,7 +221,9 @@ const SubscriptionTab = ({ user, refetchUser }) => {
           <div className="flex items-center gap-3">
             <FiCreditCard className="text-brand-purple w-5 h-5" />
             <div className="flex flex-col">
-              <span className="text-[9px] text-slate-400 font-bold uppercase">Wallet Balance</span>
+              <span className="text-[9px] text-slate-400 font-bold uppercase">
+                {roleParam === 'creator' ? 'Creator' : 'Vendor'} Wallet Balance
+              </span>
               <span className="text-xs font-bold text-emerald-600 font-display">₹{walletBalance?.toLocaleString('en-IN')}</span>
             </div>
           </div>
@@ -327,7 +361,7 @@ const SubscriptionTab = ({ user, refetchUser }) => {
                             : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'
                         }`}
                       >
-                        <FiCreditCard className="w-3.5 h-3.5" /> Pay via Wallet
+                        <FiCreditCard className="w-3.5 h-3.5" /> Pay via {roleParam === 'creator' ? 'Creator' : 'Vendor'} Wallet
                       </button>
                     </div>
                   )}

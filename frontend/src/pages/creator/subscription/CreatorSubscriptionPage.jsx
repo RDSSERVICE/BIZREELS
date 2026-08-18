@@ -18,7 +18,7 @@ export default function CreatorSubscriptionPage() {
         subtitle="Manage your active creator tier, verify portfolio badges, and access advanced features"
       />
 
-      <SubscriptionTab user={user} refetchUser={refetchUser} />
+      <SubscriptionTab user={user} refetchUser={refetchUser} role="creator" />
     </div>
   );
 }
