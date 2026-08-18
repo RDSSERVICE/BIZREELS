@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
   FiLayers, FiTag, FiVideo, FiCheckCircle, FiCheck, FiImage, FiX, FiMapPin, FiUsers, FiEye, FiPlus,
-  FiPercent, FiZap, FiBell, FiStar, FiGift, FiCalendar, FiAlertCircle
+  FiPercent, FiZap, FiBell, FiStar, FiGift, FiCalendar, FiAlertCircle, FiRefreshCw
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import CreateServiceModal from './CreateServiceModal';
 import CreateProductModal from './CreateProductModal';
+import OfferFormModal from '../listings/OfferFormModal';
 import { useListCategoriesQuery } from '../../../features/admin/adminApi';
+import { useGetVendorOffersQuery, useCreateVendorOfferMutation } from '../../../features/vendor/vendorApi';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
 
 // PURPOSE OPTIONS PER POST TYPE
@@ -138,6 +140,78 @@ export default function CreateReelWizardModal({
   const [wizardStep, setWizardStep] = useState(1);
   const [showCreateServiceModal, setShowCreateServiceModal] = useState(false);
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
+  const [showCreateOfferModal, setShowCreateOfferModal] = useState(false);
+  const [selectedOfferId, setSelectedOfferId] = useState('');
+
+  // Fetch Vendor Dynamic Offers
+  const { data: offersDataRes, refetch: refetchOffers } = useGetVendorOffersQuery();
+  const [createOfferMutation] = useCreateVendorOfferMutation();
+
+  const vendorOffers = Array.isArray(offersDataRes?.data)
+    ? offersDataRes.data
+    : Array.isArray(offersDataRes?.offers)
+    ? offersDataRes.offers
+    : Array.isArray(offersDataRes)
+    ? offersDataRes
+    : [];
+
+  const activeOffers = React.useMemo(() => {
+    return vendorOffers.filter(o => o.status === 'active' || !o.status);
+  }, [vendorOffers]);
+
+  const handleSelectOffer = (offerId) => {
+    setSelectedOfferId(offerId);
+    if (!offerId) {
+      setDiscountPercent('');
+      setCouponCode('');
+      setDiscountValidity('');
+      return;
+    }
+    const offer = activeOffers.find(o => (o._id || o.id) === offerId);
+    if (offer) {
+      if (offer.discountValue || offer.discountPercent) {
+        setDiscountPercent(String(offer.discountValue || offer.discountPercent));
+      }
+      if (offer.couponCode) {
+        setCouponCode(offer.couponCode);
+      }
+      if (offer.endDate) {
+        try {
+          const dStr = new Date(offer.endDate).toISOString().split('T')[0];
+          setDiscountValidity(dStr);
+        } catch {}
+      }
+      if (!caption) {
+        const valText = offer.discountType === 'fixed' ? `₹${offer.discountValue} FLAT OFF` : `${offer.discountValue || 15}% OFF`;
+        setCaption(`🔥 Special Offer: Get ${valText} with code "${offer.couponCode || 'DEAL'}"! ${offer.title || ''}`);
+      }
+      toast.success(`Applied offer "${offer.title}" (${offer.couponCode || 'Offer'})!`);
+    }
+  };
+
+  const handleCreateDynamicOfferSubmit = async (payload) => {
+    const toastId = toast.loading('Creating dynamic offer...');
+    try {
+      const res = await createOfferMutation(payload).unwrap();
+      const newOffer = res?.data || res?.offer || res;
+      toast.success('Dynamic offer created and linked to reel!', { id: toastId });
+      setShowCreateOfferModal(false);
+      refetchOffers();
+      if (newOffer) {
+        const id = newOffer._id || newOffer.id;
+        if (id) setSelectedOfferId(id);
+        if (newOffer.discountValue) setDiscountPercent(String(newOffer.discountValue));
+        if (newOffer.couponCode) setCouponCode(newOffer.couponCode);
+        if (newOffer.endDate) {
+          try {
+            setDiscountValidity(new Date(newOffer.endDate).toISOString().split('T')[0]);
+          } catch {}
+        }
+      }
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to create offer', { id: toastId });
+    }
+  };
 
   const currentUser = useSelector(selectCurrentUser);
   const vendorProfile = currentUser?.vendorProfile || {};
@@ -279,8 +353,48 @@ export default function CreateReelWizardModal({
     setPostSubcategory(subcats[0] || 'General');
   };
 
-  const vendorServices = vendorListings.filter(l => l.type === 'service' || !l.type);
-  const vendorProducts = vendorListings.filter(l => l.type === 'product');
+  const availableCategoriesList = Object.keys(dynamicCategoriesData);
+
+  // Filter vendor services strictly matching onboarded categories & subcategories
+  const vendorServices = React.useMemo(() => {
+    return (vendorListings || []).filter(l => {
+      if (l.type !== 'service' && l.type) return false;
+      if (availableCategoriesList.length > 0) {
+        if (!availableCategoriesList.includes(l.category)) return false;
+        const allowedSubs = dynamicCategoriesData[l.category] || [];
+        if (l.subcategory && allowedSubs.length > 0 && !allowedSubs.includes(l.subcategory) && !allowedSubs.includes('General')) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [vendorListings, availableCategoriesList, dynamicCategoriesData]);
+
+  // Filter vendor products strictly matching onboarded categories & subcategories
+  const vendorProducts = React.useMemo(() => {
+    return (vendorListings || []).filter(l => {
+      if (l.type !== 'product') return false;
+      if (availableCategoriesList.length > 0) {
+        if (!availableCategoriesList.includes(l.category)) return false;
+        const allowedSubs = dynamicCategoriesData[l.category] || [];
+        if (l.subcategory && allowedSubs.length > 0 && !allowedSubs.includes(l.subcategory) && !allowedSubs.includes('General')) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [vendorListings, availableCategoriesList, dynamicCategoriesData]);
+
+  // Further contextual filter by currently selected category in wizard (if selected)
+  const filteredServices = React.useMemo(() => {
+    if (!postCategory) return vendorServices;
+    return vendorServices.filter(s => s.category === postCategory);
+  }, [vendorServices, postCategory]);
+
+  const filteredProducts = React.useMemo(() => {
+    if (!postCategory) return vendorProducts;
+    return vendorProducts.filter(p => p.category === postCategory);
+  }, [vendorProducts, postCategory]);
 
   // Handle Existing Service Selection
   const handleSelectExistingService = (serviceId) => {
@@ -605,49 +719,88 @@ export default function CreateReelWizardModal({
                 })}
               </div>
 
-              {/* CONDITIONAL EXTRA FIELDS — Offer / Discount & Flash Sale */}
+              {/* CONDITIONAL EXTRA FIELDS — Offer / Discount & Flash Sale (Select from Listings Dynamic Offers) */}
               {(postPurpose === 'Offer / Discount' || postPurpose === 'Flash Sale') && (
-                <div className="mt-3.5 p-4 bg-emerald-500/15 border border-emerald-500/35 rounded-2xl space-y-3 animate-fade-in">
-                  <p className="text-[11px] font-extrabold text-emerald-300 uppercase tracking-wide flex items-center gap-1.5">
-                    <FiPercent size={13} /> Offer Details
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Discount % *</label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="1"
-                          max="100"
-                          placeholder="e.g. 20"
-                          value={discountPercent}
-                          onChange={(e) => setDiscountPercent(e.target.value)}
-                          className="w-full p-3 bg-[#1c1d22] border border-emerald-500/35 rounded-xl text-xs text-white focus:border-emerald-400 outline-none pr-7"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">%</span>
+                <div className="mt-4 p-4 sm:p-5 bg-gradient-to-br from-emerald-950/40 via-emerald-900/20 to-slate-900/60 border border-emerald-500/35 rounded-2xl space-y-3.5 animate-fade-in font-sans">
+                  
+                  {/* Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-emerald-500/20 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-500/30">
+                        <FiPercent size={16} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-emerald-300 uppercase tracking-wider">
+                          Select Offer / Discount from Listings
+                        </p>
+                        <p className="text-[10px] text-slate-300">
+                          Link an active offer created in your Listings &amp; Offers portal
+                        </p>
                       </div>
                     </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Coupon Code (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. SAVE20"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                        className="w-full p-3 bg-[#1c1d22] border border-emerald-500/35 rounded-xl text-xs text-white focus:border-emerald-400 outline-none uppercase tracking-widest font-mono"
-                      />
-                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateOfferModal(true)}
+                      className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm shadow-amber-500/20 self-start sm:self-auto"
+                    >
+                      <FiPlus size={13} />
+                      <span>+ Create New Dynamic Offer</span>
+                    </button>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Offer Valid Till (Optional)</label>
-                    <input
-                      type="date"
-                      value={discountValidity}
-                      min={new Date().toISOString().split('T')[0]}
-                      onChange={(e) => setDiscountValidity(e.target.value)}
-                      className="w-full p-3 bg-[#1c1d22] border border-emerald-500/35 rounded-xl text-xs text-white focus:border-emerald-400 outline-none"
-                    />
+
+                  {/* SELECT EXISTING ACTIVE OFFER */}
+                  <div className="space-y-3">
+                    {activeOffers.length > 0 ? (
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-emerald-300 uppercase block">
+                          Choose Active Offer from Your Listings Catalog *
+                        </label>
+                        <select
+                          value={selectedOfferId}
+                          onChange={(e) => handleSelectOffer(e.target.value)}
+                          className="w-full p-3 bg-[#16181e] border border-emerald-500/35 rounded-xl text-xs font-bold text-white focus:border-emerald-400 outline-none transition cursor-pointer"
+                        >
+                          <option value="" className="bg-[#16181e] text-slate-300">-- Select an active offer ({activeOffers.length} available) --</option>
+                          {activeOffers.map(offer => (
+                            <option key={offer._id || offer.id} value={offer._id || offer.id} className="bg-[#16181e] text-white">
+                              {offer.title} • {offer.discountType === 'fixed' ? `Flat ₹${offer.discountValue}` : `${offer.discountValue || 15}% OFF`} {offer.couponCode ? `(Code: ${offer.couponCode})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-xs text-emerald-200 space-y-2">
+                        <p className="font-bold flex items-center gap-1.5">
+                          <FiAlertCircle size={14} className="text-emerald-400" />
+                          No active offers found in your listings.
+                        </p>
+                        <p className="text-[11px] text-slate-300">
+                          Click <strong>"+ Create New Dynamic Offer"</strong> above to create a discount/offer for your listings and link it directly to this post.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Active Offer Details Preview (if selected) */}
+                    {selectedOfferId && (
+                      <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl space-y-2 text-xs">
+                        <div className="flex items-center justify-between text-emerald-300 font-bold">
+                          <span>Applied: {discountPercent ? `${discountPercent}% Discount` : 'Offer Active'}</span>
+                          {couponCode && (
+                            <span className="font-mono bg-emerald-500/20 px-2 py-0.5 rounded text-white border border-emerald-500/30">
+                              CODE: {couponCode}
+                            </span>
+                          )}
+                        </div>
+                        {discountValidity && (
+                          <p className="text-[11px] text-slate-300">
+                            Valid Till: <strong className="text-emerald-300">{new Date(discountValidity).toLocaleDateString()}</strong>
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
+
                 </div>
               )}
 
@@ -699,39 +852,79 @@ export default function CreateReelWizardModal({
                 <div className="space-y-3.5">
                   {postType === 'services' ? (
                     <div>
-                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1.5">
-                        Option A – Select Existing Listed Service
-                      </label>
-                      <select
-                        value={selectedServiceId}
-                        onChange={(e) => handleSelectExistingService(e.target.value)}
-                        className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none"
-                      >
-                        <option value="" className="bg-[#1c1d22] text-slate-100">-- Choose from your listed services ({vendorServices.length}) --</option>
-                        {vendorServices.map(s => (
-                          <option key={s._id || s.id} value={s._id || s.id} className="bg-[#1c1d22] text-slate-100">
-                            {s.title} (₹{s.price || s.sellingPrice || 0})
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[10px] font-bold text-slate-300 uppercase block">
+                          Option A – Select Existing Listed Service
+                        </label>
+                        {filteredServices.length > 0 && (
+                          <span className="text-[10px] text-amber-400 font-extrabold">
+                            {filteredServices.length} service(s) available
+                          </span>
+                        )}
+                      </div>
+
+                      {filteredServices.length > 0 ? (
+                        <select
+                          value={selectedServiceId}
+                          onChange={(e) => handleSelectExistingService(e.target.value)}
+                          className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none"
+                        >
+                          <option value="" className="bg-[#1c1d22] text-slate-100">-- Choose from your listed services ({filteredServices.length}) --</option>
+                          {filteredServices.map(s => (
+                            <option key={s._id || s.id} value={s._id || s.id} className="bg-[#1c1d22] text-slate-100">
+                              {s.title} (₹{s.price || s.sellingPrice || 0}) • {s.category}{s.subcategory ? ` - ${s.subcategory}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="p-3 bg-red-500/10 border border-red-500/25 rounded-xl text-xs text-red-300 space-y-1">
+                          <p className="font-bold flex items-center gap-1.5">
+                            <span>⚠️ Not Found:</span>
+                            <span>No listed services found for onboarded category "{postCategory || 'Services'}".</span>
+                          </p>
+                          <p className="text-[11px] text-red-200/80">
+                            Please select Option B below to create a service for this category first.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div>
-                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1.5">
-                        Option A – Select Existing Listed Product
-                      </label>
-                      <select
-                        value={selectedProductId}
-                        onChange={(e) => handleSelectExistingProduct(e.target.value)}
-                        className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none"
-                      >
-                        <option value="" className="bg-[#1c1d22] text-slate-100">-- Choose from your listed products ({vendorProducts.length}) --</option>
-                        {vendorProducts.map(p => (
-                          <option key={p._id || p.id} value={p._id || p.id} className="bg-[#1c1d22] text-slate-100">
-                            {p.title} (₹{p.price || p.sellingPrice || 0})
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[10px] font-bold text-slate-300 uppercase block">
+                          Option A – Select Existing Listed Product
+                        </label>
+                        {filteredProducts.length > 0 && (
+                          <span className="text-[10px] text-amber-400 font-extrabold">
+                            {filteredProducts.length} product(s) available
+                          </span>
+                        )}
+                      </div>
+
+                      {filteredProducts.length > 0 ? (
+                        <select
+                          value={selectedProductId}
+                          onChange={(e) => handleSelectExistingProduct(e.target.value)}
+                          className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none"
+                        >
+                          <option value="" className="bg-[#1c1d22] text-slate-100">-- Choose from your listed products ({filteredProducts.length}) --</option>
+                          {filteredProducts.map(p => (
+                            <option key={p._id || p.id} value={p._id || p.id} className="bg-[#1c1d22] text-slate-100">
+                              {p.title} (₹{p.price || p.sellingPrice || 0}) • {p.category}{p.subcategory ? ` - ${p.subcategory}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="p-3 bg-red-500/10 border border-red-500/25 rounded-xl text-xs text-red-300 space-y-1">
+                          <p className="font-bold flex items-center gap-1.5">
+                            <span>⚠️ Not Found:</span>
+                            <span>No listed products found for onboarded category "{postCategory || 'Products'}".</span>
+                          </p>
+                          <p className="text-[11px] text-red-200/80">
+                            Please select Option B below to create a product for this category first.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1133,6 +1326,14 @@ export default function CreateReelWizardModal({
         categoriesList={categoriesList}
         dynamicCategoriesData={dynamicCategoriesData}
         onCreated={handleProductCreated}
+      />
+
+      {/* CREATE DYNAMIC OFFER MODAL */}
+      <OfferFormModal
+        isOpen={showCreateOfferModal}
+        onClose={() => setShowCreateOfferModal(false)}
+        onSubmit={handleCreateDynamicOfferSubmit}
+        allListings={vendorListings}
       />
     </AdminModal>
   );

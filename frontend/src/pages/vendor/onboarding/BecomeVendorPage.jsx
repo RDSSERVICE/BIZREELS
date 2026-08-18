@@ -5,7 +5,8 @@ import {
   FiBriefcase, FiCheckCircle, FiDollarSign, FiFileText, FiMapPin,
   FiCreditCard, FiArrowRight, FiShield, FiUser, FiTruck, FiClock,
   FiUploadCloud, FiSearch, FiCheck, FiGlobe, FiPhone, FiMessageSquare,
-  FiMail, FiCamera, FiImage, FiCompass, FiX, FiLayers, FiTag, FiNavigation
+  FiMail, FiCamera, FiImage, FiCompass, FiX, FiLayers, FiTag, FiNavigation,
+  FiCpu, FiMic, FiMicOff, FiZap
 } from 'react-icons/fi';
 import { useAddRoleMutation, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { useListCategoriesQuery } from '../../../features/admin/adminApi';
@@ -125,6 +126,79 @@ export default function BecomeVendorPage({ isEditMode = false }) {
   const [businessDescription, setBusinessDescription] = useState('');
   const [shopLogo, setShopLogo] = useState(user?.profile_pic || user?.avatarUrl || '');
   const [shopCoverImage, setShopCoverImage] = useState('');
+
+  // AI Description & Bio states
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGeneratingAiBio, setIsGeneratingAiBio] = useState(false);
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
+
+  const handleGenerateAiBio = async () => {
+    const sName = shopName.trim() || displayName.trim() || 'Our Business';
+    const catsStr = selectedCategories.join(', ') || 'Quality Products & Services';
+    const promptText = aiPrompt.trim() || `${sName} specializing in ${catsStr}`;
+    
+    setIsGeneratingAiBio(true);
+    const toastId = toast.loading('Gemini AI generating professional business bio...');
+    try {
+      const res = await api.post('/v1/ai/generate-description', {
+        prompt: promptText,
+        type: 'business_profile',
+        category: selectedCategories[0] || 'General',
+        subcategory: selectedSubCategories[0] || '',
+        context: {
+          shopName: sName,
+          businessType,
+          vendorType,
+          categories: selectedCategories,
+          subcategories: selectedSubCategories,
+          city: city || 'Indore',
+          state: stateName || 'Madhya Pradesh',
+        },
+      });
+      const data = res.data?.data || res.data;
+      if (data) {
+        const generatedText = data.detailedDescription || data.description || data.shortDescription;
+        if (generatedText) {
+          setBusinessDescription(generatedText);
+          toast.success('Business Description generated successfully!', { id: toastId });
+        } else {
+          toast.error('AI could not generate description. Please enter manually.', { id: toastId });
+        }
+      }
+    } catch {
+      toast.error('AI generation unavailable. Please enter details manually.', { id: toastId });
+    } finally {
+      setIsGeneratingAiBio(false);
+    }
+  };
+
+  const toggleVoiceRecording = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error('Speech recognition not supported in this browser.');
+      return;
+    }
+    if (isListeningVoice) {
+      setIsListeningVoice(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListeningVoice(true);
+    recognition.onresult = (event) => {
+      const speechResult = event.results[0][0].transcript;
+      setAiPrompt(speechResult);
+      setIsListeningVoice(false);
+      toast.success(`Speech recognized: "${speechResult}"`);
+    };
+    recognition.onerror = () => setIsListeningVoice(false);
+    recognition.onend = () => setIsListeningVoice(false);
+    recognition.start();
+  };
 
   // 3. Contact Info
   const [mobileNumber, setMobileNumber] = useState(user?.phone || '');
@@ -895,12 +969,64 @@ export default function BecomeVendorPage({ isEditMode = false }) {
             )}
           </div>
 
-          <div>
-            <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
-              Business Description &amp; Specialty
-            </label>
+          {/* Business Description & AI Generator */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest">
+                Business Description &amp; Specialty
+              </label>
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-500/20">
+                <FiCpu size={11} /> AI Assisted
+              </span>
+            </div>
+
+            {/* AI Bio Generator Box */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 border border-amber-500/25 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#241b15] flex items-center gap-1.5">
+                  <FiCpu className="text-amber-600" size={13} />
+                  AI Business Bio Generator (Voice &amp; Prompt)
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleVoiceRecording}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer ${
+                    isListeningVoice
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#342820]'
+                  }`}
+                  title="Speak details to AI"
+                >
+                  {isListeningVoice ? <FiMicOff size={12} /> : <FiMic size={12} />}
+                  <span>{isListeningVoice ? 'Listening...' : 'Voice Input'}</span>
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder={`e.g. 10+ years experienced ${selectedCategories[0] || 'service'} provider with warranty...`}
+                  className="flex-1 px-3 py-1.5 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerateAiBio}
+                  disabled={isGeneratingAiBio}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-[#241b15] to-[#3d2d22] text-[#d99a3d] border border-amber-500/30 font-bold text-xs rounded-xl shadow-xs hover:opacity-95 transition flex items-center gap-1.5 disabled:opacity-50 shrink-0 cursor-pointer"
+                >
+                  <FiZap size={13} className="text-amber-400" />
+                  <span>{isGeneratingAiBio ? 'Generating...' : 'Auto-Generate Bio'}</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500 leading-tight">
+                Click <strong>Auto-Generate Bio</strong> to create a catchy, high-converting business description based on your shop name and selected categories.
+              </p>
+            </div>
+
             <textarea
-              rows={3}
+              rows={4}
               value={businessDescription}
               onChange={(e) => setBusinessDescription(e.target.value)}
               placeholder="Describe your products, services, specialization, warranty, fast delivery, and offerings..."

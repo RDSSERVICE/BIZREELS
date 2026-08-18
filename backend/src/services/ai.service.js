@@ -1460,22 +1460,47 @@ const generateDescription = async ({ prompt, type = 'service', category, subcate
   const started = Date.now();
   const { model, provider } = resolveModel('listing');
 
-  const systemInstruction =
-    'You are BizReels AI, an elite e-commerce and local services listing specialist for Indian businesses.\n' +
-    'Your mission is to generate persuasive, accurate, high-converting, and SEO-friendly listing content.\n\n' +
-    'CRITICAL INSTRUCTIONS:\n' +
-    '1. PRICING AWARENESS:\n' +
-    '   - Fixed Price: Highlight transparent, all-inclusive standard pricing with no hidden charges.\n' +
-    '   - Starting From: Mention starting base rates and clarify that extra requirements/parts are quoted accurately.\n' +
-    '   - Per Hour Rate: Highlight skilled technician productivity, punctuality, and flexible hourly booking.\n' +
-    '   - Per Day Shift: Focus on professional dedication for full-day shifts and project milestones.\n' +
-    '   - Per Project: Emphasize complete turnkey delivery, quality assurance, and end-to-end execution.\n' +
-    '   - Custom Quote / Inspection Fee: Highlight transparent diagnosis, fair inspection charges (deductible on billing), and customized quotes.\n' +
-    '2. TRUST & CREDIBILITY: Incorporate verified service, prompt doorstep turnaround, quality tools, hygiene standards, and customer warranty.\n' +
-    '3. FORMATTING: Return ONLY a valid JSON object with: shortDescription, detailedDescription, serviceHighlights, aiLabels.\n' +
-    '4. LANGUAGE & TONE: Professional yet approachable, using INR (₹) symbols and terminology familiar to Indian customers.';
+  const isBusinessProfile = type === 'business_profile' || type === 'business' || type === 'vendor_profile';
 
-  const userPrompt = `
+  const systemInstruction = isBusinessProfile
+    ? 'You are BizReels AI, a world-class brand strategist and copywriter for Indian local shops, retailers, service professionals, and businesses.\n' +
+      'Your mission is to craft an engaging, authentic, trustworthy, and conversion-optimized Business Profile Bio & Specialty description.\n' +
+      'Highlight the business offerings, core specialization, customer trust, genuine quality, prompt response/delivery, and why customers should choose them.\n' +
+      'Output MUST be valid JSON only with: detailedDescription (the business description, 80-180 words), shortDescription (catchy 1-line business tagline), and serviceHighlights.'
+    : 'You are BizReels AI, an elite e-commerce and local services listing specialist for Indian businesses.\n' +
+      'Your mission is to generate persuasive, accurate, high-converting, and SEO-friendly listing content.\n\n' +
+      'CRITICAL INSTRUCTIONS:\n' +
+      '1. PRICING AWARENESS:\n' +
+      '   - Fixed Price: Highlight transparent, all-inclusive standard pricing with no hidden charges.\n' +
+      '   - Starting From: Mention starting base rates and clarify that extra requirements/parts are quoted accurately.\n' +
+      '   - Per Hour Rate: Highlight skilled technician productivity, punctuality, and flexible hourly booking.\n' +
+      '   - Per Day Shift: Focus on professional dedication for full-day shifts and project milestones.\n' +
+      '   - Per Project: Emphasize complete turnkey delivery, quality assurance, and end-to-end execution.\n' +
+      '   - Custom Quote / Inspection Fee: Highlight transparent diagnosis, fair inspection charges (deductible on billing), and customized quotes.\n' +
+      '2. TRUST & CREDIBILITY: Incorporate verified service, prompt doorstep turnaround, quality tools, hygiene standards, and customer warranty.\n' +
+      '3. FORMATTING: Return ONLY a valid JSON object with: shortDescription, detailedDescription, serviceHighlights, aiLabels.\n' +
+      '4. LANGUAGE & TONE: Professional yet approachable, using INR (₹) symbols and terminology familiar to Indian customers.';
+
+  const userPrompt = isBusinessProfile
+    ? `
+Generate a professional, inviting, and high-trust Business Description & Specialty for an Indian vendor.
+
+User Custom Notes/Prompt: "${prompt || 'Top rated local business'}"
+Shop / Business Name: ${context.shopName || prompt || 'Our Business'}
+Business Type: ${context.businessType || 'Retailer / Service Provider'}
+Vendor Categories: ${category || (Array.isArray(context.categories) ? context.categories.join(', ') : 'General')}
+Subcategories / Specializations: ${subcategory || (Array.isArray(context.subcategories) ? context.subcategories.join(', ') : 'All Services')}
+Location / City: ${context.city || 'Local City'}, ${context.state || 'India'}
+
+Respond with STRICT JSON format:
+{
+  "shortDescription": "1-line catchy brand slogan (under 90 chars)",
+  "detailedDescription": "Warm, professional, and convincing business overview covering what we sell/provide, expertise, customer commitment, and key specialties (80-160 words)",
+  "serviceHighlights": "• 100% Quality Assurance\\n• Experienced & Verified Team\\n• Fast Turnaround & Doorstep Support\\n• Transparent Customer Pricing",
+  "aiLabels": ["Verified Business", "Top Rated", "Best Service"]
+}
+`
+    : `
 Generate marketplace listing content based on the details below:
 
 User Request / Topic: "${prompt || 'Top Quality Service'}"
@@ -1517,13 +1542,14 @@ Respond with STRICT JSON format:
   } catch (err) {
     logger.warn(`AI generateDescription failed: ${err.message}`);
     // Fallback template
-    const catTitle = `${category || ''} ${subcategory || ''}`.trim() || 'Service';
+    const sName = context.shopName || 'our business';
+    const catTitle = `${category || ''} ${subcategory || ''}`.trim() || 'services and products';
     return {
       ok: false,
-      shortDescription: `Professional ${catTitle} provided by experienced and verified experts.`,
-      detailedDescription: `Get top-quality ${catTitle} with complete peace of mind. Our verified specialists ensure prompt, reliable, and hygienic service at transparent prices. Contact us today for quick booking!`,
-      serviceHighlights: `• Experienced & Verified Experts\n• Transparent & Competitive Rates\n• Punctual Doorstep Service\n• 100% Satisfaction Guarantee`,
-      aiLabels: ['Fast Service', 'Top Rated', 'Verified Tech'],
+      shortDescription: `Welcome to ${sName} - Your trusted partner for ${catTitle}.`,
+      detailedDescription: `Welcome to ${sName}! We specialize in delivering high-quality ${catTitle} with unmatched customer dedication. Our verified team is committed to providing prompt, transparent, and reliable solutions tailored to your requirements. Visit us or get in touch for the best service experience!`,
+      serviceHighlights: `• 100% Quality & Customer Satisfaction\n• Experienced Specialists\n• Fast & Reliable Doorstep Support\n• Fair & Transparent Rates`,
+      aiLabels: ['Fast Service', 'Top Rated', 'Verified Vendor'],
       meta: {
         latency_ms: Date.now() - started,
         model_used: model,
