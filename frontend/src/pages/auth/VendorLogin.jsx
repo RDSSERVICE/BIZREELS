@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
-import { FiStore, FiArrowRight } from 'react-icons/fi';
+import { FiShoppingCart, FiArrowRight } from 'react-icons/fi';
 import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation, useSwitchRoleMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
 import Input from '../../components/common/Input';
@@ -116,7 +116,7 @@ const VendorLogin = () => {
     <div className="flex flex-col gap-5 w-full font-sans text-left">
       <div className="text-center md:text-left">
         <div className="inline-flex items-center gap-2 px-3 py-1 mb-2 bg-[#d99a3d]/15 text-[#1a1a1a] rounded-full border border-[#d99a3d]/30">
-          <FiStore className="text-[#d99a3d]" size={13} />
+          <FiShoppingCart className="text-[#d99a3d]" size={13} />
           <span className="text-[11px] font-bold uppercase tracking-wider">Vendor Portal</span>
         </div>
         <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] uppercase tracking-tight">
@@ -174,9 +174,9 @@ const VendorLogin = () => {
           <button
             type="submit"
             disabled={isEmailLoading}
-            className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2e2a24] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2 shadow-xs"
+            className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
           >
-            {isEmailLoading ? 'Signing In...' : 'Sign In as Vendor'}
+            {isEmailLoading ? 'Signing In...' : 'SIGN IN AS VENDOR'}
             <FiArrowRight className="w-4 h-4" />
           </button>
         </form>
@@ -195,15 +195,15 @@ const VendorLogin = () => {
                 type="button"
                 onClick={handleSendOtp}
                 disabled={isOtpRequestLoading}
-                className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2e2a24] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2 shadow-xs"
+                className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
               >
-                {isOtpRequestLoading ? 'Sending OTP...' : 'Send OTP'}
+                {isOtpRequestLoading ? 'Sending OTP...' : 'SEND OTP'}
                 <FiArrowRight className="w-4 h-4" />
               </button>
             </>
           ) : (
             <>
-              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-md flex flex-col gap-1 text-center">
+              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl flex flex-col gap-1 text-center">
                 <span className="text-xs font-semibold text-slate-700">OTP sent to:</span>
                 <span className="text-xs font-bold text-[#d99a3d]">{otpIdentifier}</span>
                 <button
@@ -225,9 +225,9 @@ const VendorLogin = () => {
               <button
                 type="submit"
                 disabled={isOtpVerifyLoading}
-                className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2e2a24] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2 shadow-xs"
+                className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
               >
-                {isOtpVerifyLoading ? 'Verifying...' : 'Verify & Login'}
+                {isOtpVerifyLoading ? 'Verifying...' : 'VERIFY & LOGIN'}
                 <FiArrowRight className="w-4 h-4" />
               </button>
             </>
@@ -246,7 +246,7 @@ const VendorLogin = () => {
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="w-full py-2.5 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-md transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-xs"
+        className="w-full py-3 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs"
       >
         <FcGoogle className="w-4 h-4" />
         <span>Sign in with Google</span>

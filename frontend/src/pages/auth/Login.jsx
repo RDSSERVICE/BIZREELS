@@ -194,9 +194,9 @@ const Login = () => {
           <button
             type="submit"
             disabled={isEmailLoading}
-            className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
           >
-            {isEmailLoading ? 'Signing In...' : 'Sign In'}
+            {isEmailLoading ? 'Signing In...' : 'SIGN IN'}
             <FiArrowRight className="w-4 h-4" />
           </button>
         </form>
@@ -215,15 +215,15 @@ const Login = () => {
                 type="button"
                 onClick={handleSendOtp}
                 disabled={isOtpRequestLoading}
-                className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
               >
-                {isOtpRequestLoading ? 'Sending OTP...' : 'Send OTP'}
+                {isOtpRequestLoading ? 'Sending OTP...' : 'SEND OTP'}
                 <FiArrowRight className="w-4 h-4" />
               </button>
             </>
           ) : (
             <>
-              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-md flex flex-col gap-1 text-center">
+              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl flex flex-col gap-1 text-center">
                 <span className="text-xs font-semibold text-slate-700">OTP sent to:</span>
                 <span className="text-xs font-bold text-[#d99a3d]">{otpIdentifier}</span>
                 <button
@@ -249,9 +249,9 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={isOtpVerifyLoading}
-                className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-md transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
               >
-                {isOtpVerifyLoading ? 'Verifying...' : 'Verify & Login'}
+                {isOtpVerifyLoading ? 'Verifying...' : 'VERIFY & LOGIN'}
                 <FiArrowRight className="w-4 h-4" />
               </button>
             </>
@@ -272,7 +272,7 @@ const Login = () => {
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="w-full py-2.5 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-md transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-xs"
+        className="w-full py-3 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs"
       >
         <FcGoogle className="w-4 h-4" />
         <span>Sign in with Google</span>

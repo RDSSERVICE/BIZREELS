@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { FiArrowRight, FiKey } from 'react-icons/fi';
 import { useForgotPasswordMutation, useResetPasswordMutation } from '../../features/auth/authApi';
-import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import RoleQuickSwitcher from '../../components/auth/RoleQuickSwitcher';
 
 /**
  * Premium Forgot Password screen
  * Multi-step flow: Request reset OTP, and verify with new password.
+ * Styled according to Warm Editorial Bento-Brutalism system.
  */
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -53,14 +55,18 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-fade-in">
+    <div className="flex flex-col gap-5 w-full font-sans text-left">
       <div className="text-center md:text-left">
-        <h2 className="text-2xl font-black tracking-tight text-brand-navy">
-          Reset Password
+        <div className="inline-flex items-center gap-2 px-3 py-1 mb-2 bg-[#d99a3d]/15 text-[#1a1a1a] rounded-full border border-[#d99a3d]/30">
+          <FiKey className="text-[#d99a3d]" size={13} />
+          <span className="text-[11px] font-bold uppercase tracking-wider">Account Recovery</span>
+        </div>
+        <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] uppercase tracking-tight">
+          RESET PASSWORD
         </h2>
-        <p className="text-sm text-text-secondary mt-1">
+        <p className="text-xs text-slate-500 mt-1 font-medium">
           {step === 1
-            ? 'Enter your email to receive a secure OTP code.'
+            ? 'Enter your registered email to receive a secure OTP code.'
             : 'Enter the code and set your new account password.'}
         </p>
       </div>
@@ -77,19 +83,24 @@ const ForgotPassword = () => {
             })}
           />
 
-          <Button type="submit" variant="primary" fullWidth isLoading={isRequestLoading} className="mt-2">
-            Send Reset OTP
-          </Button>
+          <button
+            type="submit"
+            disabled={isRequestLoading}
+            className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+          >
+            {isRequestLoading ? 'Sending Code...' : 'SEND RESET OTP'}
+            <FiArrowRight className="w-4 h-4" />
+          </button>
         </form>
       ) : (
         <form onSubmit={resetForm.handleSubmit(onResetSubmit)} className="flex flex-col gap-4">
-          <div className="p-3 bg-brand-purple/5 border border-brand-purple/10 rounded-premium text-center">
-            <span className="text-xs font-semibold text-brand-navy">OTP sent to:</span>
-            <span className="text-sm font-bold text-brand-purple block">{emailAddress}</span>
+          <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl flex flex-col gap-1 text-center">
+            <span className="text-xs font-semibold text-slate-700">OTP sent to:</span>
+            <span className="text-xs font-bold text-[#d99a3d]">{emailAddress}</span>
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="text-xs font-bold text-brand-orange hover:underline mt-1"
+              className="text-xs font-bold text-slate-600 hover:underline mt-1 cursor-pointer border-none bg-transparent"
             >
               Change Email
             </button>
@@ -131,18 +142,25 @@ const ForgotPassword = () => {
             })}
           />
 
-          <Button type="submit" variant="primary" fullWidth isLoading={isResetLoading} className="mt-2">
-            Update Password
-          </Button>
+          <button
+            type="submit"
+            disabled={isResetLoading}
+            className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+          >
+            {isResetLoading ? 'Updating Password...' : 'UPDATE PASSWORD'}
+            <FiArrowRight className="w-4 h-4" />
+          </button>
         </form>
       )}
 
-      <p className="text-center text-xs font-semibold text-text-secondary">
+      <p className="text-center text-xs font-medium text-slate-600 mt-1">
         Back to{' '}
-        <Link to="/auth/login" className="font-bold text-brand-purple hover:underline">
+        <Link to="/auth/login" className="font-bold text-[#d99a3d] hover:underline">
           Sign In
         </Link>
       </p>
+
+      <RoleQuickSwitcher />
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
+import { FiArrowRight } from 'react-icons/fi';
 import { useRegisterMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
 import { getRoleDashboard } from '../../lib/roleNav';
@@ -184,29 +185,34 @@ const Register = () => {
           {...register('referralCode')}
         />
 
-        <Button type="submit" variant="primary" fullWidth isLoading={isLoading} className="mt-2">
-          Sign Up
-        </Button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-2 flex items-center justify-center gap-2"
+        >
+          {isLoading ? 'Creating Account...' : 'SIGN UP'}
+          <FiArrowRight className="w-4 h-4" />
+        </button>
       </form>
 
-      <div className="relative flex py-2 items-center">
-        <div className="flex-grow border-t border-border"></div>
-        <span className="flex-shrink mx-4 text-xs text-text-tertiary font-bold uppercase tracking-wider">
+      <div className="relative flex py-1 items-center">
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
+        <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
           Or sign up with
         </span>
-        <div className="flex-grow border-t border-border"></div>
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
       </div>
 
-      <Button
+      <button
+        type="button"
         onClick={handleGoogleLogin}
-        variant="glass"
-        fullWidth
-        icon={FcGoogle}
+        className="w-full py-3 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs"
       >
-        Sign up with Google
-      </Button>
+        <FcGoogle className="w-4 h-4" />
+        <span>Sign up with Google</span>
+      </button>
 
-      <p className="text-center text-xs font-semibold text-text-secondary mt-2">
+      <p className="text-center text-xs font-medium text-slate-600 mt-2">
         Already have an account?{' '}
         <Link to="/auth/login" className="font-bold text-[#d99a3d] hover:underline">
           Sign In
