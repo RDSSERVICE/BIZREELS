@@ -48,7 +48,7 @@ img, video {
 
 /* ── Brand gradient text ─────────────────────────────────── */
 .text-gradient-brand {
-    background: linear-gradient(135deg, #6D28D9 0%, #EC4899 50%, #F97316 100%);
+    background: linear-gradient(135deg, #0F172A 0%, #1D4ED8 50%, #EAB308 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -56,27 +56,29 @@ img, video {
 
 /* ── Brand gradient background ───────────────────────────── */
 .bg-gradient-brand {
-    background: linear-gradient(135deg, #6D28D9 0%, #EC4899 50%, #F97316 100%);
+    background: linear-gradient(135deg, #0F172A 0%, #1D4ED8 50%, #EAB308 100%);
 }
 
 /* ── Brand CTA button ────────────────────────────────────── */
 .btn-brand {
-    background: linear-gradient(135deg, #6D28D9 0%, #EC4899 50%, #F97316 100%);
+    background: linear-gradient(135deg, #0F172A 0%, #1D4ED8 50%, #EAB308 100%);
     color: #ffffff;
     transition:
         transform 150ms ease,
         box-shadow 150ms ease;
-    box-shadow: 0 8px 30px rgba(109, 40, 217, 0.25);
+    box-shadow: 0 8px 30px rgba(29, 78, 216, 0.35);
 }
 
 .btn-brand:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 40px rgba(109, 40, 217, 0.4);
+    box-shadow: 0 10px 40px rgba(234, 179, 8, 0.45);
 }
 
 .btn-brand:active {
     transform: translateY(0);
 }
+
+
 
 /* ── Ambient brand glow — decorative background layer ───── */
 .glow-brand::before {

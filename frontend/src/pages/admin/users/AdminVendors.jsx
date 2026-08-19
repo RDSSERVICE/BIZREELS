@@ -227,22 +227,24 @@ export default function AdminVendors() {
       )}
 
       {/* --- FILTER & SEARCH BAR --- */}
-      <div className="glass rounded-2xl border border-white/50 shadow-glass p-4 space-y-4">
-        <div className="flex items-center justify-between border-b border-border pb-3">
+      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-[#e3dccb] shadow-xs p-4 sm:p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
           <div className="flex items-center gap-2">
-            <FiFilter className="w-4 h-4 text-brand-orange" />
-            <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">Search & Filters</h3>
+            <div className="w-7 h-7 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600">
+              <FiFilter className="w-4 h-4" />
+            </div>
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Search & Filters</h3>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={clearFilters}
-              className="px-3 py-1.5 rounded-lg border border-border text-[10px] font-bold text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-all flex items-center gap-1"
+              className="px-4 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 text-[11px] font-bold text-slate-700 transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
             >
               Clear Filters
             </button>
             <button
               onClick={handleExport}
-              className="px-3 py-1.5 rounded-lg gradient-brand text-[10px] font-bold text-white shadow-premium flex items-center gap-1.5 transition-all hover:opacity-90"
+              className="px-4.5 py-1.5 rounded-full bg-[#0F172A] hover:bg-[#1E293B] text-[11px] font-bold text-white shadow-xs flex items-center gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <FiDownload className="w-3.5 h-3.5" /> Export Data (CSV)
             </button>
@@ -252,13 +254,13 @@ export default function AdminVendors() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search bar */}
           <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+            <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search by shop, business, name, ID..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full pl-10 pr-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-orange transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e3dccb] rounded-full text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 transition-all shadow-2xs"
             />
           </div>
 
@@ -266,7 +268,7 @@ export default function AdminVendors() {
           <select
             value={status}
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-orange transition-all"
+            className="px-4 py-2.5 bg-white border border-[#e3dccb] rounded-full text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 transition-all shadow-2xs"
           >
             <option value="">All Account Statuses</option>
             <option value="Active">Active</option>
@@ -278,7 +280,7 @@ export default function AdminVendors() {
           <select
             value={kycStatus}
             onChange={(e) => { setKycStatus(e.target.value); setPage(1); }}
-            className="px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-orange transition-all"
+            className="px-4 py-2.5 bg-white border border-[#e3dccb] rounded-full text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 transition-all shadow-2xs"
           >
             <option value="">All KYC Statuses</option>
             <option value="Verified">Verified Accounts</option>
@@ -291,7 +293,7 @@ export default function AdminVendors() {
           <select
             value={sort}
             onChange={(e) => { setSort(e.target.value); setPage(1); }}
-            className="px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-orange transition-all"
+            className="px-4 py-2.5 bg-white border border-[#e3dccb] rounded-full text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 transition-all shadow-2xs"
           >
             <option value="newest_first">Newest First</option>
             <option value="oldest_first">Oldest First</option>
@@ -303,26 +305,26 @@ export default function AdminVendors() {
           </select>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           {/* Registration Date range: from */}
           <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider">Registered From</span>
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest px-2">Registered From</span>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
-              className="px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-orange transition-all"
+              className="px-4 py-2 bg-white border border-[#e3dccb] rounded-full text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 transition-all shadow-2xs"
             />
           </div>
 
           {/* Registration Date range: to */}
           <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider">Registered To</span>
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest px-2">Registered To</span>
             <input
               type="date"
               value={toDate}
               onChange={(e) => { setToDate(e.target.value); setPage(1); }}
-              className="px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-orange transition-all"
+              className="px-4 py-2 bg-white border border-[#e3dccb] rounded-full text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 transition-all shadow-2xs"
             />
           </div>
         </div>
@@ -550,20 +552,20 @@ export default function AdminVendors() {
       >
         <form onSubmit={handleResetPassword} className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">New Password</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">New Password</label>
             <input
               type="password"
               placeholder="Min 6 characters"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange/20 transition-all"
+              className="w-full px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 transition-all shadow-2xs"
               required
             />
           </div>
           <button
             type="submit"
             disabled={resettingPw}
-            className="w-full py-2.5 rounded-xl gradient-brand text-white text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs font-black shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             {resettingPw ? 'Resetting...' : 'Confirm Reset Password'}
           </button>
@@ -579,19 +581,19 @@ export default function AdminVendors() {
       >
         <form onSubmit={handleRejectKycSubmit} className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Reason for Rejection</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Reason for Rejection</label>
             <textarea
               placeholder="Specify mismatch or missing fields..."
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange/20 min-h-[100px] transition-all"
+              className="w-full px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 min-h-[100px] transition-all shadow-2xs"
               required
             />
           </div>
           <button
             type="submit"
             disabled={rejecting}
-            className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             {rejecting ? 'Rejecting...' : 'Confirm KYC Rejection'}
           </button>

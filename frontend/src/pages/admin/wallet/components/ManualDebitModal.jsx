@@ -77,55 +77,57 @@ export default function ManualDebitModal({ isOpen, onClose }) {
 
         {/* User Search */}
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Search User</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Search User</label>
           {selectedUser ? (
-            <div className="flex items-center gap-3 p-3 bg-surface-secondary border border-border rounded-xl">
-              <div className="w-8 h-8 rounded-full bg-brand-purple/20 flex items-center justify-center">
-                <FiUser className="w-4 h-4 text-brand-purple" />
+            <div className="flex items-center gap-3 p-3 bg-white border border-[#e3dccb] rounded-xl shadow-2xs">
+              <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center">
+                <FiUser className="w-4 h-4 text-[#1D4ED8]" />
               </div>
               <div className="flex-1">
-                <span className="font-bold text-xs text-text-primary block">{selectedUser.name}</span>
-                <span className="text-[10px] text-text-tertiary">
-                  {selectedUser.phone} • Balance: <span className="font-bold text-brand-purple">{selectedUser.wallet_balance} credits</span>
+                <span className="font-bold text-xs text-[#1a1a1a] block">{selectedUser.name}</span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  {selectedUser.phone} • Balance: <span className="font-bold text-[#1D4ED8]">{selectedUser.wallet_balance} credits</span>
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => { setSelectedUser(null); setForm(prev => ({ ...prev, user_id: '' })); }}
-                className="text-[10px] text-red-500 font-bold hover:underline"
+                className="text-[10px] text-rose-600 font-bold hover:underline cursor-pointer"
               >
                 Change
               </button>
             </div>
           ) : (
             <div className="relative">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary w-3.5 h-3.5" />
+              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
               <input
                 type="text"
                 placeholder="Search by name, phone, or email..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+                className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 shadow-2xs"
               />
               {userSearch.length >= 2 && users.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e3dccb] rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
                   {users.map(user => (
                     <button
                       key={user.id}
+                      type="button"
                       onClick={() => handleSelectUser(user)}
-                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface-secondary text-left text-xs transition-all"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-[#f8f4ec] text-left text-xs transition-all border-b border-[#e3dccb]/50 last:border-0 cursor-pointer"
                     >
-                      <FiUser className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0" />
+                      <FiUser className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <span className="font-bold text-text-primary block truncate">{user.name}</span>
-                        <span className="text-[10px] text-text-tertiary">{user.phone}</span>
+                        <span className="font-bold text-[#1a1a1a] block truncate">{user.name}</span>
+                        <span className="text-[10px] text-slate-500 font-medium">{user.phone}</span>
                       </div>
-                      <span className="text-[10px] font-bold text-brand-purple">{user.wallet_balance} cr</span>
+                      <span className="text-[10px] font-black text-[#1D4ED8]">{user.wallet_balance} cr</span>
                     </button>
                   ))}
                 </div>
               )}
               {searching && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl p-3 text-xs text-text-tertiary text-center">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e3dccb] rounded-xl p-3 text-xs text-slate-500 text-center font-medium">
                   Searching...
                 </div>
               )}
@@ -135,29 +137,29 @@ export default function ManualDebitModal({ isOpen, onClose }) {
 
         {/* User ID */}
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">User ID</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">User ID</label>
           <input
             type="text"
             placeholder="Or paste User ID directly"
             value={form.user_id}
             onChange={(e) => setForm(prev => ({ ...prev, user_id: e.target.value }))}
-            className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-mono focus:outline-none focus:border-brand-purple"
+            className="w-full px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-mono text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 shadow-2xs"
           />
         </div>
 
         {/* Amount */}
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Amount (Credits)</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Amount (Credits)</label>
           <input
             type="number"
             min="1"
             placeholder="e.g. 50"
             value={form.amount}
             onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value }))}
-            className={`w-full px-3 py-2 bg-surface border rounded-xl text-xs focus:outline-none ${overBalance ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-brand-purple'}`}
+            className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-xs font-bold text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none shadow-2xs ${overBalance ? 'border-rose-500 focus:border-rose-500' : 'border-[#e3dccb] focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20'}`}
           />
           {overBalance && (
-            <span className="text-[10px] text-red-500 mt-1 block">
+            <span className="text-[10px] font-bold text-rose-600 mt-1 block">
               ⚠ Amount exceeds user's balance ({selectedUser.wallet_balance} credits)
             </span>
           )}
@@ -165,33 +167,34 @@ export default function ManualDebitModal({ isOpen, onClose }) {
 
         {/* Reason */}
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Reason *</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Reason *</label>
           <input
             type="text"
             placeholder="e.g. Policy violation penalty"
             value={form.reason}
             onChange={(e) => setForm(prev => ({ ...prev, reason: e.target.value }))}
-            className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+            className="w-full px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 shadow-2xs"
           />
         </div>
 
         {/* Notes */}
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Notes (Optional)</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Notes (Optional)</label>
           <textarea
             rows={2}
             placeholder="Additional notes..."
             value={form.notes}
             onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
-            className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple resize-none"
+            className="w-full px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 resize-none shadow-2xs"
           />
         </div>
 
         {/* Submit */}
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={isSubmitting || overBalance}
-          className="w-full py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+          className="w-full py-2.5 bg-rose-600 text-white rounded-xl text-xs font-black hover:bg-rose-700 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-xs cursor-pointer"
         >
           <FiAlertTriangle className="w-4 h-4" />
           {isSubmitting ? 'Processing...' : 'Confirm Debit'}

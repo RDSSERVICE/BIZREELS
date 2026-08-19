@@ -2,12 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   FiUsers, FiUserCheck, FiFilm, FiLayers, FiVideo, FiUpload,
-  FiZap, FiDollarSign, FiShield, FiAlertTriangle, FiShoppingBag,
+  FiZap, FiShield, FiAlertTriangle, FiShoppingBag,
   FiCreditCard, FiTrendingUp, FiArrowRight, FiGrid
 } from 'react-icons/fi';
+import { FaRupeeSign } from 'react-icons/fa';
 import AdminStatCard from '../../features/admin/components/AdminStatCard';
 import AdminPageHeader from '../../features/admin/components/AdminPageHeader';
 import { useGetAdminOverviewQuery } from '../../features/admin/adminApi';
+
 
 const QUICK_ACTIONS = [
   { label: 'Manage Users', path: '/admin/customers', icon: FiUsers, color: 'text-brand-purple' },
@@ -99,7 +101,7 @@ export default function AdminDashboard() {
             <AdminStatCard
               label="Total Revenue"
               value={fmtCurrency(ov.total_revenue_paise)}
-              icon={FiDollarSign}
+              icon={FaRupeeSign}
               color="green"
               testId="stat-revenue"
             />
