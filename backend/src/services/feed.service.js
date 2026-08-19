@@ -238,29 +238,32 @@ const buildFeed = async ({
 
 const getHomeTrendingFeed = async () => {
   try {
-    // 1. Trending Products (Top 5 Listings sorted by views & orders)
+    // 1. Trending Products (Top 15 Listings sorted by views & orders)
     let listings = await Listing.find({
       status: 'published',
       isDeleted: { $ne: true },
       ...notTestFilter()
     })
       .sort({ views: -1, orders_count: -1, _id: -1 })
-      .limit(5)
+      .limit(15)
       .populate('vendor', 'name business_name profile_pic avatarUrl')
       .lean();
 
     const defaultTrending = [
-      { num: '01', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=100&h=100&fit=crop', title: 'Premium Office Chair', sub: 'ErgoComfort Pro', meta: '1.2K views · 86 leads', id: null },
-      { num: '02', img: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=100&h=100&fit=crop', title: 'Digital Marketing Service', sub: 'Grow Your Brand Online', meta: '980 views · 64 leads', id: null },
-      { num: '03', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=100&h=100&fit=crop', title: 'Solar Rooftop System', sub: 'Save Electricity Bills', meta: '875 views · 59 leads', id: null },
-      { num: '04', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=100&h=100&fit=crop', title: 'Modern Modular Kitchen', sub: 'Designs That Inspire', meta: '765 views · 51 leads', id: null },
-      { num: '05', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=100&h=100&fit=crop', title: 'Corporate Gift Hampers', sub: 'For Every Occasion', meta: '680 views · 48 leads', id: null }
+      { num: '01', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=1050&fit=crop&q=85', title: 'Premium Office Chair', sub: 'ErgoComfort Pro', meta: '1.2K views · 86 leads', id: null },
+      { num: '02', img: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=1050&fit=crop&q=85', title: 'Digital Marketing Service', sub: 'Grow Your Brand Online', meta: '980 views · 64 leads', id: null },
+      { num: '03', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=1050&fit=crop&q=85', title: 'Solar Rooftop System', sub: 'Save Electricity Bills', meta: '875 views · 59 leads', id: null },
+      { num: '04', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1050&fit=crop&q=85', title: 'Modern Modular Kitchen', sub: 'Designs That Inspire', meta: '765 views · 51 leads', id: null },
+      { num: '05', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=1050&fit=crop&q=85', title: 'Corporate Gift Hampers', sub: 'For Every Occasion', meta: '680 views · 48 leads', id: null },
+      { num: '06', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&h=1050&fit=crop&q=85', title: 'Luxury Bridal Makeup', sub: 'Glow Studio', meta: '610 views · 42 leads', id: null },
+      { num: '07', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=1050&fit=crop&q=85', title: 'Luxury Fleet Rental', sub: 'Prestige Cars', meta: '590 views · 39 leads', id: null },
+      { num: '08', img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1050&fit=crop&q=85', title: 'Commercial Interior Design', sub: 'Apex Architects', meta: '540 views · 35 leads', id: null }
     ];
 
     const trendingProducts = (listings || []).map((l, index) => ({
       id: l._id.toString(),
       num: String(index + 1).padStart(2, '0'),
-      img: (l.images && l.images[0]) || (l.serviceDetails && l.serviceDetails.coverImage) || defaultTrending[index]?.img,
+      img: (l.images && l.images[0]) || (l.serviceDetails && l.serviceDetails.coverImage) || defaultTrending[index % defaultTrending.length]?.img,
       title: l.title,
       sub: l.shortDescription || l.subcategory || l.category || (l.vendor ? (l.vendor.business_name || l.vendor.name) : 'Verified Vendor'),
       meta: `${(l.views || 0).toLocaleString()} views · ${(l.orders_count || l.saves_count || 0)} leads`,
@@ -268,12 +271,14 @@ const getHomeTrendingFeed = async () => {
       category: l.category
     }));
 
-    while (trendingProducts.length < 5) {
-      const idx = trendingProducts.length;
-      trendingProducts.push(defaultTrending[idx]);
+    if (trendingProducts.length < 5) {
+      while (trendingProducts.length < 8) {
+        const idx = trendingProducts.length;
+        trendingProducts.push(defaultTrending[idx % defaultTrending.length]);
+      }
     }
 
-    // 2. Featured Cards (3 Cards)
+    // 2. Featured Cards (Up to 10 Cards)
     let featured = await Listing.find({
       status: 'published',
       isDeleted: { $ne: true },
@@ -281,11 +286,11 @@ const getHomeTrendingFeed = async () => {
       ...notTestFilter()
     })
       .sort({ views: -1, _id: -1 })
-      .limit(3)
+      .limit(10)
       .lean();
 
-    if (!featured || featured.length < 3) {
-      const needed = 3 - (featured ? featured.length : 0);
+    if (!featured || featured.length < 5) {
+      const needed = 10 - (featured ? featured.length : 0);
       const extra = await Listing.find({
         status: 'published',
         isDeleted: { $ne: true },
@@ -299,9 +304,11 @@ const getHomeTrendingFeed = async () => {
     }
 
     const defaultFeatured = [
-      { badge: 'Featured', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=500&h=650&fit=crop', views: '2.1K', title: 'ErgoComfort Pro Premium Office Chair', category: 'Furniture', id: null },
-      { badge: null, img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&h=650&fit=crop', views: '1.8K', title: 'Social Media Growth Service', category: 'Digital Marketing', id: null },
-      { badge: null, img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&h=650&fit=crop', views: '3.4K', title: 'Solar Rooftop System 3kW On-Grid', category: 'Energy', id: null }
+      { badge: 'Featured', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=1050&fit=crop&q=85', views: '2.1K', title: 'ErgoComfort Pro Premium Office Chair', category: 'Furniture', id: null },
+      { badge: null, img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=1050&fit=crop&q=85', views: '1.8K', title: 'Social Media Growth Service', category: 'Digital Marketing', id: null },
+      { badge: null, img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=1050&fit=crop&q=85', views: '3.4K', title: 'Solar Rooftop System 3kW On-Grid', category: 'Energy', id: null },
+      { badge: 'Hot Deal', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1050&fit=crop&q=85', views: '1.5K', title: 'Custom Italian Modular Kitchen', category: 'Home & Living', id: null },
+      { badge: 'Popular', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=1050&fit=crop&q=85', views: '2.9K', title: 'Premium Festive Gift Hampers', category: 'Corporate Gifts', id: null }
     ];
 
     const featuredCards = (featured || []).map((f, index) => {
@@ -310,16 +317,18 @@ const getHomeTrendingFeed = async () => {
       return {
         id: f._id.toString(),
         badge: f.isBoosted ? 'Featured' : (index === 0 ? 'Top Pick' : null),
-        img: (f.images && f.images[0]) || (f.serviceDetails && f.serviceDetails.coverImage) || defaultFeatured[index]?.img,
+        img: (f.images && f.images[0]) || (f.serviceDetails && f.serviceDetails.coverImage) || defaultFeatured[index % defaultFeatured.length]?.img,
         views: formattedViews,
         title: f.title,
-        category: f.category || defaultFeatured[index]?.category || 'Marketplace'
+        category: f.category || defaultFeatured[index % defaultFeatured.length]?.category || 'Marketplace'
       };
     });
 
-    while (featuredCards.length < 3) {
-      const idx = featuredCards.length;
-      featuredCards.push(defaultFeatured[idx]);
+    if (featuredCards.length < 3) {
+      while (featuredCards.length < 5) {
+        const idx = featuredCards.length;
+        featuredCards.push(defaultFeatured[idx % defaultFeatured.length]);
+      }
     }
 
     // 3. Stats & Categories

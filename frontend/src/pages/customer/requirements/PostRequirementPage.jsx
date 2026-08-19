@@ -355,7 +355,7 @@ export default function PostRequirementPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-5 font-sans p-2 sm:p-4 pb-24 sm:pb-12 min-h-full">
+    <div className="max-w-4xl mx-auto flex flex-col gap-5 font-sans p-2 sm:p-4 pb-24 sm:pb-12 min-h-full">
       <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">CUSTOMER PORTAL</span>
@@ -371,52 +371,24 @@ export default function PostRequirementPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-8 bg-white rounded-md p-5 sm:p-7 border border-[#e3dccb] shadow-xs w-full space-y-6">
-          <div>
-            <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-2">1. Select Requirement Type</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => handleTypeChange('product')} className={`flex items-center justify-center gap-2 p-3.5 rounded-md border text-xs font-extrabold transition ${type === 'product' ? 'bg-[#241b15] text-[#d99a3d]' : 'bg-[#f8f4ec]'}`}>
-                <FiShoppingBag size={17} /> <span>Product Requirement</span>
-              </button>
-              <button type="button" onClick={() => handleTypeChange('service')} className={`flex items-center justify-center gap-2 p-3.5 rounded-md border text-xs font-extrabold transition ${type === 'service' ? 'bg-[#241b15] text-[#d99a3d]' : 'bg-[#f8f4ec]'}`}>
-                <FiTool size={17} /> <span>Service Requirement</span>
-              </button>
-            </div>
-          </div>
-
-          {type === 'product' ? (
-            <ProductRequirementForm title={title} setTitle={setTitle} category={category} setCategory={setCategory} subcategory={subcategory} setSubcategory={setSubcategory} budgetMin={budgetMin} setBudgetMin={setBudgetMin} budgetMax={budgetMax} setBudgetMax={setBudgetMax} quantity={quantity} setQuantity={setQuantity} state={state} setState={setState} district={district} setDistrict={setDistrict} city={city} setCity={setCity} pincode={pincode} setPincode={setPincode} address={address} setAddress={setAddress} targetDistance={targetDistance} setTargetDistance={setTargetDistance} description={description} setDescription={setDescription} detailedSpecifications={detailedSpecifications} setDetailedSpecifications={setDetailedSpecifications} isGeneratingSpecs={isGeneratingSpecs} handleGenerateSpecs={handleGenerateSpecs} expectedDeliveryDate={expectedDeliveryDate} setExpectedDeliveryDate={setExpectedDeliveryDate} expectedDeliveryTime={expectedDeliveryTime} setExpectedDeliveryTime={setExpectedDeliveryTime} productCondition={productCondition} setProductCondition={setProductCondition} customProductCondition={customProductCondition} setCustomProductCondition={setCustomProductCondition} customCategory={customCategory} setCustomCategory={setCustomCategory} customSubcategory={customSubcategory} setCustomSubcategory={setCustomSubcategory} otherConditions={otherConditions} setOtherConditions={setOtherConditions} photos={photos} video={video} uploading={uploading} handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload} removePhoto={removePhoto} setVideo={setVideo} resolveMediaUrl={resolveMediaUrl} categories={parentCategories} subcategories={subcategories} isLoading={isLoading} statesList={statesList} districtsList={districtsList} handlePincodeChange={handlePincodeChange} onSubmit={handleSubmit} />
-          ) : (
-            <ServiceRequirementForm title={title} setTitle={setTitle} category={category} setCategory={setCategory} subcategory={subcategory} setSubcategory={setSubcategory} budgetMin={budgetMin} setBudgetMin={setBudgetMin} budgetMax={budgetMax} setBudgetMax={setBudgetMax} quantity={quantity} setQuantity={setQuantity} state={state} setState={setState} district={district} setDistrict={setDistrict} city={city} setCity={setCity} pincode={pincode} setPincode={setPincode} address={address} setAddress={setAddress} targetDistance={targetDistance} setTargetDistance={setTargetDistance} description={description} setDescription={setDescription} detailedSpecifications={detailedSpecifications} setDetailedSpecifications={setDetailedSpecifications} isGeneratingSpecs={isGeneratingSpecs} handleGenerateSpecs={handleGenerateSpecs} expectedDeliveryDate={expectedDeliveryDate} setExpectedDeliveryDate={setExpectedDeliveryDate} expectedDeliveryTime={expectedDeliveryTime} setExpectedDeliveryTime={setExpectedDeliveryTime} serviceModel={serviceModel} setServiceModel={setServiceModel} customServiceModel={customServiceModel} setCustomServiceModel={setCustomServiceModel} customCategory={customCategory} setCustomCategory={setCustomCategory} customSubcategory={customSubcategory} setCustomSubcategory={setCustomSubcategory} otherConditions={otherConditions} setOtherConditions={setOtherConditions} photos={photos} video={video} uploading={uploading} handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload} removePhoto={removePhoto} setVideo={setVideo} resolveMediaUrl={resolveMediaUrl} categories={parentCategories} subcategories={subcategories} isLoading={isLoading} statesList={statesList} districtsList={districtsList} handlePincodeChange={handlePincodeChange} onSubmit={handleSubmit} />
-          )}
-        </div>
-
-        <div className="lg:col-span-4 space-y-5">
-          <div className="bg-[#241b15] text-white rounded-md p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-[#3a2c22] pb-3">
-              <span className="text-[10px] font-black text-[#d99a3d] uppercase tracking-widest flex items-center gap-1.5"><FiZap size={14} /> LIVE VENDOR REACH</span>
-            </div>
-            <div className="text-2xl font-black text-[#d99a3d]">150+ VENDORS</div>
-            <p className="text-xs text-slate-300">Verified sellers in {city || 'your area'} match your requirement.</p>
-          </div>
-          <div className="bg-white rounded-md p-5 border border-[#e3dccb] shadow-xs space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded bg-[#f8f4ec] text-[#d99a3d] flex items-center justify-center"><FiShield size={18} /></div>
-              <div>
-                <h4 className="text-xs uppercase font-black">3X FAST QUOTE</h4>
-                <p className="text-[11px] text-slate-500">Free, no-obligation quotes</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-md p-5 border border-[#e3dccb] shadow-xs space-y-3">
-            <h4 className="text-xs uppercase font-black flex items-center gap-2 border-b pb-2"><FiHelpCircle className="text-[#d99a3d]" /> TIPS</h4>
-            <ul className="space-y-2 text-xs text-slate-700">
-              <li className="flex items-start gap-2"><FiCheckCircle className="text-emerald-600" /> Specify budget range.</li>
-              <li className="flex items-start gap-2"><FiCheckCircle className="text-emerald-600" /> Use AI Specs generator.</li>
-            </ul>
+      <div className="bg-white rounded-md p-5 sm:p-7 border border-[#e3dccb] shadow-xs w-full space-y-6">
+        <div>
+          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-2">1. Select Requirement Type</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" onClick={() => handleTypeChange('product')} className={`flex items-center justify-center gap-2 p-3.5 rounded-md border text-xs font-extrabold transition ${type === 'product' ? 'bg-[#241b15] text-[#d99a3d]' : 'bg-[#f8f4ec]'}`}>
+              <FiShoppingBag size={17} /> <span>Product Requirement</span>
+            </button>
+            <button type="button" onClick={() => handleTypeChange('service')} className={`flex items-center justify-center gap-2 p-3.5 rounded-md border text-xs font-extrabold transition ${type === 'service' ? 'bg-[#241b15] text-[#d99a3d]' : 'bg-[#f8f4ec]'}`}>
+              <FiTool size={17} /> <span>Service Requirement</span>
+            </button>
           </div>
         </div>
+
+        {type === 'product' ? (
+          <ProductRequirementForm title={title} setTitle={setTitle} category={category} setCategory={setCategory} subcategory={subcategory} setSubcategory={setSubcategory} budgetMin={budgetMin} setBudgetMin={setBudgetMin} budgetMax={budgetMax} setBudgetMax={setBudgetMax} quantity={quantity} setQuantity={setQuantity} state={state} setState={setState} district={district} setDistrict={setDistrict} city={city} setCity={setCity} pincode={pincode} setPincode={setPincode} address={address} setAddress={setAddress} targetDistance={targetDistance} setTargetDistance={setTargetDistance} description={description} setDescription={setDescription} detailedSpecifications={detailedSpecifications} setDetailedSpecifications={setDetailedSpecifications} isGeneratingSpecs={isGeneratingSpecs} handleGenerateSpecs={handleGenerateSpecs} expectedDeliveryDate={expectedDeliveryDate} setExpectedDeliveryDate={setExpectedDeliveryDate} expectedDeliveryTime={expectedDeliveryTime} setExpectedDeliveryTime={setExpectedDeliveryTime} productCondition={productCondition} setProductCondition={setProductCondition} customProductCondition={customProductCondition} setCustomProductCondition={setCustomProductCondition} customCategory={customCategory} setCustomCategory={setCustomCategory} customSubcategory={customSubcategory} setCustomSubcategory={setCustomSubcategory} otherConditions={otherConditions} setOtherConditions={setOtherConditions} photos={photos} video={video} uploading={uploading} handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload} removePhoto={removePhoto} setVideo={setVideo} resolveMediaUrl={resolveMediaUrl} categories={parentCategories} subcategories={subcategories} isLoading={isLoading} statesList={statesList} districtsList={districtsList} handlePincodeChange={handlePincodeChange} onSubmit={handleSubmit} />
+        ) : (
+          <ServiceRequirementForm title={title} setTitle={setTitle} category={category} setCategory={setCategory} subcategory={subcategory} setSubcategory={setSubcategory} budgetMin={budgetMin} setBudgetMin={setBudgetMin} budgetMax={budgetMax} setBudgetMax={setBudgetMax} quantity={quantity} setQuantity={setQuantity} state={state} setState={setState} district={district} setDistrict={setDistrict} city={city} setCity={setCity} pincode={pincode} setPincode={setPincode} address={address} setAddress={setAddress} targetDistance={targetDistance} setTargetDistance={setTargetDistance} description={description} setDescription={setDescription} detailedSpecifications={detailedSpecifications} setDetailedSpecifications={setDetailedSpecifications} isGeneratingSpecs={isGeneratingSpecs} handleGenerateSpecs={handleGenerateSpecs} expectedDeliveryDate={expectedDeliveryDate} setExpectedDeliveryDate={setExpectedDeliveryDate} expectedDeliveryTime={expectedDeliveryTime} setExpectedDeliveryTime={setExpectedDeliveryTime} serviceModel={serviceModel} setServiceModel={setServiceModel} customServiceModel={customServiceModel} setCustomServiceModel={setCustomServiceModel} customCategory={customCategory} setCustomCategory={setCustomCategory} customSubcategory={customSubcategory} setCustomSubcategory={setCustomSubcategory} otherConditions={otherConditions} setOtherConditions={setOtherConditions} photos={photos} video={video} uploading={uploading} handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload} removePhoto={removePhoto} setVideo={setVideo} resolveMediaUrl={resolveMediaUrl} categories={parentCategories} subcategories={subcategories} isLoading={isLoading} statesList={statesList} districtsList={districtsList} handlePincodeChange={handlePincodeChange} onSubmit={handleSubmit} />
+        )}
       </div>
     </div>
   );
