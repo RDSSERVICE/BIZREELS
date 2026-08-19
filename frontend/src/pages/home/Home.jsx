@@ -497,26 +497,21 @@ export default function Home() {
                       {activeProduct?.badge || 'Top Pick Product'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono font-bold text-[#a89b8d]">
-                      {String((activeProduct?.currentIndex || 0) + 1).padStart(2, '0')} / {String(activeProduct?.totalCount || allMediaPool.length || 1).padStart(2, '0')}
-                    </span>
-                    <div className="flex items-center gap-1 ml-1">
-                      <button
-                        onClick={() => setActiveCardIndex((prev) => (prev > 0 ? prev - 1 : (allMediaPool.length || 1) - 1))}
-                        className="w-7 h-7 rounded-lg bg-[#1a1813] hover:bg-[#3a3630] text-[#d99a3d] flex items-center justify-center transition-colors cursor-pointer border border-[#3a3630]"
-                        title="Previous Product"
-                      >
-                        <FiChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setActiveCardIndex((prev) => (prev + 1) % (allMediaPool.length || 1))}
-                        className="w-7 h-7 rounded-lg bg-[#1a1813] hover:bg-[#3a3630] text-[#d99a3d] flex items-center justify-center transition-colors cursor-pointer border border-[#3a3630]"
-                        title="Next Product"
-                      >
-                        <FiChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setActiveCardIndex((prev) => (prev > 0 ? prev - 1 : (allMediaPool.length || 1) - 1))}
+                      className="w-7 h-7 rounded-lg bg-[#1a1813] hover:bg-[#3a3630] text-[#d99a3d] flex items-center justify-center transition-colors cursor-pointer border border-[#3a3630]"
+                      title="Previous Product"
+                    >
+                      <FiChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setActiveCardIndex((prev) => (prev + 1) % (allMediaPool.length || 1))}
+                      className="w-7 h-7 rounded-lg bg-[#1a1813] hover:bg-[#3a3630] text-[#d99a3d] flex items-center justify-center transition-colors cursor-pointer border border-[#3a3630]"
+                      title="Next Product"
+                    >
+                      <FiChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
