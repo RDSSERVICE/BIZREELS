@@ -232,7 +232,7 @@ export const LanguageProvider = ({ children }) => {
 
   const bi = (enLabel, hiLabel) => {
     if (lang === 'hi') {
-      return hiLabel ? `${enLabel} / ${hiLabel}` : enLabel;
+      return hiLabel || enLabel;
     }
     return enLabel;
   };

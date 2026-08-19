@@ -274,446 +274,452 @@ export default function CustomerSettingsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in p-3 sm:p-6 min-h-screen pb-24 lg:pb-12 font-sans bg-[#f2ede4]">
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 animate-fade-in p-3 sm:p-6 min-h-screen pb-24 lg:pb-12 font-sans bg-[#f8f9fa]">
       
-      {/* ── 1. PREMIUM HERO USER PROFILE BANNER ── */}
-      <div className="bg-[#241b15] text-white p-6 sm:p-8 rounded-2xl border border-[#241b15] shadow-lg relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        {/* Subtle background glow element */}
-        <div className="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-[#d99a3d]/10 blur-2xl pointer-events-none" />
-
-        <div className="flex items-center gap-4 sm:gap-6 z-10">
-          <div className="relative">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-1 shadow-md">
-              <div className="w-full h-full bg-[#1a1a1a] rounded-full flex items-center justify-center text-xl sm:text-2xl font-black text-[#d99a3d] overflow-hidden uppercase">
-                {user.avatarUrl || user.profile_pic ? (
-                  <img src={user.avatarUrl || user.profile_pic} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span>{name ? name.charAt(0) : 'C'}</span>
-                )}
-              </div>
+      {/* ── 1. SLEEK TOP HEADER & USER BAR ── */}
+      <div className="bg-[#241b15] text-white p-6 sm:p-7 rounded-2xl border border-[#241b15] shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#d99a3d] p-0.5 shadow-xs shrink-0">
+            <div className="w-full h-full bg-[#1a1a1a] rounded-full flex items-center justify-center text-xl font-black text-[#d99a3d] overflow-hidden uppercase">
+              {user.avatarUrl || user.profile_pic ? (
+                <img src={user.avatarUrl || user.profile_pic} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span>{name ? name.charAt(0) : 'C'}</span>
+              )}
             </div>
-            <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-[#241b15] rounded-full shadow-xs" title="Active" />
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase">
-                {name || 'Valued Customer'}
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wide">
+                {name || bi('Account Settings', 'खाता सेटिंग्स')}
               </h1>
-              <span className="bg-[#d99a3d] text-[#1a1a1a] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
+              <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9.5px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
                 {bi('Verified Customer', 'सत्यापित ग्राहक')}
               </span>
             </div>
-            <p className="text-xs text-slate-300 font-medium flex items-center gap-2 flex-wrap">
-              <span>{email || 'customer@bizreels.in'}</span>
-              {phone && (
-                <>
-                  <span className="text-[#d99a3d]">•</span>
-                  <span>{phone}</span>
-                </>
-              )}
-            </p>
-            <p className="text-[11px] text-slate-400 flex items-center gap-1">
-              <FiMapPin size={12} className="text-[#d99a3d]" />
-              <span>{[city, state].filter(Boolean).join(', ') || bi('Location Not Set', 'स्थान सेट नहीं')}</span>
+            <p className="text-xs text-slate-300 mt-0.5">
+              {email || 'customer@bizreels.in'} {phone ? `• ${phone}` : ''}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 z-10 self-stretch md:self-auto justify-end">
-          <span className="text-[11px] font-bold text-[#d99a3d] bg-white/10 px-3.5 py-2 rounded-xl border border-white/10 flex items-center gap-2">
-            <FiSettings size={15} />
-            <span>{bi('Settings Console', 'सेटिंग्स कंसोल')}</span>
+        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end border-t sm:border-t-0 border-white/10 pt-3 sm:pt-0">
+          <span className="text-[11px] font-bold text-[#d99a3d] bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-1.5">
+            <FiSettings size={14} />
+            <span>{bi('Customer Portal', 'ग्राहक पोर्टल')}</span>
           </span>
         </div>
       </div>
 
-      {/* ── 2. TABBED NAVIGATION & MAIN SETTINGS CONTENT ── */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-        
-        {/* Modern Sidebar Navigation */}
-        <div className="col-span-12 md:col-span-3 flex flex-row md:flex-col gap-2.5 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setActiveTab('profile')}
-            className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-xs transition-all duration-200 border whitespace-nowrap md:w-full cursor-pointer shadow-2xs ${
-              activeTab === 'profile'
-                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] ring-2 ring-[#d99a3d]/40 scale-[1.01]'
-                : 'bg-white text-slate-700 hover:bg-white/80 border-[#e3dccb] hover:border-[#d99a3d]/50'
-            }`}
-          >
-            <div className={`p-1.5 rounded-lg ${activeTab === 'profile' ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-slate-100 text-slate-600'}`}>
-              <FiUser size={16} />
-            </div>
-            <div className="text-left">
-              <div className="leading-tight">{bi('Profile & Address', 'प्रोफ़ाइल एवं पता')}</div>
-              <div className="text-[9.5px] font-medium opacity-70 mt-0.5">{bi('Personal & location data', 'व्यक्तिगत और स्थान डेटा')}</div>
-            </div>
-          </button>
+      {/* ── 2. HORIZONTAL TAB SWITCHER ── */}
+      <div className="bg-white rounded-xl p-1.5 border border-[#e3dccb] shadow-2xs flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        <button
+          type="button"
+          onClick={() => setActiveTab('profile')}
+          className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer whitespace-nowrap ${
+            activeTab === 'profile'
+              ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs'
+              : 'text-slate-600 hover:text-[#1a1a1a] hover:bg-slate-50'
+          }`}
+        >
+          <FiUser size={15} />
+          <span>{bi('Personal Information', 'व्यक्तिगत जानकारी')}</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('interests')}
-            className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-xs transition-all duration-200 border whitespace-nowrap md:w-full cursor-pointer shadow-2xs ${
-              activeTab === 'interests'
-                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] ring-2 ring-[#d99a3d]/40 scale-[1.01]'
-                : 'bg-white text-slate-700 hover:bg-white/80 border-[#e3dccb] hover:border-[#d99a3d]/50'
-            }`}
-          >
-            <div className={`p-1.5 rounded-lg ${activeTab === 'interests' ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-slate-100 text-slate-600'}`}>
-              <FiGrid size={16} />
-            </div>
-            <div className="text-left">
-              <div className="leading-tight">{bi('Feed Interests', 'फ़ीड रुचियां')}</div>
-              <div className="text-[9.5px] font-medium opacity-70 mt-0.5">{bi('Customize feed content', 'फ़ीड सामग्री कस्टमाइज़ करें')}</div>
-            </div>
-          </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('address')}
+          className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer whitespace-nowrap ${
+            activeTab === 'address'
+              ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs'
+              : 'text-slate-600 hover:text-[#1a1a1a] hover:bg-slate-50'
+          }`}
+        >
+          <FiMapPin size={15} />
+          <span>{bi('Address & Location', 'पता एवं स्थान')}</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('security')}
-            className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-xs transition-all duration-200 border whitespace-nowrap md:w-full cursor-pointer shadow-2xs ${
-              activeTab === 'security'
-                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] ring-2 ring-[#d99a3d]/40 scale-[1.01]'
-                : 'bg-white text-slate-700 hover:bg-white/80 border-[#e3dccb] hover:border-[#d99a3d]/50'
-            }`}
-          >
-            <div className={`p-1.5 rounded-lg ${activeTab === 'security' ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-slate-100 text-slate-600'}`}>
-              <FiLock size={16} />
-            </div>
-            <div className="text-left">
-              <div className="leading-tight">{bi('Account Security', 'खाता सुरक्षा')}</div>
-              <div className="text-[9.5px] font-medium opacity-70 mt-0.5">{bi('Password & account control', 'पासवर्ड एवं नियंत्रण')}</div>
-            </div>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('interests')}
+          className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer whitespace-nowrap ${
+            activeTab === 'interests'
+              ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs'
+              : 'text-slate-600 hover:text-[#1a1a1a] hover:bg-slate-50'
+          }`}
+        >
+          <FiGrid size={15} />
+          <span>{bi('Feed Interests', 'फ़ीड रुचियां')}</span>
+        </button>
 
-        {/* ── 3. MAIN FORM & CONTROLS CONTAINER ── */}
-        <div className="col-span-12 md:col-span-9 space-y-6">
-          
-          {/* TAB 1: PROFILE & ADDRESS */}
-          {activeTab === 'profile' && (
-            <form onSubmit={handleSaveProfile} className="space-y-6">
-              
-              {/* Personal Details Card */}
-              <div className="bg-white rounded-2xl p-6 border border-[#e3dccb] shadow-xs space-y-6">
-                <div className="flex items-center justify-between border-b border-[#e3dccb] pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#d99a3d]" />
-                    <h3 className="text-sm font-extrabold text-[#1a1a1a] uppercase tracking-wider">
-                      {bi('Personal Information', 'व्यक्तिगत जानकारी')}
-                    </h3>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-4 py-2 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-black rounded-xl text-xs uppercase tracking-wider shadow-xs transition cursor-pointer flex items-center gap-1.5 border border-[#1a1a1a]"
-                  >
-                    <FiSave size={14} />
-                    <span>{bi('Update', 'अपडेट करें')}</span>
-                  </button>
-                </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('security')}
+          className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer whitespace-nowrap ${
+            activeTab === 'security'
+              ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs'
+              : 'text-slate-600 hover:text-[#1a1a1a] hover:bg-slate-50'
+          }`}
+        >
+          <FiLock size={15} />
+          <span>{bi('Account Security', 'खाता सुरक्षा')}</span>
+        </button>
+      </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">
-                      {bi('Full Name *', 'पूरा नाम *')}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                    />
-                  </div>
+      {/* ── 3. MAIN FORM CONTENT CARDS ── */}
+      <div className="space-y-6">
 
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">
-                      {bi('Gender', 'लिंग')}
-                    </label>
-                    <select
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition cursor-pointer"
-                    >
-                      <option value="male">{bi('Male', 'पुरुष')}</option>
-                      <option value="female">{bi('Female', 'महिला')}</option>
-                      <option value="other">{bi('Other', 'अन्य')}</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">
-                      {bi('Profession / Occupation', 'व्यवसाय / पेशा')}
-                    </label>
-                    <select
-                      value={profession}
-                      onChange={(e) => {
-                        setProfession(e.target.value);
-                        if (e.target.value !== 'Other / Custom Profession') {
-                          setCustomProfession('');
-                        }
-                      }}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition cursor-pointer"
-                    >
-                      <option value="">{bi('Select your profession...', 'अपना व्यवसाय चुनें...')}</option>
-                      {CUSTOMER_PROFESSIONS.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
-
-                    {profession === 'Other / Custom Profession' && (
-                      <input
-                        type="text"
-                        value={customProfession}
-                        onChange={(e) => setCustomProfession(e.target.value)}
-                        placeholder={bi('Enter your custom profession...', 'अपना व्यवसाय दर्ज करें...')}
-                        className="w-full mt-2.5 px-4 py-3 bg-white border border-[#d99a3d] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none shadow-xs"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">
-                      {bi('Date of Birth (Optional)', 'जन्म तिथि (वैकल्पिक)')}
-                    </label>
-                    <input
-                      type="date"
-                      value={dob}
-                      max={todayStr}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val) {
-                          const todayVal = new Date();
-                          todayVal.setHours(23, 59, 59, 999);
-                          if (new Date(val) > todayVal) {
-                            toast.error('Date of Birth cannot be in the future.');
-                            return;
-                          }
-                        }
-                        setDob(val);
-                      }}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">
-                      {bi('Preferred Language', 'पसंदीदा भाषा')}
-                    </label>
-                    <select
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition cursor-pointer"
-                    >
-                      <option value="English">English</option>
-                      <option value="Hindi">Hindi (हिंदी)</option>
-                      <option value="Marathi">Marathi (मराठी)</option>
-                      <option value="Gujarati">Gujarati (ગુજરાતી)</option>
-                      <option value="Tamil">Tamil (தமிழ்)</option>
-                      <option value="Bengali">Bengali (বাংলা)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">
-                      {bi('Mobile Number', 'मोबाइल नंबर')}
-                    </label>
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">
-                      {bi('Email Address', 'ईमेल पता')}
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                    />
-                  </div>
-                </div>
+        {/* TAB 1: PERSONAL INFORMATION */}
+        {activeTab === 'profile' && (
+          <form onSubmit={handleSaveProfile} className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e3dccb] shadow-xs space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h2 className="text-base font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#d99a3d]" />
+                  {bi('Personal Information', 'व्यक्तिगत जानकारी')}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {bi('Update your contact info and personal preferences', 'अपनी संपर्क जानकारी और प्राथमिकताएं अपडेट करें')}
+                </p>
               </div>
 
-              {/* Address & Geolocation Autofill Card */}
-              <div className="bg-white rounded-2xl p-6 border border-[#e3dccb] shadow-xs space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#e3dccb] pb-4 gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#d99a3d]" />
-                    <h3 className="text-sm font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
-                      <FiMapPin className="text-[#d99a3d]" />
-                      <span>{bi('Address & Location Details', 'पता एवं स्थान विवरण')}</span>
-                    </h3>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={handleAutofillLocation}
-                      disabled={isLocating}
-                      className="px-3 py-2 bg-[#f8f4ec] hover:bg-[#241b15] hover:text-[#d99a3d] border border-[#e3dccb] text-slate-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                    >
-                      <FiRefreshCw size={13} className={isLocating ? 'animate-spin' : ''} />
-                      <span>{bi('Autofill Current Location', 'वर्तमान स्थान प्राप्त करें')}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">{bi('State', 'राज्य')}</label>
-                    <input
-                      type="text"
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      placeholder={bi('e.g. Maharashtra', 'उदाहरण: महाराष्ट्र')}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">{bi('District', 'जिला')}</label>
-                    <input
-                      type="text"
-                      value={district}
-                      onChange={(e) => setDistrict(e.target.value)}
-                      placeholder={bi('e.g. Mumbai Suburban', 'उदाहरण: मुंबई उपनगर')}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">{bi('City', 'शहर')}</label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder={bi('e.g. Mumbai', 'उदाहरण: मुंबई')}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">{bi('Full Street Address', 'पूरा सड़क पता')}</label>
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder={bi('e.g. Flat 402, Sunshine Heights, Bandra West', 'उदाहरण: फ्लैट 402, बांद्रा वेस्ट')}
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1.5">{bi('Pincode', 'पिन कोड')}</label>
-                    <input
-                      type="text"
-                      value={pincode}
-                      onChange={(e) => setPincode(e.target.value)}
-                      placeholder="e.g. 400050"
-                      className="w-full px-4 py-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Main Submit Button */}
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full py-4 rounded-xl bg-[#241b15] text-[#d99a3d] border border-[#241b15] font-black text-xs uppercase tracking-widest shadow-md hover:bg-[#1a1a1a] hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="px-5 py-2.5 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-black rounded-xl text-xs uppercase tracking-wider shadow-2xs transition cursor-pointer flex items-center gap-2 border border-[#1a1a1a]"
               >
-                <FiSave size={18} />
+                <FiSave size={15} />
+                <span>{saving ? bi('Saving...', 'सहेजा जा रहा है...') : bi('Save Profile', 'प्रोफ़ाइल सहेजें')}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('Full Name *', 'पूरा नाम *')}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={bi('Enter full name', 'पूरा नाम दर्ज करें')}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('Gender', 'लिंग')}
+                </label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition cursor-pointer"
+                >
+                  <option value="male">{bi('Male', 'पुरुष')}</option>
+                  <option value="female">{bi('Female', 'महिला')}</option>
+                  <option value="other">{bi('Other', 'अन्य')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('Profession / Occupation', 'व्यवसाय / पेशा')}
+                </label>
+                <select
+                  value={profession}
+                  onChange={(e) => {
+                    setProfession(e.target.value);
+                    if (e.target.value !== 'Other / Custom Profession') {
+                      setCustomProfession('');
+                    }
+                  }}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition cursor-pointer"
+                >
+                  <option value="">{bi('Select profession...', 'व्यवसाय चुनें...')}</option>
+                  {CUSTOMER_PROFESSIONS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+
+                {profession === 'Other / Custom Profession' && (
+                  <input
+                    type="text"
+                    value={customProfession}
+                    onChange={(e) => setCustomProfession(e.target.value)}
+                    placeholder={bi('Enter custom profession', 'व्यवसाय दर्ज करें')}
+                    className="w-full mt-2.5 px-4 py-3 bg-white border border-[#d99a3d] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none shadow-xs"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('Date of Birth (Optional)', 'जन्म तिथि (वैकल्पिक)')}
+                </label>
+                <input
+                  type="date"
+                  value={dob}
+                  max={todayStr}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      const todayVal = new Date();
+                      todayVal.setHours(23, 59, 59, 999);
+                      if (new Date(val) > todayVal) {
+                        toast.error('Date of Birth cannot be in the future.');
+                        return;
+                      }
+                    }
+                    setDob(val);
+                  }}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('Preferred Language', 'पसंदीदा भाषा')}
+                </label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition cursor-pointer"
+                >
+                  <option value="English">English</option>
+                  <option value="Hindi">Hindi (हिंदी)</option>
+                  <option value="Marathi">Marathi (मराठी)</option>
+                  <option value="Gujarati">Gujarati (ગુજરાતી)</option>
+                  <option value="Tamil">Tamil (தமிழ்)</option>
+                  <option value="Bengali">Bengali (বাংলা)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('Mobile Number', 'मोबाइल नंबर')}
+                </label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={bi('e.g. +91 9876543210', 'उदा. +91 9876543210')}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('Email Address', 'ईमेल पता')}
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. example@gmail.com"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full sm:w-auto px-8 py-3.5 bg-[#241b15] text-[#d99a3d] border border-[#241b15] font-black text-xs uppercase tracking-widest rounded-xl shadow-md hover:bg-[#1a1a1a] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <FiSave size={16} />
                 <span>{saving ? bi('Saving Changes...', 'सहेजा जा रहा है...') : bi('Save Profile Details', 'प्रोफ़ाइल विवरण सहेजें')}</span>
               </button>
-            </form>
-          )}
+            </div>
+          </form>
+        )}
 
-          {/* TAB 2: FEED INTERESTS */}
-          {activeTab === 'interests' && (
-            <form onSubmit={handleSaveInterests} className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-[#e3dccb] shadow-xs space-y-6">
-                <div className="flex items-center justify-between border-b border-[#e3dccb] pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#d99a3d]" />
-                    <h3 className="text-sm font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
-                      <FiGrid className="text-[#d99a3d]" />
-                      <span>{bi('Personalized Feed Interests', 'व्यक्तिगत फ़ीड रुचियां')}</span>
-                    </h3>
-                  </div>
-                  <span className={`text-[10.5px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${
-                    selectedInterests.length >= 5
-                      ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border border-[#d99a3d]/40'
-                      : 'bg-red-500/10 text-red-700 border border-red-200'
-                  }`}>
-                    {selectedInterests.length} {bi('Selected (Min 5)', 'चयनित (न्यूनतम 5)')}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                  {bi('Select at least 5 interests. We will personalize your Reels & Marketplace feed based on these categories and subcategories.', 'कम से कम 5 रुचियों का चयन करें। हम इन श्रेणियों के आधार पर आपके फ़ीड को व्यक्तिगत बनाएंगे।')}
+        {/* TAB 2: ADDRESS & LOCATION */}
+        {activeTab === 'address' && (
+          <form onSubmit={handleSaveProfile} className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e3dccb] shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+              <div>
+                <h2 className="text-base font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
+                  <FiMapPin className="text-[#d99a3d]" />
+                  {bi('Address & Location Details', 'पता एवं स्थान विवरण')}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {bi('Manage delivery locations and GPS autofill settings', 'डिलीवरी स्थान और जीपीएस ऑटोफिल सेटिंग्स प्रबंधित करें')}
                 </p>
-
-                <InterestSelector selected={selectedInterests} setSelected={setSelectedInterests} />
               </div>
 
               <button
-                type="submit"
-                disabled={saving}
-                className="w-full py-4 rounded-xl bg-[#241b15] text-[#d99a3d] border border-[#241b15] font-black text-xs uppercase tracking-widest shadow-md hover:bg-[#1a1a1a] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                type="button"
+                onClick={handleAutofillLocation}
+                disabled={isLocating}
+                className="px-4 py-2 bg-slate-100 hover:bg-[#241b15] hover:text-[#d99a3d] border border-slate-200 text-slate-800 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer shadow-2xs self-start sm:self-auto"
               >
-                <FiSave size={18} />
-                <span>{saving ? bi('Updating Interests...', 'अपडेट हो रहा है...') : bi('Update Feed Interests', 'फ़ीड रुचियां अपडेट करें')}</span>
+                <FiRefreshCw size={14} className={isLocating ? 'animate-spin' : ''} />
+                <span>{bi('Autofill Current Location', 'वर्तमान स्थान प्राप्त करें')}</span>
               </button>
-            </form>
-          )}
+            </div>
 
-          {/* TAB 3: ACCOUNT SECURITY */}
-          {activeTab === 'security' && (
-            <div className="bg-white rounded-2xl p-6 border border-[#e3dccb] shadow-xs space-y-6">
-              <div className="flex items-center gap-2.5 border-b border-[#e3dccb] pb-4">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                <h3 className="text-sm font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
-                  <FiLock className="text-red-500" />
-                  <span>{bi('Account Security & Danger Zone', 'खाता सुरक्षा एवं जोखिम क्षेत्र')}</span>
-                </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('State', 'राज्य')}
+                </label>
+                <input
+                  type="text"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder={bi('e.g. Maharashtra', 'उदाहरण: महाराष्ट्र')}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                />
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                {bi('Manage your active login session and account ownership. Warning: Deleting your account will permanently remove all your requirement history and saved listings.', 'अपना खाता सत्र और स्वामित्व प्रबंधित करें। चेतावनी: अपना खाता हटाने से आपकी सारी गतिविधि स्थायी रूप से हट जाएगी।')}
-              </p>
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('District', 'जिला')}
+                </label>
+                <input
+                  type="text"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  placeholder={bi('e.g. Mumbai Suburban', 'उदाहरण: मुंबई उपनगर')}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                />
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="py-3.5 px-4 bg-[#f8f4ec] hover:bg-[#241b15] hover:text-[#d99a3d] border border-[#e3dccb] text-[#1a1a1a] font-black text-xs uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-                >
-                  <FiLogOut size={16} />
-                  <span>{bi('Logout Account', 'खाता लॉगआउट करें')}</span>
-                </button>
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('City', 'शहर')}
+                </label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder={bi('e.g. Mumbai', 'उदाहरण: मुंबई')}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                />
+              </div>
 
-                <button
-                  type="button"
-                  onClick={handleDeleteAccount}
-                  className="py-3.5 px-4 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 text-red-700 font-black text-xs uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-                >
-                  <FiTrash2 size={16} />
-                  <span>{bi('Delete Account', 'खाता हटाएं')}</span>
-                </button>
+              <div className="sm:col-span-2">
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('Full Street Address', 'पूरा सड़क पता')}
+                </label>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder={bi('e.g. Flat 402, Sunshine Heights, Bandra West', 'उदाहरण: फ्लैट 402, बांद्रा वेस्ट')}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  {bi('Pincode', 'पिन कोड')}
+                </label>
+                <input
+                  type="text"
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value)}
+                  placeholder="e.g. 400050"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                />
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full sm:w-auto px-8 py-3.5 bg-[#241b15] text-[#d99a3d] border border-[#241b15] font-black text-xs uppercase tracking-widest rounded-xl shadow-md hover:bg-[#1a1a1a] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <FiSave size={16} />
+                <span>{saving ? bi('Saving Changes...', 'सहेजा जा रहा है...') : bi('Save Address Details', 'पता विवरण सहेजें')}</span>
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* TAB 3: FEED INTERESTS */}
+        {activeTab === 'interests' && (
+          <form onSubmit={handleSaveInterests} className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e3dccb] shadow-xs space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h2 className="text-base font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
+                  <FiGrid className="text-[#d99a3d]" />
+                  {bi('Personalized Feed Interests', 'व्यक्तिगत फ़ीड रुचियां')}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {bi('Select at least 5 categories to customize your Reels & Marketplace feed', 'अपने फ़ीड को कस्टमाइज़ करने के लिए कम से कम 5 श्रेणियों का चयन करें')}
+                </p>
+              </div>
+
+              <span className={`text-[10.5px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${
+                selectedInterests.length >= 5
+                  ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border border-[#d99a3d]/40'
+                  : 'bg-red-500/10 text-red-700 border border-red-200'
+              }`}>
+                {selectedInterests.length} {bi('Selected (Min 5)', 'चयनित (न्यूनतम 5)')}
+              </span>
+            </div>
+
+            <InterestSelector selected={selectedInterests} setSelected={setSelectedInterests} />
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full sm:w-auto px-8 py-3.5 bg-[#241b15] text-[#d99a3d] border border-[#241b15] font-black text-xs uppercase tracking-widest rounded-xl shadow-md hover:bg-[#1a1a1a] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <FiSave size={16} />
+                <span>{saving ? bi('Updating Interests...', 'अपडेट हो रहा है...') : bi('Update Feed Interests', 'फ़ीड रुचियां अपडेट करें')}</span>
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* TAB 4: ACCOUNT SECURITY */}
+        {activeTab === 'security' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e3dccb] shadow-xs space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <h2 className="text-base font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
+                <FiLock className="text-red-500" />
+                {bi('Account Security & Danger Zone', 'खाता सुरक्षा एवं जोखिम क्षेत्र')}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {bi('Manage session status and permanent account deletion options', 'सत्र स्थिति और खाता हटाने के विकल्प प्रबंधित करें')}
+              </p>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              {bi('Warning: Deleting your account will permanently wipe out all your submitted briefs, vendor messages, and active orders. This action cannot be undone.', 'चेतावनी: अपना खाता हटाने से आपकी सारी गतिविधि स्थायी रूप से हट जाएगी। यह कार्रवाई पूर्ववत नहीं की जा सकती।')}
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="py-3.5 px-4 bg-slate-100 hover:bg-[#241b15] hover:text-[#d99a3d] border border-slate-200 text-[#1a1a1a] font-black text-xs uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+              >
+                <FiLogOut size={16} />
+                <span>{bi('Logout Account', 'खाता लॉगआउट करें')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                className="py-3.5 px-4 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 text-red-700 font-black text-xs uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+              >
+                <FiTrash2 size={16} />
+                <span>{bi('Delete Account', 'खाता हटाएं')}</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
