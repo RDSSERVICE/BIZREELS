@@ -238,6 +238,10 @@ const verifyPan = catchAsync(async (req, res) => {
     maskedNumber: sandboxRes.maskedNumber || sandboxService.maskPan(panNumber.toUpperCase()),
     fullName: sandboxRes.fullName || '',
     category: sandboxRes.category || 'Individual',
+    panStatus: sandboxRes.panStatus || 'VALID',
+    aadhaarLinked: sandboxRes.aadhaarLinked || '',
+    dob: sandboxRes.dob || '',
+    gender: sandboxRes.gender || '',
     status: isApproved ? 'approved' : 'failed',
     verified: isApproved,
     verifiedAt: isApproved ? now : null,
@@ -246,6 +250,10 @@ const verifyPan = catchAsync(async (req, res) => {
     backUrl: backUrl || currentDocs.pan?.backUrl || null,
     failureReason: isApproved ? null : (sandboxRes.message || 'PAN Verification failed')
   };
+
+  if (isApproved && !currentVp.panNumber) {
+    currentVp.panNumber = panNumber.toUpperCase();
+  }
 
   currentVp.documents = currentDocs;
   user.vendorProfile = currentVp;
@@ -338,6 +346,14 @@ const verifyAadhaarOtp = catchAsync(async (req, res) => {
     fullName: sandboxRes.fullName || '',
     gender: sandboxRes.gender || '',
     dob: sandboxRes.dob || '',
+    careOf: sandboxRes.careOf || '',
+    fullAddress: sandboxRes.fullAddress || '',
+    splitAddress: sandboxRes.splitAddress || {},
+    pincode: sandboxRes.pincode || '',
+    state: sandboxRes.state || '',
+    district: sandboxRes.district || '',
+    city: sandboxRes.city || '',
+    photo: sandboxRes.photo || '',
     status: isApproved ? 'approved' : 'failed',
     verified: isApproved,
     verifiedAt: isApproved ? now : null,
@@ -346,6 +362,15 @@ const verifyAadhaarOtp = catchAsync(async (req, res) => {
     backUrl: backUrl || currentDocs.aadhaar?.backUrl || null,
     failureReason: isApproved ? null : (sandboxRes.message || 'Aadhaar OTP verification failed')
   };
+
+  // Auto-populate missing vendor address/city/pincode from verified Aadhaar record
+  if (isApproved) {
+    if (!currentVp.pinCode && sandboxRes.pincode) currentVp.pinCode = sandboxRes.pincode;
+    if (!currentVp.city && (sandboxRes.city || sandboxRes.district)) currentVp.city = sandboxRes.city || sandboxRes.district;
+    if (!currentVp.state && sandboxRes.state) currentVp.state = sandboxRes.state;
+    if (!currentVp.address && sandboxRes.fullAddress) currentVp.address = sandboxRes.fullAddress;
+    if (!user.city && (sandboxRes.city || sandboxRes.district)) user.city = sandboxRes.city || sandboxRes.district;
+  }
 
   currentVp.documents = currentDocs;
   user.vendorProfile = currentVp;
@@ -408,6 +433,15 @@ const verifyGstin = catchAsync(async (req, res) => {
     legalName: sandboxRes.legalName || '',
     tradeName: sandboxRes.tradeName || '',
     gstStatus: sandboxRes.gstStatus || '',
+    taxpayerType: sandboxRes.taxpayerType || '',
+    constitutionOfBusiness: sandboxRes.constitutionOfBusiness || '',
+    dateOfRegistration: sandboxRes.dateOfRegistration || '',
+    state: sandboxRes.state || '',
+    fullAddress: sandboxRes.fullAddress || '',
+    principalPlaceOfBusiness: sandboxRes.principalPlaceOfBusiness || '',
+    natureOfBusiness: sandboxRes.natureOfBusiness || [],
+    centerJurisdiction: sandboxRes.centerJurisdiction || '',
+    stateJurisdiction: sandboxRes.stateJurisdiction || '',
     status: isApproved ? 'approved' : 'failed',
     verified: isApproved,
     verifiedAt: isApproved ? now : null,
@@ -415,6 +449,21 @@ const verifyGstin = catchAsync(async (req, res) => {
     fileUrl: fileUrl || currentDocs.gst?.fileUrl || null,
     failureReason: isApproved ? null : (sandboxRes.message || 'GSTIN verification failed')
   };
+
+  // Auto-populate vendor business name/type from verified GSTIN record
+  if (isApproved) {
+    if (!currentVp.storeName && (sandboxRes.tradeName || sandboxRes.legalName)) {
+      currentVp.storeName = sandboxRes.tradeName || sandboxRes.legalName;
+    }
+    if (!currentVp.businessName && (sandboxRes.legalName || sandboxRes.tradeName)) {
+      currentVp.businessName = sandboxRes.legalName || sandboxRes.tradeName;
+    }
+    if (!currentVp.businessType && sandboxRes.constitutionOfBusiness) {
+      currentVp.businessType = sandboxRes.constitutionOfBusiness;
+    }
+    if (!currentVp.taxDetails) currentVp.taxDetails = {};
+    currentVp.taxDetails.gstNumber = gstinNumber.toUpperCase();
+  }
 
   currentVp.documents = currentDocs;
   user.vendorProfile = currentVp;
@@ -478,8 +527,11 @@ const verifyBank = catchAsync(async (req, res) => {
   currentPayment.verifiedAccountName = sandboxRes.nameAtBank || '';
   currentPayment.ifscCode = ifscCode.toUpperCase();
   currentPayment.ifscVerified = true;
-  currentPayment.bankName = bankName || sandboxRes.bankName || currentPayment.bankName || '';
-  currentPayment.branchName = branchName || sandboxRes.branchName || currentPayment.branchName || '';
+  currentPayment.bankName = sandboxRes.bankName || bankName || currentPayment.bankName || '';
+  currentPayment.branchName = sandboxRes.branchName || branchName || currentPayment.branchName || '';
+  currentPayment.city = sandboxRes.city || currentPayment.city || '';
+  currentPayment.state = sandboxRes.state || currentPayment.state || '';
+  currentPayment.micr = sandboxRes.micr || currentPayment.micr || '';
   currentPayment.statementChequeUrl = statementChequeUrl || currentPayment.statementChequeUrl || null;
   currentPayment.status = isApproved ? 'approved' : 'pending';
   currentPayment.verified = isApproved;
@@ -528,6 +580,11 @@ const verifyDocument = catchAsync(async (req, res) => {
       docNumber: docNumber.toUpperCase(),
       maskedNumber: sandboxRes.maskedNumber || sandboxService.maskPan(docNumber.toUpperCase()),
       fullName: sandboxRes.fullName || '',
+      category: sandboxRes.category || 'Individual',
+      panStatus: sandboxRes.panStatus || 'VALID',
+      aadhaarLinked: sandboxRes.aadhaarLinked || '',
+      dob: sandboxRes.dob || '',
+      gender: sandboxRes.gender || '',
       status: isApproved ? 'approved' : (sandboxRes.status === 'failed' ? 'failed' : 'pending'),
       verified: isApproved,
       verifiedAt: isApproved ? now : null,
@@ -537,6 +594,9 @@ const verifyDocument = catchAsync(async (req, res) => {
       fileUrl: docFileUrl || currentDocs.pan?.fileUrl || null,
       failureReason: isApproved ? null : sandboxRes.message
     };
+    if (isApproved && !currentVp.panNumber) {
+      currentVp.panNumber = docNumber.toUpperCase();
+    }
   }
   // 2. If GST submitted via generic handler, invoke Sandbox GST verification
   else if (docType === 'gst' && docNumber) {
@@ -547,6 +607,16 @@ const verifyDocument = catchAsync(async (req, res) => {
       docNumber: docNumber.toUpperCase(),
       legalName: sandboxRes.legalName || '',
       tradeName: sandboxRes.tradeName || '',
+      gstStatus: sandboxRes.gstStatus || '',
+      taxpayerType: sandboxRes.taxpayerType || '',
+      constitutionOfBusiness: sandboxRes.constitutionOfBusiness || '',
+      dateOfRegistration: sandboxRes.dateOfRegistration || '',
+      state: sandboxRes.state || '',
+      fullAddress: sandboxRes.fullAddress || '',
+      principalPlaceOfBusiness: sandboxRes.principalPlaceOfBusiness || '',
+      natureOfBusiness: sandboxRes.natureOfBusiness || [],
+      centerJurisdiction: sandboxRes.centerJurisdiction || '',
+      stateJurisdiction: sandboxRes.stateJurisdiction || '',
       status: isApproved ? 'approved' : (sandboxRes.status === 'failed' ? 'failed' : 'pending'),
       verified: isApproved,
       verifiedAt: isApproved ? now : null,
@@ -554,6 +624,14 @@ const verifyDocument = catchAsync(async (req, res) => {
       fileUrl: docFileUrl || currentDocs.gst?.fileUrl || null,
       failureReason: isApproved ? null : sandboxRes.message
     };
+    if (isApproved) {
+      if (!currentVp.storeName && (sandboxRes.tradeName || sandboxRes.legalName)) {
+        currentVp.storeName = sandboxRes.tradeName || sandboxRes.legalName;
+      }
+      if (!currentVp.businessType && sandboxRes.constitutionOfBusiness) {
+        currentVp.businessType = sandboxRes.constitutionOfBusiness;
+      }
+    }
   }
   // 3. Aadhaar direct submission (saves document images & sets pending review if OTP wasn't used)
   else if (docType === 'aadhaar') {

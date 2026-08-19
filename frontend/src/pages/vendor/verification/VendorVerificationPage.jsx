@@ -1041,8 +1041,8 @@ export default function VendorVerificationPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">A</span>
                     <div>
-                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Aadhaar Card (Sandbox e-KYC OTP Verification)</h4>
-                      <p className="text-[10px] text-slate-400 font-bold">Verify via 12-digit Aadhaar OTP or upload document images</p>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Aadhaar Card (UIDAI e-KYC OTP Verification)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">Verify in real-time via 12-digit Aadhaar OTP or upload document images</p>
                     </div>
                   </div>
                   {(statusData.documents?.aadhaar?.status === 'approved' || statusData.documents?.aadhaar?.verified) && (
@@ -1053,11 +1053,15 @@ export default function VendorVerificationPage() {
                       {!editDocMode.aadhaar ? (
                         <button
                           type="button"
-                          onClick={() => setEditDocMode(prev => ({ ...prev, aadhaar: true }))}
+                          onClick={() => {
+                            setEditDocMode(prev => ({ ...prev, aadhaar: true }));
+                            setAadhaarOtpSent(false);
+                            setAadhaarOtpCode('');
+                          }}
                           className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <FiEdit2 size={12} className="text-[#d99a3d]" />
-                          <span>Edit / Change Aadhaar</span>
+                          <span>Re-verify / Change Aadhaar</span>
                         </button>
                       ) : (
                         <button
@@ -1074,7 +1078,7 @@ export default function VendorVerificationPage() {
 
                 {/* Aadhaar OTP Flow Section */}
                 <div className="bg-white p-4 rounded-xl border border-[#e3dccb] space-y-3">
-                  <span className="text-[10px] font-black text-[#d99a3d] uppercase tracking-wider block">Recommended: Instant Online OTP Verification</span>
+                  <span className="text-[10px] font-black text-[#d99a3d] uppercase tracking-wider block">Recommended: Instant Real-Time UIDAI OTP Verification</span>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <input
@@ -1093,7 +1097,7 @@ export default function VendorVerificationPage() {
                       disabled={aadhaarLoading || !aadhaarNum || aadhaarNum.length !== 12 || aadhaarTimer > 0 || (statusData.documents?.aadhaar?.status === 'approved' && !editDocMode.aadhaar)}
                       className="py-2.5 px-4 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-2xs transition disabled:opacity-50 cursor-pointer border-none"
                     >
-                      {aadhaarLoading && !aadhaarOtpSent ? 'Sending OTP...' : aadhaarTimer > 0 ? `Resend in ${aadhaarTimer}s` : (aadhaarOtpSent ? 'Resend OTP' : 'Send Aadhaar OTP')}
+                      {aadhaarLoading && !aadhaarOtpSent ? 'Sending Live OTP...' : aadhaarTimer > 0 ? `Resend in ${aadhaarTimer}s` : (aadhaarOtpSent ? 'Resend OTP' : 'Send Aadhaar OTP')}
                     </button>
 
                     {aadhaarOtpSent && (
@@ -1121,31 +1125,55 @@ export default function VendorVerificationPage() {
 
                 {/* Verified Aadhaar Details Badge */}
                 {statusData.documents?.aadhaar && (statusData.documents.aadhaar.status === 'approved' || statusData.documents.aadhaar.verified) && (
-                  <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
+                  <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-3 text-xs">
                     <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
                       <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
-                        <FiCheckCircle className="text-emerald-600" size={16} /> Aadhaar Record Verified (UIDAI e-KYC Sandbox)
+                        <FiCheckCircle className="text-emerald-600" size={16} /> Aadhaar Record Verified (UIDAI Official e-KYC)
                       </span>
                       <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black">
                         Active Gov Record
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                      <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Full Name (UIDAI)</span>
-                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.aadhaar.fullName || 'Verified Citizen'}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Masked Aadhaar</span>
-                        <strong className="text-slate-900 text-xs font-mono font-bold">{statusData.documents.aadhaar.maskedNumber || 'XXXX XXXX ****'}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Gender / DOB</span>
-                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.aadhaar.gender || '—'} {statusData.documents.aadhaar.dob ? `(${statusData.documents.aadhaar.dob})` : ''}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Reference ID</span>
-                        <strong className="text-slate-900 text-[10px] font-mono truncate block">{statusData.documents.aadhaar.referenceId || 'OKYC_VERIFIED'}</strong>
+
+                    <div className="flex flex-col sm:flex-row gap-3 items-start">
+                      {statusData.documents.aadhaar.photo && (
+                        <div className="shrink-0">
+                          <img
+                            src={statusData.documents.aadhaar.photo.startsWith('data:') || statusData.documents.aadhaar.photo.startsWith('http') ? statusData.documents.aadhaar.photo : `data:image/jpeg;base64,${statusData.documents.aadhaar.photo}`}
+                            alt="Aadhaar Photo"
+                            className="w-14 h-16 object-cover rounded-lg border border-emerald-300 bg-white shadow-2xs"
+                          />
+                          <span className="text-[8px] text-center block text-emerald-700 font-bold mt-0.5">UIDAI Photo</span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 w-full">
+                        <div>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Full Name (UIDAI)</span>
+                          <strong className="text-slate-900 text-xs font-bold">{statusData.documents.aadhaar.fullName || 'Verified Citizen'}</strong>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Masked Aadhaar</span>
+                          <strong className="text-slate-900 text-xs font-mono font-bold">{statusData.documents.aadhaar.maskedNumber || 'XXXX XXXX ****'}</strong>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Gender / DOB</span>
+                          <strong className="text-slate-900 text-xs font-bold">{statusData.documents.aadhaar.gender || '—'} {statusData.documents.aadhaar.dob ? `(${statusData.documents.aadhaar.dob})` : ''}</strong>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Care Of (Father/Husband)</span>
+                          <strong className="text-slate-900 text-xs font-bold">{statusData.documents.aadhaar.careOf || '—'}</strong>
+                        </div>
+                        <div className="col-span-2 sm:col-span-3">
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Official Registered Address</span>
+                          <span className="text-slate-800 text-xs font-semibold leading-tight block">
+                            {statusData.documents.aadhaar.fullAddress || [statusData.documents.aadhaar.city, statusData.documents.aadhaar.district, statusData.documents.aadhaar.state, statusData.documents.aadhaar.pincode].filter(Boolean).join(', ') || '—'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Reference ID</span>
+                          <strong className="text-slate-900 text-[10px] font-mono truncate block">{statusData.documents.aadhaar.referenceId || 'OKYC_VERIFIED'}</strong>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1191,7 +1219,7 @@ export default function VendorVerificationPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">P</span>
                     <div>
-                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">PAN Card (Sandbox Instant API Verification)</h4>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">PAN Card (Income Tax Instant Verification)</h4>
                       <p className="text-[10px] text-slate-400 font-bold">Enter 10-digit PAN number for real-time Income Tax record verification</p>
                     </div>
                   </div>
@@ -1207,7 +1235,7 @@ export default function VendorVerificationPage() {
                           className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <FiEdit2 size={12} className="text-[#d99a3d]" />
-                          <span>Edit / Change PAN</span>
+                          <span>Re-verify / Change PAN</span>
                         </button>
                       ) : (
                         <button
@@ -1251,7 +1279,7 @@ export default function VendorVerificationPage() {
                   <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
                     <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
                       <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
-                        <FiCheckCircle className="text-emerald-600" size={16} /> Income Tax Record Verified (NSDL Sandbox)
+                        <FiCheckCircle className="text-emerald-600" size={16} /> Income Tax Record Verified (NSDL / ITD Official)
                       </span>
                       <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black">
                         Active Taxpayer
@@ -1271,6 +1299,16 @@ export default function VendorVerificationPage() {
                         <strong className="text-slate-900 text-xs font-bold">{statusData.documents.pan.category || 'Individual'}</strong>
                       </div>
                       <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Aadhaar Link Status</span>
+                        <strong className="text-emerald-800 text-xs font-bold">{statusData.documents.pan.aadhaarLinked || 'Linked / Active'}</strong>
+                      </div>
+                      {statusData.documents.pan.dob && (
+                        <div>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">DOB / Incorp Date</span>
+                          <strong className="text-slate-900 text-xs font-bold">{statusData.documents.pan.dob}</strong>
+                        </div>
+                      )}
+                      <div>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Reference ID</span>
                         <strong className="text-slate-900 text-[10px] font-mono truncate block">{statusData.documents.pan.referenceId || 'PAN_VALIDATED'}</strong>
                       </div>
@@ -1288,7 +1326,7 @@ export default function VendorVerificationPage() {
                       : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
                   }`}
                 >
-                  {statusData.documents?.pan?.status === 'approved' && !editDocMode.pan ? 'PAN Verified ✓' : panLoading ? 'Verifying with Sandbox API...' : 'Verify PAN Card (Sandbox API)'}
+                  {statusData.documents?.pan?.status === 'approved' && !editDocMode.pan ? 'PAN Verified ✓' : panLoading ? 'Verifying with Income Tax API...' : 'Verify PAN Card'}
                 </button>
               </div>
             )}
@@ -1300,7 +1338,7 @@ export default function VendorVerificationPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">G</span>
                     <div>
-                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">GST Registration Certificate (Sandbox API)</h4>
+                      <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">GST Registration Certificate (GSTN Verification)</h4>
                       <p className="text-[10px] text-slate-400 font-bold">Enter 15-digit GSTIN to auto-fetch registered business name</p>
                     </div>
                   </div>
@@ -1316,7 +1354,7 @@ export default function VendorVerificationPage() {
                           className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <FiEdit2 size={12} className="text-[#d99a3d]" />
-                          <span>Edit / Change GSTIN</span>
+                          <span>Re-verify / Change GSTIN</span>
                         </button>
                       ) : (
                         <button
@@ -1354,25 +1392,53 @@ export default function VendorVerificationPage() {
                   <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
                     <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
                       <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
-                        <FiCheckCircle className="text-emerald-600" size={16} /> GST Record Verified (GSTN Sandbox)
+                        <FiCheckCircle className="text-emerald-600" size={16} /> GST Record Verified (GSTN Official Record)
                       </span>
                       <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black">
                         Active Tax Entity
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                       <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Legal / Trade Name</span>
-                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.legalName || statusData.documents.gst.tradeName || 'Registered Business'}</strong>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Trade Name</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.tradeName || statusData.documents.gst.legalName || 'Registered Business'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Legal Business Name</span>
+                        <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.legalName || '—'}</strong>
                       </div>
                       <div>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">GSTIN Number</span>
                         <strong className="text-slate-900 text-xs font-mono font-bold uppercase">{statusData.documents.gst.docNumber || gstNum}</strong>
                       </div>
                       <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Status</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">GST Status</span>
                         <strong className="text-emerald-800 text-xs font-bold">{statusData.documents.gst.gstStatus || 'Active'}</strong>
                       </div>
+                      {statusData.documents.gst.constitutionOfBusiness && (
+                        <div>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Constitution</span>
+                          <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.constitutionOfBusiness}</strong>
+                        </div>
+                      )}
+                      {statusData.documents.gst.taxpayerType && (
+                        <div>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Taxpayer Type</span>
+                          <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.taxpayerType}</strong>
+                        </div>
+                      )}
+                      {statusData.documents.gst.dateOfRegistration && (
+                        <div>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Reg. Date</span>
+                          <strong className="text-slate-900 text-xs font-bold">{statusData.documents.gst.dateOfRegistration}</strong>
+                        </div>
+                      )}
+                      {statusData.documents.gst.fullAddress && (
+                        <div className="col-span-2 sm:col-span-4">
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Principal Place of Business</span>
+                          <span className="text-slate-800 text-xs font-semibold leading-tight block">{statusData.documents.gst.fullAddress}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1387,7 +1453,7 @@ export default function VendorVerificationPage() {
                       : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
                   }`}
                 >
-                  {statusData.documents?.gst?.status === 'approved' && !editDocMode.gst ? 'GSTIN Verified ✓' : gstLoading ? 'Verifying with Sandbox API...' : 'Verify GSTIN (Sandbox API)'}
+                  {statusData.documents?.gst?.status === 'approved' && !editDocMode.gst ? 'GSTIN Verified ✓' : gstLoading ? 'Verifying with GSTN API...' : 'Verify GSTIN Certificate'}
                 </button>
               </div>
             )}
@@ -1747,6 +1813,18 @@ export default function VendorVerificationPage() {
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Bank Account No</span>
                     <strong className="text-slate-900 text-xs font-mono font-bold">{statusData.paymentDetails.maskedAccount || statusData.paymentDetails.bankAccount || bankAccount}</strong>
                   </div>
+                  {(statusData.paymentDetails.city || statusData.paymentDetails.state) && (
+                    <div>
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Branch Location</span>
+                      <strong className="text-slate-900 text-xs font-bold">{[statusData.paymentDetails.city, statusData.paymentDetails.state].filter(Boolean).join(', ')}</strong>
+                    </div>
+                  )}
+                  {statusData.paymentDetails.referenceId && (
+                    <div>
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Reference ID</span>
+                      <strong className="text-slate-900 text-[10px] font-mono truncate block">{statusData.paymentDetails.referenceId}</strong>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

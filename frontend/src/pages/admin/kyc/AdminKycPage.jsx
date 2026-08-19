@@ -302,7 +302,7 @@ export default function AdminKycPage() {
                   <div className="space-y-2 text-xs">
                     {/* Aadhaar Record */}
                     {activeGroup.user.vendorProfile?.documents?.aadhaar && (
-                      <div className="bg-surface-secondary/50 p-2.5 rounded-xl border border-border/50 space-y-1">
+                      <div className="bg-surface-secondary/50 p-2.5 rounded-xl border border-border/50 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-text-primary flex items-center gap-1 text-[11px]">
                             <FiCheck className="text-emerald-500" /> Aadhaar (UIDAI Verified)
@@ -311,11 +311,26 @@ export default function AdminKycPage() {
                             {activeGroup.user.vendorProfile.documents.aadhaar.status}
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-1 text-[10px] text-text-secondary">
-                          <p><span className="text-text-tertiary">Name:</span> <strong className="text-text-primary">{activeGroup.user.vendorProfile.documents.aadhaar.fullName || '—'}</strong></p>
-                          <p><span className="text-text-tertiary">Aadhaar No:</span> <strong className="text-text-primary font-mono">{activeGroup.user.vendorProfile.documents.aadhaar.maskedNumber || '—'}</strong></p>
-                          <p><span className="text-text-tertiary">Gender/DOB:</span> {activeGroup.user.vendorProfile.documents.aadhaar.gender || '—'} {activeGroup.user.vendorProfile.documents.aadhaar.dob ? `(${activeGroup.user.vendorProfile.documents.aadhaar.dob})` : ''}</p>
-                          <p><span className="text-text-tertiary">Ref ID:</span> <span className="font-mono text-[9px]">{activeGroup.user.vendorProfile.documents.aadhaar.referenceId || 'OKYC_VERIFIED'}</span></p>
+                        <div className="flex gap-2 items-start">
+                          {activeGroup.user.vendorProfile.documents.aadhaar.photo && (
+                            <img
+                              src={activeGroup.user.vendorProfile.documents.aadhaar.photo.startsWith('data:') || activeGroup.user.vendorProfile.documents.aadhaar.photo.startsWith('http') ? activeGroup.user.vendorProfile.documents.aadhaar.photo : `data:image/jpeg;base64,${activeGroup.user.vendorProfile.documents.aadhaar.photo}`}
+                              alt="UIDAI"
+                              className="w-10 h-12 object-cover rounded border border-border shrink-0"
+                            />
+                          )}
+                          <div className="grid grid-cols-2 gap-1 text-[10px] text-text-secondary flex-1">
+                            <p><span className="text-text-tertiary">Name:</span> <strong className="text-text-primary">{activeGroup.user.vendorProfile.documents.aadhaar.fullName || '—'}</strong></p>
+                            <p><span className="text-text-tertiary">Aadhaar No:</span> <strong className="text-text-primary font-mono">{activeGroup.user.vendorProfile.documents.aadhaar.maskedNumber || '—'}</strong></p>
+                            <p><span className="text-text-tertiary">Gender/DOB:</span> {activeGroup.user.vendorProfile.documents.aadhaar.gender || '—'} {activeGroup.user.vendorProfile.documents.aadhaar.dob ? `(${activeGroup.user.vendorProfile.documents.aadhaar.dob})` : ''}</p>
+                            {activeGroup.user.vendorProfile.documents.aadhaar.careOf && (
+                              <p><span className="text-text-tertiary">Care Of:</span> <strong className="text-text-primary">{activeGroup.user.vendorProfile.documents.aadhaar.careOf}</strong></p>
+                            )}
+                            {(activeGroup.user.vendorProfile.documents.aadhaar.fullAddress || activeGroup.user.vendorProfile.documents.aadhaar.city) && (
+                              <p className="col-span-2"><span className="text-text-tertiary">Address:</span> <span className="text-text-primary font-medium">{activeGroup.user.vendorProfile.documents.aadhaar.fullAddress || [activeGroup.user.vendorProfile.documents.aadhaar.city, activeGroup.user.vendorProfile.documents.aadhaar.state, activeGroup.user.vendorProfile.documents.aadhaar.pincode].filter(Boolean).join(', ')}</span></p>
+                            )}
+                            <p className="col-span-2"><span className="text-text-tertiary">Ref ID:</span> <span className="font-mono text-[9px]">{activeGroup.user.vendorProfile.documents.aadhaar.referenceId || 'OKYC_VERIFIED'}</span></p>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -335,6 +350,9 @@ export default function AdminKycPage() {
                           <p><span className="text-text-tertiary">Taxpayer:</span> <strong className="text-text-primary">{activeGroup.user.vendorProfile.documents.pan.fullName || '—'}</strong></p>
                           <p><span className="text-text-tertiary">PAN No:</span> <strong className="text-text-primary font-mono uppercase">{activeGroup.user.vendorProfile.documents.pan.docNumber || '—'}</strong></p>
                           <p><span className="text-text-tertiary">Category:</span> {activeGroup.user.vendorProfile.documents.pan.category || 'Individual'}</p>
+                          {activeGroup.user.vendorProfile.documents.pan.aadhaarLinked && (
+                            <p><span className="text-text-tertiary">Aadhaar Link:</span> <span className="text-emerald-600 font-semibold">{activeGroup.user.vendorProfile.documents.pan.aadhaarLinked}</span></p>
+                          )}
                           <p><span className="text-text-tertiary">Ref:</span> <span className="font-mono text-[9px]">{activeGroup.user.vendorProfile.documents.pan.referenceId || 'PAN_VALID'}</span></p>
                         </div>
                       </div>
@@ -356,6 +374,12 @@ export default function AdminKycPage() {
                           <p><span className="text-text-tertiary">GSTIN:</span> <strong className="text-text-primary font-mono uppercase">{activeGroup.user.vendorProfile.documents.gst.docNumber || '—'}</strong></p>
                           <p><span className="text-text-tertiary">Legal Name:</span> {activeGroup.user.vendorProfile.documents.gst.legalName || '—'}</p>
                           <p><span className="text-text-tertiary">State:</span> {activeGroup.user.vendorProfile.documents.gst.state || 'Registered'}</p>
+                          {activeGroup.user.vendorProfile.documents.gst.constitutionOfBusiness && (
+                            <p><span className="text-text-tertiary">Constitution:</span> {activeGroup.user.vendorProfile.documents.gst.constitutionOfBusiness}</p>
+                          )}
+                          {activeGroup.user.vendorProfile.documents.gst.fullAddress && (
+                            <p className="col-span-2"><span className="text-text-tertiary">Address:</span> <span className="text-text-primary">{activeGroup.user.vendorProfile.documents.gst.fullAddress}</span></p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -376,6 +400,9 @@ export default function AdminKycPage() {
                           <p><span className="text-text-tertiary">Account:</span> <strong className="text-text-primary font-mono">{activeGroup.user.vendorProfile.paymentDetails.maskedAccount || activeGroup.user.vendorProfile.paymentDetails.bankAccount || '—'}</strong></p>
                           <p><span className="text-text-tertiary">Bank &amp; Branch:</span> {activeGroup.user.vendorProfile.paymentDetails.bankName || 'Bank'} ({activeGroup.user.vendorProfile.paymentDetails.branchName || 'Main'})</p>
                           <p><span className="text-text-tertiary">IFSC:</span> <strong className="text-text-primary font-mono uppercase">{activeGroup.user.vendorProfile.paymentDetails.ifscCode || '—'}</strong></p>
+                          {(activeGroup.user.vendorProfile.paymentDetails.city || activeGroup.user.vendorProfile.paymentDetails.state) && (
+                            <p><span className="text-text-tertiary">Location:</span> {[activeGroup.user.vendorProfile.paymentDetails.city, activeGroup.user.vendorProfile.paymentDetails.state].filter(Boolean).join(', ')}</p>
+                          )}
                           {activeGroup.user.vendorProfile.paymentDetails.upiId && (
                             <p className="col-span-2"><span className="text-text-tertiary">UPI ID:</span> <span className="font-mono text-emerald-600 font-bold">{activeGroup.user.vendorProfile.paymentDetails.upiId}</span></p>
                           )}

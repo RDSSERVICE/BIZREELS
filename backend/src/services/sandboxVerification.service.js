@@ -144,6 +144,26 @@ class SandboxVerificationService {
     }
   }
 
+  /**
+   * Helper to format structured address objects into a clean readable string
+   */
+  formatAddress(addr, splitAddr) {
+    if (typeof addr === 'string' && addr.trim()) return addr.trim();
+    const source = (splitAddr && typeof splitAddr === 'object') ? splitAddr : ((addr && typeof addr === 'object') ? addr : {});
+    const parts = [
+      source.building_name || source.bnm || source.building_number || source.bno || source.house,
+      source.street || source.st,
+      source.landmark,
+      source.locality || source.loc,
+      source.vtc || source.city || source.subdist,
+      source.district || source.dst,
+      source.state || source.stcd,
+      source.pincode || source.pncd,
+      source.country
+    ].filter(Boolean);
+    return parts.join(', ');
+  }
+
   // ─────────────────────────────────────────────────────────────
   // 1. PAN VERIFICATION
   // ─────────────────────────────────────────────────────────────
@@ -178,10 +198,15 @@ class SandboxVerificationService {
       }
 
       const data = res.data || res;
-      const panStatus = (data.status || data.pan_status || '').toUpperCase();
-      const isPanValid = panStatus === 'VALID' || panStatus === 'ACTIVE' || data.verified === true;
+      const innerData = data.data || data;
+      const panStatus = (innerData.status || innerData.pan_status || data.status || data.pan_status || '').toUpperCase();
+      const isPanValid = panStatus === 'VALID' || panStatus === 'ACTIVE' || innerData.verified === true || data.verified === true;
 
-      const fullName = data.full_name || data.name || data.pan_holder_name || '';
+      const fullName = innerData.full_name || innerData.name || innerData.pan_holder_name || data.full_name || data.name || data.pan_holder_name || '';
+      const category = innerData.category || data.category || 'Individual';
+      const aadhaarLinked = innerData.aadhaar_seeding_status || innerData.aadhaar_linked || data.aadhaar_seeding_status || data.aadhaar_linked || '';
+      const dob = innerData.dob || innerData.date_of_birth || data.dob || data.date_of_birth || '';
+      const gender = innerData.gender || data.gender || '';
 
       return {
         success: true,
@@ -191,9 +216,13 @@ class SandboxVerificationService {
         maskedNumber: this.maskPan(pan),
         fullName: fullName,
         panStatus: panStatus || 'VALID',
-        category: data.category || 'Individual',
-        referenceId: data.reference_id || res.transaction_id || `PAN_${Date.now()}`,
-        verifiedAt: new Date()
+        category: category,
+        aadhaarLinked: aadhaarLinked,
+        dob: dob,
+        gender: gender,
+        referenceId: innerData.reference_id || data.reference_id || res.transaction_id || `PAN_${Date.now()}`,
+        verifiedAt: new Date(),
+        rawDetails: innerData
       };
     } catch (err) {
       console.error('[Sandbox PAN Verification Error]:', err.message);
@@ -294,17 +323,45 @@ class SandboxVerificationService {
       const innerData = data.data || data;
       const isVerified = (data.status === 'VALID' || data.status === 'SUCCESS' || innerData.status === 'VALID' || innerData.status === 'SUCCESS' || !!innerData.name || !!innerData.full_name) && (data.status !== 'FAILED' && innerData.status !== 'FAILED');
 
+      const maskedAadhaarNum = innerData.aadhaar_number
+        ? this.maskAadhaar(innerData.aadhaar_number)
+        : (innerData.masked_aadhaar || innerData.masked_aadhaar_number || 'XXXX XXXX ****');
+
+      const fullName = innerData.name || innerData.full_name || data.full_name || data.name || '';
+      const gender = innerData.gender || data.gender || '';
+      const dob = innerData.dob || innerData.date_of_birth || data.dob || data.date_of_birth || '';
+      const careOf = innerData.care_of || innerData.father_name || data.care_of || '';
+
+      const splitAddress = innerData.split_address || (typeof innerData.address === 'object' && innerData.address ? innerData.address : {}) || {};
+      const fullAddress = innerData.full_address || innerData.combined_address || this.formatAddress(innerData.address, splitAddress);
+
+      const pincode = splitAddress.pincode || splitAddress.pncd || (innerData.address && typeof innerData.address === 'object' && innerData.address.pincode) || innerData.pincode || '';
+      const state = splitAddress.state || splitAddress.stcd || (innerData.address && typeof innerData.address === 'object' && innerData.address.state) || innerData.state || '';
+      const district = splitAddress.district || splitAddress.dst || (innerData.address && typeof innerData.address === 'object' && innerData.address.district) || innerData.district || '';
+      const city = splitAddress.vtc || splitAddress.city || splitAddress.subdist || (innerData.address && typeof innerData.address === 'object' && (innerData.address.vtc || innerData.address.city)) || '';
+
+      const photo = innerData.photo_link || innerData.profile_image || innerData.image || innerData.photo || '';
+
       return {
         success: true,
         verified: isVerified,
         status: isVerified ? 'approved' : 'failed',
         referenceId: referenceId,
-        fullName: innerData.name || innerData.full_name || data.full_name || '',
-        gender: innerData.gender || data.gender || '',
-        dob: innerData.dob || data.dob || '',
-        maskedNumber: innerData.aadhaar_number ? this.maskAadhaar(innerData.aadhaar_number) : (innerData.masked_aadhaar_number || this.maskAadhaar(cleanOtp)),
+        fullName: fullName,
+        gender: gender,
+        dob: dob,
+        careOf: careOf,
+        maskedNumber: maskedAadhaarNum,
+        splitAddress: splitAddress,
+        fullAddress: fullAddress,
+        pincode: pincode,
+        state: state,
+        district: district,
+        city: city,
+        photo: photo,
         message: innerData.message || data.message || (isVerified ? 'Aadhaar verified successfully!' : 'Aadhaar OTP verification failed'),
-        verifiedAt: new Date()
+        verifiedAt: new Date(),
+        rawDetails: innerData
       };
     } catch (err) {
       const rawErr = err.raw || err.response?.data || {};
@@ -350,12 +407,24 @@ class SandboxVerificationService {
         }
       }
 
-
       const data = res.data || res;
-      const legalName = data.legal_name || data.lgnm || data.trade_name_of_business || data.trade_name || '';
-      const tradeName = data.trade_name || data.trade_name_of_business || legalName;
-      const gstStatus = (data.status || data.sts || 'Active').toUpperCase();
+      const innerData = data.data || data;
+
+      const legalName = innerData.legal_name || innerData.lgnm || innerData.trade_name_of_business || innerData.trade_name || data.legal_name || data.lgnm || '';
+      const tradeName = innerData.trade_name || innerData.trade_name_of_business || data.trade_name || data.trade_name_of_business || legalName;
+      const gstStatus = (innerData.status || innerData.sts || data.status || data.sts || 'Active').toUpperCase();
       const isActive = gstStatus === 'ACTIVE';
+
+      const taxpayerType = innerData.taxpayer_type || innerData.dty || data.taxpayer_type || data.dty || '';
+      const constitutionOfBusiness = innerData.constitution_of_business || innerData.ctb || data.constitution_of_business || data.ctb || '';
+      const dateOfRegistration = innerData.date_of_registration || innerData.rgdt || data.date_of_registration || data.rgdt || '';
+      const state = innerData.state || innerData.pradr?.addr?.stcd || data.state || data.pradr?.addr?.stcd || '';
+      const centerJurisdiction = innerData.ctj || innerData.center_jurisdiction || innerData.jurisdiction || data.ctj || '';
+      const stateJurisdiction = innerData.stj || innerData.state_jurisdiction || data.stj || '';
+      const natureOfBusiness = innerData.nature_of_business || innerData.nba || data.nature_of_business || data.nba || [];
+
+      const principalAddr = innerData.pradr?.addr || innerData.principal_place_of_business || innerData.address || data.pradr?.addr || data.address || {};
+      const fullAddress = this.formatAddress(principalAddr, principalAddr);
 
       return {
         success: true,
@@ -365,10 +434,18 @@ class SandboxVerificationService {
         legalName: legalName,
         tradeName: tradeName,
         gstStatus: gstStatus,
-        state: data.state || data.pradr?.addr?.stcd || '',
-        centerJurisdiction: data.ctj || data.jurisdiction || '',
-        referenceId: data.reference_id || `GST_${Date.now()}`,
-        verifiedAt: new Date()
+        taxpayerType: taxpayerType,
+        constitutionOfBusiness: constitutionOfBusiness,
+        dateOfRegistration: dateOfRegistration,
+        state: state,
+        centerJurisdiction: centerJurisdiction,
+        stateJurisdiction: stateJurisdiction,
+        natureOfBusiness: natureOfBusiness,
+        principalPlaceOfBusiness: principalAddr,
+        fullAddress: fullAddress,
+        referenceId: innerData.reference_id || data.reference_id || `GST_${Date.now()}`,
+        verifiedAt: new Date(),
+        rawDetails: innerData
       };
     } catch (err) {
       console.error('[Sandbox GSTIN Verification Error]:', err.message);
@@ -412,8 +489,15 @@ class SandboxVerificationService {
       });
 
       const data = res.data || res;
-      const accountExists = data.account_exists !== false && data.status !== 'FAILED';
-      const nameAtBank = data.name_at_bank || data.account_holder_name || accountHolderName || '';
+      const innerData = data.data || data;
+
+      const accountExists = innerData.account_exists !== false && innerData.status !== 'FAILED' && data.status !== 'FAILED';
+      const nameAtBank = innerData.name_at_bank || innerData.account_holder_name || data.name_at_bank || data.account_holder_name || accountHolderName || '';
+      const bankName = innerData.bank_name || data.bank_name || '';
+      const branchName = innerData.branch || innerData.branch_name || data.branch || '';
+      const city = innerData.city || data.city || '';
+      const state = innerData.state || data.state || '';
+      const micr = innerData.micr || data.micr || '';
 
       return {
         success: true,
@@ -423,10 +507,14 @@ class SandboxVerificationService {
         maskedAccount: this.maskBankAccount(cleanAcc),
         ifsc: cleanIfsc,
         nameAtBank: nameAtBank,
-        bankName: data.bank_name || '',
-        branchName: data.branch || '',
-        referenceId: data.reference_id || data.transaction_id || `BANK_${Date.now()}`,
-        verifiedAt: new Date()
+        bankName: bankName,
+        branchName: branchName,
+        city: city,
+        state: state,
+        micr: micr,
+        referenceId: innerData.reference_id || innerData.transaction_id || data.reference_id || data.transaction_id || `BANK_${Date.now()}`,
+        verifiedAt: new Date(),
+        rawDetails: innerData
       };
     } catch (err) {
       console.error('[Sandbox Bank Verification Error]:', err.message);
