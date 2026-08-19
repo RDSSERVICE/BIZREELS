@@ -23,10 +23,26 @@ const PublicLayout = () => {
   const [scrolled, setScrolled]     = useState(false);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 8);
+    const fn = () => {
+      setScrolled(window.scrollY > 8);
+      if (mobileOpen) {
+        setMobileOpen(false);
+      }
+    };
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
-  }, []);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
@@ -264,7 +280,7 @@ const PublicLayout = () => {
               transition={{ duration: 0.18 }}
               onClick={() => setMobileOpen(false)}
               className="md:hidden"
-              style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,0.15)' }}
+              style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
             />
 
             {/* panel */}
@@ -275,9 +291,10 @@ const PublicLayout = () => {
               className="md:hidden"
               style={{
                 position: 'fixed', top: 64, left: 0, right: 0, zIndex: 50,
+                maxHeight: 'calc(100vh - 64px)', overflowY: 'auto',
                 backgroundColor: CREAM,
                 borderBottom: `1px solid ${BORDER}`,
-                boxShadow: '0 6px 20px rgba(0,0,0,0.08)',
+                boxShadow: '0 12px 30px rgba(0,0,0,0.12)',
               }}
             >
               {/* Links */}
