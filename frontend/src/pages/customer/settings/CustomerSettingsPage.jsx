@@ -10,6 +10,7 @@ import { api, locationApi, tokenStore } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import InterestSelector from '../../../components/app/InterestSelector';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const CUSTOMER_PROFESSIONS = [
   'Business Owner / Entrepreneur',
@@ -37,6 +38,7 @@ const CUSTOMER_PROFESSIONS = [
 export default function CustomerSettingsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { bi, t } = useLanguage();
   const { user: authUser } = useSelector((state) => state.auth);
   const { data: profileRes } = useGetMeQuery(undefined, {
     pollingInterval: 300000,
@@ -278,10 +280,10 @@ export default function CustomerSettingsPage() {
         <div>
           <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">CUSTOMER PORTAL</span>
           <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
-            ACCOUNT &amp; PROFILE SETTINGS
+            {bi('ACCOUNT & PROFILE SETTINGS', 'खाता एवं प्रोफ़ाइल सेटिंग्स')}
           </h1>
           <p className="text-xs text-slate-300 mt-1 max-w-md">
-            Manage your profile information, location autofill, preferences, and account security.
+            {bi('Manage your profile information, location autofill, preferences, and account security.', 'अपनी प्रोफ़ाइल जानकारी, स्थान विवरण, प्राथमिकताएं और सुरक्षा प्रबंधित करें।')}
           </p>
         </div>
 
@@ -303,7 +305,7 @@ export default function CustomerSettingsPage() {
             }`}
           >
             <FiUser size={16} className={activeTab === 'profile' ? 'text-[#d99a3d]' : 'text-slate-500'} />
-            <span>Profile &amp; Address</span>
+            <span>{bi('Profile & Address', 'प्रोफ़ाइल एवं पता')}</span>
           </button>
           
           <button
@@ -316,7 +318,7 @@ export default function CustomerSettingsPage() {
             }`}
           >
             <FiGrid size={16} className={activeTab === 'interests' ? 'text-[#d99a3d]' : 'text-slate-500'} />
-            <span>Feed Interests</span>
+            <span>{bi('Feed Interests', 'फ़ीड रुचियां')}</span>
           </button>
 
           <button
@@ -329,7 +331,7 @@ export default function CustomerSettingsPage() {
             }`}
           >
             <FiLock size={16} className={activeTab === 'security' ? 'text-[#d99a3d]' : 'text-slate-500'} />
-            <span>Account Security</span>
+            <span>{bi('Account Security', 'खाता सुरक्षा')}</span>
           </button>
         </div>
 
@@ -342,7 +344,7 @@ export default function CustomerSettingsPage() {
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
                     <FiUser className="text-brand-purple" />
-                    <span>Personal Information</span>
+                    <span>{bi('Personal Information', 'व्यक्तिगत जानकारी')}</span>
                   </h3>
                   <button
                     type="submit"
@@ -350,13 +352,13 @@ export default function CustomerSettingsPage() {
                     className="flex items-center gap-1.5 px-3.5 py-1.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-premium hover:opacity-90 transition hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <FiSave size={13} />
-                    <span>Update</span>
+                    <span>{bi('Update', 'अपडेट करें')}</span>
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Name *</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Full Name *', 'पूरा नाम *')}</label>
                     <input
                       type="text"
                       required
@@ -367,20 +369,20 @@ export default function CustomerSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Gender</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Gender', 'लिंग')}</label>
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value)}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
                     >
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
+                      <option value="male">{bi('Male', 'पुरुष')}</option>
+                      <option value="female">{bi('Female', 'महिला')}</option>
+                      <option value="other">{bi('Other', 'अन्य')}</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Profession / Occupation</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Profession / Occupation', 'व्यवसाय / पेशा')}</label>
                     <select
                       value={profession}
                       onChange={(e) => {
@@ -391,7 +393,7 @@ export default function CustomerSettingsPage() {
                       }}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer"
                     >
-                      <option value="">Select your profession...</option>
+                      <option value="">{bi('Select your profession...', 'अपना व्यवसाय चुनें...')}</option>
                       {CUSTOMER_PROFESSIONS.map((p) => (
                         <option key={p} value={p}>
                           {p}
@@ -404,14 +406,14 @@ export default function CustomerSettingsPage() {
                         type="text"
                         value={customProfession}
                         onChange={(e) => setCustomProfession(e.target.value)}
-                        placeholder="Enter your custom profession..."
+                        placeholder={bi('Enter your custom profession...', 'अपना व्यवसाय दर्ज करें...')}
                         className="w-full mt-2 px-4 py-2.5 bg-surface border border-brand-purple rounded-xl text-xs text-text-primary focus:outline-none animate-fade-in"
                       />
                     )}
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Date of Birth (Optional)</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Date of Birth (Optional)', 'जन्म तिथि (वैकल्पिक)')}</label>
                     <input
                       type="date"
                       value={dob}
@@ -433,7 +435,7 @@ export default function CustomerSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Preferred Language</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Preferred Language', 'पसंदीदा भाषा')}</label>
                     <select
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}
@@ -449,7 +451,7 @@ export default function CustomerSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Mobile Number</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Mobile Number', 'मोबाइल नंबर')}</label>
                     <input
                       type="text"
                       value={phone}
@@ -459,7 +461,7 @@ export default function CustomerSettingsPage() {
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Email Address</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Email Address', 'ईमेल पता')}</label>
                     <input
                       type="email"
                       value={email}
@@ -475,7 +477,7 @@ export default function CustomerSettingsPage() {
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
                     <FiMapPin className="text-brand-orange" />
-                    <span>Address & Location (Autofill Enabled)</span>
+                    <span>{bi('Address & Location (Autofill Enabled)', 'पता एवं स्थान विवरण')}</span>
                   </h3>
 
                   <div className="flex items-center gap-2">
@@ -486,7 +488,7 @@ export default function CustomerSettingsPage() {
                       className="flex items-center gap-1.5 px-3 py-1.5 glass border border-border text-brand-purple hover:bg-brand-purple/10 rounded-xl text-xs font-bold transition"
                     >
                       <FiRefreshCw size={13} className={isLocating ? 'animate-spin' : ''} />
-                      <span>Use Current Location</span>
+                      <span>{bi('Use Current Location', 'वर्तमान स्थान का उपयोग करें')}</span>
                     </button>
                     <button
                       type="submit"
@@ -494,58 +496,58 @@ export default function CustomerSettingsPage() {
                       className="flex items-center gap-1.5 px-3.5 py-1.5 gradient-brand text-white rounded-xl text-xs font-bold shadow-premium hover:opacity-90 transition hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <FiSave size={13} />
-                      <span>Update</span>
+                      <span>{bi('Update', 'अपडेट करें')}</span>
                     </button>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('State', 'राज्य')}</label>
                     <input
                       type="text"
                       value={state}
                       onChange={(e) => setState(e.target.value)}
-                      placeholder="e.g. Maharashtra"
+                      placeholder={bi('e.g. Maharashtra', 'उदाहरण: महाराष्ट्र')}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('District', 'जिला')}</label>
                     <input
                       type="text"
                       value={district}
                       onChange={(e) => setDistrict(e.target.value)}
-                      placeholder="e.g. Mumbai Suburban"
+                      placeholder={bi('e.g. Mumbai Suburban', 'उदाहरण: मुंबई उपनगर')}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('City', 'शहर')}</label>
                     <input
                       type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      placeholder="e.g. Mumbai"
+                      placeholder={bi('e.g. Mumbai', 'उदाहरण: मुंबई')}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
                     />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Street Address</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Full Street Address', 'पूरा सड़क पता')}</label>
                     <input
                       type="text"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="e.g. Flat 402, Sunshine Heights, Bandra West"
+                      placeholder={bi('e.g. Flat 402, Sunshine Heights, Bandra West', 'उदाहरण: फ्लैट 402, बांद्रा वेस्ट')}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Pincode</label>
+                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Pincode', 'पिन कोड')}</label>
                     <input
                       type="text"
                       value={pincode}
@@ -564,7 +566,7 @@ export default function CustomerSettingsPage() {
                 className="w-full py-3.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
               >
                 <FiSave size={16} />
-                <span>{saving ? 'Saving Changes...' : 'Save Profile Details'}</span>
+                <span>{saving ? bi('Saving Changes...', 'सहेजा जा रहा है...') : bi('Save Profile Details', 'प्रोफ़ाइल विवरण सहेजें')}</span>
               </button>
             </form>
           )}
@@ -576,19 +578,19 @@ export default function CustomerSettingsPage() {
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
                     <FiGrid className="text-brand-purple" />
-                    <span>Personalized Feed Interests</span>
+                    <span>{bi('Personalized Feed Interests', 'व्यक्तिगत फ़ीड रुचियां')}</span>
                   </h3>
                   <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
                     selectedInterests.length >= 5
                       ? 'bg-brand-purple/10 text-brand-purple'
                       : 'bg-error/10 text-error'
                   }`}>
-                    {selectedInterests.length} Selected (Min 5)
+                    {selectedInterests.length} {bi('Selected (Min 5)', 'चयनित (न्यूनतम 5)')}
                   </span>
                 </div>
 
                 <p className="text-[11px] text-text-tertiary">
-                  Select at least 5 interests. We will personalize your Reels & Marketplace feed based on these categories and subcategories. Click on a category to expand it and select specific subcategories.
+                  {bi('Select at least 5 interests. We will personalize your Reels & Marketplace feed based on these categories and subcategories.', 'कम से कम 5 रुचियों का चयन करें। हम इन श्रेणियों के आधार पर आपके फ़ीड को व्यक्तिगत बनाएंगे।')}
                 </p>
 
                 <InterestSelector selected={selectedInterests} setSelected={setSelectedInterests} />
@@ -601,7 +603,7 @@ export default function CustomerSettingsPage() {
                 className="w-full py-3.5 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
               >
                 <FiSave size={16} />
-                <span>{saving ? 'Updating Interests...' : 'Update Feed Interests'}</span>
+                <span>{saving ? bi('Updating Interests...', 'अपडेट हो रहा है...') : bi('Update Feed Interests', 'फ़ीड रुचियां अपडेट करें')}</span>
               </button>
             </form>
           )}
@@ -610,11 +612,11 @@ export default function CustomerSettingsPage() {
             <div className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
               <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2 border-b border-border pb-3">
                 <FiLock className="text-amber-500" />
-                <span>Account Security & Actions</span>
+                <span>{bi('Account Security & Actions', 'खाता सुरक्षा एवं कार्रवाइयां')}</span>
               </h3>
 
               <p className="text-[11px] text-text-tertiary">
-                Manage your account session and membership. Warning: Deleting your account will remove all your data, reels history, and marketplace activity permanently.
+                {bi('Manage your account session and membership. Warning: Deleting your account will remove all your data permanently.', 'अपना खाता सत्र और सदस्यता प्रबंधित करें। चेतावनी: अपना खाता हटाने से आपका सारा डेटा स्थायी रूप से हट जाएगा।')}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -624,7 +626,7 @@ export default function CustomerSettingsPage() {
                   className="flex-1 py-2.5 glass border border-border text-text-secondary font-bold text-xs rounded-xl hover:bg-surface-tertiary transition flex items-center justify-center gap-2"
                 >
                   <FiLogOut size={16} />
-                  <span>Logout Account</span>
+                  <span>{bi('Logout Account', 'खाता लॉगआउट करें')}</span>
                 </button>
 
                 <button
@@ -633,7 +635,7 @@ export default function CustomerSettingsPage() {
                   className="flex-1 py-2.5 bg-error/10 text-error border border-error/20 rounded-xl text-xs font-bold hover:bg-error/20 transition flex items-center justify-center gap-2"
                 >
                   <FiTrash2 size={16} />
-                  <span>Delete Account</span>
+                  <span>{bi('Delete Account', 'खाता हटाएं')}</span>
                 </button>
               </div>
             </div>
