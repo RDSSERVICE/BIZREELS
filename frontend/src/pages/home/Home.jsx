@@ -5,6 +5,7 @@ import { FiArrowRight, FiCheckCircle, FiPlay, FiPlus, FiGrid, FiZap, FiShield, F
 import SEO from '../../components/common/SEO';
 import { useGetHomeTrendingFeedQuery } from '../../features/home/homeApi';
 import { useListCategoriesQuery } from '../../features/admin/adminApi';
+import { useGetListingsQuery } from '../../features/listings/listingsApi';
 
 const getCategoryIcon = (name = '') => {
   const n = (name || '').toLowerCase();
@@ -26,7 +27,9 @@ export default function Home() {
   const navigate = useNavigate();
   const [showCategoryModal, setShowCategoryModal] = React.useState(false);
   const { data: homeFeedData } = useGetHomeTrendingFeedQuery();
+  const { data: dbListingsRes } = useGetListingsQuery({ limit: 50 });
   const feed = homeFeedData?.data || {};
+  const dbListings = dbListingsRes?.data || dbListingsRes?.items || [];
 
   const getHighResMedia = (url) => {
     if (!url || typeof url !== 'string') return url;
@@ -36,24 +39,20 @@ export default function Home() {
     return url;
   };
 
-  const trendingList = feed.trendingProducts || [
-    { num: '01', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=1050&fit=crop&q=85', title: 'Premium Office Chair', sub: 'ErgoComfort Pro', meta: '1.2K views · 86 leads' },
-    { num: '02', img: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=1050&fit=crop&q=85', title: 'Digital Marketing Service', sub: 'Grow Your Brand Online', meta: '980 views · 64 leads' },
-    { num: '03', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=1050&fit=crop&q=85', title: 'Solar Rooftop System', sub: 'Save Electricity Bills', meta: '875 views · 59 leads' },
-    { num: '04', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1050&fit=crop&q=85', title: 'Modern Modular Kitchen', sub: 'Designs That Inspire', meta: '765 views · 51 leads' },
-    { num: '05', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=1050&fit=crop&q=85', title: 'Corporate Gift Hampers', sub: 'For Every Occasion', meta: '680 views · 48 leads' },
-    { num: '06', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&h=1050&fit=crop&q=85', title: 'Luxury Bridal Makeup', sub: 'Glow Studio', meta: '610 views · 42 leads' },
-    { num: '07', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=1050&fit=crop&q=85', title: 'Luxury Fleet Rental', sub: 'Prestige Cars', meta: '590 views · 39 leads' },
-    { num: '08', img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1050&fit=crop&q=85', title: 'Commercial Interior Design', sub: 'Apex Architects', meta: '540 views · 35 leads' },
-  ];
-
-  const featuredCards = feed.featuredCards || [
-    { badge: 'Featured', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=1050&fit=crop&q=85', views: '2.1K', title: 'ErgoComfort Pro Premium Office Chair', category: 'Furniture' },
-    { badge: null, img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=1050&fit=crop&q=85', views: '1.8K', title: 'Social Media Growth Service', category: 'Digital Marketing' },
-    { badge: null, img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=1050&fit=crop&q=85', views: '3.4K', title: 'Solar Rooftop System 3kW On-Grid', category: 'Energy' },
-    { badge: 'Hot Deal', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1050&fit=crop&q=85', views: '1.5K', title: 'Custom Italian Modular Kitchen', category: 'Home & Living' },
-    { badge: 'Popular', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=1050&fit=crop&q=85', views: '2.9K', title: 'Premium Festive Gift Hampers', category: 'Corporate Gifts' },
-  ];
+  const fallbackList = React.useMemo(() => [
+    { num: '01', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=1050&fit=crop&q=85', title: 'Premium Office Chair', sub: 'ErgoComfort Pro', meta: '1.2K views · 86 leads', category: 'Furniture' },
+    { num: '02', img: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=1050&fit=crop&q=85', title: 'Digital Marketing Service', sub: 'Grow Your Brand Online', meta: '980 views · 64 leads', category: 'Digital Marketing' },
+    { num: '03', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=1050&fit=crop&q=85', title: 'Solar Rooftop System', sub: 'Save Electricity Bills', meta: '875 views · 59 leads', category: 'Energy' },
+    { num: '04', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1050&fit=crop&q=85', title: 'Modern Modular Kitchen', sub: 'Designs That Inspire', meta: '765 views · 51 leads', category: 'Home & Living' },
+    { num: '05', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=1050&fit=crop&q=85', title: 'Corporate Gift Hampers', sub: 'For Every Occasion', meta: '680 views · 48 leads', category: 'Corporate Gifts' },
+    { num: '06', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&h=1050&fit=crop&q=85', title: 'Luxury Bridal Makeup', sub: 'Glow Studio', meta: '610 views · 42 leads', category: 'Beauty & Salon' },
+    { num: '07', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=1050&fit=crop&q=85', title: 'Luxury Fleet Rental', sub: 'Prestige Cars', meta: '590 views · 39 leads', category: 'Vehicles' },
+    { num: '08', img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1050&fit=crop&q=85', title: 'Commercial Interior Design', sub: 'Apex Architects', meta: '540 views · 35 leads', category: 'Real Estate' },
+    { num: '09', img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=1050&fit=crop&q=85', title: 'Social Media Growth Service', sub: 'Viral Boost', meta: '1.8K views · 92 leads', category: 'Digital Marketing' },
+    { num: '10', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=1050&fit=crop&q=85', title: 'Noise Cancelling Headphones', sub: 'Acoustic Sound', meta: '2.4K views · 110 leads', category: 'Electronics' },
+    { num: '11', img: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800&h=1050&fit=crop&q=85', title: 'Pro Running Sneakers', sub: 'Speed Runner', meta: '1.4K views · 74 leads', category: 'Fashion' },
+    { num: '12', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=1050&fit=crop&q=85', title: 'Smart Fitness Watch', sub: 'Pulse Pro', meta: '3.1K views · 145 leads', category: 'Electronics' }
+  ], []);
 
   const statsList = feed.stats || [
     { number: '12K+', label: 'Businesses', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><rect x="2" y="4" width="20" height="16" rx="2" /><polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none" /></svg> },
@@ -67,23 +66,49 @@ export default function Home() {
 
   const allMediaPool = React.useMemo(() => {
     const pool = [];
-    (feed.featuredCards || featuredCards).forEach((c) => {
-      if (c.img) pool.push({ ...c, img: getHighResMedia(c.img) });
-    });
-    (feed.trendingProducts || trendingList).forEach((t) => {
-      if (t.img) {
-        pool.push({
-          id: t.id,
-          badge: 'Trending',
-          img: getHighResMedia(t.img),
-          views: t.meta ? t.meta.split(' ')[0] : '1.2K',
-          title: t.title,
-          category: t.category || t.sub || 'Products'
-        });
-      }
-    });
-    return pool.length > 0 ? pool : featuredCards;
-  }, [feed]);
+    const seenTitles = new Set();
+
+    const addItem = (item, defaultBadge = 'Trending') => {
+      if (!item) return;
+      const title = item.title || item.name || '';
+      const rawImg = item.img || (item.images && item.images[0]) || (item.serviceDetails && item.serviceDetails.coverImage);
+      const img = getHighResMedia(rawImg);
+      if (!title || !img) return;
+
+      const normTitle = title.toLowerCase().trim();
+      if (seenTitles.has(normTitle)) return;
+      seenTitles.add(normTitle);
+
+      pool.push({
+        id: item.id || item._id || null,
+        badge: item.badge || (item.isBoosted ? 'Featured' : defaultBadge),
+        img,
+        views: item.views ? (typeof item.views === 'number' ? (item.views >= 1000 ? `${(item.views/1000).toFixed(1)}K` : `${item.views}`) : item.views) : '1.5K',
+        title,
+        category: item.category || item.sub || 'Products',
+        sub: item.sub || item.shortDescription || item.subcategory || item.category || (item.vendor ? (item.vendor.business_name || item.vendor.name) : 'Verified Vendor'),
+        meta: item.meta || `${(item.views || 1200).toLocaleString()} views`
+      });
+    };
+
+    // 1. Featured cards from Home API
+    (feed.featuredCards || []).forEach((c) => addItem(c, 'Featured'));
+    // 2. Trending products from Home API
+    (feed.trendingProducts || []).forEach((t) => addItem(t, 'Trending'));
+    // 3. Database public listings (/listings?limit=50)
+    (Array.isArray(dbListings) ? dbListings : []).forEach((l) => addItem(l, 'New Listing'));
+    // 4. Curated fallbacks
+    fallbackList.forEach((fb) => addItem(fb, 'Featured'));
+
+    return pool;
+  }, [feed, dbListings, fallbackList]);
+
+  const trendingList = React.useMemo(() => {
+    return allMediaPool.map((item, idx) => ({
+      ...item,
+      num: String(idx + 1).padStart(2, '0')
+    }));
+  }, [allMediaPool]);
 
   React.useEffect(() => {
     if (!allMediaPool || allMediaPool.length === 0) return;
@@ -94,7 +119,7 @@ export default function Home() {
   }, [allMediaPool.length]);
 
   const activeProduct = React.useMemo(() => {
-    if (!allMediaPool || allMediaPool.length === 0) return featuredCards[0];
+    if (!allMediaPool || allMediaPool.length === 0) return null;
     const idx = activeCardIndex % allMediaPool.length;
     return {
       ...allMediaPool[idx],
@@ -426,7 +451,7 @@ export default function Home() {
                   </button>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#d99a3d]/30">
                   {trendingList.map(({ num, img, title, sub, meta, id }, i) => {
                     const isCurrent = (activeProduct?.currentIndex || 0) === i;
                     return (
