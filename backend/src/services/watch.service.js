@@ -3,7 +3,7 @@ const User = require('../models/User');
 const { WatcherNotification } = require('../models/Misc');
 const eventService = require('./event.service');
 const notificationService = require('./notification.service');
-const msg91Service = require('./msg91.service');
+const smsService = require('./sms.service');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
@@ -123,7 +123,7 @@ const notifyWatchers = async ({ listingId, title, slug, effectivePrice, event = 
       }
     } else {
       try {
-        await msg91Service.sendTransactionalSms(phone, `${titleTxt} ${bodyTxt}`);
+        await smsService.sendTransactionalSms(phone, `${titleTxt} ${bodyTxt}`);
         sentSms++;
       } catch (err) {
         logger.info(`[SMS DEV] price-drop watcher notify ${listingId} ${phone}: ${titleTxt} ${bodyTxt}`);

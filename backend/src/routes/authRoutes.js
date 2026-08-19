@@ -59,13 +59,16 @@ router.post('/dev/admin-login', authLimiter, asyncHandler(async (req, res) => {
   });
 }));
 
-router.post('/otp/request', authLimiter, authValidation.requestOtp, validate, authController.requestOtp);
+// ── OTP Endpoints (Dual-Channel: SMS & WhatsApp) ─────────
+router.post('/otp/send', authLimiter, authValidation.sendOtp, validate, authController.sendOtp);
+router.post('/otp/resend', authLimiter, authValidation.resendOtp, validate, authController.resendOtp);
 router.post('/otp/verify', authLimiter, authValidation.verifyOtp, validate, authController.verifyOtp);
 
-// Mobile Phone OTP Endpoints
-router.post('/phone/send-otp', authLimiter, authValidation.sendPhoneOtp, validate, authController.requestOtp);
+// Legacy / Compatibility OTP Endpoints
+router.post('/otp/request', authLimiter, authValidation.requestOtp, validate, authController.sendOtp);
+router.post('/phone/send-otp', authLimiter, authValidation.sendPhoneOtp, validate, authController.sendOtp);
 router.post('/phone/verify-otp', authLimiter, authValidation.verifyPhoneOtp, validate, authController.verifyOtp);
-router.post('/send-otp', authLimiter, authController.requestOtp);
+router.post('/send-otp', authLimiter, authController.sendOtp);
 router.post('/verify-otp', authLimiter, authController.verifyOtp);
 
 router.post('/forgot-password', authLimiter, authValidation.forgotPassword, validate, authController.forgotPassword);

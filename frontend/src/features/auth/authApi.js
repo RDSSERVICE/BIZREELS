@@ -24,10 +24,27 @@ const authApi = apiSlice.injectEndpoints({
       }),
     }),
 
+    // ── OTP Endpoints (Dual Channel: SMS & WhatsApp) ────
+    sendOtp: builder.mutation({
+      query: (data) => ({
+        url: '/auth/otp/send',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    resendOtp: builder.mutation({
+      query: (data) => ({
+        url: '/auth/otp/resend',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
     // ── Request OTP ─────────────────────────────────────
     requestOtp: builder.mutation({
       query: (data) => ({
-        url: '/auth/otp/request',
+        url: '/auth/otp/send',
         method: 'POST',
         body: data,
       }),
@@ -153,6 +170,8 @@ const authApi = apiSlice.injectEndpoints({
 export const {
   useRegisterMutation,
   useLoginWithEmailMutation,
+  useSendOtpMutation,
+  useResendOtpMutation,
   useRequestOtpMutation,
   useSendPhoneOtpMutation,
   useVerifyPhoneOtpMutation,

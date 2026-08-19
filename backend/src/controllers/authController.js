@@ -45,30 +45,78 @@ class AuthController {
     });
   });
 
-  // ── Request OTP ─────────────────────────────────────────
+  // ── Send OTP (POST /api/v1/auth/otp/send) ────────────────
+  sendOtp = asyncHandler(async (req, res) => {
+    const phone = req.body.phone || req.body.identifier;
+    const channel = req.body.channel || 'sms';
+    const purpose = req.body.purpose || 'login';
+    const identifierType = req.body.identifierType || (phone ? 'phone' : 'email');
+
+    const result = await authService.requestOtp(phone, identifierType, purpose, channel);
+
+    return ApiResponse.ok(res, result.message, {
+      channel: result.channel || channel,
+      purpose: result.purpose || purpose,
+      expiresInMinutes: result.expiresInMinutes,
+      cooldownSeconds: result.cooldownSeconds,
+      otp: result.otp,
+      messageSid: result.messageSid,
+    });
+  });
+
+  // ── Resend OTP (POST /api/v1/auth/otp/resend) ──────────────
+  resendOtp = asyncHandler(async (req, res) => {
+    const phone = req.body.phone || req.body.identifier;
+    const channel = req.body.channel || 'sms';
+    const purpose = req.body.purpose || 'login';
+    const identifierType = req.body.identifierType || (phone ? 'phone' : 'email');
+
+    const result = await authService.requestOtp(phone, identifierType, purpose, channel);
+
+    return ApiResponse.ok(res, result.message, {
+      channel: result.channel || channel,
+      purpose: result.purpose || purpose,
+      expiresInMinutes: result.expiresInMinutes,
+      cooldownSeconds: result.cooldownSeconds,
+      otp: result.otp,
+      messageSid: result.messageSid,
+    });
+  });
+
+  // ── Request OTP (Legacy & Route compatibility) ─────────────
   requestOtp = asyncHandler(async (req, res) => {
     const identifier = req.body.phone || req.body.identifier;
     const identifierType = req.body.identifierType || (req.body.phone ? 'phone' : 'email');
-    const result = await authService.requestOtp(identifier, identifierType, req.body.purpose || 'login');
+    const channel = req.body.channel || 'sms';
+    const purpose = req.body.purpose || 'login';
+
+    const result = await authService.requestOtp(identifier, identifierType, purpose, channel);
 
     return ApiResponse.ok(res, result.message, {
+      channel: result.channel || channel,
+      purpose: result.purpose || purpose,
       expiresInMinutes: result.expiresInMinutes,
+      cooldownSeconds: result.cooldownSeconds,
       otp: result.otp,
     });
   });
 
-  // ── Verify OTP & Login ──────────────────────────────────
+  // ── Verify OTP & Login (POST /api/v1/auth/otp/verify) ───────
   verifyOtp = asyncHandler(async (req, res) => {
     const identifier = req.body.phone || req.body.identifier;
     const identifierType = req.body.identifierType || (req.body.phone ? 'phone' : 'email');
+    const channel = req.body.channel || null;
+    const purpose = req.body.purpose || 'login';
     const { otp } = req.body;
-    const result = await authService.verifyOtpAndLogin(identifier, identifierType, otp, req);
+
+    const result = await authService.verifyOtpAndLogin(identifier, identifierType, otp, req, channel, purpose);
 
     this._setRefreshTokenCookie(res, result.refreshToken);
     this._setAccessTokenCookie(res, result.accessToken);
 
     return ApiResponse.ok(res, 'OTP verified. Login successful.', {
       user: result.user,
+      channel: result.channel,
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
     });

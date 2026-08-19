@@ -38,7 +38,7 @@ class MemoryOtpStore {
 let redisClient;
 let isRedisConnected = false;
 
-if (config.redis.enabled) {
+if (config.redis.enabled && process.env.NODE_ENV !== 'test') {
   try {
     const redisOptions = {
       maxRetriesPerRequest: 1,

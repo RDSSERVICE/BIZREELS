@@ -8,10 +8,10 @@ const CACHE_TTL_MS = 60 * 1000;
 let _cache = {};
 let _cacheLoadedAt = 0;
 
-const INTEGRATIONS = ['msg91', 'cloudinary', 'razorpay', 'fcm', 'ai_content'];
+const INTEGRATIONS = ['twilio', 'cloudinary', 'razorpay', 'fcm', 'ai_content'];
 
 const SECRET_FIELDS = {
-  msg91: ['auth_key'],
+  twilio: ['auth_token'],
   cloudinary: ['api_secret'],
   razorpay: ['key_secret', 'webhook_secret'],
   fcm: ['service_account_json'],
@@ -20,12 +20,14 @@ const SECRET_FIELDS = {
 
 const getEnvDefaults = () => {
   return {
-    msg91: {
-      auth_key: (process.env.MSG91_AUTH_KEY || '').trim(),
-      template_id: (process.env.MSG91_TEMPLATE_ID || '').trim(),
-      sender_id: (process.env.MSG91_SENDER_ID || '').trim(),
-      txn_template_id: (process.env.MSG91_TXN_TEMPLATE_ID || '').trim(),
-      dev_mode: process.env.OTP_DEV_MODE === 'true' || process.env.MSG91_DEV_MODE === 'true',
+    twilio: {
+      account_sid: (process.env.TWILIO_ACCOUNT_SID || '').trim(),
+      auth_token: (process.env.TWILIO_AUTH_TOKEN || '').trim(),
+      messaging_service_sid: (process.env.TWILIO_MESSAGING_SERVICE_SID || '').trim(),
+      sender_id: (process.env.TWILIO_SENDER_ID || 'BZREEL').trim(),
+      dlt_template_id: (process.env.TWILIO_DLT_TEMPLATE_ID || '1277178706040137501').trim(),
+      dlt_pe_id: (process.env.TWILIO_DLT_PE_ID || '').trim(),
+      dev_mode: (process.env.SMS_PROVIDER || 'mock').toLowerCase() === 'mock',
     },
     cloudinary: {
       cloud_name: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),

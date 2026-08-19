@@ -2,36 +2,75 @@ const { getStore } = require('../config/redis');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+const { normalizeIndianPhone, hashOtp, secureCompareOtp } = require('../utils/otp.utils');
 
-const getKey = (phone) => `otp:phone:${phone.replace(/\D/g, '')}`;
+const getOtpKey = (phone, purpose = 'login') => {
+  const clean = normalizeIndianPhone(phone);
+  return `otp:phone:${clean}:${purpose}`;
+};
+
+const getCooldownKey = (phone, purpose = 'login') => {
+  const clean = normalizeIndianPhone(phone);
+  return `otp:cooldown:${clean}:${purpose}`;
+};
 
 class RedisOtpService {
   /**
-   * Save OTP in Redis with 5-minute expiry (300 seconds)
-   * Key: otp:phone:{phone}
-   * Payload: { otp, attempts: 0, createdAt: timestamp }
+   * Check if a phone number is currently in the 60s cooldown window.
+   * Throws ApiError (429) if cooldown is active.
    */
-  async saveOtp(phone, otp) {
+  async checkCooldown(phone, purpose = 'login') {
     const store = getStore();
-    const key = getKey(phone);
-    const ttlSeconds = (config.otp.expiryMinutes || 5) * 60;
+    const cooldownKey = getCooldownKey(phone, purpose);
+    const inCooldown = await store.get(cooldownKey);
+
+    if (inCooldown) {
+      const ttl = await store.ttl(cooldownKey);
+      const remainingSeconds = ttl > 0 ? ttl : (config.otp.cooldownSeconds || 60);
+      throw ApiError.tooMany(`Please wait ${remainingSeconds} seconds before requesting a new OTP.`);
+    }
+  }
+
+  /**
+   * Set cooldown timer in Redis (default: 60s).
+   */
+  async setCooldown(phone, purpose = 'login', seconds = (config.otp.cooldownSeconds || 60)) {
+    const store = getStore();
+    const cooldownKey = getCooldownKey(phone, purpose);
+    await store.set(cooldownKey, '1', 'EX', seconds);
+  }
+
+  /**
+   * Save OTP in Redis with SHA-256 hashing and 10-minute expiry (600 seconds)
+   * Key: otp:phone:{e164Phone}:{purpose}
+   * Payload: { otpHash, channel, purpose, attempts: 0, createdAt: timestamp, expiresAt: timestamp }
+   */
+  async saveOtp(phone, otp, channel = 'sms', purpose = 'login') {
+    const store = getStore();
+    const key = getOtpKey(phone, purpose);
+    const ttlSeconds = (config.otp.expiryMinutes || 10) * 60;
+    const now = Date.now();
 
     const payload = JSON.stringify({
-      otp: String(otp),
+      otpHash: hashOtp(otp),
+      channel,
+      purpose,
       attempts: 0,
-      createdAt: Date.now(),
+      maxAttempts: config.otp.maxAttempts || 5,
+      createdAt: now,
+      expiresAt: now + ttlSeconds * 1000,
     });
 
     await store.set(key, payload, 'EX', ttlSeconds);
-    logger.info(`OTP stored in Redis for ${phone} with ${ttlSeconds}s TTL`, { service: 'otp' });
+    logger.info(`Secure hashed OTP stored for ${phone} [${channel} / ${purpose}] with ${ttlSeconds}s TTL`, { service: 'otp' });
   }
 
   /**
    * Get raw OTP payload from Redis
    */
-  async getOtpData(phone) {
+  async getOtpData(phone, purpose = 'login') {
     const store = getStore();
-    const key = getKey(phone);
+    const key = getOtpKey(phone, purpose);
     const raw = await store.get(key);
     if (!raw) return null;
     try {
@@ -42,46 +81,76 @@ class RedisOtpService {
   }
 
   /**
-   * Verify provided OTP against Redis stored value
+   * Verify provided OTP against Redis stored value using constant-time hash comparison
    */
-  async verifyOtp(phone, inputOtp) {
+  async verifyOtp(phone, inputOtp, expectedChannel = null, purpose = 'login') {
     const store = getStore();
-    const key = getKey(phone);
-    const otpData = await this.getOtpData(phone);
+    const key = getOtpKey(phone, purpose);
+    const otpData = await this.getOtpData(phone, purpose);
 
     if (!otpData) {
       throw ApiError.badRequest('OTP expired or not found. Please request a new OTP.');
     }
 
-    if (otpData.attempts >= (config.otp.maxAttempts || 5)) {
+    // Purpose validation
+    if (otpData.purpose && otpData.purpose !== purpose) {
+      throw ApiError.badRequest('OTP was issued for a different purpose.');
+    }
+
+    // Channel validation if specified
+    if (expectedChannel && otpData.channel && otpData.channel !== expectedChannel) {
+      throw ApiError.badRequest(`OTP was requested via ${otpData.channel.toUpperCase()}, please verify on the correct channel.`);
+    }
+
+    const maxAttempts = otpData.maxAttempts || config.otp.maxAttempts || 5;
+    if (otpData.attempts >= maxAttempts) {
       await store.del(key);
       throw ApiError.tooMany('Maximum OTP verification attempts reached. Please request a new OTP.');
     }
 
-    if (String(otpData.otp).trim() !== String(inputOtp).trim()) {
+    // Timing-safe comparison of SHA-256 hashes
+    const isMatch = secureCompareOtp(inputOtp, otpData.otpHash);
+
+    if (!isMatch) {
       // Increment attempts
       otpData.attempts += 1;
       const ttl = await store.ttl(key);
-      const remainingTtl = ttl > 0 ? ttl : 300;
+      const remainingTtl = ttl > 0 ? ttl : (config.otp.expiryMinutes || 10) * 60;
       await store.set(key, JSON.stringify(otpData), 'EX', remainingTtl);
 
-      const remainingAttempts = config.otp.maxAttempts - otpData.attempts;
-      throw ApiError.badRequest(`Invalid OTP. ${remainingAttempts} attempts remaining.`);
+      const remainingAttempts = maxAttempts - otpData.attempts;
+      if (remainingAttempts <= 0) {
+        await store.del(key);
+        throw ApiError.tooMany('Maximum OTP verification attempts exceeded. This code is now invalid. Please request a new OTP.');
+      }
+      throw ApiError.badRequest(`Invalid OTP. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`);
     }
 
     // OTP matches cleanly -> consume key immediately to prevent replay attacks
     await store.del(key);
-    return true;
+
+    // Clear cooldown on successful verification
+    const cooldownKey = getCooldownKey(phone, purpose);
+    await store.del(cooldownKey).catch(() => {});
+
+    return {
+      success: true,
+      channel: otpData.channel,
+      purpose: otpData.purpose,
+      verifiedAt: new Date(),
+    };
   }
 
   /**
    * Remove stored OTP from Redis
    */
-  async deleteOtp(phone) {
+  async deleteOtp(phone, purpose = 'login') {
     const store = getStore();
-    const key = getKey(phone);
+    const key = getOtpKey(phone, purpose);
     await store.del(key);
   }
 }
 
 module.exports = new RedisOtpService();
+
+

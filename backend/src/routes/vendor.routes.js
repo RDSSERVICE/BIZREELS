@@ -109,8 +109,9 @@ router.post('/me/send-settings-otp', requireAuth, catchAsync(async (req, res) =>
     throw ApiError.badRequest('No registered mobile number found. Please add a phone number first in Onboarding Details.');
   }
 
-  const cleanPhone = String(targetPhone).replace(/\D/g, '');
-  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const { generateOtp, normalizeIndianPhone } = require('../utils/otp.utils');
+  const cleanPhone = normalizeIndianPhone(targetPhone);
+  const otpCode = generateOtp();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   await OTP.deleteMany({ identifier: cleanPhone, purpose: 'update-settings' });
@@ -125,16 +126,14 @@ router.post('/me/send-settings-otp', requireAuth, catchAsync(async (req, res) =>
 
   await smsService.sendOtpSms(cleanPhone, otpCode);
 
-  const displayPhone = cleanPhone.length >= 10
-    ? `+91 ${cleanPhone.slice(-10)}`
-    : `+91 ${cleanPhone}`;
+  const displayPhone = `+91 ${cleanPhone}`;
 
   res.json({
     success: true,
     message: `Security OTP sent to registered mobile number: ${displayPhone}`,
     phone: displayPhone,
     rawPhone: cleanPhone,
-    otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined
+    otp: process.env.NODE_ENV === 'development' ? otpCode : undefined
   });
 }));
 
@@ -159,7 +158,8 @@ router.post('/me/settings', requireAuth, catchAsync(async (req, res) => {
     throw ApiError.badRequest('Mobile OTP verification is required to authorize business profile changes.');
   }
 
-  const targetPhone = String(user.vendorProfile?.mobileNumber || user.phone || '').replace(/\D/g, '');
+  const { normalizeIndianPhone } = require('../utils/otp.utils');
+  const targetPhone = normalizeIndianPhone(user.vendorProfile?.mobileNumber || user.phone || '');
   const otpRecord = await OTP.findOne({
     identifier: targetPhone,
     purpose: { $in: ['update-settings', 'verify-phone'] },
@@ -168,7 +168,7 @@ router.post('/me/settings', requireAuth, catchAsync(async (req, res) => {
   }).sort({ createdAt: -1 });
 
   const isMatch = otpRecord && (otpRecord.otp === String(otp).trim());
-  const isDevBypass = String(otp).trim() === '1234' || String(otp).trim() === '123456';
+  const isDevBypass = process.env.NODE_ENV === 'development' && (String(otp).trim() === '1234' || String(otp).trim() === '123456');
 
   if (!isMatch && !isDevBypass) {
     throw ApiError.badRequest('Invalid or expired Mobile OTP. Please verify and try again.');

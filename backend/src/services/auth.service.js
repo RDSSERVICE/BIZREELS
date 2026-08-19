@@ -189,39 +189,27 @@ class AuthService {
   }
 
   // ══════════════════════════════════════════════════════════
-  // OTP LOGIN / VERIFICATION (Redis + MSG91 / Exotel)
+  // OTP LOGIN / VERIFICATION (Redis + Twilio SMS & WhatsApp)
   // ══════════════════════════════════════════════════════════
 
-  async requestOtp(identifier, identifierType = 'phone', purpose = 'login') {
-    const redisOtpService = require('./redis-otp.service');
-    const smsService = require('./sms.service');
+  async requestOtp(identifier, identifierType = 'phone', purpose = 'login', channel = 'sms') {
+    const otpService = require('./otp.service');
 
     if (identifierType === 'phone') {
-      const phone = this.validatePhone(identifier);
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-      // Store in Redis with 5-minute expiry (300s TTL)
-      await redisOtpService.saveOtp(phone, otp);
-
-      // Send SMS via MSG91 / Exotel / Mock logger
-      await smsService.sendOtpSms(phone, otp);
-
-      const response = {
-        message: `OTP sent successfully to +91${phone}`,
-        expiresInMinutes: config.otp.expiryMinutes || 5,
-      };
-
-      if (config.env === 'development' || (config.sms?.provider || 'mock') === 'mock') {
-        response.otp = otp;
-      }
-      return response;
+      const result = await otpService.sendOtp({
+        phone: identifier,
+        channel: channel || 'sms',
+        purpose: purpose || 'login',
+      });
+      return result;
     }
 
     // Email OTP sending via Resend Email Service
     const email = typeof identifier === 'string' ? identifier.trim().toLowerCase() : '';
     const emailService = require('./email.service');
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiryMinutes = config.otp.expiryMinutes || 5;
+    const { generateOtp } = require('../utils/otp.utils');
+    const otp = generateOtp();
+    const expiryMinutes = config.otp.expiryMinutes || 10;
 
     await authRepository.createOtp({
       identifier: email,
@@ -256,14 +244,18 @@ class AuthService {
     return result;
   }
 
-  async verifyOtpAndLogin(identifier, identifierType = 'phone', otp, req) {
-    const redisOtpService = require('./redis-otp.service');
+  async verifyOtpAndLogin(identifier, identifierType = 'phone', otp, req, channel = null, purpose = 'login') {
+    const otpService = require('./otp.service');
 
     if (identifierType === 'phone') {
-      const phone = this.validatePhone(identifier);
+      const verified = await otpService.verifyOtp({
+        phone: identifier,
+        otp,
+        channel,
+        purpose: purpose || 'login',
+      });
 
-      // Verify OTP against Redis with 5-attempt rate limit & instant deletion
-      await redisOtpService.verifyOtp(phone, otp);
+      const phone = verified.phone;
 
       // Find user by phone or auto-register on first mobile OTP login
       let user = await authRepository.findUserByPhone(phone);
@@ -278,10 +270,10 @@ class AuthService {
           activeRole: 'customer',
           current_role: 'customer',
         });
-        await this._logAction(user._id, 'USER_REGISTER', 'User', user._id, 'Mobile OTP registration', req);
+        await this._logAction(user._id, 'USER_REGISTER', 'User', user._id, `Mobile OTP registration via ${verified.channel || 'sms'}`, req);
 
         // Claim referral code if present
-        const referralCode = req.body?.referralCode || req.body?.ref;
+        const referralCode = req?.body?.referralCode || req?.body?.ref;
         if (referralCode) {
           try {
             const referralService = require('./referral.service');
@@ -308,10 +300,11 @@ class AuthService {
       // Generate JWT Access & Refresh Token Pair
       const tokens = await this.generateTokenPair(user, req);
 
-      await this._logAction(user._id, 'USER_LOGIN', 'User', user._id, 'Mobile OTP login', req);
+      await this._logAction(user._id, 'USER_LOGIN', 'User', user._id, `Mobile OTP login via ${verified.channel || 'sms'}`, req);
 
       return {
         user: this._sanitizeUser(user),
+        channel: verified.channel,
         ...tokens,
       };
     }
@@ -817,11 +810,8 @@ class AuthService {
   }
 
   validatePhone(phone) {
-    const p = String(phone).trim();
-    if (!/^\d{10}$/.test(p) || !['6', '7', '8', '9'].includes(p[0])) {
-      throw ApiError.badRequest('Invalid Indian phone number. Provide a 10-digit number starting 6-9.');
-    }
-    return p;
+    const { normalizeIndianPhone } = require('../utils/otp.utils');
+    return normalizeIndianPhone(phone);
   }
 
   async issueTokens(user) {

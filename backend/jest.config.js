@@ -3,6 +3,6 @@ module.exports = {
   moduleNameMapper: {
     '^uuid$': '<rootDir>/tests/mocks/uuid.js',
   },
-  setupFiles: [],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
   testTimeout: 30000,
 };

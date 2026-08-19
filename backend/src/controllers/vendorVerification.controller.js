@@ -30,9 +30,11 @@ const getVerificationStatus = catchAsync(async (req, res) => {
 
 const OTP = require('../models/OTP');
 const emailService = require('../services/email.service');
+const smsService = require('../services/sms.service');
+const { generateOtp, normalizeIndianPhone } = require('../utils/otp.utils');
 
 // ─────────────────────────────────────────────────────────────
-// 2. SEND CONTACT OTP (Resend API for Email / Phone OTP)
+// 2. SEND CONTACT OTP (Resend API for Email / Twilio for Phone OTP)
 // ─────────────────────────────────────────────────────────────
 const sendContactOtp = catchAsync(async (req, res) => {
   const { type, value, reverify } = req.body;
@@ -56,8 +58,8 @@ const sendContactOtp = catchAsync(async (req, res) => {
     throw ApiError.badRequest(`Please provide a valid ${type}`);
   }
 
-  // Generate 6-digit OTP code
-  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate cryptographically secure 6-digit OTP code
+  const otpCode = generateOtp();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 mins
 
@@ -93,7 +95,7 @@ const sendContactOtp = catchAsync(async (req, res) => {
     });
   } else {
     // Mobile / WhatsApp OTP
-    const cleanPhone = String(targetValue).replace(/\D/g, '');
+    const cleanPhone = normalizeIndianPhone(targetValue);
     await OTP.deleteMany({ identifier: cleanPhone, purpose: 'verify-phone' });
     await OTP.create({
       identifier: cleanPhone,
@@ -104,10 +106,17 @@ const sendContactOtp = catchAsync(async (req, res) => {
       isUsed: false
     });
 
+    // Dispatch SMS via Twilio / SMS Gateway
+    try {
+      await smsService.sendOtpSms(cleanPhone, otpCode);
+    } catch (smsErr) {
+      console.error('Failed to dispatch contact OTP SMS:', smsErr.message);
+    }
+
     return res.json({
       success: true,
-      message: `Verification OTP sent to ${type}: ${targetValue}`,
-      otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined
+      message: `Verification OTP sent to ${type}: +91${cleanPhone}`,
+      otp: process.env.NODE_ENV === 'development' ? otpCode : undefined
     });
   }
 });
@@ -146,7 +155,7 @@ const verifyContact = catchAsync(async (req, res) => {
     }).sort({ createdAt: -1 });
 
     const isMatch = otpRecord && (otpRecord.otp === String(code).trim());
-    const isDevBypass = process.env.NODE_ENV !== 'production' && (code === '1234' || code === '123456');
+    const isDevBypass = process.env.NODE_ENV === 'development' && (code === '1234' || code === '123456');
 
     if (!isMatch && !isDevBypass) {
       throw ApiError.badRequest('Invalid or expired email verification code');
@@ -160,7 +169,7 @@ const verifyContact = catchAsync(async (req, res) => {
   // Validate OTP code for mobile / whatsapp if code provided
   if (type === 'mobile' || type === 'whatsapp') {
     if (code) {
-      const targetPhone = String(value || user.vendorProfile?.mobileNumber || user.phone || '').replace(/\D/g, '');
+      const targetPhone = normalizeIndianPhone(value || user.vendorProfile?.mobileNumber || user.phone || '');
       const otpRecord = await OTP.findOne({
         identifier: targetPhone,
         purpose: 'verify-phone',
@@ -169,7 +178,7 @@ const verifyContact = catchAsync(async (req, res) => {
       }).sort({ createdAt: -1 });
 
       const isMatch = otpRecord && (otpRecord.otp === String(code).trim());
-      const isDevBypass = code === '1234' || code === '123456';
+      const isDevBypass = process.env.NODE_ENV === 'development' && (code === '1234' || code === '123456');
 
       if (!isMatch && !isDevBypass) {
         throw ApiError.badRequest(`Invalid or expired ${type} verification code`);

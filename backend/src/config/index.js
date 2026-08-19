@@ -47,19 +47,31 @@ const config = {
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
 
-  // ── OTP & SMS (MSG91 / Exotel) ───────────────────────────
+  // ── OTP & SMS / WhatsApp (Twilio) ───────────────────────
   otp: {
-    expiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 5,
+    expiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 10,
     maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS, 10) || 5,
+    cooldownSeconds: parseInt(process.env.OTP_COOLDOWN_SECONDS, 10) || 60,
   },
   sms: {
-    provider: process.env.SMS_PROVIDER || 'mock', // 'msg91', 'exotel', or 'mock'
-    msg91AuthKey: process.env.MSG91_AUTH_KEY || '',
-    msg91TemplateId: process.env.MSG91_TEMPLATE_ID || '',
-    exotelAccountSid: process.env.EXOTEL_ACCOUNT_SID || '',
-    exotelApiKey: process.env.EXOTEL_API_KEY || '',
-    exotelApiToken: process.env.EXOTEL_API_TOKEN || '',
-    exotelSubdomain: process.env.EXOTEL_SUBDOMAIN || 'api.exotel.com',
+    provider: process.env.SMS_PROVIDER || 'mock', // 'twilio' or 'mock'
+    twilio: {
+      accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+      authToken: process.env.TWILIO_AUTH_TOKEN || '',
+      messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || '',
+      senderId: process.env.TWILIO_SENDER_ID || 'BZREEL',
+      dltTemplateId: process.env.TWILIO_DLT_TEMPLATE_ID || '1277178706040137501',
+      dltPeId: process.env.TWILIO_DLT_PE_ID || '',
+    },
+  },
+  whatsapp: {
+    provider: process.env.WHATSAPP_PROVIDER || process.env.SMS_PROVIDER || 'mock', // 'twilio' or 'mock'
+    twilio: {
+      accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+      authToken: process.env.TWILIO_AUTH_TOKEN || '',
+      from: process.env.TWILIO_WHATSAPP_FROM || '', // e.g. 'whatsapp:+14155238886' or business sender
+      contentSid: process.env.TWILIO_WHATSAPP_CONTENT_SID || '', // Twilio Content API template SID
+    },
   },
 
   // ── Resend Email ─────────────────────────────────────────

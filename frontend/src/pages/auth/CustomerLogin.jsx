@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
-import { FiShoppingBag, FiArrowRight } from 'react-icons/fi';
+import { FiShoppingBag, FiArrowRight, FiRotateCw } from 'react-icons/fi';
 import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
 import Input from '../../components/common/Input';
@@ -20,6 +20,17 @@ const CustomerLogin = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpIdentifier, setOtpIdentifier] = useState('');
   const [otpType, setOtpType] = useState('email');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setInterval(() => {
+        setCooldown((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const [loginEmail, { isLoading: isEmailLoading }] = useLoginWithEmailMutation();
   const [requestOtp, { isLoading: isOtpRequestLoading }] = useRequestOtpMutation();
@@ -46,7 +57,8 @@ const CustomerLogin = () => {
   };
 
   const handleSendOtp = async () => {
-    const identifier = otpForm.getValues('identifier');
+    if (cooldown > 0) return;
+    const identifier = otpForm.getValues('identifier') || otpIdentifier;
     const isEmail = identifier.includes('@');
     const type = isEmail ? 'email' : 'phone';
     if (!identifier) { toast.error('Please enter email or phone number first.'); return; }
@@ -55,6 +67,7 @@ const CustomerLogin = () => {
       setOtpIdentifier(identifier);
       await requestOtp({ identifier, identifierType: type, purpose: 'login' }).unwrap();
       setOtpSent(true);
+      setCooldown(60);
       toast.success('OTP sent successfully!');
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to send OTP.');
@@ -109,7 +122,7 @@ const CustomerLogin = () => {
             loginMode === 'otp' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
           }`}
         >
-          One-Time Password (OTP)
+          Phone OTP
         </button>
       </div>
 
@@ -117,15 +130,22 @@ const CustomerLogin = () => {
         <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-4">
           <Input
             label="Email Address"
-            placeholder="name@example.com"
+            placeholder="buyer@example.com"
             error={emailForm.formState.errors.email}
-            {...emailForm.register('email', { required: 'Email is required' })}
+            {...emailForm.register('email', {
+              required: 'Email is required',
+              pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address' },
+            })}
           />
 
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center">
-              <label className="text-[11px] font-bold tracking-wide text-slate-700 uppercase">Password</label>
-              <Link to="/auth/forgot-password" className="text-xs font-bold text-[#d99a3d] hover:underline">Forgot password?</Link>
+              <label className="text-[11px] font-bold tracking-wide text-slate-700 uppercase">
+                Password
+              </label>
+              <Link to="/auth/forgot-password" className="text-xs font-bold text-[#d99a3d] hover:underline">
+                Forgot password?
+              </Link>
             </div>
             <Input
               type="password"
@@ -149,10 +169,10 @@ const CustomerLogin = () => {
           {!otpSent ? (
             <>
               <Input
-                label="Email or Phone Number"
-                placeholder="name@example.com or +91XXXXXXXXXX"
+                label="Mobile Phone Number"
+                placeholder="+91XXXXXXXXXX or 9876543210"
                 error={otpForm.formState.errors.identifier}
-                {...otpForm.register('identifier', { required: 'Email or Phone is required' })}
+                {...otpForm.register('identifier', { required: 'Phone number is required' })}
               />
 
               <button
@@ -167,23 +187,46 @@ const CustomerLogin = () => {
             </>
           ) : (
             <>
-              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl flex flex-col gap-1 text-center">
-                <span className="text-xs font-semibold text-slate-700">OTP sent to:</span>
-                <span className="text-xs font-bold text-[#d99a3d]">{otpIdentifier}</span>
-                <button
-                  type="button"
-                  onClick={() => setOtpSent(false)}
-                  className="text-xs font-bold text-slate-600 hover:underline mt-1 cursor-pointer border-none bg-transparent"
-                >
-                  Change Email/Phone
-                </button>
+              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl flex flex-col gap-2 text-center">
+                <div>
+                  <span className="text-xs font-semibold text-slate-700">OTP sent to: </span>
+                  <span className="text-xs font-bold text-[#d99a3d]">{otpIdentifier}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-[#e3dccb]/60 text-xs">
+                  {cooldown > 0 ? (
+                    <span className="text-slate-500 font-medium flex items-center gap-1">
+                      <FiRotateCw className="w-3 h-3 animate-spin text-[#d99a3d]" />
+                      Resend in <strong className="text-[#d99a3d]">{cooldown}s</strong>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={isOtpRequestLoading}
+                      className="text-xs font-bold text-[#d99a3d] hover:underline cursor-pointer bg-transparent border-none p-0 flex items-center gap-1"
+                    >
+                      <FiRotateCw className="w-3 h-3" /> Resend OTP
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setOtpSent(false); setCooldown(0); }}
+                    className="text-xs font-bold text-slate-600 hover:underline cursor-pointer border-none bg-transparent p-0"
+                  >
+                    Change Phone
+                  </button>
+                </div>
               </div>
 
               <Input
                 label="Enter 6-Digit OTP"
                 placeholder="000000"
                 error={otpForm.formState.errors.otp}
-                {...otpForm.register('otp', { required: 'OTP is required' })}
+                {...otpForm.register('otp', {
+                  required: 'OTP is required',
+                  minLength: { value: 6, message: 'OTP must be 6 digits' },
+                  maxLength: { value: 6, message: 'OTP must be 6 digits' },
+                })}
               />
 
               <button

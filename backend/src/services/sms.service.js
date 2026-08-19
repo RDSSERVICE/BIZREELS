@@ -1,86 +1,144 @@
-const axios = require('axios');
 const config = require('../config');
 const logger = require('../utils/logger');
+const { normalizeIndianPhone } = require('../utils/otp.utils');
 
 class SmsService {
   /**
-   * Send OTP SMS via MSG91, Exotel, or Mock logger
+   * Send OTP SMS via Twilio Messaging Service or Mock logger.
+   * DLT Template ID: 1277178706040137501
+   * DLT Header: BZREEL
    */
   async sendOtpSms(phone, otp) {
-    const formattedPhone = String(phone).replace(/\D/g, '');
+    const formattedPhone = normalizeIndianPhone(phone);
     const provider = (config.sms.provider || 'mock').toLowerCase();
 
-    if (provider === 'msg91') {
-      return this._sendViaMsg91(formattedPhone, otp);
-    }
-
-    if (provider === 'exotel') {
-      return this._sendViaExotel(formattedPhone, otp);
+    if (provider === 'twilio') {
+      return this._sendViaTwilio(formattedPhone, otp);
     }
 
     // Default mock / dev mode logger
-    logger.info(`[SMS MOCK OTP] 📲 Phone: +91${formattedPhone} | OTP Code: ${otp}`, { service: 'sms' });
-    return { success: true, provider: 'mock' };
+    logger.info(`[SMS MOCK OTP] 📲 Phone: ${formattedPhone} | OTP Code: ${otp}`, { service: 'sms' });
+    return { success: true, provider: 'mock', phone: formattedPhone, otp };
   }
 
-  async _sendViaMsg91(phone, otp) {
-    if (!config.sms.msg91AuthKey || !config.sms.msg91TemplateId) {
-      logger.warn(`[MSG91 CONFIG REQUIRED] ⚠️ Please set MSG91_AUTH_KEY and MSG91_TEMPLATE_ID in backend/.env to deliver live SMS. 📲 Mock OTP for +91${phone}: ${otp}`);
-      return { success: true, provider: 'mock_fallback', otp };
+  /**
+   * Send Transactional / Alert SMS via Twilio Messaging Service
+   */
+  async sendTransactionalSms(phone, message) {
+    const formattedPhone = normalizeIndianPhone(phone);
+    const provider = (config.sms.provider || 'mock').toLowerCase();
+
+    if (provider !== 'twilio') {
+      logger.info(`[SMS MOCK TXN] 📲 Phone: ${formattedPhone} | Message: ${message}`, { service: 'sms' });
+      return { success: true, provider: 'mock' };
+    }
+
+    const { accountSid, authToken, messagingServiceSid, senderId } = config.sms.twilio || {};
+    if (!accountSid || !authToken) {
+      logger.warn(`[TWILIO CONFIG REQUIRED] Missing credentials for transactional SMS to ${formattedPhone}`);
+      return { success: true, provider: 'mock_fallback' };
     }
 
     try {
-      const response = await axios.post(
-        'https://control.msg91.com/api/v5/otp',
-        null,
-        {
-          params: {
-            template_id: config.sms.msg91TemplateId,
-            mobile: `91${phone}`,
-            authkey: config.sms.msg91AuthKey,
-            otp,
-          },
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-      logger.info(`[MSG91 SMS SUCCESS] Delivered to +91${phone}`, { response: response.data });
-      return { success: true, provider: 'msg91', data: response.data };
+      const twilio = require('twilio');
+      const twilioClient = twilio(accountSid, authToken);
+      const payload = {
+        to: formattedPhone,
+        body: message,
+      };
+
+      if (messagingServiceSid) {
+        payload.messagingServiceSid = messagingServiceSid;
+      } else {
+        payload.from = senderId || 'BZREEL';
+      }
+
+      const res = await twilioClient.messages.create(payload);
+      return { success: true, provider: 'twilio', sid: res.sid, status: res.status };
     } catch (err) {
-      logger.error('MSG91 API failure:', err.response?.data || err.message);
-      logger.info(`[MSG91 FALLBACK OTP] 📲 Phone: +91${phone} | OTP: ${otp}`);
-      return { success: true, provider: 'mock_fallback', otp };
+      logger.error('Twilio transactional SMS error:', err.message);
+      return { success: false, error: err.message };
     }
   }
 
-  async _sendViaExotel(phone, otp) {
-    const { exotelAccountSid, exotelApiKey, exotelApiToken, exotelSubdomain } = config.sms;
-    if (!exotelAccountSid || !exotelApiKey || !exotelApiToken) {
-      throw new Error('Exotel is missing EXOTEL_ACCOUNT_SID, EXOTEL_API_KEY, or EXOTEL_API_TOKEN configuration.');
+  /**
+   * Send SMS via Twilio Messaging Service / Programmable Messaging
+   * Using Sender ID: "BZREEL" & DLT Template ID: 1277178706040137501
+   *
+   * DLT Approved Template:
+   * "Your BizReels verification code is {#number#}. This OTP is valid for 10 minutes. Do not share it with anyone."
+   */
+  async _sendViaTwilio(phone, otp) {
+    const { accountSid, authToken, messagingServiceSid, senderId, dltTemplateId } = config.sms.twilio || {};
+
+    if (!accountSid || !authToken) {
+      logger.warn(`[TWILIO CONFIG REQUIRED] ⚠️ Please set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in backend/.env to deliver live SMS. 📲 Mock OTP for ${phone}: ${otp}`);
+      return { success: true, provider: 'mock_fallback', phone, otp };
     }
 
+    const messageBody = `Your BizReels verification code is ${otp}. This OTP is valid for 10 minutes. Do not share it with anyone.`;
+    const targetMobile = phone.startsWith('+') ? phone : `+91${phone}`;
+
     try {
-      const authHeader = Buffer.from(`${exotelApiKey}:${exotelApiToken}`).toString('base64');
-      const url = `https://${exotelSubdomain}/v1/Accounts/${exotelAccountSid}/Sms/send.json`;
+      let twilioClient;
+      try {
+        const twilio = require('twilio');
+        twilioClient = twilio(accountSid, authToken);
+      } catch (loadErr) {
+        logger.error('Twilio SDK initialization error:', loadErr.message);
+        throw loadErr;
+      }
 
-      const params = new URLSearchParams();
-      params.append('From', 'BIZREL');
-      params.append('To', phone);
-      params.append('Body', `Your BizReels verification OTP is ${otp}. Valid for 5 minutes.`);
+      const payload = {
+        to: targetMobile,
+        body: messageBody,
+      };
 
-      const response = await axios.post(url, params, {
-        headers: {
-          Authorization: `Basic ${authHeader}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+      if (messagingServiceSid) {
+        payload.messagingServiceSid = messagingServiceSid;
+      } else {
+        payload.from = senderId || 'BZREEL';
+      }
+
+      logger.info(`[TWILIO DISPATCH] Sending SMS to ${targetMobile} via Messaging Service...`, {
+        service: 'sms',
+        dltTemplateId: dltTemplateId || '1277178706040137501',
+        messagingServiceSid: messagingServiceSid || 'direct_sender',
       });
 
-      logger.info(`[EXOTEL SMS SUCCESS] Delivered to +91${phone}`, { response: response.data });
-      return { success: true, provider: 'exotel', data: response.data };
+      const message = await twilioClient.messages.create(payload);
+
+      logger.info(`[TWILIO SMS SUCCESS] Delivered message SID ${message.sid} to ${targetMobile}`, {
+        service: 'sms',
+        status: message.status,
+        sid: message.sid,
+      });
+
+      return {
+        success: true,
+        provider: 'twilio',
+        sid: message.sid,
+        status: message.status,
+      };
     } catch (err) {
-      logger.error('Exotel API failure:', err.response?.data || err.message);
+      logger.error('Twilio SMS delivery failure:', {
+        service: 'sms',
+        error: err.message,
+        code: err.code,
+        moreInfo: err.moreInfo,
+      });
+
+      // In non-production or on carrier error, log fallback OTP to prevent developer lockout
+      if (config.env !== 'production') {
+        logger.info(`[TWILIO FALLBACK OTP] 📲 Phone: ${targetMobile} | OTP: ${otp}`);
+      }
+
       throw err;
     }
   }
 }
 
 module.exports = new SmsService();
+
+
+

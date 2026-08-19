@@ -1163,7 +1163,7 @@ router.get('/app-settings', requireAuth, requireAdmin, catchAsync(async (req, re
       timezone: map.timezone || 'Asia/Kolkata (IST)',
       maintenance_mode: map.maintenance_mode || false,
       min_app_version: map.min_app_version || '1.0.0',
-      otp_provider: map.otp_provider || 'msg91',
+      otp_provider: map.otp_provider || 'twilio',
     },
   });
 }));
@@ -1278,20 +1278,20 @@ router.post('/settings/integrations/test', requireAuth, requireAdmin, catchAsync
   }
 
   const integration = String(req.query.integration || '').trim().toLowerCase();
-  if (!['msg91', 'cloudinary', 'razorpay', 'fcm', 'ai_content'].includes(integration)) {
+  if (!['twilio', 'msg91', 'cloudinary', 'razorpay', 'fcm', 'ai_content'].includes(integration)) {
     throw ApiError.badRequest('Unknown integration');
   }
 
   try {
-    if (integration === 'msg91') {
-      const msg91Service = require('../services/msg91.service');
-      const crypto = require('crypto');
-      const otp = crypto.randomInt(100000, 999999).toString();
-      const response = await msg91Service.sendOtpSms(req.user.phone, otp);
+    if (integration === 'twilio' || integration === 'msg91') {
+      const smsService = require('../services/sms.service');
+      const { generateOtp } = require('../utils/otp.utils');
+      const otp = generateOtp();
+      const response = await smsService.sendOtpSms(req.user.phone, otp);
       return res.json({
         ok: true,
-        integration: 'msg91',
-        dev_mode: msg91Service.isDevMode(),
+        integration: 'twilio',
+        dev_mode: (process.env.SMS_PROVIDER || 'mock').toLowerCase() === 'mock',
         sent_to: req.user.phone,
         provider_response: response || null,
       });

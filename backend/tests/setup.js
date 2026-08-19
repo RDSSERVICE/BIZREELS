@@ -1,3 +1,8 @@
+process.env.REDIS_ENABLED = 'false';
+process.env.NODE_ENV = 'test';
+process.env.SMS_PROVIDER = 'mock';
+process.env.WHATSAPP_PROVIDER = 'mock';
+
 const mongoose = require('mongoose');
 const connection = require('../src/database/connection');
 
