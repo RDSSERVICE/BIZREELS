@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 import AdminModal from '../../../features/admin/components/AdminModal';
-import { API_BASE } from '../../../lib/api';
+import { api, API_BASE } from '../../../lib/api';
 import {
   useListAdminVendorsQuery,
   useGetVendorDetailQuery,
@@ -21,6 +21,7 @@ import {
   useUnbanUserMutation,
   useSuspendUserMutation,
   useDeleteVendorMutation,
+  useApproveKycMutation,
   useRejectKycMutation
 } from '../../../features/admin/adminApi';
 
@@ -67,6 +68,7 @@ export default function AdminVendors() {
   const [unbanUser] = useUnbanUserMutation();
   const [suspendUser] = useSuspendUserMutation();
   const [deleteVendor] = useDeleteVendorMutation();
+  const [approveKyc] = useApproveKycMutation();
 
   const vendors = vendorData?.items || [];
   const totalPages = vendorData?.pages || 1;
@@ -149,37 +151,34 @@ export default function AdminVendors() {
   };
 
   // Export CSV
-  const handleExport = () => {
-    const query = new URLSearchParams({
-      q: search,
-      status,
-      kyc_status: kycStatus,
-      from: fromDate,
-      to: toDate,
-      sort,
-    }).toString();
+  const handleExport = async () => {
+    try {
+      const query = new URLSearchParams({
+        q: search || '',
+        status: status || '',
+        kyc_status: kycStatus || '',
+        from: fromDate || '',
+        to: toDate || '',
+        sort: sort || 'newest_first',
+      }).toString();
 
-    fetch(`${API_BASE}/admin/vendors/export?${query}`, {
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Export failed');
-        return res.blob();
-      })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `vendors_export_${new Date().toISOString().slice(0, 10)}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        toast.success('CSV Export downloaded successfully');
-      })
-      .catch(() => {
-        toast.error('Failed to export vendor records');
+      const response = await api.get(`/v1/admin/vendors/export?${query}`, {
+        responseType: 'blob',
       });
+
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vendors_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('CSV Export downloaded successfully');
+    } catch (err) {
+      console.error('CSV Export Error:', err);
+      toast.error('Failed to export vendor records');
+    }
   };
 
   return (

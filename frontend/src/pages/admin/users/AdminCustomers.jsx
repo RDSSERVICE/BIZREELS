@@ -11,7 +11,7 @@ import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadg
 import AdminModal from '../../../features/admin/components/AdminModal';
 import AdminActionMenu from '../../../features/admin/components/AdminActionMenu';
 
-import { API_BASE } from '../../../lib/api';
+import { api, API_BASE } from '../../../lib/api';
 import {
   useListAdminCustomersQuery,
   useGetCustomerDetailQuery,
@@ -133,38 +133,35 @@ export default function AdminCustomers() {
   };
 
   // Export CSV
-  const handleExport = () => {
-    const query = new URLSearchParams({
-      q: search,
-      status,
-      kyc_status: kycStatus,
-      has_orders: hasOrders,
-      from: fromDate,
-      to: toDate,
-      sort,
-    }).toString();
+  const handleExport = async () => {
+    try {
+      const query = new URLSearchParams({
+        q: search || '',
+        status: status || '',
+        kyc_status: kycStatus || '',
+        has_orders: hasOrders || '',
+        from: fromDate || '',
+        to: toDate || '',
+        sort: sort || 'newest_first',
+      }).toString();
 
-    fetch(`${API_BASE}/admin/customers/export?${query}`, {
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Export failed');
-        return res.blob();
-      })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `customers_export_${new Date().toISOString().slice(0, 10)}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        toast.success('CSV Export downloaded successfully');
-      })
-      .catch(() => {
-        toast.error('Failed to export customer records');
+      const response = await api.get(`/v1/admin/customers/export?${query}`, {
+        responseType: 'blob',
       });
+
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `customers_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('CSV Export downloaded successfully');
+    } catch (err) {
+      console.error('CSV Export Error:', err);
+      toast.error('Failed to export customer records');
+    }
   };
 
   return (

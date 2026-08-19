@@ -254,11 +254,9 @@ const AppRoutes = () => {
       </Route>
 
       {/* ── Admin Auth & Panel Routes ────────────────────────── */}
-      <Route element={<AuthLayout />}>
-        <Route path="/admin" element={<AdminLogin />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/adminlogin" element={<AdminLogin />} />
-      </Route>
+      <Route path="/admin" element={<AdminLogin />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/adminlogin" element={<AdminLogin />} />
 
       <Route
         element={

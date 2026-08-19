@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
+import { api } from '../../../lib/api';
 import API_CONFIG from '../../../config';
 import { useGetFinancialReportQuery, useListAdminTransactionsQuery } from '../../../features/admin/adminApi';
 
@@ -31,10 +32,24 @@ export default function AdminFinancialReportsPage() {
 
   const fmtCurrency = (paise) => `₹${((paise || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
-  const handleExportCsv = () => {
-    const url = `${API_CONFIG.BASE_URL}/admin/transactions.csv`;
-    window.open(url, '_blank');
-    toast.success('Exporting transactions CSV report...');
+  const handleExportCsv = async () => {
+    try {
+      const response = await api.get('/v1/admin/transactions.csv', {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `financial_transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Financial transactions CSV downloaded');
+    } catch (err) {
+      console.error('Export CSV error:', err);
+      toast.error('Failed to export financial transactions');
+    }
   };
 
   const handleExportPdf = () => {

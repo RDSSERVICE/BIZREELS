@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { FiSearch, FiDownload, FiFilter, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { toast } from 'react-hot-toast';
+import { api } from '../../../../lib/api';
 import { useListWalletTransactionsQuery } from '../../../../features/admin/adminApi';
 import AdminStatusBadge from '../../../../features/admin/components/AdminStatusBadge';
 
@@ -19,9 +21,9 @@ const TRANSACTION_TYPES = [
 
 const ROLES = [
   { value: '', label: 'All Roles' },
+  { value: 'customer', label: 'Customer' },
   { value: 'vendor', label: 'Vendor' },
   { value: 'creator', label: 'Creator' },
-  { value: 'customer', label: 'Customer' },
 ];
 
 const STATUSES = [
@@ -32,38 +34,35 @@ const STATUSES = [
   { value: 'reversed', label: 'Reversed' },
 ];
 
-import API_CONFIG from '../../../../config';
-
-const API_URL = API_CONFIG.BASE_URL;
-
 /**
  * TransactionHistory
  * Full-featured transaction table with search, filter, sort, pagination, and export.
  */
 export default function TransactionHistory() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [filters, setFilters] = useState({
-    user_role: '',
-    status: '',
+    user_id: '',
     transaction_type: '',
-    credit_debit: '',
+    role: '',
+    status: '',
     from_date: '',
     to_date: '',
+    search: '',
   });
+  const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const limit = 15;
 
   const queryParams = {
     page,
-    limit: 25,
-    ...(search && { search }),
-    ...(filters.user_role && { user_role: filters.user_role }),
-    ...(filters.status && { status: filters.status }),
+    limit,
+    ...(filters.user_id && { user_id: filters.user_id }),
     ...(filters.transaction_type && { transaction_type: filters.transaction_type }),
-    ...(filters.credit_debit && { credit_debit: filters.credit_debit }),
+    ...(filters.role && { role: filters.role }),
+    ...(filters.status && { status: filters.status }),
     ...(filters.from_date && { from_date: filters.from_date }),
     ...(filters.to_date && { to_date: filters.to_date }),
+    ...(filters.search && { search: filters.search }),
   };
 
   const { data, isFetching } = useListWalletTransactionsQuery(queryParams, { pollingInterval: 8000 });
@@ -71,24 +70,56 @@ export default function TransactionHistory() {
   const total = data?.total || 0;
   const totalPages = data?.total_pages || 1;
 
-  const handleSearch = useCallback(() => {
-    setSearch(searchInput);
+  const handleSearch = () => {
+    setFilters(prev => ({ ...prev, search: searchInput }));
     setPage(1);
-  }, [searchInput]);
+  };
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setPage(1);
   };
 
-  const handleExportCSV = () => {
-    const params = new URLSearchParams(queryParams).toString();
-    window.open(`${API_URL}/admin/wallet/transactions/export/csv?${params}`, '_blank');
+  const handleExportCSV = async () => {
+    try {
+      const params = new URLSearchParams(queryParams).toString();
+      const response = await api.get(`/v1/admin/wallet/transactions/export/csv?${params}`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wallet_transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Wallet transactions exported');
+    } catch (err) {
+      console.error('Export CSV error:', err);
+      toast.error('Failed to export wallet transactions');
+    }
   };
 
-  const handleExportExcel = () => {
-    const params = new URLSearchParams(queryParams).toString();
-    window.open(`${API_URL}/admin/wallet/transactions/export/excel?${params}`, '_blank');
+  const handleExportExcel = async () => {
+    try {
+      const params = new URLSearchParams(queryParams).toString();
+      const response = await api.get(`/v1/admin/wallet/transactions/export/csv?${params}`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wallet_transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Wallet transactions exported');
+    } catch (err) {
+      console.error('Export Excel error:', err);
+      toast.error('Failed to export wallet transactions');
+    }
   };
 
   const formatType = (type) => {

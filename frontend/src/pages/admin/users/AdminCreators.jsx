@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 import AdminModal from '../../../features/admin/components/AdminModal';
-import { API_BASE } from '../../../lib/api';
+import { api, API_BASE } from '../../../lib/api';
 import {
   useListAdminCreatorsQuery,
   useGetCreatorDetailQuery,
@@ -148,37 +148,34 @@ export default function AdminCreators() {
   };
 
   // Export CSV
-  const handleExport = () => {
-    const query = new URLSearchParams({
-      q: search,
-      status,
-      kyc_status: kycStatus,
-      from: fromDate,
-      to: toDate,
-      sort,
-    }).toString();
+  const handleExport = async () => {
+    try {
+      const query = new URLSearchParams({
+        q: search || '',
+        status: status || '',
+        kyc_status: kycStatus || '',
+        from: fromDate || '',
+        to: toDate || '',
+        sort: sort || 'newest_first',
+      }).toString();
 
-    fetch(`${API_BASE}/admin/creators/export?${query}`, {
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Export failed');
-        return res.blob();
-      })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `creators_export_${new Date().toISOString().slice(0, 10)}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        toast.success('CSV Export downloaded successfully');
-      })
-      .catch(() => {
-        toast.error('Failed to export creator records');
+      const response = await api.get(`/v1/admin/creators/export?${query}`, {
+        responseType: 'blob',
       });
+
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `creators_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('CSV Export downloaded successfully');
+    } catch (err) {
+      console.error('CSV Export Error:', err);
+      toast.error('Failed to export creator records');
+    }
   };
 
   return (
