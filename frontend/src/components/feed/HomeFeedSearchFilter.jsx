@@ -5,11 +5,12 @@ import {
   FiGrid, FiFilter, FiGlobe, FiRadio, FiTag, FiCornerDownLeft, FiFilm, FiPackage
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../../context/LanguageContext';
 
-export const FEED_TABS = [
-  { id: 'combined', label: 'All Feed', icon: FiGrid },
-  { id: 'reels', label: 'Reels', icon: FiFilm },
-  { id: 'images', label: 'Products & Services', icon: FiPackage },
+export const getFeedTabs = (bi) => [
+  { id: 'combined', label: bi ? bi('All Feed', 'सभी फीड') : 'All Feed', icon: FiGrid },
+  { id: 'reels', label: bi ? bi('Reels', 'रील्स') : 'Reels', icon: FiFilm },
+  { id: 'images', label: bi ? bi('Products & Services', 'उत्पाद एवं सेवाएं') : 'Products & Services', icon: FiPackage },
 ];
 
 export const REEL_TYPES = [
@@ -57,6 +58,8 @@ export default function HomeFeedSearchFilter({
   activeTab = 'combined',
   onTabChange
 }) {
+  const { bi, t } = useLanguage();
+  const feedTabs = getFeedTabs(bi);
   const [showDrawer, setShowDrawer] = useState(false);
 
   const activeCount = [
@@ -91,7 +94,7 @@ export default function HomeFeedSearchFilter({
           {/* 1. Feed Type Tabs (All / Reels / Products) */}
           {onTabChange && (
             <div className="flex items-center gap-0.5 shrink-0 bg-[#f8f4ec] p-0.5 rounded-lg border border-[#e3dccb]">
-              {FEED_TABS.map((tab) => {
+              {feedTabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (

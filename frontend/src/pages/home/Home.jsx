@@ -6,6 +6,7 @@ import SEO from '../../components/common/SEO';
 import { useGetHomeTrendingFeedQuery } from '../../features/home/homeApi';
 import { useListCategoriesQuery } from '../../features/admin/adminApi';
 import { useGetListingsQuery } from '../../features/listings/listingsApi';
+import { useLanguage } from '../../context/LanguageContext';
 
 const getCategoryIcon = (name = '') => {
   const n = (name || '').toLowerCase();
@@ -25,6 +26,7 @@ const getCategoryIcon = (name = '') => {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { lang, t } = useLanguage();
   const [showCategoryModal, setShowCategoryModal] = React.useState(false);
   const { data: homeFeedData } = useGetHomeTrendingFeedQuery();
   const { data: dbListingsRes } = useGetListingsQuery({ limit: 50 });
@@ -55,10 +57,10 @@ export default function Home() {
   ], []);
 
   const statsList = feed.stats || [
-    { number: '12K+', label: 'Businesses', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><rect x="2" y="4" width="20" height="16" rx="2" /><polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none" /></svg> },
-    { number: '2.4M+', label: 'Leads Generated', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" /><path d="M16 8.2a3 3 0 1 1 0 5.8" /><path d="M21.5 20c0-3-1.9-5.5-4.5-6.2" /></svg> },
-    { number: '8.7M+', label: 'Products & Services', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M6 8V6a6 6 0 0 1 12 0v2" /><rect x="3" y="8" width="18" height="13" rx="2" /></svg> },
-    { number: '₹350Cr+', label: 'Business Volume', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="3 17 9 11 13 15 21 6" /><polyline points="15 6 21 6 21 12" /></svg> },
+    { number: '12K+', label: t('stat_businesses'), svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><rect x="2" y="4" width="20" height="16" rx="2" /><polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none" /></svg> },
+    { number: '2.4M+', label: t('stat_leads'), svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" /><path d="M16 8.2a3 3 0 1 1 0 5.8" /><path d="M21.5 20c0-3-1.9-5.5-4.5-6.2" /></svg> },
+    { number: '8.7M+', label: t('stat_products'), svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M6 8V6a6 6 0 0 1 12 0v2" /><rect x="3" y="8" width="18" height="13" rx="2" /></svg> },
+    { number: '₹350Cr+', label: t('stat_volume'), svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="3 17 9 11 13 15 21 6" /><polyline points="15 6 21 6 21 12" /></svg> },
   ];
 
   // Dynamic 7.5s image rotator - products cycle ONE BY ONE
@@ -232,7 +234,7 @@ export default function Home() {
                   onClick={() => navigate('/local-reels')}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-black text-xs sm:text-sm bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] transition-all shadow-md active:scale-[0.98] cursor-pointer"
                 >
-                  <span>Start Exploring</span>
+                  <span>{t('start_exploring')}</span>
                   <FiArrowRight className="w-4 h-4" />
                 </button>
 
@@ -240,7 +242,7 @@ export default function Home() {
                   onClick={() => navigate('/auth/register?role=vendor')}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-black text-xs sm:text-sm border-2 border-[#d8d2c5] hover:border-[#b8b0a0] text-[#1a1a1a] bg-white/40 hover:bg-white transition-all shadow-2xs active:scale-[0.98] cursor-pointer"
                 >
-                  <span>I'm a Business</span>
+                  <span>{t('business_cta')}</span>
                   <FiArrowRight className="w-4 h-4" />
                 </button>
               </motion.div>
@@ -420,7 +422,7 @@ export default function Home() {
                 onClick={() => setShowCategoryModal(true)}
                 className="snap-start flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-extrabold text-xs transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0 border border-transparent active:scale-[0.98]"
               >
-                <span>Explore All ({categoriesToDisplay.length})</span>
+                <span>{t('explore_categories')} ({categoriesToDisplay.length})</span>
                 <FiArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -439,14 +441,13 @@ export default function Home() {
               <div>
                 <div className="flex items-center justify-between mb-5">
                   <div className="font-black text-base sm:text-lg uppercase text-white leading-tight">
-                    <span className="text-[#d99a3d] block">Trending</span>
-                    <span>Products &amp; Services</span>
+                    <span className="text-[#d99a3d] block">{t('trending_title')}</span>
                   </div>
                   <button
                     onClick={() => navigate('/local-reels')}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-[#d99a3d] hover:underline cursor-pointer"
                   >
-                    <span>View All</span>
+                    <span>{t('view_all')}</span>
                     <FiArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -559,7 +560,7 @@ export default function Home() {
                   onClick={() => navigate(activeProduct?.id ? `/listings/search?q=${encodeURIComponent(activeProduct.title)}` : '/auth/register')}
                   className="w-full py-2.5 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-black text-xs rounded-xl transition-all cursor-pointer shadow-md active:scale-[0.98] flex items-center justify-center gap-2"
                 >
-                  <span>Get Quote / Order Now</span>
+                  <span>{t('order_now')}</span>
                   <FiArrowRight className="w-3.5 h-3.5" />
                 </button>
 
@@ -622,14 +623,14 @@ export default function Home() {
             <div className="rounded-2xl bg-[#241b15] p-6 flex flex-col justify-between text-white">
               <div>
                 <h2 className="text-sm sm:text-base font-black text-[#d99a3d] uppercase tracking-wide mb-4">
-                  Why Businesses<br />Choose BizReels
+                  {t('why_choose_title')}
                 </h2>
                 <ul className="space-y-3 mb-6">
                   {[
-                    'Targeted audience actively looking to buy',
-                    'Short reels that explain and sell better',
-                    'Quality leads delivered to your dashboard',
-                    'Affordable pricing with real impact',
+                    t('why_point_1'),
+                    t('why_point_2'),
+                    t('why_point_3'),
+                    t('why_point_4'),
                   ].map((text) => (
                     <li key={text} className="flex items-start gap-2.5 text-xs text-[#c9c4bb] font-medium leading-normal">
                       <FiCheckCircle className="w-4 h-4 text-[#d99a3d] shrink-0 mt-0.5" />
@@ -643,7 +644,7 @@ export default function Home() {
                 onClick={() => navigate('/about')}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-extrabold text-xs transition-all shadow-xs self-start cursor-pointer active:scale-[0.98]"
               >
-                <span>Learn More</span>
+                <span>{t('learn_more')}</span>
                 <FiArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

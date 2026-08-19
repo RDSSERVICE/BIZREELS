@@ -12,8 +12,11 @@ import ListingDetailModal from './components/ListingDetailModal';
 import OrderConfirmedModal from './components/OrderConfirmedModal';
 import BookServiceModal from '../activities/components/BookServiceModal';
 
+import { useLanguage } from '../../../context/LanguageContext';
+
 export default function SearchListingsPage() {
   const navigate = useNavigate();
+  const { bi, t } = useLanguage();
   const { productId } = useParams();
   const [searchParams] = useSearchParams();
   const queryProductId = productId || searchParams.get('productId') || searchParams.get('id');
@@ -612,14 +615,14 @@ export default function SearchListingsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#e3dccb] pb-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-[#1a1a1a] tracking-tight">
-              Explore Products & Services
+              {bi('Explore Products & Services', 'उत्पाद एवं सेवाएं खोजें')}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Discover verified local vendors, deals, and service providers near you
+              {bi('Discover verified local vendors, deals, and service providers near you', 'अपने आस-पास सत्यापित स्थानीय विक्रेताओं, सौदों और सेवा प्रदाताओं की खोज करें')}
             </p>
           </div>
           <span className="text-xs font-bold text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-[#e3dccb] w-fit shadow-xs">
-            {listings.length} Results Found
+            {listings.length} {bi('Results Found', 'परिणाम मिले')}
           </span>
         </div>
 

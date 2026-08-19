@@ -8,6 +8,7 @@ import { useCreateRequirementMutation } from '../../../features/customer/require
 import { api, resolveMediaUrl } from '../../../lib/api';
 import ProductRequirementForm from './ProductRequirementForm';
 import ServiceRequirementForm from './ServiceRequirementForm';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const DISTANCE_OPTIONS = [
   { value: '', label: 'No distance limit' },
@@ -22,6 +23,7 @@ const DISTANCE_OPTIONS = [
 
 export default function PostRequirementPage() {
   const navigate = useNavigate();
+  const { lang, bi } = useLanguage();
   const [createRequirement, { isLoading }] = useCreateRequirementMutation();
   const [type, setType] = useState('product');
   const [title, setTitle] = useState('');
@@ -360,10 +362,10 @@ export default function PostRequirementPage() {
         <div>
           <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">CUSTOMER PORTAL</span>
           <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
-            POST A REQUIREMENT
+            {bi('POST A REQUIREMENT', 'आवश्यकता पोस्ट करें')}
           </h1>
           <p className="text-xs text-slate-300 mt-1 max-w-md">
-            Get instant quotes and direct proposals from verified local vendors &amp; service providers.
+            {bi('Get instant quotes and direct proposals from verified local vendors & service providers.', 'सत्यापित स्थानीय विक्रेताओं से त्वरित कोटेशन और सीधे प्रस्ताव प्राप्त करें।')}
           </p>
         </div>
         <div className="w-10 h-10 rounded-full bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center font-black shrink-0 border border-[#1a1a1a]">
@@ -373,13 +375,13 @@ export default function PostRequirementPage() {
 
       <div className="bg-white rounded-md p-5 sm:p-7 border border-[#e3dccb] shadow-xs w-full space-y-6">
         <div>
-          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-2">1. Select Requirement Type</label>
+          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-2">{bi('1. Select Requirement Type', '1. आवश्यकता प्रकार चुनें')}</label>
           <div className="grid grid-cols-2 gap-3">
             <button type="button" onClick={() => handleTypeChange('product')} className={`flex items-center justify-center gap-2 p-3.5 rounded-md border text-xs font-extrabold transition ${type === 'product' ? 'bg-[#241b15] text-[#d99a3d]' : 'bg-[#f8f4ec]'}`}>
-              <FiShoppingBag size={17} /> <span>Product Requirement</span>
+              <FiShoppingBag size={17} /> <span>{bi('Product Requirement', 'उत्पाद आवश्यकता')}</span>
             </button>
             <button type="button" onClick={() => handleTypeChange('service')} className={`flex items-center justify-center gap-2 p-3.5 rounded-md border text-xs font-extrabold transition ${type === 'service' ? 'bg-[#241b15] text-[#d99a3d]' : 'bg-[#f8f4ec]'}`}>
-              <FiTool size={17} /> <span>Service Requirement</span>
+              <FiTool size={17} /> <span>{bi('Service Requirement', 'सेवा आवश्यकता')}</span>
             </button>
           </div>
         </div>

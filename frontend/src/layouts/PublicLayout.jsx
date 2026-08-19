@@ -4,8 +4,9 @@ import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '../features/auth/authSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FiMenu, FiX, FiArrowRight, FiSearch,
+  FiMenu, FiX, FiArrowRight, FiSearch, FiGlobe,
 } from 'react-icons/fi';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ─── Brand tokens (from design image) ───────────────────────── */
 const CREAM    = '#F2EDE4';
@@ -46,12 +47,14 @@ const PublicLayout = () => {
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
+  const { lang, toggleLang, t } = useLanguage();
+
   const navLinks = [
-    { label: 'Home',        path: '/'                    },
-    { label: 'About',       path: '/about'               },
-    { label: 'Marketplace', path: '/creator-marketplace' },
-    { label: 'Local Reels', path: '/local-reels'         },
-    { label: 'Pricing',     path: '/pricing'             },
+    { label: t('home'),        path: '/'                    },
+    { label: t('about'),       path: '/about'               },
+    { label: t('marketplace'), path: '/creator-marketplace' },
+    { label: t('local_reels'), path: '/local-reels'         },
+    { label: t('pricing'),     path: '/pricing'             },
   ];
 
   const active = (path) => location.pathname === path;
@@ -166,6 +169,27 @@ const PublicLayout = () => {
               <FiSearch size={17} />
             </button>
 
+            {/* Language Switcher */}
+            <button
+              onClick={toggleLang}
+              title="Switch Language / भाषा बदलें"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px',
+                fontSize: 12.5, fontWeight: 700,
+                color: DARK,
+                background: '#FAF6EE',
+                border: `1px solid ${GOLD}`,
+                borderRadius: 20,
+                cursor: 'pointer',
+                transition: 'all 0.18s',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <FiGlobe size={14} style={{ color: GOLD }} />
+              <span>{lang === 'en' ? 'English' : 'हिंदी'}</span>
+            </button>
+
             {isAuthenticated ? (
               /* Dashboard button */
               <button
@@ -185,7 +209,7 @@ const PublicLayout = () => {
                 onMouseEnter={(e) => { e.currentTarget.style.background = GOLD_HOV; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = GOLD; }}
               >
-                Dashboard <FiArrowRight size={14} />
+                {t('go_to_dashboard')} <FiArrowRight size={14} />
               </button>
             ) : (
               <>
@@ -207,7 +231,7 @@ const PublicLayout = () => {
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  Sign In
+                  {t('sign_in')}
                 </Link>
 
                 {/* Get Started */}
@@ -229,7 +253,7 @@ const PublicLayout = () => {
                   onMouseEnter={(e) => { e.currentTarget.style.background = GOLD_HOV; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = GOLD; }}
                 >
-                  Get Started <FiArrowRight size={14} />
+                  {t('get_started')} <FiArrowRight size={14} />
                 </button>
               </>
             )}
@@ -322,15 +346,33 @@ const PublicLayout = () => {
                 })}
               </div>
 
-              {/* CTAs */}
+              {/* CTAs & Language Switcher */}
               <div style={{ padding: '12px 20px 20px', borderTop: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Language Switcher for Mobile */}
+                <button
+                  onClick={toggleLang}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyCenter: 'center', gap: 8,
+                    width: '100%', padding: '10px',
+                    fontSize: 13.5, fontWeight: 700,
+                    color: DARK,
+                    background: '#FAF6EE',
+                    border: `1px solid ${GOLD}`,
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <FiGlobe size={16} style={{ color: GOLD }} />
+                  <span>Language: {lang === 'en' ? 'English (अंग्रेज़ी)' : 'हिंदी (Hindi)'}</span>
+                </button>
+
                 {isAuthenticated ? (
                   <button
                     onClick={() => { setMobileOpen(false); navigate('/feed'); }}
                     data-testid="mobile-go-to-dashboard"
                     style={{ width: '100%', padding: '11px', fontSize: 14, fontWeight: 600, color: '#fff', background: GOLD, border: 'none', borderRadius: 10, cursor: 'pointer' }}
                   >
-                    Go to Dashboard
+                    {t('go_to_dashboard')}
                   </button>
                 ) : (
                   <>
@@ -339,7 +381,7 @@ const PublicLayout = () => {
                       data-testid="mobile-sign-up"
                       style={{ width: '100%', padding: '11px', fontSize: 14, fontWeight: 600, color: '#fff', background: GOLD, border: 'none', borderRadius: 10, cursor: 'pointer' }}
                     >
-                      Get Started
+                      {t('get_started')}
                     </button>
                     <Link
                       to="/auth/login"
@@ -352,7 +394,7 @@ const PublicLayout = () => {
                         border: `1px solid ${BORDER}`, borderRadius: 10,
                       }}
                     >
-                      Sign In
+                      {t('sign_in')}
                     </Link>
                   </>
                 )}

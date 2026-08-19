@@ -7,12 +7,13 @@ import {
   FiTv, FiZap, FiCompass, FiShoppingBag, FiFilm,
   FiTrendingUp, FiCheckSquare, FiBell, FiMessageSquare, FiSettings,
   FiMapPin, FiUser, FiLogOut, FiChevronDown, FiChevronRight,
-  FiShield, FiRefreshCw, FiMenu, FiX, FiCheck
+  FiShield, FiRefreshCw, FiMenu, FiX, FiCheck, FiGlobe
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, updateUser, selectCurrentUser, setActiveRole } from '../../features/auth/authSlice';
 import { api, locationApi, tokenStore } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * CustomerLayout — Warm Editorial Bento-Brutalism layout for Customer Portal
@@ -236,40 +237,42 @@ export default function CustomerLayout() {
     }
   };
 
+  const { lang, toggleLang, t } = useLanguage();
+
   const menuItems = [
-    { label: 'Home Feed', path: '/customer/home', icon: FiTv },
-    { label: 'Post Requirement', path: '/customer/post-requirement', icon: FiZap },
-    { label: 'Search Listings', path: '/customer/search', icon: FiCompass },
+    { label: t('home', 'Home Feed', 'होम फीड (Home Feed)'), path: '/customer/home', icon: FiTv },
+    { label: t('post_requirement', 'Post Requirement', 'आवश्यकता पोस्ट करें (Post Requirement)'), path: '/customer/post-requirement', icon: FiZap },
+    { label: t('search_placeholder', 'Search Listings', 'उत्पाद खोजें (Search Listings)'), path: '/customer/search', icon: FiCompass },
     {
-      label: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? 'Vendor Portal' : 'Become a Vendor',
+      label: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? (lang === 'hi' ? 'विक्रेता पोर्टल (Vendor Portal)' : 'Vendor Portal') : (lang === 'hi' ? 'विक्रेता बनें (Become a Vendor)' : 'Become a Vendor'),
       path: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? '/vendor/dashboard' : '/vendor/onboarding',
       icon: FiShoppingBag,
       highlight: !(roles.includes('vendor') && profileUser?.vendorProfile?.shopName)
     },
     {
-      label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? 'Creator Portal' : 'Become a Creator',
+      label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? (lang === 'hi' ? 'क्रिएटर पोर्टल (Creator Portal)' : 'Creator Portal') : (lang === 'hi' ? 'क्रिएटर बनें (Become a Creator)' : 'Become a Creator'),
       path: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? '/creator/dashboard' : '/creator/onboarding',
       icon: FiFilm,
       highlight: !(roles.includes('creator') && profileUser?.creatorProfile?.displayName)
     },
-    { label: 'Activities', path: '/customer/activities', icon: FiTrendingUp, badge: activityCounts.total || 0 },
-    { label: 'My Requirements', path: '/customer/my-requirements', icon: FiCheckSquare },
-    { label: 'Notifications', path: '/customer/notifications', icon: FiBell, badge: activityCounts.unreadNotifications || 0 },
-    { label: 'Chat', path: '/customer/chat', icon: FiMessageSquare, badge: activityCounts.unreadChat || 0 },
-    { label: 'Settings', path: '/customer/settings', icon: FiSettings },
+    { label: lang === 'hi' ? 'गतिविधियां (Activities)' : 'Activities', path: '/customer/activities', icon: FiTrendingUp, badge: activityCounts.total || 0 },
+    { label: t('my_requirements', 'My Requirements', 'मेरी आवश्यकताएं (My Requirements)'), path: '/customer/my-requirements', icon: FiCheckSquare },
+    { label: t('notifications', 'Notifications', 'सूचनाएं (Notifications)'), path: '/customer/notifications', icon: FiBell, badge: activityCounts.unreadNotifications || 0 },
+    { label: lang === 'hi' ? 'चैट (Chat)' : 'Chat', path: '/customer/chat', icon: FiMessageSquare, badge: activityCounts.unreadChat || 0 },
+    { label: t('settings', 'Settings', 'सेटिंग्स (Settings)'), path: '/customer/settings', icon: FiSettings },
   ];
 
   const NAV_SECTIONS = [
     {
-      title: 'Browse',
+      title: lang === 'hi' ? 'ब्राउज़ (Browse)' : 'Browse',
       items: menuItems.slice(0, 3),
     },
     {
-      title: 'Portals',
+      title: lang === 'hi' ? 'पोर्टल (Portals)' : 'Portals',
       items: menuItems.slice(3, 5),
     },
     {
-      title: 'My Account',
+      title: lang === 'hi' ? 'मेरा खाता (My Account)' : 'My Account',
       items: menuItems.slice(5),
     },
   ];
@@ -454,6 +457,16 @@ export default function CustomerLayout() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-shrink-0">
+            {/* Language Switcher */}
+            <button
+              onClick={toggleLang}
+              title="Switch Language / भाषा बदलें"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#d99a3d] text-xs font-bold text-[#1a1a1a] shadow-xs cursor-pointer hover:bg-[#faf6ee] transition-all"
+            >
+              <FiGlobe className="text-[#d99a3d]" size={14} />
+              <span>{lang === 'en' ? 'EN' : 'हिंदी'}</span>
+            </button>
+
             {/* Geolocation Pill */}
             <div className="hidden md:flex items-center gap-2 bg-white border border-[#e3dccb] px-3 py-1.5 rounded-full text-xs font-bold text-[#1a1a1a] shadow-xs">
               <FiMapPin className="text-[#d99a3d] shrink-0" size={14} />

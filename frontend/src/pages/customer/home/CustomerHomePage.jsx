@@ -16,6 +16,7 @@ import ChatDrawer from '../../../components/ui/ChatDrawer';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import ReelFullscreenViewer from '../../../components/feed/ReelFullscreenViewer';
 import ImageFullscreenViewer from '../../../components/feed/ImageFullscreenViewer';
+import { useLanguage } from '../../../context/LanguageContext';
 
 /**
  * Format relative time ago (Instagram style)
@@ -198,6 +199,7 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
 
 export default function CustomerHomePage() {
   const navigate = useNavigate();
+  const { lang, bi, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('combined');
   const [combinedFeed, setCombinedFeed] = useState([]);
   const [reels, setReels] = useState([]);
@@ -480,7 +482,7 @@ export default function CustomerHomePage() {
         <div className="w-full max-w-5xl mx-auto px-1 py-0.5 flex items-center justify-between">
           <h3 className="text-[11px] font-black text-[#1a1a1a] uppercase tracking-wider flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#d99a3d]"></span>
-            <span>Community Feed &amp; Local Updates</span>
+            <span>{bi('Community Feed & Local Updates', 'समुदाय फीड और स्थानीय अपडेट')}</span>
           </h3>
           <span className="text-[10px] font-extrabold text-slate-600 bg-white/80 px-2 py-0.2 rounded border border-[#e3dccb]">
             {processedCombinedFeed.length} {processedCombinedFeed.length === 1 ? 'Post' : 'Posts'}

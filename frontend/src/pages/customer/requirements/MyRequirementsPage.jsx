@@ -21,14 +21,17 @@ import {
   useUpdateQuoteStatusMutation,
   useGetRequirementDetailsQuery
 } from '../../../features/customer/requirementsApi';
+import { useLanguage } from '../../../context/LanguageContext';
 
-const TABS = [
-  { key: 'all', label: 'All Requirements', icon: FiFileText },
-  { key: 'product', label: 'Product Requirements', icon: FiShoppingBag },
-  { key: 'service', label: 'Service Requirements', icon: FiTool },
+export const getRequirementTabs = (bi) => [
+  { key: 'all', label: bi ? bi('All Requirements', 'सभी आवश्यकताएं') : 'All Requirements', icon: FiFileText },
+  { key: 'product', label: bi ? bi('Product Requirements', 'उत्पाद आवश्यकताएं') : 'Product Requirements', icon: FiShoppingBag },
+  { key: 'service', label: bi ? bi('Service Requirements', 'सेवा आवश्यकताएं') : 'Service Requirements', icon: FiTool },
 ];
 
 export default function MyRequirementsPage() {
+  const { bi, t } = useLanguage();
+  const reqTabs = getRequirementTabs(bi);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeReqId = searchParams.get('id');
 
@@ -903,10 +906,10 @@ export default function MyRequirementsPage() {
         <div>
           <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">CUSTOMER PORTAL</span>
           <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
-            MY REQUIREMENTS &amp; BRIEFS
+            {bi('MY REQUIREMENTS & BRIEFS', 'मेरी आवश्यकताएं एवं विवरण')}
           </h1>
           <p className="text-xs text-slate-300 mt-1 max-w-md">
-            Manage your posted product and service requirements and review vendor quote proposals.
+            {bi('Manage your posted product and service requirements and review vendor quote proposals.', 'अपने पोस्ट किए गए उत्पाद और सेवा आवश्यकताओं को प्रबंधित करें और कोटेशन की समीक्षा करें।')}
           </p>
         </div>
 
@@ -914,13 +917,13 @@ export default function MyRequirementsPage() {
           to="/customer/post-requirement"
           className="px-4 py-2.5 bg-[#d99a3d] text-[#1a1a1a] border border-[#1a1a1a] rounded-md text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#c8872b] transition flex items-center gap-1.5 shrink-0"
         >
-          <FiPlus size={16} /> Post Requirement
+          <FiPlus size={16} /> {t('post_requirement')}
         </Link>
       </div>
 
       {/* Bento Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {TABS.map((tab) => {
+        {reqTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
           return (

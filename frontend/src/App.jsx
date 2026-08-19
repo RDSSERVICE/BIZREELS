@@ -8,6 +8,7 @@ import { setCredentials, logout, setLoading, selectAuthLoading } from './feature
 import AppRoutes from './routes';
 import Loader from './components/common/Loader';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 import { tokenStore } from './lib/api';
 
@@ -70,23 +71,25 @@ function App() {
 
   return (
     <AuthProvider>
-      <BrowserRouter>
-        {/* Toast Notification Provider */}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            className: 'glass font-sans text-xs font-semibold text-brand-navy border border-white/50 shadow-premium',
-            duration: 4000,
-            style: {
-              borderRadius: '1rem',
-              background: 'rgba(255, 255, 255, 0.8)',
-              color: '#1E1B4B',
-            },
-          }}
-        />
-        <SonnerToaster position="bottom-right" richColors />
-        <AppRoutes />
-      </BrowserRouter>
+      <LanguageProvider>
+        <BrowserRouter>
+          {/* Toast Notification Provider */}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              className: 'glass font-sans text-xs font-semibold text-brand-navy border border-white/50 shadow-premium',
+              duration: 4000,
+              style: {
+                borderRadius: '1rem',
+                background: 'rgba(255, 255, 255, 0.8)',
+                color: '#1E1B4B',
+              },
+            }}
+          />
+          <SonnerToaster position="bottom-right" richColors />
+          <AppRoutes />
+        </BrowserRouter>
+      </LanguageProvider>
     </AuthProvider>
   );
 }

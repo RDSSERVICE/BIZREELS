@@ -3,6 +3,7 @@ import {
   FiShoppingBag, FiDollarSign, FiMapPin, FiUpload, FiImage, FiVideo, FiX, FiTarget, FiAlertCircle, FiCpu
 } from 'react-icons/fi';
 import { SearchableCategorySelect, SearchableSubcategoryMultiSelect } from './SearchableSelects';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const DISTANCE_OPTIONS = [
   { value: '', label: 'No distance limit' },
@@ -44,17 +45,18 @@ export default function ProductRequirementForm({
   isLoading, statesList = [], districtsList = [], handlePincodeChange,
   onSubmit
 }) {
+  const { bi } = useLanguage();
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       {/* Title */}
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Product Title *</label>
+        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Product Title *', 'उत्पाद का नाम *')}</label>
         <input
           type="text"
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. Need 5 Laptops for office / Core i5 16GB RAM"
+          placeholder={bi('e.g. Need 5 Laptops for office / Core i5 16GB RAM', 'उदाहरण: कार्यालय के लिए 5 लैपटॉप चाहिए')}
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
         />
       </div>
@@ -62,7 +64,7 @@ export default function ProductRequirementForm({
       {/* Category & Subcategory */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Category</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Category', 'श्रेणी')}</label>
           <SearchableCategorySelect
             category={category}
             setCategory={setCategory}
@@ -75,7 +77,7 @@ export default function ProductRequirementForm({
             <input
               type="text"
               required
-              placeholder="Specify custom category name"
+              placeholder={bi('Specify custom category name', 'अपनी श्रेणी का नाम दर्ज करें')}
               value={customCategory}
               onChange={(e) => setCustomCategory(e.target.value)}
               className="w-full px-4 py-2 mt-2 bg-surface border border-brand-purple/40 rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple animate-fade-in"
@@ -84,7 +86,7 @@ export default function ProductRequirementForm({
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Subcategory</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Subcategory', 'उपश्रेणी')}</label>
           <SearchableSubcategoryMultiSelect
             subcategory={subcategory}
             setSubcategory={setSubcategory}
@@ -109,7 +111,7 @@ export default function ProductRequirementForm({
       <div>
         <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">
           <FiImage className="inline mr-1" size={12} />
-          Reference Images / Video (Optional)
+          {bi('Reference Images / Video (Optional)', 'संदर्भ चित्र / वीडियो (वैकल्पिक)')}
         </label>
         <div className="flex flex-wrap gap-3 mb-3">
           {photos.map((url, i) => (
@@ -143,10 +145,10 @@ export default function ProductRequirementForm({
 
         <div className="flex gap-2">
           <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed text-xs font-semibold cursor-pointer transition ${
-            uploading ? 'border-border text-text-tertiary' : 'border-brand-purple/30 text-brand-purple hover:bg-brand-purple/5'
+            uploading ? 'border-border text-[#a89b8d]' : 'border-brand-purple/30 text-brand-purple hover:bg-brand-purple/5'
           }`}>
             <FiUpload size={14} />
-            <span>{uploading ? 'Uploading...' : `Add Images (${photos.length}/5)`}</span>
+            <span>{uploading ? bi('Uploading...', 'अपलोड हो रहा है...') : bi(`Add Images (${photos.length}/5)`, `चित्र जोड़ें (${photos.length}/5)`)}</span>
             <input
               type="file"
               accept="image/*"
@@ -158,10 +160,10 @@ export default function ProductRequirementForm({
           </label>
           {!video && (
             <label className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed text-xs font-semibold cursor-pointer transition ${
-              uploading ? 'border-border text-text-tertiary' : 'border-brand-orange/30 text-brand-orange hover:bg-brand-orange/5'
+              uploading ? 'border-border text-[#a89b8d]' : 'border-brand-orange/30 text-brand-orange hover:bg-brand-orange/5'
             }`}>
               <FiVideo size={14} />
-              <span>{uploading ? '...' : 'Add Video'}</span>
+              <span>{uploading ? '...' : bi('Add Video', 'वीडियो जोड़ें')}</span>
               <input
                 type="file"
                 accept="video/*"
@@ -177,7 +179,7 @@ export default function ProductRequirementForm({
       {/* Budget Range & Quantity */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Min Budget (₹)</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Min Budget (₹)', 'न्यूनतम बजट (₹)')}</label>
           <div className="relative">
             <FiDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={14} />
             <input
@@ -191,7 +193,7 @@ export default function ProductRequirementForm({
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Max Budget (₹)</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Max Budget (₹)', 'अधिकतम बजट (₹)')}</label>
           <div className="relative">
             <FiDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={14} />
             <input
@@ -205,7 +207,7 @@ export default function ProductRequirementForm({
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Quantity Required *</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Quantity Required *', 'आवश्यक मात्रा *')}</label>
           <input
             type="number"
             required
@@ -222,12 +224,12 @@ export default function ProductRequirementForm({
       <div className="glass rounded-xl p-4 border border-border/50 space-y-4">
         <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
           <FiTarget size={12} className="text-brand-orange" />
-          Target Delivery Location
+          {bi('Target Delivery Location', 'डिलीवरी स्थान विवरण')}
         </label>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">State *</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('State *', 'राज्य *')}</label>
             {statesList.length > 0 ? (
               <select
                 required
@@ -238,7 +240,7 @@ export default function ProductRequirementForm({
                 }}
                 className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               >
-                <option value="">Select State</option>
+                <option value="">{bi('Select State', 'राज्य चुनें')}</option>
                 {statesList.map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -249,14 +251,14 @@ export default function ProductRequirementForm({
                 required
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                placeholder="e.g. Maharashtra"
+                placeholder={bi('e.g. Maharashtra', 'उदाहरण: महाराष्ट्र')}
                 className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             )}
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">District *</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('District *', 'जिला *')}</label>
             {districtsList.length > 0 ? (
               <select
                 required
@@ -264,7 +266,7 @@ export default function ProductRequirementForm({
                 onChange={(e) => setDistrict(e.target.value)}
                 className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               >
-                <option value="">Select District</option>
+                <option value="">{bi('Select District', 'जिला चुनें')}</option>
                 {districtsList.map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -275,26 +277,26 @@ export default function ProductRequirementForm({
                 required
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                placeholder="e.g. Pune"
+                placeholder={bi('e.g. Pune', 'उदाहरण: पुणे')}
                 className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             )}
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">City/Town *</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('City/Town *', 'शहर / कस्बा *')}</label>
             <input
               type="text"
               required
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="e.g. Shivaji Nagar"
+              placeholder={bi('e.g. Shivaji Nagar', 'उदाहरण: शिवाजी नगर')}
               className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Pin Code</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Pin Code', 'पिन कोड')}</label>
             <input
               type="text"
               value={pincode}
@@ -307,19 +309,19 @@ export default function ProductRequirementForm({
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Full Delivery Address *</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Full Delivery Address *', 'पूरा डिलीवरी पता *')}</label>
           <textarea
             required
             rows={2}
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="Flat/House No., Building, Street Address, Landmark..."
+            placeholder={bi('Flat/House No., Building, Street Address, Landmark...', 'मकान नंबर, भवन, सड़क का पता, लैंडमार्क...')}
             className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           />
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Within Distance</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Within Distance', 'दूरी सीमा')}</label>
           <select
             value={targetDistance}
             onChange={(e) => setTargetDistance(e.target.value)}
@@ -334,13 +336,13 @@ export default function ProductRequirementForm({
 
       {/* Description / Requirement details */}
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Brief Description *</label>
+        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Brief Description *', 'संक्षिप्त विवरण *')}</label>
         <textarea
           required
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Briefly describe what product you need (e.g., brand preferences, core use case)..."
+          placeholder={bi('Briefly describe what product you need (e.g., brand preferences, core use case)...', 'संक्षेप में बताएं कि आपको किस उत्पाद की आवश्यकता है (उदा. ब्रांड पसंद, मुख्य उपयोग)...')}
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
         />
       </div>
@@ -348,7 +350,7 @@ export default function ProductRequirementForm({
       {/* AI Detailed Specs Generator */}
       <div>
         <div className="flex justify-between items-center mb-1">
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Detailed Technical Specifications</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">{bi('Detailed Technical Specifications', 'विस्तृत तकनीकी विनिर्देश')}</label>
           <button
             type="button"
             onClick={handleGenerateSpecs}
@@ -356,14 +358,14 @@ export default function ProductRequirementForm({
             className="flex items-center gap-1.5 px-3 py-1 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-lg text-[10px] font-bold hover:bg-brand-purple hover:text-white transition disabled:opacity-50"
           >
             <FiCpu className={isGeneratingSpecs ? 'animate-spin' : ''} />
-            {isGeneratingSpecs ? 'Generating...' : '✨ Generate with AI'}
+            {isGeneratingSpecs ? bi('Generating...', 'बनाया जा रहा है...') : bi('✨ Generate with AI', '✨ AI के साथ ड्राफ्ट बनाएं')}
           </button>
         </div>
         <textarea
           rows={6}
           value={detailedSpecifications}
           onChange={(e) => setDetailedSpecifications(e.target.value)}
-          placeholder="Detailed options, measurements, technical parameters, model requirements. Fill manually or click 'Generate with AI' to draft..."
+          placeholder={bi("Detailed options, measurements, technical parameters, model requirements...", "विस्तृत विकल्प, माप, तकनीकी पैरामीटर, मॉडल की आवश्यकताएं...")}
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple font-mono"
         />
       </div>
@@ -371,7 +373,7 @@ export default function ProductRequirementForm({
       {/* Expected Delivery Date & Time */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Expected Delivery Date</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Expected Delivery Date', 'अपेक्षित डिलीवरी तिथि')}</label>
           <input
             type="date"
             value={expectedDeliveryDate}
@@ -388,12 +390,12 @@ export default function ProductRequirementForm({
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Preferred Time of Delivery</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Preferred Time of Delivery', 'डिलीवरी का पसंदीदा समय')}</label>
           <input
             type="text"
             value={expectedDeliveryTime}
             onChange={(e) => setExpectedDeliveryTime(e.target.value)}
-            placeholder="e.g. Morning 9 AM - 12 PM, Weekends only"
+            placeholder={bi('e.g. Morning 9 AM - 12 PM, Weekends only', 'उदाहरण: सुबह 9 बजे से 12 बजे तक')}
             className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
           />
         </div>
@@ -401,7 +403,7 @@ export default function ProductRequirementForm({
 
       {/* Product Condition */}
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Product Condition Preference</label>
+        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Product Condition Preference', 'उत्पाद की स्थिति पसंद')}</label>
         <select
           value={productCondition}
           onChange={(e) => {
@@ -410,17 +412,17 @@ export default function ProductRequirementForm({
           }}
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
         >
-          <option value="">No Preference (Any)</option>
-          <option value="new">Brand New (Box Sealed)</option>
-          <option value="used">Used / Second Hand</option>
-          <option value="refurbished">Refurbished / Certified Pre-owned</option>
-          <option value="other">Other (Specify)</option>
+          <option value="">{bi('No Preference (Any)', 'कोई प्राथमिकता नहीं (कोई भी)')}</option>
+          <option value="new">{bi('Brand New (Box Sealed)', 'बिल्कुल नया (सील पैक)')}</option>
+          <option value="used">{bi('Used / Second Hand', 'इस्तेमाल किया हुआ / सेकेंड हैंड')}</option>
+          <option value="refurbished">{bi('Refurbished / Certified Pre-owned', 'रिफर्बिश्ड / सर्टिफाइड सेकेंड हैंड')}</option>
+          <option value="other">{bi('Other (Specify)', 'अन्य (निर्दिष्ट करें)')}</option>
         </select>
         {productCondition === 'other' && (
           <input
             type="text"
             required
-            placeholder="Specify preferred product condition"
+            placeholder={bi('Specify preferred product condition', 'पसंदीदा स्थिति निर्दिष्ट करें')}
             value={customProductCondition}
             onChange={(e) => setCustomProductCondition(e.target.value)}
             className="w-full px-4 py-2 mt-2 bg-surface border border-brand-purple/45 rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
@@ -432,13 +434,13 @@ export default function ProductRequirementForm({
       <div>
         <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1 flex items-center gap-1.5">
           <FiAlertCircle size={12} className="text-brand-orange" />
-          Any Other Terms & Conditions (Optional)
+          {bi('Any Other Terms & Conditions (Optional)', 'अन्य नियम और शर्तें (वैकल्पिक)')}
         </label>
         <textarea
           rows={2}
           value={otherConditions}
           onChange={(e) => setOtherConditions(e.target.value)}
-          placeholder="e.g. Must offer minimum 6 months warranty, invoice required..."
+          placeholder={bi('e.g. Must offer minimum 6 months warranty, invoice required...', 'उदाहरण: कम से कम 6 महीने की वारंटी होनी चाहिए, चालान आवश्यक...')}
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
         />
       </div>
@@ -448,7 +450,7 @@ export default function ProductRequirementForm({
         disabled={isLoading || uploading}
         className="w-full py-3.5 rounded-xl gradient-brand font-bold text-xs text-white shadow-premium flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60 cursor-pointer"
       >
-        {isLoading ? 'Publishing Product Requirement...' : 'Post Product Requirement Now'}
+        {isLoading ? bi('Publishing Requirement...', 'आवश्यकता प्रकाशित की जा रही है...') : bi('Post Product Requirement Now', 'उत्पाद आवश्यकता अभी पोस्ट करें')}
       </button>
     </form>
   );
