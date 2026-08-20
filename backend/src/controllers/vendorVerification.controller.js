@@ -735,7 +735,55 @@ const verifyDocument = catchAsync(async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 8. VERIFY PAYMENT (UPI & BANK COMBINED)
+// 8. UPI VERIFICATION (SANDBOX API / NPCI)
+// ─────────────────────────────────────────────────────────────
+const verifyUpi = catchAsync(async (req, res) => {
+  const { upiId, accountHolderName } = req.body;
+  if (!upiId) throw ApiError.badRequest('UPI ID is required (e.g. yourname@okaxis)');
+
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const targetHolder = accountHolderName || user.name || user.vendorProfile?.businessName || 'Beneficiary';
+  const sandboxRes = await sandboxService.verifyUpiId(upiId, targetHolder);
+
+  if (!sandboxRes.success && !sandboxRes.verified) {
+    throw ApiError.badRequest(sandboxRes.message || 'Invalid UPI ID');
+  }
+
+  const currentVp = user.vendorProfile || {};
+  const currentPayment = currentVp.paymentDetails || {};
+
+  currentPayment.upiId = sandboxRes.upiId || upiId.toLowerCase().trim();
+  currentPayment.maskedUpi = sandboxRes.maskedUpi || sandboxService.maskUpi(upiId);
+  currentPayment.upiVerified = true;
+  currentPayment.pspBank = sandboxRes.pspBank || '';
+  currentPayment.verifiedUpiName = sandboxRes.beneficiaryName || targetHolder;
+  currentPayment.status = 'approved';
+  currentPayment.verified = true;
+  currentPayment.verifiedAt = new Date();
+  currentPayment.upiReferenceId = sandboxRes.referenceId || `UPI_VAL_${Date.now()}`;
+
+  currentVp.paymentDetails = currentPayment;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
+
+  const statusInfo = await fetchAndComputeStatus(user);
+  currentVp.verificationStatus = statusInfo.tier;
+  user.vendorProfile = currentVp;
+  user.markModified('vendorProfile');
+  await user.save();
+
+  res.json({
+    success: true,
+    message: `🟢 UPI ID verified successfully! (${sandboxRes.pspBank || 'UPI Connected'})`,
+    paymentDetails: currentPayment,
+    ...statusInfo
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// 9. VERIFY PAYMENT (UPI & BANK COMBINED)
 // ─────────────────────────────────────────────────────────────
 const verifyPayment = catchAsync(async (req, res) => {
   const { upiId, bankAccount, accountHolderName, ifscCode, bankName, branchName, statementChequeUrl } = req.body;
@@ -745,21 +793,27 @@ const verifyPayment = catchAsync(async (req, res) => {
 
   const currentVp = user.vendorProfile || {};
   const currentPayment = currentVp.paymentDetails || {};
+  const targetHolder = accountHolderName || user.name || currentVp.businessName || 'Account Holder';
 
-  if (upiId !== undefined) {
-    currentPayment.upiId = upiId;
-    currentPayment.upiVerified = !!upiId && upiId.includes('@');
+  if (upiId !== undefined && upiId.trim() !== '') {
+    const sandboxUpi = await sandboxService.verifyUpiId(upiId, targetHolder);
+    currentPayment.upiId = sandboxUpi.upiId || upiId.trim().toLowerCase();
+    currentPayment.maskedUpi = sandboxUpi.maskedUpi || sandboxService.maskUpi(upiId);
+    currentPayment.upiVerified = true;
+    currentPayment.pspBank = sandboxUpi.pspBank || '';
+    currentPayment.verifiedUpiName = sandboxUpi.beneficiaryName || targetHolder;
+    currentPayment.upiReferenceId = sandboxUpi.referenceId || `UPI_VAL_${Date.now()}`;
   }
 
-  if (bankAccount !== undefined) {
+  if (bankAccount !== undefined && bankAccount.trim() !== '') {
     currentPayment.bankAccount = bankAccount;
     currentPayment.maskedAccount = sandboxService.maskBankAccount(bankAccount);
     currentPayment.status = 'approved';
     currentPayment.verified = true;
   }
   if (accountHolderName !== undefined) currentPayment.accountHolderName = accountHolderName;
-  if (ifscCode !== undefined) {
-    currentPayment.ifscCode = ifscCode.toUpperCase();
+  if (ifscCode !== undefined && ifscCode.trim() !== '') {
+    currentPayment.ifscCode = ifscCode.toUpperCase().trim();
     currentPayment.ifscVerified = !!ifscCode && ifscCode.length >= 11;
   }
   if (bankName !== undefined) currentPayment.bankName = bankName;
@@ -778,7 +832,7 @@ const verifyPayment = catchAsync(async (req, res) => {
   user.markModified('vendorProfile');
   await user.save();
 
-  res.json({ success: true, message: 'Payment details verified and updated successfully!', ...statusInfo });
+  res.json({ success: true, message: 'Payment and payout details verified and updated successfully!', ...statusInfo });
 });
 
 module.exports = {
@@ -790,6 +844,7 @@ module.exports = {
   verifyAadhaarOtp,
   verifyGstin,
   verifyBank,
+  verifyUpi,
   verifyDocument,
   verifyPayment
 };

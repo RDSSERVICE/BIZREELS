@@ -137,10 +137,12 @@ export default function VendorVerificationPage() {
   const [aadhaarTimer, setAadhaarTimer] = useState(0);
   const [aadhaarLoading, setAadhaarLoading] = useState(false);
 
-  // PAN & GSTIN Verification States
+  // PAN, GSTIN, UPI & Bank Verification States
   const [panLoading, setPanLoading] = useState(false);
   const [gstLoading, setGstLoading] = useState(false);
   const [bankLoading, setBankLoading] = useState(false);
+  const [upiLoading, setUpiLoading] = useState(false);
+  const [editUpiMode, setEditUpiMode] = useState(false);
 
   // Countdown timer for Aadhaar OTP
   useEffect(() => {
@@ -595,6 +597,55 @@ export default function VendorVerificationPage() {
       toast.error('Could not auto-fetch IFSC details');
     } finally {
       setIfscLoading(false);
+    }
+  };
+
+  // UPI Instant Verification Handler (Sandbox API / NPCI)
+  const handleVerifyUpi = async () => {
+    const cleanUpi = String(upiId || '').trim().toLowerCase();
+    if (!cleanUpi || !cleanUpi.includes('@') || cleanUpi.length < 5) {
+      toast.error('Please enter a valid UPI ID (e.g. yourname@okaxis, store@ybl)');
+      return;
+    }
+
+    setUpiLoading(true);
+    const toastId = toast.loading('Verifying UPI ID with Sandbox API...');
+    try {
+      const res = await api.post('/v1/vendors/me/verification/upi', {
+        upiId: cleanUpi,
+        accountHolderName
+      });
+      const data = res.data || res;
+      if (data.success) {
+        toast.success(`🟢 UPI Verified! (${data.paymentDetails?.pspBank || 'UPI Connected'})`, { id: toastId });
+        setEditUpiMode(false);
+        await fetchStatus();
+
+        if (currentUser) {
+          dispatch(setCredentials({
+            user: {
+              ...currentUser,
+              vendorProfile: {
+                ...vendorProfile,
+                verificationStatus: data.tier || vendorProfile.verificationStatus,
+                paymentDetails: data.paymentDetails || {
+                  ...(vendorProfile.paymentDetails || {}),
+                  upiId: cleanUpi,
+                  upiVerified: true,
+                  status: 'approved',
+                  verified: true
+                }
+              }
+            }
+          }));
+        }
+      } else {
+        toast.error(data.message || 'UPI verification failed', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || 'Failed to verify UPI ID', { id: toastId });
+    } finally {
+      setUpiLoading(false);
     }
   };
 
@@ -1792,45 +1843,161 @@ export default function VendorVerificationPage() {
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          TAB 3: PAYMENT & SETTLEMENT DETAILS (WITH EDIT OPTION)
+          TAB 3: PAYMENT & SETTLEMENT DETAILS (UPI & BANK WITH SANDBOX API)
       ───────────────────────────────────────────────────────────── */}
       {activeTab === 'payment' && (
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5 font-sans">
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-6 font-sans">
           <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#e3dccb] pb-3">
             <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
               <FiCreditCard className="text-[#d99a3d]" />
               <span>Settlement Account &amp; Payout Details</span>
             </h3>
 
-            {(statusData.paymentDetails?.status === 'approved' || statusData.paymentDetails?.verified) && (
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
-                  Verified ✓
-                </span>
-                {!editPaymentMode ? (
-                  <button
-                    type="button"
-                    onClick={() => setEditPaymentMode(true)}
-                    className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
-                  >
-                    <FiEdit2 size={12} className="text-[#d99a3d]" />
-                    <span>Edit / Change Bank Account</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setEditPaymentMode(false)}
-                    className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
-                  >
-                    Cancel Edit
-                  </button>
-                )}
+            {(statusData.paymentDetails?.status === 'approved' || statusData.paymentDetails?.verified || statusData.paymentDetails?.upiVerified) && (
+              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                Payout Verified ✓
+              </span>
+            )}
+          </div>
+
+          {/* ──────── SECTION 1: UPI ID VERIFICATION ──────── */}
+          <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">⚡</span>
+                <div>
+                  <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Instant UPI ID (VPA Verification)</h4>
+                  <p className="text-[10px] text-slate-400 font-bold">Fast instant payouts to Google Pay, PhonePe, Paytm, or BHIM</p>
+                </div>
+              </div>
+
+              {statusData.paymentDetails?.upiVerified && (
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                    UPI Active ✓
+                  </span>
+                  {!editUpiMode ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditUpiMode(true)}
+                      className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <FiEdit2 size={12} className="text-[#d99a3d]" />
+                      <span>Change UPI ID</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditUpiMode(false)}
+                      className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">UPI ID / Virtual Payment Address (VPA) *</label>
+                <input
+                  type="text"
+                  value={upiId}
+                  onChange={(e) => setUpiId(e.target.value.toLowerCase().trim())}
+                  placeholder="e.g. yourname@okaxis, store@ybl, business@paytm"
+                  disabled={upiLoading || (statusData.paymentDetails?.upiVerified && !editUpiMode)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-mono font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                />
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={handleVerifyUpi}
+                  disabled={upiLoading || !upiId || !upiId.includes('@') || (statusData.paymentDetails?.upiVerified && !editUpiMode)}
+                  className={`w-full py-2.5 rounded-xl text-xs font-black shadow-2xs transition border-none ${
+                    statusData.paymentDetails?.upiVerified && !editUpiMode
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
+                      : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
+                  }`}
+                >
+                  {statusData.paymentDetails?.upiVerified && !editUpiMode ? 'UPI Verified ✓' : upiLoading ? 'Verifying with Sandbox...' : 'Verify UPI ID (Sandbox API)'}
+                </button>
+              </div>
+            </div>
+
+            {/* Verified UPI Details Badge */}
+            {statusData.paymentDetails?.upiVerified && (
+              <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
+                <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                  <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
+                    <FiCheckCircle className="text-emerald-600" size={16} /> UPI VPA Record Verified (NPCI Sandbox Registry)
+                  </span>
+                  <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black">
+                    Instant Payout Ready
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">UPI ID</span>
+                    <strong className="text-slate-900 text-xs font-mono font-bold">{statusData.paymentDetails.maskedUpi || statusData.paymentDetails.upiId || upiId}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">PSP Bank Provider</span>
+                    <strong className="text-slate-900 text-xs font-bold">{statusData.paymentDetails.pspBank || 'NPCI UPI Network'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Beneficiary Name</span>
+                    <strong className="text-slate-900 text-xs font-bold">{statusData.paymentDetails.verifiedUpiName || accountHolderName || currentUser?.name || 'Verified Beneficiary'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">UPI Reference ID</span>
+                    <strong className="text-slate-900 text-[10px] font-mono truncate block">{statusData.paymentDetails.upiReferenceId || 'UPI_VALIDATED'}</strong>
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="space-y-4">
-            
+          {/* ──────── SECTION 2: BANK ACCOUNT VERIFICATION ──────── */}
+          <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">🏦</span>
+                <div>
+                  <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Direct Bank Account (NEFT / IMPS / RTGS)</h4>
+                  <p className="text-[10px] text-slate-400 font-bold">Direct bank settlement with automated Penny Drop verification</p>
+                </div>
+              </div>
+
+              {(statusData.paymentDetails?.bankAccount && (statusData.paymentDetails?.status === 'approved' || statusData.paymentDetails?.verified)) && (
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                    Bank Active ✓
+                  </span>
+                  {!editPaymentMode ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditPaymentMode(true)}
+                      className="px-2.5 py-1 bg-white border border-[#e3dccb] text-[#1a1a1a] hover:bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <FiEdit2 size={12} className="text-[#d99a3d]" />
+                      <span>Change Bank Account</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditPaymentMode(false)}
+                      className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer border-none"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Bank Details Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -1842,13 +2009,13 @@ export default function VendorVerificationPage() {
                     value={ifscCode}
                     onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
                     placeholder="e.g. HDFC0001234"
-                    disabled={bankLoading || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
-                    className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-mono font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
+                    disabled={bankLoading || (statusData.paymentDetails?.bankAccount && statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-mono font-black text-[#1a1a1a] uppercase focus:outline-none focus:border-[#d99a3d]"
                   />
                   <button
                     type="button"
                     onClick={handleIfscLookup}
-                    disabled={ifscLoading || ifscCode.length < 11 || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
+                    disabled={ifscLoading || ifscCode.length < 11 || (statusData.paymentDetails?.bankAccount && statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
                     className="py-2.5 px-3 bg-[#241b15] text-[#d99a3d] text-xs font-black rounded-xl hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer border-none whitespace-nowrap shadow-2xs"
                   >
                     {ifscLoading ? 'Checking...' : 'Auto-Fetch'}
@@ -1863,8 +2030,8 @@ export default function VendorVerificationPage() {
                   value={bankAccount}
                   onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ''))}
                   placeholder="e.g. 50100234567890"
-                  disabled={bankLoading || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
-                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-mono font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  disabled={bankLoading || (statusData.paymentDetails?.bankAccount && statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-mono font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                 />
               </div>
 
@@ -1875,15 +2042,15 @@ export default function VendorVerificationPage() {
                   value={accountHolderName}
                   onChange={(e) => setAccountHolderName(e.target.value)}
                   placeholder="As printed on Passbook / Cheque"
-                  disabled={bankLoading || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
-                  className="w-full px-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  disabled={bankLoading || (statusData.paymentDetails?.bankAccount && statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
                 />
               </div>
             </div>
 
             {/* Bank Name and Branch Auto Display */}
             {(bankName || branchName) && (
-              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl flex items-center justify-between text-xs">
+              <div className="p-3 bg-white border border-[#e3dccb] rounded-xl flex items-center justify-between text-xs">
                 <div>
                   <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Bank &amp; Branch</span>
                   <span className="font-bold text-[#1a1a1a]">{bankName} {branchName ? `(${branchName})` : ''}</span>
@@ -1897,7 +2064,7 @@ export default function VendorVerificationPage() {
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Bank Statement / Cancelled Cheque (Optional)</label>
               <div className="flex items-center gap-3">
-                <label className="cursor-pointer px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] hover:bg-white transition flex items-center gap-2 shadow-2xs">
+                <label className="cursor-pointer px-4 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] hover:bg-[#f8f4ec] transition flex items-center gap-2 shadow-2xs">
                   <FiUploadCloud size={16} className="text-[#d99a3d]" />
                   <span>{statementFile ? 'Cheque / Statement Uploaded ✓' : 'Upload Bank Statement or Cheque'}</span>
                   <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, setStatementFile)} />
@@ -1906,7 +2073,7 @@ export default function VendorVerificationPage() {
             </div>
 
             {/* Verified Bank Details Badge */}
-            {statusData.paymentDetails && (statusData.paymentDetails.status === 'approved' || statusData.paymentDetails.verified) && (
+            {statusData.paymentDetails && statusData.paymentDetails.bankAccount && (statusData.paymentDetails.status === 'approved' || statusData.paymentDetails.verified) && (
               <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 text-xs">
                 <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
                   <span className="font-black text-emerald-900 flex items-center gap-1.5 text-xs">
@@ -1952,14 +2119,14 @@ export default function VendorVerificationPage() {
             <button
               type="button"
               onClick={handleVerifyPayment}
-              disabled={bankLoading || !bankAccount || !ifscCode || (statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
-              className={`w-full py-3.5 rounded-xl text-xs font-black shadow-xs transition border-none ${
-                statusData.paymentDetails?.status === 'approved' && !editPaymentMode
+              disabled={bankLoading || !bankAccount || !ifscCode || (statusData.paymentDetails?.bankAccount && statusData.paymentDetails?.status === 'approved' && !editPaymentMode)}
+              className={`w-full py-3 rounded-xl text-xs font-black shadow-xs transition border-none ${
+                statusData.paymentDetails?.bankAccount && statusData.paymentDetails?.status === 'approved' && !editPaymentMode
                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-not-allowed opacity-90'
                   : 'bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer'
               }`}
             >
-              {statusData.paymentDetails?.status === 'approved' && !editPaymentMode ? 'Bank Account Verified ✓' : bankLoading ? 'Verifying with Sandbox API...' : 'Verify & Save Bank Account (Sandbox API)'}
+              {statusData.paymentDetails?.bankAccount && statusData.paymentDetails?.status === 'approved' && !editPaymentMode ? 'Bank Account Verified ✓' : bankLoading ? 'Verifying with Sandbox API...' : 'Verify & Save Bank Account (Sandbox API)'}
             </button>
           </div>
         </div>

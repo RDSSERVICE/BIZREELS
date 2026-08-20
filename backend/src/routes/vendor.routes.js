@@ -43,6 +43,7 @@ router.post('/me/verification/aadhaar/initiate', requireAuth, vendorVerification
 router.post('/me/verification/aadhaar/verify-otp', requireAuth, vendorVerificationController.verifyAadhaarOtp);
 router.post('/me/verification/gstin', requireAuth, vendorVerificationController.verifyGstin);
 router.post('/me/verification/bank', requireAuth, vendorVerificationController.verifyBank);
+router.post('/me/verification/upi', requireAuth, vendorVerificationController.verifyUpi);
 
 
 const OTP = require('../models/OTP');
