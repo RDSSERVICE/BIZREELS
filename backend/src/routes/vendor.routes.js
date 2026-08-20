@@ -240,15 +240,20 @@ router.post('/me/settings', requireAuth, catchAsync(async (req, res) => {
 }));
 
 // ── VENDOR DYNAMIC OFFERS ENDPOINTS ─────────────────────────
+// New offer system routes delegated to vendor-offer.routes.js (Offer collection)
+const vendorOfferRoutes = require('./vendor-offer.routes');
+router.use('/', vendorOfferRoutes);
 
-router.get('/me/offers', requireAuth, catchAsync(async (req, res) => {
+// ── LEGACY: Embedded vendorProfile.offers[] endpoints ────────
+// Kept for backward compat during migration. Will be removed after migration completes.
+router.get('/me/offers/legacy', requireAuth, catchAsync(async (req, res) => {
   const user = await User.findById(req.user._id).select('vendorProfile.offers').lean();
   if (!user) throw ApiError.notFound('User not found');
   const offers = user.vendorProfile?.offers || [];
   res.json({ success: true, data: offers });
 }));
 
-router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
+router.post('/me/offers/legacy', requireAuth, catchAsync(async (req, res) => {
   const { title, discountPct, couponCode, validTill, description } = req.body;
   if (!title) throw ApiError.badRequest('Offer title is required');
   if (validTill && new Date(validTill) < new Date()) {
@@ -278,155 +283,7 @@ router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
   user.markModified('vendorProfile');
   await user.save();
 
-  // Notify all customers in real-time
-  try {
-    const notificationService = require('../services/notification.service');
-    const customers = await User.find({
-      roles: 'customer',
-      is_deleted: { $ne: true }
-    });
-
-    const vendorDisplayName = user.name || currentVp.businessName || 'a local vendor';
-    const notifyPromises = customers.map(cust =>
-      notificationService.create(
-        cust._id.toString(),
-        'offers',
-        `New Offer from ${vendorDisplayName}`,
-        `Get ${newOffer.discountPct}% OFF with code "${newOffer.couponCode}" for: ${newOffer.title}. Expiring on: ${new Date(newOffer.validTill).toLocaleString()}`,
-        {
-          offerId: newOffer.id,
-          vendorId: user._id.toString(),
-          vendorName: vendorDisplayName,
-          validTill: newOffer.validTill,
-          couponCode: newOffer.couponCode,
-          discountPct: newOffer.discountPct,
-          title: newOffer.title,
-          description: newOffer.description
-        },
-        '/customer/notifications'
-      )
-    );
-
-    // Send notifications concurrently
-    await Promise.all(notifyPromises);
-  } catch (err) {
-    console.error('Failed to notify customers about new offer:', err.message);
-  }
-
-  res.json({ success: true, message: 'Dynamic offer published successfully!', data: newOffer, offers: currentOffers });
-}));
-
-// ── Update Vendor Offer ──────────────────────────────────
-router.put('/me/offers/:offerId', requireAuth, catchAsync(async (req, res) => {
-  const { offerId } = req.params;
-  const { title, discountPct, discountValue, discountType, couponCode, validTill, description,
-          startTime, endTime, offerType, applicableProducts, applicableServices,
-          usageLimit, image, priority, minOrderAmount, maxDiscountLimit, status } = req.body;
-
-  const user = await User.findById(req.user._id);
-  if (!user) throw ApiError.notFound('User not found');
-
-  const currentVp = user.vendorProfile || {};
-  const currentOffers = Array.isArray(currentVp.offers) ? currentVp.offers : [];
-  const offerIndex = currentOffers.findIndex(o => o.id === offerId);
-  if (offerIndex === -1) throw ApiError.notFound('Offer not found');
-
-  const offer = currentOffers[offerIndex];
-  if (title !== undefined) offer.title = title;
-  if (discountPct !== undefined) offer.discountPct = Number(discountPct);
-  if (discountValue !== undefined) offer.discountValue = Number(discountValue);
-  if (discountType !== undefined) offer.discountType = discountType;
-  if (couponCode !== undefined) offer.couponCode = String(couponCode).trim().toUpperCase();
-  if (validTill !== undefined) offer.validTill = validTill;
-  if (description !== undefined) offer.description = description;
-  if (startTime !== undefined) offer.startTime = startTime;
-  if (endTime !== undefined) offer.endTime = endTime;
-  if (offerType !== undefined) offer.offerType = offerType;
-  if (applicableProducts !== undefined) offer.applicableProducts = applicableProducts;
-  if (applicableServices !== undefined) offer.applicableServices = applicableServices;
-  if (usageLimit !== undefined) offer.usageLimit = usageLimit;
-  if (image !== undefined) offer.image = image;
-  if (priority !== undefined) offer.priority = priority;
-  if (minOrderAmount !== undefined) offer.minOrderAmount = minOrderAmount;
-  if (maxDiscountLimit !== undefined) offer.maxDiscountLimit = maxDiscountLimit;
-  if (status !== undefined) offer.is_active = status === 'Active';
-  offer.updated_at = new Date().toISOString();
-
-  currentOffers[offerIndex] = offer;
-  currentVp.offers = currentOffers;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-  await user.save();
-
-  res.json({ success: true, message: 'Offer updated successfully!', data: offer });
-}));
-
-// ── Delete Vendor Offer ──────────────────────────────────
-router.delete('/me/offers/:offerId', requireAuth, catchAsync(async (req, res) => {
-  const { offerId } = req.params;
-  const user = await User.findById(req.user._id);
-  if (!user) throw ApiError.notFound('User not found');
-
-  const currentVp = user.vendorProfile || {};
-  const currentOffers = Array.isArray(currentVp.offers) ? currentVp.offers : [];
-  const newOffers = currentOffers.filter(o => o.id !== offerId);
-  if (newOffers.length === currentOffers.length) throw ApiError.notFound('Offer not found');
-
-  currentVp.offers = newOffers;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-  await user.save();
-
-  res.json({ success: true, message: 'Offer deleted successfully!' });
-}));
-
-// ── Duplicate Vendor Offer ───────────────────────────────
-router.post('/me/offers/:offerId/duplicate', requireAuth, catchAsync(async (req, res) => {
-  const { offerId } = req.params;
-  const user = await User.findById(req.user._id);
-  if (!user) throw ApiError.notFound('User not found');
-
-  const currentVp = user.vendorProfile || {};
-  const currentOffers = Array.isArray(currentVp.offers) ? currentVp.offers : [];
-  const original = currentOffers.find(o => o.id === offerId);
-  if (!original) throw ApiError.notFound('Offer not found');
-
-  const duplicate = {
-    ...original,
-    id: new mongoose.Types.ObjectId().toString(),
-    title: `${original.title} (Copy)`,
-    is_active: false,
-    created_at: new Date().toISOString()
-  };
-
-  currentOffers.unshift(duplicate);
-  currentVp.offers = currentOffers;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-  await user.save();
-
-  res.json({ success: true, message: 'Offer duplicated successfully!', data: duplicate });
-}));
-
-// ── Toggle Offer Status ──────────────────────────────────
-router.patch('/me/offers/:offerId/status', requireAuth, catchAsync(async (req, res) => {
-  const { offerId } = req.params;
-  const { status } = req.body;
-  const user = await User.findById(req.user._id);
-  if (!user) throw ApiError.notFound('User not found');
-
-  const currentVp = user.vendorProfile || {};
-  const currentOffers = Array.isArray(currentVp.offers) ? currentVp.offers : [];
-  const offerIndex = currentOffers.findIndex(o => o.id === offerId);
-  if (offerIndex === -1) throw ApiError.notFound('Offer not found');
-
-  currentOffers[offerIndex].is_active = status === 'active' || status === 'Active';
-  currentOffers[offerIndex].updated_at = new Date().toISOString();
-  currentVp.offers = currentOffers;
-  user.vendorProfile = currentVp;
-  user.markModified('vendorProfile');
-  await user.save();
-  res.json({ success: true, message: `Offer ${currentOffers[offerIndex].is_active ? 'activated' : 'disabled'} successfully!`, data: currentOffers[offerIndex] });
+  res.json({ success: true, message: 'Legacy offer published successfully!', data: newOffer, offers: currentOffers });
 }));
 
 router.get('/ifsc-lookup/:ifsc', catchAsync(async (req, res) => {

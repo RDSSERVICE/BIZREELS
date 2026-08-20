@@ -117,9 +117,23 @@ const maybeAwardOnListing = async (vendorId) => {
 
 /**
  * Auto-award when a user completes their first deal.
+ * Also checks for vendor-scoped referral offers.
  */
-const maybeAwardOnDealComplete = async (userId) => {
+const maybeAwardOnDealComplete = async (userId, vendorId, orderTotal) => {
+  // Platform-level referral reward
   await tryAwardOnEvent(userId, 'first_deal');
+
+  // Offer-scoped referral reward (if vendor has an active referral offer)
+  if (vendorId && orderTotal) {
+    try {
+      const { maybeAwardOfferReferralOnOrder } = require('./referral/referral.offer.service');
+      await maybeAwardOfferReferralOnOrder(userId, vendorId, orderTotal);
+    } catch (err) {
+      logger.error(`Offer referral check failed on deal complete: ${err.message}`, {
+        service: 'referral', userId, vendorId,
+      });
+    }
+  }
 };
 
 /**

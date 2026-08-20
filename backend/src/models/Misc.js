@@ -50,12 +50,20 @@ const referralSchema = new mongoose.Schema({
   ip_address: { type: String, default: null },
   admin_remarks: { type: String, default: null },
   is_deleted: { type: Boolean, default: false },
+  // ── Offer-scoped referral fields (additive, no breaking changes) ──
+  offer_id: { type: String, default: null, index: true },
+  vendor_id: { type: String, default: null, index: true },
+  offer_reward_given: { type: Boolean, default: false },
+  offer_referrer_reward: { type: mongoose.Schema.Types.Mixed, default: null },
+  offer_referred_reward: { type: mongoose.Schema.Types.Mixed, default: null },
+  offer_min_purchase_met: { type: Boolean, default: false },
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });
 
 referralSchema.index({ referrer_id: 1, status: 1 });
 referralSchema.index({ referrer_id: 1, created_at: -1 });
+referralSchema.index({ offer_id: 1, vendor_id: 1 });
 
 // Listing Event (analytics)
 const listingEventSchema = new mongoose.Schema({

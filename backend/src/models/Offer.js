@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { CATEGORY_KEYS } = require('../constants/offerCategories');
 
 const redemptionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -8,6 +9,29 @@ const redemptionSchema = new mongoose.Schema({
 }, { _id: false });
 
 const offerSchema = new mongoose.Schema({
+  // ── Envelope fields (new polymorphic model) ───────────────
+  category: {
+    type: String,
+    enum: CATEGORY_KEYS,
+    default: null,
+    index: true,
+  },
+  offerName: { type: String, default: null, trim: true },
+  vendorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    index: true,
+  },
+  isVendorOffer: { type: Boolean, default: false, index: true },
+  config: { type: mongoose.Schema.Types.Mixed, default: null },
+  campaignRef: {
+    type: { type: String, default: null },
+    refCategory: { type: String, default: null },
+    refConfig: { type: mongoose.Schema.Types.Mixed, default: null },
+  },
+
+  // ── Shared fields (existing + compatible) ─────────────────
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true, trim: true },
   code: { type: String, uppercase: true, trim: true, sparse: true },
@@ -17,8 +41,8 @@ const offerSchema = new mongoose.Schema({
     default: ['customer'],
     required: true
   },
-  discountType: { type: String, enum: ['percentage', 'fixed'], required: true },
-  discountValue: { type: Number, required: true },
+  discountType: { type: String, enum: ['percentage', 'fixed', 'up_to', null], default: null },
+  discountValue: { type: Number, default: null },
   minOrderAmount: { type: Number, default: 0 },
   maxDiscountLimit: { type: Number, default: null },
   usageLimit: { type: Number, default: null },
@@ -44,7 +68,8 @@ const offerSchema = new mongoose.Schema({
   recipientCount: { type: Number, default: 0 },
   analytics: {
     viewsCount: { type: Number, default: 0 },
-    clicksCount: { type: Number, default: 0 }
+    clicksCount: { type: Number, default: 0 },
+    totalSales: { type: Number, default: 0 },
   },
   redemptions: [redemptionSchema],
   notificationStatus: {
@@ -96,5 +121,7 @@ offerSchema.pre('save', function (next) {
 // Indexes for performance
 offerSchema.index({ targetRoles: 1, status: 1 });
 offerSchema.index({ startTime: 1, endTime: 1 });
+offerSchema.index({ vendorId: 1, category: 1, status: 1 });
+offerSchema.index({ vendorId: 1, isDeleted: 1, created_at: -1 });
 
 module.exports = mongoose.models.Offer || mongoose.model('Offer', offerSchema);

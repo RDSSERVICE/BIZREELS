@@ -162,6 +162,36 @@ export default function VendorVerificationPage() {
       if (res.data?.success || res.success) {
         const data = res.data || res;
         setStatusData(data);
+
+        // Sync inputs if not yet filled
+        if (data.documents) {
+          if (data.documents.aadhaar?.docNumber && !aadhaarNum) setAadhaarNum(data.documents.aadhaar.docNumber);
+          if (data.documents.aadhaar?.frontUrl && !aadhaarFront) setAadhaarFront(data.documents.aadhaar.frontUrl);
+          if (data.documents.aadhaar?.backUrl && !aadhaarBack) setAadhaarBack(data.documents.aadhaar.backUrl);
+
+          if (data.documents.pan?.docNumber && !panNum) setPanNum(data.documents.pan.docNumber);
+          if (data.documents.pan?.frontUrl && !panFront) setPanFront(data.documents.pan.frontUrl);
+          if (data.documents.pan?.backUrl && !panBack) setPanBack(data.documents.pan.backUrl);
+
+          if (data.documents.gst?.docNumber && !gstNum) setGstNum(data.documents.gst.docNumber);
+          if (data.documents.gst?.fileUrl && !gstFile) setGstFile(data.documents.gst.fileUrl);
+
+          if (data.documents.shopLicense?.docNumber && !shopLicenseNum) setShopLicenseNum(data.documents.shopLicense.docNumber);
+          if (data.documents.shopLicense?.fileUrl && !shopLicenseFile) setShopLicenseFile(data.documents.shopLicense.fileUrl);
+
+          if (data.documents.udyamRegistration?.docNumber && !udyamNum) setUdyamNum(data.documents.udyamRegistration.docNumber);
+          if (data.documents.udyamRegistration?.fileUrl && !udyamFile) setUdyamFile(data.documents.udyamRegistration.fileUrl);
+        }
+
+        if (data.paymentDetails) {
+          if (data.paymentDetails.bankAccount && !bankAccount) setBankAccount(data.paymentDetails.bankAccount);
+          if (data.paymentDetails.ifscCode && !ifscCode) setIfscCode(data.paymentDetails.ifscCode);
+          if (data.paymentDetails.accountHolderName && !accountHolderName) setAccountHolderName(data.paymentDetails.accountHolderName);
+          if (data.paymentDetails.bankName && !bankName) setBankName(data.paymentDetails.bankName);
+          if (data.paymentDetails.branchName && !branchName) setBranchName(data.paymentDetails.branchName);
+          if (data.paymentDetails.statementChequeUrl && !statementFile) setStatementFile(data.paymentDetails.statementChequeUrl);
+          if (data.paymentDetails.upiId && !upiId) setUpiId(data.paymentDetails.upiId);
+        }
       }
     } catch (err) {}
   };
@@ -382,6 +412,22 @@ export default function VendorVerificationPage() {
         toast.success(`🟢 Aadhaar Verified! Name: ${data.verification?.fullName || 'Verified'}`, { id: toastId });
         setEditDocMode(prev => ({ ...prev, aadhaar: false }));
         await fetchStatus();
+
+        if (currentUser) {
+          dispatch(setCredentials({
+            user: {
+              ...currentUser,
+              vendorProfile: {
+                ...vendorProfile,
+                verificationStatus: data.tier || vendorProfile.verificationStatus,
+                documents: {
+                  ...(vendorProfile.documents || {}),
+                  aadhaar: data.verification || { status: 'approved', verified: true }
+                }
+              }
+            }
+          }));
+        }
       } else {
         toast.error(data.message || 'Aadhaar verification failed', { id: toastId });
       }
@@ -413,6 +459,22 @@ export default function VendorVerificationPage() {
         toast.success(`🟢 PAN Verified! Name: ${data.verification?.fullName || 'Taxpayer Validated'}`, { id: toastId });
         setEditDocMode(prev => ({ ...prev, pan: false }));
         await fetchStatus();
+
+        if (currentUser) {
+          dispatch(setCredentials({
+            user: {
+              ...currentUser,
+              vendorProfile: {
+                ...vendorProfile,
+                verificationStatus: data.tier || vendorProfile.verificationStatus,
+                documents: {
+                  ...(vendorProfile.documents || {}),
+                  pan: data.verification || { status: 'approved', verified: true, docNumber: cleanPan }
+                }
+              }
+            }
+          }));
+        }
       } else {
         toast.error(data.message || 'PAN verification failed', { id: toastId });
       }
@@ -443,6 +505,22 @@ export default function VendorVerificationPage() {
         toast.success(`🟢 GSTIN Verified! Business: ${data.verification?.legalName || data.verification?.tradeName || 'Registered'}`, { id: toastId });
         setEditDocMode(prev => ({ ...prev, gst: false }));
         await fetchStatus();
+
+        if (currentUser) {
+          dispatch(setCredentials({
+            user: {
+              ...currentUser,
+              vendorProfile: {
+                ...vendorProfile,
+                verificationStatus: data.tier || vendorProfile.verificationStatus,
+                documents: {
+                  ...(vendorProfile.documents || {}),
+                  gst: data.verification || { status: 'approved', verified: true, docNumber: cleanGst }
+                }
+              }
+            }
+          }));
+        }
       } else {
         toast.error(data.message || 'GSTIN verification failed', { id: toastId });
       }
@@ -458,7 +536,7 @@ export default function VendorVerificationPage() {
     setLoading(true);
     const toastId = toast.loading(`Submitting ${docName || docType} for verification...`);
     try {
-      await api.post('/v1/vendors/me/verify-document', {
+      const res = await api.post('/v1/vendors/me/verify-document', {
         docType,
         docNumber,
         frontUrl,
@@ -466,8 +544,9 @@ export default function VendorVerificationPage() {
         fileUrl,
         docName
       });
+      const data = res.data || res;
 
-      toast.success(`🟢 ${docName || docType.toUpperCase()} submitted successfully!`, { id: toastId });
+      toast.success(`🟢 ${docName || docType.toUpperCase()} verified and saved successfully!`, { id: toastId });
       setEditDocMode(prev => ({ ...prev, [docType]: false }));
       await fetchStatus();
 
@@ -476,8 +555,24 @@ export default function VendorVerificationPage() {
         setDynamicDocNum('');
         setDynamicDocFile('');
       }
+
+      if (currentUser) {
+        dispatch(setCredentials({
+          user: {
+            ...currentUser,
+            vendorProfile: {
+              ...vendorProfile,
+              verificationStatus: data.tier || vendorProfile.verificationStatus,
+              documents: {
+                ...(vendorProfile.documents || {}),
+                ...(data.documents || {})
+              }
+            }
+          }
+        }));
+      }
     } catch (err) {
-      toast.error(`Failed to verify ${docType}`, { id: toastId });
+      toast.error(`Failed to verify ${docName || docType}`, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -531,6 +626,28 @@ export default function VendorVerificationPage() {
         toast.success('🟢 Bank Account verified and saved!', { id: toastId });
         setEditPaymentMode(false);
         await fetchStatus();
+
+        if (currentUser) {
+          dispatch(setCredentials({
+            user: {
+              ...currentUser,
+              vendorProfile: {
+                ...vendorProfile,
+                verificationStatus: data.tier || vendorProfile.verificationStatus,
+                paymentDetails: data.paymentDetails || {
+                  ...(vendorProfile.paymentDetails || {}),
+                  bankAccount,
+                  ifscCode,
+                  accountHolderName,
+                  bankName,
+                  branchName,
+                  status: 'approved',
+                  verified: true
+                }
+              }
+            }
+          }));
+        }
       } else {
         toast.error(data.message || 'Bank verification failed', { id: toastId });
       }
@@ -549,9 +666,12 @@ export default function VendorVerificationPage() {
   );
 
   const isPart2Complete = Boolean(
-    statusData.documents?.aadhaar?.status === 'approved' ||
-    statusData.documents?.pan?.status === 'approved' ||
-    statusData.documents?.gst?.status === 'approved'
+    statusData.documents?.aadhaar?.status === 'approved' || statusData.documents?.aadhaar?.verified ||
+    statusData.documents?.pan?.status === 'approved' || statusData.documents?.pan?.verified ||
+    statusData.documents?.gst?.status === 'approved' || statusData.documents?.gst?.verified ||
+    statusData.documents?.shopLicense?.status === 'approved' || statusData.documents?.shopLicense?.verified ||
+    statusData.documents?.udyamRegistration?.status === 'approved' || statusData.documents?.udyamRegistration?.verified ||
+    (Array.isArray(statusData.documents?.dynamicDocs) && statusData.documents.dynamicDocs.length > 0)
   );
 
   const handleTabClick = (tab) => {

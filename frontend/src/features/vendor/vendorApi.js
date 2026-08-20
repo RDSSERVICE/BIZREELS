@@ -65,8 +65,22 @@ const vendorApi = apiSlice.injectEndpoints({
 
     // ── Vendor Offers ────────────────────────────────────────
     getVendorOffers: builder.query({
-      query: () => '/vendors/me/offers',
+      query: (params = {}) => ({ url: '/vendors/me/offers', params }),
       providesTags: ['VendorOffers'],
+    }),
+    getOfferCategories: builder.query({
+      query: () => '/vendors/me/offers/categories',
+    }),
+    getReferralOfferStats: builder.query({
+      query: () => '/vendors/me/referral-offer-stats',
+      providesTags: ['VendorOffers'],
+    }),
+    validateCoupon: builder.mutation({
+      query: ({ offerId, ...body }) => ({
+        url: `/vendors/me/offers/${offerId}/validate-coupon`,
+        method: 'POST',
+        body,
+      }),
     }),
     createVendorOffer: builder.mutation({
       query: (body) => ({ url: '/vendors/me/offers', method: 'POST', body }),
@@ -222,6 +236,9 @@ export const {
   useGetListingAnalyticsQuery,
   useUpdateListingStockMutation,
   useGetVendorOffersQuery,
+  useGetOfferCategoriesQuery,
+  useGetReferralOfferStatsQuery,
+  useValidateCouponMutation,
   useCreateVendorOfferMutation,
   useUpdateVendorOfferMutation,
   useDeleteVendorOfferMutation,

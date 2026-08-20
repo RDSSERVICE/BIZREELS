@@ -29,6 +29,7 @@ import ListingHeader from './ListingHeader';
 import ListingFilters from './ListingFilters';
 import ListingTable from './ListingTable';
 import OffersTab from './OffersTab';
+import ReferralOfferStatsCard from './offers/ReferralOfferStatsCard';
 import ProductFormModal from './ProductFormModal';
 import ServiceFormModal from './ServiceFormModal';
 import OfferFormModal from './OfferFormModal';
@@ -562,16 +563,24 @@ export default function VendorListingsPage() {
 
       {/* Content Area */}
       {activeTab === 'offers' ? (
-        <OffersTab
-          offers={offersList}
-          loading={offersFetching}
-          onCreateOffer={() => { setEditOfferData(null); setShowOfferModal(true); }}
-          onEditOffer={handleEditOffer}
-          onActivateOffer={handleActivateOffer}
-          onDisableOffer={handleDisableOffer}
-          onDuplicateOffer={handleDuplicateOffer}
-          onDeleteOffer={handleDeleteOffer}
-        />
+        <div className="space-y-4">
+          <ReferralOfferStatsCard
+            onCreateReferralOffer={() => {
+              setEditOfferData({ category: 'referral' });
+              setShowOfferModal(true);
+            }}
+          />
+          <OffersTab
+            offers={offersList}
+            loading={offersFetching}
+            onCreateOffer={() => { setEditOfferData(null); setShowOfferModal(true); }}
+            onEditOffer={handleEditOffer}
+            onActivateOffer={handleActivateOffer}
+            onDisableOffer={handleDisableOffer}
+            onDuplicateOffer={handleDuplicateOffer}
+            onDeleteOffer={handleDeleteOffer}
+          />
+        </div>
       ) : (
         <ListingTable
           listings={sortedListings}
