@@ -7,6 +7,7 @@ import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import { useGetVendorWalletQuery, useGetWalletTransactionsQuery, useRechargeWalletMutation } from '../../../features/vendor/vendorApi';
 import { api } from '../../../lib/api';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -20,6 +21,7 @@ const loadRazorpayScript = () => {
 };
 
 export default function VendorWalletPage() {
+  const { bi, t } = useLanguage();
   const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, { pollingInterval: 300000 });
   const { data: txData, isFetching: isFetchingTx, refetch: refetchTx } = useGetWalletTransactionsQuery(undefined, { pollingInterval: 300000 });
   const [rechargeWallet] = useRechargeWalletMutation();
@@ -127,7 +129,7 @@ export default function VendorWalletPage() {
     },
     {
       key: 'description',
-      label: 'Description',
+      label: bi('Description', 'विवरण (Description)'),
       render: (val, row) => {
         const desc = val || row?.description || row?.admin_remarks || row?.meta?.plan_name || row?.title || row?.type || 'Transaction';
         const refId = row?.reference_id || row?.referenceId || row?.paymentId || row?.payment_id;
@@ -141,7 +143,7 @@ export default function VendorWalletPage() {
     },
     {
       key: 'type',
-      label: 'Type',
+      label: bi('Type', 'प्रकार (Type)'),
       render: (val, row) => {
         const typeStr = (val || row?.type || row?.credit_debit || 'debit').toLowerCase();
         const isCredit = typeStr === 'credit' || typeStr === 'deposit' || typeStr === 'recharge' || typeStr === 'referral_bonus' || row?.credit_debit === 'credit';
@@ -151,14 +153,14 @@ export default function VendorWalletPage() {
               ? 'bg-emerald-100 text-emerald-800'
               : 'bg-rose-100 text-rose-800'
           }`}>
-            {isCredit ? 'Credit' : 'Debit'}
+            {isCredit ? bi('Credit', 'क्रेडिट (+)') : bi('Debit', 'डेबिट (-)')}
           </span>
         );
       },
     },
     {
       key: 'amount',
-      label: 'Amount (INR)',
+      label: bi('Amount (INR)', 'राशि (रुपये)'),
       render: (val, row) => {
         const amt = typeof val === 'number' ? val : (typeof row?.amount === 'number' ? row.amount : 0);
         const typeStr = (row?.type || row?.credit_debit || '').toLowerCase();
@@ -176,29 +178,29 @@ export default function VendorWalletPage() {
     <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans p-2 sm:p-4 animate-fade-in">
       <AdminPageHeader
         icon={TbCurrencyRupee}
-        title="Vendor Wallet & Balance"
-        subtitle="Preload balance for reel boosts, ads, and manage order payouts & refunds"
+        title={bi('Vendor Wallet & Balance', 'विक्रेता वॉलेट और शेष राशि (Wallet & Balance)')}
+        subtitle={bi('Preload balance for reel boosts, ads, and manage order payouts & refunds', 'रील बूस्ट, विज्ञापनों के लिए बैलेंस रीचार्ज करें और ऑर्डर पेआउट प्रबंधित करें')}
       >
         <button
           onClick={() => setIsModalOpen(true)}
           className="px-4 py-2 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1.5 cursor-pointer border-none"
         >
-          <FiPlusCircle size={16} /> Recharge Wallet
+          <FiPlusCircle size={16} /> {bi('Recharge Wallet', 'वॉलेट रीचार्ज करें')}
         </button>
       </AdminPageHeader>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <AdminStatCard label="Available Balance" value={`₹${balance.toLocaleString('en-IN')}`} icon={TbCurrencyRupee} color="green" />
-        <AdminStatCard label="Total Credits" value={`₹${totalCredits.toLocaleString('en-IN')}`} icon={FiArrowDownLeft} color="blue" />
-        <AdminStatCard label="Total Debits" value={`₹${totalDebits.toLocaleString('en-IN')}`} icon={FiArrowUpRight} color="rose" />
+        <AdminStatCard label={bi('Available Balance', 'उपलब्ध शेष राशि')} value={`₹${balance.toLocaleString('en-IN')}`} icon={TbCurrencyRupee} color="green" />
+        <AdminStatCard label={bi('Total Credits', 'कुल क्रेडिट')} value={`₹${totalCredits.toLocaleString('en-IN')}`} icon={FiArrowDownLeft} color="blue" />
+        <AdminStatCard label={bi('Total Debits', 'कुल डेबिट')} value={`₹${totalDebits.toLocaleString('en-IN')}`} icon={FiArrowUpRight} color="rose" />
       </div>
 
       <AdminDataTable
         columns={columns}
         data={transactions}
         loading={isFetchingTx}
-        searchPlaceholder="Search transactions..."
-        emptyMessage="No wallet transactions found."
+        searchPlaceholder={bi('Search transactions...', 'लेन-देन खोजें...')}
+        emptyMessage={bi('No wallet transactions found.', 'कोई वॉलेट लेन-देन नहीं मिला।')}
         testId="vendor-wallet-table"
       />
 

@@ -3,8 +3,10 @@ import { FiUsers, FiCopy, FiShare2, FiGift, FiAward, FiClock, FiCheckCircle } fr
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { api } from '../../../lib/api';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorReferralPage() {
+  const { bi, t } = useLanguage();
   const [data, setData] = useState({
     referral_code: '',
     referral_link: '',
@@ -82,51 +84,54 @@ export default function VendorReferralPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col gap-6 animate-fade-in pb-12">
+    <div className="max-w-5xl mx-auto flex flex-col gap-6 animate-fade-in pb-12 font-sans p-2 sm:p-4">
       <AdminPageHeader
         icon={FiUsers}
-        title="Refer & Earn Rewards"
-        subtitle="Invite other vendors to join BizReels, earn bonus credits when they sign up and start listing products"
+        title={bi('Refer & Earn Rewards', 'रेफर करें और पुरस्कार कमाएं (Refer & Earn)')}
+        subtitle={bi('Invite other vendors to join BizReels, earn bonus credits when they sign up and start listing products', 'बिजरील्स में शामिल होने के लिए अन्य विक्रेताओं को आमंत्रित करें और मुफ़्त क्रेडिट कमाएं')}
       />
 
       {/* Main Referral Program & Action Box */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Widget: Refer & Action */}
-        <div className="lg:col-span-2 glass rounded-3xl p-6 sm:p-8 border border-white/50 shadow-glass flex flex-col justify-between bg-gradient-to-tr from-brand-purple/20 via-surface to-brand-pink/5 space-y-6">
+        <div className="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-8 border border-[#e3dccb] shadow-2xs flex flex-col justify-between space-y-6">
           <div className="space-y-2">
-            <div className="inline-flex p-2.5 rounded-xl bg-brand-purple/10 text-brand-purple">
+            <div className="inline-flex p-2.5 rounded-xl bg-[#241b15] text-[#d99a3d]">
               <FiGift className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-black text-text-primary font-display">
-              Invite Vendors & Earn {data.summary.reward_per_referral} Credits
+            <h3 className="text-base font-black text-[#1a1a1a]">
+              {bi(`Invite Vendors & Earn ${data.summary.reward_per_referral} Credits`, `विक्रेताओं को आमंत्रित करें और ${data.summary.reward_per_referral} क्रेडिट कमाएं`)}
             </h3>
-            <p className="text-[11px] text-text-secondary leading-relaxed max-w-lg">
-              Share your unique referral link or code with shop owners and business firms. When they register using your code, they immediately receive **{data.summary.bonus_per_referred} bonus credits**; once they list their first products/reels, you receive **{data.summary.reward_per_referral} bonus credits** directly into your credit wallet!
+            <p className="text-[11px] text-slate-600 leading-relaxed max-w-lg">
+              {bi(
+                `Share your unique referral link or code with shop owners and business firms. When they register using your code, they immediately receive ${data.summary.bonus_per_referred} bonus credits; once they list their first products/reels, you receive ${data.summary.reward_per_referral} bonus credits directly into your credit wallet!`,
+                `दुकान के मालिकों और व्यवसायों के साथ अपना लिंक या कोड साझा करें। जब वे आपके कोड से पंजीकरण करते हैं, तो उन्हें ${data.summary.bonus_per_referred} बोनस क्रेडिट मिलते हैं; और जब वे अपने उत्पाद पोस्ट करते हैं, तो आपको ${data.summary.reward_per_referral} क्रेडिट मिलते हैं!`
+              )}
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             {/* Referral Code Box */}
-            <div className="bg-surface/50 border border-border p-4 rounded-2xl flex flex-col justify-between gap-3">
-              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Your Invite Code</span>
-              <div className="flex items-center justify-between gap-2 bg-surface px-3 py-2.5 rounded-xl border border-border">
-                <span className="text-sm font-black tracking-widest text-text-primary font-display">{data.referral_code || '------'}</span>
-                <button onClick={handleCopyCode} className="text-brand-purple p-1 hover:bg-brand-purple/10 rounded-lg transition">
+            <div className="bg-[#f8f4ec] border border-[#e3dccb] p-4 rounded-2xl flex flex-col justify-between gap-3">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{bi('Your Invite Code', 'आपका आमंत्रण कोड')}</span>
+              <div className="flex items-center justify-between gap-2 bg-white px-3 py-2.5 rounded-xl border border-[#e3dccb]">
+                <span className="text-sm font-black tracking-widest text-[#1a1a1a]">{data.referral_code || '------'}</span>
+                <button onClick={handleCopyCode} className="text-[#d99a3d] p-1 hover:bg-[#f8f4ec] rounded-lg transition cursor-pointer">
                   <FiCopy className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             {/* Sharing buttons */}
-            <div className="bg-surface/50 border border-border p-4 rounded-2xl flex flex-col justify-between gap-3">
-              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Share Link Directly</span>
+            <div className="bg-[#f8f4ec] border border-[#e3dccb] p-4 rounded-2xl flex flex-col justify-between gap-3">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{bi('Share Link Directly', 'सीधा लिंक साझा करें')}</span>
               <div className="flex gap-2">
                 <button
                   onClick={handleCopyLink}
-                  className="flex-1 py-2.5 bg-surface border border-border hover:bg-surface-tertiary text-text-secondary font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition"
+                  className="flex-1 py-2.5 bg-white border border-[#e3dccb] hover:bg-[#241b15] hover:text-[#d99a3d] text-[#1a1a1a] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   <FiCopy size={13} />
-                  <span>Copy Link</span>
+                  <span>{bi('Copy Link', 'कॉपी लिंक')}</span>
                 </button>
                 <button
                   onClick={handleShare}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { FiCpu, FiMic, FiMicOff, FiRefreshCw, FiPlus, FiX } from 'react-icons/fi';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function ProductBasicInfoSection({
   form,
@@ -14,14 +15,16 @@ export default function ProductBasicInfoSection({
   handleAddTag,
   handleRemoveTag,
 }) {
+  const { bi } = useLanguage();
+
   return (
     <div className="space-y-3 p-4 bg-surface-secondary rounded-2xl border border-border">
       <div className="flex justify-between items-center">
         <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider">
-          Basic Product Details
+          {bi('Basic Product Details', 'उत्पाद की बुनियादी विवरण')}
         </h4>
         <span className="text-[10px] font-bold text-brand-purple bg-brand-purple/10 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-          <FiCpu size={12} /> AI Assisted
+          <FiCpu size={12} /> {bi('AI Assisted', 'एआई सहायता')}
         </span>
       </div>
 
@@ -29,7 +32,7 @@ export default function ProductBasicInfoSection({
       <div className="p-3 rounded-xl bg-gradient-to-r from-brand-purple/10 via-brand-pink/10 to-brand-orange/10 border border-brand-purple/20 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-brand-purple flex items-center gap-1">
-            <FiCpu size={14} /> AI Description Generator (Voice & Text)
+            <FiCpu size={14} /> {bi('AI Description Generator (Voice & Text)', 'एआई विवरण जनरेटर (आवाज और पाठ)')}
           </span>
           <button
             type="button"
@@ -42,7 +45,7 @@ export default function ProductBasicInfoSection({
             title="Speak details to AI"
           >
             {isListeningVoice ? <FiMicOff size={12} /> : <FiMic size={12} />}
-            <span>{isListeningVoice ? 'Listening...' : 'Voice Input'}</span>
+            <span>{isListeningVoice ? bi('Listening...', 'सुन रहा है...') : bi('Voice Input', 'वॉइस इनपुट')}</span>
           </button>
         </div>
 
@@ -51,7 +54,7 @@ export default function ProductBasicInfoSection({
             type="text"
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
-            placeholder="Tell AI about product features or speak via mic..."
+            placeholder={bi("Tell AI about product features or speak via mic...", "उत्पाद सुविधाओं के बारे में एआई को बताएं या माइक के माध्यम से बोलें...")}
             className="flex-1 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
           />
           <button
@@ -61,14 +64,14 @@ export default function ProductBasicInfoSection({
             className="px-3.5 py-1.5 gradient-brand text-white font-bold text-xs rounded-xl shadow-sm hover:opacity-95 transition flex items-center gap-1 disabled:opacity-50 shrink-0"
           >
             <FiCpu size={13} />
-            <span>{form.isAiGenerating ? 'Generating...' : 'Auto-Generate'}</span>
+            <span>{form.isAiGenerating ? bi('Generating...', 'बनाया जा रहा है...') : bi('Auto-Generate', 'ऑटो जनरेट')}</span>
           </button>
         </div>
 
         {/* Real-time Media Auto-Fill */}
         <div className="pt-2 border-t border-brand-purple/10 space-y-1">
           <label className="text-[10px] font-bold text-brand-purple uppercase block">
-            Or Upload Product Media for AI Auto-Fill
+            {bi('Or Upload Product Media for AI Auto-Fill', 'या एआई ऑटो-फिल के लिए उत्पाद मीडिया अपलोड करें')}
           </label>
           <input
             type="file"
@@ -77,74 +80,74 @@ export default function ProductBasicInfoSection({
             className="text-xs text-text-tertiary"
           />
           <p className="text-[9px] text-text-tertiary">
-            Gemini will scan your sample photo/video to extract highlights & descriptions.
+            {bi('Gemini will scan your sample photo/video to extract highlights & descriptions.', 'जेमिनी मुख्य अंश और विवरण निकालने के लिए आपके नमूना फोटो/वीडियो को स्कैन करेगा।')}
           </p>
         </div>
       </div>
 
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary block mb-1">Product Title *</label>
+        <label className="text-[10px] font-bold text-text-tertiary block mb-1">{bi('Product Title *', 'उत्पाद शीर्षक *')}</label>
         <input
           type="text"
           required
           value={form.title}
           onChange={(e) => updateForm('title', e.target.value)}
-          placeholder="e.g. Wireless Noise-Cancelling Headphones"
+          placeholder={bi("e.g. Wireless Noise-Cancelling Headphones", "उदा. वायरलेस नॉइज़-कैंसलिंग हेडफ़ोन")}
           className="w-full p-2.5 bg-surface border rounded-xl text-xs text-text-primary"
         />
       </div>
 
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary block mb-1">Short Description</label>
+        <label className="text-[10px] font-bold text-text-tertiary block mb-1">{bi('Short Description', 'संक्षिप्त विवरण')}</label>
         <input
           type="text"
           value={form.shortDescription}
           onChange={(e) => updateForm('shortDescription', e.target.value)}
-          placeholder="Brief 1-line summary..."
+          placeholder={bi("Brief 1-line summary...", "संक्षिप्त 1-पंक्ति सारांश...")}
           className="w-full p-2.5 bg-surface border rounded-xl text-xs text-text-primary"
         />
       </div>
 
       <div>
         <div className="flex justify-between items-center mb-1">
-          <label className="text-[10px] font-bold text-text-tertiary block">Full Description</label>
+          <label className="text-[10px] font-bold text-text-tertiary block">{bi('Full Description', 'पूरा विवरण')}</label>
           <button
             type="button"
             onClick={handleGenerateAiDescription}
             className="text-[10px] font-bold text-brand-purple hover:underline flex items-center gap-0.5"
           >
-            <FiCpu size={10} /> Re-generate AI Description
+            <FiCpu size={10} /> {bi('Re-generate AI Description', 'पुनः एआई विवरण जनरेट करें')}
           </button>
         </div>
         <textarea
           rows={3}
           value={form.description}
           onChange={(e) => updateForm('description', e.target.value)}
-          placeholder="Comprehensive product details..."
+          placeholder={bi("Comprehensive product details...", "व्यापक उत्पाद विवरण...")}
           className="w-full p-2.5 bg-surface border rounded-xl text-xs text-text-primary"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary block mb-1">Brand</label>
+          <label className="text-[10px] font-bold text-text-tertiary block mb-1">{bi('Brand', 'ब्रांड (Brand)')}</label>
           <input
             type="text"
             value={form.brand}
             onChange={(e) => updateForm('brand', e.target.value)}
-            placeholder="e.g. Sony"
+            placeholder={bi("e.g. Sony", "उदा. सोनी")}
             className="w-full p-2.5 bg-surface border rounded-xl text-xs text-text-primary"
           />
         </div>
         <div>
           <div className="flex justify-between items-center mb-1">
-            <label className="text-[10px] font-bold text-text-tertiary block">SKU Code</label>
+            <label className="text-[10px] font-bold text-text-tertiary block">{bi('SKU Code', 'एसकेयू कोड')}</label>
             <button
               type="button"
               onClick={generateSKU}
               className="text-[9px] font-bold text-brand-purple hover:underline flex items-center gap-0.5"
             >
-              <FiRefreshCw size={9} /> Auto-Generate
+              <FiRefreshCw size={9} /> {bi('Auto-Generate', 'ऑटो जनरेट')}
             </button>
           </div>
           <input
@@ -159,7 +162,7 @@ export default function ProductBasicInfoSection({
 
       {/* Tags */}
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary block mb-1">Tags / Keywords</label>
+        <label className="text-[10px] font-bold text-text-tertiary block mb-1">{bi('Tags / Keywords', 'टैग / कीवर्ड')}</label>
         <div className="flex gap-2">
           <input
             type="text"
@@ -171,7 +174,7 @@ export default function ProductBasicInfoSection({
                 handleAddTag();
               }
             }}
-            placeholder="Type tag & press Enter or Add..."
+            placeholder={bi("Type tag & press Enter or Add...", "टैग टाइप करें और एंटर दबाएं या जोड़ें...")}
             className="flex-1 p-2 bg-surface border rounded-xl text-xs text-text-primary"
           />
           <button
@@ -179,7 +182,7 @@ export default function ProductBasicInfoSection({
             onClick={handleAddTag}
             className="px-3 bg-brand-purple/10 text-brand-purple rounded-xl text-xs font-bold hover:bg-brand-purple/20 transition flex items-center gap-1"
           >
-            <FiPlus size={13} /> Add
+            <FiPlus size={13} /> {bi('Add', 'जोड़ें')}
           </button>
         </div>
         {form.tags?.length > 0 && (

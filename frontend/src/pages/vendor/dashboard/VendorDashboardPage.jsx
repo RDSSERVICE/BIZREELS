@@ -141,14 +141,17 @@ export default function VendorDashboardPage() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#d99a3d] animate-pulse"></span>
               <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase tracking-wide text-[#1a1a1a]">
-                VENDOR CREDIT WALLET
+                {bi('VENDOR CREDIT WALLET', 'विक्रेता क्रेडिट वॉलेट')}
               </h3>
               <span className="text-[10px] font-extrabold text-slate-500 bg-[#f8f4ec] px-2 py-0.5 rounded border border-[#e3dccb]">
-                1 Credit = ₹1 INR
+                {bi('1 Credit = ₹1 INR', '1 क्रेडिट = ₹1 रुपये')}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Use credits for product listings, publishing reels, AI features, boosting, and unlocking lead contacts.
+              {bi(
+                'Use credits for product listings, publishing reels, AI features, boosting, and unlocking lead contacts.',
+                'उत्पाद लिस्टिंग, रील प्रकाशन, एआई सुविधाओं, बूस्टिंग और लीड संपर्क अनलॉक करने के लिए क्रेडिट का उपयोग करें।'
+              )}
             </p>
           </div>
 
@@ -158,19 +161,19 @@ export default function VendorDashboardPage() {
               to="/vendor/credit-rates"
               className="px-3 py-1.5 bg-[#f8f4ec] hover:bg-[#241b15] hover:text-[#d99a3d] text-slate-700 text-xs font-bold rounded-lg border border-[#e3dccb] transition cursor-pointer"
             >
-              Credit Rates
+              {bi('Credit Rates', 'क्रेडिट दरें (Credit Rates)')}
             </Link>
             <Link
               to="/vendor/referrals"
               className="px-3 py-1.5 bg-[#f8f4ec] hover:bg-[#241b15] hover:text-[#d99a3d] text-slate-700 text-xs font-bold rounded-lg border border-[#e3dccb] transition cursor-pointer"
             >
-              Refer & Earn
+              {bi('Refer & Earn', 'रेफर करें और कमाएं (Refer & Earn)')}
             </Link>
             <Link
               to="/vendor/wallet"
               className="px-4 py-1.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#382b22] text-xs font-black rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer"
             >
-              <span>Topup Wallet</span>
+              <span>{bi('Topup Wallet', 'वॉलेट टॉप-अप करें')}</span>
               <FiArrowRight size={13} />
             </Link>
           </div>
@@ -179,27 +182,27 @@ export default function VendorDashboardPage() {
         {/* Credit Breakdown Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-[#f8f4ec] p-3.5 rounded-xl border border-[#e3dccb] text-center space-y-0.5">
-            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">AVAILABLE</span>
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">{bi('AVAILABLE', 'उपलब्ध')}</span>
             <span className="text-2xl font-black text-emerald-600 block">{credits.available}</span>
-            <span className="text-[10px] text-slate-500 font-extrabold block">₹{credits.available} Balance</span>
+            <span className="text-[10px] text-slate-500 font-extrabold block">₹{credits.available} {bi('Balance', 'बैलेंस')}</span>
           </div>
 
           <div className="bg-[#f8f4ec] p-3.5 rounded-xl border border-[#e3dccb] text-center space-y-0.5">
-            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">DEPOSITED</span>
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">{bi('DEPOSITED', 'जमा किया गया')}</span>
             <span className="text-2xl font-black text-blue-600 block">{credits.deposited}</span>
-            <span className="text-[10px] text-slate-500 font-extrabold block">₹{credits.deposited} Added</span>
+            <span className="text-[10px] text-slate-500 font-extrabold block">₹{credits.deposited} {bi('Added', 'जोड़ा गया')}</span>
           </div>
 
           <div className="bg-[#f8f4ec] p-3.5 rounded-xl border border-[#e3dccb] text-center space-y-0.5">
-            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">EARNED</span>
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">{bi('EARNED', 'अर्जित इनाम')}</span>
             <span className="text-2xl font-black text-[#d99a3d] block">{credits.earned}</span>
-            <span className="text-[10px] text-slate-500 font-extrabold block">₹{credits.earned} Rewards</span>
+            <span className="text-[10px] text-slate-500 font-extrabold block">₹{credits.earned} {bi('Rewards', 'पुरस्कार')}</span>
           </div>
 
           <div className="bg-[#f8f4ec] p-3.5 rounded-xl border border-[#e3dccb] text-center space-y-0.5">
-            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">USED SPENT</span>
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">{bi('USED SPENT', 'उपयोग किया गया')}</span>
             <span className="text-2xl font-black text-slate-700 block">{credits.used}</span>
-            <span className="text-[10px] text-slate-500 font-extrabold block">Credits Used</span>
+            <span className="text-[10px] text-slate-500 font-extrabold block">{bi('Credits Used', 'क्रेडिट प्रयुक्त')}</span>
           </div>
         </div>
       </div>
@@ -207,13 +210,16 @@ export default function VendorDashboardPage() {
       {/* ── 2. PAGE HEADER BANNER & QUICK ACTION BAR ── */}
       <div className="bg-[#241b15] text-white p-5 rounded-2xl border-2 border-[#241b15] shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">VENDOR CONTROL CENTER</span>
+          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">{bi('VENDOR CONTROL CENTER', 'विक्रेता नियंत्रण केंद्र')}</span>
           <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white flex items-center gap-2">
             <FiActivity className="text-[#d99a3d]" />
-            <span>BUSINESS DASHBOARD</span>
+            <span>{bi('BUSINESS DASHBOARD', 'व्यापार डैशबोर्ड')}</span>
           </h1>
           <p className="text-xs text-slate-300 mt-1 max-w-md">
-            Manage product listings, track video reels performance, respond to buyer leads, and view revenue analytics.
+            {bi(
+              'Manage product listings, track video reels performance, respond to buyer leads, and view revenue analytics.',
+              'उत्पाद लिस्टिंग प्रबंधित करें, वीडियो रील्स प्रदर्शन ट्रैक करें, खरीदार लीड्स का जवाब दें, और आय एनालिटिक्स देखें।'
+            )}
           </p>
         </div>
 
@@ -223,7 +229,7 @@ export default function VendorDashboardPage() {
             className="px-4 py-2.5 rounded-xl bg-[#d99a3d] text-[#1a1a1a] hover:bg-[#c8872b] font-black text-xs shadow-xs transition flex items-center gap-2 cursor-pointer border-none"
           >
             <FiVideo size={16} />
-            <span>POST REEL / MEDIA</span>
+            <span>{bi('POST REEL / MEDIA', '+ रील / मीडिया पोस्ट करें')}</span>
           </Link>
 
           <Link
@@ -231,7 +237,7 @@ export default function VendorDashboardPage() {
             className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition flex items-center gap-2 cursor-pointer"
           >
             <FiPackage size={16} className="text-[#d99a3d]" />
-            <span>ADD LISTING</span>
+            <span>{bi('ADD LISTING', '+ लिस्टिंग जोड़ें')}</span>
           </Link>
         </div>
       </div>
@@ -272,7 +278,7 @@ export default function VendorDashboardPage() {
           <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
             <h3 className="text-xs font-black uppercase text-[#1a1a1a] flex items-center gap-2 tracking-wide">
               <FiInbox className="text-[#d99a3d]" size={16} />
-              <span>Recent Customer Enquiries</span>
+              <span>{bi('Recent Customer Enquiries', 'हाल की ग्राहक पूछताछ (Enquiries)')}</span>
               {leads.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#241b15] text-[#d99a3d]">
                   {leads.length}
@@ -280,7 +286,7 @@ export default function VendorDashboardPage() {
               )}
             </h3>
             <Link to="/vendor/leads" className="text-xs text-[#d99a3d] font-black hover:underline flex items-center gap-1">
-              <span>View All</span>
+              <span>{bi('View All', 'सभी देखें')}</span>
               <FiArrowRight size={12} />
             </Link>
           </div>
@@ -288,7 +294,7 @@ export default function VendorDashboardPage() {
           <div className="space-y-2.5">
             {leads.length === 0 ? (
               <div className="bg-[#f8f4ec] rounded-xl p-6 text-center text-xs text-slate-500 border border-[#e3dccb]">
-                No recent customer enquiries received.
+                {bi('No recent customer enquiries received.', 'हाल ही में कोई ग्राहक पूछताछ प्राप्त नहीं हुई।')}
               </div>
             ) : (
               leads.slice(0, 4).map((l, i) => (
@@ -299,13 +305,13 @@ export default function VendorDashboardPage() {
                 >
                   <div className="min-w-0">
                     <h4 className="font-extrabold text-[#1a1a1a] group-hover:text-[#d99a3d] transition-colors truncate">
-                      {l.subject || l.message || 'Inquiry Request'}
+                      {l.subject || l.message || bi('Inquiry Request', 'पूछताछ अनुरोध')}
                     </h4>
                     <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                      Buyer: <span className="font-bold text-[#1a1a1a]">{l.customerName || l.customer?.name || 'Customer'}</span>
+                      {bi('Buyer:', 'खरीदार:')} <span className="font-bold text-[#1a1a1a]">{l.customerName || l.customer?.name || 'Customer'}</span>
                       {l.listing?.title && (
                         <span className="ml-1.5 text-slate-400">
-                          • Listing: <span className="text-[#1a1a1a] font-bold">{l.listing.title}</span>
+                          • {bi('Listing:', 'लिस्टिंग:')} <span className="text-[#1a1a1a] font-bold">{l.listing.title}</span>
                         </span>
                       )}
                     </p>
@@ -315,7 +321,7 @@ export default function VendorDashboardPage() {
                     l.status === 'closed' ? 'bg-slate-200 text-slate-700 border-slate-300' :
                     'bg-[#d99a3d]/20 text-[#1a1a1a] border-[#d99a3d]/40'
                   }`}>
-                    {l.status === 'replied' ? 'Replied' : l.status === 'closed' ? 'Closed' : 'New'}
+                    {l.status === 'replied' ? bi('Replied', 'उत्तर दिया गया') : l.status === 'closed' ? bi('Closed', 'बंद') : bi('New', 'नया')}
                   </span>
                 </Link>
               ))
@@ -328,22 +334,22 @@ export default function VendorDashboardPage() {
           <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
             <h3 className="text-xs font-black uppercase text-[#1a1a1a] flex items-center gap-2 tracking-wide">
               <FiShield className="text-[#d99a3d]" size={16} />
-              <span>Active Subscription Features</span>
+              <span>{bi('Active Subscription Features', 'सक्रिय सब्सक्रिप्शन सुविधाएं')}</span>
             </h3>
             <Link to="/vendor/subscription" className="text-xs text-[#d99a3d] font-black hover:underline">
-              Upgrade Plan
+              {bi('Upgrade Plan', 'प्लान अपग्रेड करें')}
             </Link>
           </div>
 
           <div>
             {activeFeatures.length === 0 ? (
               <div className="bg-[#f8f4ec] rounded-xl p-6 text-center text-xs text-slate-500 border border-[#e3dccb] space-y-2">
-                <p className="font-medium">No active premium features. Upgrade your subscription plan to unlock full capabilities!</p>
+                <p className="font-medium">{bi('No active premium features. Upgrade your subscription plan to unlock full capabilities!', 'कोई सक्रिय प्रीमियम सुविधा नहीं। पूर्ण क्षमताओं को अनलॉक करने के लिए अपना प्लान अपग्रेड करें!')}</p>
                 <Link
                   to="/vendor/subscription"
                   className="inline-block px-3.5 py-1.5 bg-[#241b15] text-[#d99a3d] font-black rounded-lg text-xs hover:bg-[#3a2c22] transition"
                 >
-                  Explore Plans
+                  {bi('Explore Plans', 'योजनाएं देखें (Explore Plans)')}
                 </Link>
               </div>
             ) : (
@@ -370,14 +376,16 @@ export default function VendorDashboardPage() {
                 <FiZap size={28} />
               </div>
               <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase text-[#1a1a1a] tracking-wide">
-                Welcome to BizReels! 🎉
+                {bi('Welcome to BizReels! 🎉', 'बिजरील्स में आपका स्वागत है! 🎉')}
               </h2>
               <div className="bg-[#f8f4ec] border border-[#e3dccb] rounded-xl p-4 my-2 space-y-1">
                 <p className="text-sm text-[#1a1a1a] font-bold">
-                  You have received <span className="font-extrabold text-emerald-700 text-base">100 Free Welcome Credits</span> in your wallet!
+                  {bi('You have received ', 'आपको अपने वॉलेट में ')}
+                  <span className="font-extrabold text-emerald-700 text-base">{bi('100 Free Welcome Credits', '100 मुफ्त स्वागत क्रेडिट')}</span>
+                  {bi(' in your wallet!', ' मिले हैं!')}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Your vendor account is now live. Explore your dashboard and start growing your business.
+                  {bi('Your vendor account is now live. Explore your dashboard and start growing your business.', 'आपका विक्रेता खाता अब लाइव है। अपने डैशबोर्ड का अन्वेषण करें और अपना व्यवसाय बढ़ाना शुरू करें।')}
                 </p>
               </div>
             </div>
@@ -386,7 +394,7 @@ export default function VendorDashboardPage() {
               onClick={closeWelcomeModal}
               className="w-full py-3 bg-[#241b15] text-[#d99a3d] font-black rounded-xl text-xs hover:bg-[#3a2c22] transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer border-none"
             >
-              <span>Explore Vendor Portal</span>
+              <span>{bi('Explore Vendor Portal', 'विक्रेता पोर्टल का अन्वेषण करें')}</span>
               <FiArrowRight size={14} />
             </button>
           </div>

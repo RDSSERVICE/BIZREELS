@@ -16,11 +16,13 @@ import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import { useGetCreatorDashboardQuery, useGetCreatorSubscriptionQuery } from '../../../features/creator/creatorApi';
 import { api } from '../../../lib/api';
 import { getSocket } from '../../../lib/socket';
+import { useLanguage } from '../../../context/LanguageContext';
 
 // Reuse DirectChatContainer from vendor directory
 import DirectChatContainer from '../../vendor/hire-creator/components/DirectChatContainer';
 
 export default function CreatorDashboardPage() {
+  const { bi } = useLanguage();
   const currentUser = useSelector(selectCurrentUser);
   const { data, isFetching, refetch: refetchMetrics } = useGetCreatorDashboardQuery(undefined, { pollingInterval: 300000 });
   const statsData = data?.data || data || {};
@@ -98,7 +100,7 @@ export default function CreatorDashboardPage() {
       const reqId = camp?.hireRequest || id;
       
       await api.patch(`/v1/hires/${reqId}`, { status: 'accepted' });
-      toast.success('🟢 Proposal accepted! Direct chat is now active.', { id: toastId });
+      toast.success('Invitation Accepted! You can now submit deliverables.', { id: toastId });
       fetchCampaigns();
       if (typeof refetchMetrics === 'function') refetchMetrics();
     } catch (err) {
@@ -239,22 +241,20 @@ export default function CreatorDashboardPage() {
     }
   };
 
-  const activeSubmittingCampaign = campaigns.find(c => (c._id || c.id) === submittingCampaignId);
-
   const stats = [
-    { label: 'Total Projects', value: String(statsData.totalProjects ?? 0), icon: FiVideo, color: 'purple', trend: statsData.projectsTrend ?? 0 },
-    { label: 'Pending Requests', value: String(campaigns.filter(c => c.status === 'pending').length), icon: FiClock, color: 'amber', trend: statsData.pendingRequestsTrend ?? 0 },
-    { label: 'Total Earnings', value: `₹${(statsData.totalEarnings ?? 0).toLocaleString('en-IN')}`, icon: TbCurrencyRupee, color: 'green', trend: statsData.earningsTrend ?? 0 },
-    { label: 'Rating Reviews', value: `${statsData.rating ?? '0.0'} ★ (${statsData.reviewCount ?? 0})`, icon: FiStar, color: 'pink', trend: statsData.ratingTrend ?? 0 },
-    { label: 'Portfolio Views', value: (statsData.portfolioViews ?? 0).toLocaleString(), icon: FiEye, color: 'cyan', trend: statsData.viewsTrend ?? 0 },
+    { label: bi('Total Earnings', 'कुल कमाई'), value: `₹${(statsData.totalEarnings || 0).toLocaleString('en-IN')}`, icon: TbCurrencyRupee, color: 'emerald' },
+    { label: bi('Active Shoots', 'सक्रिय शूट'), value: String(statsData.activeShoots || 0), icon: FiVideo, color: 'purple' },
+    { label: bi('Pending Invites', 'लंबित निमंत्रण'), value: String(statsData.pendingInvitations || campaigns.filter(c => c.status === 'pending').length || 0), icon: FiClock, color: 'amber' },
+    { label: bi('Portfolio Views', 'पोर्टफोलियो दृश्य'), value: (statsData.portfolioViews || 0).toLocaleString(), icon: FiEye, color: 'blue' },
+    { label: bi('Client Rating', 'क्लाइंट रेटिंग'), value: `${statsData.rating || 5.0} ★`, icon: FiStar, color: 'rose' }
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in pb-16">
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in pb-16 font-sans">
       <AdminPageHeader
         icon={FiVideo}
-        title="Creator Studio & Collaborations Hub"
-        subtitle="Manage brand invitation offers, upload reels submissions, and track earnings metrics"
+        title={bi('Creator Studio & Collaborations Hub', 'क्रिएटर स्टूडियो और सहयोग केंद्र (Collaborations Hub)')}
+        subtitle={bi('Manage brand invitation offers, upload reels submissions, and track earnings metrics', 'ब्रांड निमंत्रण ऑफ़र प्रबंधित करें, रील सबमिशन अपलोड करें और कमाई मेट्रिक्स ट्रैक करें')}
       />
 
       {/* Subscription Status Card */}
@@ -276,7 +276,6 @@ export default function CreatorDashboardPage() {
               value={s.value}
               icon={s.icon}
               color={s.color}
-              trend={s.trend}
             />
           ))}
         </div>
@@ -290,12 +289,12 @@ export default function CreatorDashboardPage() {
         <div className="flex items-center gap-3">
           <FiShield className="text-emerald-500" size={24} />
           <div>
-            <h4 className="text-xs font-bold text-text-primary">Creator KYC Verification Status</h4>
-            <p className="text-[10px] text-text-tertiary">Verified profiles get 5x more direct campaign invitations from top local brands.</p>
+            <h4 className="text-xs font-bold text-text-primary">{bi('Creator KYC Verification Status', 'क्रिएटर केवाईसी सत्यापन स्थिति')}</h4>
+            <p className="text-[10px] text-text-tertiary">{bi('Verified profiles get 5x more direct campaign invitations from top local brands.', 'सत्यापित प्रोफाइल को शीर्ष स्थानीय ब्रांडों से 5 गुना अधिक सीधे अभियान निमंत्रण मिलते हैं।')}</p>
           </div>
         </div>
         <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 font-bold text-[10px] rounded-xl uppercase">
-          {statsData.verificationStatus === 'pro_verified' || statsData.verificationStatus === 'verified_creator' ? 'Verified Badge Active' : 'Get Verified'}
+          {statsData.verificationStatus === 'pro_verified' || statsData.verificationStatus === 'verified_creator' ? bi('Verified Badge Active', 'सत्यापित बैज सक्रिय') : bi('Get Verified', 'सत्यापित करें')}
         </span>
       </div>
 
@@ -304,17 +303,17 @@ export default function CreatorDashboardPage() {
         <div className="flex items-center justify-between border-b border-border pb-3">
           <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
             <FiShield className="text-brand-purple" />
-            <span>Premium Feature Access</span>
+            <span>{bi('Premium Feature Access', 'प्रीमियम सुविधा पहुँच')}</span>
           </h3>
           <Link to="/creator/subscription" className="text-xs text-brand-purple font-bold hover:underline">
-            Upgrade
+            {bi('Upgrade', 'अपग्रेड करें')}
           </Link>
         </div>
 
         <div className="space-y-2">
           {activeFeatures.length === 0 ? (
             <div className="text-center py-6 text-text-tertiary">
-              <p className="text-xs">No active premium features. Upgrade to unlock all benefits!</p>
+              <p className="text-xs">{bi('No active premium features. Upgrade to unlock all benefits!', 'कोई सक्रिय प्रीमियम सुविधाएं नहीं। सभी लाभों को अनलॉक करने के लिए अपग्रेड करें!')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
@@ -337,13 +336,13 @@ export default function CreatorDashboardPage() {
             onClick={() => setActiveTab('invitations')}
             className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'invitations' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
           >
-            Invitations ({campaigns.filter(c => c.status === 'pending').length})
+            {bi('Invitations', 'निमंत्रण')} ({campaigns.filter(c => c.status === 'pending').length})
           </button>
           <button
             onClick={() => setActiveTab('campaigns')}
             className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'campaigns' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
           >
-            <FiActivity size={15} /> Active Shoot Campaigns ({campaigns.filter(c => c.status === 'accepted').length})
+            <FiActivity size={15} /> {bi('Active Shoot Campaigns', 'सक्रिय शूट अभियान')} ({campaigns.filter(c => c.status === 'accepted').length})
           </button>
           <button
             disabled={!chatRecipientId}

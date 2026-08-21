@@ -8,20 +8,22 @@ import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import { useGetCreatorOrdersQuery, useUpdateCreatorOrderStatusMutation } from '../../../features/creator/creatorApi';
-
-const TABS = [
-  { key: 'all', label: 'All Projects', icon: FiBriefcase },
-  { key: 'pending', label: 'Pending', icon: FiClock },
-  { key: 'active', label: 'In Progress', icon: FiBriefcase },
-  { key: 'completed', label: 'Completed', icon: FiCheck },
-  { key: 'cancelled', label: 'Cancelled', icon: FiX },
-];
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function CreatorOrdersPage() {
+  const { bi } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  const TABS = [
+    { key: 'all', label: bi('All Projects', 'सभी प्रोजेक्ट्स'), icon: FiBriefcase },
+    { key: 'pending', label: bi('Pending', 'लंबित'), icon: FiClock },
+    { key: 'active', label: bi('In Progress', 'प्रगति पर'), icon: FiBriefcase },
+    { key: 'completed', label: bi('Completed', 'पूर्ण'), icon: FiCheck },
+    { key: 'cancelled', label: bi('Cancelled', 'रद्द'), icon: FiX },
+  ];
 
   const { data, isFetching } = useGetCreatorOrdersQuery(undefined, { pollingInterval: 300000 });
   const [updateStatus] = useUpdateCreatorOrderStatusMutation();
@@ -48,17 +50,17 @@ export default function CreatorOrdersPage() {
   const handleUpdateStatus = async (id, statusLabel) => {
     try {
       await updateStatus({ id, status: statusLabel }).unwrap();
-      toast.success(`Project status updated to ${statusLabel}!`);
+      toast.success(bi(`Project status updated to ${statusLabel}!`, `प्रोजेक्ट स्थिति बदलकर ${statusLabel} कर दी गई!`));
       setSelectedOrder(null);
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to update status');
+      toast.error(err?.data?.message || bi('Failed to update status', 'स्थिति अपडेट करना विफल रहा'));
     }
   };
 
   const columns = [
     {
       key: 'type',
-      label: 'Type',
+      label: bi('Type', 'प्रकार'),
       render: (val) => (
         <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border uppercase ${
           val === 'Collaboration' ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' : 'bg-blue-500/10 text-blue-600 border-blue-500/20'
@@ -69,46 +71,46 @@ export default function CreatorOrdersPage() {
     },
     {
       key: 'title',
-      label: 'Project',
+      label: bi('Project', 'प्रोजेक्ट'),
       render: (val, row) => (
         <div>
           <span className="font-bold text-text-primary block max-w-[200px] truncate">{val || row.listing_title || 'Project'}</span>
-          <span className="text-[10px] text-text-tertiary">Client: {row.vendor_name || row.buyer_name || 'Vendor'}</span>
+          <span className="text-[10px] text-text-tertiary">{bi('Client:', 'क्लाइंट:')} {row.vendor_name || row.buyer_name || 'Vendor'}</span>
         </div>
       ),
     },
     {
       key: 'amount',
-      label: 'Budget',
+      label: bi('Budget', 'बजट'),
       render: (val, row) => <span className="font-bold text-emerald-600">₹{(val || row.final_amount || row.current_offer || 0).toLocaleString()}</span>,
     },
     {
       key: 'paymentStatus',
-      label: 'Escrow Status',
+      label: bi('Escrow Status', 'एस्क्रो स्थिति'),
       render: (val) => (
         <span className={`text-[10px] font-bold uppercase ${val === 'paid' ? 'text-emerald-600' : 'text-amber-500'}`}>
-          {val === 'paid' ? '● Secure Escrow' : '○ Pending Pay'}
+          {val === 'paid' ? bi('● Secure Escrow', '● सुरक्षित एस्क्रो') : bi('○ Pending Pay', '○ भुगतान लंबित')}
         </span>
       ),
     },
     {
       key: 'status',
-      label: 'Status',
+      label: bi('Status', 'स्थिति'),
       render: (val) => <AdminStatusBadge status={val || 'pending'} />,
     },
     {
       key: 'created_at',
-      label: 'Date',
+      label: bi('Date', 'तिथि'),
       render: (val) => <span className="text-text-tertiary">{val ? new Date(val).toLocaleDateString('en-IN') : '—'}</span>,
     },
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in font-sans pb-16">
       <AdminPageHeader
         icon={FiBriefcase}
-        title="My Projects & Orders"
-        subtitle="Manage vendor project requests, track progress, and mark deliveries"
+        title={bi('My Projects & Orders', 'मेरे प्रोजेक्ट्स और ऑर्डर')}
+        subtitle={bi('Manage vendor project requests, track progress, and mark deliveries', 'विक्रेता प्रोजेक्ट अनुरोध प्रबंधित करें, प्रगति ट्रैक करें और डिलीवरी अपडेट करें')}
       />
 
       <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -117,10 +119,10 @@ export default function CreatorOrdersPage() {
         columns={columns}
         data={filtered}
         loading={isFetching}
-        searchPlaceholder="Search projects..."
+        searchPlaceholder={bi("Search projects...", "प्रोजेक्ट्स खोजें...")}
         searchValue={search}
         onSearch={setSearch}
-        emptyMessage="No projects found in this view."
+        emptyMessage={bi("No projects found in this view.", "इस दृश्य में कोई प्रोजेक्ट नहीं मिला।")}
         testId="creator-orders-table"
         actions={(row) => {
           const status = (row.status || '').toLowerCase();
@@ -129,7 +131,7 @@ export default function CreatorOrdersPage() {
               <button
                 onClick={() => setSelectedOrder(row)}
                 className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition-all"
-                title="View Details"
+                title={bi('View Details', 'विवरण देखें')}
               >
                 <FiInfo className="w-3.5 h-3.5" />
               </button>
@@ -137,7 +139,7 @@ export default function CreatorOrdersPage() {
                 <button
                   onClick={() => navigate(`/creator/chat?userId=${row.vendor_id}&name=${encodeURIComponent(row.vendor_name)}`)}
                   className="p-1.5 rounded-lg hover:bg-brand-orange/10 text-text-tertiary hover:text-brand-orange transition-all"
-                  title="Chat with Client"
+                  title={bi('Chat with Client', 'क्लाइंट से चैट करें')}
                 >
                   <FiMessageSquare className="w-3.5 h-3.5" />
                 </button>
@@ -147,14 +149,14 @@ export default function CreatorOrdersPage() {
                   <button
                     onClick={() => handleUpdateStatus(row.id || row._id, 'accepted')}
                     className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-text-tertiary hover:text-emerald-500 transition-all"
-                    title="Accept Project"
+                    title={bi('Accept Project', 'प्रोजेक्ट स्वीकार करें')}
                   >
                     <FiCheck className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(row.id || row._id, 'rejected')}
                     className="p-1.5 rounded-lg hover:bg-error/10 text-text-tertiary hover:text-error transition-all"
-                    title="Reject Project"
+                    title={bi('Reject Project', 'प्रोजेक्ट अस्वीकार करें')}
                   >
                     <FiX className="w-3.5 h-3.5" />
                   </button>
@@ -164,7 +166,7 @@ export default function CreatorOrdersPage() {
                 <button
                   onClick={() => handleUpdateStatus(row.id || row._id, 'completed')}
                   className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-text-tertiary hover:text-emerald-500 transition-all"
-                  title="Mark Completed"
+                  title={bi('Mark Completed', 'पूर्ण के रूप में चिह्नित करें')}
                 >
                   <FiCheck className="w-3.5 h-3.5" />
                 </button>

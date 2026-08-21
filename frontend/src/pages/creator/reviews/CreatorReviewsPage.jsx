@@ -6,22 +6,24 @@ import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import AdminDataTable from '../../../features/admin/components/AdminDataTable';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 import { api } from '../../../lib/api';
-
-const TABS = [
-  { key: 'all', label: 'All Reviews', icon: FiStar },
-  { key: 'positive', label: 'Positive (4-5★)', icon: FiThumbsUp },
-  { key: 'negative', label: 'Critical (1-3★)', icon: FiMessageSquare },
-];
+import { useLanguage } from '../../../context/LanguageContext';
 
 /**
  * CreatorReviewsPage — Displays reviews received by the creator
  * Uses the same admin component library for UI consistency
  */
 export default function CreatorReviewsPage() {
+  const { bi } = useLanguage();
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const TABS = [
+    { key: 'all', label: bi('All Reviews', 'सभी समीक्षाएं'), icon: FiStar },
+    { key: 'positive', label: bi('Positive (4-5★)', 'सकारात्मक (4-5★)'), icon: FiThumbsUp },
+    { key: 'negative', label: bi('Critical (1-3★)', 'गंभीर (1-3★)'), icon: FiMessageSquare },
+  ];
 
   useEffect(() => {
     fetchCreatorReviews();
@@ -35,7 +37,7 @@ export default function CreatorReviewsPage() {
       setReviews(items);
     } catch (err) {
       console.warn('Could not fetch creator reviews:', err);
-      toast.error('Failed to load reviews');
+      toast.error(bi('Failed to load reviews', 'समीक्षाएं लोड करना विफल रहा'));
       setReviews([]);
     } finally {
       setLoading(false);
@@ -52,16 +54,16 @@ export default function CreatorReviewsPage() {
   const columns = [
     {
       key: 'reviewer',
-      label: 'Reviewer',
+      label: bi('Reviewer', 'समीक्षक'),
       render: (val, row) => (
         <span className="font-bold text-text-primary">
-          {row?.author?.name || row?.author_name || val || 'Verified Customer/Vendor'}
+          {row?.author?.name || row?.author_name || val || bi('Verified Customer/Vendor', 'सत्यापित ग्राहक/विक्रेता')}
         </span>
       ),
     },
     {
       key: 'rating',
-      label: 'Rating',
+      label: bi('Rating', 'रेटिंग'),
       render: (val) => {
         const ratingVal = val || 5;
         return (
@@ -76,21 +78,21 @@ export default function CreatorReviewsPage() {
     },
     {
       key: 'comment',
-      label: 'Comment',
+      label: bi('Comment', 'टिप्पणी'),
       render: (val) => <span className="text-text-secondary">{val || 'No comment provided'}</span>,
     },
     {
       key: 'project',
-      label: 'Project / Item',
+      label: bi('Project / Item', 'प्रोजेक्ट / आइटम'),
       render: (val, row) => (
         <span className="text-xs font-bold text-brand-purple bg-brand-purple/10 px-2 py-0.5 rounded">
-          {row?.target_listing?.title || row?.listing_title || val || 'Direct Collaboration'}
+          {row?.target_listing?.title || row?.listing_title || val || bi('Direct Collaboration', 'सीधा सहयोग')}
         </span>
       ),
     },
     {
       key: 'date',
-      label: 'Date',
+      label: bi('Date', 'तिथि'),
       render: (val, row) => {
         const d = row?.created_at || row?.createdAt || val;
         return <span className="text-text-tertiary">{d ? new Date(d).toLocaleDateString('en-IN') : 'Recent'}</span>;
@@ -98,7 +100,7 @@ export default function CreatorReviewsPage() {
     },
     {
       key: 'status',
-      label: 'Status',
+      label: bi('Status', 'स्थिति'),
       render: (val, row) => <AdminStatusBadge status={row?.status || val || 'published'} />,
     },
   ];

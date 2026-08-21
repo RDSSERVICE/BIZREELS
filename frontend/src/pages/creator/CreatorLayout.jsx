@@ -6,55 +6,20 @@ import { toast } from 'react-hot-toast';
 import {
   FiGrid, FiUser, FiFilm, FiClock, FiCreditCard,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
-  FiBarChart2, FiBriefcase, FiStar, FiMessageSquare, FiSettings, FiCheck, FiFileText
+  FiBarChart2, FiBriefcase, FiStar, FiMessageSquare, FiSettings, FiCheck, FiFileText, FiGlobe
 } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, selectCurrentUser, setActiveRole } from '../../features/auth/authSlice';
 import { api, tokenStore } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
-
-const NAV_SECTIONS = [
-  {
-    title: 'Overview',
-    items: [
-      { name: 'Dashboard', path: '/creator/dashboard', icon: FiGrid },
-      { name: 'Settings', path: '/creator/settings', icon: FiSettings },
-    ],
-  },
-  {
-    title: 'Profile & Work',
-    items: [
-      { name: 'Profile', path: '/creator/profile', icon: FiUser },
-      { name: 'Onboarding Details', path: '/creator/onboarding-details', icon: FiFileText },
-      { name: 'Verification Center', path: '/creator/verification', icon: FiShield },
-      { name: 'Portfolio', path: '/creator/portfolio', icon: FiFilm },
-      { name: 'Pricing', path: '/creator/pricing', icon: TbCurrencyRupee },
-      { name: 'Availability', path: '/creator/availability', icon: FiClock },
-    ],
-  },
-  {
-    title: 'Projects',
-    items: [
-      { name: 'My Orders', path: '/creator/orders', icon: FiBriefcase },
-      { name: 'Chats', path: '/creator/chat', icon: FiMessageSquare },
-      { name: 'Reviews', path: '/creator/reviews', icon: FiStar },
-      { name: 'Analytics', path: '/creator/analytics', icon: FiBarChart2 },
-    ],
-  },
-  {
-    title: 'Finance',
-    items: [
-      { name: 'Subscription', path: '/creator/subscription', icon: FiCreditCard },
-      { name: 'Wallet & Earnings', path: '/creator/wallet', icon: TbCurrencyRupee },
-    ],
-  },
-];
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * CreatorLayout — Warm Editorial Bento Sidebar Layout for Creator Studio
  */
 export default function CreatorLayout() {
+  const { lang, toggleLang, bi, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -76,6 +41,43 @@ export default function CreatorLayout() {
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   const roleDropdownRef = useRef(null);
+
+  const NAV_SECTIONS = [
+    {
+      title: bi('Overview', 'अवलोकन'),
+      items: [
+        { name: bi('Dashboard', 'डैशबोर्ड'), path: '/creator/dashboard', icon: FiGrid },
+        { name: bi('Settings', 'सेटिंग्स'), path: '/creator/settings', icon: FiSettings },
+      ],
+    },
+    {
+      title: bi('Profile & Work', 'प्रोफ़ाइल और कार्य'),
+      items: [
+        { name: bi('Profile', 'प्रोफ़ाइल'), path: '/creator/profile', icon: FiUser },
+        { name: bi('Onboarding Details', 'ऑनबोर्डिंग विवरण'), path: '/creator/onboarding-details', icon: FiFileText },
+        { name: bi('Verification Center', 'सत्यापन केंद्र'), path: '/creator/verification', icon: FiShield },
+        { name: bi('Portfolio', 'पोर्टफोलियो'), path: '/creator/portfolio', icon: FiFilm },
+        { name: bi('Pricing Rates', 'मूल्य निर्धारण दरें'), path: '/creator/pricing', icon: TbCurrencyRupee },
+        { name: bi('Availability', 'उपलब्धता'), path: '/creator/availability', icon: FiClock },
+      ],
+    },
+    {
+      title: bi('Projects & Earnings', 'परियोजनाएं और कमाई'),
+      items: [
+        { name: bi('My Orders', 'मेरे ऑर्डर'), path: '/creator/orders', icon: FiBriefcase },
+        { name: bi('Chats', 'चैट इनबॉक्स'), path: '/creator/chat', icon: FiMessageSquare },
+        { name: bi('Reviews', 'समीक्षाएं'), path: '/creator/reviews', icon: FiStar },
+        { name: bi('Analytics', 'एनालिटिक्स'), path: '/creator/analytics', icon: FiBarChart2 },
+      ],
+    },
+    {
+      title: bi('Finance & Account', 'वित्त और खाता'),
+      items: [
+        { name: bi('Subscription', 'सब्सक्रिप्शन'), path: '/creator/subscription', icon: FiCreditCard },
+        { name: bi('Wallet & Earnings', 'वॉलेट और कमाई'), path: '/creator/wallet', icon: TbCurrencyRupee },
+      ],
+    },
+  ];
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -247,7 +249,7 @@ export default function CreatorLayout() {
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-black text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all border border-rose-200 cursor-pointer"
         >
           <FiLogOut className="w-4 h-4" />
-          <span>Sign Out</span>
+          <span>{bi('Sign Out', 'साइन आउट')}</span>
         </button>
       </div>
     </div>
@@ -258,21 +260,21 @@ export default function CreatorLayout() {
 
   const getTierBadge = () => {
     if (currentTier === 'pro_verified' || (isSubscribed && currentTier === 'verified_creator')) {
-      return { icon: '🔵', label: 'Pro Verified', class: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
+      return { icon: '🔵', label: bi('Pro Verified', 'प्रो सत्यापित'), class: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
     }
     if (currentTier === 'verified_creator') {
-      return { icon: '🟢', label: 'Verified Creator', class: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      return { icon: '🟢', label: bi('Verified Creator', 'सत्यापित क्रिएटर'), class: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
     }
     if (currentTier === 'partially_verified') {
-      return { icon: '🟡', label: 'Partially Verified', class: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+      return { icon: '🟡', label: bi('Partially Verified', 'आंशिक रूप से सत्यापित'), class: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
     }
-    return { icon: '⚪', label: 'Unverified Creator', class: 'bg-slate-500/10 text-slate-600 border-slate-500/20' };
+    return { icon: '⚪', label: bi('Unverified Creator', 'अपुष्ट क्रिएटर'), class: 'bg-slate-500/10 text-slate-600 border-slate-500/20' };
   };
 
   const badgeInfo = getTierBadge();
 
   return (
-    <div className="min-h-screen bg-surface-secondary flex">
+    <div className="min-h-screen bg-surface-secondary flex font-sans">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-surface border-r border-border fixed top-0 bottom-0 left-0 z-30">
         <SidebarContent onItemClick={() => {}} />
@@ -309,9 +311,9 @@ export default function CreatorLayout() {
             </button>
             <div className="flex items-center gap-2 min-w-0">
               <img src="/logo.png" alt="BizReels Logo" className="h-7 w-auto lg:hidden flex-shrink-0" />
-              <h1 className="text-sm font-bold text-text-primary font-display hidden md:block">Creator Studio</h1>
+              <h1 className="text-sm font-bold text-text-primary font-display hidden md:block">CREATOR STUDIO</h1>
 
-              {/* Top Bar Status Badge — icon-only on very small screens */}
+              {/* Top Bar Status Badge */}
               <Link
                 to="/creator/verification"
                 className={`px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold border flex items-center gap-1 sm:gap-1.5 transition hover:opacity-80 flex-shrink-0 ${badgeInfo.class}`}
@@ -338,14 +340,14 @@ export default function CreatorLayout() {
               {isRoleDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-xl shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
                   <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
-                    Switch Active Role
+                    {bi('Switch Active Role', 'सक्रिय भूमिका बदलें')}
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRoleSwitch('customer')}
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
-                    <span>Customer</span>
+                    <span>{bi('Customer', 'ग्राहक (Customer)')}</span>
                   </button>
 
                   <button
@@ -354,9 +356,9 @@ export default function CreatorLayout() {
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
                     <div className="flex items-center gap-2">
-                      <span>Vendor</span>
+                      <span>{bi('Vendor', 'विक्रेता (Vendor)')}</span>
                       {!roles.includes('vendor') && (
-                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">{bi('Join', 'जुड़ें')}</span>
                       )}
                     </div>
                   </button>
@@ -367,15 +369,26 @@ export default function CreatorLayout() {
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
                     <div className="flex items-center gap-2">
-                      <span>Creator</span>
+                      <span>{bi('Creator', 'क्रिएटर (Creator)')}</span>
                       {!roles.includes('creator') && (
-                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">{bi('Join', 'जुड़ें')}</span>
                       )}
                     </div>
                   </button>
                 </div>
               )}
             </div>
+
+            {/* Language Switcher Toggle */}
+            <button
+              type="button"
+              onClick={toggleLang}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border-[1.5px] border-[#d99a3d] text-[#1a1a1a] text-xs font-black hover:bg-[#faf6ee] hover:scale-105 transition-all cursor-pointer shadow-2xs flex-shrink-0"
+              title="Switch Language / भाषा बदलें"
+            >
+              <FiGlobe size={15} className="text-[#d99a3d]" />
+              <span>{lang === 'en' ? 'हिंदी' : 'English'}</span>
+            </button>
 
             <NotificationBellDropdown role="creator" />
 
@@ -392,13 +405,13 @@ export default function CreatorLayout() {
           <div className="bg-gradient-to-r from-brand-purple via-brand-pink to-brand-orange text-white px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold flex items-center justify-between gap-2 sm:gap-3 shadow-md">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-sm sm:text-base flex-shrink-0">🟢</span>
-              <span className="truncate text-[10px] sm:text-xs">Verify your Creator profile for 5x more brand offers & verified badge!</span>
+              <span className="truncate text-[10px] sm:text-xs">{bi('Verify your Creator profile for 5x more brand offers & verified badge!', 'ब्रांड ऑफ़र और सत्यापित बैज प्राप्त करने के लिए अपनी क्रिएटर प्रोफ़ाइल सत्यापित करें!')}</span>
             </div>
             <Link
               to="/creator/verification"
               className="px-2.5 sm:px-3 py-1 bg-white text-brand-purple rounded-lg font-bold text-[10px] sm:text-[11px] hover:bg-white/90 transition flex-shrink-0 shadow-sm whitespace-nowrap"
             >
-              Verify Now
+              {bi('Verify Now', 'अभी सत्यापित करें')}
             </Link>
           </div>
         )}

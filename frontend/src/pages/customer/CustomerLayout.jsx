@@ -461,10 +461,10 @@ export default function CustomerLayout() {
             <button
               onClick={toggleLang}
               title="Switch Language / भाषा बदलें"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#d99a3d] text-xs font-bold text-[#1a1a1a] shadow-xs cursor-pointer hover:bg-[#faf6ee] transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border-[1.5px] border-[#d99a3d] text-xs font-black text-[#1a1a1a] shadow-2xs cursor-pointer hover:bg-[#faf6ee] hover:scale-105 transition-all"
             >
-              <FiGlobe className="text-[#d99a3d]" size={14} />
-              <span>{lang === 'en' ? 'EN' : 'हिंदी'}</span>
+              <FiGlobe className="text-[#d99a3d]" size={15} />
+              <span>{lang === 'en' ? 'हिंदी' : 'English'}</span>
             </button>
 
             {/* Geolocation Pill */}

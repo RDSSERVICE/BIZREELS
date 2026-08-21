@@ -16,8 +16,10 @@ import CreatorProfileView from './components/CreatorProfileView';
 import HireCreatorModal from './components/HireCreatorModal';
 import VendorCampaignsTab from './components/VendorCampaignsTab';
 import DirectChatContainer from './components/DirectChatContainer';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorHireCreatorPage() {
+  const { bi, t } = useLanguage();
   const currentUser = useSelector(selectCurrentUser);
   const currentUserId = currentUser?._id || currentUser?.id;
 
@@ -325,50 +327,56 @@ export default function VendorHireCreatorPage() {
     <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans animate-fade-in pb-16 p-2 sm:p-4">
       <AdminPageHeader
         icon={FiUserCheck}
-        title="Creator Discovery & Campaigns Hub"
-        subtitle="Manage end-to-end shorts video shoots, search verified creators, release escrow payments, and coordinate deliverables"
+        title={bi('Creator Discovery & Campaigns Hub', 'क्रिएटर खोज एवं अभियान हब (Hire Creator)')}
+        subtitle={bi('Manage end-to-end shorts video shoots, search verified creators, release escrow payments, and coordinate deliverables', 'शॉर्ट्स वीडियो शूट प्रबंधित करें, सत्यापित क्रिएटर्स खोजें और डिलीवरी समन्वित करें')}
       />
 
-      {/* Tabs bar */}
-      <div className="flex border-b border-[#e3dccb] gap-2 text-xs font-black">
+      {/* Main Tab Switcher */}
+      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-3 overflow-x-auto">
         <button
           type="button"
-          onClick={() => { setSelectedCreatorId(null); setActiveTab('discover'); }}
-          className={`px-4 py-2.5 rounded-t-xl flex items-center gap-2 transition-all cursor-pointer border-t border-x ${
+          onClick={() => setActiveTab('discover')}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
             activeTab === 'discover'
-              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
-              : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb] hover:bg-white hover:text-[#1a1a1a]'
+              ? 'bg-[#241b15] text-[#d99a3d] shadow-xs border-none'
+              : 'bg-[#f8f4ec] text-slate-600 hover:text-[#1a1a1a] hover:bg-white border border-[#e3dccb]'
           }`}
         >
-          <FiGrid size={15} />
-          <span>Discover Creators</span>
+          <FiSearch size={14} className={activeTab === 'discover' ? 'text-[#d99a3d]' : 'text-slate-400'} />
+          <span>{bi('Discover Creators', 'क्रिएटर्स की खोज करें (Discover)')}</span>
         </button>
 
         <button
           type="button"
-          onClick={() => { setSelectedCreatorId(null); setActiveTab('campaigns'); }}
-          className={`px-4 py-2.5 rounded-t-xl flex items-center gap-2 transition-all cursor-pointer border-t border-x ${
+          onClick={() => setActiveTab('campaigns')}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
             activeTab === 'campaigns'
-              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
-              : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb] hover:bg-white hover:text-[#1a1a1a]'
+              ? 'bg-[#241b15] text-[#d99a3d] shadow-xs border-none'
+              : 'bg-[#f8f4ec] text-slate-600 hover:text-[#1a1a1a] hover:bg-white border border-[#e3dccb]'
           }`}
         >
-          <FiActivity size={15} />
-          <span>Hires &amp; Campaigns</span>
+          <FiActivity size={14} className={activeTab === 'campaigns' ? 'text-[#d99a3d]' : 'text-slate-400'} />
+          <span>{bi('My Campaigns & Shoots', 'मेरे अभियान और शूट (Campaigns)')}</span>
+          {campaigns.length > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeTab === 'campaigns' ? 'bg-[#d99a3d] text-[#241b15]' : 'bg-[#e3dccb] text-slate-700'
+            }`}>
+              {campaigns.length}
+            </span>
+          )}
         </button>
 
         <button
           type="button"
-          disabled={!chatRecipientId}
-          onClick={() => { setSelectedCreatorId(null); setActiveTab('chat'); }}
-          className={`px-4 py-2.5 rounded-t-xl flex items-center gap-2 transition-all border-t border-x disabled:opacity-40 disabled:cursor-not-allowed ${
+          onClick={() => setActiveTab('chat')}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
             activeTab === 'chat'
-              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
-              : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb] hover:bg-white hover:text-[#1a1a1a]'
+              ? 'bg-[#241b15] text-[#d99a3d] shadow-xs border-none'
+              : 'bg-[#f8f4ec] text-slate-600 hover:text-[#1a1a1a] hover:bg-white border border-[#e3dccb]'
           }`}
         >
-          <FiMessageSquare size={15} />
-          <span>Collaboration Chat</span>
+          <FiMessageSquare size={14} className={activeTab === 'chat' ? 'text-[#d99a3d]' : 'text-slate-400'} />
+          <span>{bi('Creator Chat & Coordination', 'क्रिएटर चैट (Creator Chat)')}</span>
         </button>
       </div>
 

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { selectCurrentUser, setCredentials } from '../../../features/auth/authSlice';
 import { api } from '../../../lib/api';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const BADGE_DESCRIPTIONS = {
   unverified: {
@@ -37,6 +38,7 @@ const BADGE_DESCRIPTIONS = {
 };
 
 export default function CreatorVerificationPage() {
+  const { bi, t } = useLanguage();
   const dispatch = useDispatch();
   const currentUser = useSelector(selectCurrentUser);
   const creatorProfile = currentUser?.creatorProfile || {};
@@ -231,8 +233,8 @@ export default function CreatorVerificationPage() {
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in pb-16">
       <AdminPageHeader
         icon={FiShield}
-        title="Creator Verification Center"
-        subtitle="Verify your contact details, government identity (Aadhaar & PAN), and UPI/Bank payout account to earn your verified creator badge."
+        title={bi('Creator Verification Center', 'क्रिएटर सत्यापन केंद्र')}
+        subtitle={bi('Verify your contact details, government identity (Aadhaar & PAN), and UPI/Bank payout account to earn your verified creator badge.', 'अपना सत्यापित क्रिएटर बैज अर्जित करने के लिए अपने संपर्क विवरण, सरकारी पहचान (आधार और पैन), और यूपीआई/बैंक पेआउट खाते को सत्यापित करें।')}
       />
 
       {/* TOP HEADER & STATUS BADGE BANNER */}
@@ -257,7 +259,7 @@ export default function CreatorVerificationPage() {
 
           <div className="text-right min-w-[100px] sm:min-w-[140px]">
             <span className="text-2xl font-black text-text-primary font-display">{statusData.completionPercentage}%</span>
-            <span className="block text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Verification Score</span>
+            <span className="block text-[10px] font-bold text-text-tertiary uppercase tracking-wider">{bi('Verification Score', 'सत्यापन स्कोर')}</span>
           </div>
         </div>
 
@@ -270,8 +272,8 @@ export default function CreatorVerificationPage() {
             />
           </div>
           <p className="text-[11px] text-text-secondary flex items-center justify-between font-semibold">
-            <span>Priority placement in Creator Marketplace</span>
-            <span className="text-brand-purple font-bold">Get 5x More Brand Offers</span>
+            <span>{bi('Priority placement in Creator Marketplace', 'क्रिएटर मार्केटप्लेस में प्राथमिकता')}</span>
+            <span className="text-brand-purple font-bold">{bi('Get 5x More Brand Offers', '5 गुना अधिक ब्रांड ऑफ़र प्राप्त करें')}</span>
           </p>
         </div>
 
@@ -282,8 +284,8 @@ export default function CreatorVerificationPage() {
               <FiZap size={20} />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-text-primary">Verify Profile to Boost Creator Rank</h4>
-              <p className="text-[11px] text-text-secondary">Verified creators receive 95% higher brand collaboration requests and direct vendor campaign invites!</p>
+              <h4 className="text-xs font-bold text-text-primary">{bi('Verify Profile to Boost Creator Rank', 'क्रिएटर रैंक बढ़ाने के लिए प्रोफ़ाइल सत्यापित करें')}</h4>
+              <p className="text-[11px] text-text-secondary">{bi('Verified creators receive 95% higher brand collaboration requests and direct vendor campaign invites!', 'सत्यापित क्रिएटर्स को 95% अधिक ब्रांड सहयोग अनुरोध और सीधे विक्रेता अभियान निमंत्रण मिलते हैं!')}</p>
             </div>
           </div>
         </div>
@@ -299,7 +301,7 @@ export default function CreatorVerificationPage() {
               : 'glass text-text-secondary hover:text-text-primary'
           }`}
         >
-          <FiPhone size={14} /> Contact Details Verification
+          <FiPhone size={14} /> {bi('Contact Details Verification', 'संपर्क विवरण सत्यापन')}
         </button>
 
         <button
@@ -310,7 +312,7 @@ export default function CreatorVerificationPage() {
               : 'glass text-text-secondary hover:text-text-primary'
           }`}
         >
-          <FiFileText size={14} /> Identity Documents (Aadhaar & PAN)
+          <FiFileText size={14} /> {bi('Identity Documents (Aadhaar & PAN)', 'पहचान दस्तावेज़ (आधार और पैन)')}
         </button>
 
         <button
@@ -321,7 +323,7 @@ export default function CreatorVerificationPage() {
               : 'glass text-text-secondary hover:text-text-primary'
           }`}
         >
-          <FiCreditCard size={14} /> UPI & Bank Payout Details
+          <FiCreditCard size={14} /> {bi('UPI & Bank Payout Details', 'यूपीआई और बैंक भुगतान विवरण')}
         </button>
       </div>
 

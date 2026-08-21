@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import { api, mediaApi } from '../../../lib/api';
+import { useLanguage } from '../../../context/LanguageContext';
 
 // Subcomponents
 import ProductCategorySection from './product-form/ProductCategorySection';
@@ -26,6 +27,7 @@ export default function ProductFormModal({
   onboardedSubcategories = [],
   vendorCoords = null,
 }) {
+  const { bi, t } = useLanguage();
   const isEdit = !!editData;
 
   const defaultCat = editData?.category || registeredCat || (onboardedCategories && onboardedCategories[0]) || '';
@@ -559,10 +561,11 @@ export default function ProductFormModal({
     <AdminModal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? 'Edit Product Listing' : 'Add New Product Listing'}
-      maxWidth="max-w-3xl"
+      title={isEdit ? bi('Edit Product Listing', 'उत्पाद सूची संपादित करें') : bi('Add New Product Listing', 'नया उत्पाद जोड़ें')}
+      subtitle={bi('Fill details to showcase your product in BizReels local marketplace & product feeds', 'बिजरील्स मार्केटप्लेस में अपना उत्पाद दिखाने के लिए विवरण भरें')}
+      maxWidth="max-w-4xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Category & Classification */}
         <ProductCategorySection
           form={form}
@@ -627,16 +630,16 @@ export default function ProductFormModal({
         {/* Status */}
         <div>
           <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
-            Listing Status
+            {bi('Listing Status', 'सूची स्थिति')}
           </label>
           <select
             value={form.status}
             onChange={(e) => updateForm('status', e.target.value)}
             className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary"
           >
-            <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="hidden">Hidden</option>
+            <option value="published">{bi('Published', 'प्रकाशित')}</option>
+            <option value="draft">{bi('Draft', 'ड्राफ्ट')}</option>
+            <option value="hidden">{bi('Hidden', 'छिपा हुआ')}</option>
           </select>
         </div>
 
@@ -645,7 +648,7 @@ export default function ProductFormModal({
           disabled={submitting}
           className="w-full py-3.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl font-black text-xs shadow-2xs disabled:opacity-50 transition cursor-pointer border-none"
         >
-          {submitting ? 'Saving...' : isEdit ? 'Update Product Listing' : 'Publish Product to Marketplace'}
+          {submitting ? bi('Saving...', 'सहेजा जा रहा है...') : isEdit ? bi('Update Product Listing', 'उत्पाद सूची अपडेट करें') : bi('Publish Product to Marketplace', 'मार्केटप्लेस पर उत्पाद प्रकाशित करें')}
         </button>
       </form>
     </AdminModal>

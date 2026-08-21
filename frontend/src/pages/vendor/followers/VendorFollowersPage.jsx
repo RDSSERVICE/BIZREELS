@@ -4,8 +4,10 @@ import { FiUsers, FiSearch, FiMessageSquare, FiTrendingUp } from 'react-icons/fi
 import toast from 'react-hot-toast';
 import { api, resolveMediaUrl } from '../../../lib/api';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorFollowersPage() {
+  const { bi, t } = useLanguage();
   const navigate = useNavigate();
 
   // State
@@ -51,63 +53,69 @@ export default function VendorFollowersPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans animate-fade-in pb-16 p-2 sm:p-4">
       {/* Header */}
       <AdminPageHeader
         icon={FiUsers}
-        title="Followers & Audience"
-        description="Monitor your followed users, target leads, and real-time audience engagement stats."
+        title={bi('Followers & Loyal Audience', 'फॉलोअर्स और वफादार दर्शक (Followers)')}
+        subtitle={bi('Track customers who follow your business and send direct broadcast messages', 'अपने व्यवसाय का अनुसरण करने वाले ग्राहकों को ट्रैक करें')}
       />
 
-      {/* Summary Cards */}
+      {/* Stats Overview Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="glass border border-white/50 p-5 rounded-2xl flex items-center gap-4 shadow-card">
-          <div className="w-12 h-12 bg-brand-purple/10 text-brand-purple rounded-xl flex items-center justify-center">
-            <FiUsers size={24} />
-          </div>
+        <div className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-text-tertiary uppercase tracking-wider font-bold">Total Followers</span>
-            <h3 className="text-xl font-black text-text-primary">{followers.length}</h3>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">{bi('TOTAL FOLLOWERS', 'कुल फॉलोअर्स')}</span>
+            <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] mt-1">
+              {followers.length}
+            </h3>
+            <span className="text-xs text-slate-500 font-bold mt-0.5 block">{bi('Active Customers', 'सक्रिय ग्राहक')}</span>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center shrink-0">
+            <FiUsers size={22} />
           </div>
         </div>
 
-        <div className="glass border border-white/50 p-5 rounded-2xl flex items-center gap-4 shadow-card">
-          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center">
-            <FiTrendingUp size={24} />
-          </div>
+        <div className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-text-tertiary uppercase tracking-wider font-bold">Audience Growth</span>
-            <h3 className="text-xl font-black text-emerald-600">+100%</h3>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">{bi('AUDIENCE REACH', 'दर्शकों तक पहुंच')}</span>
+            <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-emerald-700 mt-1">
+              {bi('100% Direct', '100% प्रत्यक्ष')}
+            </h3>
+            <span className="text-xs text-slate-500 font-bold mt-0.5 block">{bi('Free Customer Updates', 'मुफ्त ग्राहक अपडेट')}</span>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+            <FiTrendingUp size={22} />
           </div>
         </div>
       </div>
 
-      {/* Followers Directory Card */}
-      <div className="glass border border-white/50 rounded-3xl p-6 shadow-card space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h4 className="font-bold text-xs text-text-primary uppercase tracking-wide">Followers Directory</h4>
-
-          {/* Search bar */}
-          <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search followers by name..."
-              className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple transition font-medium"
-            />
-            <FiSearch className="absolute left-3 top-2.5 text-text-tertiary" size={14} />
-          </div>
+      {/* Search Input Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] shadow-2xs">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={bi('Search followers by name...', 'नाम से फॉलोअर्स खोजें...')}
+            className="w-full pl-10 pr-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+          />
+          <FiSearch className="absolute left-3.5 top-3 text-slate-400" size={15} />
         </div>
+      </div>
 
+      {/* Followers List Card */}
+      <div className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs space-y-4">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <div className="w-8 h-8 border-3 border-brand-purple border-t-transparent rounded-full animate-spin" />
-            <span className="text-[11px] text-text-tertiary">Loading audience...</span>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-8 h-8 border-3 border-[#d99a3d] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-bold text-slate-500">{bi('Loading audience...', 'दर्शक लोड हो रहे हैं...')}</span>
           </div>
         ) : filteredFollowers.length === 0 ? (
-          <div className="text-center py-16 text-xs text-text-tertiary">
-            {searchTerm ? 'No followers match your search.' : 'You do not have any followers yet. Post engaging reels to gain an audience!'}
+          <div className="text-center py-12 text-xs text-slate-500 font-medium">
+            {searchTerm
+              ? bi('No followers match your search.', 'आपकी खोज से कोई फॉलोवर मेल नहीं खाता।')
+              : bi('You do not have any followers yet. Post engaging reels to gain an audience!', 'आपके पास अभी तक कोई फॉलोवर नहीं है। नए दर्शक पाने के लिए रील्स पोस्ट करें!')}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -118,10 +126,10 @@ export default function VendorFollowersPage() {
               return (
                 <div
                   key={follower.id || follower._id}
-                  className="bg-surface/50 border border-border rounded-2xl p-4 flex justify-between items-center gap-3 hover:bg-surface transition shadow-sm"
+                  className="bg-[#f8f4ec] border border-[#e3dccb] rounded-2xl p-4 flex justify-between items-center gap-3 hover:border-[#241b15] transition shadow-2xs"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-surface-tertiary overflow-hidden border border-border flex items-center justify-center font-bold text-brand-purple">
+                    <div className="w-10 h-10 rounded-full bg-white border-2 border-[#d99a3d] flex items-center justify-center font-black text-[#1a1a1a] overflow-hidden">
                       {follower.profile_pic || follower.avatarUrl ? (
                         <img src={profilePic} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -129,8 +137,8 @@ export default function VendorFollowersPage() {
                       )}
                     </div>
                     <div>
-                      <h5 className="font-bold text-xs text-text-primary">{follower.name || 'Anonymous'}</h5>
-                      <span className="text-[9px] bg-brand-purple/10 text-brand-purple px-1.5 py-0.5 rounded font-bold uppercase mt-1 inline-block">
+                      <h5 className="font-extrabold text-xs text-[#1a1a1a]">{follower.name || 'Customer'}</h5>
+                      <span className="text-[9px] bg-[#241b15] text-[#d99a3d] px-1.5 py-0.5 rounded font-black uppercase mt-1 inline-block">
                         {rolesList.join(', ')}
                       </span>
                     </div>
@@ -138,11 +146,11 @@ export default function VendorFollowersPage() {
 
                   <button
                     onClick={() => handleMessageFollower(follower)}
-                    className="p-2.5 bg-surface border border-border hover:bg-surface-tertiary text-brand-purple rounded-xl transition flex items-center justify-center gap-1.5 text-xs font-bold"
+                    className="px-3 py-1.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl transition flex items-center gap-1.5 text-xs font-black cursor-pointer border-none"
                     title="Send message"
                   >
-                    <FiMessageSquare size={15} />
-                    <span className="hidden sm:inline">Chat</span>
+                    <FiMessageSquare size={14} />
+                    <span className="hidden sm:inline">{bi('Chat', 'चैट')}</span>
                   </button>
                 </div>
               );

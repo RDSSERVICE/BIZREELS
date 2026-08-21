@@ -322,8 +322,8 @@ export default function VendorLeadsPage() {
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-12">
       <AdminPageHeader
         icon={FiInbox}
-        title="Leads & Customer Inquiries"
-        subtitle="Manage direct product/service customer inquiries, quote requests, and broadcast buyer requirements"
+        title={bi('Leads & Customer Inquiries', 'लीड्स व ग्राहक पूछताछ (Leads & Inquiries)')}
+        subtitle={bi('Manage direct product/service customer inquiries, quote requests, and broadcast buyer requirements', 'प्रत्यक्ष उत्पाद/सेवा ग्राहक पूछताछ, कोटेशन अनुरोधों और खरीदार की आवश्यकताओं को प्रबंधित करें')}
       />
 
       <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={handleTabChange} />
@@ -339,7 +339,7 @@ export default function VendorLeadsPage() {
         {activeTab === 'all-enquiries' && !isLeadsFetching && (
           <InquiryList
             inquiries={allInquiries}
-            emptyText="No customer enquiries received yet."
+            emptyText={bi('No customer enquiries received yet.', 'अभी तक कोई ग्राहक पूछताछ प्राप्त नहीं हुई।')}
             onReply={handleOpenReplyModal}
             onClose={handleCloseInquiry}
             onDelete={handleDeleteInquiry}
@@ -350,7 +350,7 @@ export default function VendorLeadsPage() {
         {activeTab === 'product-enquiries' && !isLeadsFetching && (
           <InquiryList
             inquiries={productEnquiries}
-            emptyText="No product enquiries found."
+            emptyText={bi('No product enquiries found.', 'कोई उत्पाद पूछताछ नहीं मिली।')}
             onReply={handleOpenReplyModal}
             onClose={handleCloseInquiry}
             onDelete={handleDeleteInquiry}
@@ -361,7 +361,7 @@ export default function VendorLeadsPage() {
         {activeTab === 'service-enquiries' && !isLeadsFetching && (
           <InquiryList
             inquiries={serviceEnquiries}
-            emptyText="No service enquiries found."
+            emptyText={bi('No service enquiries found.', 'कोई सेवा पूछताछ नहीं मिली।')}
             onReply={handleOpenReplyModal}
             onClose={handleCloseInquiry}
             onDelete={handleDeleteInquiry}
@@ -372,7 +372,7 @@ export default function VendorLeadsPage() {
         {activeTab === 'quote-requests' && !isLeadsFetching && (
           <InquiryList
             inquiries={quoteRequests}
-            emptyText="No callback or quote requests found."
+            emptyText={bi('No callback or quote requests found.', 'कोई कॉलबैक या कोटेशन अनुरोध नहीं मिला।')}
             onReply={handleOpenReplyModal}
             onClose={handleCloseInquiry}
             onDelete={handleDeleteInquiry}

@@ -7,7 +7,7 @@ import {
   FiGrid, FiUser, FiPackage, FiVideo, FiZap, FiInbox, FiShoppingCart,
   FiPieChart, FiCreditCard, FiDollarSign, FiStar, FiUserCheck, FiSettings,
   FiShield, FiLogOut, FiMenu, FiX, FiBell, FiChevronDown, FiChevronRight,
-  FiCheckCircle, FiMessageSquare, FiCheck, FiFileText, FiTv, FiFilm
+  FiCheckCircle, FiMessageSquare, FiCheck, FiFileText, FiTv, FiFilm, FiGlobe
 } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
@@ -136,56 +136,56 @@ export default function VendorLayout() {
 
   const menuItems = [
     // Main
-    { label: bi('Dashboard', 'डैशबोर्ड (Dashboard)'), path: '/vendor/dashboard', icon: FiGrid },
-    { label: bi('My Listings', 'मेरी लिस्टिंग्स (My Listings)'), path: '/vendor/listings', icon: FiPackage },
-    { label: bi('Reels & AI Ads', 'रील्स और विज्ञापन (Reels & AI Ads)'), path: '/vendor/reels', icon: FiVideo },
-    { label: bi('Leads / Enquiries', 'लीड्स / पूछताछ (Leads / Enquiries)'), path: '/vendor/leads', icon: FiInbox },
-    { label: bi('Order Requests', 'ऑर्डर अनुरोध (Order Requests)'), path: '/vendor/orders', icon: FiShoppingCart },
-    { label: bi('Chat / Inbox', 'चैट / इनबॉक्स (Chat / Inbox)'), path: '/vendor/chat', icon: FiMessageSquare },
+    { label: bi('Dashboard', 'डैशबोर्ड'), path: '/vendor/dashboard', icon: FiGrid },
+    { label: bi('My Listings', 'मेरी लिस्टिंग्स'), path: '/vendor/listings', icon: FiPackage },
+    { label: bi('Reels & AI Ads', 'रील्स व विज्ञापन'), path: '/vendor/reels', icon: FiVideo },
+    { label: bi('Leads / Enquiries', 'लीड्स व पूछताछ'), path: '/vendor/leads', icon: FiInbox },
+    { label: bi('Order Requests', 'ऑर्डर अनुरोध'), path: '/vendor/orders', icon: FiShoppingCart },
+    { label: bi('Chat / Inbox', 'चैट इनबॉक्स'), path: '/vendor/chat', icon: FiMessageSquare },
 
     // Portals
-    { label: bi('Customer Feed', 'ग्राहक फीड (Customer Feed)'), path: '/customer/home', icon: FiTv },
+    { label: bi('Customer Feed', 'ग्राहक फीड'), path: '/customer/home', icon: FiTv },
     {
       label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName)
-        ? bi('Creator Portal', 'क्रिएटर पोर्टल (Creator Portal)')
-        : bi('Become a Creator', 'क्रिएटर बनें (Become a Creator)'),
+        ? bi('Creator Portal', 'क्रिएटर पोर्टल')
+        : bi('Become a Creator', 'क्रिएटर बनें'),
       path: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? '/creator/dashboard' : '/creator/onboarding',
       icon: FiFilm,
       highlight: !(roles.includes('creator') && profileUser?.creatorProfile?.displayName)
     },
 
     // Business & Growth
-    { label: bi('Business Profile', 'बिजनेस प्रोफाइल (Business Profile)'), path: '/vendor/profile', icon: FiUser },
-    { label: bi('Onboarding Details', 'ऑनबोर्डिंग विवरण (Onboarding Details)'), path: '/vendor/onboarding-details', icon: FiFileText },
-    { label: bi('Verification Center', 'सत्यापन केंद्र (Verification Center)'), path: '/vendor/verification', icon: FiShield, badge: 'BADGE' },
-    { label: bi('Analytics', 'एनालिटिक्स (Analytics)'), path: '/vendor/analytics', icon: FiPieChart },
-    { label: bi('Refer & Earn', 'रेफर करें और कमाएं (Refer & Earn)'), path: '/vendor/referrals', icon: FiUserCheck },
-    { label: bi('Hire Creator', 'क्रिएटर हायर करें (Hire Creator)'), path: '/vendor/hire-creator', icon: FiUserCheck },
-    { label: bi('Reviews', 'समीक्षाएं (Reviews)'), path: '/vendor/reviews', icon: FiStar },
-    { label: bi('Followers', 'फॉलोअर्स (Followers)'), path: '/vendor/followers', icon: FiUserCheck },
+    { label: bi('Business Profile', 'बिजनेस प्रोफाइल'), path: '/vendor/profile', icon: FiUser },
+    { label: bi('Onboarding Details', 'ऑनबोर्डिंग विवरण'), path: '/vendor/onboarding-details', icon: FiFileText },
+    { label: bi('Verification Center', 'सत्यापन केंद्र'), path: '/vendor/verification', icon: FiShield, badge: 'BADGE' },
+    { label: bi('Analytics', 'एनालिटिक्स'), path: '/vendor/analytics', icon: FiPieChart },
+    { label: bi('Refer & Earn', 'रेफर करें और कमाएं'), path: '/vendor/referrals', icon: FiUserCheck },
+    { label: bi('Hire Creator', 'क्रिएटर हायर करें'), path: '/vendor/hire-creator', icon: FiUserCheck },
+    { label: bi('Reviews', 'समीक्षाएं'), path: '/vendor/reviews', icon: FiStar },
+    { label: bi('Followers', 'फॉलोअर्स'), path: '/vendor/followers', icon: FiUserCheck },
 
     // Finance & Settings
-    { label: bi('Subscription', 'सब्सक्रिप्शन (Subscription)'), path: '/vendor/subscription', icon: FiCreditCard },
-    { label: bi('Vendor Wallet', 'विक्रेता वॉलेट (Vendor Wallet)'), path: '/vendor/wallet', icon: TbCurrencyRupee },
-    { label: bi('Credit Rates', 'क्रेडिट दरें (Credit Rates)'), path: '/vendor/credit-rates', icon: FiZap },
-    { label: bi('Settings', 'सेटिंग्स (Settings)'), path: '/vendor/settings', icon: FiSettings },
+    { label: bi('Subscription', 'सब्सक्रिप्शन'), path: '/vendor/subscription', icon: FiCreditCard },
+    { label: bi('Vendor Wallet', 'विक्रेता वॉलेट'), path: '/vendor/wallet', icon: TbCurrencyRupee },
+    { label: bi('Credit Rates', 'क्रेडिट दरें'), path: '/vendor/credit-rates', icon: FiZap },
+    { label: bi('Settings', 'सेटिंग्स'), path: '/vendor/settings', icon: FiSettings },
   ];
 
   const NAV_SECTIONS = [
     {
-      title: bi('Main', 'मुख्य (Main)'),
+      title: bi('Main', 'मुख्य'),
       items: menuItems.slice(0, 6),
     },
     {
-      title: bi('Portals', 'पोर्टल (Portals)'),
+      title: bi('Portals', 'पोर्टल'),
       items: menuItems.slice(6, 8),
     },
     {
-      title: bi('Business & Growth', 'व्यवसाय और विकास (Business & Growth)'),
+      title: bi('Business & Growth', 'व्यवसाय और विकास'),
       items: menuItems.slice(8, 16),
     },
     {
-      title: bi('Finance & Account', 'वित्त और खाता (Finance & Account)'),
+      title: bi('Finance & Account', 'वित्त और खाता'),
       items: menuItems.slice(16),
     },
   ];
@@ -317,7 +317,7 @@ export default function VendorLayout() {
           onClick={handleLogout}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition border border-rose-200 cursor-pointer"
         >
-          <FiLogOut className="w-3.5 h-3.5" /> Sign Out
+          <FiLogOut className="w-3.5 h-3.5" /> {bi('Sign Out', 'साइन आउट')}
         </button>
       </div>
     </div>
@@ -422,14 +422,14 @@ export default function VendorLayout() {
               {isRoleDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e3dccb] rounded-xl shadow-2xl py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 font-sans">
                   <div className="px-3 py-1.5 border-b border-[#e3dccb] text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
-                    Switch Active Role
+                    {bi('Switch Active Role', 'सक्रिय भूमिका बदलें')}
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRoleSwitch('customer')}
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
-                    <span>Customer</span>
+                    <span>{bi('Customer', 'ग्राहक (Customer)')}</span>
                   </button>
 
                   <button
@@ -438,9 +438,9 @@ export default function VendorLayout() {
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
                     <div className="flex items-center gap-2">
-                      <span>Vendor</span>
+                      <span>{bi('Vendor', 'विक्रेता (Vendor)')}</span>
                       {!roles.includes('vendor') && (
-                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">{bi('Join', 'जुड़ें')}</span>
                       )}
                     </div>
                   </button>
@@ -451,9 +451,9 @@ export default function VendorLayout() {
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
                     <div className="flex items-center gap-2">
-                      <span>Creator</span>
+                      <span>{bi('Creator', 'क्रिएटर (Creator)')}</span>
                       {!roles.includes('creator') && (
-                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
+                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">{bi('Join', 'जुड़ें')}</span>
                       )}
                     </div>
                   </button>
@@ -465,12 +465,11 @@ export default function VendorLayout() {
             <button
               type="button"
               onClick={toggleLang}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[#e3dccb] text-[#1a1a1a] text-xs font-bold hover:bg-[#f8f4ec] transition cursor-pointer shadow-2xs flex-shrink-0"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border-[1.5px] border-[#d99a3d] text-[#1a1a1a] text-xs font-black hover:bg-[#faf6ee] hover:scale-105 transition-all cursor-pointer shadow-2xs flex-shrink-0"
               title="Switch Language / भाषा बदलें"
             >
-              <span className={lang === 'en' ? 'text-[#d99a3d] font-black' : 'text-slate-500'}>EN</span>
-              <span className="text-slate-300">|</span>
-              <span className={lang === 'hi' ? 'text-[#d99a3d] font-black' : 'text-slate-500'}>हिंदी</span>
+              <FiGlobe size={15} className="text-[#d99a3d]" />
+              <span>{lang === 'en' ? 'हिंदी' : 'English'}</span>
             </button>
 
             <NotificationBellDropdown role="vendor" />
@@ -488,13 +487,13 @@ export default function VendorLayout() {
           <div className="bg-gradient-to-r from-brand-purple via-brand-pink to-brand-orange text-white px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold flex items-center justify-between gap-2 sm:gap-3 shadow-md">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-sm sm:text-base flex-shrink-0">🟢</span>
-              <span className="truncate text-[10px] sm:text-xs">Verify your business to get 5x more leads & maximum buyer trust!</span>
+              <span className="truncate text-[10px] sm:text-xs">{bi('Verify your business to get 5x more leads & maximum buyer trust!', 'अपने व्यवसाय का सत्यापन करें और 5 गुना अधिक लीड्स और अधिकतम ग्राहक विश्वास पाएं!')}</span>
             </div>
             <Link
               to="/vendor/verification"
               className="px-2.5 sm:px-3 py-1 bg-white text-brand-purple rounded-lg font-bold text-[10px] sm:text-[11px] hover:bg-white/90 transition flex-shrink-0 shadow-sm whitespace-nowrap"
             >
-              Verify Now
+              {bi('Verify Now', 'अभी सत्यापित करें')}
             </Link>
           </div>
         )}

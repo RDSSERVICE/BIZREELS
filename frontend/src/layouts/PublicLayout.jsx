@@ -100,8 +100,8 @@ const PublicLayout = () => {
 
           {/* ── Desktop nav links (centered, grows to fill space) ── */}
           <nav
-            className="hidden md:flex"
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 4 }}
+            className="hidden lg:flex"
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 2 }}
           >
             {navLinks.map(({ label, path }) => {
               const isAct = active(path);
@@ -112,9 +112,9 @@ const PublicLayout = () => {
                   data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
                   style={{
                     position: 'relative',
-                    padding: '6px 16px',
-                    fontSize: 14,
-                    fontWeight: 500,
+                    padding: '6px 12px',
+                    fontSize: 13.5,
+                    fontWeight: 600,
                     color: isAct ? GOLD : GRAY,
                     textDecoration: 'none',
                     transition: 'color 0.18s',
@@ -130,8 +130,8 @@ const PublicLayout = () => {
                       style={{
                         position: 'absolute',
                         bottom: 0,
-                        left: 16,
-                        right: 16,
+                        left: 12,
+                        right: 12,
                         height: 2,
                         borderRadius: 2,
                         backgroundColor: GOLD,
@@ -145,7 +145,7 @@ const PublicLayout = () => {
           </nav>
 
           {/* ── Desktop right actions ── */}
-          <div className="hidden md:flex" style={{ alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <div className="hidden lg:flex" style={{ alignItems: 'center', gap: 10, flexShrink: 0 }}>
 
             {/* Search */}
             <button
@@ -174,20 +174,32 @@ const PublicLayout = () => {
               onClick={toggleLang}
               title="Switch Language / भाषा बदलें"
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
                 padding: '6px 14px',
-                fontSize: 12.5, fontWeight: 700,
+                fontSize: 13,
+                fontWeight: 800,
                 color: DARK,
-                background: '#FAF6EE',
-                border: `1px solid ${GOLD}`,
-                borderRadius: 20,
+                background: '#FFFFFF',
+                border: `1.5px solid ${GOLD}`,
+                borderRadius: 9999,
                 cursor: 'pointer',
-                transition: 'all 0.18s',
+                transition: 'all 0.18s ease-in-out',
                 whiteSpace: 'nowrap',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#FAF6EE';
+                e.currentTarget.style.transform = 'scale(1.03)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#FFFFFF';
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              <FiGlobe size={14} style={{ color: GOLD }} />
-              <span>{lang === 'en' ? 'English' : 'हिंदी'}</span>
+              <FiGlobe size={15} style={{ color: GOLD }} />
+              <span>{lang === 'en' ? 'हिंदी' : 'English'}</span>
             </button>
 
             {isAuthenticated ? (
@@ -259,13 +271,13 @@ const PublicLayout = () => {
             )}
           </div>
 
-          {/* ── Mobile hamburger — hidden on md+ screens ── */}
+          {/* ── Mobile hamburger — hidden on lg+ screens ── */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             data-testid="mobile-menu-toggle"
             aria-label="Toggle menu"
             aria-expanded={mobileOpen}
-            className="md:hidden flex items-center justify-center"
+            className="lg:hidden flex items-center justify-center"
             style={{
               marginLeft: 'auto',
               width: 36, height: 36,

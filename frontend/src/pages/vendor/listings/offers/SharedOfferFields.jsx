@@ -1,5 +1,6 @@
 import React from 'react';
 import { FiZap } from 'react-icons/fi';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 const getNowDate = () => {
   const d = new Date();
@@ -24,6 +25,7 @@ export default function SharedOfferFields({
   showCouponField = false,
   generateCouponCode,
 }) {
+  const { bi } = useLanguage();
   const products = allListings.filter(l => l.type === 'product');
   const services = allListings.filter(l => l.type === 'service');
 
@@ -37,12 +39,14 @@ export default function SharedOfferFields({
     <div className="space-y-4">
       {/* Title */}
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Offer Title *</label>
+        <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+          {bi('Offer Title *', 'ऑफर शीर्षक *')}
+        </label>
         <input
           type="text" required
           value={form.title || ''}
           onChange={(e) => updateForm('title', e.target.value)}
-          placeholder="e.g. Festival Special 20% OFF"
+          placeholder={bi("e.g. Festival Special 20% OFF", "उदा. फेस्टिवल स्पेशल 20% छूट")}
           className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs"
         />
       </div>
@@ -50,7 +54,9 @@ export default function SharedOfferFields({
       {/* Coupon Code (conditional) */}
       {showCouponField && (
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Coupon Code</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+            {bi('Coupon Code', 'कूपन कोड')}
+          </label>
           <div className="flex gap-1">
             <input
               type="text"
@@ -63,7 +69,7 @@ export default function SharedOfferFields({
                 type="button"
                 onClick={() => updateForm('couponCode', generateCouponCode())}
                 className="px-2.5 bg-brand-purple/10 text-brand-purple rounded-xl text-[10px] font-bold hover:bg-brand-purple/20 transition"
-                title="Generate new code"
+                title={bi('Generate new code', 'नया कोड जनरेट करें')}
               >
                 <FiZap className="w-3.5 h-3.5" />
               </button>
@@ -75,7 +81,9 @@ export default function SharedOfferFields({
       {/* Dates */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Start Date & Time *</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+            {bi('Start Date & Time *', 'प्रारंभ तिथि व समय *')}
+          </label>
           <input
             type="datetime-local" required
             value={form.startDate || getNowDate()}
@@ -84,7 +92,9 @@ export default function SharedOfferFields({
           />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">End Date & Time *</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+            {bi('End Date & Time *', 'समाप्ति तिथि व समय *')}
+          </label>
           <input
             type="datetime-local" required
             min={getNowDate()}
@@ -97,7 +107,9 @@ export default function SharedOfferFields({
 
       {/* Description */}
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Offer Description</label>
+        <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">
+          {bi('Offer Description', 'ऑफर का विवरण')}
+        </label>
         <textarea
           rows={2}
           value={form.description || ''}

@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { selectCurrentUser, setCredentials } from '../../../features/auth/authSlice';
 import { api } from '../../../lib/api';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const BADGE_DESCRIPTIONS = {
   unverified: {
@@ -39,6 +40,7 @@ const BADGE_DESCRIPTIONS = {
 };
 
 export default function VendorVerificationPage() {
+  const { bi, t } = useLanguage();
   const dispatch = useDispatch();
   const currentUser = useSelector(selectCurrentUser);
   const vendorProfile = currentUser?.vendorProfile || {};
@@ -743,8 +745,8 @@ export default function VendorVerificationPage() {
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-16 font-sans p-2 sm:p-4">
       <AdminPageHeader
         icon={FiShield}
-        title="Vendor Verification & Trust Center"
-        subtitle="Manage business trust tier, verify contact credentials, identity documents, and settlement accounts with edit options"
+        title={bi('Vendor Verification & Trust Center', 'विक्रेता सत्यापन और विश्वास केंद्र (Trust Center)')}
+        subtitle={bi('Manage business trust tier, verify contact credentials, identity documents, and settlement accounts with edit options', 'व्यवसाय विश्वास स्तर प्रबंधित करें, संपर्क विवरण, पहचान दस्तावेज और बैंक खाते सत्यापित करें')}
       />
 
       {/* Progress & Badge Status Hero Card */}
@@ -753,11 +755,11 @@ export default function VendorVerificationPage() {
           <div className="flex items-center gap-2">
             <span className="text-xl">{badgeInfo.icon}</span>
             <span className="text-xs font-black text-[#d99a3d] uppercase tracking-widest">
-              Current Trust Tier: {badgeInfo.label}
+              {bi('Current Trust Tier:', 'वर्तमान विश्वास स्तर:')} {badgeInfo.label}
             </span>
           </div>
           <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl uppercase tracking-wide text-white">
-            Trust &amp; Compliance Center
+            {bi('Trust & Compliance Center', 'विश्वास एवं अनुपालन केंद्र')}
           </h2>
           <p className="text-xs text-slate-300">
             {badgeInfo.desc}
@@ -768,12 +770,12 @@ export default function VendorVerificationPage() {
         <div className="flex items-center gap-4 bg-[#1a1410] p-4 rounded-xl border border-[#3a2c22] shrink-0">
           <div className="w-14 h-14 rounded-full bg-[#241b15] border-2 border-[#d99a3d] flex flex-col items-center justify-center text-center shadow-inner">
             <span className="text-xs font-black text-[#d99a3d]">{statusData.completionPercentage || 0}%</span>
-            <span className="text-[8px] text-slate-400 font-bold uppercase">Ready</span>
+            <span className="text-[8px] text-slate-400 font-bold uppercase">{bi('Ready', 'तैयार')}</span>
           </div>
           <div className="space-y-1">
-            <span className="text-xs font-bold text-slate-200 block">Verification Progress</span>
+            <span className="text-xs font-bold text-slate-200 block">{bi('Verification Progress', 'सत्यापन प्रगति')}</span>
             <span className="text-[10px] text-[#d99a3d] font-bold block">
-              {isPart1Complete && isPart2Complete ? '3/3 Complete' : isPart1Complete ? '2/3 In Progress' : '1/3 Contacts Pending'}
+              {isPart1Complete && isPart2Complete ? bi('3/3 Complete', '3/3 पूर्ण') : isPart1Complete ? bi('2/3 In Progress', '2/3 प्रगति पर') : bi('1/3 Contacts Pending', '1/3 संपर्क लंबित')}
             </span>
           </div>
         </div>
@@ -786,10 +788,13 @@ export default function VendorVerificationPage() {
         </div>
         <div>
           <h4 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wide">
-            Edit &amp; Re-Verification Options Enabled
+            {bi('Edit & Re-Verification Options Enabled', 'संपादन और पुन: सत्यापन विकल्प सक्षम हैं')}
           </h4>
           <p className="text-xs text-slate-600 mt-0.5">
-            Aap kisi bhi verified contact (Mobile, WhatsApp, Email, Website), document ya bank account ko "Edit / Change" button par click karke update ya badal sakte hain.
+            {bi(
+              'You can click "Edit / Change" on any verified contact, document, or bank account to update your details anytime.',
+              'आप अपने विवरण अपडेट करने के लिए किसी भी सत्यापित संपर्क, दस्तावेज़ या बैंक खाते पर "संपादित करें / बदलें" पर क्लिक कर सकते हैं।'
+            )}
           </p>
         </div>
       </div>
@@ -806,7 +811,7 @@ export default function VendorVerificationPage() {
           }`}
         >
           <FiPhone size={14} className={activeTab === 'contacts' ? 'text-[#d99a3d]' : 'text-slate-400'} />
-          <span>Part 1: Contact Verification</span>
+          <span>{bi('Part 1: Contact Verification', 'भाग 1: संपर्क सत्यापन')}</span>
         </button>
 
         <button
@@ -817,12 +822,11 @@ export default function VendorVerificationPage() {
               ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] font-black shadow-xs cursor-pointer'
               : isPart1Complete
               ? 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white cursor-pointer'
-              : 'opacity-50 cursor-not-allowed bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb]'
+              : 'bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb] cursor-not-allowed'
           }`}
         >
-          {isPart1Complete ? <FiFileText size={14} className={activeTab === 'documents' ? 'text-[#d99a3d]' : 'text-slate-400'} /> : <FiLock size={14} className="text-amber-500" />}
-          <span>Part 2: Identity &amp; Documents</span>
-          {!isPart1Complete && <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-black border border-amber-300">LOCKED</span>}
+          <FiFileText size={14} className={activeTab === 'documents' ? 'text-[#d99a3d]' : 'text-slate-400'} />
+          <span>{bi('Part 2: Business Documents', 'भाग 2: व्यावसायिक दस्तावेज़')}</span>
         </button>
 
         <button
@@ -831,14 +835,13 @@ export default function VendorVerificationPage() {
           className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 ${
             activeTab === 'payment'
               ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] font-black shadow-xs cursor-pointer'
-              : (isPart1Complete && isPart2Complete)
+              : isPart1Complete && isPart2Complete
               ? 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white cursor-pointer'
-              : 'opacity-50 cursor-not-allowed bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb]'
+              : 'bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb] cursor-not-allowed'
           }`}
         >
-          {(isPart1Complete && isPart2Complete) ? <FiCreditCard size={14} className={activeTab === 'payment' ? 'text-[#d99a3d]' : 'text-slate-400'} /> : <FiLock size={14} className="text-amber-500" />}
-          <span>Part 3: Payout Details</span>
-          {(!isPart1Complete || !isPart2Complete) && <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-black border border-amber-300">LOCKED</span>}
+          <FiCreditCard size={14} className={activeTab === 'payment' ? 'text-[#d99a3d]' : 'text-slate-400'} />
+          <span>{bi('Part 3: Bank & Settlement Details', 'भाग 3: बैंक और निपटान विवरण')}</span>
         </button>
       </div>
 

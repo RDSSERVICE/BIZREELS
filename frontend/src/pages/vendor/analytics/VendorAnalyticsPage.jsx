@@ -42,8 +42,10 @@ import {
   useGetVendorAnalyticsBoostRoiQuery,
   useSimulateVendorAnalyticsMutation
 } from '../../../features/vendor/vendorApi';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorAnalyticsPage() {
+  const { bi, t } = useLanguage();
   const [range, setRange] = useState('30d');
   const [metric, setMetric] = useState('views');
   const [listingSort, setListingSort] = useState('views');
@@ -133,19 +135,19 @@ export default function VendorAnalyticsPage() {
   );
 
   const ranges = [
-    { key: '7d', label: '7 Days' },
-    { key: '30d', label: '30 Days' },
-    { key: '90d', label: '90 Days' },
-    { key: 'all', label: 'All Time' }
+    { key: '7d', label: bi('7 Days', '7 दिन (7 Days)') },
+    { key: '30d', label: bi('30 Days', '30 दिन (30 Days)') },
+    { key: '90d', label: bi('90 Days', '90 दिन (90 Days)') },
+    { key: 'all', label: bi('All Time', 'सभी समय (All Time)') }
   ];
 
   const metricsList = [
-    { key: 'views', label: 'Views' },
-    { key: 'chats', label: 'Inquiries' },
-    { key: 'wa_clicks', label: 'WhatsApp' },
-    { key: 'deals', label: 'Orders' },
-    { key: 'saves', label: 'Saves' },
-    { key: 'shares', label: 'Shares' },
+    { key: 'views', label: bi('Views', 'दृश्य (Views)') },
+    { key: 'chats', label: bi('Inquiries', 'पूछताछ (Inquiries)') },
+    { key: 'wa_clicks', label: bi('WhatsApp', 'व्हाट्सएप (WhatsApp)') },
+    { key: 'deals', label: bi('Orders', 'ऑर्डर (Orders)') },
+    { key: 'saves', label: bi('Saves', 'सहेजे गए (Saves)') },
+    { key: 'shares', label: bi('Shares', 'शेयर (Shares)') },
   ];
 
   // Helper formatting values
@@ -156,13 +158,13 @@ export default function VendorAnalyticsPage() {
       {/* Page Header */}
       <AdminPageHeader
         icon={FiPieChart}
-        title="Vendor Analytics & Insights"
-        subtitle="Track real-time reel views, product clicks, phone calls, WhatsApp leads, and customer conversion rates"
+        title={bi('Vendor Analytics & Insights', 'विक्रेता एनालिटिक्स और अंतर्दृष्टि (Analytics & Insights)')}
+        subtitle={bi('Track real-time reel views, product clicks, phone calls, WhatsApp leads, and customer conversion rates', 'वास्तविक समय में रील विज़िट, उत्पाद क्लिक, फोन कॉल, व्हाट्सएप लीड और ग्राहक रूपांतरण दर ट्रैक करें')}
       >
         <div className="flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-black">
             <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
-            <span>Live Analytics Active</span>
+            <span>{bi('Live Analytics Active', 'लाइव एनालिटिक्स सक्रिय')}</span>
           </div>
           <button
             type="button"

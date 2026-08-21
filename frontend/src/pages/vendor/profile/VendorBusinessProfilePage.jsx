@@ -9,8 +9,8 @@ import {
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import api, { tokenStore, resolveMediaUrl } from '../../../lib/api';
-import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import { useLanguage } from '../../../context/LanguageContext';
 import {
   getStatesList,
   getDistrictsForState,
@@ -225,6 +225,7 @@ const VENDOR_PROFESSIONS = [
 ];
 
 export default function VendorBusinessProfilePage() {
+  const { bi, t } = useLanguage();
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state) => state.auth);
   const { data: profileRes, refetch: refetchProfile } = useGetMeQuery(undefined, {
@@ -721,8 +722,8 @@ export default function VendorBusinessProfilePage() {
     <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans animate-fade-in pb-16 p-2 sm:p-4">
       <AdminPageHeader
         icon={FiBriefcase}
-        title="Business Profile & Branding"
-        subtitle="Manage shop identity, logo, searchable address dropdowns, business timing, and social links"
+        title={bi('Business Profile & Branding', 'व्यवसाय प्रोफाइल और ब्रांडिंग (Business Profile)')}
+        subtitle={bi('Manage shop identity, logo, searchable address dropdowns, business timing, and social links', 'दुकान की पहचान, लोगो, पता, व्यावसायिक समय और सोशल मीडिया लिंक प्रबंधित करें')}
       />
 
       {/* Navigation Tabs */}
@@ -732,14 +733,14 @@ export default function VendorBusinessProfilePage() {
           className="px-4 py-2 rounded-xl text-xs font-black bg-[#241b15] text-[#d99a3d] shadow-xs flex items-center gap-2"
         >
           <FiBriefcase className="w-3.5 h-3.5" />
-          <span>Branding & Quick Info</span>
+          <span>{bi('Branding & Quick Info', 'ब्रांडिंग और त्वरित जानकारी')}</span>
         </Link>
         <Link
           to="/vendor/onboarding-details"
           className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-[#1a1a1a] hover:bg-[#f8f4ec] transition flex items-center gap-2"
         >
           <FiFileText className="w-3.5 h-3.5" />
-          <span>Full Onboarding & Business Setup Details</span>
+          <span>{bi('Full Onboarding & Business Setup Details', 'पूर्ण ऑनबोर्डिंग और व्यवसाय सेटअप विवरण')}</span>
         </Link>
       </div>
 
@@ -750,14 +751,14 @@ export default function VendorBusinessProfilePage() {
             <div className="w-8 h-8 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center shrink-0 shadow-2xs">
               <FiCamera className="w-4 h-4 text-[#d99a3d]" />
             </div>
-            <span>Profile Photo &amp; Cover Banner</span>
+            <span>{bi('Profile Photo & Cover Banner', 'प्रोफ़ाइल फोटो और कवर बैनर')}</span>
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Vendor Profile Image */}
             <div className="space-y-3">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                Shop Logo / Profile Picture *
+                {bi('Shop Logo / Profile Picture *', 'दुकान का लोगो / प्रोफ़ाइल चित्र *')}
               </label>
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 rounded-2xl border-2 border-[#241b15] overflow-hidden bg-[#f8f4ec] shrink-0 relative shadow-2xs">
@@ -778,7 +779,7 @@ export default function VendorBusinessProfilePage() {
                   )}
                   {uploadingPic && (
                     <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white text-[10px] font-black backdrop-blur-xs">
-                      Uploading...
+                      {bi('Uploading...', 'अपलोड हो रहा है...')}
                     </div>
                   )}
                 </div>
@@ -787,7 +788,7 @@ export default function VendorBusinessProfilePage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] text-xs font-black rounded-xl transition cursor-pointer border-none shadow-2xs">
                       <FiCamera size={14} />
-                      <span>{profilePic ? 'Change Photo' : 'Upload Logo / Photo'}</span>
+                      <span>{profilePic ? bi('Change Photo', 'फोटो बदलें') : bi('Upload Logo / Photo', 'लोगो / फोटो अपलोड करें')}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -806,7 +807,7 @@ export default function VendorBusinessProfilePage() {
                       </button>
                     )}
                   </div>
-                  <p className="text-[10px] text-slate-400 font-bold">Recommended: Square JPG or PNG (Max 5MB)</p>
+                  <p className="text-[10px] text-slate-400 font-bold">{bi('Recommended: Square JPG or PNG (Max 5MB)', 'अनुशंसित: वर्ग आकार JPG या PNG (अधिकतम 5MB)')}</p>
                 </div>
               </div>
             </div>
@@ -815,7 +816,7 @@ export default function VendorBusinessProfilePage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                  Cover Banner <span className="text-emerald-600 font-bold">(Optional)</span>
+                  {bi('Cover Banner', 'कवर बैनर')} <span className="text-emerald-600 font-bold">({bi('Optional', 'वैकल्पिक')})</span>
                 </label>
                 {coverBanner && (
                   <button
@@ -823,7 +824,7 @@ export default function VendorBusinessProfilePage() {
                     onClick={() => setCoverBanner('')}
                     className="text-[10px] font-black text-rose-600 hover:underline cursor-pointer border-none bg-transparent"
                   >
-                    Remove Banner
+                    {bi('Remove Banner', 'बैनर हटाएं')}
                   </button>
                 )}
               </div>
@@ -840,12 +841,12 @@ export default function VendorBusinessProfilePage() {
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-r from-[#241b15] to-[#3a2c22] flex items-center justify-center text-xs text-[#d99a3d] font-bold">
-                    No cover banner set (Displays warm dark header gradient)
+                    {bi('No cover banner set (Displays warm dark header gradient)', 'कोई कवर बैनर सेट नहीं है')}
                   </div>
                 )}
                 {uploadingBanner && (
                   <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white text-[10px] font-black backdrop-blur-xs">
-                    Uploading Banner...
+                    {bi('Uploading Banner...', 'बैनर अपलोड हो रहा है...')}
                   </div>
                 )}
               </div>
@@ -853,7 +854,7 @@ export default function VendorBusinessProfilePage() {
               <div>
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#f8f4ec] border border-[#e3dccb] text-[#1a1a1a] hover:bg-white text-xs font-black rounded-xl transition cursor-pointer shadow-2xs">
                   <FiImage size={14} className="text-[#d99a3d]" />
-                  <span>{coverBanner ? 'Change Cover Banner' : 'Upload Cover Banner'}</span>
+                  <span>{coverBanner ? bi('Change Cover Banner', 'कवर बैनर बदलें') : bi('Upload Cover Banner', 'कवर बैनर अपलोड करें')}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -872,29 +873,29 @@ export default function VendorBusinessProfilePage() {
             <div className="w-8 h-8 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center shrink-0 shadow-2xs">
               <FiBriefcase className="w-4 h-4 text-[#d99a3d]" />
             </div>
-            <span>Basic Shop Details</span>
+            <span>{bi('Basic Shop Details', 'दुकान की बुनियादी विवरण')}</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Shop / Display Name *</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">{bi('Shop / Display Name *', 'दुकान का नाम *')}</label>
               <input
                 type="text"
                 required
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
-                placeholder="e.g. Metro Electronics & Accessories"
+                placeholder={bi("e.g. Metro Electronics & Accessories", "उदा. मेट्रो इलेक्ट्रॉनिक्स एंड एक्सेसरीज")}
                 className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Business Registered Name</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">{bi('Business Registered Name', 'व्यवसाय पंजीकृत नाम')}</label>
               <input
                 type="text"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                placeholder="e.g. Metro Enterprises Pvt Ltd"
+                placeholder={bi("e.g. Metro Enterprises Pvt Ltd", "उदा. मेट्रो एंटरप्राइजेज प्राइवेट लिमिटेड")}
                 className="w-full px-4 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d]/20 transition-all"
               />
             </div>

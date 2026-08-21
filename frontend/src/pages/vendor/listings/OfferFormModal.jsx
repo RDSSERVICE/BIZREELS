@@ -7,6 +7,7 @@ import OfferNameSelect from './offers/OfferNameSelect';
 import SharedOfferFields from './offers/SharedOfferFields';
 import CategoryConfigFields from './offers/config';
 import { OFFER_CATEGORIES, CATEGORY_KEYS } from '../../../constants/offerCategories';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const getNextWeekDate = () => {
   const d = new Date();
@@ -41,6 +42,7 @@ export default function OfferFormModal({
   editData = null,
   allListings = [],
 }) {
+  const { bi, t } = useLanguage();
   const isEdit = !!editData;
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -168,19 +170,13 @@ export default function OfferFormModal({
     <AdminModal
       isOpen={isOpen}
       onClose={onClose}
-      title={
-        <div className="flex items-center gap-2">
-          <span>{isEdit ? 'Edit Offer' : 'Create Offer'}</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-brand-purple/10 text-brand-purple font-bold">
-            Step {step} of 3
-          </span>
-        </div>
-      }
-      maxWidth="max-w-2xl"
+      title={isEdit ? bi('Edit Dynamic Offer', 'डायनामिक ऑफर संपादित करें') : bi('Create New Promotional Offer (19 Engine Types)', 'नया प्रमोशनल ऑफर बनाएं')}
+      subtitle={bi('Launch high-conversion discount coupons, buy 1 get 1, flash sales, combo bundles, & cashback deals', 'उच्च-रूपांतरण डिस्काउंट कूपन, कॉम्बो बंडल और कैशबैक ऑफर लॉन्च करें')}
+      maxWidth="max-w-4xl"
     >
-      <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-        {/* Step Indicator Tabs */}
-        <div className="flex items-center justify-between border-b border-border pb-3 text-xs">
+      <div className="space-y-5">
+        {/* Wizard Step Indicator */}
+        <div className="flex items-center justify-between bg-surface border border-border p-2.5 rounded-2xl text-xs">
           <button
             type="button"
             onClick={() => setStep(1)}
@@ -191,7 +187,7 @@ export default function OfferFormModal({
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
               step === 1 ? 'bg-brand-purple text-white' : 'bg-surface border border-border'
             }`}>1</span>
-            <span>Type ({currentCategoryMeta.label})</span>
+            <span>{bi('1. Category Type', '1. श्रेणी का प्रकार')}</span>
           </button>
 
           <span className="text-border">→</span>
@@ -206,7 +202,7 @@ export default function OfferFormModal({
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
               step === 2 ? 'bg-brand-purple text-white' : 'bg-surface border border-border'
             }`}>2</span>
-            <span>General Details</span>
+            <span>{bi('2. General Details', '2. सामान्य विवरण')}</span>
           </button>
 
           <span className="text-border">→</span>
@@ -221,7 +217,7 @@ export default function OfferFormModal({
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
               step === 3 ? 'bg-brand-purple text-white' : 'bg-surface border border-border'
             }`}>3</span>
-            <span>Config ({currentCategoryMeta.label})</span>
+            <span>{bi(`3. Config (${currentCategoryMeta.label})`, `3. विन्यास (${currentCategoryMeta.label})`)}</span>
           </button>
         </div>
 
@@ -229,7 +225,7 @@ export default function OfferFormModal({
         {step === 1 && (
           <div>
             <p className="text-xs text-text-secondary mb-3">
-              Select one of the 19 offer categories for your promotion:
+              {bi('Select one of the 19 offer categories for your promotion:', 'अपने प्रचार के लिए 19 ऑफर श्रेणियों में से एक चुनें:')}
             </p>
             <CategoryPicker
               selectedCategory={form.category}
@@ -254,7 +250,7 @@ export default function OfferFormModal({
                 onClick={() => setStep(1)}
                 className="text-[10px] font-bold text-brand-purple hover:underline"
               >
-                Change Type
+                {bi('Change Type', 'प्रकार बदलें')}
               </button>
             </div>
 
@@ -278,7 +274,7 @@ export default function OfferFormModal({
                 onClick={() => setStep(1)}
                 className="px-4 py-2 border border-border rounded-xl text-xs font-bold text-text-secondary hover:bg-surface flex items-center gap-1.5"
               >
-                <FiArrowLeft className="w-3.5 h-3.5" /> Back
+                <FiArrowLeft className="w-3.5 h-3.5" /> {bi('Back', 'पीछे')}
               </button>
               <button
                 type="button"
@@ -286,9 +282,9 @@ export default function OfferFormModal({
                   if (!form.title.trim()) return toast.error('Offer title is required');
                   setStep(3);
                 }}
-                className="px-5 py-2.5 gradient-brand text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-premium"
+                className="px-5 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black flex items-center gap-1.5 shadow-2xs border-none cursor-pointer"
               >
-                Next: Configure Offer <FiArrowRight className="w-3.5 h-3.5" />
+                {bi('Next: Configure Offer', 'आगे: ऑफर कॉन्फ़िगर करें')} <FiArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -302,10 +298,10 @@ export default function OfferFormModal({
                 <span className="text-xl">{currentCategoryMeta.icon}</span>
                 <div>
                   <span className="text-xs font-bold text-text-primary">
-                    Extra Settings: {currentCategoryMeta.label}
+                    {bi(`Extra Settings: ${currentCategoryMeta.label}`, `अतिरिक्त सेटिंग्स: ${currentCategoryMeta.label}`)}
                   </span>
                   <div className="text-[10px] text-text-tertiary">
-                    {form.title || 'Untitled Offer'}
+                    {form.title || bi('Untitled Offer', 'बिना शीर्षक वाला ऑफर')}
                   </div>
                 </div>
               </div>
@@ -314,7 +310,7 @@ export default function OfferFormModal({
                 onClick={() => setStep(2)}
                 className="text-[10px] font-bold text-brand-purple hover:underline"
               >
-                Edit General
+                {bi('Edit General', 'सामान्य जानकारी संपादित करें')}
               </button>
             </div>
 
@@ -330,18 +326,18 @@ export default function OfferFormModal({
                 onClick={() => setStep(2)}
                 className="px-4 py-2 border border-border rounded-xl text-xs font-bold text-text-secondary hover:bg-surface flex items-center gap-1.5"
               >
-                <FiArrowLeft className="w-3.5 h-3.5" /> Back
+                <FiArrowLeft className="w-3.5 h-3.5" /> {bi('Back', 'पीछे')}
               </button>
               <button
                 type="button"
                 disabled={submitting}
                 onClick={handleSubmit}
-                className="px-6 py-2.5 gradient-brand text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-premium disabled:opacity-50"
+                className="px-6 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black flex items-center gap-1.5 shadow-2xs border-none disabled:opacity-50 cursor-pointer"
               >
-                {submitting ? 'Saving...' : (
+                {submitting ? bi('Saving...', 'सहेजा जा रहा है...') : (
                   <>
                     <FiCheck className="w-4 h-4" />
-                    {isEdit ? 'Update Offer' : 'Publish Offer'}
+                    {isEdit ? bi('Update Offer', 'ऑफर अपडेट करें') : bi('Publish Offer', 'ऑफर प्रकाशित करें')}
                   </>
                 )}
               </button>

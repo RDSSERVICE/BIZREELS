@@ -11,13 +11,10 @@ import {
   useDeletePortfolioItemMutation
 } from '../../../features/creator/creatorApi';
 import { api } from '../../../lib/api';
-
-const TABS = [
-  { key: 'reels', label: 'Sample Reels', icon: FiFilm },
-  { key: 'images', label: 'Shoot Images', icon: FiImage },
-];
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function CreatorPortfolioPage() {
+  const { bi } = useLanguage();
   const [activeTab, setActiveTab] = useState('reels');
   const [showModal, setShowModal] = useState(false);
   const [titleInput, setTitleInput] = useState('');
@@ -25,6 +22,11 @@ export default function CreatorPortfolioPage() {
   const [uploadMode, setUploadMode] = useState('file'); // 'file' | 'link'
   const [fileToUpload, setFileToUpload] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  const TABS = [
+    { key: 'reels', label: bi('Sample Reels', 'सैंपल रील्स'), icon: FiFilm },
+    { key: 'images', label: bi('Shoot Images', 'शूट फोटो'), icon: FiImage },
+  ];
 
   const { data, isFetching } = useGetCreatorPortfolioQuery(undefined, { pollingInterval: 300000 });
   const [uploadReel, { isLoading: isUploadingReel }] = useUploadPortfolioReelMutation();
@@ -36,10 +38,10 @@ export default function CreatorPortfolioPage() {
 
   const handleOpenUploadModal = () => {
     if (activeTab === 'reels' && sampleReels.length >= 10) {
-      return toast.error('Maximum limit of 10 sample reels reached');
+      return toast.error(bi('Maximum limit of 10 sample reels reached', 'अधिकतम 10 सैंपल रील्स की सीमा समाप्त'));
     }
     if (activeTab === 'images' && sampleImages.length >= 50) {
-      return toast.error('Maximum limit of 50 portfolio images reached');
+      return toast.error(bi('Maximum limit of 50 portfolio images reached', 'अधिकतम 50 पोर्टफोलियो फोटो की सीमा समाप्त'));
     }
     setTitleInput('');
     setUrlInput('');
@@ -51,15 +53,15 @@ export default function CreatorPortfolioPage() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!titleInput.trim()) {
-      return toast.error('Please enter a title for your portfolio item');
+      return toast.error(bi('Please enter a title for your portfolio item', 'कृपया शीर्षक दर्ज करें'));
     }
 
     if (uploadMode === 'file' && !fileToUpload) {
-      return toast.error('Please select a file to upload');
+      return toast.error(bi('Please select a file to upload', 'कृपया अपलोड के लिए फ़ाइल चुनें'));
     }
 
     setUploading(true);
-    const toastId = toast.loading('Uploading portfolio item...');
+    const toastId = toast.loading(bi('Uploading portfolio item...', 'फ़ाइल अपलोड हो रही है...'));
 
     try {
       let finalUrl = '';
@@ -78,56 +80,55 @@ export default function CreatorPortfolioPage() {
           throw new Error('Upload succeeded but did not return a valid URL.');
         }
       } else {
-        finalUrl = urlInput.trim();
-        if (!finalUrl) {
-          finalUrl = activeTab === 'reels'
-            ? 'https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-neon-room-41566-large.mp4'
-            : 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=600&q=80';
-        }
+        finalUrl = urlInput.trim() || (activeTab === 'reels' 
+          ? 'https://res.cloudinary.com/demo/video/upload/v1689234567/sample.mp4' 
+          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop');
       }
 
       if (activeTab === 'reels') {
-        await uploadReel({ title: titleInput.trim(), videoUrl: finalUrl }).unwrap();
-        toast.success('Sample reel added to portfolio!', { id: toastId });
+        await uploadReel({ title: titleInput, url: finalUrl }).unwrap();
       } else {
-        await uploadImage({ title: titleInput.trim(), url: finalUrl }).unwrap();
-        toast.success('Portfolio shoot image added!', { id: toastId });
+        await uploadImage({ title: titleInput, url: finalUrl }).unwrap();
       }
 
+      toast.success(bi('Portfolio item uploaded!', 'पोर्टफोलियो आइटम सफलतापूर्वक अपलोड हुआ!'), { id: toastId });
       setShowModal(false);
       setTitleInput('');
       setUrlInput('');
       setFileToUpload(null);
     } catch (err) {
-      toast.error(err?.data?.message || err?.message || 'Failed to upload portfolio item', { id: toastId });
+      console.error('Upload error:', err);
+      toast.error(err?.data?.message || err?.message || bi('Failed to upload item', 'अपलोड विफल रहा'), { id: toastId });
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDelete = async (type, id) => {
-    if (!window.confirm('Are you sure you want to remove this item from your portfolio?')) return;
+  const handleDelete = async (type, itemId) => {
+    if (!window.confirm(bi('Are you sure you want to remove this item?', 'क्या आप निश्चित रूप से इसे हटाना चाहते हैं?'))) return;
+    const toastId = toast.loading(bi('Removing item...', 'हटाया जा रहा है...'));
     try {
-      await deleteItem({ type, id }).unwrap();
-      toast.success('Item removed from portfolio');
+      await deleteItem({ type, itemId }).unwrap();
+      toast.success(bi('Item removed!', 'आइटम हटा दिया गया!'), { id: toastId });
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to remove item');
+      console.error('Delete error:', err);
+      toast.error(bi('Failed to remove item', 'आइटम हटाना विफल रहा'), { id: toastId });
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in pb-16 font-sans">
       <AdminPageHeader
         icon={FiFilm}
-        title="Creator Work Portfolio"
-        subtitle="Showcase sample reels (Max 10) and high-res shoot images (Max 50) for vendor hires"
+        title={bi('Creator Portfolio & Work Samples', 'क्रिएटर पोर्टफोलियो और कार्य नमूने (Portfolio)')}
+        subtitle={bi('Showcase your sample video reels and professional shoot images to attract brand sponsorships', 'ब्रांड स्पॉन्सरशिप आकर्षित करने के लिए अपनी सैंपल वीडियो रील्स और तस्वीरें दिखाएं')}
       >
         <button
           onClick={handleOpenUploadModal}
-          className="px-4 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-90 transition flex items-center gap-1.5"
+          className="px-4 py-2.5 bg-[#241b15] text-[#d99a3d] rounded-xl text-xs font-black hover:bg-[#342820] transition shadow-2xs flex items-center gap-2 cursor-pointer border-none"
         >
           <FiPlus size={16} />
-          <span>Upload {activeTab === 'reels' ? 'Sample Reel (Max 10)' : 'Shoot Image (Max 50)'}</span>
+          <span>{activeTab === 'reels' ? bi('Upload Sample Reel (Max 10)', 'सैंपल रील अपलोड करें (अधिकतम 10)') : bi('Upload Shoot Image (Max 50)', 'शूट फोटो अपलोड करें (अधिकतम 50)')}</span>
         </button>
       </AdminPageHeader>
 
@@ -141,13 +142,13 @@ export default function CreatorPortfolioPage() {
         sampleReels.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border space-y-3">
             <FiVideo className="w-10 h-10 text-brand-purple mx-auto opacity-60" />
-            <p className="font-bold text-text-primary text-sm">No sample reels added yet</p>
-            <p className="text-xs text-text-tertiary max-w-md mx-auto">Click "Upload Sample Reel" to add video samples to your creator profile.</p>
+            <p className="font-bold text-text-primary text-sm">{bi('No sample reels added yet', 'अभी तक कोई सैंपल रील नहीं जोड़ी गई है')}</p>
+            <p className="text-xs text-text-tertiary max-w-md mx-auto">{bi('Click "Upload Sample Reel" to add video samples to your creator profile.', 'अपनी क्रिएटर प्रोफ़ाइल में वीडियो नमूने जोड़ने के लिए "सैंपल रील अपलोड करें" पर क्लिक करें।')}</p>
             <button
               onClick={handleOpenUploadModal}
               className="px-4 py-2 bg-brand-purple text-white text-xs font-bold rounded-xl shadow-md hover:opacity-90 transition"
             >
-              Add Your First Sample Reel
+              {bi('Add Your First Sample Reel', 'अपनी पहली सैंपल रील जोड़ें')}
             </button>
           </div>
         ) : (
@@ -165,7 +166,7 @@ export default function CreatorPortfolioPage() {
                   <button
                     onClick={() => handleDelete('reels', r.id || r._id)}
                     className="text-error p-1.5 bg-error/10 hover:bg-error/20 rounded-lg transition"
-                    title="Remove"
+                    title={bi('Remove', 'हटाएं')}
                   >
                     <FiTrash2 size={14} />
                   </button>
@@ -178,13 +179,13 @@ export default function CreatorPortfolioPage() {
         sampleImages.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border space-y-3">
             <FiImage className="w-10 h-10 text-brand-orange mx-auto opacity-60" />
-            <p className="font-bold text-text-primary text-sm">No shoot images added yet</p>
-            <p className="text-xs text-text-tertiary max-w-md mx-auto">Click "Upload Shoot Image" to add portfolio photos for vendors.</p>
+            <p className="font-bold text-text-primary text-sm">{bi('No shoot images added yet', 'अभी तक कोई फोटो नहीं जोड़ी गई है')}</p>
+            <p className="text-xs text-text-tertiary max-w-md mx-auto">{bi('Click "Upload Shoot Image" to add portfolio photos for vendors.', 'विक्रेताओं के लिए पोर्टफोलियो फोटो जोड़ने के लिए "शूट फोटो अपलोड करें" पर क्लिक करें।')}</p>
             <button
               onClick={handleOpenUploadModal}
               className="px-4 py-2 bg-brand-orange text-white text-xs font-bold rounded-xl shadow-md hover:opacity-90 transition"
             >
-              Add Your First Shoot Image
+              {bi('Add Your First Shoot Image', 'अपनी पहली फोटो जोड़ें')}
             </button>
           </div>
         ) : (
@@ -199,7 +200,7 @@ export default function CreatorPortfolioPage() {
                   <button
                     onClick={() => handleDelete('images', img.id || img._id)}
                     className="text-error p-1.5 bg-error/10 hover:bg-error/20 rounded-lg transition"
-                    title="Remove"
+                    title={bi('Remove', 'हटाएं')}
                   >
                     <FiTrash2 size={14} />
                   </button>
@@ -214,7 +215,7 @@ export default function CreatorPortfolioPage() {
       <AdminModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={activeTab === 'reels' ? 'Upload Sample Reel' : 'Upload Portfolio Shoot Image'}
+        title={activeTab === 'reels' ? bi('Upload Sample Reel', 'सैंपल रील अपलोड करें') : bi('Upload Portfolio Shoot Image', 'पोर्टफोलियो फोटो अपलोड करें')}
       >
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div className="flex gap-2 p-1 bg-surface-secondary rounded-xl border border-border">
@@ -223,25 +224,25 @@ export default function CreatorPortfolioPage() {
               onClick={() => setUploadMode('file')}
               className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${uploadMode === 'file' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
             >
-              Upload Local File
+              {bi('Upload Local File', 'लोकल फ़ाइल अपलोड करें')}
             </button>
             <button
               type="button"
               onClick={() => setUploadMode('link')}
               className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${uploadMode === 'link' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
             >
-              External Link
+              {bi('External Link', 'बाहरी यूआरएल लिंक')}
             </button>
           </div>
 
           <div>
             <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
-              Title / Caption *
+              {bi('Title / Caption *', 'शीर्षक / विवरण *')}
             </label>
             <input
               type="text"
               required
-              placeholder={activeTab === 'reels' ? 'e.g. Neon Fashion Model Shoot Reel' : 'e.g. Traditional Jewelry Shoot'}
+              placeholder={activeTab === 'reels' ? bi('e.g. Neon Fashion Model Shoot Reel', 'उदा. फैशन मॉडल शूट रील') : bi('e.g. Traditional Jewelry Shoot', 'उदा. ज्वेलरी शूट फोटो')}
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
@@ -251,7 +252,7 @@ export default function CreatorPortfolioPage() {
           {uploadMode === 'file' ? (
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
-                Select {activeTab === 'reels' ? 'Video File (mp4, webm)' : 'Image File (jpg, png, webp)'} *
+                {bi('Select File *', 'फ़ाइल चुनें *')}
               </label>
               <div className="border-2 border-dashed border-border hover:border-brand-purple rounded-xl p-6 text-center cursor-pointer relative bg-surface-secondary/40 transition">
                 <input
@@ -266,8 +267,8 @@ export default function CreatorPortfolioPage() {
                   <p className="text-xs font-bold text-brand-purple truncate px-2">{fileToUpload.name}</p>
                 ) : (
                   <>
-                    <p className="text-xs font-bold text-text-secondary">Click to choose a file</p>
-                    <p className="text-[9px] text-text-tertiary mt-1">Max size: {activeTab === 'reels' ? '50MB' : '10MB'}</p>
+                    <p className="text-xs font-bold text-text-secondary">{bi('Click to choose a file', 'फ़ाइल चुनने के लिए क्लिक करें')}</p>
+                    <p className="text-[9px] text-text-tertiary mt-1">{bi('Max size: ', 'अधिकतम आकार: ')}{activeTab === 'reels' ? '50MB' : '10MB'}</p>
                   </>
                 )}
               </div>
@@ -275,18 +276,15 @@ export default function CreatorPortfolioPage() {
           ) : (
             <div>
               <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">
-                {activeTab === 'reels' ? 'Video File URL' : 'Image File URL'}
+                {activeTab === 'reels' ? bi('Video File URL', 'वीडियो फ़ाइल यूआरएल') : bi('Image File URL', 'इमेज फ़ाइल यूआरएल')}
               </label>
               <input
                 type="url"
-                placeholder={activeTab === 'reels' ? 'https://... (mp4 video url or leave empty for sample demo video)' : 'https://... (image url or leave empty for sample photo)'}
+                placeholder="https://..."
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-purple"
               />
-              <span className="text-[10px] text-text-tertiary mt-1 block">
-                Tip: Paste an MP4 or image URL from Cloudinary/Unsplash or leave empty to use a demo asset.
-              </span>
             </div>
           )}
 
@@ -296,7 +294,7 @@ export default function CreatorPortfolioPage() {
             className="w-full py-3 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition flex items-center justify-center gap-1.5 shadow-premium"
           >
             <FiUploadCloud size={16} />
-            <span>{uploading || isUploadingReel || isUploadingImage ? 'Uploading...' : `Upload to ${activeTab === 'reels' ? 'Reels' : 'Images'} Portfolio`}</span>
+            <span>{uploading || isUploadingReel || isUploadingImage ? bi('Uploading...', 'अपलोड हो रहा है...') : bi('Upload to Portfolio', 'पोर्टफोलियो में सबमिट करें')}</span>
           </button>
         </form>
       </AdminModal>

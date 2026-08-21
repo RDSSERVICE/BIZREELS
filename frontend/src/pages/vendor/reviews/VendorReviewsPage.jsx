@@ -4,8 +4,10 @@ import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import { useGetVendorReviewsQuery, useReplyToReviewMutation } from '../../../features/vendor/vendorApi';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorReviewsPage() {
+  const { bi, t } = useLanguage();
   const { data, isFetching } = useGetVendorReviewsQuery(undefined, { pollingInterval: 300000 });
   const [replyToReview] = useReplyToReviewMutation();
 
@@ -28,17 +30,17 @@ export default function VendorReviewsPage() {
   const avgRating = reviews.length ? (reviews.reduce((acc, r) => acc + (r.rating || 5), 0) / reviews.length).toFixed(1) : '5.0';
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in font-sans p-2 sm:p-4">
       <AdminPageHeader
         icon={FiStar}
-        title="Customer Reviews & Ratings"
-        subtitle="View customer feedback and publish official vendor responses"
+        title={bi('Customer Reviews & Ratings', 'ग्राहक समीक्षाएँ और रेटिंग्स (Reviews & Ratings)')}
+        subtitle={bi('View customer feedback and publish official vendor responses', 'ग्राहक प्रतिक्रिया देखें और आधिकारिक उत्तर प्रकाशित करें')}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <AdminStatCard label="Average Rating" value={`${avgRating} ★`} icon={FiStar} color="amber" />
-        <AdminStatCard label="Total Reviews" value={String(reviews.length)} icon={FiMessageSquare} color="purple" />
-        <AdminStatCard label="Response Rate" value="100%" icon={FiSend} color="green" />
+        <AdminStatCard label={bi('Average Rating', 'औसत रेटिंग')} value={`${avgRating} ★`} icon={FiStar} color="amber" />
+        <AdminStatCard label={bi('Total Reviews', 'कुल समीक्षाएं')} value={String(reviews.length)} icon={FiMessageSquare} color="purple" />
+        <AdminStatCard label={bi('Response Rate', 'प्रतिक्रिया दर')} value="100%" icon={FiSend} color="green" />
       </div>
 
       {isFetching && !reviews.length ? (
@@ -46,8 +48,8 @@ export default function VendorReviewsPage() {
           {[1, 2].map((i) => <div key={i} className="h-32 skeleton rounded-2xl" />)}
         </div>
       ) : reviews.length === 0 ? (
-        <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
-          No customer reviews received yet.
+        <div className="bg-white rounded-2xl p-12 text-center text-xs text-slate-500 border border-[#e3dccb]">
+          {bi('No customer reviews received yet.', 'अभी तक कोई ग्राहक समीक्षा प्राप्त नहीं हुई है।')}
         </div>
       ) : (
         <div className="space-y-4">

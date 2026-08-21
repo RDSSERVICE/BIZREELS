@@ -21,8 +21,10 @@ import CreateReelWizardModal from './CreateReelWizardModal';
 import ReelPreviewModal from './ReelPreviewModal';
 import ReelBoostModal from './ReelBoostModal';
 import ReelBoostPromptModal from './ReelBoostPromptModal';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorReelsPage() {
+  const { bi, t } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('published');
   
@@ -307,22 +309,25 @@ export default function VendorReelsPage() {
         <div className="leading-relaxed space-y-1">
           <div>
             <strong style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs text-[#241b15] uppercase tracking-wide mr-1">
-              Vendor Content Policy &amp; Guidelines:
+              {bi('Vendor Content Policy & Guidelines:', 'विक्रेता सामग्री नीति और दिशानिर्देश:')}
             </strong>
             <span>
-              Only genuine business-related reels and images (products, services, shop promotions, and offers) can be posted by vendors. Any unrelated content (such as comedy clips, TV serials, cartoons, memes, or non-business activities) will be blocked and removed by the admin.
+              {bi(
+                'Only genuine business-related reels and images (products, services, shop promotions, and offers) can be posted by vendors. Any unrelated content (such as comedy clips, TV serials, cartoons, memes, or non-business activities) will be blocked and removed by the admin.',
+                'विक्रेताओं द्वारा केवल वास्तविक व्यवसाय-संबंधित रील्स और चित्र (उत्पाद, सेवाएं, दुकान के प्रचार और ऑफ़र) पोस्ट किए जा सकते हैं। किसी भी असंबद्ध सामग्री (जैसे कॉमेडी क्लिप, टीवी धारावाहिक, कार्टून, मीम्स, या गैर-व्यावसायिक गतिविधियों) को एडमिन द्वारा ब्लॉक और हटा दिया जाएगा।'
+              )}
             </span>
           </div>
           <p className="text-[11px] text-rose-700 font-bold flex items-center gap-1 mt-0.5">
-            <span>⚠️ Posting vulgar, violent, threatening, blackmail, or any criminal material is strictly forbidden and will result in immediate vendor account blacklisting along with legal action.</span>
+            <span>{bi('⚠️ Posting vulgar, violent, threatening, blackmail, or any criminal material is strictly forbidden and will result in immediate vendor account blacklisting along with legal action.', '⚠️ अश्लील, हिंसक, धमकी भरी, ब्लैकमेल या किसी भी आपराधिक सामग्री को पोस्ट करना सख्त मना है और इसके परिणामस्वरूप तुरंत विक्रेता खाता ब्लैकलिस्ट किया जाएगा और कानूनी कार्रवाई होगी।')}</span>
           </p>
         </div>
       </div>
 
       <AdminPageHeader
         icon={FiVideo}
-        title="Service Reels Studio"
-        subtitle={`Live catalog (${reelsList.length} total posts) • ${publishedCount} Published • ${scheduledCount} Scheduled • ${draftCount} Drafts • ${reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()} Total Views`}
+        title={bi('Service Reels Studio', 'सर्विस रील्स स्टूडियो (Reels Studio)')}
+        subtitle={`${bi('Live catalog', 'लाइव कैटलॉग')} (${reelsList.length} ${bi('total posts', 'कुल पोस्ट')}) • ${publishedCount} ${bi('Published', 'प्रकाशित')} • ${scheduledCount} ${bi('Scheduled', 'निर्धारित')} • ${draftCount} ${bi('Drafts', 'ड्राफ्ट')} • ${reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()} ${bi('Total Views', 'कुल देखा गया')}`}
       >
         <div className="flex flex-wrap items-center gap-2.5">
           <button
@@ -330,14 +335,14 @@ export default function VendorReelsPage() {
             onClick={() => setShowPostModal(true)}
             className="px-4.5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer border border-amber-400"
           >
-            <FiPlus size={15} /> <span className="hidden sm:inline">CREATE REEL / POST</span><span className="sm:hidden">CREATE REEL</span>
+            <FiPlus size={15} /> <span className="hidden sm:inline">{bi('CREATE REEL / POST', '+ रील / पोस्ट बनाएं')}</span><span className="sm:hidden">{bi('CREATE REEL', '+ रील बनाएं')}</span>
           </button>
           <button
             type="button"
             onClick={() => navigate('/vendor/hire-creator')}
             className="px-4.5 py-2.5 rounded-full bg-[#2b2d36] text-white border border-white/12 font-bold text-xs shadow-md hover:bg-[#353844] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer"
           >
-            <FiUserCheck size={15} /> <span className="hidden sm:inline">HIRE CREATOR</span><span className="sm:hidden">HIRE</span>
+            <FiUserCheck size={15} /> <span className="hidden sm:inline">{bi('HIRE CREATOR', 'क्रिएटर हायर करें')}</span><span className="sm:hidden">{bi('HIRE', 'हायर')}</span>
           </button>
         </div>
       </AdminPageHeader>
@@ -345,29 +350,29 @@ export default function VendorReelsPage() {
       {/* REAL-TIME REEL CATALOG STATS BANNER */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 font-sans">
         <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs">
-          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">TOTAL REELS</span>
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">{bi('TOTAL REELS', 'कुल रील्स')}</span>
           <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] block">{reelsList.length}</span>
-          <span className="text-[10px] text-slate-500 font-bold block">Catalog Posts</span>
+          <span className="text-[10px] text-slate-500 font-bold block">{bi('Catalog Posts', 'कैटलॉग पोस्ट')}</span>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs">
-          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">PUBLISHED</span>
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">{bi('PUBLISHED', 'प्रकाशित')}</span>
           <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-emerald-700 block">{publishedCount}</span>
-          <span className="text-[10px] text-slate-500 font-bold block">Live Feed</span>
+          <span className="text-[10px] text-slate-500 font-bold block">{bi('Live Feed', 'लाइव फीड')}</span>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs">
-          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">SCHEDULED</span>
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">{bi('SCHEDULED', 'निर्धारित')}</span>
           <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-blue-700 block">{scheduledCount}</span>
-          <span className="text-[10px] text-slate-500 font-bold block">Upcoming</span>
+          <span className="text-[10px] text-slate-500 font-bold block">{bi('Upcoming', 'आगामी')}</span>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs">
-          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">DRAFTS</span>
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">{bi('DRAFTS', 'ड्राफ्ट')}</span>
           <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-amber-700 block">{draftCount}</span>
-          <span className="text-[10px] text-slate-500 font-bold block">Saved Drafts</span>
+          <span className="text-[10px] text-slate-500 font-bold block">{bi('Saved Drafts', 'सहेजे गए ड्राफ्ट')}</span>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-[#e3dccb] text-center space-y-1 shadow-2xs col-span-2 sm:col-span-1">
-          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">TOTAL VIEWS</span>
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-widest block">{bi('TOTAL VIEWS', 'कुल देखा गया')}</span>
           <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#241b15] block">{reelsList.reduce((sum, r) => sum + (r.views || 0), 0).toLocaleString()}</span>
-          <span className="text-[10px] text-slate-500 font-bold block">Customer Views</span>
+          <span className="text-[10px] text-slate-500 font-bold block">{bi('Customer Views', 'ग्राहक दृश्य')}</span>
         </div>
       </div>
 

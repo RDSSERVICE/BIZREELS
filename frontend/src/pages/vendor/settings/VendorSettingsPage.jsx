@@ -12,8 +12,10 @@ import AdminPageHeader from '../../../features/admin/components/AdminPageHeader'
 import { selectCurrentUser, setCredentials, logout } from '../../../features/auth/authSlice';
 import { api } from '../../../lib/api';
 import { useDeleteAccountMutation } from '../../../features/auth/authApi';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorSettingsPage() {
+  const { bi, t } = useLanguage();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const currentUser = useSelector(selectCurrentUser);
@@ -248,41 +250,34 @@ export default function VendorSettingsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-16 font-sans p-2 sm:p-4">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in font-sans p-2 sm:p-4 pb-16">
       <AdminPageHeader
         icon={FiSettings}
-        title="Vendor Settings & Business Configuration"
-        subtitle="Configure business categories, subcategories, close schedule markers, auto-responses, contacts, and store info"
+        title={bi('Vendor Store Settings & Operations', 'विक्रेता स्टोर सेटिंग्स और संचालन (Store Settings)')}
+        subtitle={bi('Configure shop details, categories, operating schedule, auto-responses, and notifications with OTP verification', 'दुकान का विवरण, श्रेणियां, संचालन समय सारिणी, ऑटो-जवाब और सूचनाएं कॉन्फ़िगर करें')}
       />
 
-      {/* Quick Links Banner */}
-      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-2 flex-wrap">
-        <Link
-          to="/vendor/settings"
-          className="px-4 py-2 rounded-xl text-xs font-black bg-[#241b15] text-[#d99a3d] shadow-xs flex items-center gap-2"
-        >
-          <FiSettings className="w-3.5 h-3.5" />
-          <span>Core Settings</span>
-        </Link>
+      {/* Quick Jump Bar */}
+      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-3 overflow-x-auto">
         <Link
           to="/vendor/profile"
           className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-[#1a1a1a] hover:bg-[#f8f4ec] transition flex items-center gap-2"
         >
           <FiBriefcase className="w-3.5 h-3.5" />
-          <span>Business Profile & Branding</span>
+          <span>{bi('Business Profile & Branding', 'बिजनेस प्रोफाइल और ब्रांडिंग')}</span>
         </Link>
         <Link
           to="/vendor/verification"
           className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-[#1a1a1a] hover:bg-[#f8f4ec] transition flex items-center gap-2"
         >
           <FiShield className="w-3.5 h-3.5" />
-          <span>Verification Center</span>
+          <span>{bi('Verification Center', 'सत्यापन केंद्र')}</span>
         </Link>
       </div>
 
       {loading ? (
         <div className="bg-white rounded-2xl p-8 text-center text-xs text-slate-500 border border-[#e3dccb]">
-          Loading vendor configuration...
+          {bi('Loading vendor configuration...', 'विक्रेता कॉन्फ़िगरेशन लोड हो रहा है...')}
         </div>
       ) : (
         <form onSubmit={handleOpenVerification} className="space-y-6">
@@ -294,10 +289,13 @@ export default function VendorSettingsPage() {
             </div>
             <div>
               <h4 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wide">
-                Secure Business Profile Editing Enabled
+                {bi('Secure Business Profile Editing Enabled', 'सुरक्षित व्यवसाय प्रोफ़ाइल संपादन सक्षम')}
               </h4>
               <p className="text-xs text-slate-600 mt-0.5">
-                All business configuration fields below are fully editable. For security, any updates will require your consent and instant verification via **Mobile OTP**.
+                {bi(
+                  'All business configuration fields below are fully editable. For security, any updates will require your consent and instant verification via Mobile OTP.',
+                  'नीचे दिए गए सभी व्यावसायिक कॉन्फ़िगरेशन फ़ील्ड पूरी तरह से संपादन योग्य हैं। सुरक्षा के लिए, किसी भी अपडेट के लिए मोबाइल ओटीपी के माध्यम से आपकी सहमति और तत्काल सत्यापन की आवश्यकता होगी।'
+                )}
               </p>
             </div>
           </div>
@@ -306,7 +304,7 @@ export default function VendorSettingsPage() {
           <div className="bg-white rounded-2xl p-6 border border-[#e3dccb] shadow-2xs space-y-4">
             <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide border-b border-[#e3dccb] pb-3 flex items-center gap-2">
               <FiBriefcase className="text-[#d99a3d]" />
-              <span>1. Business Profile Information</span>
+              <span>{bi('1. Business Profile Information', '1. व्यवसाय प्रोफाइल जानकारी')}</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

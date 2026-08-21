@@ -3,6 +3,7 @@ import {
   FiCheck, FiX, FiRefreshCw, FiAlertCircle, FiTruck, FiBox,
   FiDollarSign, FiPercent, FiCreditCard, FiPackage, FiLayers, FiHelpCircle
 } from 'react-icons/fi';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 const STANDARD_UNITS = [
   { value: 'piece', label: 'Piece (Pcs)' },
@@ -40,6 +41,7 @@ const STANDARD_CONDITIONS = [
 ];
 
 export default function ProductPricingInventorySection({ form, updateForm }) {
+  const { bi } = useLanguage();
   // Unit other state
   const isPredefinedUnit = STANDARD_UNITS.some((u) => u.value === form.unit && u.value !== 'other');
   const [selectedUnitType, setSelectedUnitType] = useState(
@@ -208,7 +210,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
       <div className="flex items-center justify-between border-b border-border pb-2.5">
         <h4 className="font-bold text-xs uppercase text-brand-purple tracking-wider flex items-center gap-2">
           <FiDollarSign className="text-brand-purple" />
-          <span>Pricing &amp; Inventory Configuration</span>
+          <span>{bi('Pricing & Inventory Configuration', 'मूल्य निर्धारण और इन्वेंटरी कॉन्फ़िगरेशन')}</span>
         </h4>
       </div>
 
@@ -218,7 +220,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
         {/* 1. Unit / Quantity Type (with Other Option) */}
         <div className={selectedUnitType === 'other' ? 'sm:col-span-2' : ''}>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            1. Unit / Quantity Type *
+            {bi('1. Unit / Quantity Type *', '1. इकाई / मात्रा का प्रकार *')}
           </label>
           <div className="flex gap-2">
             <select
@@ -240,7 +242,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
                 required
                 value={customUnit}
                 onChange={(e) => handleCustomUnitChange(e.target.value)}
-                placeholder="Enter custom unit (e.g. Bottle, Sheet, Drum)..."
+                placeholder={bi("Enter custom unit (e.g. Bottle, Sheet, Drum)...", "अनुकूलित इकाई दर्ज करें (उदा. बोतल, शीट, ड्रम)...")}
                 className="w-full p-2.5 bg-surface border-2 border-brand-purple rounded-xl text-xs font-bold text-text-primary focus:outline-none animate-fade-in"
               />
             )}
@@ -250,7 +252,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
         {/* 2. Stock Quantity */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            2. Stock Quantity *
+            {bi('2. Stock Quantity *', '2. स्टॉक मात्रा *')}
           </label>
           <input
             type="number"
@@ -258,7 +260,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
             min="0"
             value={form.stock}
             onChange={(e) => updateForm('stock', e.target.value)}
-            placeholder="e.g. 25"
+            placeholder={bi("e.g. 25", "उदा. 25")}
             className="w-full p-2.5 bg-surface border border-border rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:border-brand-purple"
           />
         </div>
@@ -266,7 +268,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
         {/* 3. Actual Price / MRP */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            3. Actual Price / MRP (₹) *
+            {bi('3. Actual Price / MRP (₹) *', '3. वास्तविक मूल्य / एमआरपी (₹) *')}
           </label>
           <div className="relative">
             <input
@@ -285,7 +287,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
         {/* 4. GST Rate (%) */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            4. GST Rate (%)
+            {bi('4. GST Rate (%)', '4. जीएसटी दर (%)')}
           </label>
           <div className="flex gap-1.5">
             <select
@@ -305,7 +307,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
         {/* 5. Selling Price (with GST) */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            5. Selling Price (with GST) (₹) *
+            {bi('5. Selling Price (with GST) (₹) *', '5. विक्रय मूल्य (जीएसटी सहित) (₹) *')}
           </label>
           <div className="relative">
             <input
@@ -324,7 +326,7 @@ export default function ProductPricingInventorySection({ form, updateForm }) {
         {/* 6. Discount (%) */}
         <div>
           <label className="text-[10px] font-black text-text-tertiary uppercase tracking-wider block mb-1">
-            6. Discount (%)
+            {bi('6. Discount (%)', '6. छूट (%)')}
           </label>
           <div className="relative">
             <input
