@@ -1,4 +1,5 @@
 const axios = require('axios');
+const CircuitBreaker = require('../utils/circuitBreaker');
 
 class SandboxVerificationService {
   constructor() {
@@ -9,6 +10,17 @@ class SandboxVerificationService {
     // In-memory token cache (valid for ~24h, refresh at 23h)
     this.cachedToken = null;
     this.tokenExpiryTime = null;
+
+    // Circuit Breaker instance with Exponential Backoff for Sandbox APIs
+    this.circuitBreaker = new CircuitBreaker({
+      name: 'SandboxKYC',
+      failureThreshold: 3,     // Trip OPEN after 3 consecutive failures
+      baseCooldownMs: 15000,   // Initial 15 seconds cooldown
+      maxCooldownMs: 300000,   // Max 5 minutes cooldown
+      backoffFactor: 2,        // Exponential backoff factor
+      maxRetries: 1,           // Retry once on transient network/5xx errors
+      retryDelayMs: 1000       // Initial 1s retry delay
+    });
   }
 
   /**
@@ -39,6 +51,18 @@ class SandboxVerificationService {
   maskPan(pan) {
     if (!pan || pan.length !== 10) return pan || '';
     return pan.slice(0, 5) + '****' + pan.slice(9);
+  }
+
+  /**
+   * Helper to mask UPI ID: "sur****34@okaxis"
+   */
+  maskUpi(upi) {
+    if (!upi || !upi.includes('@')) return upi || '';
+    const [user, handle] = upi.split('@');
+    if (user.length <= 4) return user.slice(0, 1) + '***@' + handle;
+    const first2 = user.slice(0, 2);
+    const last2 = user.slice(-2);
+    return `${first2}****${last2}@${handle}`;
   }
 
   /**
@@ -91,38 +115,23 @@ class SandboxVerificationService {
   }
 
   /**
-   * Make an authenticated request to Sandbox API
+   * Make an authenticated request to Sandbox API protected by Circuit Breaker & Exponential Backoff
    */
   async request(method, path, data = null, params = null, customHeaders = {}) {
-    const token = await this.getAccessToken();
-    const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    return this.circuitBreaker.execute(async () => {
+      const token = await this.getAccessToken();
+      const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
-    const headers = {
-      'Authorization': token,
-      'x-api-key': this.apiKey,
-      'x-api-version': '1.0.0',
-      'Content-Type': 'application/json',
-      ...customHeaders
-    };
+      const headers = {
+        'Authorization': token,
+        'x-api-key': this.apiKey,
+        'x-api-version': '1.0.0',
+        'Content-Type': 'application/json',
+        ...customHeaders
+      };
 
-    try {
-      const res = await axios({
-        method,
-        url,
-        data: data || undefined,
-        params: params || undefined,
-        headers,
-        timeout: 15000
-      });
-      return res.data;
-    } catch (err) {
-      // If token expired (401), invalidate cache and retry once
-      if (err.response?.status === 401 && this.cachedToken) {
-        this.cachedToken = null;
-        this.tokenExpiryTime = null;
-        const freshToken = await this.getAccessToken();
-        headers['Authorization'] = freshToken;
-        const retryRes = await axios({
+      try {
+        const res = await axios({
           method,
           url,
           data: data || undefined,
@@ -130,18 +139,35 @@ class SandboxVerificationService {
           headers,
           timeout: 15000
         });
-        return retryRes.data;
+        return res.data;
+      } catch (err) {
+        // If token expired (401), invalidate cache and retry once
+        if (err.response?.status === 401 && this.cachedToken) {
+          this.cachedToken = null;
+          this.tokenExpiryTime = null;
+          const freshToken = await this.getAccessToken();
+          headers['Authorization'] = freshToken;
+          const retryRes = await axios({
+            method,
+            url,
+            data: data || undefined,
+            params: params || undefined,
+            headers,
+            timeout: 15000
+          });
+          return retryRes.data;
+        }
+
+        const status = err.response?.status;
+        const resData = err.response?.data;
+        const errorMsg = resData?.message || resData?.error?.message || err.message;
+
+        const safeError = new Error(errorMsg);
+        safeError.status = status;
+        safeError.raw = resData;
+        throw safeError;
       }
-
-      const status = err.response?.status;
-      const resData = err.response?.data;
-      const errorMsg = resData?.message || resData?.error?.message || err.message;
-
-      const safeError = new Error(errorMsg);
-      safeError.status = status;
-      safeError.raw = resData;
-      throw safeError;
-    }
+    });
   }
 
   /**
@@ -194,7 +220,6 @@ class SandboxVerificationService {
     const entityCategory = categoryMap[fourthChar] || 'Individual';
 
     try {
-      // Sandbox PAN verification endpoint
       const res = await this.request('POST', '/kyc/pan/verify', {
         '@entity': 'in.co.sandbox.kyc.pan_verification.request',
         pan: pan,
@@ -207,7 +232,18 @@ class SandboxVerificationService {
       const panStatus = (innerData.status || innerData.pan_status || data.status || data.pan_status || '').toUpperCase();
       const isPanValid = panStatus === 'VALID' || panStatus === 'ACTIVE' || innerData.verified === true || data.verified === true;
 
-      const fullName = innerData.full_name || innerData.name || innerData.pan_holder_name || data.full_name || data.name || data.pan_holder_name || fallbackName || '';
+      if (!isPanValid) {
+        return {
+          success: false,
+          verified: false,
+          status: 'failed',
+          panNumber: pan,
+          maskedNumber: this.maskPan(pan),
+          message: 'PAN Card validation failed or record not active with Income Tax Department.'
+        };
+      }
+
+      const fullName = innerData.full_name || innerData.name || innerData.pan_holder_name || data.full_name || data.name || data.pan_holder_name || '';
       const category = innerData.category || data.category || entityCategory;
       const aadhaarLinked = innerData.aadhaar_seeding_status || innerData.aadhaar_linked || data.aadhaar_seeding_status || data.aadhaar_linked || 'Linked';
       const dob = innerData.dob || innerData.date_of_birth || data.dob || data.date_of_birth || '';
@@ -215,8 +251,8 @@ class SandboxVerificationService {
 
       return {
         success: true,
-        verified: isPanValid,
-        status: isPanValid ? 'approved' : 'failed',
+        verified: true,
+        status: 'approved',
         panNumber: pan,
         maskedNumber: this.maskPan(pan),
         fullName: fullName || 'Taxpayer Validated',
@@ -230,23 +266,25 @@ class SandboxVerificationService {
         rawDetails: innerData
       };
     } catch (err) {
-      console.warn('[Sandbox PAN Verification Fallback Engaged]:', err.message);
-      // Graceful fallback for valid PAN format when API credits are exhausted or service is offline
+      console.error('[Sandbox PAN Verification Error]:', err.message);
+
+      let friendlyMsg = 'PAN verification service is temporarily unavailable. Kindly try again after some time.';
+      const rawMsg = (err.message || '').toLowerCase();
+      if (err.circuitOpen) {
+        friendlyMsg = err.message || 'PAN verification service is temporarily unavailable. Kindly try again after some time.';
+      } else if (rawMsg.includes('insufficient credits') || err.status === 403 || err.status === 402) {
+        friendlyMsg = 'PAN verification service is temporarily unavailable. Kindly try again after some time.';
+      } else if (rawMsg.includes('invalid pan') || rawMsg.includes('format')) {
+        friendlyMsg = 'Invalid PAN format. Please check the PAN number and try again.';
+      }
+
       return {
-        success: true,
-        verified: true,
-        status: 'approved',
+        success: false,
+        verified: false,
+        status: 'failed',
         panNumber: pan,
         maskedNumber: this.maskPan(pan),
-        fullName: fallbackName || 'Taxpayer Validated',
-        panStatus: 'VALID',
-        category: entityCategory,
-        aadhaarLinked: 'Linked / Verified',
-        dob: '',
-        gender: '',
-        referenceId: `PAN_VAL_${Date.now()}`,
-        verifiedAt: new Date(),
-        message: 'PAN Card format validated and verified successfully.'
+        message: friendlyMsg
       };
     }
   }
@@ -286,11 +324,14 @@ class SandboxVerificationService {
       const errorMsg = err.message || '';
       console.error('[Sandbox Aadhaar OTP Initiate Error]:', errorMsg);
 
-      let friendlyMsg = errorMsg;
-      if (errorMsg.toLowerCase().includes('source unavailable')) {
-        friendlyMsg = 'Aadhaar verification service (UIDAI) is temporarily busy. Please try sending OTP again in a few moments, or upload your Aadhaar document card images below.';
-      } else if (!friendlyMsg) {
-        friendlyMsg = 'Failed to initiate Aadhaar OTP. Please check the Aadhaar number and try again.';
+      let friendlyMsg = 'Aadhaar verification service is temporarily unavailable. Kindly try again after some time.';
+      const lower = errorMsg.toLowerCase();
+      if (lower.includes('source unavailable') || lower.includes('busy')) {
+        friendlyMsg = 'Aadhaar verification service (UIDAI) is temporarily busy. Kindly try again after some time.';
+      } else if (lower.includes('insufficient credits') || err.status === 403 || err.circuitOpen) {
+        friendlyMsg = 'Aadhaar verification service is temporarily unavailable. Kindly try again after some time.';
+      } else if (lower.includes('invalid') || lower.includes('not found')) {
+        friendlyMsg = 'Invalid Aadhaar number. Please check and try again.';
       }
 
       return {
@@ -321,7 +362,6 @@ class SandboxVerificationService {
           otp: cleanOtp
         });
       } catch (err1) {
-        // If reference_id was string/number mismatch, retry with alternative type
         const isNum = !isNaN(Number(referenceId));
         const altRefId = isNum ? (typeof referenceId === 'string' ? Number(referenceId) : String(referenceId)) : referenceId;
         if (altRefId !== referenceId) {
@@ -338,6 +378,15 @@ class SandboxVerificationService {
       const data = res.data || res;
       const innerData = data.data || data;
       const isVerified = (data.status === 'VALID' || data.status === 'SUCCESS' || innerData.status === 'VALID' || innerData.status === 'SUCCESS' || !!innerData.name || !!innerData.full_name) && (data.status !== 'FAILED' && innerData.status !== 'FAILED');
+
+      if (!isVerified) {
+        return {
+          success: false,
+          verified: false,
+          status: 'failed',
+          message: innerData.message || data.message || 'Aadhaar OTP verification failed. Please enter the correct OTP.'
+        };
+      }
 
       const maskedAadhaarNum = innerData.aadhaar_number
         ? this.maskAadhaar(innerData.aadhaar_number)
@@ -360,8 +409,8 @@ class SandboxVerificationService {
 
       return {
         success: true,
-        verified: isVerified,
-        status: isVerified ? 'approved' : 'failed',
+        verified: true,
+        status: 'approved',
         referenceId: referenceId,
         fullName: fullName,
         gender: gender,
@@ -375,20 +424,25 @@ class SandboxVerificationService {
         district: district,
         city: city,
         photo: photo,
-        message: innerData.message || data.message || (isVerified ? 'Aadhaar verified successfully!' : 'Aadhaar OTP verification failed'),
+        message: 'Aadhaar verified successfully!',
         verifiedAt: new Date(),
         rawDetails: innerData
       };
     } catch (err) {
       const rawErr = err.raw || err.response?.data || {};
       const errorMsg = rawErr.data?.message || rawErr.message || rawErr.error?.message || rawErr.error || err.message;
-      console.error('[Sandbox Aadhaar OTP Verify Error]:', errorMsg, rawErr);
+      console.error('[Sandbox Aadhaar OTP Verify Error]:', errorMsg);
+
+      let friendlyMsg = errorMsg || 'Invalid or expired Aadhaar OTP code. Please check and try again.';
+      if (errorMsg && (errorMsg.toLowerCase().includes('insufficient credits') || err.status === 403 || err.circuitOpen)) {
+        friendlyMsg = 'Aadhaar verification service is temporarily unavailable. Kindly try again after some time.';
+      }
 
       return {
         success: false,
         verified: false,
         status: 'failed',
-        message: errorMsg || 'Invalid or expired Aadhaar OTP code. Please check and try again.'
+        message: friendlyMsg
       };
     }
   }
@@ -419,17 +473,11 @@ class SandboxVerificationService {
       '33': 'Tamil Nadu', '36': 'Telangana', '37': 'Andhra Pradesh'
     };
     const stateName = stateMap[stateCode] || 'India';
-    const panFromGst = gstin.slice(2, 12);
 
     try {
-      let res;
-      try {
-        res = await this.request('POST', '/gst/compliance/public/gstin/search', {
-          gstin: gstin
-        });
-      } catch (e1) {
-        throw e1;
-      }
+      const res = await this.request('POST', '/gst/compliance/public/gstin/search', {
+        gstin: gstin
+      });
 
       const data = res.data || res;
       const innerData = data.data || data;
@@ -438,6 +486,16 @@ class SandboxVerificationService {
       const tradeName = innerData.trade_name || innerData.trade_name_of_business || data.trade_name || data.trade_name_of_business || legalName || fallbackTradeName;
       const gstStatus = (innerData.status || innerData.sts || data.status || data.sts || 'Active').toUpperCase();
       const isActive = gstStatus === 'ACTIVE';
+
+      if (!isActive) {
+        return {
+          success: false,
+          verified: false,
+          status: 'failed',
+          gstin: gstin,
+          message: `GSTIN status is not active (Status: ${gstStatus}).`
+        };
+      }
 
       const taxpayerType = innerData.taxpayer_type || innerData.dty || data.taxpayer_type || data.dty || 'Regular';
       const constitutionOfBusiness = innerData.constitution_of_business || innerData.ctb || data.constitution_of_business || data.ctb || 'Proprietorship';
@@ -452,8 +510,8 @@ class SandboxVerificationService {
 
       return {
         success: true,
-        verified: isActive,
-        status: isActive ? 'approved' : 'failed',
+        verified: true,
+        status: 'approved',
         gstin: gstin,
         legalName: legalName || fallbackTradeName || 'Registered Enterprise',
         tradeName: tradeName || fallbackTradeName || 'Registered Enterprise',
@@ -472,28 +530,20 @@ class SandboxVerificationService {
         rawDetails: innerData
       };
     } catch (err) {
-      console.warn('[Sandbox GSTIN Verification Fallback Engaged]:', err.message);
-      // Graceful fallback when GST API quota is exhausted
+      console.error('[Sandbox GSTIN Verification Error]:', err.message);
+
+      let friendlyMsg = 'GSTIN verification service is temporarily unavailable. Kindly try again after some time.';
+      const rawMsg = (err.message || '').toLowerCase();
+      if (rawMsg.includes('invalid') || rawMsg.includes('not found')) {
+        friendlyMsg = 'GSTIN number not found or invalid. Please check and try again.';
+      }
+
       return {
-        success: true,
-        verified: true,
-        status: 'approved',
+        success: false,
+        verified: false,
+        status: 'failed',
         gstin: gstin,
-        legalName: fallbackTradeName || `Business (${panFromGst})`,
-        tradeName: fallbackTradeName || 'Registered Taxpayer',
-        gstStatus: 'ACTIVE',
-        taxpayerType: 'Regular',
-        constitutionOfBusiness: 'Registered Business',
-        dateOfRegistration: new Date().toISOString().split('T')[0],
-        state: stateName,
-        centerJurisdiction: `Jurisdiction (${stateCode})`,
-        stateJurisdiction: `${stateName} State Division`,
-        natureOfBusiness: ['Retail Business', 'Services'],
-        principalPlaceOfBusiness: {},
-        fullAddress: `${stateName}, India`,
-        referenceId: `GST_VAL_${Date.now()}`,
-        verifiedAt: new Date(),
-        message: 'GSTIN verified successfully.'
+        message: friendlyMsg
       };
     }
   }
@@ -524,7 +574,7 @@ class SandboxVerificationService {
     }
 
     // Lookup Bank details from Razorpay IFSC
-    let bankLookup = { bank: 'State Bank of India', branch: 'Main Branch', city: '', state: '', micr: '' };
+    let bankLookup = { bank: 'Bank', branch: 'Branch', city: '', state: '', micr: '' };
     try {
       const ifscRes = await axios.get(`https://ifsc.razorpay.com/${cleanIfsc}`, { timeout: 4000 });
       if (ifscRes.data) {
@@ -547,6 +597,18 @@ class SandboxVerificationService {
       const innerData = data.data || data;
 
       const accountExists = innerData.account_exists !== false && innerData.status !== 'FAILED' && data.status !== 'FAILED';
+      if (!accountExists) {
+        return {
+          success: false,
+          verified: false,
+          status: 'failed',
+          accountNumber: cleanAcc,
+          maskedAccount: this.maskBankAccount(cleanAcc),
+          ifsc: cleanIfsc,
+          message: 'Bank account verification failed. Account does not exist or details do not match.'
+        };
+      }
+
       const nameAtBank = innerData.name_at_bank || innerData.account_holder_name || data.name_at_bank || data.account_holder_name || accountHolderName || '';
       const bankName = innerData.bank_name || data.bank_name || bankLookup.bank;
       const branchName = innerData.branch || innerData.branch_name || data.branch || bankLookup.branch;
@@ -556,8 +618,8 @@ class SandboxVerificationService {
 
       return {
         success: true,
-        verified: accountExists,
-        status: accountExists ? 'approved' : 'failed',
+        verified: true,
+        status: 'approved',
         accountNumber: cleanAcc,
         maskedAccount: this.maskBankAccount(cleanAcc),
         ifsc: cleanIfsc,
@@ -572,38 +634,24 @@ class SandboxVerificationService {
         rawDetails: innerData
       };
     } catch (err) {
-      console.warn('[Sandbox Bank Verification Fallback Engaged]:', err.message);
-      // Graceful fallback with verified IFSC lookup details
+      console.error('[Sandbox Bank Verification Error]:', err.message);
+
+      let friendlyMsg = 'Bank account verification service is temporarily unavailable. Kindly try again after some time.';
+      const rawMsg = (err.message || '').toLowerCase();
+      if (rawMsg.includes('invalid') || rawMsg.includes('not found')) {
+        friendlyMsg = 'Bank account verification failed. Please check IFSC and account number.';
+      }
+
       return {
-        success: true,
-        verified: true,
-        status: 'approved',
+        success: false,
+        verified: false,
+        status: 'failed',
         accountNumber: cleanAcc,
         maskedAccount: this.maskBankAccount(cleanAcc),
         ifsc: cleanIfsc,
-        nameAtBank: accountHolderName || 'Verified Account Holder',
-        bankName: bankLookup.bank,
-        branchName: bankLookup.branch,
-        city: bankLookup.city,
-        state: bankLookup.state,
-        micr: bankLookup.micr,
-        referenceId: `BANK_VAL_${Date.now()}`,
-        verifiedAt: new Date(),
-        message: 'Bank Account and IFSC verified successfully.'
+        message: friendlyMsg
       };
     }
-  }
-
-  /**
-   * Helper to mask UPI ID: "sur****34@okaxis"
-   */
-  maskUpi(upi) {
-    if (!upi || !upi.includes('@')) return upi || '';
-    const [user, handle] = upi.split('@');
-    if (user.length <= 4) return user.slice(0, 1) + '***@' + handle;
-    const first2 = user.slice(0, 2);
-    const last2 = user.slice(-2);
-    return `${first2}****${last2}@${handle}`;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -644,27 +692,33 @@ class SandboxVerificationService {
     const pspBank = pspMap[handle.toLowerCase()] || `${handle.toUpperCase()} UPI Handle`;
 
     try {
-      // Attempt live Sandbox VPA verification if available
-      let res;
-      try {
-        res = await this.request('POST', '/kyc/vpa/verify', {
-          vpa: cleanUpi,
-          name: accountHolderName || undefined
-        });
-      } catch (e1) {
-        throw e1;
-      }
+      const res = await this.request('POST', '/kyc/vpa/verify', {
+        vpa: cleanUpi,
+        name: accountHolderName || undefined
+      });
 
       const data = res.data || res;
       const innerData = data.data || data;
 
-      const isVerified = innerData.status !== 'FAILED' && data.status !== 'FAILED';
+      const isVerified = innerData.status !== 'FAILED' && data.status !== 'FAILED' && innerData.account_exists !== false;
+      if (!isVerified) {
+        return {
+          success: false,
+          verified: false,
+          status: 'failed',
+          upiId: cleanUpi,
+          maskedUpi: this.maskUpi(cleanUpi),
+          pspBank: pspBank,
+          message: 'UPI ID verification failed. VPA does not exist or is inactive.'
+        };
+      }
+
       const beneficiaryName = innerData.name_at_bank || innerData.account_holder_name || innerData.name || accountHolderName || 'Verified Beneficiary';
 
       return {
         success: true,
-        verified: isVerified,
-        status: isVerified ? 'approved' : 'failed',
+        verified: true,
+        status: 'approved',
         upiId: cleanUpi,
         maskedUpi: this.maskUpi(cleanUpi),
         pspBank: pspBank,
@@ -674,19 +728,22 @@ class SandboxVerificationService {
         rawDetails: innerData
       };
     } catch (err) {
-      console.warn('[Sandbox UPI Verification Fallback Engaged]:', err.message);
-      // Graceful verified fallback for valid UPI format
+      console.error('[Sandbox UPI Verification Error]:', err.message);
+
+      let friendlyMsg = 'UPI verification service is temporarily unavailable. Kindly try again after some time.';
+      const rawMsg = (err.message || '').toLowerCase();
+      if (rawMsg.includes('invalid') || rawMsg.includes('not found')) {
+        friendlyMsg = 'Invalid UPI ID format or VPA handle not recognized.';
+      }
+
       return {
-        success: true,
-        verified: true,
-        status: 'approved',
+        success: false,
+        verified: false,
+        status: 'failed',
         upiId: cleanUpi,
         maskedUpi: this.maskUpi(cleanUpi),
         pspBank: pspBank,
-        beneficiaryName: accountHolderName || 'Verified UPI Beneficiary',
-        referenceId: `UPI_VAL_${Date.now()}`,
-        verifiedAt: new Date(),
-        message: 'UPI ID verified successfully with NPCI UPI Registry.'
+        message: friendlyMsg
       };
     }
   }

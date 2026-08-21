@@ -247,12 +247,12 @@ const verifyPan = catchAsync(async (req, res) => {
   currentDocs.pan = {
     docNumber: panNumber.toUpperCase(),
     maskedNumber: sandboxRes.maskedNumber || sandboxService.maskPan(panNumber.toUpperCase()),
-    fullName: sandboxRes.fullName || fallbackName,
-    category: sandboxRes.category || 'Individual',
-    panStatus: sandboxRes.panStatus || 'VALID',
-    aadhaarLinked: sandboxRes.aadhaarLinked || 'Linked / Verified',
-    dob: sandboxRes.dob || '',
-    gender: sandboxRes.gender || '',
+    fullName: isApproved ? (sandboxRes.fullName || fallbackName) : '',
+    category: isApproved ? (sandboxRes.category || 'Individual') : '',
+    panStatus: isApproved ? (sandboxRes.panStatus || 'VALID') : 'FAILED',
+    aadhaarLinked: isApproved ? (sandboxRes.aadhaarLinked || 'Linked / Verified') : 'Unlinked',
+    dob: isApproved ? (sandboxRes.dob || '') : '',
+    gender: isApproved ? (sandboxRes.gender || '') : '',
     status: isApproved ? 'approved' : 'failed',
     verified: isApproved,
     verifiedAt: isApproved ? now : null,
@@ -285,8 +285,10 @@ const verifyPan = catchAsync(async (req, res) => {
 
   const statusInfo = await fetchAndComputeStatus(user);
   currentVp.verificationStatus = statusInfo.tier;
-  if (['verified_vendor', 'trusted_vendor', 'premium_vendor'].includes(statusInfo.tier) || isApproved) {
+  if (['verified_vendor', 'trusted_vendor', 'premium_vendor'].includes(statusInfo.tier) && isApproved) {
     user.kyc_status = 'approved';
+  } else if (!isApproved && statusInfo.tier === 'unverified') {
+    user.kyc_status = 'pending';
   }
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
