@@ -3,6 +3,7 @@ import { FiPackage, FiTruck, FiStar, FiX, FiCheckCircle, FiClock, FiMapPin } fro
 import { useNavigate } from 'react-router-dom';
 import OptimizedImage from '../../../../components/common/OptimizedImage';
 import { resolveMediaUrl } from '../../../../lib/api';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 const DEFAULT_ORDER_IMG = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=300&q=80';
 
@@ -12,6 +13,7 @@ export default function MyOrdersTab({
   onOpenCancelModal,
   onOpenReviewModal,
 }) {
+  const { bi } = useLanguage();
   const navigate = useNavigate();
 
   if (orders.length === 0) {
@@ -20,13 +22,13 @@ export default function MyOrdersTab({
         <div className="w-12 h-12 rounded-full bg-[#f8f4ec] text-[#d99a3d] flex items-center justify-center mx-auto mb-2 border border-[#e3dccb]">
           <FiPackage size={22} />
         </div>
-        <p className="text-sm font-bold text-[#1a1a1a]">No order requests placed yet</p>
-        <p className="text-xs">Find products and services on BizReels and place orders directly to local vendors.</p>
+        <p className="text-sm font-bold text-[#1a1a1a]">{bi('No order requests placed yet', 'अभी तक कोई ऑर्डर अनुरोध नहीं दिया गया है')}</p>
+        <p className="text-xs">{bi('Find products and services on BizReels and place orders directly to local vendors.', 'बिज़रील्स पर उत्पाद और सेवाएं खोजें और स्थानीय विक्रेताओं को सीधे ऑर्डर दें।')}</p>
         <button
           onClick={() => navigate('/customer/search')}
-          className="mt-3 px-4 py-2 bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+          className="mt-3 px-4 py-2 bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-all cursor-pointer border-none"
         >
-          Start Shopping
+          {bi('Start Shopping', 'खरीदारी शुरू करें')}
         </button>
       </div>
     );
@@ -54,9 +56,9 @@ export default function MyOrdersTab({
             {/* Header: Order ID, Date & Status Pills */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e3dccb] pb-3">
               <div>
-                <span className="text-[10px] font-mono font-bold text-slate-400">ORDER #{String(orderId).slice(-6).toUpperCase()}</span>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Placed on {new Date(o.createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                <span className="text-[10px] font-mono font-bold text-slate-400">{bi('ORDER #', 'ऑर्डर #')}{String(orderId).slice(-6).toUpperCase()}</span>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                  {bi('Placed on', 'दिनांक')}: {new Date(o.createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               </div>
 

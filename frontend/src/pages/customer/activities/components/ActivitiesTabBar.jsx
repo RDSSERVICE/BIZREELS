@@ -4,19 +4,22 @@ import {
   FiMessageSquare, FiPackage, FiDollarSign, FiUserCheck
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function ActivitiesTabBar({ activeTab, onTabChange, counts = {} }) {
+  const { bi } = useLanguage();
+
   const dynamicTabs = [
-    { key: 'saved-products', label: 'Saved Products', icon: FiBookmark, count: counts.savedProducts },
-    { key: 'saved-services', label: 'Saved Services', icon: FiTool, count: counts.savedServices },
-    { key: 'saved-reels', label: 'Saved Reels', icon: FiVideo, count: counts.savedReels },
-    { key: 'saved-images', label: 'Saved Images', icon: FiImage, count: counts.savedImages },
-    { key: 'click-to-called', label: 'Call History', icon: FiPhone, count: counts.clickToCalled },
-    { key: 'whatsapp-contacted', label: 'WhatsApp', icon: FaWhatsapp, count: counts.whatsappContacted },
-    { key: 'chat-inquiries', label: 'Inquiries', icon: FiMessageSquare, count: counts.chatInquiries },
-    { key: 'my-orders', label: 'My Orders', icon: FiPackage },
-    { key: 'quotes', label: 'Quotes', icon: FiDollarSign },
-    { key: 'following-vendors', label: 'Following Vendors', icon: FiUserCheck },
+    { key: 'saved-products', label: bi('Saved Products', 'सहेजे गए उत्पाद'), icon: FiBookmark, count: counts.savedProducts },
+    { key: 'saved-services', label: bi('Saved Services', 'सहेजी गई सेवाएं'), icon: FiTool, count: counts.savedServices },
+    { key: 'saved-reels', label: bi('Saved Reels', 'सहेजी गई रील्स'), icon: FiVideo, count: counts.savedReels },
+    { key: 'saved-images', label: bi('Saved Images', 'सहेजी गई तस्वीरें'), icon: FiImage, count: counts.savedImages },
+    { key: 'click-to-called', label: bi('Call History', 'कॉल इतिहास'), icon: FiPhone, count: counts.clickToCalled },
+    { key: 'whatsapp-contacted', label: bi('WhatsApp', 'व्हाट्सएप'), icon: FaWhatsapp, count: counts.whatsappContacted },
+    { key: 'chat-inquiries', label: bi('Inquiries', 'पूछताछ'), icon: FiMessageSquare, count: counts.chatInquiries },
+    { key: 'my-orders', label: bi('My Orders', 'मेरे ऑर्डर'), icon: FiPackage },
+    { key: 'quotes', label: bi('Quotes', 'कोटेशन्स'), icon: FiDollarSign },
+    { key: 'following-vendors', label: bi('Following Vendors', 'फॉलो किए गए विक्रेता'), icon: FiUserCheck },
   ];
 
   return (
