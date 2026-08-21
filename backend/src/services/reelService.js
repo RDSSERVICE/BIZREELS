@@ -353,7 +353,37 @@ class ReelService {
       throw ApiError.notFound('Reel not found.');
     }
 
-    // Track view for recommendation engine (even if view count isn't incremented, we track so it can be filtered out)
+    // Persist/Update the view record in the reel_views collection
+    try {
+      await ReelView.findOneAndUpdate(
+        { user_id: viewerId, reel_id: id },
+        {
+          viewed_at: new Date(),
+          watch_duration_seconds: watchDuration || 0,
+          completed: Boolean(watchDuration >= 10),
+        },
+        { upsert: true, returnDocument: 'after' }
+      );
+    } catch (err) {
+      logger.warn('Failed to upsert ReelView record:', err.message);
+    }
+
+    // Log to Analytics collection for platform-wide telemetry
+    try {
+      const Analytics = require('../models/Analytics');
+      await Analytics.create({
+        type: 'reel_view',
+        userId: userId && mongoose.Types.ObjectId.isValid(userId) ? userId : undefined,
+        targetId: id,
+        metadata: {
+          watchDuration: watchDuration || 0,
+        }
+      });
+    } catch (err) {
+      // Non-critical
+    }
+
+    // Track view for recommendation engine
     try {
       const recommendationService = require('./recommendation.service');
       await recommendationService.trackView(viewerId, id, watchDuration || 0);
