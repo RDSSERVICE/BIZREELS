@@ -6,22 +6,39 @@ All REST API endpoints are prefix-routed under `/api/v1`. Access tokens must be 
 
 ## 1. Authentication (`/auth`)
 
+* `POST /auth/register`  
+  Registers a new user account with email and password.  
+  *Payload*: `{ "name": "string", "email": "string", "password": "string", "phone": "optional" }`
+* `POST /auth/login`  
+  Authenticates user with email and password.  
+  *Payload*: `{ "email": "string", "password": "string" }`
+* `GET /auth/google`  
+  Initiates Google OAuth 2.0 flow. Redirects the browser to Google consent screen requesting profile and email permissions.
+* `GET /auth/google/callback`  
+  Google OAuth 2.0 callback endpoint. Passport.js exchanges the Google authorization code, provisions/logs in the user, sets HTTP-only auth cookies (`refreshToken`, `accessToken`), and redirects the browser to `${CLIENT_URL}/auth/callback?accessToken=...&refreshToken=...`.
+* `POST /auth/google/session-exchange`  
+  Exchanges a Google OAuth session token for JWT credentials.  
+  *Payload*: `{ "session_id": "string" }`
 * `POST /auth/otp/send`  
-  Triggers a 6-digit SMS OTP code (MSG91). Rate-limited to 3 requests per phone per 10 minutes.  
+  Triggers a 6-digit SMS/WhatsApp OTP code. Rate-limited to 3 requests per phone per 10 minutes.  
   *Payload*: `{ "phone": "10-digit-string" }`
 * `POST /auth/otp/verify`  
   Verifies OTP, creates or updates a User record, and returns tokens.  
   *Payload*: `{ "phone": "string", "otp": "6-digit-string", "name": "optional", "roles": ["customer"], "referral_code": "optional" }`  
   *Response*: `{ "access_token": "jwt", "refresh_token": "jwt", "user": { ... } }`
-* `POST /auth/refresh`  
-  Rotates expired access tokens. Requires a valid refresh token.  
+* `POST /auth/forgot-password`  
+  Requests password reset OTP to email or phone.  
+  *Payload*: `{ "email": "string" }` or `{ "phone": "string" }`
+* `POST /auth/reset-password`  
+  Resets user password using verified OTP token.  
+  *Payload*: `{ "email": "string", "otp": "string", "new_password": "string" }`
+* `POST /auth/refresh-token` / `POST /auth/refresh`  
+  Rotates expired access tokens. Requires a valid refresh token in cookies or payload.  
   *Payload*: `{ "refresh_token": "string" }`
 * `POST /auth/logout`  
-  Revokes the active refresh token.  
-  *Payload*: `{ "refresh_token": "string" }`
-* `POST /auth/google/session-exchange`  
-  Exchanges a Google OAuth session token for JWT credentials.  
-  *Payload*: `{ "session_id": "string" }`
+  Revokes the active refresh token session.  
+* `POST /auth/logout-all`  
+  Revokes all active refresh token sessions across all devices for the caller.  
 * `POST /auth/dev/admin-login` (Development mode only)  
   Bypass auth to log in as administrative phone profile.  
   *Payload*: `{ "token": "override-token-string" }`

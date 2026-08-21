@@ -102,7 +102,43 @@ export const dictionary = {
     vendor_portal: 'Vendor Portal',
     creator_portal: 'Creator Portal',
     become_vendor: 'Become a Vendor',
-    become_creator: 'Become a Creator'
+    become_creator: 'Become a Creator',
+
+    // Vendor Navigation & Section Titles
+    vendor_nav_dashboard: 'Dashboard',
+    vendor_nav_listings: 'My Listings',
+    vendor_nav_reels: 'Reels & AI Ads',
+    vendor_nav_leads: 'Leads / Enquiries',
+    vendor_nav_orders: 'Order Requests',
+    vendor_nav_chat: 'Chat / Inbox',
+    vendor_nav_profile: 'Business Profile',
+    vendor_nav_verification: 'Verification Center',
+    vendor_nav_analytics: 'Analytics',
+    vendor_nav_referrals: 'Refer & Earn',
+    vendor_nav_hire: 'Hire Creator',
+    vendor_nav_reviews: 'Reviews',
+    vendor_nav_followers: 'Followers',
+    vendor_nav_subscription: 'Subscription',
+    vendor_nav_wallet: 'Vendor Wallet',
+    vendor_nav_credit_rates: 'Credit Rates',
+    vendor_nav_settings: 'Settings',
+
+    // Vendor Status & Actions
+    shop_open: 'Shop Open',
+    shop_closed: 'Shop Closed',
+    verify_now: 'Verify Now',
+    verified_vendor: 'Verified Vendor',
+    unverified_vendor: 'Unverified Vendor',
+    premium_verified: 'Premium Verified',
+    total_leads_label: 'Total Leads',
+    active_listings_label: 'Active Listings',
+    reels_posted_label: 'Reels & Ads',
+    wallet_balance_label: 'Wallet Balance',
+    add_new_listing: '+ Add New Listing',
+    upload_new_reel: '+ Upload New Reel',
+    reply_lead: 'Reply Lead',
+    view_details: 'View Details',
+    switch_role: 'Switch Active Role'
   },
   hi: {
     // Navigation
@@ -203,7 +239,43 @@ export const dictionary = {
     vendor_portal: 'विक्रेता पोर्टल (Vendor Portal)',
     creator_portal: 'क्रिएटर पोर्टल (Creator Portal)',
     become_vendor: 'विक्रेता बनें (Become a Vendor)',
-    become_creator: 'क्रिएटर बनें (Become a Creator)'
+    become_creator: 'क्रिएटर बनें (Become a Creator)',
+
+    // Vendor Navigation & Section Titles
+    vendor_nav_dashboard: 'डैशबोर्ड (Dashboard)',
+    vendor_nav_listings: 'मेरी लिस्टिंग्स (My Listings)',
+    vendor_nav_reels: 'रील्स और एआई विज्ञापन (Reels & AI Ads)',
+    vendor_nav_leads: 'लीड्स / पूछताछ (Leads / Enquiries)',
+    vendor_nav_orders: 'ऑर्डर अनुरोध (Order Requests)',
+    vendor_nav_chat: 'चैट / इनबॉक्स (Chat / Inbox)',
+    vendor_nav_profile: 'बिजनेस प्रोफाइल (Business Profile)',
+    vendor_nav_verification: 'सत्यापन केंद्र (Verification Center)',
+    vendor_nav_analytics: 'एनालिटिक्स (Analytics)',
+    vendor_nav_referrals: 'रेफर करें और कमाएं (Refer & Earn)',
+    vendor_nav_hire: 'क्रिएटर हायर करें (Hire Creator)',
+    vendor_nav_reviews: 'समीक्षाएं (Reviews)',
+    vendor_nav_followers: 'फॉलोअर्स (Followers)',
+    vendor_nav_subscription: 'सब्सक्रिप्शन (Subscription)',
+    vendor_nav_wallet: 'विक्रेता वॉलेट (Vendor Wallet)',
+    vendor_nav_credit_rates: 'क्रेडिट दरें (Credit Rates)',
+    vendor_nav_settings: 'सेटिंग्स (Settings)',
+
+    // Vendor Status & Actions
+    shop_open: 'दुकान खुली है (Shop Open)',
+    shop_closed: 'दुकान बंद है (Shop Closed)',
+    verify_now: 'अभी सत्यापित करें (Verify Now)',
+    verified_vendor: 'सत्यापित विक्रेता (Verified Vendor)',
+    unverified_vendor: 'अपुष्ट विक्रेता (Unverified Vendor)',
+    premium_verified: 'प्रीमियम सत्यापित (Premium Verified)',
+    total_leads_label: 'कुल प्राप्त लीड्स (Total Leads)',
+    active_listings_label: 'सक्रिय लिस्टिंग्स (Active Listings)',
+    reels_posted_label: 'रील्स और विज्ञापन (Reels & Ads)',
+    wallet_balance_label: 'वॉलेट बैलेंस (Wallet Balance)',
+    add_new_listing: '+ नई लिस्टिंग जोड़ें (Add Listing)',
+    upload_new_reel: '+ नई रील अपलोड करें (Upload Reel)',
+    reply_lead: 'लीड का जवाब दें (Reply Lead)',
+    view_details: 'विवरण देखें (View Details)',
+    switch_role: 'सक्रिय भूमिका बदलें (Switch Role)'
   }
 };
 

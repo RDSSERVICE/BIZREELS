@@ -120,6 +120,12 @@ const options = {
       '/auth/login': { post: { tags: ['Authentication'], summary: 'User login', responses: { 200: { description: 'Success' } } } },
       '/auth/otp/request': { post: { tags: ['Authentication'], summary: 'Request OTP', responses: { 200: { description: 'Success' } } } },
       '/auth/otp/verify': { post: { tags: ['Authentication'], summary: 'Verify OTP', responses: { 200: { description: 'Success' } } } },
+      '/auth/google': { get: { tags: ['Authentication'], summary: 'Initiate Google OAuth 2.0 authentication flow', description: 'Redirects client to Google OAuth consent screen with profile and email scope.', responses: { 302: { description: 'Redirect to Google OAuth consent page' } } } },
+      '/auth/google/callback': { get: { tags: ['Authentication'], summary: 'Google OAuth 2.0 authentication callback', description: 'Receives authorization code from Google, authenticates user session, sets auth cookies, and redirects to frontend client URL.', responses: { 302: { description: 'Redirect to frontend /auth/callback with JWT credentials' } } } },
+      '/auth/google/session-exchange': { post: { tags: ['Authentication'], summary: 'Exchange Google OAuth session token for JWT credentials', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['session_id'], properties: { session_id: { type: 'string' } } } } } }, responses: { 200: { description: 'Success - returns access and refresh tokens' } } } },
+      '/auth/forgot-password': { post: { tags: ['Authentication'], summary: 'Request password reset OTP via email/phone', responses: { 200: { description: 'Success' } } } },
+      '/auth/reset-password': { post: { tags: ['Authentication'], summary: 'Reset password using verified OTP token', responses: { 200: { description: 'Success' } } } },
+      '/auth/refresh-token': { post: { tags: ['Authentication'], summary: 'Rotate access token using refresh token cookie or body payload', responses: { 200: { description: 'Success' } } } },
       '/auth/me': { get: { tags: ['Authentication'], summary: 'Get profile session', security: [{ bearerAuth: [] }], responses: { 200: { description: 'Success' } } } },
       '/auth/switch-role': { patch: { tags: ['Authentication'], summary: 'Switch role', security: [{ bearerAuth: [] }], responses: { 200: { description: 'Success' } } } },
       '/users/me': { get: { tags: ['Users'], summary: 'Get current user profile', security: [{ bearerAuth: [] }], responses: { 200: { description: 'Success' } } }, patch: { tags: ['Users'], summary: 'Update profile', security: [{ bearerAuth: [] }], responses: { 200: { description: 'Success' } } } },
@@ -397,6 +403,12 @@ function autoDiscoverExpressRoutes(app, spec) {
             cleanPath.startsWith('/auth/register') ||
             cleanPath.startsWith('/auth/otp') ||
             cleanPath.startsWith('/auth/phone') ||
+            cleanPath.startsWith('/auth/google') ||
+            cleanPath.startsWith('/auth/send-otp') ||
+            cleanPath.startsWith('/auth/verify-otp') ||
+            cleanPath.startsWith('/auth/forgot-password') ||
+            cleanPath.startsWith('/auth/reset-password') ||
+            cleanPath.startsWith('/auth/dev') ||
             cleanPath === '/health' ||
             cleanPath === '/' ||
             cleanPath.startsWith('/seo');

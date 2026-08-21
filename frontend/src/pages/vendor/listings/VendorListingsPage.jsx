@@ -37,8 +37,10 @@ import ListingDetailDrawer from './ListingDetailDrawer';
 import ConfirmDialog from './ConfirmDialog';
 import SubscriptionModal from './SubscriptionModal';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorListingsPage() {
+  const { bi, t } = useLanguage();
   const currentUser = useSelector(selectCurrentUser);
   const vendorProfile = currentUser?.vendorProfile || {};
   const vendorId = currentUser?._id || currentUser?.id;
@@ -209,9 +211,9 @@ export default function VendorListingsPage() {
   const offersCount = offersList.length;
 
   const dynamicTabs = [
-    { key: 'products', label: 'Products Catalog', icon: FiShoppingBag, badge: productsCount },
-    { key: 'services', label: 'Services Catalog', icon: FiTool, badge: servicesCount },
-    { key: 'offers', label: 'Dynamic Offers', icon: FiPercent, badge: offersCount },
+    { key: 'products', label: bi('Products Catalog', 'उत्पाद सूची (Products Catalog)'), icon: FiShoppingBag, badge: productsCount },
+    { key: 'services', label: bi('Services Catalog', 'सेवाएं सूची (Services Catalog)'), icon: FiTool, badge: servicesCount },
+    { key: 'offers', label: bi('Dynamic Offers', 'डायनामिक ऑफर्स (Dynamic Offers)'), icon: FiPercent, badge: offersCount },
   ];
 
   // Filtering

@@ -17,8 +17,10 @@ import {
   useGetVendorSubscriptionQuery,
 } from '../../../features/vendor/vendorApi';
 import { getSocket } from '../../../lib/socket';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorDashboardPage() {
+  const { bi, t } = useLanguage();
   const { data: dashboardRes, isLoading, refetch: refetchDashboard } = useGetVendorDashboardQuery(undefined, { pollingInterval: 300000 });
   const { data: leadsRes, refetch: refetchLeads } = useGetVendorLeadsQuery(undefined, { pollingInterval: 300000 });
   const { data: reelsRes, refetch: refetchReels } = useGetVendorReelsQuery(undefined, { pollingInterval: 300000 });
@@ -94,14 +96,14 @@ export default function VendorDashboardPage() {
   const credits = metrics.credits || { available: 0, deposited: 0, earned: 0, used: 0 };
 
   const stats = [
-    { label: 'Total Products', value: metrics.totalProducts ?? metrics.activeListings ?? 0, icon: FiPackage, color: 'purple', trend: metrics.trends?.totalProducts ?? 0 },
-    { label: 'Total Services', value: metrics.totalServices ?? 0, icon: FiTool, color: 'blue', trend: metrics.trends?.totalServices ?? 0 },
-    { label: 'Total Reels', value: realTimeReelsCount, icon: FiVideo, color: 'violet', trend: metrics.trends?.totalReels ?? 0 },
-    { label: 'Total Views', value: realTimeViewsCount.toLocaleString(), icon: FiEye, color: 'amber', trend: metrics.trends?.totalViews ?? 0 },
-    { label: 'Followers', value: (metrics.followers || 0).toLocaleString(), icon: FiUsers, color: 'green', trend: metrics.trends?.followers ?? 0 },
-    { label: 'Enquiries', value: metrics.leadEnquiries ?? 0, icon: FiInbox, color: 'cyan', trend: metrics.trends?.leadEnquiries ?? 0 },
-    { label: 'Order Requests', value: metrics.totalOrders ?? 0, icon: FiShoppingCart, color: 'indigo', trend: metrics.trends?.totalOrders ?? 0 },
-    { label: 'Revenue', value: `₹${(metrics.totalSales || 0).toLocaleString()}`, icon: FiDollarSign, color: 'teal', trend: metrics.trends?.totalSales ?? 0 },
+    { label: bi('Total Products', 'कुल उत्पाद (Total Products)'), value: metrics.totalProducts ?? metrics.activeListings ?? 0, icon: FiPackage, color: 'purple', trend: metrics.trends?.totalProducts ?? 0 },
+    { label: bi('Total Services', 'कुल सेवाएं (Total Services)'), value: metrics.totalServices ?? 0, icon: FiTool, color: 'blue', trend: metrics.trends?.totalServices ?? 0 },
+    { label: bi('Total Reels', 'कुल रील्स (Total Reels)'), value: realTimeReelsCount, icon: FiVideo, color: 'violet', trend: metrics.trends?.totalReels ?? 0 },
+    { label: bi('Total Views', 'कुल देखा गया (Total Views)'), value: realTimeViewsCount.toLocaleString(), icon: FiEye, color: 'amber', trend: metrics.trends?.totalViews ?? 0 },
+    { label: bi('Followers', 'फॉलोअर्स (Followers)'), value: (metrics.followers || 0).toLocaleString(), icon: FiUsers, color: 'green', trend: metrics.trends?.followers ?? 0 },
+    { label: bi('Enquiries', 'प्राप्त लीड्स (Enquiries)'), value: metrics.leadEnquiries ?? 0, icon: FiInbox, color: 'cyan', trend: metrics.trends?.leadEnquiries ?? 0 },
+    { label: bi('Order Requests', 'ऑर्डर अनुरोध (Order Requests)'), value: metrics.totalOrders ?? 0, icon: FiShoppingCart, color: 'indigo', trend: metrics.trends?.totalOrders ?? 0 },
+    { label: bi('Revenue', 'कुल आय (Revenue)'), value: `₹${(metrics.totalSales || 0).toLocaleString()}`, icon: FiDollarSign, color: 'teal', trend: metrics.trends?.totalSales ?? 0 },
   ];
 
   const currentUser = useSelector(selectCurrentUser);

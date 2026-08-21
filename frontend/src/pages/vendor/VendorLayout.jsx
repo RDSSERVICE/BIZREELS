@@ -14,11 +14,13 @@ import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../f
 import { setCredentials, logout, selectCurrentUser, setActiveRole } from '../../features/auth/authSlice';
 import { api, tokenStore, resolveMediaUrl } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * VendorLayout — Warm Editorial Bento-Brutalism layout for Vendor Portal
  */
 export default function VendorLayout() {
+  const { lang, toggleLang, bi, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -134,54 +136,56 @@ export default function VendorLayout() {
 
   const menuItems = [
     // Main
-    { label: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid },
-    { label: 'My Listings', path: '/vendor/listings', icon: FiPackage },
-    { label: 'Reels & AI Ads', path: '/vendor/reels', icon: FiVideo },
-    { label: 'Leads / Enquiries', path: '/vendor/leads', icon: FiInbox },
-    { label: 'Order Requests', path: '/vendor/orders', icon: FiShoppingCart },
-    { label: 'Chat / Inbox', path: '/vendor/chat', icon: FiMessageSquare },
+    { label: bi('Dashboard', 'डैशबोर्ड (Dashboard)'), path: '/vendor/dashboard', icon: FiGrid },
+    { label: bi('My Listings', 'मेरी लिस्टिंग्स (My Listings)'), path: '/vendor/listings', icon: FiPackage },
+    { label: bi('Reels & AI Ads', 'रील्स और विज्ञापन (Reels & AI Ads)'), path: '/vendor/reels', icon: FiVideo },
+    { label: bi('Leads / Enquiries', 'लीड्स / पूछताछ (Leads / Enquiries)'), path: '/vendor/leads', icon: FiInbox },
+    { label: bi('Order Requests', 'ऑर्डर अनुरोध (Order Requests)'), path: '/vendor/orders', icon: FiShoppingCart },
+    { label: bi('Chat / Inbox', 'चैट / इनबॉक्स (Chat / Inbox)'), path: '/vendor/chat', icon: FiMessageSquare },
 
     // Portals
-    { label: 'Customer Feed', path: '/customer/home', icon: FiTv },
+    { label: bi('Customer Feed', 'ग्राहक फीड (Customer Feed)'), path: '/customer/home', icon: FiTv },
     {
-      label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? 'Creator Portal' : 'Become a Creator',
+      label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName)
+        ? bi('Creator Portal', 'क्रिएटर पोर्टल (Creator Portal)')
+        : bi('Become a Creator', 'क्रिएटर बनें (Become a Creator)'),
       path: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? '/creator/dashboard' : '/creator/onboarding',
       icon: FiFilm,
       highlight: !(roles.includes('creator') && profileUser?.creatorProfile?.displayName)
     },
 
     // Business & Growth
-    { label: 'Business Profile', path: '/vendor/profile', icon: FiUser },
-    { label: 'Onboarding Details', path: '/vendor/onboarding-details', icon: FiFileText },
-    { label: 'Verification Center', path: '/vendor/verification', icon: FiShield, badge: 'BADGE' },
-    { label: 'Analytics', path: '/vendor/analytics', icon: FiPieChart },
-    { label: 'Refer & Earn', path: '/vendor/referrals', icon: FiUserCheck },
-    { label: 'Hire Creator', path: '/vendor/hire-creator', icon: FiUserCheck },
-    { label: 'Reviews', path: '/vendor/reviews', icon: FiStar },
-    { label: 'Followers', path: '/vendor/followers', icon: FiUserCheck },
+    { label: bi('Business Profile', 'बिजनेस प्रोफाइल (Business Profile)'), path: '/vendor/profile', icon: FiUser },
+    { label: bi('Onboarding Details', 'ऑनबोर्डिंग विवरण (Onboarding Details)'), path: '/vendor/onboarding-details', icon: FiFileText },
+    { label: bi('Verification Center', 'सत्यापन केंद्र (Verification Center)'), path: '/vendor/verification', icon: FiShield, badge: 'BADGE' },
+    { label: bi('Analytics', 'एनालिटिक्स (Analytics)'), path: '/vendor/analytics', icon: FiPieChart },
+    { label: bi('Refer & Earn', 'रेफर करें और कमाएं (Refer & Earn)'), path: '/vendor/referrals', icon: FiUserCheck },
+    { label: bi('Hire Creator', 'क्रिएटर हायर करें (Hire Creator)'), path: '/vendor/hire-creator', icon: FiUserCheck },
+    { label: bi('Reviews', 'समीक्षाएं (Reviews)'), path: '/vendor/reviews', icon: FiStar },
+    { label: bi('Followers', 'फॉलोअर्स (Followers)'), path: '/vendor/followers', icon: FiUserCheck },
 
     // Finance & Settings
-    { label: 'Subscription', path: '/vendor/subscription', icon: FiCreditCard },
-    { label: 'Vendor Wallet', path: '/vendor/wallet', icon: TbCurrencyRupee },
-    { label: 'Credit Rates', path: '/vendor/credit-rates', icon: FiZap },
-    { label: 'Settings', path: '/vendor/settings', icon: FiSettings },
+    { label: bi('Subscription', 'सब्सक्रिप्शन (Subscription)'), path: '/vendor/subscription', icon: FiCreditCard },
+    { label: bi('Vendor Wallet', 'विक्रेता वॉलेट (Vendor Wallet)'), path: '/vendor/wallet', icon: TbCurrencyRupee },
+    { label: bi('Credit Rates', 'क्रेडिट दरें (Credit Rates)'), path: '/vendor/credit-rates', icon: FiZap },
+    { label: bi('Settings', 'सेटिंग्स (Settings)'), path: '/vendor/settings', icon: FiSettings },
   ];
 
   const NAV_SECTIONS = [
     {
-      title: 'Main',
+      title: bi('Main', 'मुख्य (Main)'),
       items: menuItems.slice(0, 6),
     },
     {
-      title: 'Portals',
+      title: bi('Portals', 'पोर्टल (Portals)'),
       items: menuItems.slice(6, 8),
     },
     {
-      title: 'Business & Growth',
+      title: bi('Business & Growth', 'व्यवसाय और विकास (Business & Growth)'),
       items: menuItems.slice(8, 16),
     },
     {
-      title: 'Finance & Account',
+      title: bi('Finance & Account', 'वित्त और खाता (Finance & Account)'),
       items: menuItems.slice(16),
     },
   ];
@@ -324,15 +328,15 @@ export default function VendorLayout() {
 
   const getTierBadge = () => {
     if (currentTier === 'premium_verified' || (isSubscribed && currentTier === 'verified_vendor')) {
-      return { icon: '🔵', label: 'Premium Verified', class: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
+      return { icon: '🔵', label: bi('Premium Verified', 'प्रीमियम सत्यापित'), class: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
     }
     if (currentTier === 'verified_vendor') {
-      return { icon: '🟢', label: 'Verified Vendor', class: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      return { icon: '🟢', label: bi('Verified Vendor', 'सत्यापित विक्रेता'), class: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
     }
     if (currentTier === 'partially_verified') {
-      return { icon: '🟡', label: 'Partially Verified', class: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+      return { icon: '🟡', label: bi('Partially Verified', 'आंशिक रूप से सत्यापित'), class: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
     }
-    return { icon: '⚪', label: 'Unverified Vendor', class: 'bg-slate-500/10 text-slate-600 border-slate-500/20' };
+    return { icon: '⚪', label: bi('Unverified Vendor', 'अपुष्ट विक्रेता'), class: 'bg-slate-500/10 text-slate-600 border-slate-500/20' };
   };
 
   const badgeInfo = getTierBadge();
@@ -400,7 +404,7 @@ export default function VendorLayout() {
                 }`}
             >
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isShopClosed ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
-              <span className="hidden sm:inline">{isShopClosed ? 'Shop Closed' : 'Shop Open'}</span>
+              <span className="hidden sm:inline">{isShopClosed ? bi('Shop Closed', 'दुकान बंद है') : bi('Shop Open', 'दुकान खुली है')}</span>
             </button>
 
             {/* Role Switcher Pill */}
@@ -456,6 +460,18 @@ export default function VendorLayout() {
                 </div>
               )}
             </div>
+
+            {/* Language Switcher Toggle */}
+            <button
+              type="button"
+              onClick={toggleLang}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[#e3dccb] text-[#1a1a1a] text-xs font-bold hover:bg-[#f8f4ec] transition cursor-pointer shadow-2xs flex-shrink-0"
+              title="Switch Language / भाषा बदलें"
+            >
+              <span className={lang === 'en' ? 'text-[#d99a3d] font-black' : 'text-slate-500'}>EN</span>
+              <span className="text-slate-300">|</span>
+              <span className={lang === 'hi' ? 'text-[#d99a3d] font-black' : 'text-slate-500'}>हिंदी</span>
+            </button>
 
             <NotificationBellDropdown role="vendor" />
 

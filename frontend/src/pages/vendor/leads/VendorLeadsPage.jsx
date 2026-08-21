@@ -27,8 +27,10 @@ import RequirementMatchesTab from './components/RequirementMatchesTab';
 import QuickReplyModal from './components/QuickReplyModal';
 import SubmitProposalModal from './components/SubmitProposalModal';
 import RequirementDetailModal from './components/RequirementDetailModal';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorLeadsPage() {
+  const { bi, t } = useLanguage();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'all-enquiries';
@@ -203,11 +205,11 @@ export default function VendorLeadsPage() {
 
   // ── Tab Config with Live Badges ───────────────────────────────────
   const TABS = [
-    { key: 'all-enquiries', label: 'All Enquiries', count: allInquiries.length, icon: FiInbox },
-    { key: 'product-enquiries', label: 'Product Enquiries', count: productEnquiries.length, icon: FiShoppingBag },
-    { key: 'service-enquiries', label: 'Service Enquiries', count: serviceEnquiries.length, icon: FiTool },
-    { key: 'quote-requests', label: 'Quote Requests', count: quoteRequests.length, icon: FiFileText },
-    { key: 'requirement-matches', label: 'Customer Requirements', count: requirementMatches.length, icon: FiSliders },
+    { key: 'all-enquiries', label: bi('All Enquiries', 'सभी पूछताछ (All Enquiries)'), count: allInquiries.length, icon: FiInbox },
+    { key: 'product-enquiries', label: bi('Product Enquiries', 'उत्पाद पूछताछ (Product Enquiries)'), count: productEnquiries.length, icon: FiShoppingBag },
+    { key: 'service-enquiries', label: bi('Service Enquiries', 'सेवा पूछताछ (Service Enquiries)'), count: serviceEnquiries.length, icon: FiTool },
+    { key: 'quote-requests', label: bi('Quote Requests', 'कोटेशन अनुरोध (Quote Requests)'), count: quoteRequests.length, icon: FiFileText },
+    { key: 'requirement-matches', label: bi('Customer Requirements', 'ग्राहक आवश्यकताएं (Customer Requirements)'), count: requirementMatches.length, icon: FiSliders },
   ];
 
   // ── Inquiries Handlers ────────────────────────────────────────────
