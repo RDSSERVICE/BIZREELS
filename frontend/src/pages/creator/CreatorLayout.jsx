@@ -402,14 +402,16 @@ export default function CreatorLayout() {
 
         {/* Verification Dialogue Banner (Show if not fully verified) */}
         {currentTier !== 'verified_creator' && currentTier !== 'pro_verified' && (
-          <div className="bg-gradient-to-r from-brand-purple via-brand-pink to-brand-orange text-white px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold flex items-center justify-between gap-2 sm:gap-3 shadow-md">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-sm sm:text-base flex-shrink-0">🟢</span>
-              <span className="truncate text-[10px] sm:text-xs">{bi('Verify your Creator profile for 5x more brand offers & verified badge!', 'ब्रांड ऑफ़र और सत्यापित बैज प्राप्त करने के लिए अपनी क्रिएटर प्रोफ़ाइल सत्यापित करें!')}</span>
+          <div className="bg-[#241b15] text-[#f8f4ec] border-b border-[#d99a3d]/40 px-3 sm:px-5 py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-between gap-2 sm:gap-4 shadow-xs font-sans">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] flex-shrink-0 animate-pulse" />
+              <span className="truncate text-[11px] sm:text-xs tracking-wide text-[#f8f4ec] font-bold">
+                {bi('Verify your Creator profile for 5x more brand offers & verified badge!', 'ब्रांड ऑफ़र और सत्यापित बैज प्राप्त करने के लिए अपनी क्रिएटर प्रोफ़ाइल सत्यापित करें!')}
+              </span>
             </div>
             <Link
               to="/creator/verification"
-              className="px-2.5 sm:px-3 py-1 bg-white text-brand-purple rounded-lg font-bold text-[10px] sm:text-[11px] hover:bg-white/90 transition flex-shrink-0 shadow-sm whitespace-nowrap"
+              className="px-3.5 py-1 bg-[#d99a3d] hover:bg-[#e2a84b] text-[#1a1a1a] rounded-lg font-black text-[10px] sm:text-[11px] transition-all flex-shrink-0 shadow-xs whitespace-nowrap cursor-pointer border border-[#d99a3d]"
             >
               {bi('Verify Now', 'अभी सत्यापित करें')}
             </Link>
