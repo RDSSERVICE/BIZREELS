@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const { KycDocument } = require('../models/Phase4');
 const User = require('../models/User');
 const notificationService = require('./notification.service');
@@ -16,24 +17,28 @@ const serializeKyc = (d) => {
 };
 
 const kycSubmit = async (userId, body) => {
-  const existing = await KycDocument.findOne({ user_id: userId, status: 'pending', is_deleted: { $ne: true } });
-  if (existing) {
-    throw ApiError.badRequest('You have a KYC pending review');
-  }
   if (!['aadhaar', 'pan', 'driving_license', 'passport'].includes(body.doc_type)) {
     throw ApiError.badRequest('Invalid doc_type');
   }
 
-  const doc = await KycDocument.create({
-    user_id: userId,
-    doc_type: body.doc_type,
-    doc_number: body.doc_number,
-    doc_url: body.doc_url,
-    selfie_url: body.selfie_url || null,
-    status: 'pending',
-  });
+  const now = new Date().toISOString();
+  const doc = await KycDocument.findOneAndUpdate(
+    { user_id: userId, doc_type: body.doc_type, is_deleted: { $ne: true } },
+    {
+      $set: {
+        doc_number: body.doc_number,
+        doc_url: body.doc_url,
+        selfie_url: body.selfie_url || null,
+        status: 'pending',
+        submitted_at: now,
+      }
+    },
+    { upsert: true, returnDocument: 'after' }
+  );
 
-  await User.updateOne({ _id: userId }, { $set: { kyc_status: 'pending' } });
+  if (mongoose.Types.ObjectId.isValid(userId)) {
+    await User.updateOne({ _id: userId }, { $set: { kyc_status: 'pending' } });
+  }
   
   try {
     const { emitToAdmin } = require('../sockets');
@@ -57,13 +62,25 @@ const kycQueue = async (status = null) => {
   if (status) {
     filter.status = status;
   }
-  const docs = await KycDocument.find(filter).sort({ _id: -1 }).limit(100);
+  // Sort newest first
+  const docs = await KycDocument.find(filter).sort({ _id: -1 }).limit(200);
   
-  const userIds = [...new Set(docs.map((d) => d.user_id))];
-  const users = await User.find({ _id: { $in: userIds } });
+  // Deduplicate by user_id + doc_type (keeping latest submission per doc_type per user)
+  const seenUserDoc = new Set();
+  const dedupedDocs = [];
+  for (const d of docs) {
+    const key = `${d.user_id}_${d.doc_type}`;
+    if (!seenUserDoc.has(key)) {
+      seenUserDoc.add(key);
+      dedupedDocs.push(d);
+    }
+  }
+
+  const validUserIds = [...new Set(dedupedDocs.map((d) => d.user_id))].filter((id) => mongoose.Types.ObjectId.isValid(id));
+  const users = validUserIds.length > 0 ? await User.find({ _id: { $in: validUserIds } }) : [];
   const userMap = new Map(users.map((u) => [u._id.toString(), u]));
 
-  return docs.map((d) => {
+  return dedupedDocs.map((d) => {
     const out = serializeKyc(d);
     const user = userMap.get(out.user_id);
     if (user) {

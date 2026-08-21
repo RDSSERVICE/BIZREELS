@@ -59,16 +59,25 @@ export default function AdminKycPage() {
           user_id: uid,
           user: item.user,
           role: item.role,
-          documents: [],
+          documentsMap: new Map(),
           submitted_at: item.submitted_at,
         };
       }
-      groups[uid].documents.push(item);
+      const docTypeKey = (item.doc_type || 'other').toLowerCase();
+      const existingDoc = groups[uid].documentsMap.get(docTypeKey);
+      if (!existingDoc || new Date(item.submitted_at || 0) >= new Date(existingDoc.submitted_at || 0)) {
+        groups[uid].documentsMap.set(docTypeKey, item);
+      }
+
       if (new Date(item.submitted_at) > new Date(groups[uid].submitted_at)) {
         groups[uid].submitted_at = item.submitted_at;
       }
     });
-    return Object.values(groups);
+
+    return Object.values(groups).map((g) => ({
+      ...g,
+      documents: Array.from(g.documentsMap.values()),
+    }));
   }, [filteredItems]);
 
   const activeGroup = React.useMemo(() => {

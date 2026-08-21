@@ -270,15 +270,20 @@ const verifyPan = catchAsync(async (req, res) => {
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
 
-  // Sync to KycDocument model for Admin visibility
+  // Sync to KycDocument model for Admin visibility (upsert to prevent duplicate entries)
   try {
-    await KycDocument.create({
-      user_id: user._id.toString(),
-      doc_type: 'pan',
-      doc_number: sandboxRes.maskedNumber || panNumber.toUpperCase(),
-      doc_url: frontUrl || backUrl || 'https://via.placeholder.com/400x600?text=PAN+Document',
-      status: isApproved ? 'approved' : 'pending',
-    });
+    await KycDocument.findOneAndUpdate(
+      { user_id: user._id.toString(), doc_type: 'pan', is_deleted: { $ne: true } },
+      {
+        $set: {
+          doc_number: sandboxRes.maskedNumber || panNumber.toUpperCase(),
+          doc_url: frontUrl || backUrl || 'https://via.placeholder.com/400x600?text=PAN+Document',
+          status: isApproved ? 'approved' : 'pending',
+          submitted_at: now.toISOString(),
+        }
+      },
+      { upsert: true, returnDocument: 'after' }
+    );
   } catch (err) {
     console.error('Error syncing KycDocument for PAN:', err.message);
   }
@@ -392,14 +397,20 @@ const verifyAadhaarOtp = catchAsync(async (req, res) => {
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
 
+  // Sync to KycDocument model for Admin visibility (upsert to prevent duplicate entries)
   try {
-    await KycDocument.create({
-      user_id: user._id.toString(),
-      doc_type: 'aadhaar',
-      doc_number: sandboxRes.maskedNumber || 'XXXX XXXX ****',
-      doc_url: frontUrl || backUrl || 'https://via.placeholder.com/400x600?text=Aadhaar+Document',
-      status: isApproved ? 'approved' : 'pending',
-    });
+    await KycDocument.findOneAndUpdate(
+      { user_id: user._id.toString(), doc_type: 'aadhaar', is_deleted: { $ne: true } },
+      {
+        $set: {
+          doc_number: sandboxRes.maskedNumber || 'XXXX XXXX ****',
+          doc_url: frontUrl || backUrl || 'https://via.placeholder.com/400x600?text=Aadhaar+Document',
+          status: isApproved ? 'approved' : 'pending',
+          submitted_at: now.toISOString(),
+        }
+      },
+      { upsert: true, returnDocument: 'after' }
+    );
   } catch (err) {
     console.error('Error syncing KycDocument for Aadhaar:', err.message);
   }
@@ -489,14 +500,20 @@ const verifyGstin = catchAsync(async (req, res) => {
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
 
+  // Sync to KycDocument model for Admin visibility (upsert to prevent duplicate entries)
   try {
-    await KycDocument.create({
-      user_id: user._id.toString(),
-      doc_type: 'gst',
-      doc_number: gstinNumber.toUpperCase(),
-      doc_url: fileUrl || 'https://via.placeholder.com/400x600?text=GST+Document',
-      status: isApproved ? 'approved' : 'pending',
-    });
+    await KycDocument.findOneAndUpdate(
+      { user_id: user._id.toString(), doc_type: 'gst', is_deleted: { $ne: true } },
+      {
+        $set: {
+          doc_number: gstinNumber.toUpperCase(),
+          doc_url: fileUrl || 'https://via.placeholder.com/400x600?text=GST+Document',
+          status: isApproved ? 'approved' : 'pending',
+          submitted_at: now.toISOString(),
+        }
+      },
+      { upsert: true, returnDocument: 'after' }
+    );
   } catch (err) {
     console.error('Error syncing KycDocument for GSTIN:', err.message);
   }
@@ -705,15 +722,21 @@ const verifyDocument = catchAsync(async (req, res) => {
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
 
-  // Sync to KycDocument for Admin review
+  // Sync to KycDocument for Admin review (upsert to prevent duplicate entries)
   try {
-    await KycDocument.create({
-      user_id: user._id.toString(),
-      doc_type: docName || docType,
-      doc_number: (docType === 'aadhaar' || docType === 'pan') ? (currentDocs[docType]?.maskedNumber || docNumber) : (docNumber || 'SUBMITTED'),
-      doc_url: docFileUrl || 'https://via.placeholder.com/400x600?text=Document+Attached',
-      status: currentDocs[docType]?.status === 'approved' ? 'approved' : 'pending',
-    });
+    const docKey = docName || docType;
+    await KycDocument.findOneAndUpdate(
+      { user_id: user._id.toString(), doc_type: docKey, is_deleted: { $ne: true } },
+      {
+        $set: {
+          doc_number: (docType === 'aadhaar' || docType === 'pan') ? (currentDocs[docType]?.maskedNumber || docNumber) : (docNumber || 'SUBMITTED'),
+          doc_url: docFileUrl || 'https://via.placeholder.com/400x600?text=Document+Attached',
+          status: currentDocs[docType]?.status === 'approved' ? 'approved' : 'pending',
+          submitted_at: now.toISOString(),
+        }
+      },
+      { upsert: true, returnDocument: 'after' }
+    );
   } catch (err) {
     console.error('Error syncing KycDocument for admin queue:', err.message);
   }
