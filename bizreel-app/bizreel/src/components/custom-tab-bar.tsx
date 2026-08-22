@@ -1,5 +1,6 @@
 /**
  * CustomTabBar — Floating reduced-width bottom navigation bar using Ionicons.
+ * Clean active selection without square background selectors.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -74,12 +75,13 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           return (
             <Pressable
               key={tab.name}
-              style={({ pressed }) => [styles.tabItem, pressed && { opacity: 0.7 }]}
+              android_ripple={null}
+              style={({ pressed }) => [styles.tabItem, pressed && { opacity: 0.6 }]}
               onPress={() => handlePress(tab.name)}
               accessibilityLabel={tab.label}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}>
-              <View style={[styles.iconWrapper, active && styles.iconWrapperActive]}>
+              <View style={styles.iconWrapper}>
                 <Ionicons
                   name={iconName as any}
                   size={22}
@@ -120,7 +122,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: '#27272A',
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: Spacing.two,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -132,19 +134,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: 2,
     gap: 2,
   },
   iconWrapper: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 40,
-    height: 28,
-    borderRadius: 14,
-  },
-  iconWrapperActive: {
-    backgroundColor: 'rgba(217, 154, 61, 0.15)',
+    width: 32,
+    height: 26,
   },
   tabLabel: {
     fontSize: 10,
@@ -158,7 +156,7 @@ const styles = StyleSheet.create({
   badge: {
     position: 'absolute',
     top: 1,
-    right: 6,
+    right: 2,
     backgroundColor: BrandColors.primary,
     width: 7,
     height: 7,
