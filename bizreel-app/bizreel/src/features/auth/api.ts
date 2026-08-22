@@ -13,24 +13,28 @@ export async function loginUser(payload: LoginPayload): Promise<AuthResponse> {
   return response.data;
 }
 
-/**
- * Fetch the currently authenticated user (used for session hydration on app start).
- * Endpoint: GET /auth/me
- * Response shape: { success, message, data: { user } }
- */
 export async function fetchCurrentUser(): Promise<AuthUser> {
   const response = await api.get<{ success: boolean; data: { user: AuthUser } }>('/auth/me');
   return response.data.data.user;
 }
 
-/**
- * Fetch the full user profile for the profile screen.
- * Endpoint: GET /users/me
- * Response shape: { user: AuthUser } — no success/data wrapper.
- * Returns richer fields than /auth/me: walletBalance, followersCount,
- * rating_avg, customerProfile, location, etc.
- */
 export async function fetchUserProfile(): Promise<AuthUser> {
   const response = await api.get<UsersMeResponse>('/users/me');
   return response.data.user;
+}
+
+export async function switchUserRole(role: 'customer' | 'vendor' | 'creator'): Promise<AuthUser> {
+  try {
+    const response = await api.patch<{ success: boolean; data?: { user: AuthUser }; user?: AuthUser }>(
+      '/auth/switch-role',
+      { role }
+    );
+    return response.data.data?.user || response.data.user || (response.data as any);
+  } catch (err) {
+    const response = await api.post<{ success: boolean; data?: { user: AuthUser }; user?: AuthUser }>(
+      '/auth/add-role',
+      { role }
+    );
+    return response.data.data?.user || response.data.user || (response.data as any);
+  }
 }

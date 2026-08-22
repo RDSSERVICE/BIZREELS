@@ -18,6 +18,7 @@
  *  └─────────────────────────────────────┘
  */
 
+import { RoleSwitcher } from '@/components/role-switcher';
 import {
     BrandColors,
     Colors,
@@ -144,7 +145,10 @@ function InfoRow({
 // Main screen
 // ---------------------------------------------------------------------------
 
+import { useRouter } from 'expo-router';
+
 export default function ProfileScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { signOut } = useAuth();
@@ -237,7 +241,7 @@ export default function ProfileScreen() {
         {/* Name + role */}
         <View style={styles.headerMeta}>
           <Text style={[styles.name, { color: theme.text }]}>{user.name}</Text>
-          <RoleBadge role={user.activeRole} />
+          <RoleSwitcher />
         </View>
 
         {/* Email */}
@@ -263,6 +267,25 @@ export default function ProfileScreen() {
         <StatItem value={user.followingCount} label="Following" theme={theme} />
         <View style={[statStyles.divider, { backgroundColor: theme.border }]} />
         <StatItem value={ratingDisplay} label="Rating" theme={theme} />
+      </View>
+
+      {/* ── Customer Quick Actions ───────────────────────────────────────── */}
+      <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Shopping & Orders</Text>
+        <Divider theme={theme} />
+        <Pressable
+          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/orders')}>
+          <Text style={[styles.actionRowText, { color: theme.text }]}>📦 My Orders</Text>
+          <Text style={styles.actionRowArrow}>›</Text>
+        </Pressable>
+        <Divider theme={theme} />
+        <Pressable
+          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/cart')}>
+          <Text style={[styles.actionRowText, { color: theme.text }]}>🛒 Shopping Cart</Text>
+          <Text style={styles.actionRowArrow}>›</Text>
+        </Pressable>
       </View>
 
       {/* ── Wallet card ─────────────────────────────────────────────────── */}
@@ -432,6 +455,20 @@ const styles = StyleSheet.create({
     color: BrandColors.error,
     fontWeight: FontWeight.semibold,
     fontSize: FontSize.base,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.two,
+  },
+  actionRowText: {
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.semibold,
+  },
+  actionRowArrow: {
+    fontSize: FontSize.lg,
+    color: 'rgba(255,255,255,0.4)',
   },
 });
 

@@ -1,11 +1,32 @@
 import { api } from '@/lib/api';
-import type { ReelsFeedResponse } from './types';
+import type { Comment, ReelsFeedResponse } from './types';
 
-export const REELS_LIMIT = 3;
+export const REELS_LIMIT = 5;
 
 export async function fetchReelsFeed(page: number): Promise<ReelsFeedResponse> {
   const response = await api.get<ReelsFeedResponse>('/reels', {
     params: { page, limit: REELS_LIMIT },
   });
   return response.data;
+}
+
+export async function toggleReelLike(reelId: string): Promise<{ success: boolean; liked: boolean }> {
+  const { data } = await api.post<{ success: boolean; data: { liked: boolean } }>(`/reels/${reelId}/like`);
+  return { success: data.success, liked: data.data?.liked ?? true };
+}
+
+export async function toggleReelSave(reelId: string, isSaved: boolean): Promise<boolean> {
+  const endpoint = isSaved ? `/reels/${reelId}/unsave` : `/reels/${reelId}/save`;
+  const { data } = await api.post<{ success: boolean }>(endpoint);
+  return data.success;
+}
+
+export async function fetchReelComments(reelId: string): Promise<Comment[]> {
+  const { data } = await api.get<{ success: boolean; data: Comment[] }>(`/reels/${reelId}/comments`);
+  return data.data || [];
+}
+
+export async function addReelComment(reelId: string, text: string): Promise<Comment> {
+  const { data } = await api.post<{ success: boolean; data: Comment }>(`/reels/${reelId}/comments`, { text });
+  return data.data;
 }

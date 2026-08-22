@@ -1,31 +1,40 @@
 /**
- * ReelItem — full-screen reel card.
+ * ReelItem — full-screen reel card with social & e-commerce features.
  *
  * Interactions:
  * - Single tap on video → play / pause toggle
  * - Double tap anywhere → like (with heart animation)
  * - Tap caption → expand / collapse
+ * - Product tag banner → Add to Cart or navigate to Listing Details
+ * - Comments button → Open Comments Modal
  */
 
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import {
-    Dimensions,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSequence,
-    withTiming
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { useAddToCart } from '@/features/cart/queries';
+import { useAddReelComment, useReelComments, useToggleReelLike, useToggleReelSave } from './queries';
 import type { Reel } from './types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -37,12 +46,22 @@ interface ReelItemProps {
 }
 
 export function ReelItem({ reel, isActive, height }: ReelItemProps) {
+  const router = useRouter();
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
+  const [isSaved, setIsSaved] = useState(reel.isSaved || false);
   const [likeCount, setLikeCount] = useState(reel.likesCount);
   const [isPaused, setIsPaused] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [showPauseIcon, setShowPauseIcon] = useState(false);
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [commentText, setCommentText] = useState('');
+
+  const toggleLikeMutation = useToggleReelLike();
+  const toggleSaveMutation = useToggleReelSave();
+  const addToCartMutation = useAddToCart();
+  const { data: comments = [], isLoading: isLoadingComments } = useReelComments(reel._id, commentsVisible);
+  const addCommentMutation = useAddReelComment(reel._id);
 
   // Double-tap heart animation
   const heartScale = useSharedValue(0);
@@ -79,19 +98,15 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
     if (player) player.muted = isMuted;
   }, [isMuted, player]);
 
-  // ── Tap handlers ──────────────────────────────────────────────
-
   // Single tap → play/pause (video only)
   function handleSingleTap() {
     if (!isVideo) return;
     setIsPaused((v) => {
       const next = !v;
-      setShowPauseIcon(!next === false); // show pause icon briefly when pausing
+      setShowPauseIcon(true);
+      setTimeout(() => setShowPauseIcon(false), 800);
       return next;
     });
-    // Show the play/pause icon briefly
-    setShowPauseIcon(true);
-    setTimeout(() => setShowPauseIcon(false), 800);
   }
 
   // Double tap → like
@@ -99,8 +114,8 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
     if (!isLiked) {
       setIsLiked(true);
       setLikeCount((v) => v + 1);
+      toggleLikeMutation.mutate(reel._id);
     }
-    // Animate heart
     heartScale.value = 0;
     heartOpacity.value = 1;
     heartScale.value = withSequence(
@@ -113,10 +128,8 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
       withTiming(1, { duration: 400 }),
       withTiming(0, { duration: 200 })
     );
-    // TODO: call like API
   }
 
-  // Distinguish single vs double tap
   const lastTapRef = useRef<number>(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -125,12 +138,10 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
     const DOUBLE_TAP_DELAY = 300;
 
     if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      // Double tap
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
       lastTapRef.current = 0;
       handleDoubleTap();
     } else {
-      // Potential single tap — wait to see if a second tap follows
       lastTapRef.current = now;
       tapTimerRef.current = setTimeout(() => {
         handleSingleTap();
@@ -139,16 +150,44 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
   }
 
   function handleLikeButton() {
-    setIsLiked((v) => !v);
-    setLikeCount((v) => (isLiked ? v - 1 : v + 1));
-    // TODO: call like/unlike API
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+    setLikeCount((v) => (nextLiked ? v + 1 : v - 1));
+    toggleLikeMutation.mutate(reel._id);
+  }
+
+  function handleSaveButton() {
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+    toggleSaveMutation.mutate({ reelId: reel._id, isSaved: !nextSaved });
+  }
+
+  function handleSendComment() {
+    if (!commentText.trim()) return;
+    addCommentMutation.mutate(commentText.trim(), {
+      onSuccess: () => setCommentText(''),
+    });
+  }
+
+  const taggedListing = reel.taggedListing;
+  const hasTaggedListing = !!taggedListing?._id;
+
+  function handleAddToCart() {
+    if (taggedListing?._id) {
+      addToCartMutation.mutate({ listing_id: taggedListing._id, quantity: 1 });
+    }
+  }
+
+  function handleViewListing() {
+    if (taggedListing?._id) {
+      router.push(`/listing/${taggedListing._id}`);
+    }
   }
 
   return (
     <View style={styles.container}>
       {/* Tappable media area */}
       <Pressable style={styles.mediaTouchable} onPress={handleTap} accessibilityRole="button">
-        {/* Media */}
         {isVideo ? (
           <>
             <VideoView
@@ -158,70 +197,72 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
               nativeControls={false}
             />
             {reel.thumbnailUrl && !isActive && (
-              <Image
-                source={{ uri: reel.thumbnailUrl }}
-                style={styles.media}
-                contentFit="contain"
-              />
+              <Image source={{ uri: reel.thumbnailUrl }} style={styles.media} contentFit="contain" />
             )}
           </>
         ) : (
           <>
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.media}
-              contentFit="contain"
-            />
+            <Image source={{ uri: imageUrl }} style={styles.media} contentFit="contain" />
             <View style={styles.imageTypeBadge}>
-              <SymbolView
-                name={{ ios: 'photo.fill', android: 'image', web: 'image' }}
-                size={14}
-                tintColor="#fff"
-              />
+              <SymbolView name="photo" size={14} tintColor="#fff" />
               <Text style={styles.imageTypeText}>Image</Text>
             </View>
           </>
         )}
 
-        {/* Gradient overlay */}
         <View style={styles.gradient} pointerEvents="none" />
 
-        {/* Play / Pause icon flash */}
         {showPauseIcon && (
           <View style={styles.playPauseOverlay} pointerEvents="none">
-            <SymbolView
-              name={
-                isPaused
-                  ? { ios: 'pause.fill', android: 'pause', web: 'pause' }
-                  : { ios: 'play.fill', android: 'play_arrow', web: 'play_arrow' }
-              }
-              size={64}
-              tintColor="rgba(255,255,255,0.9)"
-            />
+            <SymbolView name={isPaused ? "pause.fill" : "play.fill"} size={64} tintColor="rgba(255,255,255,0.9)" />
           </View>
         )}
 
-        {/* Double-tap heart animation */}
         <Animated.View style={[styles.heartOverlay, heartAnimStyle]} pointerEvents="none">
-          <SymbolView
-            name={{ ios: 'heart.fill', android: 'favorite', web: 'favorite' }}
-            size={100}
-            tintColor="#fff"
-          />
+          <SymbolView name="heart.fill" size={100} tintColor="#fff" />
         </Animated.View>
       </Pressable>
 
-      {/* Bottom overlay — creator + caption */}
+      {/* Bottom overlay — creator, caption & tagged product */}
       <View style={styles.bottomOverlay} pointerEvents="box-none">
+        {/* Tagged Product Banner (if tagged) */}
+        {hasTaggedListing && (
+          <View style={styles.taggedBanner}>
+            <Pressable style={styles.taggedContent} onPress={handleViewListing}>
+              {taggedListing.image ? (
+                <Image source={{ uri: taggedListing.image }} style={styles.taggedImage} />
+              ) : (
+                <View style={styles.taggedImageFallback}>
+                  <SymbolView name="bag.fill" size={16} tintColor="#fff" />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.taggedTitle} numberOfLines={1}>
+                  {taggedListing.title}
+                </Text>
+                <Text style={styles.taggedPrice}>
+                  ₹{taggedListing.salePrice || taggedListing.price}
+                </Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={styles.addToCartBtn}
+              onPress={handleAddToCart}
+              disabled={addToCartMutation.isPending}>
+              {addToCartMutation.isPending ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.addToCartBtnText}>Add +</Text>
+              )}
+            </Pressable>
+          </View>
+        )}
+
         {/* Creator row */}
         <View style={styles.creatorRow}>
           <View style={styles.avatar}>
             {reel.creatorAvatar ? (
-              <Image
-                source={{ uri: reel.creatorAvatar }}
-                style={styles.avatarImage}
-                contentFit="cover"
-              />
+              <Image source={{ uri: reel.creatorAvatar }} style={styles.avatarImage} contentFit="cover" />
             ) : (
               <Text style={styles.avatarFallback}>
                 {reel.creatorName?.charAt(0)?.toUpperCase() ?? '?'}
@@ -241,12 +282,10 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
           )}
         </View>
 
-        {/* Caption — 1 line truncated, tap to expand */}
+        {/* Caption */}
         {!!reel.caption && (
           <Pressable onPress={() => setCaptionExpanded((v) => !v)} accessibilityRole="button">
-            <Text
-              style={styles.caption}
-              numberOfLines={captionExpanded ? undefined : 1}>
+            <Text style={styles.caption} numberOfLines={captionExpanded ? undefined : 1}>
               {reel.caption}
             </Text>
             {!captionExpanded && reel.caption.length > 40 && (
@@ -261,18 +300,6 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
             {reel.hashtags.map((h) => `#${h}`).join(' ')}
           </Text>
         )}
-
-        {/* Category pills */}
-        <View style={styles.categoryRow}>
-          <View style={styles.categoryPill}>
-            <Text style={styles.categoryText}>{reel.category}</Text>
-          </View>
-          {reel.postType && (
-            <View style={[styles.categoryPill, styles.typePill]}>
-              <Text style={styles.categoryText}>{reel.postType}</Text>
-            </View>
-          )}
-        </View>
       </View>
 
       {/* Right-side action buttons */}
@@ -280,11 +307,7 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
         {/* Like */}
         <Pressable style={styles.actionBtn} onPress={handleLikeButton} accessibilityLabel="Like">
           <SymbolView
-            name={
-              isLiked
-                ? { ios: 'heart.fill', android: 'favorite', web: 'favorite' }
-                : { ios: 'heart', android: 'favorite_border', web: 'favorite_border' }
-            }
+            name={isLiked ? "heart.fill" : "heart"}
             size={28}
             tintColor={isLiked ? BrandColors.error : '#fff'}
           />
@@ -292,38 +315,97 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
         </Pressable>
 
         {/* Comments */}
-        <Pressable style={styles.actionBtn} accessibilityLabel="Comments">
-          <SymbolView
-            name={{ ios: 'bubble.right', android: 'chat_bubble_outline', web: 'chat_bubble_outline' }}
-            size={28}
-            tintColor="#fff"
-          />
+        <Pressable style={styles.actionBtn} onPress={() => setCommentsVisible(true)} accessibilityLabel="Comments">
+          <SymbolView name="bubble.right" size={28} tintColor="#fff" />
           <Text style={styles.actionCount}>{formatCount(reel.commentsCount)}</Text>
         </Pressable>
 
-        {/* Mute / Unmute (video only) */}
+        {/* Save / Bookmark */}
+        <Pressable style={styles.actionBtn} onPress={handleSaveButton} accessibilityLabel="Bookmark">
+          <SymbolView
+            name={isSaved ? "bookmark.fill" : "bookmark"}
+            size={26}
+            tintColor={isSaved ? BrandColors.primary : '#fff'}
+          />
+        </Pressable>
+
+        {/* Mute / Unmute */}
         {isVideo && (
           <Pressable
             style={styles.actionBtn}
             onPress={() => setIsMuted((v) => !v)}
             accessibilityLabel={isMuted ? 'Unmute' : 'Mute'}>
             <SymbolView
-              name={
-                isMuted
-                  ? { ios: 'speaker.slash.fill', android: 'volume_off', web: 'volume_off' }
-                  : { ios: 'speaker.wave.2.fill', android: 'volume_up', web: 'volume_up' }
-              }
+              name={isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill"}
               size={24}
               tintColor="#fff"
             />
           </Pressable>
         )}
       </View>
+
+      {/* Comments Drawer Modal */}
+      <Modal
+        visible={commentsVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCommentsVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setCommentsVisible(false)} />
+          <View style={styles.commentsDrawer}>
+            <View style={styles.drawerHeader}>
+              <Text style={styles.drawerTitle}>Comments ({comments.length})</Text>
+              <Pressable onPress={() => setCommentsVisible(false)}>
+                <SymbolView name="xmark" size={20} tintColor="#fff" />
+              </Pressable>
+            </View>
+
+            {isLoadingComments ? (
+              <ActivityIndicator style={{ marginVertical: 20 }} color={BrandColors.primary} />
+            ) : (
+              <FlatList
+                data={comments}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => (
+                  <View style={styles.commentItem}>
+                    <Text style={styles.commentUser}>{item.user?.name || 'User'}</Text>
+                    <Text style={styles.commentText}>{item.text}</Text>
+                  </View>
+                )}
+                ListEmptyComponent={
+                  <Text style={styles.emptyComments}>No comments yet. Be the first to comment!</Text>
+                }
+              />
+            )}
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Add a comment..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                value={commentText}
+                onChangeText={setCommentText}
+              />
+              <Pressable
+                style={styles.sendBtn}
+                onPress={handleSendComment}
+                disabled={addCommentMutation.isPending}>
+                {addCommentMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.sendBtnText}>Post</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 function formatCount(n: number): string {
+  if (!n) return '0';
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
@@ -364,7 +446,6 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT,
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
-  // Play/pause flash icon
   playPauseOverlay: {
     position: 'absolute',
     top: 0,
@@ -374,7 +455,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Double-tap heart
   heartOverlay: {
     position: 'absolute',
     top: 0,
@@ -384,7 +464,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Bottom overlay
   bottomOverlay: {
     position: 'absolute',
     left: 0,
@@ -392,6 +471,56 @@ const styles = StyleSheet.create({
     bottom: 90,
     paddingHorizontal: Spacing.four,
     gap: Spacing.two,
+  },
+  taggedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 26, 26, 0.85)',
+    borderRadius: 10,
+    padding: Spacing.two,
+    borderWidth: 1,
+    borderColor: BrandColors.primary,
+    marginBottom: Spacing.one,
+  },
+  taggedContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  taggedImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+  },
+  taggedImageFallback: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    backgroundColor: BrandColors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taggedTitle: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+  },
+  taggedPrice: {
+    color: BrandColors.primaryLight,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  addToCartBtn: {
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  addToCartBtnText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
   },
   creatorRow: {
     flexDirection: 'row',
@@ -420,9 +549,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: FontSize.base,
     fontWeight: FontWeight.bold,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
   creatorRole: {
     color: 'rgba(255,255,255,0.75)',
@@ -444,9 +570,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: FontSize.base,
     lineHeight: 20,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
   captionMore: {
     color: 'rgba(255,255,255,0.6)',
@@ -457,29 +580,6 @@ const styles = StyleSheet.create({
     color: BrandColors.primaryLight,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.medium,
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    gap: Spacing.one,
-    marginTop: Spacing.one,
-  },
-  categoryPill: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  typePill: {
-    backgroundColor: 'rgba(200,134,10,0.3)',
-    borderColor: BrandColors.primary,
-  },
-  categoryText: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
-    textTransform: 'capitalize',
   },
   imageTypeBadge: {
     position: 'absolute',
@@ -515,8 +615,82 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  commentsDrawer: {
+    backgroundColor: '#1c1c1e',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: SCREEN_HEIGHT * 0.6,
+    padding: Spacing.four,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.three,
+    paddingBottom: Spacing.two,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2c2c2e',
+  },
+  drawerTitle: {
+    color: '#fff',
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+  },
+  commentItem: {
+    marginBottom: Spacing.three,
+  },
+  commentUser: {
+    color: BrandColors.primaryLight,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  commentText: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    marginTop: 2,
+  },
+  emptyComments: {
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+    marginVertical: Spacing.four,
+    fontSize: FontSize.sm,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+    paddingTop: Spacing.two,
+    borderTopWidth: 1,
+    borderTopColor: '#2c2c2e',
+  },
+  input: {
+    flex: 1,
+    backgroundColor: '#2c2c2e',
+    color: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    fontSize: FontSize.sm,
+  },
+  sendBtn: {
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: 16,
+  },
+  sendBtnText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
   },
 });

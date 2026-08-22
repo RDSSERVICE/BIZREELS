@@ -1,3 +1,17 @@
+export interface TaggedListing {
+  _id: string;
+  title: string;
+  price: number;
+  salePrice?: number;
+  image?: string;
+  type?: 'product' | 'service';
+  vendor?: {
+    _id: string;
+    name: string;
+    businessName?: string;
+  };
+}
+
 export interface Reel {
   _id: string;
   creator: string;
@@ -7,7 +21,7 @@ export interface Reel {
   hashtags: string[];
   postType: string;
   category: string;
-  subcategory: string;
+  subcategory?: string;
   mediaUrls: string[];
   mediaType: 'video' | 'image';
   views: number;
@@ -20,6 +34,19 @@ export interface Reel {
   creatorAvatar: string | null;
   creatorRole: string;
   isLiked: boolean;
+  isSaved?: boolean;
+  taggedListing?: TaggedListing;
+}
+
+export interface Comment {
+  _id: string;
+  user: {
+    _id: string;
+    name: string;
+    avatarUrl?: string;
+  };
+  text: string;
+  createdAt: string;
 }
 
 export interface ReelsMeta {

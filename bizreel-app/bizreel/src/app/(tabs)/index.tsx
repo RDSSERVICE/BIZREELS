@@ -1,26 +1,20 @@
 /**
- * Reels Feed — TikTok-style full-screen vertical scroll.
- *
- * Pagination strategy:
- * - useInfiniteQuery fetches 3 reels per page
- * - When the user reaches the last reel of the current page,
- *   the next page is prefetched automatically (always 3 ahead)
- * - FlatList with pagingEnabled snaps each reel to full-screen
+ * Reels Feed — TikTok-style full-screen vertical scroll with e-commerce integration.
  */
 
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-    ViewToken,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  ViewToken,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -33,17 +27,16 @@ import type { Reel } from '@/features/reels/types';
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function ReelsFeedScreen() {
+  const router = useRouter();
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
-  // Each reel fills exactly the visible area: full screen minus tab bar and safe area bottom
   const reelHeight = SCREEN_HEIGHT - TAB_BAR_HEIGHT - insets.bottom;
-  // Track whether this tab is focused — passed to ReelItem to gate playback
   const [isScreenFocused, setIsScreenFocused] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       setIsScreenFocused(true);
-      return () => setIsScreenFocused(false); // runs when tab loses focus
+      return () => setIsScreenFocused(false);
     }, [])
   );
   const [activeIndex, setActiveIndex] = useState(0);
@@ -61,23 +54,19 @@ export default function ReelsFeedScreen() {
   const prefetchNext = usePrefetchNextReelsPage();
   const reels = flattenReels(data?.pages);
 
-  // Track which reel is currently visible
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       if (viewableItems.length === 0) return;
       const index = viewableItems[0].index ?? 0;
       setActiveIndex(index);
 
-      // Calculate which page this reel belongs to and prefetch next
       const currentPage = Math.floor(index / 3) + 1;
       const totalPages = data?.pages[data.pages.length - 1]?.meta.totalPages ?? 1;
       const isNearEnd = index >= reels.length - 2;
 
-      // Prefetch next page when user is near the end of current page
       if (isNearEnd && hasNextPage) {
         fetchNextPage();
       }
-      // Always keep next page prefetched 3 reels ahead
       if (hasNextPage && currentPage <= totalPages) {
         prefetchNext(currentPage, hasNextPage);
       }
@@ -118,7 +107,6 @@ export default function ReelsFeedScreen() {
     );
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -128,15 +116,10 @@ export default function ReelsFeedScreen() {
     );
   }
 
-  // Error state
   if (isError) {
     return (
       <View style={styles.center}>
-        <SymbolView
-          name={{ ios: 'exclamationmark.triangle', android: 'warning', web: 'warning' }}
-          size={48}
-          tintColor={BrandColors.warning}
-        />
+        <SymbolView name="exclamationmark.triangle" size={48} tintColor={BrandColors.warning} />
         <Text style={styles.errorText}>Failed to load reels</Text>
         <Pressable style={styles.retryBtn} onPress={() => refetch()}>
           <Text style={styles.retryText}>Try Again</Text>
@@ -145,7 +128,6 @@ export default function ReelsFeedScreen() {
     );
   }
 
-  // Empty state
   if (reels.length === 0) {
     return (
       <View style={styles.center}>
@@ -156,18 +138,22 @@ export default function ReelsFeedScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Logout button — top right over the feed */}
-      <Pressable
-        style={[styles.logoutBtn, { top: insets.top + 12 }]}
-        onPress={handleLogout}
-        accessibilityLabel="Log out"
-        accessibilityRole="button">
-        <SymbolView
-          name={{ ios: 'rectangle.portrait.and.arrow.right', android: 'logout', web: 'logout' }}
-          size={22}
-          tintColor="#fff"
-        />
-      </Pressable>
+      {/* Top Header Buttons */}
+      <View style={[styles.headerActions, { top: insets.top + 12 }]}>
+        <Pressable
+          style={styles.headerBtn}
+          onPress={() => router.push('/cart')}
+          accessibilityLabel="Shopping Cart">
+          <SymbolView name="cart.fill" size={22} tintColor="#fff" />
+        </Pressable>
+
+        <Pressable
+          style={styles.headerBtn}
+          onPress={handleLogout}
+          accessibilityLabel="Log out">
+          <SymbolView name="rectangle.portrait.and.arrow.right" size={22} tintColor="#fff" />
+        </Pressable>
+      </View>
 
       <FlatList
         data={reels}
@@ -181,7 +167,6 @@ export default function ReelsFeedScreen() {
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig.current}
         ListFooterComponent={ListFooter}
-        // Performance tuning
         windowSize={5}
         maxToRenderPerBatch={3}
         initialNumToRender={2}
@@ -237,10 +222,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoutBtn: {
+  headerActions: {
     position: 'absolute',
     right: 16,
     zIndex: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
