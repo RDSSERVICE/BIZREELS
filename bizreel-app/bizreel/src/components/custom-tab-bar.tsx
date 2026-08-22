@@ -1,13 +1,13 @@
 /**
- * CustomTabBar — Full-width standard native bottom navigation bar.
+ * CustomTabBar — Pure icon symbols bottom navigation bar (Instagram / TikTok style).
  */
 
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, Spacing } from '@/constants/theme';
 import { useCart } from '@/features/cart/queries';
 
 const TABS = [
@@ -65,7 +65,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   }
 
   return (
-    <View style={[styles.barContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+    <View style={[styles.barContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       {TABS.map((tab) => {
         const active = isActive(tab.name);
         const iconName = active ? tab.activeIcon : tab.icon;
@@ -78,25 +78,17 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             accessibilityLabel={tab.label}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}>
-            <View style={styles.iconContainer}>
+            <View style={[styles.iconWrapper, active && styles.iconWrapperActive]}>
               <SymbolView
                 name={iconName as any}
-                size={25}
+                size={26}
                 tintColor={active ? BrandColors.primary : 'rgba(255, 255, 255, 0.65)'}
               />
 
               {tab.name === 'search' && cartTotalItems > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {cartTotalItems > 99 ? '99+' : cartTotalItems}
-                  </Text>
-                </View>
+                <View style={styles.badge} />
               )}
             </View>
-
-            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-              {tab.label}
-            </Text>
           </Pressable>
         );
       })}
@@ -109,51 +101,39 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     backgroundColor: '#121212',
     borderTopWidth: 1,
-    borderTopColor: '#262626',
-    paddingTop: 10,
+    borderTopColor: '#222222',
+    paddingTop: Spacing.three,
     paddingHorizontal: Spacing.two,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    gap: 4,
+    paddingVertical: 6,
   },
-  iconContainer: {
+  iconWrapper: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
+    width: 44,
+    height: 38,
+    borderRadius: 19,
   },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: FontWeight.medium,
-    color: 'rgba(255, 255, 255, 0.65)',
-  },
-  tabLabelActive: {
-    color: BrandColors.primary,
-    fontWeight: FontWeight.bold,
+  iconWrapperActive: {
+    backgroundColor: 'rgba(217, 154, 61, 0.15)',
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -12,
+    top: 4,
+    right: 6,
     backgroundColor: BrandColors.primary,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 1,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
     borderColor: '#121212',
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
   },
 });
