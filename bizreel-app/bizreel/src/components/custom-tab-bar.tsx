@@ -1,6 +1,5 @@
 /**
- * CustomTabBar — Cross-platform bottom navigation bar using Ionicons.
- * Guarantees 100% visibility on Android, iOS & Web.
+ * CustomTabBar — Floating reduced-width bottom navigation bar using Ionicons.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -66,72 +65,89 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   }
 
   return (
-    <View style={[styles.barContainer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      {TABS.map((tab) => {
-        const active = isActive(tab.name);
-        const iconName = active ? tab.activeIcon : tab.icon;
+    <View style={[styles.outerContainer, { paddingBottom: Math.max(insets.bottom, 12) }]} pointerEvents="box-none">
+      <View style={styles.floatingCapsule}>
+        {TABS.map((tab) => {
+          const active = isActive(tab.name);
+          const iconName = active ? tab.activeIcon : tab.icon;
 
-        return (
-          <Pressable
-            key={tab.name}
-            style={({ pressed }) => [styles.tabItem, pressed && { opacity: 0.7 }]}
-            onPress={() => handlePress(tab.name)}
-            accessibilityLabel={tab.label}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}>
-            <View style={[styles.iconWrapper, active && styles.iconWrapperActive]}>
-              <Ionicons
-                name={iconName as any}
-                size={24}
-                color={active ? BrandColors.primary : '#9CA3AF'}
-              />
+          return (
+            <Pressable
+              key={tab.name}
+              style={({ pressed }) => [styles.tabItem, pressed && { opacity: 0.7 }]}
+              onPress={() => handlePress(tab.name)}
+              accessibilityLabel={tab.label}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}>
+              <View style={[styles.iconWrapper, active && styles.iconWrapperActive]}>
+                <Ionicons
+                  name={iconName as any}
+                  size={22}
+                  color={active ? BrandColors.primary : '#9CA3AF'}
+                />
 
-              {tab.name === 'search' && cartTotalItems > 0 && (
-                <View style={styles.badge} />
-              )}
-            </View>
-            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+                {tab.name === 'search' && cartTotalItems > 0 && (
+                  <View style={styles.badge} />
+                )}
+              </View>
+              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  barContainer: {
-    width: '100%',
+  outerContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    paddingHorizontal: Spacing.four,
+  },
+  floatingCapsule: {
+    width: '84%',
+    maxWidth: 340,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     backgroundColor: '#18181B',
-    borderTopWidth: 1,
-    borderTopColor: '#27272A',
-    paddingTop: Spacing.two,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#27272A',
+    paddingVertical: 6,
     paddingHorizontal: Spacing.two,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
-    gap: 3,
+    gap: 2,
   },
   iconWrapper: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 28,
+    borderRadius: 14,
   },
   iconWrapperActive: {
     backgroundColor: 'rgba(217, 154, 61, 0.15)',
   },
   tabLabel: {
-    fontSize: FontSize.xs,
+    fontSize: 10,
     fontWeight: FontWeight.medium,
     color: '#9CA3AF',
   },
@@ -141,12 +157,12 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 2,
-    right: 8,
+    top: 1,
+    right: 6,
     backgroundColor: BrandColors.primary,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     borderWidth: 1,
     borderColor: '#18181B',
   },
