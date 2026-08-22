@@ -147,7 +147,8 @@ export default function HomeScreen() {
         <View style={styles.heroBanner}>
           <View style={styles.heroContent}>
             <View style={styles.heroTag}>
-              <Text style={styles.heroTagText}>🔥 Trending Marketplace</Text>
+              <Ionicons name="flame" size={14} color={BrandColors.primary} />
+              <Text style={styles.heroTagText}>TRENDING MARKETPLACE</Text>
             </View>
             <Text style={styles.heroTitle}>Discover & Buy Directly from Sellers</Text>
             <Text style={styles.heroSub}>Watch short reels to preview products in action</Text>
@@ -398,11 +399,16 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   heroTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(217, 154, 61, 0.2)',
+    backgroundColor: 'rgba(217, 154, 61, 0.15)',
     paddingHorizontal: Spacing.two,
     paddingVertical: 4,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(217, 154, 61, 0.3)',
   },
   heroTagText: {
     color: BrandColors.primaryLight,
