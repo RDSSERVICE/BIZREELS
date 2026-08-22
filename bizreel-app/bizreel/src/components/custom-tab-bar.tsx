@@ -1,39 +1,40 @@
 /**
- * CustomTabBar — Pure icon symbols bottom navigation bar (Instagram / TikTok style).
+ * CustomTabBar — Cross-platform bottom navigation bar using Ionicons.
+ * Guarantees 100% visibility on Android, iOS & Web.
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { SymbolView } from 'expo-symbols';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useCart } from '@/features/cart/queries';
 
 const TABS = [
   {
     name: 'home',
     label: 'Home',
-    icon: 'house',
-    activeIcon: 'house.fill',
+    icon: 'home-outline',
+    activeIcon: 'home',
   },
   {
     name: 'index',
     label: 'Reels',
-    icon: 'play.rectangle',
-    activeIcon: 'play.rectangle.fill',
+    icon: 'play-circle-outline',
+    activeIcon: 'play-circle',
   },
   {
     name: 'search',
     label: 'Search',
-    icon: 'magnifyingglass',
-    activeIcon: 'magnifyingglass',
+    icon: 'search-outline',
+    activeIcon: 'search',
   },
   {
     name: 'profile',
     label: 'Profile',
-    icon: 'person',
-    activeIcon: 'person.fill',
+    icon: 'person-outline',
+    activeIcon: 'person',
   },
 ] as const;
 
@@ -65,7 +66,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   }
 
   return (
-    <View style={[styles.barContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <View style={[styles.barContainer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {TABS.map((tab) => {
         const active = isActive(tab.name);
         const iconName = active ? tab.activeIcon : tab.icon;
@@ -79,16 +80,19 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             accessibilityRole="button"
             accessibilityState={{ selected: active }}>
             <View style={[styles.iconWrapper, active && styles.iconWrapperActive]}>
-              <SymbolView
+              <Ionicons
                 name={iconName as any}
-                size={26}
-                tintColor={active ? BrandColors.primary : 'rgba(255, 255, 255, 0.65)'}
+                size={24}
+                color={active ? BrandColors.primary : '#9CA3AF'}
               />
 
               {tab.name === 'search' && cartTotalItems > 0 && (
                 <View style={styles.badge} />
               )}
             </View>
+            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+              {tab.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -102,38 +106,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    backgroundColor: '#121212',
+    backgroundColor: '#18181B',
     borderTopWidth: 1,
-    borderTopColor: '#222222',
-    paddingTop: Spacing.three,
+    borderTopColor: '#27272A',
+    paddingTop: Spacing.two,
     paddingHorizontal: Spacing.two,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
+    paddingVertical: 4,
+    gap: 3,
   },
   iconWrapper: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
     width: 44,
-    height: 38,
-    borderRadius: 19,
+    height: 32,
+    borderRadius: 16,
   },
   iconWrapperActive: {
     backgroundColor: 'rgba(217, 154, 61, 0.15)',
   },
+  tabLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+    color: '#9CA3AF',
+  },
+  tabLabelActive: {
+    color: BrandColors.primary,
+    fontWeight: FontWeight.bold,
+  },
   badge: {
     position: 'absolute',
-    top: 4,
-    right: 6,
+    top: 2,
+    right: 8,
     backgroundColor: BrandColors.primary,
     width: 8,
     height: 8,
     borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: '#121212',
+    borderWidth: 1,
+    borderColor: '#18181B',
   },
 });

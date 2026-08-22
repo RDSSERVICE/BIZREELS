@@ -1,11 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
-  FlatList,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -26,15 +25,20 @@ import { api } from '@/lib/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - Spacing.four * 2 - Spacing.three) / 2;
 
-const CATEGORIES = [
-  { id: '1', name: 'Electronics', icon: 'desktopcomputer', color: '#4A90E2' },
-  { id: '2', name: 'Fashion', icon: 'bag', color: '#E91E63' },
-  { id: '3', name: 'Home & Living', icon: 'house.fill', color: '#FF9800' },
-  { id: '4', name: 'Vehicles', icon: 'car.fill', color: '#9C27B0' },
-  { id: '5', name: 'Real Estate', icon: 'building.2.fill', color: '#009688' },
-  { id: '6', name: 'Beauty & Salon', icon: 'sparkles', color: '#EC407A' },
-  { id: '7', name: 'Digital Services', icon: 'bolt.fill', color: '#00BCD4' },
-  { id: '8', name: 'Corporate Gifts', icon: 'gift.fill', color: '#795548' },
+const CATEGORIES: Array<{
+  id: string;
+  name: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}> = [
+  { id: '1', name: 'Electronics', icon: 'laptop-outline', color: '#4A90E2' },
+  { id: '2', name: 'Fashion', icon: 'shirt-outline', color: '#E91E63' },
+  { id: '3', name: 'Home & Living', icon: 'home-outline', color: '#FF9800' },
+  { id: '4', name: 'Vehicles', icon: 'car-outline', color: '#9C27B0' },
+  { id: '5', name: 'Real Estate', icon: 'business-outline', color: '#009688' },
+  { id: '6', name: 'Beauty & Salon', icon: 'sparkles-outline', color: '#EC407A' },
+  { id: '7', name: 'Digital Services', icon: 'flash-outline', color: '#00BCD4' },
+  { id: '8', name: 'Corporate Gifts', icon: 'gift-outline', color: '#795548' },
 ];
 
 export default function HomeScreen() {
@@ -101,7 +105,7 @@ export default function HomeScreen() {
             style={styles.cartIconBtn}
             onPress={() => router.push('/cart')}
             accessibilityLabel="Cart">
-            <SymbolView name="cart.fill" size={20} tintColor="#fff" />
+            <Ionicons name="cart" size={20} color="#fff" />
             {cartItemCount > 0 && (
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
@@ -124,7 +128,7 @@ export default function HomeScreen() {
         }>
         {/* Search Bar */}
         <View style={styles.searchBar}>
-          <SymbolView name="magnifyingglass" size={18} tintColor="rgba(255,255,255,0.4)" />
+          <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search products, services & verified sellers..."
@@ -134,7 +138,7 @@ export default function HomeScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <SymbolView name="xmark" size={16} tintColor="rgba(255,255,255,0.5)" />
+              <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           )}
         </View>
@@ -148,7 +152,7 @@ export default function HomeScreen() {
             <Text style={styles.heroTitle}>Discover & Buy Directly from Sellers</Text>
             <Text style={styles.heroSub}>Watch short reels to preview products in action</Text>
             <TouchableOpacity style={styles.heroBtn} onPress={() => router.push('/(tabs)')}>
-              <SymbolView name="play.fill" size={14} tintColor="#fff" />
+              <Ionicons name="play" size={14} color="#fff" />
               <Text style={styles.heroBtnText}>Watch Reels Feed</Text>
             </TouchableOpacity>
           </View>
@@ -179,7 +183,7 @@ export default function HomeScreen() {
                 ]}
                 onPress={() => setSelectedCategory(isSelected ? null : cat.name)}>
                 <View style={[styles.categoryIconCircle, { backgroundColor: cat.color + '20' }]}>
-                  <SymbolView name={cat.icon as any} size={20} tintColor={cat.color} />
+                  <Ionicons name={cat.icon} size={22} color={cat.color} />
                 </View>
                 <Text style={[styles.categoryName, isSelected && styles.categoryNameSelected]}>
                   {cat.name}
@@ -215,7 +219,7 @@ export default function HomeScreen() {
                   />
                   <View style={styles.reelOverlayGradient} />
                   <View style={styles.reelPlayBadge}>
-                    <SymbolView name="play.fill" size={14} tintColor="#fff" />
+                    <Ionicons name="play" size={14} color="#fff" />
                   </View>
                   <Text style={styles.reelCaption} numberOfLines={2}>
                     {reel.caption || reel.creatorName}
@@ -238,7 +242,7 @@ export default function HomeScreen() {
             <ActivityIndicator size="large" color={BrandColors.primary} style={{ marginVertical: 40 }} />
           ) : filteredListings.length === 0 ? (
             <View style={styles.emptyListings}>
-              <SymbolView name="bag" size={40} tintColor="rgba(255,255,255,0.3)" />
+              <Ionicons name="basket-outline" size={40} color="rgba(255,255,255,0.3)" />
               <Text style={styles.emptyListingsText}>No products found matching your search</Text>
             </View>
           ) : (
@@ -258,7 +262,7 @@ export default function HomeScreen() {
                       <Image source={{ uri: imageUrl }} style={styles.productImage} contentFit="cover" />
                     ) : (
                       <View style={styles.productImageFallback}>
-                        <SymbolView name="bag.fill" size={32} tintColor="rgba(255,255,255,0.4)" />
+                        <Ionicons name="image-outline" size={32} color="rgba(255,255,255,0.4)" />
                       </View>
                     )}
 
@@ -286,7 +290,7 @@ export default function HomeScreen() {
                             addToCartMutation.mutate({ listing_id: item._id || item.id, quantity: 1 })
                           }
                           disabled={addToCartMutation.isPending}>
-                          <SymbolView name="plus" size={16} tintColor="#fff" />
+                          <Ionicons name="add" size={18} color="#fff" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -334,24 +338,10 @@ const styles = StyleSheet.create({
   brandAccent: {
     color: BrandColors.primary,
   },
-  locationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#1c1c1e',
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  locationText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-  },
   cartIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#1c1c1e',
     alignItems: 'center',
     justifyContent: 'center',

@@ -1,5 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,17 +20,17 @@ export type UserRole = 'customer' | 'vendor' | 'creator';
 
 const ROLES_CONFIG: Record<
   UserRole,
-  { label: string; icon: string; color: string; desc: string }
+  { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; desc: string }
 > = {
   customer: {
     label: 'Customer',
-    icon: 'cart.fill',
+    icon: 'bag-handle',
     color: '#4A90E2',
     desc: 'Browse reels, products & buy directly',
   },
   vendor: {
     label: 'Vendor',
-    icon: 'bag.fill',
+    icon: 'storefront',
     color: '#E91E63',
     desc: 'Manage store, products & leads',
   },
@@ -90,7 +90,7 @@ export function RoleSwitcher() {
         <Text style={[styles.roleText, { color: activeMeta.color }]}>
           {activeMeta.label} Mode
         </Text>
-        <SymbolView name="chevron.down" size={12} tintColor={activeMeta.color} />
+        <Ionicons name="chevron-down" size={14} color={activeMeta.color} />
       </TouchableOpacity>
 
       {/* Role Selection Modal */}
@@ -105,7 +105,7 @@ export function RoleSwitcher() {
             <View style={styles.drawerHeader}>
               <Text style={styles.drawerTitle}>Switch Profile Role</Text>
               <Pressable onPress={() => setModalVisible(false)}>
-                <SymbolView name="xmark" size={18} tintColor="#fff" />
+                <Ionicons name="close" size={22} color="#fff" />
               </Pressable>
             </View>
 
@@ -120,7 +120,7 @@ export function RoleSwitcher() {
                   onPress={() => handleSelectRole(role)}
                   disabled={switchMutation.isPending}>
                   <View style={[styles.roleIconBox, { backgroundColor: meta.color + '20' }]}>
-                    <SymbolView name={meta.icon as any} size={22} tintColor={meta.color} />
+                    <Ionicons name={meta.icon} size={22} color={meta.color} />
                   </View>
 
                   <View style={{ flex: 1 }}>
@@ -138,10 +138,10 @@ export function RoleSwitcher() {
                   {switchMutation.isPending && role === switchMutation.variables ? (
                     <ActivityIndicator color={BrandColors.primary} />
                   ) : (
-                    <SymbolView
-                      name={isSelected ? 'checkmark.circle.fill' : 'chevron.right'}
+                    <Ionicons
+                      name={isSelected ? 'checkmark-circle' : 'chevron-forward'}
                       size={20}
-                      tintColor={isSelected ? BrandColors.primary : 'rgba(255,255,255,0.3)'}
+                      color={isSelected ? BrandColors.primary : 'rgba(255,255,255,0.3)'}
                     />
                   )}
                 </TouchableOpacity>
