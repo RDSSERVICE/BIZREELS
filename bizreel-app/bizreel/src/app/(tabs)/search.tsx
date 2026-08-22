@@ -1,284 +1,60 @@
 /**
- * Search Screen
- *
- * States:
- *  1. Browse   — no query, no category selected → shows /categories grid
- *  2. Results  — user typed in search bar OR tapped a category → shows /listings
- *
- * Interactions:
- *  - Type in search bar → fires listings query with `search` param
- *  - Tap a category pill → fires listings query with `category` param
- *  - Active category pill shown above results; tap X to clear it (back to browse)
- *  - Clear the search bar → back to browse if no category selected
- *  - Pull to refresh on both views
+ * Search Screen — Modern e-commerce & service discovery search.
  */
 
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useCallback, useDeferredValue, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-    BrandColors,
-    Colors,
-    FontSize,
-    FontWeight,
-    Radius,
-    Spacing,
-} from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import { useAddToCart } from '@/features/cart/queries';
 import { useCategories, useListings } from '@/features/search/queries';
 import type { Category, Listing } from '@/features/search/types';
-import { useTheme } from '@/hooks/use-theme';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const POPULAR_SEARCHES = [
+  'Solar Energy',
+  'Office Furniture',
+  'Digital Marketing',
+  'Beauty & Salon',
+  'Modular Kitchen',
+  'Electronics',
+];
 
-function formatPrice(listing: Listing): string {
-  const price = listing.salePrice && listing.salePrice > 0
-    ? listing.salePrice
-    : listing.price;
-  if (!price) return 'Price on request';
-  return `₹${price.toLocaleString('en-IN')}`;
-}
-
-function getParentCategories(categories: Category[]): Category[] {
-  return categories
-    .filter((c) => c.parent_id === null && c.is_active)
-    .sort((a, b) => a.sort_order - b.sort_order);
-}
-
-// Maps parent category id → its children
-function buildCategoryMap(categories: Category[]): Record<string, Category[]> {
-  const map: Record<string, Category[]> = {};
-  for (const cat of categories) {
-    if (cat.parent_id) {
-      if (!map[cat.parent_id]) map[cat.parent_id] = [];
-      map[cat.parent_id].push(cat);
-    }
-  }
-  return map;
-}
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function SearchBar({
-  value,
-  onChangeText,
-  onClear,
-  theme,
-}: {
-  value: string;
-  onChangeText: (t: string) => void;
-  onClear: () => void;
-  theme: typeof Colors.light;
-}) {
-  return (
-    <View style={[searchBarStyles.wrapper, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <Text style={[searchBarStyles.icon, { color: theme.textSecondary }]}>🔍</Text>
-      <TextInput
-        style={[searchBarStyles.input, { color: theme.text }]}
-        placeholder="Search listings, shops, services…"
-        placeholderTextColor={theme.placeholder}
-        value={value}
-        onChangeText={onChangeText}
-        returnKeyType="search"
-        autoCorrect={false}
-        autoCapitalize="none"
-        clearButtonMode="never"
-      />
-      {value.length > 0 && (
-        <Pressable onPress={onClear} hitSlop={8} accessibilityLabel="Clear search">
-          <Text style={[searchBarStyles.clear, { color: theme.textSecondary }]}>✕</Text>
-        </Pressable>
-      )}
-    </View>
-  );
-}
-
-function ActiveCategoryChip({
-  name,
-  onClear,
-  theme,
-}: {
-  name: string;
-  onClear: () => void;
-  theme: typeof Colors.light;
-}) {
-  return (
-    <View style={chipStyles.row}>
-      <View style={chipStyles.chip}>
-        <Text style={chipStyles.label}>{name}</Text>
-        <Pressable onPress={onClear} hitSlop={8} accessibilityLabel="Clear category filter">
-          <Text style={chipStyles.close}>✕</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function CategoryCard({
-  category,
-  onPress,
-  theme,
-}: {
-  category: Category;
-  onPress: () => void;
-  theme: typeof Colors.light;
-}) {
-  const isEmoji = category.icon_url && category.icon_url.length <= 4;
-  const isUrl = category.icon_url && category.icon_url.startsWith('http');
-
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        catStyles.card,
-        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
-        pressed && { opacity: 0.75 },
-      ]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={category.name}>
-      <View style={catStyles.iconWrapper}>
-        {isUrl ? (
-          <Image source={{ uri: category.icon_url! }} style={catStyles.iconImage} contentFit="cover" />
-        ) : (
-          <Text style={catStyles.iconEmoji}>{isEmoji ? category.icon_url : '🗂️'}</Text>
-        )}
-      </View>
-      <Text style={[catStyles.name, { color: theme.text }]} numberOfLines={2}>
-        {category.name}
-      </Text>
-      <View style={[catStyles.typePill, { backgroundColor: category.category_type === 'service' ? 'rgba(200,134,10,0.12)' : 'rgba(34,197,94,0.12)' }]}>
-        <Text style={[catStyles.typeLabel, { color: category.category_type === 'service' ? BrandColors.primary : BrandColors.success }]}>
-          {category.category_type}
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function ListingCard({
-  listing,
-  theme,
-}: {
-  listing: Listing;
-  theme: typeof Colors.light;
-}) {
-  const imageUrl = listing.images?.[0];
-  const initials = listing.vendor?.name?.charAt(0)?.toUpperCase() ?? '?';
-
-  return (
-    <View style={[listingStyles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      {/* Image */}
-      <View style={listingStyles.imageWrapper}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={listingStyles.image} contentFit="cover" />
-        ) : (
-          <View style={[listingStyles.imageFallback, { backgroundColor: theme.backgroundSelected }]}>
-            <Text style={{ fontSize: FontSize.xl }}>🛍️</Text>
-          </View>
-        )}
-        {listing.isBoosted && (
-          <View style={listingStyles.boostedBadge}>
-            <Text style={listingStyles.boostedText}>Ad</Text>
-          </View>
-        )}
-        {listing.discount > 0 && (
-          <View style={listingStyles.discountBadge}>
-            <Text style={listingStyles.discountText}>{listing.discount}% off</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Info */}
-      <View style={listingStyles.info}>
-        <Text style={[listingStyles.title, { color: theme.text }]} numberOfLines={2}>
-          {listing.title}
-        </Text>
-
-        <Text style={[listingStyles.price, { color: BrandColors.primary }]}>
-          {formatPrice(listing)}
-        </Text>
-
-        {/* Category + type */}
-        <View style={listingStyles.metaRow}>
-          <Text style={[listingStyles.metaText, { color: theme.textSecondary }]}>
-            {listing.category}{listing.subcategory ? ` › ${listing.subcategory}` : ''}
-          </Text>
-        </View>
-
-        {/* Rating + city */}
-        <View style={listingStyles.bottomRow}>
-          {listing.rating > 0 && (
-            <Text style={[listingStyles.rating, { color: theme.textSecondary }]}>
-              ⭐ {listing.rating.toFixed(1)} ({listing.totalReviews})
-            </Text>
-          )}
-          {listing.city ? (
-            <Text style={[listingStyles.city, { color: theme.textSecondary }]} numberOfLines={1}>
-              📍 {listing.city}
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Vendor */}
-        <View style={listingStyles.vendorRow}>
-          {listing.vendor?.avatarUrl ? (
-            <Image source={{ uri: listing.vendor.avatarUrl }} style={listingStyles.vendorAvatar} contentFit="cover" />
-          ) : (
-            <View style={[listingStyles.vendorAvatar, listingStyles.vendorAvatarFallback]}>
-              <Text style={listingStyles.vendorInitial}>{initials}</Text>
-            </View>
-          )}
-          <Text style={[listingStyles.vendorName, { color: theme.textSecondary }]} numberOfLines={1}>
-            {listing.vendor?.name ?? 'Unknown'}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function EmptyResults({ query, theme }: { query: string; theme: typeof Colors.light }) {
-  return (
-    <View style={emptyStyles.container}>
-      <Text style={emptyStyles.emoji}>🔍</Text>
-      <Text style={[emptyStyles.title, { color: theme.text }]}>No results found</Text>
-      <Text style={[emptyStyles.sub, { color: theme.textSecondary }]}>
-        No listings matched "{query}". Try a different search or browse by category.
-      </Text>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main Screen
-// ---------------------------------------------------------------------------
+const TYPE_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'product', label: 'Products' },
+  { id: 'service', label: 'Services' },
+];
 
 export default function SearchScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
 
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | 'product' | 'service'>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high'>('newest');
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  // Defer search text so the FlatList doesn't re-render on every keystroke
+  const addToCartMutation = useAddToCart();
+
+  // Defer search input to keep typing butter smooth
   const deferredSearch = useDeferredValue(searchText.trim());
-
-  // A query is "active" when user has typed something OR selected a category
   const isQueryActive = deferredSearch.length > 0 || selectedCategory !== null;
 
   const listingsParams = {
@@ -302,28 +78,20 @@ export default function SearchScreen() {
     isRefetching: listingsRefetching,
   } = useListings(listingsParams, isQueryActive);
 
-  const listings = listingsData?.data ?? [];
-  const total = listingsData?.meta.total ?? 0;
+  const rawListings = listingsData?.data ?? [];
+  const total = listingsData?.meta?.total ?? rawListings.length;
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // Filter & Sort results locally
+  const filteredListings = rawListings.filter((item) => {
+    if (activeTypeFilter === 'all') return true;
+    const itemType = (item as any).category_type || (item as any).type;
+    return itemType === activeTypeFilter;
+  });
 
-  function handleSearchChange(text: string) {
-    setSearchText(text);
-    // Typing clears category filter so results reflect search intent
-    if (text.length > 0) setSelectedCategory(null);
-  }
-
-  function handleClearSearch() {
-    setSearchText('');
-  }
-
-  function handleSelectCategory(cat: Category) {
-    setSelectedCategory(cat);
-    setSearchText('');
-  }
-
-  function handleClearCategory() {
-    setSelectedCategory(null);
+  if (sortBy === 'price_low') {
+    filteredListings.sort((a, b) => (a.price || 0) - (b.price || 0));
+  } else if (sortBy === 'price_high') {
+    filteredListings.sort((a, b) => (b.price || 0) - (a.price || 0));
   }
 
   const handleRefresh = useCallback(() => {
@@ -331,416 +99,550 @@ export default function SearchScreen() {
     else refetchCats();
   }, [isQueryActive, refetchListings, refetchCats]);
 
-  // ── Render: categories browse ─────────────────────────────────────────────
-
-  const parentCategories = categories ? getParentCategories(categories) : [];
-  const childMap = categories ? buildCategoryMap(categories) : {};
-
-  const renderBrowse = () => {
-    if (catsLoading) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={BrandColors.primary} />
-        </View>
-      );
-    }
-
-    return (
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.browseContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={catsRefetching}
-            onRefresh={handleRefresh}
-            tintColor={BrandColors.primary}
-            colors={[BrandColors.primary]}
-          />
-        }>
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-          Browse by category
-        </Text>
-
-        {parentCategories.map((parent) => {
-          const children = childMap[parent.id] ?? [];
-          return (
-            <View key={parent.id} style={styles.categoryGroup}>
-              {/* Parent header — tapping selects parent as category filter */}
-              <Pressable
-                style={({ pressed }) => [styles.parentHeader, pressed && { opacity: 0.75 }]}
-                onPress={() => handleSelectCategory(parent)}>
-                <Text style={styles.parentIcon}>
-                  {parent.icon_url && parent.icon_url.length <= 4 ? parent.icon_url : '🗂️'}
-                </Text>
-                <Text style={[styles.parentName, { color: theme.text }]}>{parent.name}</Text>
-                <Text style={[styles.parentChevron, { color: theme.textSecondary }]}>›</Text>
-              </Pressable>
-
-              {/* Children chips */}
-              {children.length > 0 && (
-                <View style={styles.childrenRow}>
-                  {children.map((child) => (
-                    <Pressable
-                      key={child.id}
-                      style={({ pressed }) => [
-                        styles.childChip,
-                        { backgroundColor: theme.backgroundSelected, borderColor: theme.border },
-                        pressed && { opacity: 0.7 },
-                      ]}
-                      onPress={() => handleSelectCategory(child)}>
-                      <Text style={[styles.childChipText, { color: theme.text }]}>
-                        {child.name}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-            </View>
-          );
-        })}
-      </ScrollView>
-    );
-  };
-
-  // ── Render: listings results ──────────────────────────────────────────────
-
-  const renderResults = () => {
-    const queryLabel = selectedCategory?.name ?? deferredSearch;
-
-    if (listingsLoading && listings.length === 0) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={BrandColors.primary} />
-        </View>
-      );
-    }
-
-    if (!listingsLoading && listings.length === 0) {
-      return <EmptyResults query={queryLabel} theme={theme} />;
-    }
-
-    return (
-      <FlatList
-        data={listings}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => <ListingCard listing={item} theme={theme} />}
-        contentContainerStyle={styles.resultsContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={listingsRefetching}
-            onRefresh={handleRefresh}
-            tintColor={BrandColors.primary}
-            colors={[BrandColors.primary]}
-          />
-        }
-        ListHeaderComponent={
-          <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
-            {listingsFetching && listings.length > 0
-              ? 'Updating…'
-              : `${total} result${total !== 1 ? 's' : ''}`}
-          </Text>
-        }
-        ItemSeparatorComponent={() => <View style={{ height: Spacing.three }} />}
-      />
-    );
-  };
-
-  // ── Main render ───────────────────────────────────────────────────────────
+  const parentCategories = (categories || []).filter((c) => !c.parent_id);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
-      {/* Search bar */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <SearchBar
-          value={searchText}
-          onChangeText={handleSearchChange}
-          onClear={handleClearSearch}
-          theme={theme}
-        />
-
-        {/* Active category chip */}
-        {selectedCategory && (
-          <ActiveCategoryChip
-            name={selectedCategory.name}
-            onClear={handleClearCategory}
-            theme={theme}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Top Search Bar Header */}
+      <View style={styles.header}>
+        <View style={styles.searchBarWrapper}>
+          <SymbolView name="magnifyingglass" size={18} tintColor="rgba(255,255,255,0.4)" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search products, services & verified sellers..."
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            value={searchText}
+            onChangeText={(t) => {
+              setSearchText(t);
+              if (t) setSelectedCategory(null);
+            }}
+            returnKeyType="search"
           />
-        )}
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchText('')} hitSlop={8}>
+              <SymbolView name="xmark" size={16} tintColor="rgba(255,255,255,0.5)" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={styles.filterBtn}
+          onPress={() => setFilterModalVisible(true)}
+          accessibilityLabel="Filter Options">
+          <SymbolView name="slider.horizontal.3" size={18} tintColor="#fff" />
+        </TouchableOpacity>
       </View>
 
-      {/* Body */}
-      {isQueryActive ? renderResults() : renderBrowse()}
+      {/* Filter Tabs Row */}
+      <View style={styles.filterTabsRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
+          {TYPE_FILTERS.map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.filterChip, activeTypeFilter === tab.id && styles.filterChipActive]}
+              onPress={() => setActiveTypeFilter(tab.id as any)}>
+              <Text style={[styles.filterChipText, activeTypeFilter === tab.id && styles.filterChipTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+
+          {selectedCategory && (
+            <View style={styles.activeCategoryTag}>
+              <Text style={styles.activeCategoryTagText}>{selectedCategory.name}</Text>
+              <TouchableOpacity onPress={() => setSelectedCategory(null)} hitSlop={4}>
+                <SymbolView name="xmark" size={12} tintColor="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+
+      {/* Main Content Area */}
+      {isQueryActive ? (
+        /* Results View */
+        listingsLoading && filteredListings.length === 0 ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color={BrandColors.primary} />
+          </View>
+        ) : filteredListings.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <SymbolView name="magnifyingglass" size={56} tintColor="rgba(255,255,255,0.3)" />
+            <Text style={styles.emptyTitle}>No Results Found</Text>
+            <Text style={styles.emptySub}>
+              We couldn't find matching items for "{deferredSearch || selectedCategory?.name}". Try checking your spelling or adjusting filters.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredListings}
+            keyExtractor={(item) => item._id}
+            contentContainerStyle={styles.resultsList}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={listingsRefetching}
+                onRefresh={handleRefresh}
+                tintColor={BrandColors.primary}
+                colors={[BrandColors.primary]}
+              />
+            }
+            ListHeaderComponent={
+              <Text style={styles.resultsCountText}>
+                {listingsFetching ? 'Updating results…' : `${filteredListings.length} items found`}
+              </Text>
+            }
+            renderItem={({ item }) => {
+              const image = item.images?.[0];
+              const price = item.salePrice || item.price || 0;
+
+              return (
+                <TouchableOpacity
+                  style={styles.resultCard}
+                  onPress={() => router.push(`/listing/${item._id}`)}>
+                  {image ? (
+                    <Image source={{ uri: image }} style={styles.resultImage} contentFit="cover" />
+                  ) : (
+                    <View style={styles.resultImageFallback}>
+                      <SymbolView name="bag.fill" size={28} tintColor="rgba(255,255,255,0.4)" />
+                    </View>
+                  )}
+
+                  <View style={styles.resultInfo}>
+                    <Text style={styles.resultTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+
+                    <Text style={styles.resultVendorName} numberOfLines={1}>
+                      {item.vendor?.name || 'Verified Vendor'}
+                    </Text>
+
+                    <View style={styles.resultPriceRow}>
+                      <Text style={styles.resultPrice}>₹{price}</Text>
+
+                      <TouchableOpacity
+                        style={styles.addCartSmallBtn}
+                        onPress={() => addToCartMutation.mutate({ listing_id: item._id, quantity: 1 })}>
+                        <SymbolView name="plus" size={14} tintColor="#fff" />
+                        <Text style={styles.addCartSmallText}>Add</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        )
+      ) : (
+        /* Browse Categories & Popular Searches View */
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.browseScroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={catsRefetching}
+              onRefresh={handleRefresh}
+              tintColor={BrandColors.primary}
+              colors={[BrandColors.primary]}
+            />
+          }>
+          {/* Popular Searches */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeaderTitle}>Popular Searches</Text>
+            <View style={styles.popularRow}>
+              {POPULAR_SEARCHES.map((term) => (
+                <TouchableOpacity
+                  key={term}
+                  style={styles.popularChip}
+                  onPress={() => setSearchText(term)}>
+                  <SymbolView name="sparkles" size={12} tintColor={BrandColors.primary} />
+                  <Text style={styles.popularChipText}>{term}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Categories Grid */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeaderTitle}>Explore Categories</Text>
+            {catsLoading ? (
+              <ActivityIndicator size="large" color={BrandColors.primary} style={{ marginVertical: 30 }} />
+            ) : (
+              <View style={styles.categoryGrid}>
+                {parentCategories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={styles.categoryGridCard}
+                    onPress={() => setSelectedCategory(cat)}>
+                    <View style={styles.categoryIconCircle}>
+                      <Text style={styles.categoryEmoji}>
+                        {cat.icon_url && cat.icon_url.length <= 4 ? cat.icon_url : '🗂️'}
+                      </Text>
+                    </View>
+                    <Text style={styles.categoryGridTitle} numberOfLines={2}>
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Filter Modal */}
+      <Modal
+        visible={filterModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFilterModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setFilterModalVisible(false)} />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Sort & Filter</Text>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                <SymbolView name="xmark" size={18} tintColor="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.filterSectionTitle}>Sort By</Text>
+            <TouchableOpacity
+              style={[styles.sortOption, sortBy === 'newest' && styles.sortOptionSelected]}
+              onPress={() => setSortBy('newest')}>
+              <Text style={styles.sortOptionText}>Newest Listings</Text>
+              {sortBy === 'newest' && <SymbolView name="checkmark" size={16} tintColor={BrandColors.primary} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sortOption, sortBy === 'price_low' && styles.sortOptionSelected]}
+              onPress={() => setSortBy('price_low')}>
+              <Text style={styles.sortOptionText}>Price: Low to High</Text>
+              {sortBy === 'price_low' && <SymbolView name="checkmark" size={16} tintColor={BrandColors.primary} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sortOption, sortBy === 'price_high' && styles.sortOptionSelected]}
+              onPress={() => setSortBy('price_high')}>
+              <Text style={styles.sortOptionText}>Price: High to Low</Text>
+              {sortBy === 'price_high' && <SymbolView name="checkmark" size={16} tintColor={BrandColors.primary} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.applyFilterBtn}
+              onPress={() => setFilterModalVisible(false)}>
+              <Text style={styles.applyFilterBtnText}>Apply Filters</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: '#121212',
+  },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: Spacing.three,
     gap: Spacing.two,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222',
+  },
+  searchBarWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+    gap: Spacing.two,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#fff',
+    fontSize: FontSize.sm,
+  },
+  filterBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#1c1c1e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+  },
+  filterTabsRow: {
+    paddingVertical: Spacing.two,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1c1c1e',
+  },
+  tabsScroll: {
+    paddingHorizontal: Spacing.four,
+    gap: Spacing.two,
+    alignItems: 'center',
+  },
+  filterChip: {
+    backgroundColor: '#1c1c1e',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+  },
+  filterChipActive: {
+    backgroundColor: BrandColors.primary,
+    borderColor: BrandColors.primary,
+  },
+  filterChipText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
+  filterChipTextActive: {
+    color: '#fff',
+    fontWeight: FontWeight.bold,
+  },
+  activeCategoryTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 4,
+    borderRadius: 14,
+    gap: 4,
+  },
+  activeCategoryTagText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Browse
-  browseContent: {
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.eight,
-    gap: Spacing.two,
-  },
-  sectionTitle: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: Spacing.two,
-  },
-  categoryGroup: {
-    marginBottom: Spacing.three,
-  },
-  parentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.two,
-  },
-  parentIcon: { fontSize: 22 },
-  parentName: {
+  emptyContainer: {
     flex: 1,
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
-  },
-  parentChevron: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-  },
-  childrenRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-    marginTop: Spacing.one,
-    paddingLeft: 32,
-  },
-  childChip: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-  },
-  childChipText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-  },
-  // Results
-  resultsContent: {
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.eight,
-  },
-  resultsCount: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-    marginBottom: Spacing.three,
-  },
-});
-
-const searchBarStyles = StyleSheet.create({
-  wrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    gap: Spacing.two,
-  },
-  icon: { fontSize: 16 },
-  input: {
-    flex: 1,
-    fontSize: FontSize.base,
-    paddingVertical: 0,
-  },
-  clear: {
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.semibold,
-  },
-});
-
-const chipStyles = StyleSheet.create({
-  row: { flexDirection: 'row' },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    backgroundColor: BrandColors.primary,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-    borderRadius: Radius.full,
-  },
-  label: {
-    color: '#fff',
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-  },
-  close: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
-  },
-});
-
-const catStyles = StyleSheet.create({
-  card: {
-    width: '47%',
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    padding: Spacing.three,
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  iconWrapper: {
-    width: 52,
-    height: 52,
-    borderRadius: Radius.md,
-    backgroundColor: 'rgba(200,134,10,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    paddingHorizontal: Spacing.four,
+    gap: Spacing.two,
   },
-  iconImage: { width: 52, height: 52 },
-  iconEmoji: { fontSize: 28 },
-  name: {
+  emptyTitle: {
+    color: '#fff',
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+  },
+  emptySub: {
+    color: 'rgba(255,255,255,0.6)',
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
     textAlign: 'center',
-  },
-  typePill: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 2,
-    borderRadius: Radius.full,
-  },
-  typeLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
-    textTransform: 'capitalize',
-  },
-});
-
-const listingStyles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  imageWrapper: {
-    width: 110,
-    position: 'relative',
-  },
-  image: {
-    width: 110,
-    height: '100%',
-  },
-  imageFallback: {
-    width: 110,
-    height: 110,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  boostedBadge: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: BrandColors.primary,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  boostedText: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  discountBadge: {
-    position: 'absolute',
-    bottom: 6,
-    left: 6,
-    backgroundColor: BrandColors.error,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  discountText: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-  },
-  info: {
-    flex: 1,
-    padding: Spacing.three,
-    gap: Spacing.one,
-    justifyContent: 'space-between',
-  },
-  title: {
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.semibold,
     lineHeight: 20,
   },
-  price: {
+  resultsList: {
+    padding: Spacing.four,
+    gap: Spacing.three,
+  },
+  resultsCountText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    marginBottom: Spacing.two,
+  },
+  resultCard: {
+    flexDirection: 'row',
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+  },
+  resultImage: {
+    width: 100,
+    height: 100,
+  },
+  resultImageFallback: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#2c2c2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resultInfo: {
+    flex: 1,
+    padding: Spacing.three,
+    justifyContent: 'space-between',
+  },
+  resultTitle: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+  resultVendorName: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: FontSize.xs,
+  },
+  resultPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  resultPrice: {
+    color: BrandColors.primaryLight,
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.bold,
+  },
+  addCartSmallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 2,
+  },
+  addCartSmallText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  browseScroll: {
+    padding: Spacing.four,
+    gap: Spacing.four,
+  },
+  section: {
+    gap: Spacing.three,
+  },
+  sectionHeaderTitle: {
+    color: '#fff',
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.bold,
+  },
+  popularRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  popularChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1c1c1e',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+    gap: Spacing.one,
+  },
+  popularChipText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.three,
+  },
+  categoryGridCard: {
+    width: '30%',
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    padding: Spacing.three,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+    gap: Spacing.two,
+  },
+  categoryIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(217, 154, 61, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryEmoji: {
+    fontSize: 22,
+  },
+  categoryGridTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  modalContent: {
+    backgroundColor: '#1c1c1e',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: Spacing.four,
+    gap: Spacing.three,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2c2c2e',
+    paddingBottom: Spacing.two,
+  },
+  modalTitle: {
+    color: '#fff',
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
   },
-  metaRow: { flexDirection: 'row', alignItems: 'center' },
-  metaText: { fontSize: FontSize.xs },
-  bottomRow: {
-    flexDirection: 'row',
-    gap: Spacing.three,
-    flexWrap: 'wrap',
+  filterSectionTitle: {
+    color: BrandColors.primaryLight,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
   },
-  rating: { fontSize: FontSize.xs },
-  city: { fontSize: FontSize.xs, flex: 1 },
-  vendorRow: {
+  sortOption: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: Spacing.one,
-    marginTop: Spacing.one,
+    backgroundColor: '#2c2c2e',
+    padding: Spacing.three,
+    borderRadius: 8,
   },
-  vendorAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    overflow: 'hidden',
+  sortOptionSelected: {
+    backgroundColor: 'rgba(217, 154, 61, 0.15)',
+    borderWidth: 1,
+    borderColor: BrandColors.primary,
   },
-  vendorAvatarFallback: {
+  sortOptionText: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+  },
+  applyFilterBtn: {
     backgroundColor: BrandColors.primary,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: Spacing.two,
   },
-  vendorInitial: { color: '#fff', fontSize: 10, fontWeight: FontWeight.bold },
-  vendorName: { fontSize: FontSize.xs, flex: 1 },
-});
-
-const emptyStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.six,
-    gap: Spacing.two,
+  applyFilterBtnText: {
+    color: '#fff',
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.bold,
   },
-  emoji: { fontSize: 48 },
-  title: { fontSize: FontSize.lg, fontWeight: FontWeight.semibold },
-  sub: { fontSize: FontSize.base, textAlign: 'center', lineHeight: 22 },
 });
