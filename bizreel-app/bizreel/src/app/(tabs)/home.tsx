@@ -211,7 +211,9 @@ export default function HomeScreen() {
         </ScrollView>
 
         {/* Redesigned Vendor Store Hub & Catalog Section */}
-        {user?.activeRole === 'vendor' ? (
+        {user?.activeRole === 'vendor' ? (() => {
+          const vendorProfile: any = user?.vendorProfile;
+          return (
           <View style={styles.vendorCatalogContainer}>
             {/* Vendor Store Header Card */}
             <View style={styles.vendorStoreCard}>
@@ -219,7 +221,7 @@ export default function HomeScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={styles.vendorStoreName}>
-                      {user?.vendorProfile?.storeName || user?.vendorProfile?.businessName || user?.name || 'My Store'}
+                      {vendorProfile?.storeName || vendorProfile?.businessName || user?.name || 'My Store'}
                     </Text>
                     <View style={styles.verifiedShieldBadge}>
                       <Ionicons name="shield-checkmark" size={12} color="#fff" />
@@ -227,7 +229,7 @@ export default function HomeScreen() {
                     </View>
                   </View>
                   <Text style={styles.vendorStoreSub}>
-                    {user?.vendorProfile?.category || 'Vendor Store Catalog & Live Inventory'}
+                    {vendorProfile?.category || 'Vendor Store Catalog & Live Inventory'}
                   </Text>
                 </View>
 
@@ -332,7 +334,8 @@ export default function HomeScreen() {
               </View>
             )}
           </View>
-        ) : (
+          );
+        })() : (
           reels.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
