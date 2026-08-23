@@ -246,9 +246,10 @@ export default function VendorCatalogScreen() {
           renderItem={({ item }) => {
             const image = getListingImage(item);
             const price = item.salePrice || item.price || 0;
+            const itemAny = item as any;
             const isSelected = selectedIds.includes(item._id);
             const isHidden = hiddenIds.includes(item._id);
-            const stockCount = item.stock ?? (item.quantity ?? 10);
+            const stockCount = itemAny.stock ?? (itemAny.quantity ?? 10);
 
             return (
               <View style={[styles.card, isSelected && styles.cardSelected, isHidden && styles.cardHidden]}>
@@ -288,7 +289,7 @@ export default function VendorCatalogScreen() {
                       {/* Type Badge */}
                       <View style={styles.typeBadge}>
                         <Text style={styles.typeBadgeText}>
-                          {(item.type || (item as any).category_type || 'product').toUpperCase()}
+                          {(item.type || itemAny.category_type || 'product').toUpperCase()}
                         </Text>
                       </View>
 
@@ -315,15 +316,15 @@ export default function VendorCatalogScreen() {
                   <View style={styles.metricsRow}>
                     <View style={styles.metricItem}>
                       <Ionicons name="eye-outline" size={12} color="rgba(255,255,255,0.6)" />
-                      <Text style={styles.metricValue}>{item.viewsCount || 0}</Text>
+                      <Text style={styles.metricValue}>{itemAny.viewsCount || 0}</Text>
                     </View>
                     <View style={styles.metricItem}>
                       <Ionicons name="heart-outline" size={12} color="#EC4899" />
-                      <Text style={styles.metricValue}>{item.likesCount || 0}</Text>
+                      <Text style={styles.metricValue}>{itemAny.likesCount || 0}</Text>
                     </View>
                     <View style={styles.metricItem}>
                       <Ionicons name="cart-outline" size={12} color={BrandColors.primaryLight} />
-                      <Text style={styles.metricValue}>{item.ordersCount || 0}</Text>
+                      <Text style={styles.metricValue}>{itemAny.ordersCount || 0}</Text>
                     </View>
                     <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
                   </View>
