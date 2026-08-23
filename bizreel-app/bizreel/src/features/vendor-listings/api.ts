@@ -16,6 +16,7 @@ export async function createVendorListing(payload: {
   salePrice?: number;
   stock?: number;
   image?: string;
+  [key: string]: any;
 }): Promise<Listing> {
   const { data } = await api.post('/listings', payload);
   return data.data || data;
