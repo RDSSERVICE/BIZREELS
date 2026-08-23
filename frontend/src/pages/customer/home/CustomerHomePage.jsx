@@ -5,10 +5,11 @@ import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
   FiMapPin, FiSearch, FiSliders, FiPlay, FiVolume2, FiVolumeX, FiCheck,
   FiChevronLeft, FiChevronRight, FiVideo, FiImage, FiMessageSquare, FiLayers,
-  FiMoreHorizontal, FiSend
+  FiMoreHorizontal, FiSend, FiShoppingCart, FiZap
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { api } from '../../../lib/api';
+import { api, cartApi } from '../../../lib/api';
+import { notifyCartChanged } from '../../../components/app/CartDrawer';
 import { getSocket } from '../../../lib/socket';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
 import CommentsDrawer from '../../../components/ui/CommentsDrawer';
@@ -637,6 +638,37 @@ export default function CustomerHomePage() {
                     <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                       {(item.views || 0).toLocaleString()} views
                     </p>
+
+                    {/* Quick Add to Cart & Buy Now Action Row */}
+                    <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-[#e3dccb]/60">
+                      <button
+                        onClick={async () => {
+                          const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
+                          try {
+                            await cartApi.add({ listing_id: targetId, quantity: 1 });
+                            notifyCartChanged();
+                            toast.success(`"${item.caption || 'Product'}" added to cart!`);
+                          } catch {
+                            toast.error('Could not add item to cart');
+                          }
+                        }}
+                        className="py-2 px-3 rounded-xl bg-[#f8f4ec] hover:bg-[#eae3d2] text-[#1a1a1a] text-xs font-bold transition border border-[#e3dccb] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <FiShoppingCart size={15} className="text-[#d99a3d]" />
+                        <span>Add to Cart</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
+                          navigate(`/customer/listings/${targetId}`);
+                        }}
+                        className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <FiZap size={15} />
+                        <span>Buy Now</span>
+                      </button>
+                    </div>
 
                     {/* Expandable Caption */}
                     <div className="text-xs text-slate-700 leading-relaxed mt-1">

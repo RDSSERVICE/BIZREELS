@@ -354,6 +354,66 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
             {reel.hashtags.map((h) => `#${h}`).join(' ')}
           </Text>
         )}
+
+        {/* Quick Add to Cart & Buy Now Action Row */}
+        <View style={styles.reelBuyRow}>
+          <TouchableOpacity
+            style={styles.reelCartBtn}
+            onPress={() => {
+              const targetListingId = (reel as any).taggedListing?._id || (reel as any).taggedListing || reel._id;
+              addToCartMutation.mutate(
+                { listing_id: targetListingId, quantity: 1 },
+                {
+                  onSuccess: () => {
+                    Alert.alert('🎉 Added to Cart', `Added "${reel.caption || 'Featured Reel Product'}" to your cart!`, [
+                      { text: 'View Cart', onPress: () => router.push('/cart') },
+                      { text: 'Continue' },
+                    ]);
+                  },
+                }
+              );
+            }}>
+            <Ionicons name="cart" size={15} color="#fff" />
+            <Text style={styles.reelCartText}>Add to Cart</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.reelBuyBtn}
+            onPress={() => {
+              const targetListingId = (reel as any).taggedListing?._id || (reel as any).taggedListing || reel._id;
+              const price = (reel as any).taggedListing?.price || (reel as any).taggedListing?.salePrice || 0;
+              addToCartMutation.mutate(
+                { listing_id: targetListingId, quantity: 1 },
+                {
+                  onSuccess: () => {
+                    router.push({
+                      pathname: '/checkout',
+                      params: {
+                        listingId: targetListingId,
+                        title: reel.caption || 'Featured Reel Product',
+                        price: price.toString(),
+                        vendorName: reel.creatorName || 'Verified Business',
+                      },
+                    });
+                  },
+                  onError: () => {
+                    router.push({
+                      pathname: '/checkout',
+                      params: {
+                        listingId: targetListingId,
+                        title: reel.caption || 'Featured Reel Product',
+                        price: price.toString(),
+                        vendorName: reel.creatorName || 'Verified Business',
+                      },
+                    });
+                  },
+                }
+              );
+            }}>
+            <Ionicons name="flash" size={15} color="#000" />
+            <Text style={styles.reelBuyText}>Buy Now</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Right-Side Floating Action Column */}
@@ -529,6 +589,42 @@ const styles = StyleSheet.create({
     right: 76,
     paddingHorizontal: Spacing.four,
     gap: Spacing.two,
+  },
+  reelBuyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  reelCartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  reelCartText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  reelBuyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  reelBuyText: {
+    color: '#000',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
   },
   taggedBanner: {
     flexDirection: 'row',

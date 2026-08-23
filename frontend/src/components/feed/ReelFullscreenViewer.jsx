@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiX,
   FiVolume2, FiVolumeX, FiMapPin, FiPhone, FiMessageSquare,
-  FiShield, FiUserPlus, FiCheck
+  FiShield, FiUserPlus, FiCheck, FiShoppingCart, FiZap
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { api } from '../../lib/api';
+import { api, cartApi } from '../../lib/api';
+import { notifyCartChanged } from '../app/CartDrawer';
 import ChatDrawer from '../ui/ChatDrawer';
 
 /**
@@ -394,6 +395,36 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
                     >
                       <FiMessageCircle size={16} />
                       <span className="text-[8px] font-bold">Inquiry</span>
+                  {/* Add to Cart & Buy Now Quick Action Buttons */}
+                  <div className="grid grid-cols-2 gap-2.5 pt-1">
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const targetId = reel.taggedListing?._id || reel.taggedListing || reel._id || reel.id;
+                        try {
+                          await cartApi.add({ listing_id: targetId, quantity: 1 });
+                          notifyCartChanged();
+                          toast.success(`"${reel.caption || 'Product'}" added to cart!`);
+                        } catch {
+                          toast.error('Could not add item to cart');
+                        }
+                      }}
+                      className="py-2.5 px-3 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-extrabold transition flex items-center justify-center gap-1.5 border border-white/20 shadow-xs cursor-pointer"
+                    >
+                      <FiShoppingCart size={15} />
+                      <span>Add to Cart</span>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const targetId = reel.taggedListing?._id || reel.taggedListing || reel._id || reel.id;
+                        navigate(`/customer/listings/${targetId}`);
+                      }}
+                      className="py-2.5 px-3 rounded-xl bg-[#d99a3d] hover:bg-[#c0862b] text-[#1a1a1a] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      <FiZap size={15} />
+                      <span>Buy Now</span>
                     </button>
                   </div>
                 </div>
