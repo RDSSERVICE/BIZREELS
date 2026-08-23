@@ -301,133 +301,143 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
           </>
         )}
 
-        {/* Right-side action buttons */}
-        <div className="absolute right-3 bottom-32 z-30 flex flex-col items-center gap-5">
+        {/* Right-side vertical action rail */}
+        <div className="absolute right-2.5 bottom-48 sm:bottom-52 z-30 flex flex-col items-center gap-4 select-none">
+          {/* Like */}
           <button
             onClick={() => onLike?.(currentPost._id || currentPost.id)}
-            className="flex flex-col items-center gap-1"
+            className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
           >
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition ${
-              likedMap[currentPost._id || currentPost.id] ? 'bg-red-500 text-white' : 'bg-black/40 text-white'
+            <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md ${
+              likedMap[currentPost._id || currentPost.id] ? 'bg-red-500 text-white animate-scale-pop' : 'bg-black/50 hover:bg-black/70 text-white border border-white/10'
             }`}>
               <FiHeart size={20} fill={likedMap[currentPost._id || currentPost.id] ? 'currentColor' : 'none'} />
             </div>
-            <span className="text-white text-[10px] font-bold">{currentPost.likesCount || currentPost.likes || 0}</span>
+            <span className="text-white text-[10px] font-black drop-shadow-md">{currentPost.likesCount || currentPost.likes || 0}</span>
           </button>
 
+          {/* Save */}
           <button
             onClick={() => onSave?.(currentPost._id || currentPost.id)}
-            className="flex flex-col items-center gap-1"
+            className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
           >
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition ${
-              savedMap[currentPost._id || currentPost.id] ? 'bg-brand-purple text-white' : 'bg-black/40 text-white'
+            <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md ${
+              savedMap[currentPost._id || currentPost.id] ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-black/50 hover:bg-black/70 text-white border border-white/10'
             }`}>
               <FiBookmark size={20} fill={savedMap[currentPost._id || currentPost.id] ? 'currentColor' : 'none'} />
             </div>
-            <span className="text-white text-[10px] font-bold">Save</span>
+            <span className="text-white text-[10px] font-black drop-shadow-md">Save</span>
           </button>
 
+          {/* Share */}
           <button
             onClick={() => {
               const url = `${window.location.origin}/customer/search?id=${currentPost._id || currentPost.id}`;
               navigator.clipboard?.writeText(url);
               toast.success('Link copied!');
             }}
-            className="flex flex-col items-center gap-1"
+            className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
           >
-            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center">
+            <div className="w-11 h-11 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white flex items-center justify-center border border-white/10 shadow-md">
               <FiShare2 size={20} />
             </div>
-            <span className="text-white text-[10px] font-bold">Share</span>
+            <span className="text-white text-[10px] font-black drop-shadow-md">Share</span>
           </button>
         </div>
 
         {/* Bottom vendor info overlay */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 pt-16">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden flex-shrink-0">
-              {vendor.profile_pic || vendor.avatarUrl ? (
-                <img src={vendor.profile_pic || vendor.avatarUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-brand-purple/30 flex items-center justify-center text-white font-bold text-sm">
-                  {(vendor.name || 'V').charAt(0)}
-                </div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-white text-sm font-bold truncate">
-                  {vendor.vendorProfile?.shopName || vendor.name || 'Vendor'}
-                </p>
-                {currentPost.isBoosted && (
-                  <span className="bg-yellow-400/20 text-yellow-400 text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-yellow-400/30">
-                    PROMOTED
-                  </span>
+        <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent p-4 pt-20 text-left pr-16 sm:pr-18">
+          {/* Vendor Profile Header Row */}
+          <div className="flex items-center justify-between gap-2.5 mb-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-full border-2 border-[#d99a3d] overflow-hidden flex-shrink-0 bg-white shadow-xs">
+                {vendor.profile_pic || vendor.avatarUrl ? (
+                  <img src={vendor.profile_pic || vendor.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-sm">
+                    {(vendor.name || 'V').charAt(0)}
+                  </div>
                 )}
               </div>
-              <p className="text-white/60 text-[10px] truncate">
-                {currentPost.category || 'Business'}
-              </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-white text-xs sm:text-sm font-extrabold truncate">
+                    {vendor.vendorProfile?.shopName || vendor.name || 'Verified Vendor'}
+                  </p>
+                  {currentPost.isBoosted && (
+                    <span className="bg-[#d99a3d]/20 text-[#d99a3d] text-[8px] font-black px-1.5 py-0.2 rounded-full border border-[#d99a3d]/40 uppercase tracking-wide">
+                      PROMOTED
+                    </span>
+                  )}
+                </div>
+                <p className="text-white/60 text-[10px] truncate font-medium">
+                  {currentPost.category || 'Business'}
+                </p>
+              </div>
             </div>
+
+            {/* Follow button (neatly placed without overlapping share) */}
             <button
               onClick={() => onFollow?.(vendor._id || vendor.id)}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition border ${
+              className={`px-3 py-1 rounded-full text-[10px] font-black transition shrink-0 cursor-pointer flex items-center gap-1 shadow-xs border ${
                 followingMap[vendor._id || vendor.id]
-                  ? 'bg-white/10 text-white/80 border-white/20'
-                  : 'bg-white text-black border-white hover:bg-white/90'
+                  ? 'bg-white/20 text-white border-white/30 backdrop-blur-xs'
+                  : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] border-[#d99a3d]'
               }`}
             >
               {followingMap[vendor._id || vendor.id] ? (
-                <><FiCheck size={10} className="inline mr-1" />Following</>
+                <><FiCheck size={11} /> Following</>
               ) : (
-                <><FiUserPlus size={10} className="inline mr-1" />Follow</>
+                <><FiUserPlus size={11} /> Follow</>
               )}
             </button>
           </div>
 
           {/* Vendor contact + actions */}
           <div className="space-y-2">
-            <div className="flex items-center gap-4 text-white/70 text-[10px]">
+            <div className="flex items-center gap-3 text-white/80 text-[10px] font-semibold flex-wrap">
               <span className="flex items-center gap-1">
-                <FiMapPin size={10} /> {maskAddress(vendor)}
+                <FiMapPin size={11} className="text-[#d99a3d]" /> {maskAddress(vendor)}
               </span>
               <span className="flex items-center gap-1">
-                <FiPhone size={10} /> {maskPhone(vendor.phone)}
+                <FiPhone size={11} className="text-[#d99a3d]" /> {maskPhone(vendor.phone)}
               </span>
               {vendor.is_subscribed_verified && (
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <FiShield size={10} /> Verified
+                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                  <FiShield size={11} /> Verified
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-2">
+
+            {/* Bottom 4 CTA buttons */}
+            <div className="grid grid-cols-4 gap-2 pt-1">
               <button
                 onClick={() => handleWhatsApp(currentPost)}
-                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition border border-emerald-500/20"
+                className="flex flex-col items-center justify-center gap-0.5 py-1.5 sm:py-2 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-black transition border border-emerald-500/40 shadow-xs cursor-pointer active:scale-95"
               >
-                <FaWhatsapp size={16} />
-                <span className="text-[8px] font-bold">WhatsApp</span>
+                <FaWhatsapp size={15} />
+                <span className="text-[9px] font-extrabold tracking-tight">WhatsApp</span>
               </button>
               <button
                 onClick={() => handleCallRequest(currentPost)}
-                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/20"
+                className="flex flex-col items-center justify-center gap-0.5 py-1.5 sm:py-2 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 font-black transition border border-blue-500/40 shadow-xs cursor-pointer active:scale-95"
               >
-                <FiPhone size={16} />
-                <span className="text-[8px] font-bold">Call</span>
+                <FiPhone size={15} />
+                <span className="text-[9px] font-extrabold tracking-tight">Call</span>
               </button>
               <button
                 onClick={() => handleChat(currentPost)}
-                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition border border-purple-500/20"
+                className="flex flex-col items-center justify-center gap-0.5 py-1.5 sm:py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 font-black transition border border-purple-500/40 shadow-xs cursor-pointer active:scale-95"
               >
-                <FiMessageSquare size={16} />
-                <span className="text-[8px] font-bold">Chat</span>
+                <FiMessageSquare size={15} />
+                <span className="text-[9px] font-extrabold tracking-tight">Chat</span>
               </button>
               <button
                 onClick={() => handleInquiry(currentPost)}
-                className="flex flex-col items-center gap-1 py-2 rounded-xl bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition border border-orange-500/20"
+                className="flex flex-col items-center justify-center gap-0.5 py-1.5 sm:py-2 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 font-black transition border border-amber-500/40 shadow-xs cursor-pointer active:scale-95"
               >
-                <FiMessageCircle size={16} />
-                <span className="text-[8px] font-bold">Inquiry</span>
+                <FiMessageCircle size={15} />
+                <span className="text-[9px] font-extrabold tracking-tight">Inquiry</span>
               </button>
             </div>
           </div>
