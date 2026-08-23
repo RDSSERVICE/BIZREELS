@@ -52,6 +52,8 @@ export async function createReel(payload: {
   thumbnailUrl?: string;
   caption?: string;
   taggedListing?: string;
+  category?: string;
+  subcategory?: string;
   hashtags?: string[];
   mediaType?: 'video' | 'image';
 }): Promise<any> {
