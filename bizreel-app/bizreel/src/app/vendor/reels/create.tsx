@@ -79,10 +79,29 @@ export default function CreateReelScreen() {
         <Text style={styles.sectionTitle}>Video Source</Text>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Video URL (MP4 / HLS Stream)</Text>
+          <Text style={styles.label}>Upload or Select Video File Source</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetScroll}>
+            {[
+              { label: '🛍️ Product Showcase', url: 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4' },
+              { label: '☕ Food / Dining', url: 'https://assets.mixkit.co/videos/preview/mixkit-coffee-maker-making-coffee-41551-large.mp4' },
+              { label: '💻 Tech / Services', url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-laptop-keyboard-42533-large.mp4' },
+            ].map((preset, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.presetChip, videoUrl === preset.url && styles.presetChipActive]}
+                onPress={() => {
+                  setVideoUrl(preset.url);
+                }}>
+                <Text style={[styles.presetChipText, videoUrl === preset.url && styles.presetChipTextActive]}>
+                  {preset.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
           <TextInput
             style={styles.input}
-            placeholder="https://assets.mixkit.co/videos/preview/..."
+            placeholder="Enter direct video file URL (MP4 / MOV)..."
             placeholderTextColor="rgba(255,255,255,0.4)"
             value={videoUrl}
             onChangeText={setVideoUrl}
@@ -238,6 +257,31 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     borderWidth: 1,
     borderColor: '#2c2c2e',
+  },
+  presetScroll: {
+    gap: Spacing.two,
+    paddingVertical: 4,
+    marginBottom: Spacing.one,
+  },
+  presetChip: {
+    backgroundColor: '#1c1c1e',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+  },
+  presetChipActive: {
+    backgroundColor: BrandColors.primary,
+    borderColor: BrandColors.primary,
+  },
+  presetChipText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  presetChipTextActive: {
+    color: '#fff',
   },
   listingsScroll: {
     gap: Spacing.two,

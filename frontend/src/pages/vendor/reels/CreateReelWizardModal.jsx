@@ -1072,9 +1072,18 @@ export default function CreateReelWizardModal({
                       );
                     }
                     return (
-                      <p className="text-xs text-slate-400 italic">
-                        Selected item has no media gallery items. Switch to Upload New Media option.
-                      </p>
+                      <div className="p-4 bg-[#1c1d22] border border-amber-500/35 rounded-xl text-center space-y-3">
+                        <p className="text-xs text-slate-300 font-bold">
+                          Selected item does not have any gallery media items yet.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setMediaOption('upload_new')}
+                          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-extrabold shadow-md cursor-pointer hover:scale-105 transition"
+                        >
+                          ☁️ Upload Video / Photo File Now
+                        </button>
+                      </div>
                     );
                   })()}
                 </div>
