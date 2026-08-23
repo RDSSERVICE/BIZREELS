@@ -30,7 +30,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { user, signOut, switchRole } = useAuth();
+  const { user, signOut } = useAuth();
 
   const [mainCollapsed, setMainCollapsed] = useState(false);
   const [financeCollapsed, setFinanceCollapsed] = useState(false);
@@ -52,7 +52,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
 
   function handleSwitchCustomer() {
     onClose();
-    switchRole('customer');
+    router.push('/(tabs)/home');
   }
 
   const vendorName = (user as any)?.vendorProfile?.storeName || (user as any)?.vendorProfile?.businessName || user?.name || 'Vendor Store';
