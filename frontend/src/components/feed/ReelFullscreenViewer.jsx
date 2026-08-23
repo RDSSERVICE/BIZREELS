@@ -395,6 +395,9 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
                     >
                       <FiMessageCircle size={16} />
                       <span className="text-[8px] font-bold">Inquiry</span>
+                    </button>
+                  </div>
+
                   {/* Add to Cart & Buy Now Quick Action Buttons */}
                   <div className="grid grid-cols-2 gap-2.5 pt-1">
                     <button
