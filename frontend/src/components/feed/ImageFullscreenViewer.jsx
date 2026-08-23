@@ -348,49 +348,46 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
         {/* Bottom vendor info overlay */}
         <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent p-4 pt-20 text-left pr-16 sm:pr-18">
           {/* Vendor Profile Header Row */}
-          <div className="flex items-center justify-between gap-2.5 mb-2.5">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="w-10 h-10 rounded-full border-2 border-[#d99a3d] overflow-hidden flex-shrink-0 bg-white shadow-xs">
-                {vendor.profile_pic || vendor.avatarUrl ? (
-                  <img src={vendor.profile_pic || vendor.avatarUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-sm">
-                    {(vendor.name || 'V').charAt(0)}
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className="text-white text-xs sm:text-sm font-extrabold truncate">
-                    {vendor.vendorProfile?.shopName || vendor.name || 'Verified Vendor'}
-                  </p>
-                  {currentPost.isBoosted && (
-                    <span className="bg-[#d99a3d]/20 text-[#d99a3d] text-[8px] font-black px-1.5 py-0.2 rounded-full border border-[#d99a3d]/40 uppercase tracking-wide">
-                      PROMOTED
-                    </span>
-                  )}
-                </div>
-                <p className="text-white/60 text-[10px] truncate font-medium">
-                  {currentPost.category || 'Business'}
-                </p>
-              </div>
-            </div>
-
-            {/* Follow button (neatly placed without overlapping share) */}
-            <button
-              onClick={() => onFollow?.(vendor._id || vendor.id)}
-              className={`px-3 py-1 rounded-full text-[10px] font-black transition shrink-0 cursor-pointer flex items-center gap-1 shadow-xs border ${
-                followingMap[vendor._id || vendor.id]
-                  ? 'bg-white/20 text-white border-white/30 backdrop-blur-xs'
-                  : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] border-[#d99a3d]'
-              }`}
-            >
-              {followingMap[vendor._id || vendor.id] ? (
-                <><FiCheck size={11} /> Following</>
+          <div className="flex items-center gap-2.5 mb-2.5">
+            <div className="w-10 h-10 rounded-full border-2 border-[#d99a3d] overflow-hidden flex-shrink-0 bg-white shadow-xs">
+              {vendor.profile_pic || vendor.avatarUrl ? (
+                <img src={vendor.profile_pic || vendor.avatarUrl} alt="" className="w-full h-full object-cover" />
               ) : (
-                <><FiUserPlus size={11} /> Follow</>
+                <div className="w-full h-full bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-sm">
+                  {(vendor.name || 'V').charAt(0)}
+                </div>
               )}
-            </button>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-white text-xs sm:text-sm font-extrabold truncate max-w-[150px] sm:max-w-[220px]">
+                  {vendor.vendorProfile?.shopName || vendor.name || 'Verified Vendor'}
+                </p>
+                {currentPost.isBoosted && (
+                  <span className="bg-[#d99a3d]/20 text-[#d99a3d] text-[8px] font-black px-1.5 py-0.5 rounded-full border border-[#d99a3d]/40 uppercase tracking-wide shrink-0">
+                    PROMOTED
+                  </span>
+                )}
+                {/* Follow button (neatly placed inline right next to PROMOTED) */}
+                <button
+                  onClick={() => onFollow?.(vendor._id || vendor.id)}
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black transition shrink-0 cursor-pointer flex items-center gap-1 shadow-xs border ${
+                    followingMap[vendor._id || vendor.id]
+                      ? 'bg-white/20 text-white border-white/30 backdrop-blur-xs'
+                      : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] border-[#d99a3d]'
+                  }`}
+                >
+                  {followingMap[vendor._id || vendor.id] ? (
+                    <><FiCheck size={11} /> Following</>
+                  ) : (
+                    <><FiUserPlus size={11} /> Follow</>
+                  )}
+                </button>
+              </div>
+              <p className="text-white/60 text-[10px] truncate font-medium">
+                {currentPost.category || 'Business'}
+              </p>
+            </div>
           </div>
 
           {/* Vendor contact + actions */}
