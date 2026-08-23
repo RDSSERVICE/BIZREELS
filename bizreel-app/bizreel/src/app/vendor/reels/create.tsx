@@ -90,6 +90,36 @@ export default function CreateReelScreen() {
     );
   }
 
+  function pickLocalFile(type: 'video' | 'image') {
+    if (typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = type === 'video' ? 'video/*' : 'image/*';
+      input.onchange = (e: any) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            if (evt.target?.result) {
+              const res = evt.target.result as string;
+              if (type === 'video') {
+                setVideoUrl(res);
+                Alert.alert('Video Loaded', `Selected video file: ${file.name}`);
+              } else {
+                setThumbnailUrl(res);
+                Alert.alert('Thumbnail Loaded', `Selected image file: ${file.name}`);
+              }
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
+    } else {
+      Alert.alert('File Upload', 'Please paste direct video file URL or base64 file data.');
+    }
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -105,7 +135,19 @@ export default function CreateReelScreen() {
         <Text style={styles.sectionTitle}>Video Source</Text>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Upload or Select Video File Source</Text>
+          <Text style={styles.label}>Upload Video File (MP4 / MOV / WEBM)</Text>
+          
+          <TouchableOpacity
+            style={styles.uploadBtn}
+            onPress={() => pickLocalFile('video')}>
+            <Ionicons name="cloud-upload-outline" size={22} color={BrandColors.primary} />
+            <Text style={styles.uploadBtnText}>
+              {videoUrl ? '📁 Change Selected Video File' : '📁 Pick & Upload Video File from Device'}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.orText}>— OR choose sample preset / enter URL —</Text>
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetScroll}>
             {[
               { label: '🛍️ Product Showcase', url: 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4' },
@@ -129,19 +171,28 @@ export default function CreateReelScreen() {
             style={styles.input}
             placeholder="Enter direct video file URL (MP4 / MOV)..."
             placeholderTextColor="rgba(255,255,255,0.4)"
-            value={videoUrl}
+            value={videoUrl.startsWith('data:') ? '[Video File Attached from Device]' : videoUrl}
             onChangeText={setVideoUrl}
             autoCapitalize="none"
           />
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Thumbnail Image Cover URL (Optional)</Text>
+          <Text style={styles.label}>Thumbnail Image Cover (Optional)</Text>
+          <TouchableOpacity
+            style={styles.uploadBtn}
+            onPress={() => pickLocalFile('image')}>
+            <Ionicons name="image-outline" size={22} color={BrandColors.primary} />
+            <Text style={styles.uploadBtnText}>
+              {thumbnailUrl ? '🖼️ Change Selected Cover Image' : '🖼️ Pick & Upload Thumbnail Cover Image'}
+            </Text>
+          </TouchableOpacity>
+
           <TextInput
             style={styles.input}
-            placeholder="https://images.unsplash.com/photo-..."
+            placeholder="Or paste thumbnail image URL..."
             placeholderTextColor="rgba(255,255,255,0.4)"
-            value={thumbnailUrl}
+            value={thumbnailUrl.startsWith('data:') ? '[Image Cover Attached from Device]' : thumbnailUrl}
             onChangeText={setThumbnailUrl}
             autoCapitalize="none"
           />
@@ -330,6 +381,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
+  },
+  uploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    backgroundColor: '#1c1c1e',
+    borderWidth: 1.5,
+    borderColor: BrandColors.primary,
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.three,
+    marginVertical: 4,
+  },
+  uploadBtnText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  orText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    textAlign: 'center',
+    marginVertical: 4,
   },
   input: {
     backgroundColor: '#1c1c1e',
