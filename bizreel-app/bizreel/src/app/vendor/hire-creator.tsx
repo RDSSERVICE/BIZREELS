@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     backgroundColor: '#1c1c1e',
     alignItems: 'center',
-    justify.content: 'center',
+    justifyContent: 'center',
   },
   headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: FontWeight.bold },
   listContent: { padding: Spacing.four, gap: Spacing.three },
