@@ -1,11 +1,11 @@
 /**
  * Reels Feed — TikTok / Instagram style full-screen vertical scroll with e-commerce integration.
- * Each reel fills 100% of the screen height.
+ * Supports direct deep-linking / navigation to specific reels via `reelId` param.
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -29,8 +29,10 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function ReelsFeedScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ reelId?: string }>();
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
+  const flatListRef = useRef<FlatList<Reel>>(null);
 
   // Full screen height so reel fills 100% of the screen
   const reelHeight = SCREEN_HEIGHT;
@@ -57,6 +59,18 @@ export default function ReelsFeedScreen() {
 
   const prefetchNext = usePrefetchNextReelsPage();
   const reels = flattenReels(data?.pages);
+
+  // Scroll to specific reel when navigate with reelId parameter
+  useEffect(() => {
+    if (!params?.reelId || reels.length === 0) return;
+    const targetIndex = reels.findIndex((r) => r._id === params.reelId);
+    if (targetIndex !== -1 && targetIndex !== activeIndex) {
+      setActiveIndex(targetIndex);
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
+      }, 100);
+    }
+  }, [params?.reelId, reels]);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -160,6 +174,7 @@ export default function ReelsFeedScreen() {
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={reels}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
@@ -175,6 +190,11 @@ export default function ReelsFeedScreen() {
         maxToRenderPerBatch={3}
         initialNumToRender={2}
         removeClippedSubviews
+        onScrollToIndexFailed={(info) => {
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({ index: info.index, animated: false });
+          }, 300);
+        }}
         getItemLayout={(_, index) => ({
           length: reelHeight,
           offset: reelHeight * index,

@@ -212,7 +212,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={reel._id}
                   style={styles.reelHighlightCard}
-                  onPress={() => router.push('/(tabs)')}>
+                  onPress={() => router.push({ pathname: '/(tabs)', params: { reelId: reel._id } })}>
                   <Image
                     source={{ uri: reel.thumbnailUrl || reel.mediaUrls?.[0] }}
                     style={styles.reelThumbnail}
