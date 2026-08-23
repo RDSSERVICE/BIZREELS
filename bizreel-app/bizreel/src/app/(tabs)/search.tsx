@@ -1,10 +1,10 @@
 /**
- * Search Screen — Modern e-commerce & service discovery search.
+ * Search Screen — Modern e-commerce & location-based discovery search.
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useCallback, useDeferredValue, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart } from '@/features/cart/queries';
 import { useCategories, useListings } from '@/features/search/queries';
 import type { Category, Listing } from '@/features/search/types';
@@ -33,6 +33,17 @@ const POPULAR_SEARCHES = [
   'Beauty & Salon',
   'Modular Kitchen',
   'Electronics',
+];
+
+const POPULAR_CITIES = [
+  'All Cities',
+  'Mumbai',
+  'Delhi',
+  'Bengaluru',
+  'Pune',
+  'Hyderabad',
+  'Ahmedabad',
+  'Chennai',
 ];
 
 const TYPE_FILTERS = [
@@ -47,6 +58,7 @@ export default function SearchScreen() {
 
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string>('All Cities');
   const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | 'product' | 'service'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high'>('newest');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -55,12 +67,14 @@ export default function SearchScreen() {
 
   // Defer search input to keep typing butter smooth
   const deferredSearch = useDeferredValue(searchText.trim());
-  const isQueryActive = deferredSearch.length > 0 || selectedCategory !== null;
+  const isQueryActive =
+    deferredSearch.length > 0 || selectedCategory !== null || selectedCity !== 'All Cities';
 
   const listingsParams = {
     page: 1,
     search: deferredSearch || undefined,
     category: selectedCategory?.name || undefined,
+    city: selectedCity !== 'All Cities' ? selectedCity : undefined,
   };
 
   const {
@@ -79,13 +93,20 @@ export default function SearchScreen() {
   } = useListings(listingsParams, isQueryActive);
 
   const rawListings = listingsData?.data ?? [];
-  const total = listingsData?.meta?.total ?? rawListings.length;
 
-  // Filter & Sort results locally
-  const filteredListings = rawListings.filter((item) => {
-    if (activeTypeFilter === 'all') return true;
-    const itemType = (item as any).category_type || (item as any).type;
-    return itemType === activeTypeFilter;
+  // Filter & Sort results locally (for type and city)
+  const filteredListings = rawListings.filter((item: any) => {
+    if (activeTypeFilter !== 'all') {
+      const itemType = item.category_type || item.type;
+      if (itemType !== activeTypeFilter) return false;
+    }
+    if (selectedCity !== 'All Cities') {
+      const itemCity = item.city || item.location?.city || item.vendor?.city || '';
+      if (itemCity && !itemCity.toLowerCase().includes(selectedCity.toLowerCase())) {
+        return false;
+      }
+    }
+    return true;
   });
 
   if (sortBy === 'price_low') {
@@ -106,7 +127,7 @@ export default function SearchScreen() {
       {/* Top Search Bar Header */}
       <View style={styles.header}>
         <View style={styles.searchBarWrapper}>
-          <SymbolView name="magnifyingglass" size={18} tintColor="rgba(255,255,255,0.4)" />
+          <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search products, services & verified sellers..."
@@ -120,7 +141,7 @@ export default function SearchScreen() {
           />
           {searchText.length > 0 && (
             <TouchableOpacity onPress={() => setSearchText('')} hitSlop={8}>
-              <SymbolView name="xmark" size={16} tintColor="rgba(255,255,255,0.5)" />
+              <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           )}
         </View>
@@ -129,11 +150,35 @@ export default function SearchScreen() {
           style={styles.filterBtn}
           onPress={() => setFilterModalVisible(true)}
           accessibilityLabel="Filter Options">
-          <SymbolView name="slider.horizontal.3" size={18} tintColor="#fff" />
+          <Ionicons name="options-outline" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Filter Tabs Row */}
+      {/* Location City Selector Row */}
+      <View style={styles.citySelectorRow}>
+        <View style={styles.locationTag}>
+          <Ionicons name="location" size={14} color={BrandColors.primary} />
+          <Text style={styles.locationTagText}>Location:</Text>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.citiesScroll}>
+          {POPULAR_CITIES.map((cityName) => {
+            const isSelected = selectedCity === cityName;
+            return (
+              <TouchableOpacity
+                key={cityName}
+                style={[styles.cityChip, isSelected && styles.cityChipActive]}
+                onPress={() => setSelectedCity(cityName)}>
+                <Text style={[styles.cityChipText, isSelected && styles.cityChipTextActive]}>
+                  {cityName}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Type Filter Tabs Row */}
       <View style={styles.filterTabsRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
           {TYPE_FILTERS.map((tab) => (
@@ -151,7 +196,7 @@ export default function SearchScreen() {
             <View style={styles.activeCategoryTag}>
               <Text style={styles.activeCategoryTagText}>{selectedCategory.name}</Text>
               <TouchableOpacity onPress={() => setSelectedCategory(null)} hitSlop={4}>
-                <SymbolView name="xmark" size={12} tintColor="#fff" />
+                <Ionicons name="close" size={12} color="#fff" />
               </TouchableOpacity>
             </View>
           )}
@@ -167,10 +212,10 @@ export default function SearchScreen() {
           </View>
         ) : filteredListings.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <SymbolView name="magnifyingglass" size={56} tintColor="rgba(255,255,255,0.3)" />
-            <Text style={styles.emptyTitle}>No Results Found</Text>
+            <Ionicons name="search" size={56} color="rgba(255,255,255,0.3)" />
+            <Text style={styles.emptyTitle}>No Local Results Found</Text>
             <Text style={styles.emptySub}>
-              We couldn't find matching items for "{deferredSearch || selectedCategory?.name}". Try checking your spelling or adjusting filters.
+              We couldn't find matching items in "{selectedCity}" for "{deferredSearch || selectedCategory?.name}". Try selecting "All Cities" or adjusting search.
             </Text>
           </View>
         ) : (
@@ -189,12 +234,19 @@ export default function SearchScreen() {
             }
             ListHeaderComponent={
               <Text style={styles.resultsCountText}>
-                {listingsFetching ? 'Updating results…' : `${filteredListings.length} items found`}
+                {listingsFetching
+                  ? 'Updating results…'
+                  : `${filteredListings.length} local items found ${selectedCity !== 'All Cities' ? `in ${selectedCity}` : ''}`}
               </Text>
             }
             renderItem={({ item }) => {
               const image = item.images?.[0];
               const price = item.salePrice || item.price || 0;
+              const locationCity =
+                (item as any).city ||
+                (item as any).location?.city ||
+                (item as any).vendor?.city ||
+                'Local Vendor';
 
               return (
                 <TouchableOpacity
@@ -204,7 +256,7 @@ export default function SearchScreen() {
                     <Image source={{ uri: image }} style={styles.resultImage} contentFit="cover" />
                   ) : (
                     <View style={styles.resultImageFallback}>
-                      <SymbolView name="bag.fill" size={28} tintColor="rgba(255,255,255,0.4)" />
+                      <Ionicons name="basket-outline" size={28} color="rgba(255,255,255,0.4)" />
                     </View>
                   )}
 
@@ -213,9 +265,15 @@ export default function SearchScreen() {
                       {item.title}
                     </Text>
 
-                    <Text style={styles.resultVendorName} numberOfLines={1}>
-                      {item.vendor?.name || 'Verified Vendor'}
-                    </Text>
+                    <View style={styles.vendorCityRow}>
+                      <Text style={styles.resultVendorName} numberOfLines={1}>
+                        {item.vendor?.name || 'Verified Vendor'}
+                      </Text>
+                      <View style={styles.cityBadge}>
+                        <Ionicons name="location-outline" size={10} color={BrandColors.primaryLight} />
+                        <Text style={styles.cityBadgeText}>{locationCity}</Text>
+                      </View>
+                    </View>
 
                     <View style={styles.resultPriceRow}>
                       <Text style={styles.resultPrice}>₹{price}</Text>
@@ -223,7 +281,7 @@ export default function SearchScreen() {
                       <TouchableOpacity
                         style={styles.addCartSmallBtn}
                         onPress={() => addToCartMutation.mutate({ listing_id: item._id, quantity: 1 })}>
-                        <SymbolView name="plus" size={14} tintColor="#fff" />
+                        <Ionicons name="add" size={14} color="#fff" />
                         <Text style={styles.addCartSmallText}>Add</Text>
                       </TouchableOpacity>
                     </View>
@@ -255,7 +313,7 @@ export default function SearchScreen() {
                   key={term}
                   style={styles.popularChip}
                   onPress={() => setSearchText(term)}>
-                  <SymbolView name="sparkles" size={12} tintColor={BrandColors.primary} />
+                  <Ionicons name="flash-outline" size={12} color={BrandColors.primary} />
                   <Text style={styles.popularChipText}>{term}</Text>
                 </TouchableOpacity>
               ))}
@@ -300,9 +358,9 @@ export default function SearchScreen() {
           <Pressable style={styles.modalBackdrop} onPress={() => setFilterModalVisible(false)} />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sort & Filter</Text>
+              <Text style={styles.modalTitle}>Sort & Location Filters</Text>
               <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
-                <SymbolView name="xmark" size={18} tintColor="#fff" />
+                <Ionicons name="close" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
 
@@ -311,21 +369,21 @@ export default function SearchScreen() {
               style={[styles.sortOption, sortBy === 'newest' && styles.sortOptionSelected]}
               onPress={() => setSortBy('newest')}>
               <Text style={styles.sortOptionText}>Newest Listings</Text>
-              {sortBy === 'newest' && <SymbolView name="checkmark" size={16} tintColor={BrandColors.primary} />}
+              {sortBy === 'newest' && <Ionicons name="checkmark" size={16} color={BrandColors.primary} />}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.sortOption, sortBy === 'price_low' && styles.sortOptionSelected]}
               onPress={() => setSortBy('price_low')}>
               <Text style={styles.sortOptionText}>Price: Low to High</Text>
-              {sortBy === 'price_low' && <SymbolView name="checkmark" size={16} tintColor={BrandColors.primary} />}
+              {sortBy === 'price_low' && <Ionicons name="checkmark" size={16} color={BrandColors.primary} />}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.sortOption, sortBy === 'price_high' && styles.sortOptionSelected]}
               onPress={() => setSortBy('price_high')}>
               <Text style={styles.sortOptionText}>Price: High to Low</Text>
-              {sortBy === 'price_high' && <SymbolView name="checkmark" size={16} tintColor={BrandColors.primary} />}
+              {sortBy === 'price_high' && <Ionicons name="checkmark" size={16} color={BrandColors.primary} />}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -380,6 +438,50 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#2c2c2e',
+  },
+  citySelectorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.two,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1c1c1e',
+    gap: Spacing.two,
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingLeft: Spacing.four,
+  },
+  locationTagText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  citiesScroll: {
+    paddingRight: Spacing.four,
+    gap: Spacing.two,
+  },
+  cityChip: {
+    backgroundColor: '#1c1c1e',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+  },
+  cityChipActive: {
+    backgroundColor: 'rgba(217, 154, 61, 0.2)',
+    borderColor: BrandColors.primary,
+  },
+  cityChipText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  cityChipTextActive: {
+    color: BrandColors.primaryLight,
+    fontWeight: FontWeight.bold,
   },
   filterTabsRow: {
     paddingVertical: Spacing.two,
@@ -488,9 +590,29 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
   },
+  vendorCityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   resultVendorName: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: FontSize.xs,
+    flex: 1,
+  },
+  cityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: 'rgba(217, 154, 61, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  cityBadgeText: {
+    color: BrandColors.primaryLight,
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
   },
   resultPriceRow: {
     flexDirection: 'row',
