@@ -135,7 +135,7 @@ export default function DirectChatThreadScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.backBtn} onPress={refetch}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => refetch()}>
           <Ionicons name="refresh" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
