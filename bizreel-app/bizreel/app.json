@@ -8,9 +8,11 @@
     "scheme": "bizreel",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bizreel.app"
     },
     "android": {
+      "package": "com.bizreel.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -35,6 +37,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "80b20b9c-9d58-4ec4-824c-6fe6d7992879"
+      }
+    },
+    "owner": "amiteshore"
   }
 }
