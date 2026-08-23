@@ -37,7 +37,10 @@ const logger = require('./utils/logger');
 
 const app = express();
 
-app.set('trust proxy', true);
+// Trust the platform's first reverse proxy in production, but never trust
+// arbitrary forwarded headers in local development or test environments.
+// A permissive value (`true`) allows rate-limit bypasses via X-Forwarded-For.
+app.set('trust proxy', config.env === 'production' ? 1 : false);
 
 app.use(requestPerformanceLogger);
 

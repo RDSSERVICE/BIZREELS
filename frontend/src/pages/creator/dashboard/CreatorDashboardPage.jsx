@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FiVideo, FiClock, FiStar, FiEye, FiShield,
-  FiActivity, FiCheckCircle, FiXCircle, FiPlay, FiMessageSquare,
+  FiVideo, FiClock, FiStar, FiEye,
+  FiActivity, FiXCircle, FiPlay, FiMessageSquare, FiShield,
   FiSend, FiChevronLeft, FiChevronRight, FiAlertCircle, FiUploadCloud, FiTrash
 } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
@@ -10,7 +10,6 @@ import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
-import SubscriptionStatusCard from '../../../components/subscription/SubscriptionStatusCard';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import { useGetCreatorDashboardQuery, useGetCreatorSubscriptionQuery } from '../../../features/creator/creatorApi';
@@ -25,9 +24,8 @@ export default function CreatorDashboardPage() {
   const { bi } = useLanguage();
   const currentUser = useSelector(selectCurrentUser);
   const { data, isFetching, refetch: refetchMetrics } = useGetCreatorDashboardQuery(undefined, { pollingInterval: 300000 });
-  const statsData = data?.data || data || {};
   const { data: subscriptionRes } = useGetCreatorSubscriptionQuery(undefined, { pollingInterval: 300000 });
-  const activeFeatures = subscriptionRes?.features || [];
+  const statsData = data?.data || data || {};
 
   const [activeTab, setActiveTab] = useState('invitations'); // invitations | campaigns | chat
   const [campaigns, setCampaigns] = useState([]);
@@ -51,6 +49,8 @@ export default function CreatorDashboardPage() {
   const [reviewingCampaign, setReviewingCampaign] = useState(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const activeFeatures = subscriptionRes?.features || [];
+  const activeSubmittingCampaign = campaigns.find(c => (c._id || c.id) === submittingCampaignId);
 
   useEffect(() => {
     fetchCampaigns();
@@ -98,7 +98,7 @@ export default function CreatorDashboardPage() {
     try {
       const camp = campaigns.find(c => (c._id || c.id) === id);
       const reqId = camp?.hireRequest || id;
-      
+
       await api.patch(`/v1/hires/${reqId}`, { status: 'accepted' });
       toast.success('Invitation Accepted! You can now submit deliverables.', { id: toastId });
       fetchCampaigns();
@@ -153,7 +153,7 @@ export default function CreatorDashboardPage() {
         const uploadRes = await api.post('/v1/media/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        
+
         finalUrl = uploadRes.data?.secure_url || uploadRes.data?.url;
         if (!finalUrl) {
           throw new Error('Upload succeeded but did not return a valid URL.');
@@ -200,10 +200,10 @@ export default function CreatorDashboardPage() {
         rating,
         comment: comment.trim(),
       });
-      
+
       // Update local state or trigger a flag so we know they reviewed
       toast.success('⭐ Review submitted! Thank you.', { id: toastId });
-      
+
       // Trigger updates
       setReviewingCampaign(null);
       setRating(5);
@@ -256,407 +256,422 @@ export default function CreatorDashboardPage() {
         title={bi('Creator Studio & Collaborations Hub', 'क्रिएटर स्टूडियो और सहयोग केंद्र (Collaborations Hub)')}
         subtitle={bi('Manage brand invitation offers, upload reels submissions, and track earnings metrics', 'ब्रांड निमंत्रण ऑफ़र प्रबंधित करें, रील सबमिशन अपलोड करें और कमाई मेट्रिक्स ट्रैक करें')}
       />
+        {/* ── Premium Creator Studio Hero Header ── */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-surface via-surface-secondary to-brand-purple/5 border border-border/70 p-6 sm:p-8 shadow-card">
+          {/* Ambient subtle glow decoration */}
+          <div className="absolute -top-24 -right-24 w-72 h-72 bg-brand-purple/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Subscription Status Card */}
-      <SubscriptionStatusCard user={currentUser} />
-
-      {/* Overview Stat Cards Grid */}
-      {isFetching && !data ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-28 skeleton rounded-2xl" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {stats.map((s, idx) => (
-            <AdminStatCard
-              key={idx}
-              label={s.label}
-              value={s.value}
-              icon={s.icon}
-              color={s.color}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Active Special Offers & Deals */}
-      <ActiveOffersPanel role="creator" />
-
-      {/* Identity status banner */}
-      <div className="glass rounded-2xl p-4 border border-border shadow-card flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-emerald-500/10 to-transparent">
-        <div className="flex items-center gap-3">
-          <FiShield className="text-emerald-500" size={24} />
-          <div>
-            <h4 className="text-xs font-bold text-text-primary">{bi('Creator KYC Verification Status', 'क्रिएटर केवाईसी सत्यापन स्थिति')}</h4>
-            <p className="text-[10px] text-text-tertiary">{bi('Verified profiles get 5x more direct campaign invitations from top local brands.', 'सत्यापित प्रोफाइल को शीर्ष स्थानीय ब्रांडों से 5 गुना अधिक सीधे अभियान निमंत्रण मिलते हैं।')}</p>
+          <div className="relative z-10 space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-[11px] font-bold tracking-wide uppercase">
+              <span className="w-2 h-2 rounded-full bg-brand-purple animate-pulse" />
+              Creator Studio & Collaborations
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary tracking-tight font-heading">
+              Welcome back, <span className="text-gradient-brand">{currentUser?.name?.split(' ')[0] || 'Creator'}</span> 👋
+            </h1>
+            <p className="text-xs sm:text-sm text-text-secondary max-w-2xl leading-relaxed">
+              Manage your brand invitations, collaborate on shoot campaigns, and track real-time earnings performance.
+            </p>
           </div>
         </div>
-        <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 font-bold text-[10px] rounded-xl uppercase">
-          {statsData.verificationStatus === 'pro_verified' || statsData.verificationStatus === 'verified_creator' ? bi('Verified Badge Active', 'सत्यापित बैज सक्रिय') : bi('Get Verified', 'सत्यापित करें')}
-        </span>
-      </div>
 
-      {/* Subscription Features Status */}
-      <div className="glass rounded-2xl p-5 border border-white/10 shadow-card space-y-4">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
-            <FiShield className="text-brand-purple" />
-            <span>{bi('Premium Feature Access', 'प्रीमियम सुविधा पहुँच')}</span>
-          </h3>
-          <Link to="/creator/subscription" className="text-xs text-brand-purple font-bold hover:underline">
-            {bi('Upgrade', 'अपग्रेड करें')}
-          </Link>
+        {/* Overview Stat Cards Grid */}
+        {isFetching && !data ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-28 skeleton rounded-2xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {stats.map((s, idx) => (
+              <AdminStatCard
+                key={idx}
+                label={s.label}
+                value={s.value}
+                icon={s.icon}
+                color={s.color}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Active Special Offers & Deals */}
+        <ActiveOffersPanel role="creator" />
+
+        {/* Identity status banner */}
+        <div className="glass rounded-2xl p-4 border border-border shadow-card flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-emerald-500/10 to-transparent">
+          <div className="flex items-center gap-3">
+            <FiShield className="text-emerald-500" size={24} />
+            <div>
+              <h4 className="text-xs font-bold text-text-primary">{bi('Creator KYC Verification Status', 'क्रिएटर केवाईसी सत्यापन स्थिति')}</h4>
+              <p className="text-[10px] text-text-tertiary">{bi('Verified profiles get 5x more direct campaign invitations from top local brands.', 'सत्यापित प्रोफाइल को शीर्ष स्थानीय ब्रांडों से 5 गुना अधिक सीधे अभियान निमंत्रण मिलते हैं।')}</p>
+            </div>
+          </div>
+          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 font-bold text-[10px] rounded-xl uppercase">
+            {statsData.verificationStatus === 'pro_verified' || statsData.verificationStatus === 'verified_creator' ? bi('Verified Badge Active', 'सत्यापित बैज सक्रिय') : bi('Get Verified', 'सत्यापित करें')}
+          </span>
         </div>
 
-        <div className="space-y-2">
-          {activeFeatures.length === 0 ? (
-            <div className="text-center py-6 text-text-tertiary">
-              <p className="text-xs">{bi('No active premium features. Upgrade to unlock all benefits!', 'कोई सक्रिय प्रीमियम सुविधाएं नहीं। सभी लाभों को अनलॉक करने के लिए अपग्रेड करें!')}</p>
-            </div>
+        {/* Subscription Features Status */}
+        <div className="glass rounded-2xl p-5 border border-white/10 shadow-card space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
+              <FiShield className="text-brand-purple" />
+              <span>{bi('Premium Feature Access', 'प्रीमियम सुविधा पहुँच')}</span>
+            </h3>
+            <Link to="/creator/subscription" className="text-xs text-brand-purple font-bold hover:underline">
+              {bi('Upgrade', 'अपग्रेड करें')}
+            </Link>
+          </div>
+
+          <div className="space-y-2">
+            {activeFeatures.length === 0 ? (
+              <div className="text-center py-6 text-text-tertiary">
+                <p className="text-xs">{bi('No active premium features. Upgrade to unlock all benefits!', 'कोई सक्रिय प्रीमियम सुविधाएं नहीं। सभी लाभों को अनलॉक करने के लिए अपग्रेड करें!')}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                {activeFeatures.map((feat, i) => (
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 bg-brand-purple/5 border border-brand-purple/10 rounded-xl text-xs font-bold text-brand-navy">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-purple"></span>
+                    {feat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* CAMPAIGN INVITATIONS & COLLABORATIONS BOARD */}
+        <div className="space-y-4 pt-4 border-t border-border">
+          {/* Navigation tabs */}
+          <div className="flex border-b border-border gap-3 sm:gap-6 text-xs sm:text-sm font-bold text-text-tertiary overflow-x-auto scrollbar-hide pb-0.5">
+            <button
+              onClick={() => setActiveTab('invitations')}
+              className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'invitations' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
+            >
+              {bi('Invitations', 'निमंत्रण')} ({campaigns.filter(c => c.status === 'pending').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('campaigns')}
+              className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'campaigns' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
+            >
+              <FiActivity size={15} /> {bi('Active Shoot Campaigns', 'सक्रिय शूट अभियान')} ({campaigns.filter(c => c.status === 'accepted').length})
+            </button>
+            <button
+              disabled={!chatRecipientId}
+              onClick={() => setActiveTab('chat')}
+              className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0 ${activeTab === 'chat' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
+            >
+              <FiMessageSquare size={15} /> Chat with Vendor
+            </button>
+          </div>
+
+          {/* TAB WORKSPACES */}
+          {activeTab === 'chat' ? (
+            <DirectChatContainer
+              recipientId={chatRecipientId}
+              creatorName={chatVendorName}
+              creatorAvatar={chatVendorAvatar}
+            />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-              {activeFeatures.map((feat, i) => (
-                <div key={i} className="flex items-center gap-2 px-3 py-2 bg-brand-purple/5 border border-brand-purple/10 rounded-xl text-xs font-bold text-brand-navy">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-purple"></span>
-                  {feat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+            <div className="space-y-4">
+              {loadingCampaigns ? (
+                [1, 2].map((i) => <div key={i} className="h-32 skeleton rounded-2xl border" />)
+              ) : campaigns.filter(c => activeTab === 'invitations' ? c.status === 'pending' : c.status === 'accepted').length === 0 ? (
+                <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
+                  <FiAlertCircle size={28} className="mx-auto text-text-tertiary" />
+                  <p className="font-bold text-text-secondary text-sm mt-2">No items here</p>
+                  <p className="mt-0.5">No active campaign items are currently listed in this category.</p>
                 </div>
-              ))}
+              ) : (
+                campaigns
+                  .filter(c => activeTab === 'invitations' ? c.status === 'pending' : c.status === 'accepted')
+                  .map((c) => {
+                    const vendor = c.vendor || {};
+                    const vendorName = vendor.name || 'Vendor Brand';
+                    const vendorAvatar = vendor.profile_pic || vendor.avatarUrl || 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&q=80';
+
+                    return (
+                      <div
+                        key={c._id || c.id}
+                        className="glass rounded-2xl p-5 border border-white/40 shadow-card flex flex-col md:flex-row justify-between gap-6 relative overflow-hidden"
+                      >
+                        {/* Left Block: Vendor details, Deliverables and description */}
+                        <div className="flex-1 space-y-4">
+                          <div className="flex items-start gap-4">
+                            <img
+                              src={vendorAvatar}
+                              alt={vendorName}
+                              className="w-10 h-10 rounded-xl object-cover border border-border"
+                            />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-sm text-text-primary">{c.title}</h4>
+                                {getStatusBadge(c.status)}
+                              </div>
+                              <p className="text-xs text-text-secondary">
+                                Client: <span className="font-bold text-brand-purple">{vendorName}</span> • Category: {c.category}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Script brief */}
+                          <div className="bg-surface-secondary/40 p-3 rounded-xl border border-white/5 space-y-1">
+                            <span className="text-[10px] font-bold text-text-secondary">Vendor Shoot Script / Description:</span>
+                            <p className="text-xs text-text-tertiary leading-relaxed">{c.description}</p>
+                          </div>
+
+                          {/* Deliverables Milestones */}
+                          <div className="space-y-2 w-full">
+                            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block">Campaign Deliverables</span>
+                            <div className="flex flex-col gap-1.5">
+                              {(c.deliverables || []).map((item, idx) => {
+                                const title = typeof item === 'string' ? item : item.title;
+                                const status = typeof item === 'string' ? 'pending' : (item.status || 'pending');
+                                return (
+                                  <div key={idx} className="flex items-center justify-between bg-surface/50 border border-border/40 p-2 rounded-xl text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-2 h-2 rounded-full ${status === 'approved' ? 'bg-emerald-500' : status === 'submitted' ? 'bg-brand-purple animate-pulse' : 'bg-text-tertiary'}`} />
+                                      <span className={`font-semibold ${status === 'approved' ? 'line-through text-text-tertiary' : 'text-text-secondary'}`}>{title}</span>
+                                    </div>
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
+                                      status === 'submitted' ? 'bg-brand-purple/10 text-brand-purple' :
+                                        'bg-surface border border-border text-text-tertiary'
+                                      }`}>
+                                      {status}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[9px] text-text-tertiary font-bold">{c.numReels || 0} Reels, {c.numPosts || 0} Posts</span>
+                            </div>
+                            {/* Progress bar */}
+                            {c.status === 'accepted' && (
+                              <div className="w-full space-y-1 pt-1">
+                                <div className="flex justify-between text-[10px] font-bold text-text-secondary">
+                                  <span>Milestone Progress</span>
+                                  <span>{c.progress || 0}%</span>
+                                </div>
+                                <div className="h-1.5 bg-surface-secondary border border-border rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full gradient-brand transition-all duration-500"
+                                    style={{ width: `${c.progress || 0}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Submission URLs list */}
+                          {c.submissionUrls?.length > 0 && (
+                            <div className="space-y-1.5 pt-2 border-t border-border/40">
+                              <span className="text-[10px] font-bold text-brand-purple uppercase block">Your Submissions ({c.submissionUrls.length})</span>
+                              <div className="flex flex-wrap gap-2">
+                                {c.submissionUrls.map((sub, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={sub.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[10px] bg-white border border-border px-3 py-1 rounded-xl text-text-secondary hover:underline"
+                                  >
+                                    🎬 Submission #{idx + 1} ({sub.type})
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right Block: Budget details and Actions */}
+                        <div className="w-full md:w-56 flex flex-col justify-between items-end border-t md:border-t-0 md:border-l border-border/40 pt-4 md:pt-0 md:pl-6 space-y-4">
+                          <div className="text-right w-full">
+                            <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-wider block">Hiring Offer Price</span>
+                            <p className="text-lg font-black text-emerald-600">₹{c.budget}</p>
+                            {c.deadline && (
+                              <span className="text-[10px] text-text-tertiary block mt-1">
+                                Deadline: {new Date(c.deadline).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Interactive Buttons */}
+                          <div className="flex flex-wrap gap-2 justify-end w-full">
+                            {c.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleRejectInvite(c._id || c.id)}
+                                  className="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-500 font-bold rounded-xl hover:bg-red-500/20 transition"
+                                >
+                                  Reject
+                                </button>
+                                <button
+                                  onClick={() => handleAcceptInvite(c._id || c.id)}
+                                  className="px-5 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition"
+                                >
+                                  Accept Proposal
+                                </button>
+                              </>
+                            )}
+
+                            {c.status === 'accepted' && (
+                              <>
+                                <button
+                                  onClick={() => handleOpenChat(c.vendor?._id || c.vendor?.id)}
+                                  className="px-4 py-2 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple hover:bg-brand-purple/20 font-bold rounded-xl transition flex items-center gap-1.5"
+                                >
+                                  <FiMessageSquare size={14} /> Chat
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSubmittingCampaignId(c._id || c.id);
+                                    setSelectedMilestoneId('');
+                                    setSubmitMode('file');
+                                    setFileToUpload(null);
+                                  }}
+                                  className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition"
+                                >
+                                  Submit Video Reel
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
             </div>
           )}
         </div>
-      </div>
 
-      {/* CAMPAIGN INVITATIONS & COLLABORATIONS BOARD */}
-      <div className="space-y-4 pt-4 border-t border-border">
-        {/* Navigation tabs */}
-        <div className="flex border-b border-border gap-3 sm:gap-6 text-xs sm:text-sm font-bold text-text-tertiary overflow-x-auto scrollbar-hide pb-0.5">
-          <button
-            onClick={() => setActiveTab('invitations')}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'invitations' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
-          >
-            {bi('Invitations', 'निमंत्रण')} ({campaigns.filter(c => c.status === 'pending').length})
-          </button>
-          <button
-            onClick={() => setActiveTab('campaigns')}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'campaigns' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
-          >
-            <FiActivity size={15} /> {bi('Active Shoot Campaigns', 'सक्रिय शूट अभियान')} ({campaigns.filter(c => c.status === 'accepted').length})
-          </button>
-          <button
-            disabled={!chatRecipientId}
-            onClick={() => setActiveTab('chat')}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0 ${activeTab === 'chat' ? 'border-brand-purple text-brand-purple' : 'border-transparent hover:text-text-primary'}`}
-          >
-            <FiMessageSquare size={15} /> Chat with Vendor
-          </button>
-        </div>
-
-        {/* TAB WORKSPACES */}
-        {activeTab === 'chat' ? (
-          <DirectChatContainer
-            recipientId={chatRecipientId}
-            creatorName={chatVendorName}
-            creatorAvatar={chatVendorAvatar}
-          />
-        ) : (
-          <div className="space-y-4">
-            {loadingCampaigns ? (
-              [1, 2].map((i) => <div key={i} className="h-32 skeleton rounded-2xl border" />)
-            ) : campaigns.filter(c => activeTab === 'invitations' ? c.status === 'pending' : c.status === 'accepted').length === 0 ? (
-              <div className="glass rounded-2xl p-12 text-center text-xs text-text-tertiary border border-border">
-                <FiAlertCircle size={28} className="mx-auto text-text-tertiary" />
-                <p className="font-bold text-text-secondary text-sm mt-2">No items here</p>
-                <p className="mt-0.5">No active campaign items are currently listed in this category.</p>
+        {/* DELIVERABLES SUBMISSION OVERLAY DIALOG */}
+        {submittingCampaignId && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-surface border border-border rounded-3xl p-6 max-w-md w-full space-y-6 shadow-2xl animate-scale-in">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <h3 className="text-sm font-black text-text-primary font-display">Submit Video Reel / Deliverable</h3>
+                <button onClick={() => setSubmittingCampaignId(null)} className="text-text-tertiary hover:text-text-primary">
+                  <FiXCircle size={18} />
+                </button>
               </div>
-            ) : (
-              campaigns
-                .filter(c => activeTab === 'invitations' ? c.status === 'pending' : c.status === 'accepted')
-                .map((c) => {
-                  const vendor = c.vendor || {};
-                  const vendorName = vendor.name || 'Vendor Brand';
-                  const vendorAvatar = vendor.profile_pic || vendor.avatarUrl || 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&q=80';
-                  
-                  return (
-                    <div
-                      key={c._id || c.id}
-                      className="glass rounded-2xl p-5 border border-white/40 shadow-card flex flex-col md:flex-row justify-between gap-6 relative overflow-hidden"
+
+              <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs">
+                {/* Target Milestone Selection */}
+                {activeSubmittingCampaign?.deliverables && activeSubmittingCampaign.deliverables.length > 0 && (
+                  <div className="space-y-1">
+                    <label className="font-bold text-text-secondary">Target Milestone / Deliverable *</label>
+                    <select
+                      value={selectedMilestoneId}
+                      onChange={(e) => setSelectedMilestoneId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
+                      required
                     >
-                      {/* Left Block: Vendor details, Deliverables and description */}
-                      <div className="flex-1 space-y-4">
-                        <div className="flex items-start gap-4">
-                          <img
-                            src={vendorAvatar}
-                            alt={vendorName}
-                            className="w-10 h-10 rounded-xl object-cover border border-border"
-                          />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-sm text-text-primary">{c.title}</h4>
-                              {getStatusBadge(c.status)}
-                            </div>
-                            <p className="text-xs text-text-secondary">
-                              Client: <span className="font-bold text-brand-purple">{vendorName}</span> • Category: {c.category}
-                            </p>
-                          </div>
-                        </div>
+                      <option value="">-- Select Milestone --</option>
+                      {activeSubmittingCampaign.deliverables.map((item, idx) => {
+                        const title = typeof item === 'string' ? item : item.title;
+                        const status = typeof item === 'string' ? 'pending' : (item.status || 'pending');
+                        const mId = typeof item === 'string' ? String(idx) : (item._id || item.id);
+                        return (
+                          <option key={idx} value={mId} disabled={status === 'approved'}>
+                            {title} ({status})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
 
-                        {/* Script brief */}
-                        <div className="bg-surface-secondary/40 p-3 rounded-xl border border-white/5 space-y-1">
-                          <span className="text-[10px] font-bold text-text-secondary">Vendor Shoot Script / Description:</span>
-                          <p className="text-xs text-text-tertiary leading-relaxed">{c.description}</p>
-                        </div>
+                {/* Upload Mode Selector */}
+                <div className="flex gap-2 p-1 bg-surface-secondary rounded-xl border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setSubmitMode('file')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${submitMode === 'file' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                  >
+                    Upload Video File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubmitMode('link')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${submitMode === 'link' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                  >
+                    External Link
+                  </button>
+                </div>
 
-                        {/* Deliverables Milestones */}
-                        <div className="space-y-2 w-full">
-                          <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block">Campaign Deliverables</span>
-                          <div className="flex flex-col gap-1.5">
-                            {(c.deliverables || []).map((item, idx) => {
-                              const title = typeof item === 'string' ? item : item.title;
-                              const status = typeof item === 'string' ? 'pending' : (item.status || 'pending');
-                              return (
-                                <div key={idx} className="flex items-center justify-between bg-surface/50 border border-border/40 p-2 rounded-xl text-xs">
-                                  <div className="flex items-center gap-2">
-                                    <span className={`w-2 h-2 rounded-full ${status === 'approved' ? 'bg-emerald-500' : status === 'submitted' ? 'bg-brand-purple animate-pulse' : 'bg-text-tertiary'}`} />
-                                    <span className={`font-semibold ${status === 'approved' ? 'line-through text-text-tertiary' : 'text-text-secondary'}`}>{title}</span>
-                                  </div>
-                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                                    status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
-                                    status === 'submitted' ? 'bg-brand-purple/10 text-brand-purple' :
-                                    'bg-surface border border-border text-text-tertiary'
-                                  }`}>
-                                    {status}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[9px] text-text-tertiary font-bold">{c.numReels || 0} Reels, {c.numPosts || 0} Posts</span>
-                          </div>
-                          {/* Progress bar */}
-                          {c.status === 'accepted' && (
-                            <div className="w-full space-y-1 pt-1">
-                              <div className="flex justify-between text-[10px] font-bold text-text-secondary">
-                                <span>Milestone Progress</span>
-                                <span>{c.progress || 0}%</span>
-                              </div>
-                              <div className="h-1.5 bg-surface-secondary border border-border rounded-full overflow-hidden">
-                                <div
-                                  className="h-full gradient-brand transition-all duration-500"
-                                  style={{ width: `${c.progress || 0}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Submission URLs list */}
-                        {c.submissionUrls?.length > 0 && (
-                          <div className="space-y-1.5 pt-2 border-t border-border/40">
-                            <span className="text-[10px] font-bold text-brand-purple uppercase block">Your Submissions ({c.submissionUrls.length})</span>
-                            <div className="flex flex-wrap gap-2">
-                              {c.submissionUrls.map((sub, idx) => (
-                                <a
-                                  key={idx}
-                                  href={sub.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-[10px] bg-white border border-border px-3 py-1 rounded-xl text-text-secondary hover:underline"
-                                >
-                                  🎬 Submission #{idx + 1} ({sub.type})
-                                </a>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Right Block: Budget details and Actions */}
-                      <div className="w-full md:w-56 flex flex-col justify-between items-end border-t md:border-t-0 md:border-l border-border/40 pt-4 md:pt-0 md:pl-6 space-y-4">
-                        <div className="text-right w-full">
-                          <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-wider block">Hiring Offer Price</span>
-                          <p className="text-lg font-black text-emerald-600">₹{c.budget}</p>
-                          {c.deadline && (
-                            <span className="text-[10px] text-text-tertiary block mt-1">
-                              Deadline: {new Date(c.deadline).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Interactive Buttons */}
-                        <div className="flex flex-wrap gap-2 justify-end w-full">
-                          {c.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => handleRejectInvite(c._id || c.id)}
-                                className="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-500 font-bold rounded-xl hover:bg-red-500/20 transition"
-                              >
-                                Reject
-                              </button>
-                              <button
-                                onClick={() => handleAcceptInvite(c._id || c.id)}
-                                className="px-5 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition"
-                              >
-                                Accept Proposal
-                              </button>
-                            </>
-                          )}
-
-                          {c.status === 'accepted' && (
-                            <>
-                              <button
-                                onClick={() => handleOpenChat(c.vendor?._id || c.vendor?.id)}
-                                className="px-4 py-2 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple hover:bg-brand-purple/20 font-bold rounded-xl transition flex items-center gap-1.5"
-                              >
-                                <FiMessageSquare size={14} /> Chat
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSubmittingCampaignId(c._id || c.id);
-                                  setSelectedMilestoneId('');
-                                  setSubmitMode('file');
-                                  setFileToUpload(null);
-                                }}
-                                className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition"
-                              >
-                                Submit Video Reel
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                {submitMode === 'file' ? (
+                  <div className="space-y-1">
+                    <label className="font-bold text-text-secondary">Select Video File *</label>
+                    <div className="border-2 border-dashed border-border hover:border-brand-purple rounded-xl p-6 text-center cursor-pointer relative bg-surface-secondary/40 transition">
+                      <input
+                        type="file"
+                        required
+                        accept="video/mp4,video/webm,video/quicktime"
+                        onChange={(e) => setFileToUpload(e.target.files[0])}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <FiUploadCloud size={24} className="mx-auto text-text-tertiary mb-2" />
+                      {fileToUpload ? (
+                        <p className="text-xs font-bold text-brand-purple truncate px-2">{fileToUpload.name}</p>
+                      ) : (
+                        <>
+                          <p className="text-xs font-bold text-text-secondary">Click to choose a video file</p>
+                          <p className="text-[9px] text-text-tertiary mt-1">Max size: 50MB</p>
+                        </>
+                      )}
                     </div>
-                  );
-                })
-            )}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="font-bold text-text-secondary">Reel/Video Public URL *</label>
+                    <input
+                      type="text"
+                      value={deliverableUrl}
+                      onChange={(e) => setDeliverableUrl(e.target.value)}
+                      placeholder="Paste the URL link to your uploaded reel..."
+                      className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="font-bold text-text-secondary">Submission Notes / Caption</label>
+                  <textarea
+                    rows={3}
+                    value={deliverableCaption}
+                    onChange={(e) => setDeliverableCaption(e.target.value)}
+                    placeholder="Provide caption updates, instructions on review feedback, revisions etc..."
+                    className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => setSubmittingCampaignId(null)}
+                    className="px-4 py-2.5 glass border border-border font-bold text-text-secondary rounded-xl hover:bg-surface-tertiary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={uploading}
+                    className="px-5 py-2.5 gradient-brand text-white font-bold rounded-xl shadow-premium transition"
+                  >
+                    {uploading ? 'Uploading...' : 'Submit Deliverable'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
-
-      {/* DELIVERABLES SUBMISSION OVERLAY DIALOG */}
-      {submittingCampaignId && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-border rounded-3xl p-6 max-w-md w-full space-y-6 shadow-2xl animate-scale-in">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-sm font-black text-text-primary font-display">Submit Video Reel / Deliverable</h3>
-              <button onClick={() => setSubmittingCampaignId(null)} className="text-text-tertiary hover:text-text-primary">
-                <FiXCircle size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs">
-              {/* Target Milestone Selection */}
-              {activeSubmittingCampaign?.deliverables && activeSubmittingCampaign.deliverables.length > 0 && (
-                <div className="space-y-1">
-                  <label className="font-bold text-text-secondary">Target Milestone / Deliverable *</label>
-                  <select
-                    value={selectedMilestoneId}
-                    onChange={(e) => setSelectedMilestoneId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
-                    required
-                  >
-                    <option value="">-- Select Milestone --</option>
-                    {activeSubmittingCampaign.deliverables.map((item, idx) => {
-                      const title = typeof item === 'string' ? item : item.title;
-                      const status = typeof item === 'string' ? 'pending' : (item.status || 'pending');
-                      const mId = typeof item === 'string' ? String(idx) : (item._id || item.id);
-                      return (
-                        <option key={idx} value={mId} disabled={status === 'approved'}>
-                          {title} ({status})
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
-
-              {/* Upload Mode Selector */}
-              <div className="flex gap-2 p-1 bg-surface-secondary rounded-xl border border-border">
-                <button
-                  type="button"
-                  onClick={() => setSubmitMode('file')}
-                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${submitMode === 'file' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
-                >
-                  Upload Video File
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSubmitMode('link')}
-                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${submitMode === 'link' ? 'bg-brand-purple text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
-                >
-                  External Link
-                </button>
-              </div>
-
-              {submitMode === 'file' ? (
-                <div className="space-y-1">
-                  <label className="font-bold text-text-secondary">Select Video File *</label>
-                  <div className="border-2 border-dashed border-border hover:border-brand-purple rounded-xl p-6 text-center cursor-pointer relative bg-surface-secondary/40 transition">
-                    <input
-                      type="file"
-                      required
-                      accept="video/mp4,video/webm,video/quicktime"
-                      onChange={(e) => setFileToUpload(e.target.files[0])}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    />
-                    <FiUploadCloud size={24} className="mx-auto text-text-tertiary mb-2" />
-                    {fileToUpload ? (
-                      <p className="text-xs font-bold text-brand-purple truncate px-2">{fileToUpload.name}</p>
-                    ) : (
-                      <>
-                        <p className="text-xs font-bold text-text-secondary">Click to choose a video file</p>
-                        <p className="text-[9px] text-text-tertiary mt-1">Max size: 50MB</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <label className="font-bold text-text-secondary">Reel/Video Public URL *</label>
-                  <input
-                    type="text"
-                    value={deliverableUrl}
-                    onChange={(e) => setDeliverableUrl(e.target.value)}
-                    placeholder="Paste the URL link to your uploaded reel..."
-                    className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
-                    required
-                  />
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <label className="font-bold text-text-secondary">Submission Notes / Caption</label>
-                <textarea
-                  rows={3}
-                  value={deliverableCaption}
-                  onChange={(e) => setDeliverableCaption(e.target.value)}
-                  placeholder="Provide caption updates, instructions on review feedback, revisions etc..."
-                  className="w-full px-3.5 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary focus:outline-none focus:border-brand-purple font-medium"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setSubmittingCampaignId(null)}
-                  className="px-4 py-2.5 glass border border-border font-bold text-text-secondary rounded-xl hover:bg-surface-tertiary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="px-5 py-2.5 gradient-brand text-white font-bold rounded-xl shadow-premium transition"
-                >
-                  {uploading ? 'Uploading...' : 'Submit Deliverable'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+      );
 }

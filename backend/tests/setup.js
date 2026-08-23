@@ -59,8 +59,11 @@ global.mockDb = {
   analytics: [],
 };
 
-// Global hooks to clean mocks
-beforeEach(() => {
+// Initialise shared mock storage once per test file. Several integration-style
+// suites create authenticated users in beforeAll and intentionally reuse them
+// across their ordered requests, so resetting this store before every test
+// invalidates their tokens and turns subsequent requests into false 401s.
+beforeAll(() => {
   global.mockDb.users = {};
   global.mockDb.listings = {};
   global.mockDb.requirements = {};
