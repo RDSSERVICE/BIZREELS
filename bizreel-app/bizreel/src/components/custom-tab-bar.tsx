@@ -9,6 +9,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
 import { useCart } from '@/features/cart/queries';
 
 const TABS = [
@@ -46,8 +47,12 @@ const TABS = [
 
 export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { data: cart } = useCart();
   const cartTotalItems = cart?.total_items || 0;
+
+  const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
+  const visibleTabs = TABS.filter((tab) => isVendor || tab.name !== 'studio');
 
   function getRouteIndex(name: string) {
     return state.routes.findIndex((r) => r.name === name);
@@ -74,7 +79,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   return (
     <View style={[styles.outerContainer, { paddingBottom: Math.max(insets.bottom, 12) }]} pointerEvents="box-none">
       <View style={styles.floatingCapsule}>
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const active = isActive(tab.name);
           const iconName = active ? tab.activeIcon : tab.icon;
 
