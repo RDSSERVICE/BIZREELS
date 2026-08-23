@@ -21,7 +21,7 @@ import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart, useCart } from '@/features/cart/queries';
 import { useReelsFeed } from '@/features/reels/queries';
 import { api } from '@/lib/api';
-import { getListingImage } from '@/utils/image';
+import { getListingImage, resolveImageUrl } from '@/utils/image';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - Spacing.four * 2 - Spacing.three) / 2;
@@ -209,25 +209,34 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.reelsHighlightScroll}>
-              {reels.slice(0, 6).map((reel) => (
-                <TouchableOpacity
-                  key={reel._id}
-                  style={styles.reelHighlightCard}
-                  onPress={() => router.push({ pathname: '/(tabs)', params: { reelId: reel._id } })}>
-                  <Image
-                    source={{ uri: reel.thumbnailUrl || reel.mediaUrls?.[0] }}
-                    style={styles.reelThumbnail}
-                    contentFit="cover"
-                  />
-                  <View style={styles.reelOverlayGradient} />
-                  <View style={styles.reelPlayBadge}>
-                    <Ionicons name="play" size={14} color="#fff" />
-                  </View>
-                  <Text style={styles.reelCaption} numberOfLines={2}>
-                    {reel.caption || reel.creatorName}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {reels.slice(0, 6).map((reel) => {
+                const reelThumb = resolveImageUrl(reel.thumbnailUrl || reel.mediaUrls?.[0] || (reel as any).coverImage);
+                return (
+                  <TouchableOpacity
+                    key={reel._id}
+                    style={styles.reelHighlightCard}
+                    onPress={() => router.push({ pathname: '/(tabs)', params: { reelId: reel._id } })}>
+                    {reelThumb ? (
+                      <Image
+                        source={{ uri: reelThumb }}
+                        style={styles.reelThumbnail}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View style={[styles.reelThumbnail, { backgroundColor: '#2c2c2e', alignItems: 'center', justifyContent: 'center' }]}>
+                        <Ionicons name="film-outline" size={28} color="rgba(255,255,255,0.4)" />
+                      </View>
+                    )}
+                    <View style={styles.reelOverlayGradient} />
+                    <View style={styles.reelPlayBadge}>
+                      <Ionicons name="play" size={14} color="#fff" />
+                    </View>
+                    <Text style={styles.reelCaption} numberOfLines={2}>
+                      {reel.caption || reel.creatorName}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         )}
