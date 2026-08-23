@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
   FiCheck, FiChevronRight, FiShoppingBag, FiCoffee, FiTool,
-  FiTruck, FiShoppingCart, FiHeart, FiHome, FiBookOpen, FiFolder 
+  FiTruck, FiShoppingCart, FiHeart, FiHome, FiBookOpen, FiFolder,
+  FiSearch, FiX, FiFilter, FiCheckSquare, FiSquare
 } from 'react-icons/fi';
 import { FaCouch, FaLaptop } from 'react-icons/fa';
 import { api } from '../../lib/api';
-
-
 
 const getCategoryIcon = (categoryName) => {
   const name = (categoryName || '').toLowerCase();
@@ -57,17 +56,23 @@ const getCategoryIcon = (categoryName) => {
 
 const renderCategoryIcon = (IconComponent) => {
   if (!IconComponent) return <FiFolder size={18} />;
-
   if (typeof IconComponent === 'string') {
     return <span className="text-base leading-none select-none">{IconComponent}</span>;
   }
-
   return <IconComponent size={18} />;
 };
 
-export default function InterestSelector({ selected = [], setSelected }) {
+export default function InterestSelector({ 
+  selected = [], 
+  setSelected,
+  showSearch = true,
+  theme = 'settings' // 'settings' | 'onboarding'
+}) {
   const [categories, setCategories] = useState([]);
   const [expandedCategory, setExpandedCategory] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterMode, setFilterMode] = useState('all'); // 'all' | 'selected'
+  const [allExpanded, setAllExpanded] = useState(false);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -132,114 +137,278 @@ export default function InterestSelector({ selected = [], setSelected }) {
     return selected.filter(s => s.category === categoryName).length;
   };
 
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {categories.map((cat, idx) => {
-        const isExpanded = expandedCategory === cat.name;
-        const count = categorySelectedCount(cat.name);
-        const isCatSelected = selected.some(s => s.category === cat.name);
-        const categoryIcon = cat.icon;
+  // Filtered categories based on search query and filter mode
+  const filteredCategories = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
 
-        return (
-          <div
-            key={cat.name}
-            className={`rounded-2xl border overflow-hidden transition-all duration-300 cursor-pointer group ${
-              isCatSelected
-                ? 'border-brand-purple/50 bg-brand-purple/5 shadow-premium'
-                : 'border-white/10 hover:border-brand-purple/30 bg-white/5 shadow-card'
-            }`}
-          >
-            {/* Category Header */}
-            <div
-              onClick={() => toggleCategory(cat.name)}
-              className="p-4 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleSelection(cat.name);
-                  }}
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                    isCatSelected 
-                      ? 'gradient-brand text-white shadow-premium' 
-                      : 'bg-white/5 text-text-secondary border border-white/10 group-hover:bg-brand-purple/10 group-hover:text-brand-purple group-hover:border-brand-purple/20'
-                  }`}
+    return categories.filter((cat) => {
+      const count = categorySelectedCount(cat.name);
+      const isCatSelected = selected.some(s => s.category === cat.name);
+
+      // Filter Mode: Selected Only
+      if (filterMode === 'selected' && !isCatSelected && count === 0) {
+        return false;
+      }
+
+      // Search Query Matching
+      if (!query) return true;
+
+      const catMatch = cat.name.toLowerCase().includes(query);
+      const subMatch = (cat.subs || []).some(sub => sub.toLowerCase().includes(query));
+
+      return catMatch || subMatch;
+    });
+  }, [categories, searchQuery, filterMode, selected]);
+
+  const toggleAllExpanded = () => {
+    setAllExpanded(prev => !prev);
+    if (!allExpanded) {
+      setExpandedCategory('__ALL__');
+    } else {
+      setExpandedCategory(null);
+    }
+  };
+
+  const isCategoryExpanded = (catName) => {
+    if (searchQuery.trim().length > 0) return true; // Auto-expand matching when searching
+    if (expandedCategory === '__ALL__') return true;
+    return expandedCategory === catName;
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* ── SEARCH & FILTER CONTROLS MENU ── */}
+      {showSearch && (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Search Input Box */}
+            <div className="relative flex-1">
+              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search categories & subcategories (e.g. Fashion, Electronics, Food, Fitness)..."
+                className="w-full pl-10 pr-9 py-2.5 bg-white border border-slate-200 focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d] rounded-xl text-xs font-bold text-[#1a1a1a] placeholder-slate-400 outline-hidden transition shadow-2xs"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-1"
                 >
-                  {renderCategoryIcon(categoryIcon)}
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-text-primary group-hover:text-brand-purple transition-colors">
-                    {cat.name}
-                  </h4>
-                  {count > 0 && (
-                    <span className="text-[8px] font-bold text-brand-purple bg-brand-purple/10 px-1.5 py-0.5 rounded-full">
-                      {count} selected
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Interactive Checkbox */}
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleSelection(cat.name);
-                  }}
-                  className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${
-                    isCatSelected
-                      ? 'bg-brand-purple border-brand-purple text-white shadow-sm'
-                      : 'border-white/20 bg-transparent text-transparent hover:border-brand-purple/40'
-                  }`}
-                >
-                  <FiCheck size={10} className={isCatSelected ? 'scale-100' : 'scale-0'} />
-                </div>
-                <FiChevronRight
-                  className={`text-text-tertiary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
-                  size={12}
-                />
-              </div>
+                  <FiX size={14} />
+                </button>
+              )}
             </div>
 
-            {/* Subcategories */}
-            <AnimatePresence>
-              {isExpanded && cat.subs && cat.subs.length > 0 && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="overflow-hidden"
+            {/* Filter Mode Tabs & Action Buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="inline-flex bg-white p-1 rounded-lg border border-slate-200 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('all')}
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-black uppercase tracking-wider transition cursor-pointer ${
+                    filterMode === 'all'
+                      ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <div className="px-4 pb-4 pt-0 flex flex-wrap gap-1.5">
-                    {cat.subs.map((sub) => {
-                      const subSelected = isSelected(cat.name, sub);
-                      return (
-                        <button
-                          key={sub}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleSelection(cat.name, sub);
-                          }}
-                          className={`px-2.5 py-1 rounded-full text-[9px] font-bold transition-all duration-200 border ${
-                            subSelected
-                              ? 'bg-brand-purple text-white border-brand-purple shadow-sm scale-105'
-                              : 'bg-surface-secondary text-text-secondary border-border hover:border-brand-purple/40 hover:text-brand-purple'
-                          }`}
-                        >
-                          {subSelected && <FiCheck className="inline mr-1" size={8} />}
-                          {sub}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </motion.div>
+                  All ({categories.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('selected')}
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
+                    filterMode === 'selected'
+                      ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>Selected</span>
+                  <span className="px-1.5 py-0.2 bg-[#d99a3d] text-[#1a1a1a] rounded-full text-[9px] font-black">
+                    {selected.length}
+                  </span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={toggleAllExpanded}
+                className="px-3 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-[11px] font-bold transition cursor-pointer shadow-2xs whitespace-nowrap"
+              >
+                {allExpanded || searchQuery ? 'Collapse All' : 'Expand All'}
+              </button>
+
+              {selected.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelected([])}
+                  className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-[11px] font-black transition cursor-pointer shadow-2xs whitespace-nowrap"
+                >
+                  Clear ({selected.length})
+                </button>
               )}
-            </AnimatePresence>
+            </div>
           </div>
-        );
-      })}
+
+          {/* Quick Info bar */}
+          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
+            <span>
+              Showing <strong className="text-[#1a1a1a] font-black">{filteredCategories.length}</strong> of {categories.length} categories
+              {searchQuery && <span> matching "<strong className="text-[#241b15]">{searchQuery}</strong>"</span>}
+            </span>
+            <span className="text-[#241b15] font-black">
+              {selected.length} / 5 Minimum Selected
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── CATEGORY CARDS GRID ── */}
+      {filteredCategories.length === 0 ? (
+        <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-300 rounded-xl space-y-3">
+          <div className="w-10 h-10 mx-auto rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-black">
+            <FiSearch size={18} />
+          </div>
+          <p className="text-xs font-bold text-slate-700">
+            No categories found matching "{searchQuery}"
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery('');
+              setFilterMode('all');
+            }}
+            className="px-4 py-2 bg-[#241b15] text-[#d99a3d] rounded-lg text-xs font-black uppercase tracking-wider shadow-2xs cursor-pointer"
+          >
+            Reset Search Filter
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredCategories.map((cat) => {
+            const isExpanded = isCategoryExpanded(cat.name);
+            const count = categorySelectedCount(cat.name);
+            const isCatSelected = selected.some(s => s.category === cat.name && !s.subcategory);
+            const isAnySubSelected = count > 0;
+            const categoryIcon = cat.icon;
+
+            return (
+              <div
+                key={cat.name}
+                className={`rounded-xl border transition-all duration-200 overflow-hidden ${
+                  isCatSelected || isAnySubSelected
+                    ? 'border-[#241b15] bg-[#f8f4ec] shadow-xs'
+                    : 'border-slate-200 hover:border-[#d99a3d]/60 bg-white shadow-2xs'
+                }`}
+              >
+                {/* Category Header Row */}
+                <div
+                  onClick={() => toggleCategory(cat.name)}
+                  className="p-4 flex items-center justify-between cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelection(cat.name);
+                      }}
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition cursor-pointer shrink-0 font-black text-sm ${
+                        isCatSelected 
+                          ? 'bg-[#241b15] text-[#d99a3d] shadow-2xs border border-[#241b15]' 
+                          : isAnySubSelected
+                          ? 'bg-[#241b15]/10 text-[#241b15] border border-[#241b15]/20'
+                          : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-[#241b15] hover:text-[#d99a3d]'
+                      }`}
+                    >
+                      {renderCategoryIcon(categoryIcon)}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wide">
+                        {cat.name}
+                      </h4>
+                      {count > 0 && (
+                        <span className="text-[9.5px] font-black text-[#d99a3d] bg-[#241b15] px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                          {count} selected
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Interactive Checkbox for Entire Category */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelection(cat.name);
+                      }}
+                      className={`w-5 h-5 rounded border flex items-center justify-center transition cursor-pointer ${
+                        isCatSelected
+                          ? 'bg-[#241b15] border-[#241b15] text-[#d99a3d] shadow-2xs'
+                          : isAnySubSelected
+                          ? 'bg-[#d99a3d] border-[#d99a3d] text-[#1a1a1a]'
+                          : 'border-slate-300 bg-white text-transparent hover:border-[#241b15]'
+                      }`}
+                      title={isCatSelected ? 'Deselect Category' : 'Select All / Whole Category'}
+                    >
+                      <FiCheck size={12} className={isCatSelected || isAnySubSelected ? 'scale-100' : 'scale-0'} />
+                    </button>
+
+                    <FiChevronRight
+                      className={`text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90 text-[#241b15]' : ''}`}
+                      size={14}
+                    />
+                  </div>
+                </div>
+
+                {/* Subcategories Container */}
+                <AnimatePresence>
+                  {isExpanded && cat.subs && cat.subs.length > 0 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden bg-white/70 border-t border-slate-100"
+                    >
+                      <div className="p-3.5 flex flex-wrap gap-1.5">
+                        {cat.subs.map((sub) => {
+                          const subSelected = isSelected(cat.name, sub);
+                          const query = searchQuery.trim().toLowerCase();
+                          const isSubQueryMatch = query && sub.toLowerCase().includes(query);
+
+                          return (
+                            <button
+                              key={sub}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSelection(cat.name, sub);
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-[10.5px] font-black transition cursor-pointer border flex items-center gap-1 shadow-2xs ${
+                                subSelected
+                                  ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                                  : isSubQueryMatch
+                                  ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border-[#d99a3d] ring-1 ring-[#d99a3d]'
+                                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              {subSelected && <FiCheck size={10} className="text-[#d99a3d]" />}
+                              <span>{sub}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -647,29 +647,41 @@ export default function CustomerSettingsPage() {
         {/* TAB 3: FEED INTERESTS */}
         {activeTab === 'interests' && (
           <form onSubmit={handleSaveInterests} className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e3dccb] shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
               <div>
                 <h2 className="text-base font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
-                  <FiGrid className="text-[#d99a3d]" />
+                  <span className="w-2 h-2 rounded-full bg-[#d99a3d]" />
                   {bi('Personalized Feed Interests', 'व्यक्तिगत फ़ीड रुचियां')}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {bi('Select at least 5 categories to customize your Reels & Marketplace feed', 'अपने फ़ीड को कस्टमाइज़ करने के लिए कम से कम 5 श्रेणियों का चयन करें')}
+                  {bi('Search & select categories to customize your Reels and marketplace feed', 'अपने रील्स और मार्केटप्लेस फ़ीड को कस्टमाइज़ करने के लिए श्रेणियां खोजें और चुनें')}
                 </p>
               </div>
 
-              <span className={`text-[10.5px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${
-                selectedInterests.length >= 5
-                  ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border border-[#d99a3d]/40'
-                  : 'bg-red-500/10 text-red-700 border border-red-200'
-              }`}>
-                {selectedInterests.length} {bi('Selected (Min 5)', 'चयनित (न्यूनतम 5)')}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className={`text-[10.5px] font-black px-3 py-1.5 rounded-xl uppercase tracking-wider ${
+                  selectedInterests.length >= 5
+                    ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border border-[#d99a3d]/40'
+                    : 'bg-red-500/10 text-red-700 border border-red-200'
+                }`}>
+                  {selectedInterests.length} {bi('Selected (Min 5)', 'चयनित (न्यूनतम 5)')}
+                </span>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-black rounded-xl text-xs uppercase tracking-wider shadow-2xs transition cursor-pointer flex items-center gap-2 border border-[#1a1a1a] disabled:opacity-50"
+                >
+                  <FiSave size={15} />
+                  <span>{saving ? bi('Saving...', 'सहेजा जा रहा है...') : bi('Save Interests', 'रुचियां सहेजें')}</span>
+                </button>
+              </div>
             </div>
 
-            <InterestSelector selected={selectedInterests} setSelected={setSelectedInterests} />
+            {/* Enhanced Category & Subcategory Selector with Live Search Menu */}
+            <InterestSelector selected={selectedInterests} setSelected={setSelectedInterests} showSearch={true} />
 
-            <div className="pt-2 flex justify-end">
+            <div className="pt-4 border-t border-slate-100 flex justify-end">
               <button
                 type="submit"
                 disabled={saving}
