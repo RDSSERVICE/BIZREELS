@@ -26,7 +26,8 @@ class OrderController {
       throw ApiError.notFound('Listing not found');
     }
 
-    const price = (listing.salePrice || listing.price) * (quantity || 1);
+    const unitPrice = parseFloat(listing.salePrice || listing.sellingPrice || listing.offer_price || listing.price || listing.actualPrice || 0);
+    const price = unitPrice * (quantity || 1);
     let finalPaymentStatus = 'unpaid';
 
     // If wallet payment is explicitly chosen, check and debit wallet

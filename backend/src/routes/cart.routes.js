@@ -43,8 +43,8 @@ const hydrateCart = async (cart) => {
     const li = lookup[it.listing_id];
     if (!li) continue;
 
-    const vendorId = li.vendor_id.toString();
-    const price = parseFloat(li.offer_price || li.price || 0);
+    const vendorId = (li.vendor_id || li.vendor).toString();
+    const price = parseFloat(li.salePrice || li.sellingPrice || li.offer_price || li.price || li.actualPrice || 0);
     const quantity = parseInt(it.quantity || 1, 10);
     const line = price * quantity;
     total += line;
@@ -211,9 +211,9 @@ router.post('/me/checkout', requireAuth, catchAsync(async (req, res) => {
     const vid = group.vendor_id;
     const verified = await identityService.hasVerifiedIdentity(vid);
     if (!verified) {
-      unverifiedVendorIds.append ? unverifiedVendorIds.append(vid) : unverifiedVendorIds.push(vid);
+      unverifiedVendorIds.push(vid);
       const vname = group.vendor ? group.vendor.name : `Vendor ${vid.slice(-4)}`;
-      unverifiedVendorNames.append ? unverifiedVendorNames.append(vname) : unverifiedVendorNames.push(vname);
+      unverifiedVendorNames.push(vname);
     }
   }
 

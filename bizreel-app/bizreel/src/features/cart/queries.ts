@@ -8,7 +8,7 @@ export function useCart() {
   return useQuery({
     queryKey: CART_QUERY_KEY,
     queryFn: getCart,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 0,
   });
 }
 
