@@ -1,12 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -14,6 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart } from '@/features/cart/queries';
+import { useCreateInquiry } from '@/features/inquiries/queries';
+import { useCreateReview, useListingReviews } from '@/features/reviews/queries';
 import { api } from '@/lib/api';
 
 export default function ListingDetailsScreen() {
@@ -25,7 +31,19 @@ export default function ListingDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Inquiry modal state
+  const [inquiryModalVisible, setInquiryModalVisible] = useState(false);
+  const [inquiryMsg, setInquiryMsg] = useState('');
+
+  // Review modal state
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+
   const addToCartMutation = useAddToCart();
+  const createInquiryMutation = useCreateInquiry();
+  const createReviewMutation = useCreateReview();
+  const { data: reviews, isLoading: reviewsLoading } = useListingReviews(id || '');
 
   useEffect(() => {
     if (!id) return;
@@ -88,18 +106,62 @@ export default function ListingDetailsScreen() {
     );
   };
 
+  const handleSendInquiry = () => {
+    if (!inquiryMsg.trim()) return;
+    createInquiryMutation.mutate(
+      {
+        vendorId: listing.vendor?._id || listing.vendor,
+        listingId: listing._id,
+        subject: `Inquiry for ${listing.title}`,
+        message: inquiryMsg.trim(),
+      },
+      {
+        onSuccess: () => {
+          Alert.alert('Inquiry Sent', 'Your message has been sent to the seller.');
+          setInquiryMsg('');
+          setInquiryModalVisible(false);
+          router.push('/inquiries' as any);
+        },
+        onError: (err: any) => {
+          Alert.alert('Failed to send inquiry', err.message || 'Could not send message.');
+        },
+      }
+    );
+  };
+
+  const handleSubmitReview = () => {
+    if (!reviewComment.trim()) return;
+    createReviewMutation.mutate(
+      {
+        listing_id: listing._id,
+        rating: selectedRating,
+        comment: reviewComment.trim(),
+      },
+      {
+        onSuccess: () => {
+          Alert.alert('Review Posted', 'Thank you for your rating!');
+          setReviewComment('');
+          setReviewModalVisible(false);
+        },
+        onError: (err: any) => {
+          Alert.alert('Review Failed', err.message || 'Could not post review.');
+        },
+      }
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <SymbolView name="chevron.left" size={22} tintColor="#fff" />
+          <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {listing.title}
         </Text>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/cart')}>
-          <SymbolView name="cart.fill" size={22} tintColor="#fff" />
+          <Ionicons name="cart" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -109,7 +171,7 @@ export default function ListingDetailsScreen() {
           <Image source={{ uri: mainImage }} style={styles.heroImage} contentFit="cover" />
         ) : (
           <View style={styles.heroPlaceholder}>
-            <SymbolView name="bag.fill" size={48} tintColor="rgba(255,255,255,0.4)" />
+            <Ionicons name="bag" size={48} color="rgba(255,255,255,0.4)" />
           </View>
         )}
 
@@ -144,6 +206,13 @@ export default function ListingDetailsScreen() {
                 </Text>
                 <Text style={styles.vendorRole}>Verified Business Partner</Text>
               </View>
+
+              <TouchableOpacity
+                style={styles.inquireBtn}
+                onPress={() => setInquiryModalVisible(true)}>
+                <Ionicons name="chatbubble-ellipses" size={14} color="#fff" />
+                <Text style={styles.inquireBtnText}>Inquire</Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -154,6 +223,41 @@ export default function ListingDetailsScreen() {
               <Text style={styles.description}>{listing.description}</Text>
             </View>
           )}
+
+          {/* Reviews & Ratings Section */}
+          <View style={styles.section}>
+            <View style={styles.reviewHeaderRow}>
+              <Text style={styles.sectionTitle}>Customer Ratings & Reviews</Text>
+              <TouchableOpacity onPress={() => setReviewModalVisible(true)}>
+                <Text style={styles.writeReviewText}>+ Write Review</Text>
+              </TouchableOpacity>
+            </View>
+
+            {reviewsLoading ? (
+              <ActivityIndicator size="small" color={BrandColors.primary} />
+            ) : !reviews || reviews.length === 0 ? (
+              <Text style={styles.emptyReviewText}>No reviews yet. Be the first to rate!</Text>
+            ) : (
+              reviews.map((rev) => (
+                <View key={rev._id} style={styles.reviewCard}>
+                  <View style={styles.reviewUserRow}>
+                    <Text style={styles.reviewUserName}>{rev.user?.name || 'Customer'}</Text>
+                    <View style={styles.starsRow}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Ionicons
+                          key={star}
+                          name={star <= rev.rating ? 'star' : 'star-outline'}
+                          size={14}
+                          color="#FFB800"
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  <Text style={styles.reviewComment}>{rev.comment}</Text>
+                </View>
+              ))
+            )}
+          </View>
         </View>
       </ScrollView>
 
@@ -177,6 +281,101 @@ export default function ListingDetailsScreen() {
           <Text style={styles.buyBtnText}>Buy Now</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Inquiry Quote Modal */}
+      <Modal
+        visible={inquiryModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setInquiryModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setInquiryModalVisible(false)} />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Request Quote / Direct Inquiry</Text>
+              <TouchableOpacity onPress={() => setInquiryModalVisible(false)}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>Your message or requirements for seller</Text>
+            <TextInput
+              style={styles.textAreaInput}
+              multiline
+              numberOfLines={4}
+              placeholder="Ask about bulk pricing, custom specifications, or availability..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={inquiryMsg}
+              onChangeText={setInquiryMsg}
+            />
+
+            <TouchableOpacity
+              style={styles.modalSubmitBtn}
+              onPress={handleSendInquiry}
+              disabled={createInquiryMutation.isPending}>
+              {createInquiryMutation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.modalSubmitBtnText}>Send Message to Vendor</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Write Review Modal */}
+      <Modal
+        visible={reviewModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setReviewModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setReviewModalVisible(false)} />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Rate & Review Product</Text>
+              <TouchableOpacity onPress={() => setReviewModalVisible(false)}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>Rating</Text>
+            <View style={styles.starSelectRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setSelectedRating(star)}>
+                  <Ionicons
+                    name={star <= selectedRating ? 'star' : 'star-outline'}
+                    size={32}
+                    color="#FFB800"
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.inputLabel}>Review Comment</Text>
+            <TextInput
+              style={styles.textAreaInput}
+              multiline
+              numberOfLines={4}
+              placeholder="Share your experience with this item..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={reviewComment}
+              onChangeText={setReviewComment}
+            />
+
+            <TouchableOpacity
+              style={styles.modalSubmitBtn}
+              onPress={handleSubmitReview}
+              disabled={createReviewMutation.isPending}>
+              {createReviewMutation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.modalSubmitBtnText}>Submit Rating & Review</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -293,8 +492,22 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     fontSize: FontSize.xs,
   },
+  inquireBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  inquireBtnText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
   section: {
-    gap: Spacing.one,
+    gap: Spacing.two,
   },
   sectionTitle: {
     color: '#fff',
@@ -305,6 +518,45 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: FontSize.sm,
     lineHeight: 20,
+  },
+  reviewHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.two,
+  },
+  writeReviewText: {
+    color: BrandColors.primaryLight,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  emptyReviewText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: FontSize.xs,
+  },
+  reviewCard: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 10,
+    padding: Spacing.three,
+    gap: 4,
+  },
+  reviewUserRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reviewUserName: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  reviewComment: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: FontSize.xs,
   },
   errorText: {
     color: BrandColors.error,
@@ -355,6 +607,67 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.primary,
   },
   buyBtnText: {
+    color: '#fff',
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.bold,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  modalContent: {
+    backgroundColor: '#1c1c1e',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: Spacing.four,
+    gap: Spacing.three,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2c2c2e',
+    paddingBottom: Spacing.two,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.bold,
+  },
+  inputLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  starSelectRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.two,
+  },
+  textAreaInput: {
+    backgroundColor: '#2c2c2e',
+    borderRadius: 10,
+    padding: Spacing.three,
+    color: '#fff',
+    fontSize: FontSize.xs,
+    minHeight: 90,
+    textAlignVertical: 'top',
+  },
+  modalSubmitBtn: {
+    backgroundColor: BrandColors.primary,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.two,
+  },
+  modalSubmitBtnText: {
     color: '#fff',
     fontSize: FontSize.base,
     fontWeight: FontWeight.bold,

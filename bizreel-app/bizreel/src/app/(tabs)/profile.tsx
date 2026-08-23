@@ -271,12 +271,33 @@ export default function ProfileScreen() {
 
       {/* ── Customer Quick Actions ───────────────────────────────────────── */}
       <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Shopping & Orders</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Customer Services</Text>
         <Divider theme={theme} />
         <Pressable
           style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
           onPress={() => router.push('/orders')}>
-          <Text style={[styles.actionRowText, { color: theme.text }]}>📦 My Orders</Text>
+          <Text style={[styles.actionRowText, { color: theme.text }]}>📦 My Orders & Tracking</Text>
+          <Text style={styles.actionRowArrow}>›</Text>
+        </Pressable>
+        <Divider theme={theme} />
+        <Pressable
+          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/inquiries' as any)}>
+          <Text style={[styles.actionRowText, { color: theme.text }]}>💬 Inquiries & Vendor Quotes</Text>
+          <Text style={styles.actionRowArrow}>›</Text>
+        </Pressable>
+        <Divider theme={theme} />
+        <Pressable
+          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/wallet' as any)}>
+          <Text style={[styles.actionRowText, { color: theme.text }]}>💼 Customer Wallet & Refunds</Text>
+          <Text style={styles.actionRowArrow}>›</Text>
+        </Pressable>
+        <Divider theme={theme} />
+        <Pressable
+          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/saved' as any)}>
+          <Text style={[styles.actionRowText, { color: theme.text }]}>🔖 Saved Items & Bookmarks</Text>
           <Text style={styles.actionRowArrow}>›</Text>
         </Pressable>
         <Divider theme={theme} />
