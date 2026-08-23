@@ -30,6 +30,8 @@ import {
 import { useAuth } from '@/features/auth/context';
 import { useCurrentUserProfile } from '@/features/auth/queries';
 import { useTheme } from '@/hooks/use-theme';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -39,6 +41,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -197,6 +200,8 @@ export default function ProfileScreen() {
 
   // ── Derived display values ─────────────────────────────────────────────────
   const avatarUrl = user.profile_pic ?? user.avatarUrl;
+  const [vendorHubCollapsed, setVendorHubCollapsed] = useState(false);
+
   const initials = getInitials(user.name);
   const ratingDisplay =
     user.rating_count > 0
@@ -272,56 +277,70 @@ export default function ProfileScreen() {
       {/* ── Vendor Quick Actions ─────────────────────────────────────────── */}
       {user.activeRole === 'vendor' && (
         <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: BrandColors.primary, borderWidth: 1 }]}>
-          <Text style={[styles.sectionTitle, { color: BrandColors.primaryLight }]}>💼 Vendor Management Hub</Text>
-          <Divider theme={theme} />
-          <Pressable
-            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/vendor/dashboard' as any)}>
-            <Text style={[styles.actionRowText, { color: theme.text }]}>📊 Vendor Store Dashboard & Analytics</Text>
-            <Text style={styles.actionRowArrow}>›</Text>
-          </Pressable>
-          <Divider theme={theme} />
-          <Pressable
-            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/vendor/reels' as any)}>
-            <Text style={[styles.actionRowText, { color: theme.text }]}>📹 Video Reels Studio & Upload</Text>
-            <Text style={styles.actionRowArrow}>›</Text>
-          </Pressable>
-          <Divider theme={theme} />
-          <Pressable
-            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/vendor/listings' as any)}>
-            <Text style={[styles.actionRowText, { color: theme.text }]}>📦 Product & Service Catalog</Text>
-            <Text style={styles.actionRowArrow}>›</Text>
-          </Pressable>
-          <Divider theme={theme} />
-          <Pressable
-            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/vendor/orders' as any)}>
-            <Text style={[styles.actionRowText, { color: theme.text }]}>🚚 Customer Orders & Fulfillment</Text>
-            <Text style={styles.actionRowArrow}>›</Text>
-          </Pressable>
-          <Divider theme={theme} />
-          <Pressable
-            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/vendor/offers' as any)}>
-            <Text style={[styles.actionRowText, { color: theme.text }]}>🏷️ Promotional Offers & Coupons</Text>
-            <Text style={styles.actionRowArrow}>›</Text>
-          </Pressable>
-          <Divider theme={theme} />
-          <Pressable
-            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/vendor/verification' as any)}>
-            <Text style={[styles.actionRowText, { color: theme.text }]}>🛡️ KYC Business Verification</Text>
-            <Text style={styles.actionRowArrow}>›</Text>
-          </Pressable>
-          <Divider theme={theme} />
-          <Pressable
-            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/vendor/settings' as any)}>
-            <Text style={[styles.actionRowText, { color: theme.text }]}>⚙️ Store Settings & Close Schedule</Text>
-            <Text style={styles.actionRowArrow}>›</Text>
-          </Pressable>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+            onPress={() => setVendorHubCollapsed((v) => !v)}>
+            <Text style={[styles.sectionTitle, { color: BrandColors.primaryLight }]}>💼 Vendor Management Hub</Text>
+            <Ionicons
+              name={vendorHubCollapsed ? 'chevron-down' : 'chevron-up'}
+              size={20}
+              color={BrandColors.primaryLight}
+            />
+          </TouchableOpacity>
+
+          {!vendorHubCollapsed && (
+            <View>
+              <Divider theme={theme} />
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={() => router.push('/vendor/dashboard' as any)}>
+                <Text style={[styles.actionRowText, { color: theme.text }]}>📊 Vendor Store Dashboard & Analytics</Text>
+                <Text style={styles.actionRowArrow}>›</Text>
+              </Pressable>
+              <Divider theme={theme} />
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={() => router.push('/vendor/reels' as any)}>
+                <Text style={[styles.actionRowText, { color: theme.text }]}>📹 Video Reels Studio & Upload</Text>
+                <Text style={styles.actionRowArrow}>›</Text>
+              </Pressable>
+              <Divider theme={theme} />
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={() => router.push('/vendor/listings' as any)}>
+                <Text style={[styles.actionRowText, { color: theme.text }]}>📦 Product & Service Catalog</Text>
+                <Text style={styles.actionRowArrow}>›</Text>
+              </Pressable>
+              <Divider theme={theme} />
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={() => router.push('/vendor/orders' as any)}>
+                <Text style={[styles.actionRowText, { color: theme.text }]}>🚚 Customer Orders & Fulfillment</Text>
+                <Text style={styles.actionRowArrow}>›</Text>
+              </Pressable>
+              <Divider theme={theme} />
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={() => router.push('/vendor/offers' as any)}>
+                <Text style={[styles.actionRowText, { color: theme.text }]}>🏷️ Promotional Offers & Coupons</Text>
+                <Text style={styles.actionRowArrow}>›</Text>
+              </Pressable>
+              <Divider theme={theme} />
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={() => router.push('/vendor/verification' as any)}>
+                <Text style={[styles.actionRowText, { color: theme.text }]}>🛡️ KYC Business Verification</Text>
+                <Text style={styles.actionRowArrow}>›</Text>
+              </Pressable>
+              <Divider theme={theme} />
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={() => router.push('/vendor/settings' as any)}>
+                <Text style={[styles.actionRowText, { color: theme.text }]}>⚙️ Store Settings & Close Schedule</Text>
+                <Text style={styles.actionRowArrow}>›</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
       )}
 
