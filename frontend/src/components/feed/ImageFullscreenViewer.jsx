@@ -111,15 +111,50 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
   };
 
   const handleWhatsApp = (post) => {
-    handleTrackInteraction('whatsapp_contact', post);
     const vendor = post.creator || post.vendor;
-    const phone = vendor?.phone || vendor?.vendorProfile?.whatsapp || '';
-    const text = `Hi! I saw your post on BizReels and I'm interested.`;
-    if (phone) {
-      window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
-    } else {
-      toast('WhatsApp number not available');
+    const isVerified =
+      vendor?.kyc_status === 'approved' ||
+      vendor?.is_subscribed_verified === true ||
+      vendor?.isVerified === true ||
+      vendor?.is_verified === true ||
+      vendor?.vendorProfile?.isVerified === true ||
+      vendor?.verified_badge === true ||
+      ['verified_vendor', 'premium_verified', 'trusted_vendor', 'premium_vendor', 'verified'].includes(
+        vendor?.vendorProfile?.verificationStatus || vendor?.verificationStatus || vendor?.vendorProfile?.tier || vendor?.tier
+      ) ||
+      Boolean(vendor?.vendorProfile?.contactVerified?.whatsapp || vendor?.vendorProfile?.contactVerified?.mobile);
+
+    if (!isVerified) {
+      toast.error('⚠️ This vendor is not verified yet. Direct WhatsApp inquiry is only available for verified vendors.', {
+        id: 'unverified-vendor-whatsapp'
+      });
+      return;
     }
+
+    const rawPhone =
+      vendor?.vendorProfile?.whatsapp ||
+      vendor?.vendorProfile?.whatsappNumber ||
+      vendor?.phone ||
+      vendor?.vendorProfile?.mobileNumber ||
+      vendor?.vendorProfile?.phone ||
+      vendor?.whatsapp ||
+      '';
+
+    if (!rawPhone) {
+      toast.error('WhatsApp contact number not available for this vendor', { id: 'no-vendor-phone' });
+      return;
+    }
+
+    let cleanPhone = String(rawPhone).replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
+      cleanPhone = `91${cleanPhone.slice(1)}`;
+    }
+
+    handleTrackInteraction('whatsapp_contact', post);
+    const text = `Hi! I saw your post "${post.title || post.caption || 'post'}" on BizReels and I'm interested.`;
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handleCallRequest = (post) => {

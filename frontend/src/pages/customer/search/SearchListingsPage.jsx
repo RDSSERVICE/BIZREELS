@@ -337,24 +337,64 @@ export default function SearchListingsPage() {
   // WhatsApp Contact
   const handleWhatsApp = async (item) => {
     const vendorObj = item.vendor || item.vendorId || {};
-    const phone =
-      vendorObj.phone ||
-      vendorObj.vendorProfile?.whatsapp ||
-      vendorObj.vendorProfile?.whatsappNumber ||
-      vendorObj.whatsappNumber ||
-      '';
-    if (!phone) {
-      toast.error('WhatsApp contact is not configured for this vendor');
+
+    // Verification check
+    const isVerified =
+      vendorObj.kyc_status === 'approved' ||
+      vendorObj.is_subscribed_verified === true ||
+      vendorObj.isVerified === true ||
+      vendorObj.is_verified === true ||
+      vendorObj.vendorProfile?.isVerified === true ||
+      vendorObj.verified_badge === true ||
+      ['verified_vendor', 'premium_verified', 'trusted_vendor', 'premium_vendor', 'verified'].includes(
+        vendorObj.vendorProfile?.verificationStatus || vendorObj.verificationStatus || vendorObj.vendorProfile?.tier || vendorObj.tier
+      ) ||
+      Boolean(vendorObj.vendorProfile?.contactVerified?.whatsapp || vendorObj.vendorProfile?.contactVerified?.mobile);
+
+    if (!isVerified) {
+      toast.error(
+        '⚠️ This vendor is not verified yet. Direct WhatsApp inquiry is only available for verified vendors.',
+        { duration: 5000, id: 'unverified-vendor-whatsapp' }
+      );
       return;
     }
-    const productLink = `${window.location.origin}/customer/search?productId=${item._id || item.id}`;
-    const text = encodeURIComponent(
-      `Hello! I found your listing "${item.title}" on BizReels.\nLink: ${productLink}\nPlease provide more details.`
-    );
-    let formattedPhone = phone.replace(/[^0-9]/g, '');
-    if (formattedPhone.length === 10) {
-      formattedPhone = '91' + formattedPhone;
+
+    const rawPhone =
+      vendorObj.vendorProfile?.whatsapp ||
+      vendorObj.vendorProfile?.whatsappNumber ||
+      vendorObj.phone ||
+      vendorObj.vendorProfile?.mobileNumber ||
+      vendorObj.vendorProfile?.phone ||
+      vendorObj.whatsapp ||
+      item.phone ||
+      '';
+
+    if (!rawPhone) {
+      toast.error('WhatsApp contact number is not available for this vendor.', {
+        id: 'no-vendor-phone'
+      });
+      return;
     }
+
+    let cleanPhone = String(rawPhone).replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
+      cleanPhone = `91${cleanPhone.slice(1)}`;
+    }
+
+    if (!cleanPhone || cleanPhone.length < 10) {
+      toast.error('Invalid vendor phone number format for WhatsApp.', {
+        id: 'invalid-vendor-phone'
+      });
+      return;
+    }
+
+    const productLink = `${window.location.origin}/customer/listings/${item._id || item.id}`;
+    const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || 'Vendor';
+    const text = encodeURIComponent(
+      `Hello ${vendorName}!\nI found your listing "${item.title}" on BizReels.\nLink: ${productLink}\nI would like to inquire about details/availability.`
+    );
 
     try {
       const listingId = item._id || item.id;
@@ -368,7 +408,7 @@ export default function SearchListingsPage() {
       console.warn('Failed to track WhatsApp interaction:', err);
     }
 
-    window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
   };
 
   // Call Request

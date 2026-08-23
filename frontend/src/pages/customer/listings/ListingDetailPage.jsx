@@ -234,10 +234,34 @@ export default function ListingDetailPage() {
   const discountPercent = (originalPrice > priceVal && priceVal > 0) ? Math.round(((originalPrice - priceVal) / originalPrice) * 100) : 0;
 
   const vendorObj = item.vendor || item.vendorId || item.seller || {};
-  const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || item.vendorName || 'Verified Business';
+  const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || item.vendorName || 'Vendor';
   const vendorAvatar = vendorObj.avatarUrl || vendorObj.logo || vendorObj.profile_pic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
   const city = item.city || vendorObj.city || item.location?.city || 'Local Area';
-  const vendorPhone = vendorObj.phone || vendorObj.whatsapp || '919876543210';
+
+  // Check vendor verification status
+  const isVendorVerified = (vendor) => {
+    if (!vendor) return false;
+    if (typeof vendor !== 'object') return false;
+    if (vendor.kyc_status === 'approved') return true;
+    if (vendor.is_subscribed_verified === true) return true;
+    if (vendor.isVerified === true || vendor.is_verified === true) return true;
+    if (vendor.vendorProfile?.isVerified === true) return true;
+    if (vendor.verified_badge === true) return true;
+    const status = vendor.vendorProfile?.verificationStatus || vendor.verificationStatus || vendor.vendorProfile?.tier || vendor.tier;
+    if (['verified_vendor', 'premium_verified', 'trusted_vendor', 'premium_vendor', 'verified'].includes(status)) {
+      return true;
+    }
+    if (vendor.vendorProfile?.contactVerified?.whatsapp || vendor.vendorProfile?.contactVerified?.mobile) {
+      return true;
+    }
+    const docs = vendor.vendorProfile?.documents || {};
+    if (docs.pan?.status === 'approved' || docs.pan?.verified || docs.aadhaar?.status === 'approved' || docs.aadhaar?.verified || docs.gst?.status === 'approved' || docs.gst?.verified) {
+      return true;
+    }
+    return false;
+  };
+
+  const isVerified = isVendorVerified(vendorObj);
 
   // Toggle Save & Like Handlers
   const handleToggleSave = async () => {
@@ -276,8 +300,61 @@ export default function ListingDetailPage() {
   };
 
   const handleWhatsApp = () => {
-    const text = encodeURIComponent(`Hi ${vendorName}, I saw your listing "${item.title}" on BizReels (₹${priceVal.toLocaleString('en-IN')}). I would like to inquire about details/availability.`);
-    window.open(`https://wa.me/${vendorPhone.replace(/\D/g, '')}?text=${text}`, '_blank');
+    // 1. Check if vendor is verified
+    if (!isVerified) {
+      toast.error(
+        '⚠️ This vendor is not verified yet. Direct WhatsApp inquiry is only available for verified vendors.',
+        { duration: 5000, id: 'unverified-vendor-whatsapp' }
+      );
+      return;
+    }
+
+    // 2. Extract vendor phone / WhatsApp number
+    const rawPhone =
+      vendorObj.vendorProfile?.whatsapp ||
+      vendorObj.vendorProfile?.whatsappNumber ||
+      vendorObj.phone ||
+      vendorObj.vendorProfile?.mobileNumber ||
+      vendorObj.vendorProfile?.phone ||
+      vendorObj.whatsapp ||
+      item.phone ||
+      item.whatsapp ||
+      '';
+
+    if (!rawPhone) {
+      toast.error('WhatsApp contact number is not available for this vendor.', {
+        id: 'no-vendor-phone'
+      });
+      return;
+    }
+
+    let cleanPhone = String(rawPhone).replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
+      cleanPhone = `91${cleanPhone.slice(1)}`;
+    }
+
+    if (!cleanPhone || cleanPhone.length < 10) {
+      toast.error('Invalid vendor phone number format for WhatsApp.', {
+        id: 'invalid-vendor-phone'
+      });
+      return;
+    }
+
+    // 3. Track interaction
+    try {
+      api.post('/v1/users/me/track-interaction', {
+        type: 'whatsapp_contact',
+        listingId: itemId,
+        targetUserId: vendorObj._id || vendorObj.id,
+      }).catch(() => {});
+    } catch {}
+
+    const text = encodeURIComponent(
+      `Hello ${vendorName}!\nI found your listing "${item.title}" on BizReels (₹${priceVal.toLocaleString('en-IN')}).\nLink: ${window.location.href}\nI would like to inquire about details/availability.`
+    );
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
   };
 
   // Add to Shopping Cart
@@ -483,9 +560,15 @@ export default function ListingDetailPage() {
                     <span className="text-slate-400">({item.reviewsCount || reviewsList.length || '12'})</span>
                   </div>
                   <span className="text-slate-400">•</span>
-                  <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[11px]">
-                    <FiCheckCircle size={12} /> In Stock & Verified
-                  </span>
+                  {isVerified ? (
+                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[11px] font-bold">
+                      <FiCheckCircle size={12} className="text-emerald-600" /> In Stock & Verified Business
+                    </span>
+                  ) : (
+                    <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1 text-[11px] font-bold">
+                      <FiShield size={12} className="text-amber-600" /> Unverified Vendor
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -589,7 +672,11 @@ export default function ListingDetailPage() {
                 <div className="min-w-0 space-y-0.5">
                   <div className="flex items-center gap-1.5">
                     <h4 className="text-sm font-extrabold text-[#1a1a1a] truncate">{vendorName}</h4>
-                    <FiCheckCircle className="text-emerald-600 flex-shrink-0" size={14} />
+                    {isVerified ? (
+                      <FiCheckCircle className="text-emerald-600 flex-shrink-0" size={14} title="Verified Vendor" />
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold">Unverified</span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500 truncate">{city} • Local Vendor</p>
                 </div>

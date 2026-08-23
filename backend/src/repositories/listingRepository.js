@@ -40,13 +40,13 @@ class ListingRepository {
 
   async findListingById(id) {
     if (mongoose.Types.ObjectId.isValid(id)) {
-      const listing = await Listing.findById(id).populate('vendor', 'name avatarUrl activeRole phone email vendorProfile location');
+      const listing = await Listing.findById(id).populate('vendor', 'name avatarUrl profile_pic activeRole phone email vendorProfile location kyc_status is_subscribed_verified isPhoneVerified isVerified is_verified rating_avg rating_count');
       if (listing) return listing;
     }
     return Listing.findOne({
       $or: [{ slug: id }, { listing_id: id }],
       is_deleted: { $ne: true }
-    }).populate('vendor', 'name avatarUrl activeRole phone email vendorProfile location');
+    }).populate('vendor', 'name avatarUrl profile_pic activeRole phone email vendorProfile location kyc_status is_subscribed_verified isPhoneVerified isVerified is_verified rating_avg rating_count');
   }
 
   async updateListing(id, vendorId, updateData) {
@@ -373,7 +373,13 @@ class ListingRepository {
           _id: '$vendorDetails._id',
           name: '$vendorDetails.name',
           avatarUrl: '$vendorDetails.avatarUrl',
+          profile_pic: '$vendorDetails.profile_pic',
           phone: '$vendorDetails.phone',
+          kyc_status: '$vendorDetails.kyc_status',
+          is_subscribed_verified: '$vendorDetails.is_subscribed_verified',
+          isVerified: { $ifNull: ['$vendorDetails.isVerified', '$vendorDetails.is_verified', '$vendorDetails.vendorProfile.isVerified'] },
+          is_verified: '$vendorDetails.is_verified',
+          isPhoneVerified: '$vendorDetails.isPhoneVerified',
           vendorProfile: '$vendorDetails.vendorProfile',
           businessName: { $ifNull: ['$vendorDetails.vendorProfile.businessName', '$vendorDetails.name'] },
           rating: '$vendorDetails.vendorProfile.rating',
