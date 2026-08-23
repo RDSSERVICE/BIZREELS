@@ -4,7 +4,8 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 import {
   ActivityIndicator,
   Alert,
@@ -31,8 +32,31 @@ export default function CreateReelScreen() {
   const [hashtagsStr, setHashtagsStr] = useState('#bizreels #products');
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
 
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+  const [category, setCategory] = useState('Products');
+  const [subcategory, setSubcategory] = useState('General');
+
   const { data: listings = [] } = useVendorListings();
   const createReelMutation = useCreateReel();
+
+  useEffect(() => {
+    api.get('/categories')
+      .then((res) => {
+        const items = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+        if (items.length > 0) {
+          setCategoriesList(items);
+          const parents = items.filter((c: any) => !c.parent_id);
+          if (parents.length > 0) {
+            setCategory(parents[0].name);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const parentCategories = categoriesList.filter((c: any) => !c.parent_id);
+  const activeParent = parentCategories.find((c: any) => c.name === category);
+  const childSubcategories = categoriesList.filter((c: any) => activeParent && c.parent_id === (activeParent.id || activeParent._id));
 
   function handlePublish() {
     if (!videoUrl.trim()) {
@@ -51,6 +75,8 @@ export default function CreateReelScreen() {
         thumbnailUrl: thumbnailUrl.trim() || undefined,
         caption: caption.trim() || undefined,
         taggedListing: selectedListingId || undefined,
+        category: category || 'General',
+        subcategory: subcategory || 'General',
         hashtags: hashtags.length > 0 ? hashtags : ['#bizreels'],
         mediaType: 'video',
       },
@@ -145,6 +171,63 @@ export default function CreateReelScreen() {
             onChangeText={setHashtagsStr}
           />
         </View>
+
+        {/* API Category Selection */}
+        {parentCategories.length > 0 && (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Category (from API)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listingsScroll}>
+              {parentCategories.map((catItem: any) => (
+                <TouchableOpacity
+                  key={catItem.id || catItem._id}
+                  style={[
+                    styles.listingChip,
+                    category === catItem.name && styles.listingChipActive,
+                  ]}
+                  onPress={() => {
+                    setCategory(catItem.name);
+                    const children = categoriesList.filter((c: any) => c.parent_id === (catItem.id || catItem._id));
+                    if (children.length > 0) setSubcategory(children[0].name);
+                    else setSubcategory('General');
+                  }}>
+                  <Text
+                    style={[
+                      styles.listingChipText,
+                      category === catItem.name && styles.listingChipTextActive,
+                    ]}>
+                    {catItem.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* API Subcategory Selection */}
+        {childSubcategories.length > 0 && (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Subcategory (from API)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listingsScroll}>
+              {childSubcategories.map((subItem: any) => (
+                <TouchableOpacity
+                  key={subItem.id || subItem._id}
+                  style={[
+                    styles.listingChip,
+                    subcategory === subItem.name && styles.listingChipActive,
+                  ]}
+                  onPress={() => setSubcategory(subItem.name)}>
+                  <Text
+                    style={[
+                      styles.listingChipText,
+                      subcategory === subItem.name && styles.listingChipTextActive,
+                    ]}>
+                    {subItem.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Tag Listing Selection */}
         {listings.length > 0 && (
