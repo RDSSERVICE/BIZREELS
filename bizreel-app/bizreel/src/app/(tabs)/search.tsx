@@ -1,13 +1,16 @@
 /**
  * Search Screen — Modern e-commerce & location-based discovery search.
+ * Includes GPS location detection & "Nearby" radius search.
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useCallback, useDeferredValue, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -24,7 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart } from '@/features/cart/queries';
 import { useCategories, useListings } from '@/features/search/queries';
-import type { Category, Listing } from '@/features/search/types';
+import type { Category } from '@/features/search/types';
 
 const POPULAR_SEARCHES = [
   'Solar Energy',
@@ -36,6 +39,7 @@ const POPULAR_SEARCHES = [
 ];
 
 const POPULAR_CITIES = [
+  'Near Me (GPS)',
   'All Cities',
   'Mumbai',
   'Delhi',
@@ -44,6 +48,13 @@ const POPULAR_CITIES = [
   'Hyderabad',
   'Ahmedabad',
   'Chennai',
+];
+
+const RADIUS_OPTIONS = [
+  { label: '5 km', value: 5 },
+  { label: '10 km', value: 10 },
+  { label: '25 km', value: 25 },
+  { label: '50 km', value: 50 },
 ];
 
 const TYPE_FILTERS = [
@@ -63,18 +74,97 @@ export default function SearchScreen() {
   const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high'>('newest');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
+  // GPS Location State
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+    city?: string;
+  } | null>(null);
+  const [selectedRadius, setSelectedRadius] = useState<number>(10); // default 10 km
+
   const addToCartMutation = useAddToCart();
 
   // Defer search input to keep typing butter smooth
   const deferredSearch = useDeferredValue(searchText.trim());
   const isQueryActive =
-    deferredSearch.length > 0 || selectedCategory !== null || selectedCity !== 'All Cities';
+    deferredSearch.length > 0 ||
+    selectedCategory !== null ||
+    selectedCity !== 'All Cities' ||
+    userLocation !== null;
+
+  // Request GPS Location & Detect City
+  async function handleDetectCurrentLocation() {
+    try {
+      setIsDetectingLocation(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location Permission Denied',
+          'Please enable location permissions in app settings to find nearby sellers.'
+        );
+        setIsDetectingLocation(false);
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const { latitude, longitude } = location.coords;
+      let detectedCityName = 'Near Me';
+
+      try {
+        const reverseGeo = await Location.reverseGeocodeAsync({
+          latitude,
+          longitude,
+        });
+        if (reverseGeo && reverseGeo.length > 0) {
+          detectedCityName =
+            reverseGeo[0].city || reverseGeo[0].subregion || reverseGeo[0].region || 'Near Me';
+        }
+      } catch (e) {
+        // Geocode fallback
+      }
+
+      setUserLocation({
+        lat: latitude,
+        lng: longitude,
+        city: detectedCityName,
+      });
+      setSelectedCity('Near Me (GPS)');
+    } catch (err: any) {
+      Alert.alert('Location Error', 'Could not retrieve your current location.');
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  }
+
+  function handleCitySelect(cityName: string) {
+    if (cityName === 'Near Me (GPS)') {
+      if (!userLocation) {
+        handleDetectCurrentLocation();
+      } else {
+        setSelectedCity('Near Me (GPS)');
+      }
+    } else {
+      setSelectedCity(cityName);
+      if (cityName === 'All Cities') {
+        setUserLocation(null);
+      }
+    }
+  }
+
+  const isGpsActive = selectedCity === 'Near Me (GPS)' && userLocation !== null;
 
   const listingsParams = {
     page: 1,
     search: deferredSearch || undefined,
     category: selectedCategory?.name || undefined,
-    city: selectedCity !== 'All Cities' ? selectedCity : undefined,
+    city: !isGpsActive && selectedCity !== 'All Cities' ? selectedCity : undefined,
+    lat: isGpsActive ? userLocation?.lat : undefined,
+    lng: isGpsActive ? userLocation?.lng : undefined,
+    radius: isGpsActive ? selectedRadius : undefined,
   };
 
   const {
@@ -94,13 +184,13 @@ export default function SearchScreen() {
 
   const rawListings = listingsData?.data ?? [];
 
-  // Filter & Sort results locally (for type and city)
+  // Filter & Sort results locally
   const filteredListings = rawListings.filter((item: any) => {
     if (activeTypeFilter !== 'all') {
       const itemType = item.category_type || item.type;
       if (itemType !== activeTypeFilter) return false;
     }
-    if (selectedCity !== 'All Cities') {
+    if (!isGpsActive && selectedCity !== 'All Cities') {
       const itemCity = item.city || item.location?.city || item.vendor?.city || '';
       if (itemCity && !itemCity.toLowerCase().includes(selectedCity.toLowerCase())) {
         return false;
@@ -154,12 +244,23 @@ export default function SearchScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Location City Selector Row */}
+      {/* Location City & GPS Detection Row */}
       <View style={styles.citySelectorRow}>
-        <View style={styles.locationTag}>
-          <Ionicons name="location" size={14} color={BrandColors.primary} />
-          <Text style={styles.locationTagText}>Location:</Text>
-        </View>
+        <TouchableOpacity
+          style={[styles.gpsDetectBtn, isGpsActive && styles.gpsDetectBtnActive]}
+          onPress={handleDetectCurrentLocation}
+          disabled={isDetectingLocation}>
+          {isDetectingLocation ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="navigate" size={14} color="#fff" />
+              <Text style={styles.gpsDetectBtnText}>
+                {userLocation ? userLocation.city || 'Near Me' : 'Locate Me'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.citiesScroll}>
           {POPULAR_CITIES.map((cityName) => {
@@ -168,7 +269,7 @@ export default function SearchScreen() {
               <TouchableOpacity
                 key={cityName}
                 style={[styles.cityChip, isSelected && styles.cityChipActive]}
-                onPress={() => setSelectedCity(cityName)}>
+                onPress={() => handleCitySelect(cityName)}>
                 <Text style={[styles.cityChipText, isSelected && styles.cityChipTextActive]}>
                   {cityName}
                 </Text>
@@ -177,6 +278,23 @@ export default function SearchScreen() {
           })}
         </ScrollView>
       </View>
+
+      {/* GPS Radius Filter Chips (Visible when GPS Location Active) */}
+      {isGpsActive && (
+        <View style={styles.radiusRow}>
+          <Text style={styles.radiusLabel}>Distance:</Text>
+          {RADIUS_OPTIONS.map((opt) => (
+            <TouchableOpacity
+              key={opt.value}
+              style={[styles.radiusChip, selectedRadius === opt.value && styles.radiusChipActive]}
+              onPress={() => setSelectedRadius(opt.value)}>
+              <Text style={[styles.radiusChipText, selectedRadius === opt.value && styles.radiusChipTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* Type Filter Tabs Row */}
       <View style={styles.filterTabsRow}>
@@ -212,10 +330,10 @@ export default function SearchScreen() {
           </View>
         ) : filteredListings.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="search" size={56} color="rgba(255,255,255,0.3)" />
-            <Text style={styles.emptyTitle}>No Local Results Found</Text>
+            <Ionicons name="location-outline" size={56} color="rgba(255,255,255,0.3)" />
+            <Text style={styles.emptyTitle}>No Nearby Results Found</Text>
             <Text style={styles.emptySub}>
-              We couldn't find matching items in "{selectedCity}" for "{deferredSearch || selectedCategory?.name}". Try selecting "All Cities" or adjusting search.
+              We couldn't find matching items {isGpsActive ? `within ${selectedRadius} km of your location` : `in "${selectedCity}"`}. Try increasing distance or searching all cities.
             </Text>
           </View>
         ) : (
@@ -236,7 +354,7 @@ export default function SearchScreen() {
               <Text style={styles.resultsCountText}>
                 {listingsFetching
                   ? 'Updating results…'
-                  : `${filteredListings.length} local items found ${selectedCity !== 'All Cities' ? `in ${selectedCity}` : ''}`}
+                  : `${filteredListings.length} local items found ${isGpsActive ? `within ${selectedRadius} km` : selectedCity !== 'All Cities' ? `in ${selectedCity}` : ''}`}
               </Text>
             }
             renderItem={({ item }) => {
@@ -443,18 +561,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.two,
+    paddingLeft: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: '#1c1c1e',
     gap: Spacing.two,
   },
-  locationTag: {
+  gpsDetectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 6,
+    borderRadius: 14,
     gap: 4,
-    paddingLeft: Spacing.four,
   },
-  locationTagText: {
-    color: 'rgba(255,255,255,0.7)',
+  gpsDetectBtnActive: {
+    backgroundColor: '#22C55E',
+  },
+  gpsDetectBtnText: {
+    color: '#fff',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
   },
@@ -465,7 +590,7 @@ const styles = StyleSheet.create({
   cityChip: {
     backgroundColor: '#1c1c1e',
     paddingHorizontal: Spacing.three,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#2c2c2e',
@@ -481,6 +606,36 @@ const styles = StyleSheet.create({
   },
   cityChipTextActive: {
     color: BrandColors.primaryLight,
+    fontWeight: FontWeight.bold,
+  },
+  radiusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    backgroundColor: '#1a1a1c',
+    gap: Spacing.two,
+  },
+  radiusLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  radiusChip: {
+    backgroundColor: '#2c2c2e',
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  radiusChipActive: {
+    backgroundColor: BrandColors.primary,
+  },
+  radiusChipText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: FontSize.xs,
+  },
+  radiusChipTextActive: {
+    color: '#fff',
     fontWeight: FontWeight.bold,
   },
   filterTabsRow: {
