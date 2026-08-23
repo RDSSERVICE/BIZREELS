@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import {
   FiCalendar, FiClock, FiMapPin, FiX, FiCheckCircle,
-  FiCreditCard, FiDollarSign, FiShield
+  FiCreditCard, FiDollarSign, FiShield, FiCopy, FiAlertTriangle, FiLock, FiCheck
 } from 'react-icons/fi';
 import { BsQrCode } from 'react-icons/bs';
 import toast from 'react-hot-toast';
-import api from '../../../../lib/api';
+import api, { resolveMediaUrl } from '../../../../lib/api';
 
 export default function BookServiceModal({
   isOpen,
@@ -20,13 +20,55 @@ export default function BookServiceModal({
   const [paymentMethod, setPaymentMethod] = useState('vendor_upi');
   const [loading, setLoading] = useState(false);
 
+  const [copiedKey, setCopiedKey] = useState('');
+  const handleCopy = (text, key) => {
+    if (!text) return;
+    navigator.clipboard?.writeText(text);
+    setCopiedKey(key);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopiedKey(''), 2000);
+  };
+
   if (!isOpen || !service) return null;
 
   const serviceId = service._id || service.id;
   const vendorObj = service.vendor || service.vendorId || {};
-  const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || 'Verified Professional';
+  const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || 'Professional Vendor';
   const priceVal = Number(service.sellingPrice || service.salePrice || service.price || 0);
-  const vendorUpi = vendorObj.vendorProfile?.upiId || vendorObj.upiId || vendorObj.vendorProfile?.upi_id || 'vendor@upi';
+
+  const isVendorVerified = (vendor) => {
+    if (!vendor) return false;
+    if (typeof vendor !== 'object') return false;
+    if (vendor.kyc_status === 'approved') return true;
+    if (vendor.is_subscribed_verified === true) return true;
+    if (vendor.isVerified === true || vendor.is_verified === true) return true;
+    if (vendor.vendorProfile?.isVerified === true) return true;
+    if (vendor.verified_badge === true) return true;
+    const status = vendor.vendorProfile?.verificationStatus || vendor.verificationStatus || vendor.vendorProfile?.tier || vendor.tier;
+    if (['verified_vendor', 'premium_verified', 'trusted_vendor', 'premium_vendor', 'verified'].includes(status)) {
+      return true;
+    }
+    if (vendor.vendorProfile?.contactVerified?.whatsapp || vendor.vendorProfile?.contactVerified?.mobile) {
+      return true;
+    }
+    const docs = vendor.vendorProfile?.documents || {};
+    if (docs.pan?.status === 'approved' || docs.pan?.verified || docs.aadhaar?.status === 'approved' || docs.aadhaar?.verified || docs.gst?.status === 'approved' || docs.gst?.verified) {
+      return true;
+    }
+    return false;
+  };
+
+  const isVerified = isVendorVerified(vendorObj);
+  const vendorPayment = vendorObj.vendorProfile?.paymentDetails || vendorObj.paymentDetails || {};
+  const vendorUpi = vendorPayment.upiId || vendorObj.vendorProfile?.upiId || vendorObj.upiId || '';
+  const vendorQr = vendorPayment.qrCodeUrl || vendorPayment.qrCode || vendorObj.vendorProfile?.qrCode || vendorObj.vendorProfile?.qrCodeUrl || vendorObj.qrCode || '';
+  const vendorBank = {
+    bankName: vendorPayment.bankName || vendorObj.vendorProfile?.bankDetails?.bankName || '',
+    accountHolderName: vendorPayment.accountHolderName || vendorObj.vendorProfile?.bankDetails?.accountHolderName || vendorName || '',
+    accountNumber: vendorPayment.bankAccount || vendorPayment.accountNumber || vendorPayment.maskedAccount || vendorObj.vendorProfile?.bankDetails?.accountNumber || '',
+    ifscCode: vendorPayment.ifscCode || vendorObj.vendorProfile?.bankDetails?.ifscCode || '',
+    branchName: vendorPayment.branchName || vendorObj.vendorProfile?.bankDetails?.branchName || '',
+  };
 
   // Realtime Cancellation Policies from service document
   const policies = service.serviceDetails?.policies || {};
@@ -175,46 +217,211 @@ export default function BookServiceModal({
           </div>
 
           {/* Direct Vendor Payment Method */}
-          <div className="space-y-1.5 pt-1">
+          <div className="space-y-2 pt-1">
             <label className="block text-[10.5px] font-extrabold text-slate-600 uppercase">
               Payment Method (Pay Directly to Vendor)
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              <div
-                onClick={() => setPaymentMethod('vendor_upi')}
-                className={`p-2 rounded-xl border transition cursor-pointer text-center ${
-                  paymentMethod === 'vendor_upi'
-                    ? 'bg-amber-50/70 border-[#d99a3d] text-[#1a1a1a]'
-                    : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-600'
-                }`}
-              >
-                <FiCreditCard size={14} className="mx-auto text-[#d99a3d] mb-0.5" />
-                <span className="text-[10px] font-bold block">Vendor UPI</span>
-              </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { id: 'vendor_upi', label: 'UPI / GPay', icon: FiCreditCard, color: 'text-[#d99a3d]' },
+                { id: 'vendor_qr', label: 'Vendor QR', icon: BsQrCode, color: 'text-[#d99a3d]' },
+                { id: 'bank_transfer', label: 'Bank', icon: FiShield, color: 'text-[#d99a3d]' },
+                { id: 'cod', label: 'On Visit', icon: FiDollarSign, color: 'text-emerald-600' },
+              ].map((method) => {
+                const Icon = method.icon;
+                return (
+                  <div
+                    key={method.id}
+                    onClick={() => setPaymentMethod(method.id)}
+                    className={`p-2 rounded-xl border transition cursor-pointer text-center flex flex-col items-center justify-center ${
+                      paymentMethod === method.id
+                        ? 'bg-amber-50/70 border-[#d99a3d] text-[#1a1a1a] font-extrabold shadow-2xs'
+                        : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-600'
+                    }`}
+                  >
+                    <Icon size={14} className={`${method.color} mb-0.5`} />
+                    <span className="text-[9.5px] font-bold leading-tight">{method.label}</span>
+                  </div>
+                );
+              })}
+            </div>
 
-              <div
-                onClick={() => setPaymentMethod('vendor_qr')}
-                className={`p-2 rounded-xl border transition cursor-pointer text-center ${
-                  paymentMethod === 'vendor_qr'
-                    ? 'bg-amber-50/70 border-[#d99a3d] text-[#1a1a1a]'
-                    : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-600'
-                }`}
-              >
-                <BsQrCode size={14} className="mx-auto text-[#d99a3d] mb-0.5" />
-                <span className="text-[10px] font-bold block">Vendor QR</span>
-              </div>
+            {/* Dynamic Details / Unverified Security Panel */}
+            <div className="p-3 rounded-xl border bg-white border-[#e3dccb] transition-all">
+              {paymentMethod === 'vendor_upi' && (
+                isVerified ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <FiCreditCard size={13} className="text-emerald-600" />
+                        <span className="text-[11px] font-black text-[#1a1a1a] flex items-center gap-1">
+                          Verified Professional UPI
+                          <FiCheckCircle className="text-emerald-600" size={11} />
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Verified
+                      </span>
+                    </div>
 
-              <div
-                onClick={() => setPaymentMethod('cod')}
-                className={`p-2 rounded-xl border transition cursor-pointer text-center ${
-                  paymentMethod === 'cod'
-                    ? 'bg-amber-50/70 border-[#d99a3d] text-[#1a1a1a]'
-                    : 'bg-[#f8f4ec] border-[#e3dccb] text-slate-600'
-                }`}
-              >
-                <FiDollarSign size={14} className="mx-auto text-emerald-600 mb-0.5" />
-                <span className="text-[10px] font-bold block">Cash on Visit</span>
-              </div>
+                    {vendorUpi ? (
+                      <div className="p-2 rounded-lg bg-[#f8f4ec] border border-[#e3dccb] flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="text-[8.5px] font-extrabold text-slate-400 uppercase block">UPI ID</span>
+                          <span className="text-xs font-black text-[#1a1a1a] font-mono select-all truncate block">{vendorUpi}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(vendorUpi, 'upi')}
+                          className="px-2 py-1 rounded bg-white border border-[#e3dccb] text-[10px] font-bold text-[#1a1a1a] flex items-center gap-1 shrink-0"
+                        >
+                          {copiedKey === 'upi' ? <><FiCheck size={10} className="text-emerald-600" /> Copied</> : <><FiCopy size={10} /> Copy</>}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-[10.5px] text-slate-500">ℹ️ Vendor UPI not set. You can pay after service visit.</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 space-y-1">
+                    <div className="flex items-center gap-1 text-amber-900 font-bold text-[11px]">
+                      <FiLock size={12} className="text-amber-700" />
+                      <span>UPI Advance Details Hidden (Unverified)</span>
+                    </div>
+                    <p className="text-[10px] text-amber-800 leading-snug">
+                      Advance UPI details are restricted for unverified accounts. Please select <strong>Pay on Visit</strong>.
+                    </p>
+                  </div>
+                )
+              )}
+
+              {paymentMethod === 'vendor_qr' && (
+                isVerified ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <BsQrCode size={13} className="text-emerald-600" />
+                        <span className="text-[11px] font-black text-[#1a1a1a] flex items-center gap-1">
+                          Verified Payment QR Code
+                          <FiCheckCircle className="text-emerald-600" size={11} />
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Verified
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-2 rounded-lg bg-[#f8f4ec] border border-[#e3dccb]">
+                      {vendorQr ? (
+                        <img
+                          src={resolveMediaUrl(vendorQr)}
+                          alt="Vendor QR"
+                          className="w-20 h-20 object-contain rounded bg-white p-1 border border-[#e3dccb]"
+                        />
+                      ) : vendorUpi ? (
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`upi://pay?pa=${vendorUpi}&pn=${encodeURIComponent(vendorName)}&cu=INR`)}`}
+                          alt="Dynamic QR"
+                          className="w-20 h-20 object-contain rounded bg-white p-1 border border-[#e3dccb]"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400 text-[9px] text-center p-1">
+                          <BsQrCode size={16} className="mb-0.5" />
+                          <span>No QR</span>
+                        </div>
+                      )}
+                      <div className="text-[10.5px] min-w-0 space-y-0.5">
+                        <p className="font-bold text-[#1a1a1a]">Scan via GPay / PhonePe / Paytm</p>
+                        {vendorUpi && <p className="text-slate-500 font-mono text-[10px] truncate">UPI: {vendorUpi}</p>}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 space-y-1">
+                    <div className="flex items-center gap-1 text-amber-900 font-bold text-[11px]">
+                      <FiLock size={12} className="text-amber-700" />
+                      <span>QR Code Hidden (Unverified)</span>
+                    </div>
+                    <p className="text-[10px] text-amber-800 leading-snug">
+                      QR advance payment is restricted for unverified vendors. Please choose <strong>Pay on Visit</strong>.
+                    </p>
+                  </div>
+                )
+              )}
+
+              {paymentMethod === 'bank_transfer' && (
+                isVerified ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <FiShield size={13} className="text-emerald-600" />
+                        <span className="text-[11px] font-black text-[#1a1a1a] flex items-center gap-1">
+                          Verified Bank Details
+                          <FiCheckCircle className="text-emerald-600" size={11} />
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Verified
+                      </span>
+                    </div>
+
+                    {(vendorBank.accountNumber || vendorBank.ifscCode) ? (
+                      <div className="grid grid-cols-2 gap-1.5 p-2 rounded-lg bg-[#f8f4ec] border border-[#e3dccb] text-[10.5px]">
+                        <div>
+                          <span className="text-[8.5px] text-slate-400 font-bold uppercase block">Holder</span>
+                          <p className="font-bold text-[#1a1a1a] truncate">{vendorBank.accountHolderName || vendorName}</p>
+                        </div>
+                        <div>
+                          <span className="text-[8.5px] text-slate-400 font-bold uppercase block">Bank</span>
+                          <p className="font-bold text-[#1a1a1a] truncate">{vendorBank.bankName || 'Bank'}</p>
+                        </div>
+                        <div>
+                          <span className="text-[8.5px] text-slate-400 font-bold uppercase block">A/C No</span>
+                          <div className="flex items-center gap-1">
+                            <p className="font-mono font-bold text-[#1a1a1a] truncate">{vendorBank.accountNumber}</p>
+                            <button type="button" onClick={() => handleCopy(vendorBank.accountNumber, 'acc')} className="text-slate-500">
+                              {copiedKey === 'acc' ? <FiCheck size={9} className="text-emerald-600" /> : <FiCopy size={9} />}
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[8.5px] text-slate-400 font-bold uppercase block">IFSC</span>
+                          <div className="flex items-center gap-1">
+                            <p className="font-mono font-bold text-[#1a1a1a] truncate">{vendorBank.ifscCode}</p>
+                            <button type="button" onClick={() => handleCopy(vendorBank.ifscCode, 'ifsc')} className="text-slate-500">
+                              {copiedKey === 'ifsc' ? <FiCheck size={9} className="text-emerald-600" /> : <FiCopy size={9} />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[10.5px] text-slate-500">ℹ️ Bank details not provided by vendor.</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 space-y-1">
+                    <div className="flex items-center gap-1 text-amber-900 font-bold text-[11px]">
+                      <FiLock size={12} className="text-amber-700" />
+                      <span>Bank Details Hidden (Unverified)</span>
+                    </div>
+                    <p className="text-[10px] text-amber-800 leading-snug">
+                      Bank details are hidden for unverified accounts. Please select <strong>Pay on Visit</strong>.
+                    </p>
+                  </div>
+                )
+              )}
+
+              {paymentMethod === 'cod' && (
+                <div className="p-2 rounded-lg bg-emerald-50/60 border border-emerald-200 space-y-0.5">
+                  <div className="flex items-center gap-1 text-emerald-900 font-bold text-[11px]">
+                    <FiDollarSign size={13} className="text-emerald-600" />
+                    <span>Pay in Person After Service Completion</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-800 leading-tight">
+                    No advance payment required. Inspect the service upon completion and pay directly in cash or UPI.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
