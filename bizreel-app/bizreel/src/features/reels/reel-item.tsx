@@ -1,28 +1,25 @@
 /**
- * ReelItem — full-screen reel card with social & e-commerce features.
- *
- * Interactions:
- * - Single tap on video → play / pause toggle
- * - Double tap anywhere → like (with heart animation)
- * - Tap caption → expand / collapse
- * - Product tag banner → Add to Cart or navigate to Listing Details
- * - Comments button → Open Comments Modal
+ * ReelItem — full-screen reel card with cross-platform Ionicons action buttons.
+ * Guarantees 100% visibility for Like, Comment, Share, Save & Mute on Android.
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   Modal,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import Animated, {
@@ -31,6 +28,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart } from '@/features/cart/queries';
@@ -47,6 +45,8 @@ interface ReelItemProps {
 
 export function ReelItem({ reel, isActive, height }: ReelItemProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
   const [isSaved, setIsSaved] = useState(reel.isSaved || false);
@@ -56,6 +56,7 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
   const [showPauseIcon, setShowPauseIcon] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const toggleLikeMutation = useToggleReelLike();
   const toggleSaveMutation = useToggleReelSave();
@@ -98,7 +99,7 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
     if (player) player.muted = isMuted;
   }, [isMuted, player]);
 
-  // Single tap → play/pause (video only)
+  // Single tap → play/pause
   function handleSingleTap() {
     if (!isVideo) return;
     setIsPaused((v) => {
@@ -162,6 +163,17 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
     toggleSaveMutation.mutate({ reelId: reel._id, isSaved: !nextSaved });
   }
 
+  async function handleShareButton() {
+    try {
+      await Share.share({
+        message: `Check out this reel by ${reel.creatorName} on BIZREELS: ${reel.caption || ''}`,
+        title: `BIZREELS — ${reel.creatorName}`,
+      });
+    } catch (err) {
+      console.warn('Share error', err);
+    }
+  }
+
   function handleSendComment() {
     if (!commentText.trim()) return;
     addCommentMutation.mutate(commentText.trim(), {
@@ -174,7 +186,12 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
 
   function handleAddToCart() {
     if (taggedListing?._id) {
-      addToCartMutation.mutate({ listing_id: taggedListing._id, quantity: 1 });
+      addToCartMutation.mutate(
+        { listing_id: taggedListing._id, quantity: 1 },
+        {
+          onSuccess: () => Alert.alert('Cart Updated', `${taggedListing.title} added to cart!`),
+        }
+      );
     }
   }
 
@@ -184,56 +201,66 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
     }
   }
 
+  const bottomMargin = Math.max(insets.bottom, 12) + 70;
+
   return (
-    <View style={styles.container}>
-      {/* Tappable media area */}
+    <View style={[styles.container, { height }]}>
+      {/* Media Touchable Container */}
       <Pressable style={styles.mediaTouchable} onPress={handleTap} accessibilityRole="button">
         {isVideo ? (
           <>
             <VideoView
               player={player}
               style={styles.video}
-              contentFit="contain"
+              contentFit="cover"
               nativeControls={false}
             />
             {reel.thumbnailUrl && !isActive && (
-              <Image source={{ uri: reel.thumbnailUrl }} style={styles.media} contentFit="contain" />
+              <Image source={{ uri: reel.thumbnailUrl }} style={styles.media} contentFit="cover" />
             )}
           </>
         ) : (
           <>
-            <Image source={{ uri: imageUrl }} style={styles.media} contentFit="contain" />
-            <View style={styles.imageTypeBadge}>
-              <SymbolView name="photo" size={14} tintColor="#fff" />
-              <Text style={styles.imageTypeText}>Image</Text>
+            <Image source={{ uri: imageUrl }} style={styles.media} contentFit="cover" />
+            <View style={[styles.imageTypeBadge, { top: insets.top + 16 }]}>
+              <Ionicons name="image-outline" size={14} color="#fff" />
+              <Text style={styles.imageTypeText}>Photo Reel</Text>
             </View>
           </>
         )}
 
-        <View style={styles.gradient} pointerEvents="none" />
+        <View style={styles.gradientOverlay} pointerEvents="none" />
 
+        {/* Play / Pause Toggle Icon */}
         {showPauseIcon && (
           <View style={styles.playPauseOverlay} pointerEvents="none">
-            <SymbolView name={isPaused ? "pause.fill" : "play.fill"} size={64} tintColor="rgba(255,255,255,0.9)" />
+            <View style={styles.playPauseCircle}>
+              <Ionicons
+                name={isPaused ? 'play' : 'pause'}
+                size={40}
+                color="rgba(255,255,255,0.95)"
+              />
+            </View>
           </View>
         )}
 
+        {/* Animated Heart Overlay */}
         <Animated.View style={[styles.heartOverlay, heartAnimStyle]} pointerEvents="none">
-          <SymbolView name="heart.fill" size={100} tintColor="#fff" />
+          <Ionicons name="heart" size={110} color="#FF2D55" />
         </Animated.View>
       </Pressable>
 
-      {/* Bottom overlay — creator, caption & tagged product */}
-      <View style={styles.bottomOverlay} pointerEvents="box-none">
-        {/* Tagged Product Banner (if tagged) */}
+      {/* Bottom Information Overlay */}
+      <View style={[styles.bottomOverlay, { bottom: bottomMargin }]} pointerEvents="box-none">
+        {/* Tagged E-Commerce Product Banner */}
         {hasTaggedListing && (
           <View style={styles.taggedBanner}>
-            <Pressable style={styles.taggedContent} onPress={handleViewListing}>
+            <TouchableOpacity style={styles.taggedContent} onPress={handleViewListing}>
               {taggedListing.image ? (
-                <Image source={{ uri: taggedListing.image }} style={styles.taggedImage} />
+                <Image source={{ uri: taggedListing.image }} style={styles.taggedImage} contentFit="cover" />
               ) : (
                 <View style={styles.taggedImageFallback}>
-                  <SymbolView name="bag.fill" size={16} tintColor="#fff" />
+                  <Ionicons name="bag" size={16} color="#fff" />
                 </View>
               )}
               <View style={{ flex: 1 }}>
@@ -244,21 +271,25 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
                   ₹{taggedListing.salePrice || taggedListing.price}
                 </Text>
               </View>
-            </Pressable>
-            <Pressable
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.addToCartBtn}
               onPress={handleAddToCart}
               disabled={addToCartMutation.isPending}>
               {addToCartMutation.isPending ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.addToCartBtnText}>Add +</Text>
+                <>
+                  <Ionicons name="cart" size={12} color="#fff" />
+                  <Text style={styles.addToCartBtnText}>Add +</Text>
+                </>
               )}
-            </Pressable>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Creator row */}
+        {/* Creator Info Row */}
         <View style={styles.creatorRow}>
           <View style={styles.avatar}>
             {reel.creatorAvatar ? (
@@ -269,82 +300,106 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
               </Text>
             )}
           </View>
+
           <View style={{ flex: 1 }}>
-            <Text style={styles.creatorName} numberOfLines={1}>
-              {reel.creatorName}
-            </Text>
-            <Text style={styles.creatorRole}>{reel.creatorRole}</Text>
-          </View>
-          {reel.isBoosted && (
-            <View style={styles.boostedBadge}>
-              <Text style={styles.boostedText}>Sponsored</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.creatorName} numberOfLines={1}>
+                {reel.creatorName}
+              </Text>
+              <Ionicons name="checkmark-circle" size={14} color={BrandColors.primaryLight} />
             </View>
-          )}
+            <Text style={styles.creatorRole}>{reel.creatorRole || 'Creator'}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+            onPress={() => setIsFollowing((v) => !v)}>
+            <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
+              {isFollowing ? 'Following' : 'Follow'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Caption */}
+        {/* Reel Caption */}
         {!!reel.caption && (
-          <Pressable onPress={() => setCaptionExpanded((v) => !v)} accessibilityRole="button">
-            <Text style={styles.caption} numberOfLines={captionExpanded ? undefined : 1}>
+          <TouchableOpacity onPress={() => setCaptionExpanded((v) => !v)} activeOpacity={0.8}>
+            <Text style={styles.caption} numberOfLines={captionExpanded ? undefined : 2}>
               {reel.caption}
             </Text>
-            {!captionExpanded && reel.caption.length > 40 && (
-              <Text style={styles.captionMore}>more</Text>
-            )}
-          </Pressable>
+          </TouchableOpacity>
         )}
 
         {/* Hashtags */}
-        {reel.hashtags?.length > 0 && (
+        {reel.hashtags && reel.hashtags.length > 0 && (
           <Text style={styles.hashtags} numberOfLines={1}>
             {reel.hashtags.map((h) => `#${h}`).join(' ')}
           </Text>
         )}
       </View>
 
-      {/* Right-side action buttons */}
-      <View style={styles.actions}>
-        {/* Like */}
-        <Pressable style={styles.actionBtn} onPress={handleLikeButton} accessibilityLabel="Like">
-          <SymbolView
-            name={isLiked ? "heart.fill" : "heart"}
-            size={28}
-            tintColor={isLiked ? BrandColors.error : '#fff'}
-          />
+      {/* Right-Side Floating Action Column */}
+      <View style={[styles.actionsColumn, { bottom: bottomMargin }]} pointerEvents="box-none">
+        {/* Like Button */}
+        <TouchableOpacity style={styles.actionBtn} onPress={handleLikeButton} accessibilityLabel="Like">
+          <View style={[styles.actionIconCircle, isLiked && styles.actionIconCircleActive]}>
+            <Ionicons
+              name={isLiked ? 'heart' : 'heart-outline'}
+              size={26}
+              color={isLiked ? '#FF2D55' : '#FFFFFF'}
+            />
+          </View>
           <Text style={styles.actionCount}>{formatCount(likeCount)}</Text>
-        </Pressable>
+        </TouchableOpacity>
 
-        {/* Comments */}
-        <Pressable style={styles.actionBtn} onPress={() => setCommentsVisible(true)} accessibilityLabel="Comments">
-          <SymbolView name="bubble.right" size={28} tintColor="#fff" />
+        {/* Comments Button */}
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => setCommentsVisible(true)}
+          accessibilityLabel="Comments">
+          <View style={styles.actionIconCircle}>
+            <Ionicons name="chatbubble-outline" size={24} color="#FFFFFF" />
+          </View>
           <Text style={styles.actionCount}>{formatCount(reel.commentsCount)}</Text>
-        </Pressable>
+        </TouchableOpacity>
 
-        {/* Save / Bookmark */}
-        <Pressable style={styles.actionBtn} onPress={handleSaveButton} accessibilityLabel="Bookmark">
-          <SymbolView
-            name={isSaved ? "bookmark.fill" : "bookmark"}
-            size={26}
-            tintColor={isSaved ? BrandColors.primary : '#fff'}
-          />
-        </Pressable>
+        {/* Share Button */}
+        <TouchableOpacity style={styles.actionBtn} onPress={handleShareButton} accessibilityLabel="Share">
+          <View style={styles.actionIconCircle}>
+            <Ionicons name="share-social-outline" size={24} color="#FFFFFF" />
+          </View>
+          <Text style={styles.actionCount}>Share</Text>
+        </TouchableOpacity>
 
-        {/* Mute / Unmute */}
+        {/* Save / Bookmark Button */}
+        <TouchableOpacity style={styles.actionBtn} onPress={handleSaveButton} accessibilityLabel="Bookmark">
+          <View style={styles.actionIconCircle}>
+            <Ionicons
+              name={isSaved ? 'bookmark' : 'bookmark-outline'}
+              size={24}
+              color={isSaved ? BrandColors.primaryLight : '#FFFFFF'}
+            />
+          </View>
+          <Text style={styles.actionCount}>{isSaved ? 'Saved' : 'Save'}</Text>
+        </TouchableOpacity>
+
+        {/* Audio Mute / Unmute */}
         {isVideo && (
-          <Pressable
+          <TouchableOpacity
             style={styles.actionBtn}
             onPress={() => setIsMuted((v) => !v)}
             accessibilityLabel={isMuted ? 'Unmute' : 'Mute'}>
-            <SymbolView
-              name={isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill"}
-              size={24}
-              tintColor="#fff"
-            />
-          </Pressable>
+            <View style={styles.actionIconCircle}>
+              <Ionicons
+                name={isMuted ? 'volume-mute-outline' : 'volume-high-outline'}
+                size={22}
+                color="#FFFFFF"
+              />
+            </View>
+          </TouchableOpacity>
         )}
       </View>
 
-      {/* Comments Drawer Modal */}
+      {/* Slide-Up Comments Drawer Modal */}
       <Modal
         visible={commentsVisible}
         animationType="slide"
@@ -355,17 +410,18 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
           <View style={styles.commentsDrawer}>
             <View style={styles.drawerHeader}>
               <Text style={styles.drawerTitle}>Comments ({comments.length})</Text>
-              <Pressable onPress={() => setCommentsVisible(false)}>
-                <SymbolView name="xmark" size={20} tintColor="#fff" />
-              </Pressable>
+              <TouchableOpacity onPress={() => setCommentsVisible(false)}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
             </View>
 
             {isLoadingComments ? (
-              <ActivityIndicator style={{ marginVertical: 20 }} color={BrandColors.primary} />
+              <ActivityIndicator style={{ marginVertical: 30 }} color={BrandColors.primary} />
             ) : (
               <FlatList
                 data={comments}
                 keyExtractor={(item) => item._id}
+                contentContainerStyle={{ gap: Spacing.two }}
                 renderItem={({ item }) => (
                   <View style={styles.commentItem}>
                     <Text style={styles.commentUser}>{item.user?.name || 'User'}</Text>
@@ -386,16 +442,16 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
                 value={commentText}
                 onChangeText={setCommentText}
               />
-              <Pressable
+              <TouchableOpacity
                 style={styles.sendBtn}
                 onPress={handleSendComment}
-                disabled={addCommentMutation.isPending}>
+                disabled={addCommentMutation.isPending || !commentText.trim()}>
                 {addCommentMutation.isPending ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.sendBtnText}>Post</Text>
+                  <Ionicons name="send" size={16} color="#fff" />
                 )}
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -414,73 +470,60 @@ function formatCount(n: number): string {
 const styles = StyleSheet.create({
   container: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
     backgroundColor: '#000',
+    position: 'relative',
   },
   mediaTouchable: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    ...StyleSheet.absoluteFillObject,
   },
   media: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    ...StyleSheet.absoluteFillObject,
   },
   video: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    ...StyleSheet.absoluteFillObject,
   },
-  gradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+  gradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   playPauseOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playPauseCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   heartOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bottomOverlay: {
     position: 'absolute',
     left: 0,
-    right: 72,
-    bottom: 90,
+    right: 76,
     paddingHorizontal: Spacing.four,
     gap: Spacing.two,
   },
   taggedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(26, 26, 26, 0.85)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(24, 24, 28, 0.92)',
+    borderRadius: 12,
     padding: Spacing.two,
     borderWidth: 1,
     borderColor: BrandColors.primary,
     marginBottom: Spacing.one,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   taggedContent: {
     flex: 1,
@@ -489,22 +532,22 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   taggedImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
+    width: 38,
+    height: 38,
+    borderRadius: 8,
   },
   taggedImageFallback: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
+    width: 38,
+    height: 38,
+    borderRadius: 8,
     backgroundColor: BrandColors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   taggedTitle: {
     color: '#fff',
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
   },
   taggedPrice: {
     color: BrandColors.primaryLight,
@@ -512,10 +555,13 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
   },
   addToCartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: BrandColors.primary,
     paddingHorizontal: Spacing.three,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 16,
+    gap: 4,
   },
   addToCartBtnText: {
     color: '#fff',
@@ -526,7 +572,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    marginBottom: Spacing.one,
   },
   avatar: {
     width: 40,
@@ -555,66 +600,83 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     textTransform: 'capitalize',
   },
-  boostedBadge: {
+  followBtn: {
     backgroundColor: BrandColors.primary,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 4,
+    borderRadius: 14,
   },
-  boostedText: {
+  followBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  followBtnText: {
     color: '#fff',
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
+  },
+  followBtnTextActive: {
+    color: 'rgba(255,255,255,0.8)',
   },
   caption: {
     color: '#fff',
-    fontSize: FontSize.base,
-    lineHeight: 20,
-  },
-  captionMore: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    lineHeight: 18,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowRadius: 4,
   },
   hashtags: {
     color: BrandColors.primaryLight,
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
   },
   imageTypeBadge: {
     position: 'absolute',
-    top: 52,
     left: Spacing.four,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: Spacing.two,
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   imageTypeText: {
     color: '#fff',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.medium,
   },
-  actions: {
+  actionsColumn: {
     position: 'absolute',
-    right: Spacing.three,
-    bottom: 100,
+    right: 14,
     alignItems: 'center',
     gap: Spacing.four,
   },
   actionBtn: {
     alignItems: 'center',
-    gap: Spacing.half,
+    gap: 3,
+  },
+  actionIconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  actionIconCircleActive: {
+    backgroundColor: 'rgba(255, 45, 85, 0.2)',
+    borderColor: '#FF2D55',
   },
   actionCount: {
     color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowRadius: 3,
   },
   modalOverlay: {
     flex: 1,
@@ -622,13 +684,13 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   commentsDrawer: {
     backgroundColor: '#1c1c1e',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: SCREEN_HEIGHT * 0.6,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: SCREEN_HEIGHT * 0.65,
     padding: Spacing.four,
   },
   drawerHeader: {
@@ -646,7 +708,9 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
   },
   commentItem: {
-    marginBottom: Spacing.three,
+    backgroundColor: '#2c2c2e',
+    padding: Spacing.two,
+    borderRadius: 8,
   },
   commentUser: {
     color: BrandColors.primaryLight,
@@ -683,14 +747,11 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
   },
   sendBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: BrandColors.primary,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: 16,
-  },
-  sendBtnText: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
