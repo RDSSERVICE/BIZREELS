@@ -17,9 +17,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RoleSwitcher } from '@/components/role-switcher';
+import { VendorDrawerModal } from '@/components/vendor-drawer-modal';
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
 import { useAddToCart, useCart } from '@/features/cart/queries';
 import { useReelsFeed } from '@/features/reels/queries';
+import { useVendorListings } from '@/features/vendor-listings/queries';
 import { api } from '@/lib/api';
 import { getListingImage, resolveImageUrl } from '@/utils/image';
 
@@ -45,16 +48,19 @@ const CATEGORIES: Array<{
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { data: cart } = useCart();
   const addToCartMutation = useAddToCart();
   const { data: reelsData } = useReelsFeed();
+  const { data: vendorListings = [] } = useVendorListings();
 
   const reels = reelsData?.pages?.flatMap((p) => p.data || []) || [];
   const cartItemCount = cart?.total_items || 0;
@@ -93,12 +99,21 @@ export default function HomeScreen() {
   });
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Top App Header */}
-      <View style={styles.topHeader}>
-        <View style={styles.brandGroup}>
-          <Text style={styles.brandTitle}>BIZ<Text style={styles.brandAccent}>REELS</Text></Text>
-        </View>
+    <>
+      <VendorDrawerModal isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        {/* Top App Header */}
+        <View style={styles.topHeader}>
+          <View style={styles.brandGroup}>
+            {user?.activeRole === 'vendor' && (
+              <TouchableOpacity
+                style={{ marginRight: 8, padding: 4 }}
+                onPress={() => setDrawerOpen(true)}>
+                <Ionicons name="menu-outline" size={26} color={BrandColors.primary} />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.brandTitle}>BIZ<Text style={styles.brandAccent}>REELS</Text></Text>
+          </View>
 
         <View style={styles.headerRightGroup}>
           <RoleSwitcher />
@@ -195,50 +210,96 @@ export default function HomeScreen() {
           })}
         </ScrollView>
 
-        {/* Watch Featured Reels Highlights */}
-        {reels.length > 0 && (
+        {/* Vendor Catalog & Product Listings Header Section */}
+        {user?.activeRole === 'vendor' ? (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Featured Video Reels</Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)')}>
-                <Text style={styles.seeAllText}>View All ›</Text>
+              <Text style={styles.sectionTitle}>📦 My Vendor Store Catalog ({vendorListings.length})</Text>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: BrandColors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, gap: 4 }}
+                onPress={() => router.push('/vendor/listings' as any)}>
+                <Ionicons name="add-circle" size={16} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: FontWeight.bold }}>Manage Catalog</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.reelsHighlightScroll}>
-              {reels.slice(0, 6).map((reel) => {
-                const reelThumb = resolveImageUrl(reel.thumbnailUrl || reel.mediaUrls?.[0] || (reel as any).coverImage);
-                return (
-                  <TouchableOpacity
-                    key={reel._id}
-                    style={styles.reelHighlightCard}
-                    onPress={() => router.push({ pathname: '/(tabs)', params: { reelId: reel._id } })}>
-                    {reelThumb ? (
-                      <Image
-                        source={{ uri: reelThumb }}
-                        style={styles.reelThumbnail}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <View style={[styles.reelThumbnail, { backgroundColor: '#2c2c2e', alignItems: 'center', justifyContent: 'center' }]}>
-                        <Ionicons name="film-outline" size={28} color="rgba(255,255,255,0.4)" />
+            {vendorListings.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.reelsHighlightScroll}>
+                {vendorListings.slice(0, 8).map((item) => {
+                  const imgUri = getListingImage(item) || 'https://via.placeholder.com/300';
+                  return (
+                    <TouchableOpacity
+                      key={item._id}
+                      style={styles.reelHighlightCard}
+                      onPress={() => router.push('/vendor/listings' as any)}>
+                      <Image source={{ uri: imgUri }} style={styles.reelThumbnail} contentFit="cover" />
+                      <View style={styles.reelOverlayGradient} />
+                      <View style={[styles.reelPlayBadge, { backgroundColor: BrandColors.primary }]}>
+                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: FontWeight.bold }}>₹{item.price}</Text>
                       </View>
-                    )}
-                    <View style={styles.reelOverlayGradient} />
-                    <View style={styles.reelPlayBadge}>
-                      <Ionicons name="play" size={14} color="#fff" />
-                    </View>
-                    <Text style={styles.reelCaption} numberOfLines={2}>
-                      {reel.caption || reel.creatorName}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                      <Text style={styles.reelCaption} numberOfLines={2}>
+                        {item.title}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <TouchableOpacity
+                style={{ backgroundColor: '#1c1c1e', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#2c2c2e' }}
+                onPress={() => router.push('/vendor/listings' as any)}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: FontWeight.bold }}>+ Add Product / Service Listing to Store</Text>
+              </TouchableOpacity>
+            )}
           </View>
+        ) : (
+          reels.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Featured Video Reels</Text>
+                <TouchableOpacity onPress={() => router.push('/(tabs)')}>
+                  <Text style={styles.seeAllText}>View All ›</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.reelsHighlightScroll}>
+                {reels.slice(0, 6).map((reel) => {
+                  const reelThumb = resolveImageUrl(reel.thumbnailUrl || reel.mediaUrls?.[0] || (reel as any).coverImage);
+                  return (
+                    <TouchableOpacity
+                      key={reel._id}
+                      style={styles.reelHighlightCard}
+                      onPress={() => router.push({ pathname: '/(tabs)', params: { reelId: reel._id } })}>
+                      {reelThumb ? (
+                        <Image
+                          source={{ uri: reelThumb }}
+                          style={styles.reelThumbnail}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View style={[styles.reelThumbnail, { backgroundColor: '#2c2c2e', alignItems: 'center', justifyContent: 'center' }]}>
+                          <Ionicons name="film-outline" size={28} color="rgba(255,255,255,0.4)" />
+                        </View>
+                      )}
+                      <View style={styles.reelOverlayGradient} />
+                      <View style={styles.reelPlayBadge}>
+                        <Ionicons name="play" size={14} color="#fff" />
+                      </View>
+                      <Text style={styles.reelCaption} numberOfLines={2}>
+                        {reel.caption || reel.creatorName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )
         )}
 
         {/* Trending Listings Grid */}
@@ -313,6 +374,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </View>
+    </>
   );
 }
 
