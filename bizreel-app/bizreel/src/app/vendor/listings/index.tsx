@@ -333,32 +333,28 @@ export default function VendorCatalogScreen() {
                     {/* 1. Analytics */}
                     <TouchableOpacity
                       style={styles.actionIconBtn}
-                      onPress={() => router.push('/vendor/analytics' as any)}
-                      title="Analytics">
+                      onPress={() => router.push('/vendor/analytics' as any)}>
                       <Ionicons name="stats-chart-outline" size={16} color="rgba(255,255,255,0.7)" />
                     </TouchableOpacity>
 
                     {/* 2. Edit */}
                     <TouchableOpacity
                       style={styles.actionIconBtn}
-                      onPress={() => router.push('/vendor/listings/create' as any)}
-                      title="Edit">
+                      onPress={() => router.push('/vendor/listings/create' as any)}>
                       <Ionicons name="create-outline" size={16} color="rgba(255,255,255,0.7)" />
                     </TouchableOpacity>
 
                     {/* 3. Duplicate */}
                     <TouchableOpacity
                       style={styles.actionIconBtn}
-                      onPress={() => handleDuplicate(item)}
-                      title="Duplicate">
+                      onPress={() => handleDuplicate(item)}>
                       <Ionicons name="copy-outline" size={16} color="rgba(255,255,255,0.7)" />
                     </TouchableOpacity>
 
                     {/* 4. Hide/Show */}
                     <TouchableOpacity
                       style={styles.actionIconBtn}
-                      onPress={() => toggleVisibility(item._id, item.title)}
-                      title="Visibility">
+                      onPress={() => toggleVisibility(item._id, item.title)}>
                       <Ionicons
                         name={isHidden ? 'eye-outline' : 'eye-off-outline'}
                         size={16}
@@ -369,16 +365,14 @@ export default function VendorCatalogScreen() {
                     {/* 5. Share */}
                     <TouchableOpacity
                       style={styles.actionIconBtn}
-                      onPress={() => handleShare(item)}
-                      title="Share">
+                      onPress={() => handleShare(item)}>
                       <Ionicons name="share-social-outline" size={16} color="rgba(255,255,255,0.7)" />
                     </TouchableOpacity>
 
                     {/* 6. Delete */}
                     <TouchableOpacity
                       style={styles.actionIconBtn}
-                      onPress={() => handleDelete(item._id, item.title)}
-                      title="Delete">
+                      onPress={() => handleDelete(item._id, item.title)}>
                       <Ionicons name="trash-outline" size={16} color={BrandColors.error} />
                     </TouchableOpacity>
                   </View>
@@ -569,7 +563,7 @@ const styles = StyleSheet.create({
   priceText: {
     color: '#10B981',
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.black,
+    fontWeight: FontWeight.bold,
   },
   typeBadge: {
     backgroundColor: '#27272a',
