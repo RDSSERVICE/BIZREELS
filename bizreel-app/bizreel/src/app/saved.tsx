@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { api } from '@/lib/api';
+import { getListingImage } from '@/utils/image';
 
 export default function SavedScreen() {
   const router = useRouter();
@@ -90,7 +91,7 @@ export default function SavedScreen() {
             />
           }
           renderItem={({ item }) => {
-            const image = item.images?.[0] || item.thumbnailUrl;
+            const image = getListingImage(item) || item.thumbnailUrl;
             return (
               <TouchableOpacity
                 style={styles.card}

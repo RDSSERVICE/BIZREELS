@@ -20,6 +20,7 @@ import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart } from '@/features/cart/queries';
 import { useCreateInquiry } from '@/features/inquiries/queries';
 import { useCreateReview, useListingReviews } from '@/features/reviews/queries';
+import { getListingImage } from '@/utils/image';
 import { api } from '@/lib/api';
 
 export default function ListingDetailsScreen() {
@@ -79,7 +80,7 @@ export default function ListingDetailsScreen() {
   }
 
   const images = listing.images || [];
-  const mainImage = images[0]?.url || listing.image;
+  const mainImage = getListingImage(listing);
   const price = listing.salePrice || listing.sellingPrice || listing.price || 0;
   const originalPrice = listing.actualPrice || listing.price;
   const hasDiscount = originalPrice > price;

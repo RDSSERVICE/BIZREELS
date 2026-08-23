@@ -28,6 +28,7 @@ import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart } from '@/features/cart/queries';
 import { useCategories, useListings } from '@/features/search/queries';
 import type { Category } from '@/features/search/types';
+import { getListingImage } from '@/utils/image';
 
 const POPULAR_SEARCHES = [
   'Solar Energy',
@@ -358,7 +359,7 @@ export default function SearchScreen() {
               </Text>
             }
             renderItem={({ item }) => {
-              const image = item.images?.[0];
+              const image = getListingImage(item);
               const price = item.salePrice || item.price || 0;
               const locationCity =
                 (item as any).city ||

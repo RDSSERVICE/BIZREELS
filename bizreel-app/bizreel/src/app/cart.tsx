@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
@@ -13,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useCart, useRemoveFromCart, useUpdateCartQuantity } from '@/features/cart/queries';
+import { getListingImage, resolveImageUrl } from '@/utils/image';
 
 export default function CartScreen() {
   const router = useRouter();
@@ -77,39 +79,42 @@ export default function CartScreen() {
                 </View>
 
                 {/* Items List */}
-                {group.items.map((item) => (
-                  <View key={item.listing_id} style={styles.itemRow}>
-                    {item.image ? (
-                      <Image source={{ uri: item.image }} style={styles.itemImage} />
-                    ) : (
-                      <View style={styles.itemImageFallback}>
-                        <SymbolView name="bag" size={20} tintColor="#fff" />
+                {group.items.map((item) => {
+                  const itemImg = resolveImageUrl(item.image) || getListingImage(item);
+                  return (
+                    <View key={item.listing_id} style={styles.itemRow}>
+                      {itemImg ? (
+                        <Image source={{ uri: itemImg }} style={styles.itemImage} />
+                      ) : (
+                        <View style={styles.itemImageFallback}>
+                          <Ionicons name="bag-outline" size={20} color="#fff" />
+                        </View>
+                      )}
+
+                      <View style={styles.itemDetails}>
+                        <Text style={styles.itemTitle} numberOfLines={2}>{item.title}</Text>
+                        <Text style={styles.itemPrice}>₹{item.price}</Text>
                       </View>
-                    )}
 
-                    <View style={styles.itemDetails}>
-                      <Text style={styles.itemTitle} numberOfLines={2}>{item.title}</Text>
-                      <Text style={styles.itemPrice}>₹{item.price}</Text>
+                      {/* Quantity Controls */}
+                      <View style={styles.quantityControls}>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          onPress={() => handleUpdateQuantity(item.listing_id, item.quantity, -1)}>
+                          <Text style={styles.qtyBtnText}>-</Text>
+                        </TouchableOpacity>
+
+                        <Text style={styles.qtyText}>{item.quantity}</Text>
+
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          onPress={() => handleUpdateQuantity(item.listing_id, item.quantity, 1)}>
+                          <Text style={styles.qtyBtnText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-
-                    {/* Quantity Controls */}
-                    <View style={styles.quantityControls}>
-                      <TouchableOpacity
-                        style={styles.qtyBtn}
-                        onPress={() => handleUpdateQuantity(item.listing_id, item.quantity, -1)}>
-                        <Text style={styles.qtyBtnText}>-</Text>
-                      </TouchableOpacity>
-
-                      <Text style={styles.qtyText}>{item.quantity}</Text>
-
-                      <TouchableOpacity
-                        style={styles.qtyBtn}
-                        onPress={() => handleUpdateQuantity(item.listing_id, item.quantity, 1)}>
-                        <Text style={styles.qtyBtnText}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
+                  );
+                })}
 
                 <View style={styles.vendorSubtotalRow}>
                   <Text style={styles.subtotalLabel}>Vendor Subtotal:</Text>

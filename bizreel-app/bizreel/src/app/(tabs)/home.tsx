@@ -21,6 +21,7 @@ import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart, useCart } from '@/features/cart/queries';
 import { useReelsFeed } from '@/features/reels/queries';
 import { api } from '@/lib/api';
+import { getListingImage } from '@/utils/image';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - Spacing.four * 2 - Spacing.three) / 2;
@@ -249,7 +250,7 @@ export default function HomeScreen() {
           ) : (
             <View style={styles.gridContainer}>
               {filteredListings.map((item) => {
-                const imageUrl = item.images?.[0]?.url || item.image || item.serviceDetails?.coverImage;
+                const imageUrl = getListingImage(item);
                 const price = item.salePrice || item.sellingPrice || item.price || 0;
                 const originalPrice = item.actualPrice || item.price;
 
