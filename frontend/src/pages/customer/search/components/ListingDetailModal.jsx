@@ -89,6 +89,7 @@ export default function ListingDetailModal({
   const [bookingNotes, setBookingNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('vendor_upi'); // 'vendor_upi', 'vendor_qr', 'cod', 'bank_transfer'
   const [orderSubmitting, setOrderSubmitting] = useState(false);
+  const [copiedKey, setCopiedKey] = useState('');
 
   if (!selectedItem) return null;
 
@@ -160,7 +161,6 @@ export default function ListingDetailModal({
     branchName: vendorPayment.branchName || vendorPayment.branch_name || vp.bankDetails?.branchName || vendorPayment.city || '',
   };
 
-  const [copiedKey, setCopiedKey] = useState('');
   const handleCopy = (text, key) => {
     if (!text) return;
     navigator.clipboard?.writeText(text);

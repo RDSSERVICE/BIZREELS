@@ -86,6 +86,7 @@ export default function ListingDetailPage() {
   const [bookingNotes, setBookingNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('vendor_upi');
   const [orderSubmitting, setOrderSubmitting] = useState(false);
+  const [copiedKey, setCopiedKey] = useState('');
 
   // Reviews States
   const [reviewsList, setReviewsList] = useState([]);
@@ -283,7 +284,6 @@ export default function ListingDetailPage() {
     branchName: vendorPayment.branchName || vendorPayment.branch_name || vp.bankDetails?.branchName || vendorPayment.city || '',
   };
 
-  const [copiedKey, setCopiedKey] = useState('');
   const handleCopy = (text, key) => {
     if (!text) return;
     navigator.clipboard?.writeText(text);
