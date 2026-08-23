@@ -39,7 +39,14 @@ class ListingRepository {
   }
 
   async findListingById(id) {
-    return Listing.findById(id).populate('vendor', 'name avatarUrl activeRole phone email vendorProfile location');
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      const listing = await Listing.findById(id).populate('vendor', 'name avatarUrl activeRole phone email vendorProfile location');
+      if (listing) return listing;
+    }
+    return Listing.findOne({
+      $or: [{ slug: id }, { listing_id: id }],
+      is_deleted: { $ne: true }
+    }).populate('vendor', 'name avatarUrl activeRole phone email vendorProfile location');
   }
 
   async updateListing(id, vendorId, updateData) {

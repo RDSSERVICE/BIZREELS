@@ -53,7 +53,7 @@ const listingValidation = {
 
   idParam: [
     param('id')
-      .isMongoId().withMessage('Invalid Listing ID.'),
+      .notEmpty().withMessage('Listing ID or slug is required.'),
   ],
 
   queryListings: [
