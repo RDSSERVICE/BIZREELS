@@ -5,6 +5,10 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   addReelComment,
+  boostReel,
+  createReel,
+  deleteReel,
+  fetchMyReels,
   fetchReelComments,
   fetchReelsFeed,
   followUser,
@@ -100,6 +104,45 @@ export function useUnfollowUser() {
     mutationFn: (userId: string) => unfollowUser(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
+    },
+  });
+}
+
+export function useMyReels() {
+  return useQuery({
+    queryKey: ['reels', 'my-reels'],
+    queryFn: fetchMyReels,
+  });
+}
+
+export function useCreateReel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createReel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reels', 'my-reels'] });
+      queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+    },
+  });
+}
+
+export function useDeleteReel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteReel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reels', 'my-reels'] });
+      queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+    },
+  });
+}
+
+export function useBoostReel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: boostReel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reels', 'my-reels'] });
     },
   });
 }

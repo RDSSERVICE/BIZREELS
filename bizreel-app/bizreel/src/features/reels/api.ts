@@ -40,3 +40,31 @@ export async function unfollowUser(userId: string): Promise<boolean> {
   const { data } = await api.delete(`/follow/${userId}`);
   return data.success || true;
 }
+
+export async function fetchMyReels(): Promise<any[]> {
+  const { data } = await api.get('/reels/my-reels');
+  const items = data.data || data.items || data || [];
+  return Array.isArray(items) ? items : [];
+}
+
+export async function createReel(payload: {
+  videoUrl: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  taggedListing?: string;
+  hashtags?: string[];
+  mediaType?: 'video' | 'image';
+}): Promise<any> {
+  const { data } = await api.post('/reels', payload);
+  return data.data || data;
+}
+
+export async function deleteReel(reelId: string): Promise<boolean> {
+  const { data } = await api.delete(`/reels/${reelId}`);
+  return data.success || true;
+}
+
+export async function boostReel(reelId: string): Promise<boolean> {
+  const { data } = await api.post(`/reels/${reelId}/boost`);
+  return data.success || true;
+}

@@ -141,6 +141,19 @@ export default function VendorDashboardScreen() {
 
           <TouchableOpacity
             style={styles.actionRow}
+            onPress={() => router.push('/vendor/reels' as any)}>
+            <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+              <Ionicons name="videocam" size={20} color="#EF4444" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.actionTitle}>Video Reels Studio</Text>
+              <Text style={styles.actionSub}>Create, publish & boost short video reels</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionRow}
             onPress={() => router.push('/vendor/listings' as any)}>
             <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
               <Ionicons name="cube" size={20} color="#3B82F6" />

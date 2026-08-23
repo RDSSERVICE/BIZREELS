@@ -283,6 +283,13 @@ export default function ProfileScreen() {
           <Divider theme={theme} />
           <Pressable
             style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/vendor/reels' as any)}>
+            <Text style={[styles.actionRowText, { color: theme.text }]}>📹 Video Reels Studio & Upload</Text>
+            <Text style={styles.actionRowArrow}>›</Text>
+          </Pressable>
+          <Divider theme={theme} />
+          <Pressable
+            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
             onPress={() => router.push('/vendor/listings' as any)}>
             <Text style={[styles.actionRowText, { color: theme.text }]}>📦 Product & Service Catalog</Text>
             <Text style={styles.actionRowArrow}>›</Text>
