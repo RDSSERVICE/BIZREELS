@@ -84,6 +84,6 @@ const styles = StyleSheet.create({
     borderColor: '#2c2c2e',
   },
   statLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: FontWeight.bold },
-  statValue: { color: '#fff', fontSize: FontSize.lg, fontWeight: FontWeight.black },
+  statValue: { color: '#fff', fontSize: FontSize.lg, fontWeight: '900' },
   statSub: { color: BrandColors.primaryLight, fontSize: 10, fontWeight: FontWeight.bold },
 });

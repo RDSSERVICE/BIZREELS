@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   logoText: {
     color: '#fff',
     fontSize: FontSize.md,
-    fontWeight: FontWeight.black,
+    fontWeight: '900',
   },
   brandTitle: {
     color: '#fff',

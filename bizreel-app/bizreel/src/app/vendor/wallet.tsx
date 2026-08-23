@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   walletLabel: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
-  balance: { color: BrandColors.primaryLight, fontSize: 32, fontWeight: FontWeight.black },
+  balance: { color: BrandColors.primaryLight, fontSize: 32, fontWeight: '900' },
   rupeeValue: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
   addBtn: {
     flexDirection: 'row',

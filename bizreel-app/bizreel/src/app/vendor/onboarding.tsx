@@ -15,7 +15,7 @@ export default function VendorOnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const vendor = user?.vendorProfile || {};
+  const vendor: any = user?.vendorProfile || {};
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
