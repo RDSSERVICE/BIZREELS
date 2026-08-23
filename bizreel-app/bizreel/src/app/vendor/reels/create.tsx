@@ -192,18 +192,21 @@ export default function CreateReelScreen() {
         videoUrl: videoUrl.trim(),
         thumbnailUrl: thumbnailUrl.trim() || undefined,
         caption: caption.trim() || undefined,
+        postType,
+        postPurpose,
         taggedListing: selectedListingId || undefined,
         category: category || 'General',
         subcategory: subcategory || 'General',
         hashtags: hashtags.length > 0 ? hashtags : ['#bizreels'],
         mediaType: 'video',
+        saveToServiceGallery: saveToGallery,
       },
       {
         onSuccess: () => {
           Alert.alert('Reel Published!', 'Your video reel is now live on the public feed!');
           router.back();
         },
-        onError: (err: any) => Alert.alert('Publishing Failed', err.message),
+        onError: (err: any) => Alert.alert('Publishing Failed', err?.response?.data?.message || err?.message || 'Publishing failed'),
       }
     );
   }

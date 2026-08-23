@@ -51,13 +51,26 @@ export async function createReel(payload: {
   videoUrl: string;
   thumbnailUrl?: string;
   caption?: string;
+  postType?: string;
+  postPurpose?: string;
   taggedListing?: string;
   category?: string;
   subcategory?: string;
   hashtags?: string[];
   mediaType?: 'video' | 'image';
+  saveToServiceGallery?: boolean;
 }): Promise<any> {
-  const { data } = await api.post('/reels', payload);
+  const body = {
+    ...payload,
+    videoUrl: payload.videoUrl,
+    mediaUrl: payload.videoUrl,
+    mediaUrls: [payload.videoUrl],
+    thumbnailUrl: payload.thumbnailUrl || payload.videoUrl,
+    targetListing: payload.taggedListing,
+    postType: payload.postType || 'product',
+    postPurpose: payload.postPurpose || 'General Promotion',
+  };
+  const { data } = await api.post('/reels', body);
   return data.data || data;
 }
 
