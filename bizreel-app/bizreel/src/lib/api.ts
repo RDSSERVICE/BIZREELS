@@ -24,10 +24,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Normalize error responses
+// Normalize error responses & retry network timeouts
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
+    if (config && !config._retry && (error?.code === 'ECONNABORTED' || !error?.response)) {
+      config._retry = true;
+      try {
+        await new Promise((res) => setTimeout(res, 2000));
+        return await api(config);
+      } catch (retryErr) {
+        // Fallthrough to standard error handling below
+      }
+    }
+
     let message = 'Network Connection Error. Please check your internet or retry.';
     if (error?.response?.data?.message) {
       message = error.response.data.message;
