@@ -1004,18 +1004,9 @@ export default function CreateReelWizardModal({
                 <FiImage /> 5. Select Media
               </h4>
 
-              {/* Only show source selection for Product/Service when an item is selected */}
+              {/* Source selection tab buttons */}
               {postType !== 'shop' && (selectedServiceData || selectedProductData) ? (
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setMediaOption('service_media')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
-                      mediaOption === 'service_media' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-xs' : 'bg-[#1c1d22] border-white/15 text-slate-200'
-                    }`}
-                  >
-                    Option A – Use Item Gallery Media
-                  </button>
                   <button
                     type="button"
                     onClick={() => setMediaOption('upload_new')}
@@ -1023,7 +1014,16 @@ export default function CreateReelWizardModal({
                       mediaOption === 'upload_new' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-xs' : 'bg-[#1c1d22] border-white/15 text-slate-200'
                     }`}
                   >
-                    Option B – Upload New Media
+                    ☁️ Option A – Upload New Video/Photos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMediaOption('service_media')}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
+                      mediaOption === 'service_media' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-xs' : 'bg-[#1c1d22] border-white/15 text-slate-200'
+                    }`}
+                  >
+                    🖼️ Option B – Select from Item Gallery
                   </button>
                 </div>
               ) : null}

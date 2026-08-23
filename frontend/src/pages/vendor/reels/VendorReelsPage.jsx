@@ -62,7 +62,7 @@ export default function VendorReelsPage() {
   const [selectedProductData, setSelectedProductData] = useState(null);
 
   // 5. SELECT MEDIA (OPTION A & B - UP TO 5 IMAGES/VIDEOS PER POST)
-  const [mediaOption, setMediaOption] = useState('service_media'); // 'service_media' | 'upload_new'
+  const [mediaOption, setMediaOption] = useState('upload_new'); // 'service_media' | 'upload_new'
   const [uploadMode, setUploadMode] = useState('file'); // 'file' | 'url'
   const [selectedServiceMediaUrls, setSelectedServiceMediaUrls] = useState([]);
   const [customMediaUrl, setCustomMediaUrl] = useState('');
