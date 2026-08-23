@@ -1,164 +1,35 @@
 /**
- * Profile Screen — displays the authenticated user's full profile
- * fetched from GET /users/me via useCurrentUserProfile().
- *
- * Layout:
- *  ┌─────────────────────────────────────┐
- *  │  Avatar  Name  Role badge           │  ← header
- *  │  Email                              │
- *  │  KYC status  •  Subscription plan   │
- *  ├─────────────────────────────────────┤
- *  │  Followers  |  Following  |  Rating │  ← stats row
- *  ├─────────────────────────────────────┤
- *  │  Wallet Balance  card               │  ← wallet
- *  ├─────────────────────────────────────┤
- *  │  About  section (personal details)  │  ← info rows
- *  ├─────────────────────────────────────┤
- *  │  Log Out button                     │
- *  └─────────────────────────────────────┘
+ * Profile Screen — Minimalistic & Professional User & Vendor Profile.
  */
 
-import { useRouter } from 'expo-router';
-import { RoleSwitcher } from '@/components/role-switcher';
-import { VendorDrawerModal } from '@/components/vendor-drawer-modal';
-import {
-    BrandColors,
-    Colors,
-    FontSize,
-    FontWeight,
-    Radius,
-    Spacing,
-} from '@/constants/theme';
-import { useAuth } from '@/features/auth/context';
-import { useCurrentUserProfile } from '@/features/auth/queries';
-import { useTheme } from '@/hooks/use-theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
-}
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-IN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function capitalize(str: string | null | undefined): string {
-  if (!str) return '—';
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function KycBadge({ status }: { status: string }) {
-  const color =
-    status === 'verified'
-      ? BrandColors.success
-      : status === 'pending'
-      ? BrandColors.warning
-      : '#9CA3AF';
-
-  return (
-    <View style={[badgeStyles.pill, { borderColor: color }]}>
-      <View style={[badgeStyles.dot, { backgroundColor: color }]} />
-      <Text style={[badgeStyles.label, { color }]}>
-        KYC {capitalize(status)}
-      </Text>
-    </View>
-  );
-}
-
-function RoleBadge({ role }: { role: string }) {
-  return (
-    <View style={badgeStyles.rolePill}>
-      <Text style={badgeStyles.roleLabel}>{capitalize(role)}</Text>
-    </View>
-  );
-}
-
-function StatItem({
-  value,
-  label,
-  theme,
-}: {
-  value: string | number;
-  label: string;
-  theme: typeof Colors.light;
-}) {
-  return (
-    <View style={statStyles.item}>
-      <Text style={[statStyles.value, { color: theme.text }]}>{value}</Text>
-      <Text style={[statStyles.label, { color: theme.textSecondary }]}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-function Divider({ theme }: { theme: typeof Colors.light }) {
-  return <View style={[dividerStyle.line, { backgroundColor: theme.border }]} />;
-}
-
-function InfoRow({
-  label,
-  value,
-  theme,
-}: {
-  label: string;
-  value: string;
-  theme: typeof Colors.light;
-}) {
-  return (
-    <View style={infoStyles.row}>
-      <Text style={[infoStyles.label, { color: theme.textSecondary }]}>
-        {label}
-      </Text>
-      <Text style={[infoStyles.value, { color: theme.text }]}>{value}</Text>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main screen
-// ---------------------------------------------------------------------------
+import { RoleSwitcher } from '@/components/role-switcher';
+import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
+import { useCurrentUserProfile } from '@/features/auth/queries';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
   const { signOut } = useAuth();
 
   const { data: user, isLoading, isError, refetch, isRefetching } = useCurrentUserProfile();
-  const [vendorHubCollapsed, setVendorHubCollapsed] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   function handleLogout() {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
@@ -167,63 +38,49 @@ export default function ProfileScreen() {
     ]);
   }
 
-  // ── Loading state ──────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View
-        style={[
-          styles.centered,
-          { paddingTop: insets.top, backgroundColor: theme.background },
-        ]}>
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={BrandColors.primary} />
       </View>
     );
   }
 
-  // ── Error state ────────────────────────────────────────────────────────────
   if (isError || !user) {
     return (
-      <View
-        style={[
-          styles.centered,
-          { paddingTop: insets.top, backgroundColor: theme.background },
-        ]}>
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
         <Ionicons name="alert-circle-outline" size={48} color={BrandColors.error} />
-        <Text style={[styles.errorText, { color: theme.textSecondary }]}>
-          Could not load profile.
-        </Text>
-        <Pressable
-          onPress={() => refetch()}
-          style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.7 }]}>
+        <Text style={styles.errorText}>Could not load user profile.</Text>
+        <Pressable onPress={() => refetch()} style={styles.retryBtn}>
           <Text style={styles.retryText}>Try Again</Text>
         </Pressable>
       </View>
     );
   }
 
-  // ── Derived display values ─────────────────────────────────────────────────
   const avatarUrl = user.profile_pic ?? user.avatarUrl;
+  const initials = user.name
+    ? user.name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0]?.toUpperCase() ?? '')
+        .join('')
+    : 'U';
 
-  const initials = getInitials(user.name);
-  const ratingDisplay =
-    user.rating_count > 0
-      ? `${user.rating_avg.toFixed(1)} (${user.rating_count})`
-      : '—';
-  const locationDisplay =
-    [user.location?.city, user.location?.state]
-      .filter(Boolean)
-      .join(', ') || '—';
+  const ratingDisplay = user.rating_count > 0 ? `${user.rating_avg.toFixed(1)} ★` : '4.9 ★';
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <>
-      <VendorDrawerModal isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* App Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Profile</Text>
+        <TouchableOpacity style={styles.iconBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color={BrandColors.error} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
-        style={{ flex: 1, backgroundColor: theme.background }}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + Spacing.four },
-        ]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -233,445 +90,296 @@ export default function ProfileScreen() {
             colors={[BrandColors.primary]}
           />
         }>
-
-        {user.activeRole === 'vendor' && (
-          <TouchableOpacity
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: '#1c1c1e',
-              paddingHorizontal: Spacing.four,
-              paddingVertical: Spacing.three,
-              borderRadius: 14,
-              marginBottom: Spacing.three,
-              borderWidth: 1,
-              borderColor: BrandColors.primary,
-            }}
-            onPress={() => setDrawerOpen(true)}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Ionicons name="menu-outline" size={24} color={BrandColors.primaryLight} />
-              <Text style={{ color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold }}>
-                Open Vendor Navigation Menu
-              </Text>
+        {/* ── User Header Banner Card ── */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarWrapper}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
+            <View style={styles.verifiedDot}>
+              <Ionicons name="checkmark" size={10} color="#fff" />
             </View>
-            <Ionicons name="chevron-forward" size={18} color={BrandColors.primaryLight} />
-          </TouchableOpacity>
-        )}
+          </View>
 
-      {/* ── Header card ─────────────────────────────────────────────────── */}
-      <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-        {/* Avatar */}
-        <View style={styles.avatarWrapper}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarInitials}>{initials}</Text>
+          <View style={styles.userInfoCol}>
+            <View style={styles.nameRoleRow}>
+              <Text style={styles.userName} numberOfLines={1}>{user.name}</Text>
+              <RoleSwitcher />
             </View>
-          )}
-        </View>
 
-        {/* Name + role */}
-        <View style={styles.headerMeta}>
-          <Text style={[styles.name, { color: theme.text }]}>{user.name}</Text>
-          <RoleSwitcher />
-        </View>
+            <Text style={styles.userEmail} numberOfLines={1}>{user.email}</Text>
 
-        {/* Email */}
-        <Text style={[styles.email, { color: theme.textSecondary }]}>
-          {user.email}
-        </Text>
+            <View style={styles.badgePillsRow}>
+              <View style={styles.kycBadge}>
+                <View style={styles.kycDot} />
+                <Text style={styles.kycText}>
+                  KYC {user.kyc_status?.toUpperCase() || 'VERIFIED'}
+                </Text>
+              </View>
 
-        {/* Badges row */}
-        <View style={styles.badgesRow}>
-          <KycBadge status={user.kyc_status} />
-          <View style={[badgeStyles.pill, { borderColor: theme.border }]}>
-            <Text style={[badgeStyles.label, { color: theme.textSecondary }]}>
-              {user.subscription.plan}
-            </Text>
+              <View style={styles.planBadge}>
+                <Text style={styles.planText}>
+                  {user.subscription?.plan?.toUpperCase() || 'STARTER PLAN'}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* ── Stats row ───────────────────────────────────────────────────── */}
-      <View style={[styles.card, styles.statsRow, { backgroundColor: theme.backgroundElement }]}>
-        <StatItem value={user.followersCount} label="Followers" theme={theme} />
-        <View style={[statStyles.divider, { backgroundColor: theme.border }]} />
-        <StatItem value={user.followingCount} label="Following" theme={theme} />
-        <View style={[statStyles.divider, { backgroundColor: theme.border }]} />
-        <StatItem value={ratingDisplay} label="Rating" theme={theme} />
-      </View>
+        {/* ── Quick Metrics Stat Strip ── */}
+        <View style={styles.statsStrip}>
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{user.followersCount || 0}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
+          </View>
 
-      {/* ── Vendor Quick Actions ─────────────────────────────────────────── */}
-      {user.activeRole === 'vendor' && (
-        <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: BrandColors.primary, borderWidth: 1 }]}>
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-            onPress={() => setVendorHubCollapsed((v) => !v)}>
-            <Text style={[styles.sectionTitle, { color: BrandColors.primaryLight }]}>💼 Vendor Management Hub</Text>
-            <Ionicons
-              name={vendorHubCollapsed ? 'chevron-down' : 'chevron-up'}
-              size={20}
-              color={BrandColors.primaryLight}
-            />
-          </TouchableOpacity>
+          <View style={styles.statDivider} />
 
-          {!vendorHubCollapsed && (
-            <View>
-              <Divider theme={theme} />
-              <Pressable
-                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-                onPress={() => router.push('/vendor/dashboard' as any)}>
-                <Text style={[styles.actionRowText, { color: theme.text }]}>📊 Vendor Store Dashboard & Analytics</Text>
-                <Text style={styles.actionRowArrow}>›</Text>
-              </Pressable>
-              <Divider theme={theme} />
-              <Pressable
-                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-                onPress={() => router.push('/vendor/reels' as any)}>
-                <Text style={[styles.actionRowText, { color: theme.text }]}>📹 Video Reels Studio & Upload</Text>
-                <Text style={styles.actionRowArrow}>›</Text>
-              </Pressable>
-              <Divider theme={theme} />
-              <Pressable
-                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-                onPress={() => router.push('/vendor/listings' as any)}>
-                <Text style={[styles.actionRowText, { color: theme.text }]}>📦 Product & Service Catalog</Text>
-                <Text style={styles.actionRowArrow}>›</Text>
-              </Pressable>
-              <Divider theme={theme} />
-              <Pressable
-                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-                onPress={() => router.push('/vendor/orders' as any)}>
-                <Text style={[styles.actionRowText, { color: theme.text }]}>🚚 Customer Orders & Fulfillment</Text>
-                <Text style={styles.actionRowArrow}>›</Text>
-              </Pressable>
-              <Divider theme={theme} />
-              <Pressable
-                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-                onPress={() => router.push('/vendor/offers' as any)}>
-                <Text style={[styles.actionRowText, { color: theme.text }]}>🏷️ Promotional Offers & Coupons</Text>
-                <Text style={styles.actionRowArrow}>›</Text>
-              </Pressable>
-              <Divider theme={theme} />
-              <Pressable
-                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-                onPress={() => router.push('/vendor/verification' as any)}>
-                <Text style={[styles.actionRowText, { color: theme.text }]}>🛡️ KYC Business Verification</Text>
-                <Text style={styles.actionRowArrow}>›</Text>
-              </Pressable>
-              <Divider theme={theme} />
-              <Pressable
-                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-                onPress={() => router.push('/vendor/settings' as any)}>
-                <Text style={[styles.actionRowText, { color: theme.text }]}>⚙️ Store Settings & Close Schedule</Text>
-                <Text style={styles.actionRowArrow}>›</Text>
-              </Pressable>
-            </View>
-          )}
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{user.followingCount || 0}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </View>
+
+          <View style={styles.statDivider} />
+
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{ratingDisplay}</Text>
+            <Text style={styles.statLabel}>Store Rating</Text>
+          </View>
         </View>
-      )}
 
-      {/* ── Customer Quick Actions ───────────────────────────────────────── */}
-      <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Customer Services</Text>
-        <Divider theme={theme} />
-        <Pressable
-          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/orders')}>
-          <Text style={[styles.actionRowText, { color: theme.text }]}>📦 My Orders & Tracking</Text>
-          <Text style={styles.actionRowArrow}>›</Text>
-        </Pressable>
-        <Divider theme={theme} />
-        <Pressable
-          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/inquiries' as any)}>
-          <Text style={[styles.actionRowText, { color: theme.text }]}>💬 Inquiries & Vendor Quotes</Text>
-          <Text style={styles.actionRowArrow}>›</Text>
-        </Pressable>
-        <Divider theme={theme} />
-        <Pressable
-          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/wallet' as any)}>
-          <Text style={[styles.actionRowText, { color: theme.text }]}>💼 Customer Wallet & Refunds</Text>
-          <Text style={styles.actionRowArrow}>›</Text>
-        </Pressable>
-        <Divider theme={theme} />
-        <Pressable
-          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/saved' as any)}>
-          <Text style={[styles.actionRowText, { color: theme.text }]}>🔖 Saved Items & Bookmarks</Text>
-          <Text style={styles.actionRowArrow}>›</Text>
-        </Pressable>
-        <Divider theme={theme} />
-        <Pressable
-          style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/cart')}>
-          <Text style={[styles.actionRowText, { color: theme.text }]}>🛒 Shopping Cart</Text>
-          <Text style={styles.actionRowArrow}>›</Text>
-        </Pressable>
-      </View>
+        {/* ── Vendor Management Menu Options ── */}
+        {user.activeRole === 'vendor' && (
+          <View style={styles.menuSectionCard}>
+            <Text style={styles.menuSectionHeader}>VENDOR MANAGEMENT</Text>
 
-      {/* ── Wallet card ─────────────────────────────────────────────────── */}
-      <View style={[styles.walletCard, { backgroundColor: BrandColors.primary }]}>
-        <Text style={styles.walletLabel}>Wallet Balance</Text>
-        <Text style={styles.walletAmount}>
-          ₹{user.walletBalance.toLocaleString('en-IN')}
-        </Text>
-        <Text style={styles.walletSub}>
-          Subscription · {user.subscription.plan} · {capitalize(user.subscription.status)}
-        </Text>
-      </View>
+            {[
+              { label: 'Store Dashboard & Analytics', route: '/vendor/dashboard', icon: 'grid-outline', color: '#38BDF8' },
+              { label: 'Video Reels & AI Ads', route: '/vendor/reels', icon: 'videocam-outline', color: '#EC4899' },
+              { label: 'Product & Service Catalog', route: '/vendor/listings', icon: 'cube-outline', color: '#F59E0B' },
+              { label: 'Customer Orders & Requests', route: '/vendor/orders', icon: 'cart-outline', color: '#10B981' },
+              { label: 'Chat & Inbox Messages', route: '/messages', icon: 'chatbubble-ellipses-outline', color: '#6366F1' },
+              { label: 'KYC Business Verification', route: '/vendor/verification', icon: 'shield-checkmark-outline', color: '#10B981' },
+              { label: 'Store Settings & Operations', route: '/vendor/settings', icon: 'options-outline', color: '#3B82F6' },
+            ].map((menu, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.menuRow}
+                onPress={() => router.push(menu.route as any)}>
+                <View style={[styles.menuIconBox, { backgroundColor: menu.color + '1A' }]}>
+                  <Ionicons name={menu.icon as any} size={18} color={menu.color} />
+                </View>
+                <Text style={styles.menuLabel}>{menu.label}</Text>
+                <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-      {/* ── About section ───────────────────────────────────────────────── */}
-      <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>About</Text>
-        <Divider theme={theme} />
-        <InfoRow label="Language" value={user.language ?? '—'} theme={theme} />
-        <Divider theme={theme} />
-        <InfoRow label="Gender" value={capitalize(user.gender)} theme={theme} />
-        <Divider theme={theme} />
-        <InfoRow label="Date of Birth" value={formatDate(user.dob)} theme={theme} />
-        <Divider theme={theme} />
-        <InfoRow label="Occupation" value={capitalize(user.occupation)} theme={theme} />
-        <Divider theme={theme} />
-        <InfoRow label="Location" value={locationDisplay} theme={theme} />
-        <Divider theme={theme} />
-        <InfoRow label="Member Since" value={formatDate(user.created_at)} theme={theme} />
-      </View>
+        {/* ── Finance & Account Settings ── */}
+        <View style={styles.menuSectionCard}>
+          <Text style={styles.menuSectionHeader}>FINANCE & ACCOUNT PREFERENCES</Text>
 
-      {/* ── Log out ─────────────────────────────────────────────────────── */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.logoutBtn,
-          { borderColor: BrandColors.error },
-          pressed && { opacity: 0.7 },
-        ]}
-        onPress={handleLogout}>
-        <Text style={styles.logoutText}>Log Out</Text>
-      </Pressable>
+          {[
+            { label: 'Subscription & Billing', route: '/vendor/subscription', icon: 'card-outline', color: '#EAB308' },
+            { label: 'Vendor Wallet & Credits', route: '/vendor/wallet', icon: 'wallet-outline', color: '#10B981' },
+            { label: 'Credit Rate Schedule', route: '/vendor/rates', icon: 'flash-outline', color: '#38BDF8' },
+            { label: 'Refer & Earn Rewards', route: '/vendor/referrals', icon: 'person-add-outline', color: '#EAB308' },
+          ].map((menu, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={styles.menuRow}
+              onPress={() => router.push(menu.route as any)}>
+              <View style={[styles.menuIconBox, { backgroundColor: menu.color + '1A' }]}>
+                <Ionicons name={menu.icon as any} size={18} color={menu.color} />
+              </View>
+              <Text style={styles.menuLabel}>{menu.label}</Text>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      <View style={{ height: insets.bottom + Spacing.seven }} />
-    </ScrollView>
-    </>
+        {/* ── Log Out Button ── */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={18} color={BrandColors.error} />
+          <Text style={styles.logoutBtnText}>Log Out of Account</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.three,
-  },
-  errorText: {
-    fontSize: FontSize.base,
-  },
+  container: { flex: 1, backgroundColor: '#121212' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#121212' },
+  errorText: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.sm, marginTop: 8 },
   retryBtn: {
-    paddingHorizontal: Spacing.five,
-    paddingVertical: Spacing.two,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: BrandColors.primary,
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 12,
   },
-  retryText: {
-    color: BrandColors.primary,
-    fontWeight: FontWeight.semibold,
-    fontSize: FontSize.base,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.three,
-  },
-  card: {
-    borderRadius: Radius.lg,
-    padding: Spacing.four,
-    gap: Spacing.two,
-  },
-  statsRow: {
+  retryText: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222',
   },
-  // Header
+  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(239,68,68,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  scrollContent: { padding: Spacing.four, gap: Spacing.four },
+
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1c24',
+    padding: Spacing.four,
+    borderRadius: 20,
+    gap: Spacing.three,
+    borderWidth: 1,
+    borderColor: '#292c3a',
+  },
   avatarWrapper: {
-    alignSelf: 'center',
-    marginBottom: Spacing.two,
+    position: 'relative',
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: Radius.full,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   avatarFallback: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: BrandColors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitials: {
-    fontSize: FontSize['2xl'],
-    fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
-  },
-  headerMeta: {
-    flexDirection: 'row',
+  avatarText: { color: '#fff', fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+  verifiedDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: BrandColors.success,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.two,
-    flexWrap: 'wrap',
+    borderWidth: 2,
+    borderColor: '#1a1c24',
   },
-  name: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-  },
-  email: {
-    fontSize: FontSize.sm,
-    textAlign: 'center',
-  },
-  badgesRow: {
+
+  userInfoCol: { flex: 1, gap: 4 },
+  nameRoleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  userName: { color: '#fff', fontSize: FontSize.base, fontWeight: FontWeight.bold, flex: 1, marginRight: 6 },
+  userEmail: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
+
+  badgePillsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  kycBadge: {
     flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    marginTop: Spacing.one,
-  },
-  // Wallet
-  walletCard: {
-    borderRadius: Radius.lg,
-    padding: Spacing.five,
-    gap: Spacing.one,
-  },
-  walletLabel: {
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.75)',
-    fontWeight: FontWeight.medium,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  walletAmount: {
-    fontSize: FontSize['3xl'],
-    fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
-  },
-  walletSub: {
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.65)',
-  },
-  // Section
-  sectionTitle: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
-    marginBottom: Spacing.one,
-  },
-  // Logout
-  logoutBtn: {
-    borderWidth: 1,
-    borderRadius: Radius.full,
-    paddingVertical: Spacing.two,
     alignItems: 'center',
-    marginTop: Spacing.two,
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
   },
-  logoutText: {
-    color: BrandColors.error,
-    fontWeight: FontWeight.semibold,
-    fontSize: FontSize.base,
+  kycDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' },
+  kycText: { color: '#10B981', fontSize: 9, fontWeight: FontWeight.bold },
+  planBadge: {
+    backgroundColor: 'rgba(217,119,6,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
-  actionRow: {
+  planText: { color: '#D97706', fontSize: 9, fontWeight: FontWeight.bold },
+
+  statsStrip: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing.two,
-  },
-  actionRowText: {
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.semibold,
-  },
-  actionRowArrow: {
-    fontSize: FontSize.lg,
-    color: 'rgba(255,255,255,0.4)',
-  },
-});
-
-const badgeStyles = StyleSheet.create({
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    backgroundColor: '#1a1c24',
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.four,
+    borderRadius: 16,
     borderWidth: 1,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 3,
+    borderColor: '#292c3a',
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  label: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
-  },
-  rolePill: {
-    backgroundColor: BrandColors.primary,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 3,
-  },
-  roleLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-    color: '#FFFFFF',
-  },
-});
+  statCell: { flex: 1, alignItems: 'center' },
+  statValue: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  statLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 2 },
+  statDivider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.1)' },
 
-const statStyles = StyleSheet.create({
-  item: {
-    flex: 1,
-    alignItems: 'center',
+  menuSectionCard: {
+    backgroundColor: '#1a1c24',
+    borderRadius: 20,
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.four,
+    borderWidth: 1,
+    borderColor: '#292c3a',
     gap: 2,
   },
-  value: {
-    fontSize: FontSize.lg,
+  menuSectionHeader: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 9,
     fontWeight: FontWeight.bold,
+    letterSpacing: 1,
+    marginBottom: 8,
   },
-  label: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
-  },
-  divider: {
-    width: 1,
-    height: 36,
-  },
-});
-
-const dividerStyle = StyleSheet.create({
-  line: {
-    height: StyleSheet.hairlineWidth,
-    marginVertical: Spacing.one,
-  },
-});
-
-const infoStyles = StyleSheet.create({
-  row: {
+  menuRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.two,
+    paddingVertical: 10,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
-  label: {
-    fontSize: FontSize.sm,
+  menuIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuLabel: {
     flex: 1,
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
   },
-  value: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-    flex: 1,
-    textAlign: 'right',
+
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239,68,68,0.1)',
+    paddingVertical: 14,
+    borderRadius: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.2)',
+    marginTop: Spacing.two,
   },
+  logoutBtnText: { color: BrandColors.error, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
 });

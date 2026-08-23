@@ -37,7 +37,7 @@ export default function ChatInboxScreen() {
   // Process threads for active view
   const processedThreads = conversations.map((c) => {
     const participants = c.participants || [];
-    const other = participants.find((p: any) => (p._id || p.id || p) !== currentUserId) || {};
+    const other: any = participants.find((p: any) => (p._id || p.id || p) !== currentUserId) || {};
     const recipientId = other._id || other.id || (typeof other === 'string' ? other : '');
     const name = other.name || other.shopName || other.businessName || 'BizReels User';
     const avatar = other.avatarUrl || other.profile_pic || other.vendorProfile?.logo || null;
@@ -48,7 +48,7 @@ export default function ChatInboxScreen() {
       : 'Recently';
 
     return {
-      id: c._id || c.id,
+      id: c._id || c.id || Math.random().toString(),
       name,
       avatar,
       lastMessage: c.lastMessage?.text || c.lastMessage?.content || 'Tap to view conversation...',
