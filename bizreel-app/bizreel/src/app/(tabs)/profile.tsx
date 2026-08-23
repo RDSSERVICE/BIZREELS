@@ -18,6 +18,7 @@
  *  └─────────────────────────────────────┘
  */
 
+import { useRouter } from 'expo-router';
 import { RoleSwitcher } from '@/components/role-switcher';
 import { VendorDrawerModal } from '@/components/vendor-drawer-modal';
 import {
@@ -149,8 +150,6 @@ function InfoRow({
 // Main screen
 // ---------------------------------------------------------------------------
 
-import { useRouter } from 'expo-router';
-
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -216,8 +215,6 @@ export default function ProfileScreen() {
       .join(', ') || '—';
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
   return (
     <>
       <VendorDrawerModal isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
