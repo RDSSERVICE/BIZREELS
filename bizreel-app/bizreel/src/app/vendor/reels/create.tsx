@@ -1,6 +1,6 @@
 /**
- * Create & Publish Reel Screen for Vendors — 2-Step Creation Wizard
- * Implements the exact 2-step flow matching the design specification.
+ * Create & Publish Reel Screen for Vendors — 3-Step Creation Wizard
+ * Implements the exact 3-step Reel Creation Flow matching the uploaded screenshots.
  */
 
 import * as DocumentPicker from 'expo-document-picker';
@@ -29,20 +29,16 @@ export default function CreateReelScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  // 1. Content Type
+  // Step 1: Content Type & Category & Purpose
   const [postType, setPostType] = useState<'service' | 'product' | 'shop'>('service');
-
-  // 2. Category & Subcategory
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
-  const [category, setCategory] = useState('Services');
-  const [subcategory, setSubcategory] = useState('General');
-
-  // 3. Post Purpose
+  const [category, setCategory] = useState('Real Estate');
+  const [subcategory, setSubcategory] = useState('Rent');
   const [postPurpose, setPostPurpose] = useState('General Promotion');
 
-  // Step 2 States
+  // Step 2: Media & Caption
   const [videoUrl, setVideoUrl] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -50,6 +46,8 @@ export default function CreateReelScreen() {
   const [caption, setCaption] = useState('');
   const [hashtagsStr, setHashtagsStr] = useState('#bizreels #products');
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [mediaTab, setMediaTab] = useState<'upload' | 'url'>('upload');
+  const [saveToGallery, setSaveToGallery] = useState(false);
 
   const { data: listings = [] } = useVendorListings();
   const createReelMutation = useCreateReel();
@@ -74,10 +72,10 @@ export default function CreateReelScreen() {
   const childSubcategories = categoriesList.filter((c: any) => activeParent && c.parent_id === (activeParent.id || activeParent._id));
 
   const postPurposes = [
-    { key: 'General Promotion', label: 'General Promotion', desc: 'Standard showcase & visibility', icon: 'star-outline' },
-    { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Promote a discount or coupon', icon: 'pricetag-outline' },
-    { key: 'Announcement', label: 'Announcement', desc: 'Updates or important info', icon: 'notifications-outline' },
-    { key: 'New Launch', label: 'New Launch', desc: 'Introduce a brand-new product or service', icon: 'flash-outline' },
+    { key: 'General Promotion', label: 'General Promotion', desc: 'Standard showcase & visibility', icon: 'star' },
+    { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Promote a discount or coupon', icon: 'pricetag' },
+    { key: 'Announcement', label: 'Announcement', desc: 'Updates or Important Info', icon: 'notifications' },
+    { key: 'New Launch', label: 'New Launch', desc: 'Introduce a brand-new service', icon: 'flash' },
   ];
 
   async function uploadMediaFile(uri: string, fileName: string, mimeType: string, isVideo: boolean) {
@@ -212,40 +210,56 @@ export default function CreateReelScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+      {/* Header Modal Bar */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => step === 2 ? setStep(1) : router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => step > 1 ? setStep((s) => (s - 1) as any) : router.back()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {postType === 'product' ? 'Create Product Reel' : postType === 'shop' ? 'Create Shop Reel' : 'Create Service Reel'}
+          Create {postType === 'product' ? 'Product' : postType === 'shop' ? 'Shop' : 'Service'} Reel / Image Post Flow
         </Text>
-        <View style={{ width: 38 }} />
+        <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
+          <Ionicons name="close" size={20} color="#fff" />
+        </TouchableOpacity>
       </View>
 
-      {/* Progress Step Header */}
-      <View style={styles.stepHeader}>
-        <TouchableOpacity
-          style={[styles.stepPill, step === 1 && styles.stepPillActive]}
-          onPress={() => setStep(1)}>
-          <Text style={[styles.stepPillText, step === 1 && styles.stepPillTextActive]}>
-            1. Purpose & Category
+      {/* Progress Step Header Pills */}
+      <View style={styles.stepHeaderCard}>
+        <View style={styles.stepIndicatorPill}>
+          <Text style={styles.stepIndicatorText}>
+            STEP {step} OF 3: {step === 1 ? 'CONTENT & CATEGORY' : step === 2 ? 'MEDIA & CAPTION' : 'TARGETING & PUBLISH'}
           </Text>
-        </TouchableOpacity>
+        </View>
 
-        <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+        <View style={styles.stepPillsRow}>
+          <TouchableOpacity
+            style={[styles.stepBtn, step === 1 && styles.stepBtnActive, step > 1 && styles.stepBtnDone]}
+            onPress={() => setStep(1)}>
+            <Text style={[styles.stepBtnText, (step === 1 || step > 1) && styles.stepBtnTextActive]}>
+              {step > 1 ? '✓ ' : ''}1. Category
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.stepPill, step === 2 && styles.stepPillActive]}
-          onPress={() => setStep(2)}>
-          <Text style={[styles.stepPillText, step === 2 && styles.stepPillTextActive]}>
-            2. Media & Caption
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.stepBtn, step === 2 && styles.stepBtnActive]}
+            onPress={() => setStep(2)}>
+            <Text style={[styles.stepBtnText, step === 2 && styles.stepBtnTextActive]}>
+              2. Upload Video
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.stepBtn, step === 3 && styles.stepBtnActive]}
+            onPress={() => setStep(3)}>
+            <Text style={[styles.stepBtnText, step === 3 && styles.stepBtnTextActive]}>
+              3. Targeting
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ── STEP 1: CONTENT TYPE, CATEGORY & PURPOSE ── */}
+        {/* ── STEP 1: CONTENT & CATEGORY ── */}
         {step === 1 && (
           <View style={styles.wizardStepContainer}>
             {/* 1. SELECT CONTENT TYPE */}
@@ -255,7 +269,7 @@ export default function CreateReelScreen() {
                 <TouchableOpacity
                   style={[styles.typeCard, postType === 'service' && styles.typeCardActive]}
                   onPress={() => setPostType('service')}>
-                  <Ionicons name="layers-outline" size={20} color={postType === 'service' ? '#fff' : 'rgba(255,255,255,0.7)'} />
+                  <Ionicons name="layers" size={22} color={postType === 'service' ? '#fff' : 'rgba(255,255,255,0.7)'} />
                   <Text style={[styles.typeText, postType === 'service' && styles.typeTextActive]}>
                     Service Post
                   </Text>
@@ -264,7 +278,7 @@ export default function CreateReelScreen() {
                 <TouchableOpacity
                   style={[styles.typeCard, postType === 'product' && styles.typeCardActive]}
                   onPress={() => setPostType('product')}>
-                  <Ionicons name="pricetag-outline" size={20} color={postType === 'product' ? '#fff' : 'rgba(255,255,255,0.7)'} />
+                  <Ionicons name="pricetag" size={22} color={postType === 'product' ? '#fff' : 'rgba(255,255,255,0.7)'} />
                   <Text style={[styles.typeText, postType === 'product' && styles.typeTextActive]}>
                     Product Post
                   </Text>
@@ -273,7 +287,7 @@ export default function CreateReelScreen() {
                 <TouchableOpacity
                   style={[styles.typeCard, postType === 'shop' && styles.typeCardActive]}
                   onPress={() => setPostType('shop')}>
-                  <Ionicons name="videocam-outline" size={20} color={postType === 'shop' ? '#fff' : 'rgba(255,255,255,0.7)'} />
+                  <Ionicons name="videocam" size={22} color={postType === 'shop' ? '#fff' : 'rgba(255,255,255,0.7)'} />
                   <Text style={[styles.typeText, postType === 'shop' && styles.typeTextActive]}>
                     Shop / Business
                   </Text>
@@ -282,25 +296,23 @@ export default function CreateReelScreen() {
             </View>
 
             {/* 2. SELECT CATEGORY */}
-            <View style={styles.categoryCardContainer}>
-              <Text style={styles.categoryCardHeader}>
-                ⚙️ 2. SELECT {postType === 'product' ? 'PRODUCT' : postType === 'shop' ? 'BUSINESS' : 'SERVICE'} CATEGORY
-              </Text>
+            <View style={styles.darkSectionCard}>
+              <View style={styles.darkSectionHeader}>
+                <Ionicons name="cog-outline" size={16} color={BrandColors.primary} />
+                <Text style={styles.darkSectionTitle}>
+                  2. SELECT {postType === 'product' ? 'PRODUCT' : postType === 'shop' ? 'BUSINESS' : 'SERVICE'} CATEGORY
+                </Text>
+              </View>
 
-              {parentCategories.length > 0 && (
-                <View style={styles.fieldGroup}>
+              <View style={styles.dropdownRow}>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.subLabel}>CATEGORY *</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-                    {parentCategories.map((catItem: any) => (
+                    {(parentCategories.length > 0 ? parentCategories : [{ name: 'Real Estate' }, { name: 'Electronics' }, { name: 'Fashion' }, { name: 'Automobile' }]).map((catItem: any, idx: number) => (
                       <TouchableOpacity
-                        key={catItem.id || catItem._id}
+                        key={idx}
                         style={[styles.chip, category === catItem.name && styles.chipActive]}
-                        onPress={() => {
-                          setCategory(catItem.name);
-                          const children = categoriesList.filter((c: any) => c.parent_id === (catItem.id || catItem._id));
-                          if (children.length > 0) setSubcategory(children[0].name);
-                          else setSubcategory('General');
-                        }}>
+                        onPress={() => setCategory(catItem.name)}>
                         <Text style={[styles.chipText, category === catItem.name && styles.chipTextActive]}>
                           {catItem.name}
                         </Text>
@@ -308,216 +320,253 @@ export default function CreateReelScreen() {
                     ))}
                   </ScrollView>
                 </View>
-              )}
+              </View>
 
-              {childSubcategories.length > 0 && (
-                <View style={styles.fieldGroup}>
+              <View style={styles.dropdownRow}>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.subLabel}>SUB CATEGORY *</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-                    {childSubcategories.map((subItem: any) => (
+                    {['Rent', 'Sale', 'Commercial', 'General'].map((subItem, idx) => (
                       <TouchableOpacity
-                        key={subItem.id || subItem._id}
-                        style={[styles.chip, subcategory === subItem.name && styles.chipActive]}
-                        onPress={() => setSubcategory(subItem.name)}>
-                        <Text style={[styles.chipText, subcategory === subItem.name && styles.chipTextActive]}>
-                          {subItem.name}
+                        key={idx}
+                        style={[styles.chip, subcategory === subItem && styles.chipActive]}
+                        onPress={() => setSubcategory(subItem)}>
+                        <Text style={[styles.chipText, subcategory === subItem && styles.chipTextActive]}>
+                          {subItem}
                         </Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
                 </View>
-              )}
+              </View>
             </View>
 
             {/* 3. SELECT POST PURPOSE */}
             <View style={styles.fieldGroup}>
               <Text style={styles.labelTitle}>3. SELECT POST PURPOSE *</Text>
               <View style={styles.purposeGrid}>
-                {postPurposes.map((purpose) => {
-                  const isSelected = postPurpose === purpose.key;
+                {postPurposes.map((p) => {
+                  const isSelected = postPurpose === p.key;
                   return (
                     <TouchableOpacity
-                      key={purpose.key}
+                      key={p.key}
                       style={[styles.purposeCard, isSelected && styles.purposeCardActive]}
-                      onPress={() => setPostPurpose(purpose.key)}>
-                      <View style={styles.purposeHeader}>
-                        <Ionicons
-                          name={purpose.icon as any}
-                          size={20}
-                          color={isSelected ? '#fff' : 'rgba(255,255,255,0.7)'}
-                        />
-                        {isSelected && <Ionicons name="checkmark-circle" size={18} color="#fff" />}
+                      onPress={() => setPostPurpose(p.key)}>
+                      <View style={styles.purposeHeaderRow}>
+                        <View style={[styles.purposeIconCircle, isSelected && styles.purposeIconCircleActive]}>
+                          <Ionicons name={p.icon as any} size={18} color={isSelected ? '#fff' : BrandColors.primary} />
+                        </View>
+                        {isSelected && <Ionicons name="checkmark-circle" size={20} color={BrandColors.primary} />}
                       </View>
-                      <Text style={[styles.purposeTitle, isSelected && styles.purposeTitleActive]}>
-                        {purpose.label}
+
+                      <Text style={[styles.purposeLabel, isSelected && styles.purposeLabelActive]}>
+                        {p.label}
                       </Text>
-                      <Text style={styles.purposeDesc}>{purpose.desc}</Text>
+                      <Text style={styles.purposeDesc}>{p.desc}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
             </View>
 
-            {/* Continue Button */}
             <TouchableOpacity
-              style={styles.continueBtn}
+              style={styles.nextStepBtn}
               onPress={() => setStep(2)}>
-              <Text style={styles.continueBtnText}>Continue to Media & Caption Selection →</Text>
+              <Text style={styles.nextStepBtnText}>CONTINUE TO MEDIA & CAPTION SELECTION →</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* ── STEP 2: MEDIA UPLOAD & CAPTION DETAILS ── */}
+        {/* ── STEP 2: MEDIA & CAPTION ── */}
         {step === 2 && (
           <View style={styles.wizardStepContainer}>
-            {/* 4. SELECT ITEM */}
-            {listings.length > 0 && (
-              <View style={styles.fieldGroup}>
-                <Text style={styles.labelTitle}>4. TAG PRODUCT / SERVICE LISTING (OPTIONAL)</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-                  <TouchableOpacity
-                    style={[styles.chip, selectedListingId === null && styles.chipActive]}
-                    onPress={() => setSelectedListingId(null)}>
-                    <Text style={[styles.chipText, selectedListingId === null && styles.chipTextActive]}>
-                      None
-                    </Text>
-                  </TouchableOpacity>
-
-                  {listings.map((item) => (
-                    <TouchableOpacity
-                      key={item._id}
-                      style={[styles.chip, selectedListingId === item._id && styles.chipActive]}
-                      onPress={() => setSelectedListingId(item._id)}>
-                      <Text style={[styles.chipText, selectedListingId === item._id && styles.chipTextActive]} numberOfLines={1}>
-                        {item.title} (₹{item.price})
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+            {/* 4. SELECT PRODUCT / SERVICE */}
+            <View style={styles.darkSectionCard}>
+              <View style={styles.darkSectionHeaderRow}>
+                <View style={styles.darkSectionHeader}>
+                  <Ionicons name="pricetag-outline" size={16} color={BrandColors.primary} />
+                  <Text style={styles.darkSectionTitle}>4. SELECT PRODUCT / SERVICE</Text>
+                </View>
+                <Text style={styles.availableCountText}>{listings.length} product(s) available</Text>
               </View>
-            )}
 
-            {/* 5. SELECT MEDIA */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.labelTitle}>5. UPLOAD REEL VIDEO FILE & COVER *</Text>
-              
-              <TouchableOpacity
-                style={styles.uploadBtn}
-                onPress={() => pickLocalFile('video')}
-                disabled={uploadingVideo}>
-                {uploadingVideo ? (
-                  <ActivityIndicator color={BrandColors.primary} />
-                ) : (
-                  <>
-                    <Ionicons name="cloud-upload-outline" size={24} color={BrandColors.primary} />
-                    <Text style={styles.uploadBtnText}>
-                      {videoUrl ? '📁 Change Selected Video File' : '📁 Pick & Upload Video File from Device'}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              <Text style={styles.subLabel}>OPTION A – SELECT EXISTING LISTED PRODUCT</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+                <TouchableOpacity
+                  style={[styles.chip, selectedListingId === null && styles.chipActive]}
+                  onPress={() => setSelectedListingId(null)}>
+                  <Text style={[styles.chipText, selectedListingId === null && styles.chipTextActive]}>
+                    -- Choose from your listed products ({listings.length}) --
+                  </Text>
+                </TouchableOpacity>
 
-              <Text style={styles.orText}>— OR choose sample preset / paste video URL —</Text>
-
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetScroll}>
-                {[
-                  { label: '🛍️ Product Showcase', url: 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4' },
-                  { label: '☕ Food / Dining', url: 'https://assets.mixkit.co/videos/preview/mixkit-coffee-maker-making-coffee-41551-large.mp4' },
-                  { label: '💻 Tech / Services', url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-laptop-keyboard-42533-large.mp4' },
-                ].map((preset, idx) => (
+                {listings.map((item) => (
                   <TouchableOpacity
-                    key={idx}
-                    style={[styles.chip, videoUrl === preset.url && styles.chipActive]}
-                    onPress={() => setVideoUrl(preset.url)}>
-                    <Text style={[styles.chipText, videoUrl === preset.url && styles.chipTextActive]}>
-                      {preset.label}
+                    key={item._id}
+                    style={[styles.chip, selectedListingId === item._id && styles.chipActive]}
+                    onPress={() => setSelectedListingId(item._id)}>
+                    <Text style={[styles.chipText, selectedListingId === item._id && styles.chipTextActive]} numberOfLines={1}>
+                      {item.title} (₹{item.price})
                     </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
 
+              <View style={styles.optionBRow}>
+                <Text style={styles.cantFindText}>Can't find the product?</Text>
+                <TouchableOpacity
+                  style={styles.optionBBtn}
+                  onPress={() => router.push('/vendor/listings/create' as any)}>
+                  <Text style={styles.optionBBtnText}>+ Option B – Create New Product</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* POST CAPTION */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.labelTitle}>POST CAPTION * (NO CONTACT INFO ALLOWED)</Text>
               <TextInput
-                style={styles.input}
-                placeholder="Enter direct video file URL (MP4 / MOV)..."
+                style={styles.captionInput}
+                placeholder="Describe your product highlights..."
                 placeholderTextColor="rgba(255,255,255,0.4)"
-                value={videoUrl.startsWith('data:') ? '[Video File Attached from Device]' : videoUrl}
-                onChangeText={setVideoUrl}
-                autoCapitalize="none"
+                multiline
+                numberOfLines={3}
+                value={caption}
+                onChangeText={setCaption}
               />
             </View>
 
-            {/* Cover Image */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.subLabel}>Thumbnail Image Cover (Optional)</Text>
+            {/* 5. SELECT MEDIA */}
+            <View style={styles.darkSectionCard}>
+              <View style={styles.darkSectionHeader}>
+                <Ionicons name="images-outline" size={16} color={BrandColors.primary} />
+                <Text style={styles.darkSectionTitle}>5. SELECT MEDIA</Text>
+              </View>
+
+              {/* Sub-Tabs: Upload Photos / Videos vs Enter Media URL */}
+              <View style={styles.mediaTabRow}>
+                <TouchableOpacity
+                  style={[styles.mediaTabBtn, mediaTab === 'upload' && styles.mediaTabBtnActive]}
+                  onPress={() => setMediaTab('upload')}>
+                  <Text style={[styles.mediaTabText, mediaTab === 'upload' && styles.mediaTabTextActive]}>
+                    📁 Upload Photos / Videos (Max 5)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.mediaTabBtn, mediaTab === 'url' && styles.mediaTabBtnActive]}
+                  onPress={() => setMediaTab('url')}>
+                  <Text style={[styles.mediaTabText, mediaTab === 'url' && styles.mediaTabTextActive]}>
+                    🔗 Enter Media URL
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {mediaTab === 'upload' ? (
+                <View style={styles.dropzoneBox}>
+                  <View style={styles.uploadCounterRow}>
+                    <Text style={styles.uploadCounterText}>{videoUrl ? '1 / 5 Uploaded' : '0 / 5 Uploaded'}</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.dropzoneArea}
+                    onPress={() => pickLocalFile('video')}
+                    disabled={uploadingVideo}>
+                    {uploadingVideo ? (
+                      <ActivityIndicator color={BrandColors.primary} size="large" />
+                    ) : (
+                      <>
+                        <Ionicons name="cloud-upload-outline" size={38} color={BrandColors.primary} />
+                        <Text style={styles.dropzoneTitle}>
+                          {videoUrl ? '📁 Video Selected & Uploaded' : 'Click or Drag & Drop (Select up to 5 files)'}
+                        </Text>
+                        <Text style={styles.dropzoneSub}>Supports JPG, PNG, WEBP, MP4, MOV (Max 50MB)</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TextInput
+                  style={styles.urlInput}
+                  placeholder="Paste direct video or media URL..."
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={videoUrl}
+                  onChangeText={setVideoUrl}
+                  autoCapitalize="none"
+                />
+              )}
+
+              {/* Cover Image Upload */}
               <TouchableOpacity
-                style={styles.uploadBtn}
+                style={[styles.uploadBtn, { marginTop: 10 }]}
                 onPress={() => pickLocalFile('image')}
                 disabled={uploadingThumbnail}>
                 {uploadingThumbnail ? (
                   <ActivityIndicator color={BrandColors.primary} />
                 ) : (
                   <>
-                    <Ionicons name="image-outline" size={22} color={BrandColors.primary} />
+                    <Ionicons name="image-outline" size={20} color={BrandColors.primary} />
                     <Text style={styles.uploadBtnText}>
-                      {thumbnailUrl ? '🖼️ Change Selected Cover Image' : '🖼️ Pick & Upload Thumbnail Cover Image'}
+                      {thumbnailUrl ? '🖼️ Cover Image Attached' : '🖼️ Pick Cover Thumbnail Image (Optional)'}
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Or paste thumbnail image URL..."
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={thumbnailUrl.startsWith('data:') ? '[Image Cover Attached from Device]' : thumbnailUrl}
-                onChangeText={setThumbnailUrl}
-                autoCapitalize="none"
-              />
+              {/* Gallery Checkbox */}
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setSaveToGallery((v) => !v)}>
+                <Ionicons
+                  name={saveToGallery ? 'checkbox' : 'square-outline'}
+                  size={18}
+                  color={saveToGallery ? BrandColors.primary : 'rgba(255,255,255,0.4)'}
+                />
+                <Text style={styles.checkboxText}>Save new media to service/product gallery for future use</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* 6. CAPTION DETAILS */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.labelTitle}>6. CAPTION & HASHTAGS</Text>
-              <TextInput
-                style={[styles.input, { height: 90 }]}
-                placeholder="Write a catchy caption showcasing your product or service highlights..."
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={caption}
-                onChangeText={setCaption}
-                multiline
-              />
-            </View>
+            <TouchableOpacity
+              style={styles.nextStepBtn}
+              onPress={() => setStep(3)}>
+              <Text style={styles.nextStepBtnText}>CONTINUE TO TARGETING & PUBLISH →</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.subLabel}>Hashtags (space separated)</Text>
+        {/* ── STEP 3: TARGETING & PUBLISH ── */}
+        {step === 3 && (
+          <View style={styles.wizardStepContainer}>
+            <View style={styles.darkSectionCard}>
+              <View style={styles.darkSectionHeader}>
+                <Ionicons name="navigate-outline" size={16} color={BrandColors.primary} />
+                <Text style={styles.darkSectionTitle}>6. TARGETING & HASHTAGS</Text>
+              </View>
+
+              <Text style={styles.subLabel}>HASHTAGS *</Text>
               <TextInput
-                style={styles.input}
-                placeholder="#business #fashion #sale"
+                style={styles.captionInput}
+                placeholder="#bizreels #products #fashion #service"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={hashtagsStr}
                 onChangeText={setHashtagsStr}
               />
             </View>
 
-            {/* Action Row */}
-            <View style={styles.actionBtnRow}>
-              <TouchableOpacity style={styles.backStepBtn} onPress={() => setStep(1)}>
-                <Text style={styles.backStepBtnText}>← Back</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.submitBtn}
-                onPress={handlePublish}
-                disabled={createReelMutation.isPending}>
-                {createReelMutation.isPending ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitBtnText}>🚀 Publish Video Reel</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.publishBtn}
+              onPress={handlePublish}
+              disabled={createReelMutation.isPending}>
+              {createReelMutation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.publishBtnText}>🚀 PUBLISH REEL NOW</Text>
+              )}
+            </TouchableOpacity>
           </View>
         )}
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -535,171 +584,387 @@ const styles = StyleSheet.create({
     borderBottomColor: '#222',
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#1c1c1e',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: FontWeight.bold },
-
-  stepHeader: {
-    flexDirection: 'row',
+  closeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#1c1c1e',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    backgroundColor: '#1a1b20',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    marginHorizontal: 8,
+  },
+
+  stepHeaderCard: {
+    backgroundColor: '#16181f',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.08)',
+    gap: Spacing.two,
   },
-  stepPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#27272a',
+  stepIndicatorPill: {
+    backgroundColor: 'rgba(217,119,6,0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BrandColors.primary,
   },
-  stepPillActive: {
+  stepIndicatorText: {
+    color: '#D97706',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  stepPillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  stepBtn: {
+    flex: 1,
+    backgroundColor: '#20232e',
+    paddingVertical: 8,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnActive: {
     backgroundColor: '#D97706',
   },
-  stepPillText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
+  stepBtnDone: {
+    backgroundColor: 'rgba(16,185,129,0.2)',
+  },
+  stepBtnText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
     fontWeight: FontWeight.bold,
   },
-  stepPillTextActive: {
+  stepBtnTextActive: {
     color: '#fff',
   },
 
-  scrollContent: { padding: Spacing.four },
-  wizardStepContainer: { gap: Spacing.four },
-
-  fieldGroup: { gap: Spacing.two },
-  labelTitle: { color: '#D97706', fontSize: FontSize.xs, fontWeight: FontWeight.bold, letterSpacing: 0.5 },
-  subLabel: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
-
-  typeGrid: { flexDirection: 'row', gap: Spacing.two },
+  scrollContent: {
+    padding: Spacing.three,
+  },
+  wizardStepContainer: {
+    gap: Spacing.four,
+  },
+  fieldGroup: {
+    gap: 8,
+  },
+  labelTitle: {
+    color: '#D97706',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  typeGrid: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
   typeCard: {
     flex: 1,
+    backgroundColor: '#1d1f27',
+    borderRadius: 16,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2c2c2e',
     gap: 6,
+    borderWidth: 1,
+    borderColor: '#2c2e3a',
   },
   typeCardActive: {
     backgroundColor: '#D97706',
     borderColor: '#D97706',
   },
-  typeText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: FontWeight.bold },
-  typeTextActive: { color: '#fff' },
-
-  categoryCardContainer: {
-    backgroundColor: '#1c1d22',
-    borderRadius: 14,
-    padding: Spacing.four,
-    gap: Spacing.three,
-    borderWidth: 1,
-    borderColor: 'rgba(217,119,6,0.3)',
+  typeText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
   },
-  categoryCardHeader: { color: '#D97706', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  typeTextActive: {
+    color: '#fff',
+  },
 
-  chipScroll: { gap: Spacing.two, paddingVertical: 4 },
-  chip: {
-    backgroundColor: '#2b2d36',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
+  darkSectionCard: {
+    backgroundColor: '#1a1c24',
     borderRadius: 16,
+    padding: Spacing.three,
+    gap: Spacing.two,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#292c39',
+  },
+  darkSectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  darkSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  darkSectionTitle: {
+    color: '#D97706',
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  availableCountText: {
+    color: '#D97706',
+    fontSize: 9,
+    fontWeight: FontWeight.bold,
+  },
+
+  subLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    marginTop: 4,
+  },
+  dropdownRow: {
+    marginTop: 4,
+  },
+  chipScroll: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  chip: {
+    backgroundColor: '#262936',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   chipActive: {
-    backgroundColor: '#D97706',
-    borderColor: '#D97706',
+    backgroundColor: BrandColors.primary,
   },
-  chipText: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
-  chipTextActive: { color: '#fff' },
+  chipText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+  },
+  chipTextActive: {
+    color: '#fff',
+    fontWeight: FontWeight.bold,
+  },
 
-  purposeGrid: { gap: Spacing.two },
+  purposeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
   purposeCard: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
+    width: '48%',
+    backgroundColor: '#1d1f27',
+    borderRadius: 14,
     padding: Spacing.three,
     gap: 4,
     borderWidth: 1,
-    borderColor: '#2c2c2e',
+    borderColor: '#2c2e3a',
   },
   purposeCardActive: {
-    backgroundColor: '#2b2218',
+    backgroundColor: '#352719',
     borderColor: '#D97706',
-    borderWidth: 1.5,
   },
-  purposeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  purposeTitle: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
-  purposeTitleActive: { color: '#D97706' },
-  purposeDesc: { color: 'rgba(255,255,255,0.6)', fontSize: 10 },
-
-  continueBtn: {
-    backgroundColor: '#D97706',
-    paddingVertical: 14,
-    borderRadius: 24,
+  purposeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  purposeIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(217,119,6,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Spacing.two,
   },
-  continueBtnText: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  purposeIconCircleActive: {
+    backgroundColor: '#D97706',
+  },
+  purposeLabel: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+    marginTop: 4,
+  },
+  purposeLabelActive: {
+    color: '#D97706',
+  },
+  purposeDesc: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 9,
+  },
+
+  optionBRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  cantFindText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+  },
+  optionBBtn: {
+    backgroundColor: 'rgba(217,119,6,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BrandColors.primary,
+  },
+  optionBBtnText: {
+    color: BrandColors.primaryLight,
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+  },
+
+  captionInput: {
+    backgroundColor: '#1a1c24',
+    borderRadius: 14,
+    padding: Spacing.three,
+    color: '#fff',
+    fontSize: FontSize.xs,
+    borderWidth: 1,
+    borderColor: '#292c39',
+    textAlignVertical: 'top',
+  },
+
+  mediaTabRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  mediaTabBtn: {
+    flex: 1,
+    backgroundColor: '#242634',
+    paddingVertical: 9,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  mediaTabBtnActive: {
+    backgroundColor: BrandColors.primary,
+  },
+  mediaTabText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+  },
+  mediaTabTextActive: {
+    color: '#fff',
+  },
+
+  dropzoneBox: {
+    gap: 8,
+  },
+  uploadCounterRow: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(217,119,6,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  uploadCounterText: {
+    color: '#D97706',
+    fontSize: 9,
+    fontWeight: FontWeight.bold,
+  },
+  dropzoneArea: {
+    backgroundColor: '#20232e',
+    borderRadius: 14,
+    paddingVertical: 24,
+    paddingHorizontal: Spacing.three,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: BrandColors.primary,
+    borderStyle: 'dashed',
+    gap: 6,
+  },
+  dropzoneTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  dropzoneSub: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 9,
+  },
+
+  urlInput: {
+    backgroundColor: '#20232e',
+    borderRadius: 12,
+    padding: Spacing.three,
+    color: '#fff',
+    fontSize: FontSize.xs,
+  },
 
   uploadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.two,
-    backgroundColor: '#1c1c1e',
-    borderWidth: 1.5,
-    borderColor: '#D97706',
-    borderStyle: 'dashed',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: Spacing.three,
-  },
-  uploadBtnText: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
-  orText: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: FontWeight.bold, textAlign: 'center' },
-
-  presetScroll: { gap: Spacing.two, paddingVertical: 4 },
-
-  input: {
-    backgroundColor: '#1c1c1e',
-    color: '#fff',
+    backgroundColor: '#20232e',
+    paddingVertical: 10,
     borderRadius: 12,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    fontSize: FontSize.sm,
-    borderWidth: 1,
-    borderColor: '#2c2c2e',
+    gap: 6,
+  },
+  uploadBtnText: {
+    color: BrandColors.primaryLight,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
   },
 
-  actionBtnRow: { flexDirection: 'row', gap: Spacing.three, marginTop: Spacing.two },
-  backStepBtn: {
-    backgroundColor: '#27272a',
-    paddingHorizontal: Spacing.four,
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  checkboxText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+  },
+
+  nextStepBtn: {
+    backgroundColor: BrandColors.primary,
     paddingVertical: 14,
-    borderRadius: 24,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backStepBtnText: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
-  submitBtn: {
-    flex: 1,
-    backgroundColor: '#D97706',
-    height: 48,
-    borderRadius: 24,
+  nextStepBtnText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.5,
+  },
+
+  publishBtn: {
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  submitBtnText: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  publishBtnText: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1,
+  },
 });
