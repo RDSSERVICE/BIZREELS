@@ -237,9 +237,9 @@ const verifyPan = catchAsync(async (req, res) => {
     });
   }
 
-  // Call Sandbox PAN verification with fallback name
+  // Call Sandbox PAN verification with fallback name & DOB
   const fallbackName = user.name || currentVp.businessName || 'Taxpayer Validated';
-  const sandboxRes = await sandboxService.verifyPan(panNumber, fallbackName);
+  const sandboxRes = await sandboxService.verifyPan(panNumber, fallbackName, user.dob || currentVp.dob);
 
   const isApproved = sandboxRes.success && sandboxRes.verified;
   const now = new Date();
@@ -615,7 +615,7 @@ const verifyDocument = catchAsync(async (req, res) => {
   // 1. If PAN submitted via generic handler, invoke PAN verification
   if (docType === 'pan' && docNumber) {
     const fallbackName = user.name || currentVp.businessName || 'Taxpayer Validated';
-    const sandboxRes = await sandboxService.verifyPan(docNumber, fallbackName);
+    const sandboxRes = await sandboxService.verifyPan(docNumber, fallbackName, user.dob || currentVp.dob);
     const isApproved = sandboxRes.success && sandboxRes.verified;
 
     currentDocs.pan = {
