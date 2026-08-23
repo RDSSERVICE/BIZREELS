@@ -33,12 +33,7 @@ export default function DirectChatThreadScreen() {
   const { user } = useAuth();
   const currentUserId = user?._id || (user as any)?.id;
 
-  const { id: conversationIdParam, recipientId: recipientIdParam, name, avatar } = useLocalSearchParams<{
-    id: string;
-    recipientId?: string;
-    name?: string;
-    avatar?: string;
-  }>();
+  const { id: conversationIdParam, recipientId: recipientIdParam, name, avatar } = useLocalSearchParams<any>();
 
   const conversationId = conversationIdParam || null;
   const participantName = name || 'User Chat';

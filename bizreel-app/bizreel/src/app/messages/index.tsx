@@ -153,14 +153,14 @@ export default function ChatInboxScreen() {
               style={styles.threadCard}
               onPress={() =>
                 router.push({
-                  pathname: '/messages/[id]',
+                  pathname: '/messages/[id]' as any,
                   params: {
                     id: item.id,
                     recipientId: item.recipientId,
                     name: item.name,
                     avatar: item.avatar || '',
                   },
-                })
+                } as any)
               }>
               {/* Avatar Icon */}
               <View style={styles.avatarContainer}>
