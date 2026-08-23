@@ -215,7 +215,21 @@ export default function ListingDetailPage() {
     return img;
   }).filter(Boolean);
 
-  const priceVal = Number(item.sellingPrice || item.salePrice || item.price || item.rate || item.offer_price || 0);
+  const rawPriceCandidates = [
+    item.sellingPrice,
+    item.salePrice,
+    item.offer_price,
+    item.price,
+    item.rate,
+    item.pricing?.amount,
+    item.pricing?.price,
+    item.actualPrice,
+    item.regularPrice,
+    item.originalPrice,
+    item.cost,
+  ];
+  const validPrice = rawPriceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
+  const priceVal = validPrice || 0;
   const originalPrice = Number(item.actualPrice || item.regularPrice || item.originalPrice || item.compareAtPrice || 0);
   const discountPercent = (originalPrice > priceVal && priceVal > 0) ? Math.round(((originalPrice - priceVal) / originalPrice) * 100) : 0;
 
@@ -302,7 +316,7 @@ export default function ListingDetailPage() {
 
       toast.success(isService ? 'Service booking request sent successfully!' : 'Order request submitted successfully!');
       setShowOrderForm(false);
-      navigate('/customer/activities');
+      navigate('/customer/activities?tab=my-orders');
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to submit order request. Please try again.');
     } finally {

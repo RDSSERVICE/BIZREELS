@@ -26,7 +26,21 @@ class OrderController {
       throw ApiError.notFound('Listing not found');
     }
 
-    const unitPrice = parseFloat(listing.salePrice || listing.sellingPrice || listing.offer_price || listing.price || listing.actualPrice || 0);
+    const unitPriceCandidates = [
+      listing.salePrice,
+      listing.sellingPrice,
+      listing.offer_price,
+      listing.price,
+      listing.rate,
+      listing.pricing?.amount,
+      listing.pricing?.price,
+      listing.actualPrice,
+      listing.regularPrice,
+      listing.originalPrice,
+      listing.cost,
+    ];
+    const validUnitPrice = unitPriceCandidates.map(p => parseFloat(p)).find(p => !isNaN(p) && p > 0);
+    const unitPrice = validUnitPrice || 0;
     const price = unitPrice * (quantity || 1);
     let finalPaymentStatus = 'unpaid';
 
