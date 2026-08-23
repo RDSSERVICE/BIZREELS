@@ -269,6 +269,55 @@ export default function ProfileScreen() {
         <StatItem value={ratingDisplay} label="Rating" theme={theme} />
       </View>
 
+      {/* ── Vendor Quick Actions ─────────────────────────────────────────── */}
+      {user.activeRole === 'vendor' && (
+        <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: BrandColors.primary, borderWidth: 1 }]}>
+          <Text style={[styles.sectionTitle, { color: BrandColors.primaryLight }]}>💼 Vendor Management Hub</Text>
+          <Divider theme={theme} />
+          <Pressable
+            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/vendor/dashboard' as any)}>
+            <Text style={[styles.actionRowText, { color: theme.text }]}>📊 Vendor Store Dashboard & Analytics</Text>
+            <Text style={styles.actionRowArrow}>›</Text>
+          </Pressable>
+          <Divider theme={theme} />
+          <Pressable
+            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/vendor/listings' as any)}>
+            <Text style={[styles.actionRowText, { color: theme.text }]}>📦 Product & Service Catalog</Text>
+            <Text style={styles.actionRowArrow}>›</Text>
+          </Pressable>
+          <Divider theme={theme} />
+          <Pressable
+            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/vendor/orders' as any)}>
+            <Text style={[styles.actionRowText, { color: theme.text }]}>🚚 Customer Orders & Fulfillment</Text>
+            <Text style={styles.actionRowArrow}>›</Text>
+          </Pressable>
+          <Divider theme={theme} />
+          <Pressable
+            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/vendor/offers' as any)}>
+            <Text style={[styles.actionRowText, { color: theme.text }]}>🏷️ Promotional Offers & Coupons</Text>
+            <Text style={styles.actionRowArrow}>›</Text>
+          </Pressable>
+          <Divider theme={theme} />
+          <Pressable
+            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/vendor/verification' as any)}>
+            <Text style={[styles.actionRowText, { color: theme.text }]}>🛡️ KYC Business Verification</Text>
+            <Text style={styles.actionRowArrow}>›</Text>
+          </Pressable>
+          <Divider theme={theme} />
+          <Pressable
+            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/vendor/settings' as any)}>
+            <Text style={[styles.actionRowText, { color: theme.text }]}>⚙️ Store Settings & Close Schedule</Text>
+            <Text style={styles.actionRowArrow}>›</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* ── Customer Quick Actions ───────────────────────────────────────── */}
       <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Customer Services</Text>
