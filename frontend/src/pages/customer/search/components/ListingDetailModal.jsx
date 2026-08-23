@@ -122,33 +122,42 @@ export default function ListingDetailModal({
     if (vendor.kyc_status === 'approved') return true;
     if (vendor.is_subscribed_verified === true) return true;
     if (vendor.isVerified === true || vendor.is_verified === true) return true;
-    if (vendor.vendorProfile?.isVerified === true) return true;
+    if (vendor.vendorProfile?.isVerified === true || vendor.vendorProfile?.is_verified === true) return true;
     if (vendor.verified_badge === true) return true;
     const status = vendor.vendorProfile?.verificationStatus || vendor.verificationStatus || vendor.vendorProfile?.tier || vendor.tier;
     if (['verified_vendor', 'premium_verified', 'trusted_vendor', 'premium_vendor', 'verified'].includes(status)) {
       return true;
     }
-    if (vendor.vendorProfile?.contactVerified?.whatsapp || vendor.vendorProfile?.contactVerified?.mobile) {
+    if (vendor.vendorProfile?.contactVerified?.whatsapp || vendor.vendorProfile?.contactVerified?.mobile || vendor.isPhoneVerified) {
       return true;
     }
     const docs = vendor.vendorProfile?.documents || {};
-    if (docs.pan?.status === 'approved' || docs.pan?.verified || docs.aadhaar?.status === 'approved' || docs.aadhaar?.verified || docs.gst?.status === 'approved' || docs.gst?.verified) {
+    if (docs.pan?.status === 'approved' || docs.pan?.verified || docs.aadhaar?.status === 'approved' || docs.aadhaar?.verified || docs.gst?.status === 'approved' || docs.gst?.verified || docs.shopLicense?.status === 'approved') {
+      return true;
+    }
+    const payment = vendor.vendorProfile?.paymentDetails || vendor.vendorProfile?.payoutDetails || vendor.paymentDetails || {};
+    if (payment.upiVerified || payment.verified || payment.status === 'approved') {
+      return true;
+    }
+    // If vendor set up payment details during onboarding or in profile
+    if (payment.upiId || payment.bankAccount || vendor.vendorProfile?.upiId || vendor.vendorProfile?.bankDetails?.accountNumber || vendor.vendorProfile?.bankAccount) {
       return true;
     }
     return false;
   };
 
   const isVerified = isVendorVerified(vendorObj);
-  const vendorPayment = vendorObj.vendorProfile?.paymentDetails || vendorObj.paymentDetails || {};
-  const vendorUpi = vendorPayment.upiId || vendorObj.vendorProfile?.upiId || vendorObj.upiId || '';
-  const vendorPhone = vendorObj.phone || vendorObj.vendorProfile?.whatsapp || vendorObj.vendorProfile?.whatsappNumber || '';
-  const vendorQr = vendorPayment.qrCodeUrl || vendorPayment.qrCode || vendorObj.vendorProfile?.qrCode || vendorObj.vendorProfile?.qrCodeUrl || vendorObj.qrCode || '';
+  const vp = vendorObj.vendorProfile || {};
+  const vendorPayment = vp.paymentDetails || vp.payoutDetails || vendorObj.paymentDetails || vp.bankDetails || vendorObj.bankDetails || {};
+  const vendorUpi = vendorPayment.upiId || vendorPayment.upi_id || vendorPayment.maskedUpi || vp.upiId || vp.upi_id || vp.upi || vendorObj.upiId || vendorObj.upi || '';
+  const vendorPhone = vendorObj.phone || vp.whatsapp || vp.whatsappNumber || vp.mobileNumber || '';
+  const vendorQr = vendorPayment.qrCodeUrl || vendorPayment.qrCode || vendorPayment.qr_code || vp.qrCodeUrl || vp.qrCode || vp.qr_code || vendorObj.qrCode || vendorObj.qrCodeUrl || '';
   const vendorBank = {
-    bankName: vendorPayment.bankName || vendorObj.vendorProfile?.bankDetails?.bankName || '',
-    accountHolderName: vendorPayment.accountHolderName || vendorObj.vendorProfile?.bankDetails?.accountHolderName || vendorName || '',
-    accountNumber: vendorPayment.bankAccount || vendorPayment.accountNumber || vendorPayment.maskedAccount || vendorObj.vendorProfile?.bankDetails?.accountNumber || '',
-    ifscCode: vendorPayment.ifscCode || vendorObj.vendorProfile?.bankDetails?.ifscCode || '',
-    branchName: vendorPayment.branchName || vendorObj.vendorProfile?.bankDetails?.branchName || '',
+    bankName: vendorPayment.bankName || vendorPayment.bank_name || vp.bankDetails?.bankName || vp.bankName || vendorObj.bankDetails?.bankName || 'Commercial Bank',
+    accountHolderName: vendorPayment.verifiedAccountName || vendorPayment.accountHolderName || vendorPayment.account_holder_name || vp.bankDetails?.accountHolderName || vendorName || '',
+    accountNumber: vendorPayment.bankAccount || vendorPayment.accountNumber || vendorPayment.account_number || vendorPayment.maskedAccount || vp.bankDetails?.accountNumber || vendorObj.bankDetails?.accountNumber || '',
+    ifscCode: vendorPayment.ifscCode || vendorPayment.ifsc_code || vendorPayment.ifsc || vp.bankDetails?.ifscCode || vendorObj.bankDetails?.ifscCode || '',
+    branchName: vendorPayment.branchName || vendorPayment.branch_name || vp.bankDetails?.branchName || vendorPayment.city || '',
   };
 
   const [copiedKey, setCopiedKey] = useState('');

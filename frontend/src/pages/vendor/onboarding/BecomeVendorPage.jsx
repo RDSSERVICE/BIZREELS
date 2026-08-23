@@ -244,7 +244,17 @@ export default function BecomeVendorPage({ isEditMode = false }) {
     setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
   };
 
-  // 7. Terms Declaration
+  // 7. Direct Payment & Payout Setup (UPI, QR, Bank)
+  const [upiId, setUpiId] = useState('');
+  const [qrCode, setQrCode] = useState('');
+  const [qrUploading, setQrUploading] = useState(false);
+  const [bankAccount, setBankAccount] = useState('');
+  const [ifscCode, setIfscCode] = useState('');
+  const [accountHolderName, setAccountHolderName] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [branchName, setBranchName] = useState('');
+
+  // 8. Terms Declaration
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -332,6 +342,18 @@ export default function BecomeVendorPage({ isEditMode = false }) {
         if (bt.closingTime) setClosingTime(bt.closingTime);
         if (bt.weeklyOff) setWeeklyOff(bt.weeklyOff);
         if (bt.open24x7 !== undefined) setOpen24x7(bt.open24x7);
+      }
+
+      if (vp.paymentDetails || vp.bankDetails || vp.upiId) {
+        const pd = vp.paymentDetails || {};
+        const bd = vp.bankDetails || {};
+        if (pd.upiId || vp.upiId) setUpiId(pd.upiId || vp.upiId || '');
+        if (pd.qrCodeUrl || pd.qrCode || vp.qrCode) setQrCode(pd.qrCodeUrl || pd.qrCode || vp.qrCode || '');
+        if (pd.bankAccount || pd.accountNumber || bd.accountNumber) setBankAccount(pd.bankAccount || pd.accountNumber || bd.accountNumber || '');
+        if (pd.ifscCode || bd.ifscCode) setIfscCode(pd.ifscCode || bd.ifscCode || '');
+        if (pd.accountHolderName || bd.accountHolderName) setAccountHolderName(pd.accountHolderName || bd.accountHolderName || '');
+        if (pd.bankName || bd.bankName) setBankName(pd.bankName || bd.bankName || '');
+        if (pd.branchName || bd.branchName) setBranchName(pd.branchName || bd.branchName || '');
       }
 
       setTermsAccepted(true);
@@ -575,6 +597,28 @@ export default function BecomeVendorPage({ isEditMode = false }) {
           open24x7
         },
         termsAccepted: true,
+        paymentDetails: {
+          upiId: upiId.trim(),
+          qrCodeUrl: qrCode || '',
+          qrCode: qrCode || '',
+          bankAccount: bankAccount.trim(),
+          accountNumber: bankAccount.trim(),
+          ifscCode: ifscCode.trim().toUpperCase(),
+          accountHolderName: accountHolderName.trim() || shopName.trim(),
+          bankName: bankName.trim(),
+          branchName: branchName.trim(),
+          status: 'pending',
+          verified: false
+        },
+        upiId: upiId.trim(),
+        qrCode: qrCode || '',
+        bankDetails: {
+          accountNumber: bankAccount.trim(),
+          ifscCode: ifscCode.trim().toUpperCase(),
+          accountHolderName: accountHolderName.trim() || shopName.trim(),
+          bankName: bankName.trim(),
+          branchName: branchName.trim()
+        },
         updatedAt: new Date().toISOString()
       };
 
@@ -1553,6 +1597,151 @@ export default function BecomeVendorPage({ isEditMode = false }) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* SECTION 6: DIRECT PAYMENT & PAYOUT DETAILS (UPI, QR, BANK ACCOUNT) */}
+        <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-5">
+          <div className="border-b border-[#e3dccb] pb-3 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-xl bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-xs">6</span>
+              <div>
+                <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a]">
+                  Direct Payment &amp; Settlement Details
+                </h3>
+                <p className="text-[11px] text-slate-500">Provide your UPI ID, QR code, or Bank Account for receiving customer orders</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+              Optional / Recommended
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {/* UPI ID & QR Code */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
+                  Vendor UPI ID / VPA
+                </label>
+                <div className="relative">
+                  <FiCreditCard className="absolute left-3.5 top-3 text-slate-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value.toLowerCase().trim())}
+                    placeholder="e.g. storename@okaxis, shop@upi"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-mono font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Customers can pay directly using Google Pay, PhonePe, Paytm, or BHIM.</p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">
+                  Payment QR Code Image
+                </label>
+                <div className="flex items-center gap-3">
+                  <label className="cursor-pointer flex-1 px-3.5 py-2 bg-[#f8f4ec] border border-dashed border-[#e3dccb] rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-2 hover:border-[#241b15] transition">
+                    <FiUploadCloud size={16} className="text-[#d99a3d]" />
+                    <span>{qrUploading ? 'Uploading...' : qrCode ? 'QR Uploaded ✓ (Click to change)' : 'Upload Standee QR Code'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setQrUploading(true);
+                        try {
+                          const formData = new FormData();
+                          formData.append('image', file);
+                          const res = await api.post('/v1/upload/image', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                          });
+                          const url = res.data?.data?.url || res.data?.url || res.data?.data?.fileUrl;
+                          if (url) {
+                            setQrCode(url);
+                            toast.success('Payment QR Code uploaded successfully!');
+                          }
+                        } catch (err) {
+                          toast.error('Failed to upload QR image.');
+                        } finally {
+                          setQrUploading(false);
+                        }
+                      }}
+                    />
+                  </label>
+                  {qrCode && (
+                    <img src={resolveMediaUrl(qrCode)} alt="Uploaded QR" className="w-10 h-10 object-contain rounded-lg border border-[#e3dccb] bg-white p-0.5" />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Details Sub-block */}
+            <div className="pt-3 border-t border-[#e3dccb] space-y-3">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                Bank Account for Direct Transfers (Optional)
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-1">Account Holder Name</label>
+                  <input
+                    type="text"
+                    value={accountHolderName}
+                    onChange={(e) => setAccountHolderName(e.target.value)}
+                    placeholder="Name as in bank record"
+                    className="w-full px-3 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-1">Bank Name</label>
+                  <input
+                    type="text"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder="e.g. HDFC Bank, SBI"
+                    className="w-full px-3 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-1">Account Number</label>
+                  <input
+                    type="text"
+                    value={bankAccount}
+                    onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ''))}
+                    placeholder="e.g. 50100234567890"
+                    className="w-full px-3 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-mono font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-1">IFSC Code</label>
+                  <input
+                    type="text"
+                    maxLength={11}
+                    value={ifscCode}
+                    onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. HDFC0001234"
+                    className="w-full px-3 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-mono font-bold uppercase text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-600 mb-1">Branch Name / City</label>
+                  <input
+                    type="text"
+                    value={branchName}
+                    onChange={(e) => setBranchName(e.target.value)}
+                    placeholder="e.g. Vijay Nagar Branch, Indore"
+                    className="w-full px-3 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d]"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* SECTION 7: DECLARATION & TERMS */}
