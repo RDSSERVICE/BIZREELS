@@ -91,13 +91,13 @@ const hydrateCart = async (cart) => {
   };
 };
 
-router.get('/me', requireAuth, catchAsync(async (req, res) => {
+router.get(['/', '/me'], requireAuth, catchAsync(async (req, res) => {
   const cart = await getCart(req.user._id.toString());
   const result = await hydrateCart(cart);
   res.json(result);
 }));
 
-router.post('/me/add', requireAuth, catchAsync(async (req, res) => {
+router.post(['/add', '/me/add'], requireAuth, catchAsync(async (req, res) => {
   const listing_id = req.body.listing_id || req.body.listingId;
   const { quantity = 1, variant_selection } = req.body;
   if (!listing_id || !mongoose.Types.ObjectId.isValid(listing_id)) {
@@ -145,7 +145,7 @@ router.post('/me/add', requireAuth, catchAsync(async (req, res) => {
   res.json(result);
 }));
 
-router.patch('/me/items/:listing_id', requireAuth, catchAsync(async (req, res) => {
+router.patch(['/items/:listing_id', '/me/items/:listing_id'], requireAuth, catchAsync(async (req, res) => {
   const { listing_id } = req.params;
   const { quantity } = req.body;
   if (quantity === undefined || quantity < 1 || quantity > 99) {
@@ -180,7 +180,7 @@ router.patch('/me/items/:listing_id', requireAuth, catchAsync(async (req, res) =
   res.json(result);
 }));
 
-router.delete('/me/items/:listing_id', requireAuth, catchAsync(async (req, res) => {
+router.delete(['/items/:listing_id', '/me/items/:listing_id'], requireAuth, catchAsync(async (req, res) => {
   const { listing_id } = req.params;
   const cart = await getCart(req.user._id.toString());
   const items = (cart.items || []).filter(i => i.listing_id !== listing_id);
@@ -197,7 +197,7 @@ router.delete('/me/items/:listing_id', requireAuth, catchAsync(async (req, res) 
   res.json(result);
 }));
 
-router.post('/me/checkout', requireAuth, catchAsync(async (req, res) => {
+router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, res) => {
   const cart = await getCart(req.user._id.toString());
   const hydrated = await hydrateCart(cart);
   if (hydrated.groups.length === 0) {

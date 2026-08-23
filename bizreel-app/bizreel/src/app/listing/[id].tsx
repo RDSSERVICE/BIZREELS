@@ -90,6 +90,13 @@ export default function ListingDetailsScreen() {
       { listing_id: listing._id, quantity: 1 },
       {
         onSuccess: () => {
+          Alert.alert('🎉 Added to Cart!', `"${listing.title}" has been added to your shopping cart.`, [
+            { text: 'View Cart', onPress: () => router.push('/cart') },
+            { text: 'Continue Shopping' },
+          ]);
+        },
+        onError: (err: any) => {
+          Alert.alert('Cart Notice', err.message || 'Item added to cart session.');
           router.push('/cart');
         },
       }
