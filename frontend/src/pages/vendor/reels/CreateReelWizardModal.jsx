@@ -573,16 +573,23 @@ export default function CreateReelWizardModal({
             }
           </span>
           <div className="flex items-center gap-1.5">
-            {[1, 2, 3].map(s => (
-              <div
-                key={s}
-                className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] transition-all ${
-                  wizardStep === s ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/25 border border-amber-400 scale-105 font-extrabold' :
-                  wizardStep > s ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-400 border border-white/10 font-bold'
+            {[
+              { num: 1, label: '1. Category' },
+              { num: 2, label: '2. Upload Video' },
+              { num: 3, label: '3. Targeting' },
+            ].map((step) => (
+              <button
+                key={step.num}
+                type="button"
+                onClick={() => setWizardStep(step.num)}
+                className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-[11px] transition-all cursor-pointer ${
+                  wizardStep === step.num ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/25 border border-amber-400 scale-105 font-extrabold' :
+                  wizardStep > step.num ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-white/10 text-slate-300 hover:bg-white/20 border border-white/15'
                 }`}
               >
-                {wizardStep > s ? <FiCheck size={13} /> : s}
-              </div>
+                {wizardStep > step.num ? <FiCheck size={13} className="text-emerald-400" /> : null}
+                <span>{step.label}</span>
+              </button>
             ))}
           </div>
         </div>
