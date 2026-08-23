@@ -175,7 +175,7 @@ export default function CreateReelScreen() {
         {/* API Category Selection */}
         {parentCategories.length > 0 && (
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Category (from API)</Text>
+            <Text style={styles.label}>Category</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listingsScroll}>
               {parentCategories.map((catItem: any) => (
                 <TouchableOpacity
@@ -206,7 +206,7 @@ export default function CreateReelScreen() {
         {/* API Subcategory Selection */}
         {childSubcategories.length > 0 && (
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Subcategory (from API)</Text>
+            <Text style={styles.label}>Subcategory</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listingsScroll}>
               {childSubcategories.map((subItem: any) => (
                 <TouchableOpacity
