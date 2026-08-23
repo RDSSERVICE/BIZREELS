@@ -18,9 +18,9 @@ const buildFeed = async ({
   type = 'all',
   lat = null,
   lng = null,
-  radius_km = 10.0,
+  radius_km = null,
   cursor = null,
-  limit = 20,
+  limit = 50,
   user_id = null,
   reels_only = false,
   radiusKm = null,
@@ -38,24 +38,27 @@ const buildFeed = async ({
   const qListings = { isDeleted: { $ne: true }, status: 'published', ...notTestFilter() };
   const qReels = { isDeleted: { $ne: true }, status: 'published', ...notTestFilter() };
 
-  const poolSize = Math.max(limit * 5, 40);
+  const poolSize = Math.max(limit * 5, 100);
   let listingDocs = [];
   let reelDocs = [];
 
   // Query Listings
   if (fetchListings) {
-    if (lat !== null && lng !== null && finalRadiusKm) {
+    if (lat !== null && lng !== null) {
       try {
-        const pipeline = [
-          {
-            $geoNear: {
-              near: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-              distanceField: 'distance_meters',
-              maxDistance: parseFloat(finalRadiusKm) * 1000.0,
-              query: qListings,
-              spherical: true,
-            },
+        const geoNearStage = {
+          $geoNear: {
+            near: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+            distanceField: 'distance_meters',
+            query: qListings,
+            spherical: true,
           },
+        };
+        if (finalRadiusKm && !isNaN(parseFloat(finalRadiusKm))) {
+          geoNearStage.$geoNear.maxDistance = parseFloat(finalRadiusKm) * 1000.0;
+        }
+        const pipeline = [
+          geoNearStage,
           { $sort: { _id: -1 } },
           { $limit: poolSize },
         ];
@@ -70,18 +73,21 @@ const buildFeed = async ({
 
   // Query Reels
   if (fetchReels) {
-    if (lat !== null && lng !== null && finalRadiusKm) {
+    if (lat !== null && lng !== null) {
       try {
-        const pipeline = [
-          {
-            $geoNear: {
-              near: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-              distanceField: 'distance_meters',
-              maxDistance: parseFloat(finalRadiusKm) * 1000.0,
-              query: qReels,
-              spherical: true,
-            },
+        const geoNearStage = {
+          $geoNear: {
+            near: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+            distanceField: 'distance_meters',
+            query: qReels,
+            spherical: true,
           },
+        };
+        if (finalRadiusKm && !isNaN(parseFloat(finalRadiusKm))) {
+          geoNearStage.$geoNear.maxDistance = parseFloat(finalRadiusKm) * 1000.0;
+        }
+        const pipeline = [
+          geoNearStage,
           { $sort: { _id: -1 } },
           { $limit: poolSize },
         ];

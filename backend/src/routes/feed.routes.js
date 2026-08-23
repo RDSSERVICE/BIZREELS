@@ -9,15 +9,15 @@ router.get('/', optionalAuth, catchAsync(async (req, res) => {
   const type = req.query.type || 'all';
   const lat = req.query.lat ? parseFloat(req.query.lat) : null;
   const lng = req.query.lng ? parseFloat(req.query.lng) : null;
-  const radius = req.query.radius || '10';
+  const radius = req.query.radius || 'any';
   const cursor = req.query.cursor || null;
-  const limit = Math.max(1, Math.min(50, parseInt(req.query.limit || 20, 10)));
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 50, 10)));
 
   let radiusKm = null;
-  if (radius.toLowerCase() !== 'any') {
+  if (radius && radius.toLowerCase() !== 'any' && radius.toLowerCase() !== 'all') {
     radiusKm = parseFloat(radius);
     if (isNaN(radiusKm)) {
-      radiusKm = 10.0;
+      radiusKm = null;
     }
   }
 

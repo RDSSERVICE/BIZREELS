@@ -303,22 +303,29 @@ export default function CustomerHomePage() {
 
   useEffect(() => {
     fetchFeedData();
-  }, [activeTab, coords]);
+  }, [activeTab, coords, filters.distanceKm, filters.nearby]);
 
   const fetchFeedData = async () => {
     setLoading(true);
     try {
-      let endpoint = `/v1/listings`;
+      let endpoint = `/v1/feed?type=all&limit=60`;
       if (activeTab === 'reels') {
-        endpoint = `/v1/reels`;
-      } else if (activeTab === 'combined') {
-        endpoint = `/v1/feed?type=all`;
+        endpoint = `/v1/reels?limit=60`;
+      } else if (activeTab === 'images') {
+        endpoint = `/v1/listings?limit=60`;
       }
 
       const params = {};
       if (coords?.lat && coords?.lng) {
         params.lat = coords.lat;
         params.lng = coords.lng;
+      }
+
+      if (filters.nearby === 'near_me' && filters.distanceKm && filters.distanceKm !== 'all') {
+        params.radius = filters.distanceKm;
+        params.distance = filters.distanceKm;
+      } else {
+        params.radius = 'any';
       }
       
       const res = await api.get(endpoint, { params });
