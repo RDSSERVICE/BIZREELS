@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
-  FiCheck, FiChevronRight, FiShoppingBag, FiCoffee, FiTool,
+  FiCheck, FiChevronRight, FiChevronLeft, FiShoppingBag, FiCoffee, FiTool,
   FiTruck, FiShoppingCart, FiHeart, FiHome, FiBookOpen, FiFolder,
-  FiSearch, FiX, FiFilter, FiCheckSquare, FiSquare
+  FiSearch, FiX, FiFilter, FiCheckSquare, FiSquare, FiArrowLeft, FiArrowRight
 } from 'react-icons/fi';
 import { FaCouch, FaLaptop } from 'react-icons/fa';
 import { api } from '../../lib/api';
@@ -66,13 +66,16 @@ export default function InterestSelector({
   selected = [], 
   setSelected,
   showSearch = true,
-  theme = 'settings' // 'settings' | 'onboarding'
+  theme = 'settings', // 'settings' | 'onboarding'
+  itemsPerPage = 12
 }) {
   const [categories, setCategories] = useState([]);
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'selected'
   const [allExpanded, setAllExpanded] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -160,6 +163,29 @@ export default function InterestSelector({
     });
   }, [categories, searchQuery, filterMode, selected]);
 
+  // Reset to Page 1 whenever search query or filter mode changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterMode]);
+
+  // Pagination calculations (12 categories per page)
+  const totalItems = filteredCategories.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const paginatedCategories = useMemo(() => {
+    return filteredCategories.slice(startIndex, endIndex);
+  }, [filteredCategories, startIndex, endIndex]);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      if (containerRef.current) {
+        containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
   const toggleAllExpanded = () => {
     setAllExpanded(prev => !prev);
     if (!allExpanded) {
@@ -175,8 +201,25 @@ export default function InterestSelector({
     return expandedCategory === catName;
   };
 
+  // Helper to generate page numbers with ellipses
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  };
+
   return (
-    <div className="space-y-4">
+    <div ref={containerRef} className="space-y-4">
       {/* ── SEARCH & FILTER CONTROLS MENU ── */}
       {showSearch && (
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-2xs">
@@ -252,21 +295,21 @@ export default function InterestSelector({
             </div>
           </div>
 
-          {/* Quick Info bar */}
-          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
+          {/* Quick Info bar with pagination bounds */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-500 font-medium px-1 gap-1">
             <span>
-              Showing <strong className="text-[#1a1a1a] font-black">{filteredCategories.length}</strong> of {categories.length} categories
+              Showing <strong className="text-[#1a1a1a] font-black">{totalItems === 0 ? 0 : startIndex + 1}–{endIndex}</strong> of {totalItems} categories
               {searchQuery && <span> matching "<strong className="text-[#241b15]">{searchQuery}</strong>"</span>}
             </span>
             <span className="text-[#241b15] font-black">
-              {selected.length} / 5 Minimum Selected
+              {selected.length} / 5 Minimum Selected (Page {currentPage} of {totalPages})
             </span>
           </div>
         </div>
       )}
 
-      {/* ── CATEGORY CARDS GRID ── */}
-      {filteredCategories.length === 0 ? (
+      {/* ── CATEGORY CARDS GRID (12 ITEMS PER PAGE) ── */}
+      {paginatedCategories.length === 0 ? (
         <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-300 rounded-xl space-y-3">
           <div className="w-10 h-10 mx-auto rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-black">
             <FiSearch size={18} />
@@ -287,7 +330,7 @@ export default function InterestSelector({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCategories.map((cat) => {
+          {paginatedCategories.map((cat) => {
             const isExpanded = isCategoryExpanded(cat.name);
             const count = categorySelectedCount(cat.name);
             const isCatSelected = selected.some(s => s.category === cat.name && !s.subcategory);
@@ -407,6 +450,67 @@ export default function InterestSelector({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── 4. PRODUCTION-GRADE PAGINATION MENU (PREV/NEXT ARROWS & PAGE NUMBERS) ── */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 bg-white p-4 rounded-xl shadow-2xs">
+          <div className="text-xs text-slate-600 font-medium">
+            Page <strong className="text-[#1a1a1a] font-black">{currentPage}</strong> of <strong className="text-[#1a1a1a] font-black">{totalPages}</strong> (12 categories per page)
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {/* Previous Arrow Button */}
+            <button
+              type="button"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[#1a1a1a] text-xs font-black transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+            >
+              <FiChevronLeft size={16} />
+              <span className="hidden sm:inline">Prev</span>
+            </button>
+
+            {/* Page Number Buttons */}
+            <div className="flex items-center gap-1">
+              {getPageNumbers().map((p, idx) => {
+                if (p === '...') {
+                  return (
+                    <span key={`ellipsis-${idx}`} className="px-2 py-1 text-slate-400 text-xs font-bold select-none">
+                      ...
+                    </span>
+                  );
+                }
+                const isActive = p === currentPage;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => handlePageChange(p)}
+                    className={`w-8 h-8 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center ${
+                      isActive
+                        ? 'bg-[#241b15] text-[#d99a3d] border border-[#241b15] shadow-2xs'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next Arrow Button */}
+            <button
+              type="button"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[#1a1a1a] text-xs font-black transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+            >
+              <span className="hidden sm:inline">Next</span>
+              <FiChevronRight size={16} />
+            </button>
+          </div>
         </div>
       )}
     </div>
