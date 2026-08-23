@@ -8,8 +8,8 @@ import {
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import OptimizedImage from '../../../components/common/OptimizedImage';
-import { api, resolveMediaUrl, locationApi } from '../../../lib/api';
+import { api, resolveMediaUrl, locationApi, cartApi } from '../../../lib/api';
+import { notifyCartChanged } from '../../../components/app/CartDrawer';
 
 /**
  * OfferCountdown component for active promo offers
@@ -266,6 +266,17 @@ export default function ListingDetailPage() {
     window.open(`https://wa.me/${vendorPhone.replace(/\D/g, '')}?text=${text}`, '_blank');
   };
 
+  // Add to Shopping Cart
+  const handleAddToCart = async () => {
+    try {
+      await cartApi.add({ listing_id: itemId, quantity: orderQty || 1 });
+      notifyCartChanged();
+      toast.success(`"${item.title}" added to your cart!`);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not add item to cart.');
+    }
+  };
+
   // Submit Direct Order / Booking
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
@@ -276,12 +287,12 @@ export default function ListingDetailPage() {
 
     setOrderSubmitting(true);
     try {
-      await api.post('/v1/vendor-orders', {
+      await api.post('/v1/orders', {
         listingId: itemId,
         vendorId: vendorObj._id || vendorObj.id,
         itemType: isService ? 'service' : 'product',
         quantity: orderQty,
-        deliveryAddress: orderAddress,
+        address: orderAddress,
         bookingDate: isService ? bookingDate : undefined,
         bookingTimeSlot: isService ? bookingTime : undefined,
         notes: bookingNotes,
@@ -291,6 +302,7 @@ export default function ListingDetailPage() {
 
       toast.success(isService ? 'Service booking request sent successfully!' : 'Order request submitted successfully!');
       setShowOrderForm(false);
+      navigate('/customer/activities');
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to submit order request. Please try again.');
     } finally {
@@ -509,14 +521,25 @@ export default function ListingDetailPage() {
 
               {/* Action Buttons */}
               <div className="pt-4 border-t border-[#e3dccb] space-y-3">
-                <button
-                  type="button"
-                  onClick={() => setShowOrderForm(!showOrderForm)}
-                  className="w-full py-3.5 px-4 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-sm font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer border border-[#241b15]"
-                >
-                  {isService ? <FiTool size={18} /> : <FiShoppingCart size={18} />}
-                  <span>{showOrderForm ? 'Close Order Form' : (isService ? 'Book Service Now' : 'Place Order Request')}</span>
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    className="py-3.5 px-4 rounded-xl bg-[#d99a3d] hover:bg-[#c0862b] text-[#1a1a1a] text-sm font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <FiShoppingCart size={18} />
+                    <span>Add to Cart</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowOrderForm(!showOrderForm)}
+                    className="py-3.5 px-4 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-sm font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer border border-[#241b15]"
+                  >
+                    {isService ? <FiTool size={18} /> : <FiPackage size={18} />}
+                    <span>{showOrderForm ? 'Close Form' : (isService ? 'Book Service' : 'Buy Now / Direct Order')}</span>
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <button

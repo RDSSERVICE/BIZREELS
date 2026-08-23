@@ -65,6 +65,7 @@ router.use('/offers', lazyLoad('./offer.routes'));
 router.use('/reviews', lazyLoad('./reviewRoutes'));
 router.use('/analytics', lazyLoad('./analyticsRoutes'));
 router.use('/orders', lazyLoad('./orderRoutes'));
+router.use('/vendor-orders', lazyLoad('./orderRoutes'));
 router.use('/inquiries', lazyLoad('./inquiryRoutes'));
 router.use('/leads', lazyLoad('./inquiryRoutes')); // Alias for leads/enquiries
 router.use('/users', lazyLoad('./user.routes'));
