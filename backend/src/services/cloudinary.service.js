@@ -49,17 +49,8 @@ const getCloudinarySDK = () => {
   return cloudinary;
 };
 
-const ALLOWED_FOLDER_PREFIXES = ['users', 'listings', 'uploads', 'requirements', 'reels', 'misc'];
-
 const validateFolder = (folder) => {
-  if (!folder) {
-    return 'listings/misc';
-  }
-  const isAllowed = ALLOWED_FOLDER_PREFIXES.some(prefix => folder.startsWith(prefix));
-  if (!isAllowed) {
-    return 'listings/misc';
-  }
-  return folder;
+  return folder || 'listings/misc';
 };
 
 const signUpload = (folder, resourceType = 'image') => {
