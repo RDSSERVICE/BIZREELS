@@ -580,6 +580,13 @@ const verifyBank = catchAsync(async (req, res) => {
   currentPayment.referenceId = sandboxRes.referenceId || `BANK_VAL_${Date.now()}`;
 
   currentVp.paymentDetails = currentPayment;
+  currentVp.bankDetails = {
+    accountNumber: bankAccount,
+    ifscCode: ifscCode.toUpperCase(),
+    accountHolderName: accountHolderName || sandboxRes.nameAtBank || targetHolder,
+    bankName: currentPayment.bankName,
+    branchName: currentPayment.branchName
+  };
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
 
@@ -790,6 +797,7 @@ const verifyUpi = catchAsync(async (req, res) => {
   currentPayment.upiReferenceId = sandboxRes.referenceId || `UPI_VAL_${Date.now()}`;
 
   currentVp.paymentDetails = currentPayment;
+  currentVp.upiId = currentPayment.upiId;
   user.vendorProfile = currentVp;
   user.markModified('vendorProfile');
 
@@ -811,7 +819,7 @@ const verifyUpi = catchAsync(async (req, res) => {
 // 9. VERIFY PAYMENT (UPI & BANK COMBINED)
 // ─────────────────────────────────────────────────────────────
 const verifyPayment = catchAsync(async (req, res) => {
-  const { upiId, bankAccount, accountHolderName, ifscCode, bankName, branchName, statementChequeUrl } = req.body;
+  const { upiId, bankAccount, accountHolderName, ifscCode, bankName, branchName, statementChequeUrl, qrCodeUrl, qrCode } = req.body;
 
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
@@ -828,6 +836,7 @@ const verifyPayment = catchAsync(async (req, res) => {
     currentPayment.pspBank = sandboxUpi.pspBank || '';
     currentPayment.verifiedUpiName = sandboxUpi.beneficiaryName || targetHolder;
     currentPayment.upiReferenceId = sandboxUpi.referenceId || `UPI_VAL_${Date.now()}`;
+    currentVp.upiId = currentPayment.upiId;
   }
 
   if (bankAccount !== undefined && bankAccount.trim() !== '') {
@@ -835,6 +844,13 @@ const verifyPayment = catchAsync(async (req, res) => {
     currentPayment.maskedAccount = sandboxService.maskBankAccount(bankAccount);
     currentPayment.status = 'approved';
     currentPayment.verified = true;
+    currentVp.bankDetails = {
+      accountNumber: bankAccount,
+      ifscCode: (ifscCode || currentPayment.ifscCode || '').toUpperCase().trim(),
+      accountHolderName: accountHolderName || currentPayment.accountHolderName || targetHolder,
+      bankName: bankName || currentPayment.bankName || '',
+      branchName: branchName || currentPayment.branchName || ''
+    };
   }
   if (accountHolderName !== undefined) currentPayment.accountHolderName = accountHolderName;
   if (ifscCode !== undefined && ifscCode.trim() !== '') {
@@ -844,6 +860,13 @@ const verifyPayment = catchAsync(async (req, res) => {
   if (bankName !== undefined) currentPayment.bankName = bankName;
   if (branchName !== undefined) currentPayment.branchName = branchName;
   if (statementChequeUrl !== undefined) currentPayment.statementChequeUrl = statementChequeUrl;
+
+  const targetQr = qrCodeUrl || qrCode;
+  if (targetQr) {
+    currentPayment.qrCodeUrl = targetQr;
+    currentPayment.qrCode = targetQr;
+    currentVp.qrCode = targetQr;
+  }
 
   currentPayment.verifiedAt = new Date();
 

@@ -130,6 +130,8 @@ export default function VendorVerificationPage() {
   const [bankName, setBankName] = useState(vendorProfile.paymentDetails?.bankName || '');
   const [branchName, setBranchName] = useState(vendorProfile.paymentDetails?.branchName || '');
   const [statementFile, setStatementFile] = useState(vendorProfile.paymentDetails?.statementChequeUrl || '');
+  const [qrCodeFile, setQrCodeFile] = useState(vendorProfile.paymentDetails?.qrCodeUrl || vendorProfile.paymentDetails?.qrCode || vendorProfile.qrCode || '');
+  const [qrLoading, setQrLoading] = useState(false);
   const [ifscLoading, setIfscLoading] = useState(false);
 
   // Aadhaar OKYC States
@@ -195,6 +197,9 @@ export default function VendorVerificationPage() {
           if (data.paymentDetails.branchName && !branchName) setBranchName(data.paymentDetails.branchName);
           if (data.paymentDetails.statementChequeUrl && !statementFile) setStatementFile(data.paymentDetails.statementChequeUrl);
           if (data.paymentDetails.upiId && !upiId) setUpiId(data.paymentDetails.upiId);
+          if ((data.paymentDetails.qrCodeUrl || data.paymentDetails.qrCode) && !qrCodeFile) {
+            setQrCodeFile(data.paymentDetails.qrCodeUrl || data.paymentDetails.qrCode);
+          }
         }
       }
     } catch (err) {}
@@ -708,6 +713,50 @@ export default function VendorVerificationPage() {
       toast.error(err?.response?.data?.message || err.message || 'Failed to verify payment details', { id: toastId });
     } finally {
       setBankLoading(false);
+    }
+  };
+
+  // QR Code Upload and Save Handler
+  const handleSaveQrCode = async () => {
+    if (!qrCodeFile) {
+      toast.error('Please upload your Payment QR Code image first');
+      return;
+    }
+    setQrLoading(true);
+    const toastId = toast.loading('Saving Merchant QR Code...');
+    try {
+      const res = await api.post('/v1/vendors/me/verify-payment', {
+        qrCodeUrl: qrCodeFile,
+        qrCode: qrCodeFile
+      });
+      const data = res.data || res;
+      if (data.success) {
+        toast.success('🟢 Merchant QR Code saved and active!', { id: toastId });
+        await fetchStatus();
+
+        if (currentUser) {
+          dispatch(setCredentials({
+            user: {
+              ...currentUser,
+              vendorProfile: {
+                ...vendorProfile,
+                qrCode: qrCodeFile,
+                paymentDetails: {
+                  ...(vendorProfile.paymentDetails || {}),
+                  qrCodeUrl: qrCodeFile,
+                  qrCode: qrCodeFile
+                }
+              }
+            }
+          }));
+        }
+      } else {
+        toast.error(data.message || 'Failed to save QR Code', { id: toastId });
+      }
+    } catch (err) {
+      toast.error('Failed to save QR code', { id: toastId });
+    } finally {
+      setQrLoading(false);
     }
   };
 
@@ -2130,6 +2179,57 @@ export default function VendorVerificationPage() {
               }`}
             >
               {statusData.paymentDetails?.bankAccount && statusData.paymentDetails?.status === 'approved' && !editPaymentMode ? 'Bank Account Verified ✓' : bankLoading ? 'Verifying with Sandbox API...' : 'Verify & Save Bank Account (Sandbox API)'}
+            </button>
+          </div>
+
+          {/* ──────── SECTION 3: MERCHANT STANDEE QR CODE ──────── */}
+          <div className="p-4 sm:p-5 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-lg bg-[#241b15] text-[#d99a3d] flex items-center justify-center text-xs font-black shadow-2xs">📱</span>
+                <div>
+                  <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-[#1a1a1a]">Merchant Standee QR Code</h4>
+                  <p className="text-[10px] text-slate-400 font-bold">Display your physical store payment QR code directly to customers during direct checkout</p>
+                </div>
+              </div>
+
+              {(statusData.paymentDetails?.qrCodeUrl || statusData.paymentDetails?.qrCode || qrCodeFile) && (
+                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-black">
+                  QR Active ✓
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+              <div className="sm:col-span-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  Upload Payment QR Standee (Google Pay / PhonePe / Paytm / BHIM)
+                </label>
+                <label className="cursor-pointer px-4 py-3 bg-white border border-dashed border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] hover:bg-[#f8f4ec] transition flex items-center justify-center gap-2 shadow-2xs">
+                  <FiUploadCloud size={18} className="text-[#d99a3d]" />
+                  <span>{qrLoading ? 'Uploading...' : qrCodeFile ? 'QR Image Selected ✓ (Click to change)' : 'Upload Standee QR Code Image'}</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setQrCodeFile)} />
+                </label>
+              </div>
+
+              {qrCodeFile && (
+                <div className="flex items-center gap-3 p-2.5 bg-white border border-[#e3dccb] rounded-xl">
+                  <img src={resolveMediaUrl(qrCodeFile)} alt="Merchant QR" className="w-16 h-16 object-contain rounded-lg border border-[#e3dccb] bg-[#f8f4ec] p-1" />
+                  <div>
+                    <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Active Standee</span>
+                    <span className="text-xs font-bold text-emerald-800">Ready to Display</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveQrCode}
+              disabled={qrLoading || !qrCodeFile}
+              className="w-full py-3 bg-[#241b15] text-[#d99a3d] rounded-xl text-xs font-black shadow-xs hover:bg-[#3a2c22] disabled:opacity-50 cursor-pointer border-none transition"
+            >
+              {qrLoading ? 'Saving QR Code...' : 'Save & Publish Standee QR Code'}
             </button>
           </div>
         </div>
