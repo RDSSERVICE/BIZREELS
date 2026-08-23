@@ -10,7 +10,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api, cartApi } from '../../../lib/api';
-import { notifyCartChanged } from '../../../components/app/CartDrawer';
+import { notifyCartChanged, openCartDrawer } from '../../../components/app/CartDrawer';
 import { getSocket } from '../../../lib/socket';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
 import CommentsDrawer from '../../../components/ui/CommentsDrawer';
@@ -930,6 +930,7 @@ export default function CustomerHomePage() {
                           try {
                             await cartApi.add({ listing_id: targetId, quantity: 1 });
                             notifyCartChanged();
+                            openCartDrawer();
                             toast.success(`"${item.caption || 'Product'}" added to cart!`);
                           } catch {
                             toast.error('Could not add item to cart');
@@ -1133,6 +1134,7 @@ export default function CustomerHomePage() {
                           try {
                             await cartApi.add({ listing_id: targetId, quantity: 1 });
                             notifyCartChanged();
+                            openCartDrawer();
                             toast.success(`"${item.title || 'Product'}" added to cart!`);
                           } catch {
                             toast.error('Could not add item to cart');

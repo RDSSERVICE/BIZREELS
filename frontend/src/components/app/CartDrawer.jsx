@@ -9,10 +9,21 @@ import {
 import toast from "react-hot-toast";
 import { cartApi } from "../../lib/api";
 
-// Simple module-level bus so any component can nudge the cart to refresh
+// Simple module-level bus so any component can nudge the cart to refresh or open/close drawer
 let _refreshFns = new Set();
+let _openFns = new Set();
+let _closeFns = new Set();
+let _countFns = new Set();
+let _currentCount = 0;
+
+export function getCartItemCount() { return _currentCount; }
 export function subscribeCart(fn) { _refreshFns.add(fn); return () => _refreshFns.delete(fn); }
 export function notifyCartChanged() { _refreshFns.forEach((f) => f()); }
+export function subscribeOpenCart(fn) { _openFns.add(fn); return () => _openFns.delete(fn); }
+export function openCartDrawer() { _openFns.forEach((f) => f()); }
+export function subscribeCloseCart(fn) { _closeFns.add(fn); return () => _closeFns.delete(fn); }
+export function closeCartDrawer() { _closeFns.forEach((f) => f()); }
+export function subscribeCartCount(fn) { _countFns.add(fn); return () => _countFns.delete(fn); }
 
 export default function CartDrawer() {
   const user = useSelector((state) => state.auth?.user);
@@ -24,17 +35,30 @@ export default function CartDrawer() {
   const [updatingId, setUpdatingId] = useState(null);
 
   const refresh = async () => {
-    if (!user) { setCart(null); return; }
+    if (!user) { setCart(null); _currentCount = 0; _countFns.forEach(fn => fn(0)); return; }
     try {
       const res = await cartApi.mine();
-      setCart(res.data);
-    } catch { setCart(null); }
+      const cartData = res.data;
+      setCart(cartData);
+      _currentCount = cartData?.total_items || 0;
+      _countFns.forEach(fn => fn(_currentCount));
+    } catch { 
+      setCart(null);
+      _currentCount = 0;
+      _countFns.forEach(fn => fn(0));
+    }
   };
 
   useEffect(() => {
     refresh();
     const unsub = subscribeCart(refresh);
-    return unsub;
+    const unsubOpen = subscribeOpenCart(() => setOpen(true));
+    const unsubClose = subscribeCloseCart(() => setOpen(false));
+    return () => {
+      unsub();
+      unsubOpen();
+      unsubClose();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id || user?.id]);
 

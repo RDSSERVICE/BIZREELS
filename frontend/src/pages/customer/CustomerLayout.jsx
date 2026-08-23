@@ -7,14 +7,14 @@ import {
   FiTv, FiZap, FiCompass, FiShoppingBag, FiFilm,
   FiTrendingUp, FiCheckSquare, FiBell, FiMessageSquare, FiSettings,
   FiMapPin, FiUser, FiLogOut, FiChevronDown, FiChevronRight,
-  FiShield, FiRefreshCw, FiMenu, FiX, FiCheck, FiGlobe
+  FiShield, FiRefreshCw, FiMenu, FiX, FiCheck, FiGlobe, FiShoppingCart
 } from 'react-icons/fi';
 import { useGetMeQuery, useSwitchRoleMutation, useLogoutMutation } from '../../features/auth/authApi';
 import { setCredentials, logout, updateUser, selectCurrentUser, setActiveRole } from '../../features/auth/authSlice';
 import { api, locationApi, tokenStore } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 import { useLanguage } from '../../context/LanguageContext';
-import CartDrawer from '../../components/app/CartDrawer';
+import CartDrawer, { openCartDrawer, subscribeCartCount, getCartItemCount } from '../../components/app/CartDrawer';
 
 /**
  * CustomerLayout — Warm Editorial Bento-Brutalism layout for Customer Portal
@@ -56,6 +56,12 @@ export default function CustomerLayout() {
   }, [profileUser, location.pathname, navigate]);
 
   const [activityCounts, setActivityCounts] = useState({ total: 0, unreadNotifications: 0, unreadChat: 0 });
+  const [cartCount, setCartCount] = useState(getCartItemCount());
+
+  useEffect(() => {
+    const unsub = subscribeCartCount((count) => setCartCount(count));
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const fetchActivityCounts = async () => {
@@ -242,6 +248,7 @@ export default function CustomerLayout() {
 
   const menuItems = [
     { label: t('home', 'Home Feed', 'होम फीड (Home Feed)'), path: '/customer/home', icon: FiTv },
+    { label: lang === 'hi' ? 'मेरा कार्ट (My Cart)' : 'My Cart', path: '/customer/mycart', icon: FiShoppingCart, badge: cartCount || 0 },
     { label: t('post_requirement', 'Post Requirement', 'आवश्यकता पोस्ट करें (Post Requirement)'), path: '/customer/post-requirement', icon: FiZap },
     { label: t('search_placeholder', 'Search Listings', 'उत्पाद खोजें (Search Listings)'), path: '/customer/search', icon: FiCompass },
     {
@@ -266,15 +273,15 @@ export default function CustomerLayout() {
   const NAV_SECTIONS = [
     {
       title: lang === 'hi' ? 'ब्राउज़ (Browse)' : 'Browse',
-      items: menuItems.slice(0, 3),
+      items: menuItems.slice(0, 4),
     },
     {
       title: lang === 'hi' ? 'पोर्टल (Portals)' : 'Portals',
-      items: menuItems.slice(3, 5),
+      items: menuItems.slice(4, 6),
     },
     {
       title: lang === 'hi' ? 'मेरा खाता (My Account)' : 'My Account',
-      items: menuItems.slice(5),
+      items: menuItems.slice(6),
     },
   ];
 
@@ -322,7 +329,7 @@ export default function CustomerLayout() {
                     className="overflow-hidden space-y-1 mt-1"
                   >
                     {section.items.map((item) => {
-                      const isActive = location.pathname.startsWith(item.path);
+                      const isActive = item.path && location.pathname.startsWith(item.path);
                       const Icon = item.icon;
 
                       const handleClick = (e) => {
@@ -545,6 +552,20 @@ export default function CustomerLayout() {
                 </div>
               )}
             </div>
+
+            {/* Shopping Cart Button */}
+            <Link
+              to="/customer/mycart"
+              className="relative p-2 bg-white border border-[#e3dccb] rounded-full text-[#1a1a1a] hover:bg-[#f8f4ec] transition cursor-pointer shadow-2xs flex items-center justify-center"
+              title={lang === 'hi' ? 'कार्ट देखें (View Cart)' : 'View Cart'}
+            >
+              <FiShoppingCart size={16} className="text-[#d99a3d]" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#241b15] text-[#d99a3d] text-[9px] font-black flex items-center justify-center border border-[#d99a3d]">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
+            </Link>
 
             <NotificationBellDropdown role="customer" />
 

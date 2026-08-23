@@ -9,7 +9,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { api, resolveMediaUrl, locationApi, cartApi } from '../../../lib/api';
-import { notifyCartChanged } from '../../../components/app/CartDrawer';
+import { notifyCartChanged, openCartDrawer } from '../../../components/app/CartDrawer';
 
 /**
  * OfferCountdown component for active promo offers
@@ -285,6 +285,7 @@ export default function ListingDetailPage() {
     try {
       await cartApi.add({ listing_id: itemId, quantity: orderQty || 1 });
       notifyCartChanged();
+      openCartDrawer();
       toast.success(`"${item.title}" added to your cart!`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Could not add item to cart.');

@@ -9,7 +9,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { api, cartApi } from '../../lib/api';
-import { notifyCartChanged } from '../app/CartDrawer';
+import { notifyCartChanged, openCartDrawer } from '../app/CartDrawer';
 import ChatDrawer from '../ui/ChatDrawer';
 
 /**
@@ -407,6 +407,7 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
                         try {
                           await cartApi.add({ listing_id: targetId, quantity: 1 });
                           notifyCartChanged();
+                          openCartDrawer();
                           toast.success(`"${reel.caption || 'Product'}" added to cart!`);
                         } catch {
                           toast.error('Could not add item to cart');

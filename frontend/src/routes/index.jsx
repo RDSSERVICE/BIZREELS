@@ -41,6 +41,7 @@ const BecomeCreatorPage = React.lazy(() => import('../pages/creator/onboarding/B
 const VendorProfilePage = React.lazy(() => import('../pages/customer/vendor/VendorProfilePage'));
 const InterestSelectionPage = React.lazy(() => import('../pages/customer/onboarding/InterestSelectionPage'));
 const ListingDetailPage = React.lazy(() => import('../pages/customer/listings/ListingDetailPage'));
+const MyCartPage = React.lazy(() => import('../pages/customer/cart/MyCartPage'));
 
 // Vendor Pages
 const VendorDashboardPage = React.lazy(() => import('../pages/vendor/dashboard/VendorDashboardPage'));
@@ -161,6 +162,8 @@ const AppRoutes = () => {
         <Route path="notifications" element={<CustomerNotificationsPage />} />
         <Route path="chat" element={<CustomerChatPage />} />
         <Route path="settings" element={<CustomerSettingsPage />} />
+        <Route path="mycart" element={<MyCartPage />} />
+        <Route path="cart" element={<Navigate to="/customer/mycart" replace />} />
         <Route path="vendor/:vendorId" element={<VendorProfilePage />} />
         <Route path="choose-interests" element={<InterestSelectionPage />} />
         {/* Backward compatibility: old onboarding URLs redirect to new namespace */}
