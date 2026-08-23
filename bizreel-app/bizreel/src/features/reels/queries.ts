@@ -3,7 +3,15 @@
  */
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { addReelComment, fetchReelComments, fetchReelsFeed, toggleReelLike, toggleReelSave } from './api';
+import {
+  addReelComment,
+  fetchReelComments,
+  fetchReelsFeed,
+  followUser,
+  toggleReelLike,
+  toggleReelSave,
+  unfollowUser,
+} from './api';
 import type { Reel } from './types';
 
 export const REELS_QUERY_KEY = ['reels', 'feed'] as const;
@@ -72,6 +80,26 @@ export function useAddReelComment(reelId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reels', reelId, 'comments'] });
       queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+    },
+  });
+}
+
+export function useFollowUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => followUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
+    },
+  });
+}
+
+export function useUnfollowUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => unfollowUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
     },
   });
 }

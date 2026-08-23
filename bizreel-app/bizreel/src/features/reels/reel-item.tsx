@@ -32,7 +32,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart } from '@/features/cart/queries';
-import { useAddReelComment, useReelComments, useToggleReelLike, useToggleReelSave } from './queries';
+import {
+  useAddReelComment,
+  useFollowUser,
+  useReelComments,
+  useToggleReelLike,
+  useToggleReelSave,
+  useUnfollowUser,
+} from './queries';
 import type { Reel } from './types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -61,6 +68,8 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
   const toggleLikeMutation = useToggleReelLike();
   const toggleSaveMutation = useToggleReelSave();
   const addToCartMutation = useAddToCart();
+  const followUserMutation = useFollowUser();
+  const unfollowUserMutation = useUnfollowUser();
   const { data: comments = [], isLoading: isLoadingComments } = useReelComments(reel._id, commentsVisible);
   const addCommentMutation = useAddReelComment(reel._id);
 
@@ -313,7 +322,15 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
 
           <TouchableOpacity
             style={[styles.followBtn, isFollowing && styles.followBtnActive]}
-            onPress={() => setIsFollowing((v) => !v)}>
+            onPress={() => {
+              const next = !isFollowing;
+              setIsFollowing(next);
+              const targetUserId = (reel as any).creatorId || (reel as any).creator;
+              if (targetUserId) {
+                if (next) followUserMutation.mutate(targetUserId);
+                else unfollowUserMutation.mutate(targetUserId);
+              }
+            }}>
             <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
               {isFollowing ? 'Following' : 'Follow'}
             </Text>

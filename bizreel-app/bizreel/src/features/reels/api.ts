@@ -30,3 +30,13 @@ export async function addReelComment(reelId: string, text: string): Promise<Comm
   const { data } = await api.post<{ success: boolean; data: Comment }>(`/reels/${reelId}/comments`, { text });
   return data.data;
 }
+
+export async function followUser(userId: string): Promise<boolean> {
+  const { data } = await api.post(`/follow/${userId}`);
+  return data.success || true;
+}
+
+export async function unfollowUser(userId: string): Promise<boolean> {
+  const { data } = await api.delete(`/follow/${userId}`);
+  return data.success || true;
+}
