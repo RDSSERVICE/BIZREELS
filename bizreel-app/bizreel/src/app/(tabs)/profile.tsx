@@ -19,6 +19,7 @@
  */
 
 import { RoleSwitcher } from '@/components/role-switcher';
+import { VendorDrawerModal } from '@/components/vendor-drawer-modal';
 import {
     BrandColors,
     Colors,
@@ -213,22 +214,51 @@ export default function ProfileScreen() {
       .join(', ') || '—';
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.background }}
-      contentContainerStyle={[
-        styles.scrollContent,
-        { paddingTop: insets.top + Spacing.four },
-      ]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefetching}
-          onRefresh={refetch}
-          tintColor={BrandColors.primary}
-          colors={[BrandColors.primary]}
-        />
-      }>
+    <>
+      <VendorDrawerModal isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.background }}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + Spacing.four },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={BrandColors.primary}
+            colors={[BrandColors.primary]}
+          />
+        }>
+
+        {user.activeRole === 'vendor' && (
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#1c1c1e',
+              paddingHorizontal: Spacing.four,
+              paddingVertical: Spacing.three,
+              borderRadius: 14,
+              marginBottom: Spacing.three,
+              borderWidth: 1,
+              borderColor: BrandColors.primary,
+            }}
+            onPress={() => setDrawerOpen(true)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Ionicons name="menu-outline" size={24} color={BrandColors.primaryLight} />
+              <Text style={{ color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold }}>
+                Open Vendor Navigation Menu
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={BrandColors.primaryLight} />
+          </TouchableOpacity>
+        )}
 
       {/* ── Header card ─────────────────────────────────────────────────── */}
       <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
@@ -425,6 +455,7 @@ export default function ProfileScreen() {
 
       <View style={{ height: insets.bottom + Spacing.seven }} />
     </ScrollView>
+    </>
   );
 }
 

@@ -19,9 +19,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { api } from '@/lib/api';
 
+import { VendorDrawerModal } from '@/components/vendor-drawer-modal';
+
 export default function VendorDashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,12 +71,16 @@ export default function VendorDashboardScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => setDrawerOpen(true)}>
+          <Ionicons name="menu-outline" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Vendor Store Dashboard</Text>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Vendor Store Dashboard</Text>
-        <View style={{ width: 38 }} />
       </View>
+
+      <VendorDrawerModal isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       {loading ? (
         <View style={styles.centered}>
