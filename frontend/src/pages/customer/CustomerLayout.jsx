@@ -14,6 +14,7 @@ import { setCredentials, logout, updateUser, selectCurrentUser, setActiveRole } 
 import { api, locationApi, tokenStore } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 import { useLanguage } from '../../context/LanguageContext';
+import CartDrawer from '../../components/app/CartDrawer';
 
 /**
  * CustomerLayout — Warm Editorial Bento-Brutalism layout for Customer Portal
@@ -568,6 +569,9 @@ export default function CustomerLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Global Customer Cart Drawer & Floating FAB */}
+      <CartDrawer />
 
       {/* Mobile Fixed Bottom Navigation Bar (Tablets & Phones) */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-[#e3dccb] z-40 flex items-center justify-around py-1.5 px-2 shadow-lg font-sans">

@@ -163,11 +163,18 @@ class ReelRepository {
         commentsCount: 1,
         isBoosted: 1,
         createdAt: 1,
+        distance: 1,
+        distanceKm: { $cond: [{ $ifNull: ['$distance', false] }, { $divide: ['$distance', 1000] }, null] },
         creator: {
           _id: '$creatorDetails._id',
           name: '$creatorDetails.name',
           avatarUrl: '$creatorDetails.avatarUrl',
           activeRole: '$creatorDetails.activeRole',
+          role: '$creatorDetails.role',
+          location: '$creatorDetails.location',
+          city: '$creatorDetails.location.city',
+          state: '$creatorDetails.location.state',
+          address: '$creatorDetails.location.address',
         },
         targetListing: {
           _id: '$targetListingDetails._id',

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
@@ -200,6 +201,7 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
 
 export default function CustomerHomePage() {
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth || {});
   const { lang, bi, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('combined');
   const [combinedFeed, setCombinedFeed] = useState([]);
@@ -213,6 +215,7 @@ export default function CustomerHomePage() {
   const [muted, setMuted] = useState(true);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [selectedReelId, setSelectedReelId] = useState(null);
+  const [coords, setCoords] = useState(null);
 
   // In-context Chat drawer state
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
@@ -243,6 +246,31 @@ export default function CustomerHomePage() {
     uploadDate: 'all',
     popularity: 'trending',
   });
+
+  // ── 1. Geolocation Detection on Mount & from Customer Profile ──
+  useEffect(() => {
+    // 1. Check user profile / address coordinates
+    if (user?.location?.coordinates && Array.isArray(user.location.coordinates) && user.location.coordinates.length === 2) {
+      if (user.location.coordinates[0] !== 0 || user.location.coordinates[1] !== 0) {
+        setCoords({ lat: user.location.coordinates[1], lng: user.location.coordinates[0] });
+      }
+    }
+
+    // 2. Request browser Geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (pos.coords.latitude && pos.coords.longitude) {
+            setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          }
+        },
+        (err) => {
+          console.warn('Customer home geolocation error:', err);
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+      );
+    }
+  }, [user]);
 
   const fetchFollowings = async () => {
     try {
@@ -275,7 +303,7 @@ export default function CustomerHomePage() {
 
   useEffect(() => {
     fetchFeedData();
-  }, [activeTab]);
+  }, [activeTab, coords]);
 
   const fetchFeedData = async () => {
     setLoading(true);
@@ -286,8 +314,14 @@ export default function CustomerHomePage() {
       } else if (activeTab === 'combined') {
         endpoint = `/v1/feed?type=all`;
       }
+
+      const params = {};
+      if (coords?.lat && coords?.lng) {
+        params.lat = coords.lat;
+        params.lng = coords.lng;
+      }
       
-      const res = await api.get(endpoint);
+      const res = await api.get(endpoint, { params });
       const data = res.data;
 
       if (activeTab === 'reels') {
@@ -424,6 +458,156 @@ export default function CustomerHomePage() {
     setExpandedCaptions(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const [geocodedCache, setGeocodedCache] = useState({});
+
+  // ── 2. Geocoding Fallback for Items without Coordinates ──
+  useEffect(() => {
+    const geocodeLocations = async () => {
+      const allItems = [...combinedFeed, ...reels, ...images];
+      if (allItems.length === 0) return;
+
+      const toGeocode = [];
+      for (const item of allItems) {
+        const vendorObj = item.vendor || item.creator || item.vendorId || {};
+        const itemCoords = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2 && (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0))
+          ? item.location.coordinates
+          : (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
+          ? vendorObj.location.coordinates
+          : null;
+
+        if (!itemCoords) {
+          const city = item.location?.city || vendorObj.location?.city || item.city || vendorObj.city;
+          const address = item.location?.address || vendorObj.location?.address || vendorObj.address;
+          const state = item.location?.state || vendorObj.location?.state || vendorObj.state;
+          const pincode = item.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
+          const locStr = [address, city, state, pincode].filter(Boolean).join(', ') || city || address;
+          if (locStr && locStr.trim() && !geocodedCache[locStr]) {
+            toGeocode.push(locStr);
+          }
+        }
+      }
+
+      const uniqueToGeocode = [...new Set(toGeocode)].slice(0, 10);
+      if (uniqueToGeocode.length === 0) return;
+
+      const newCache = {};
+      let updated = false;
+
+      for (const locStr of uniqueToGeocode) {
+        try {
+          const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+          if (apiKey) {
+            const res = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locStr)}&key=${apiKey}`
+            );
+            const data = await res.json();
+            if (data && data.results && data.results.length > 0) {
+              const loc = data.results[0].geometry.location;
+              newCache[locStr] = { lat: loc.lat, lng: loc.lng };
+              updated = true;
+              continue;
+            }
+          }
+          // Nominatim OpenStreetMap geocoding fallback
+          const osmRes = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locStr)}&limit=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const osmData = await osmRes.json();
+          if (Array.isArray(osmData) && osmData.length > 0) {
+            newCache[locStr] = { lat: parseFloat(osmData[0].lat), lng: parseFloat(osmData[0].lon) };
+            updated = true;
+          }
+        } catch (e) {
+          // ignore geocoding errors
+        }
+      }
+
+      if (updated) {
+        setGeocodedCache(prev => ({ ...prev, ...newCache }));
+      }
+    };
+
+    geocodeLocations();
+  }, [combinedFeed, reels, images, geocodedCache]);
+
+  // ── 3. Precise Haversine Distance Calculation ──
+  const calculateDistanceKm = (item) => {
+    if (!item) return null;
+
+    // Check precalculated backend distance
+    if (item.distance !== undefined && item.distance !== null && !isNaN(item.distance)) {
+      const km = item.distance / 1000;
+      if (km < 6000) return km;
+    }
+    if (item.distanceKm !== undefined && item.distanceKm !== null && !isNaN(item.distanceKm)) {
+      const km = Number(item.distanceKm);
+      if (km < 6000) return km;
+    }
+
+    // Client-side Haversine formula calculation
+    if (!coords || (coords.lat === 0 && coords.lng === 0)) return null;
+
+    const vendorObj = item.vendor || item.creator || item.vendorId || {};
+    const itemCoordinates = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2 && (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0))
+      ? item.location.coordinates
+      : (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
+      ? vendorObj.location.coordinates
+      : null;
+
+    let targetLat = null;
+    let targetLng = null;
+
+    if (itemCoordinates) {
+      targetLng = itemCoordinates[0];
+      targetLat = itemCoordinates[1];
+    } else {
+      const city = item.location?.city || vendorObj.location?.city || item.city || vendorObj.city;
+      const address = item.location?.address || vendorObj.location?.address || vendorObj.address;
+      const state = item.location?.state || vendorObj.location?.state || vendorObj.state;
+      const pincode = item.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
+      const locStr = [address, city, state, pincode].filter(Boolean).join(', ') || city || address;
+      if (locStr && geocodedCache[locStr]) {
+        targetLat = geocodedCache[locStr].lat;
+        targetLng = geocodedCache[locStr].lng;
+      }
+    }
+
+    if (targetLat && targetLng && (targetLat !== 0 || targetLng !== 0)) {
+      const R = 6371; // Earth radius in km
+      const dLat = (targetLat - coords.lat) * (Math.PI / 180);
+      const dLng = (targetLng - coords.lng) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(coords.lat * (Math.PI / 180)) *
+          Math.cos(targetLat * (Math.PI / 180)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const km = R * c;
+      if (km < 6000) return km;
+    }
+
+    return null;
+  };
+
+  // Format distance display string: e.g. "2.4 km", "850 m", or City/Nearby
+  const formatDistance = (item) => {
+    const km = calculateDistanceKm(item);
+    if (km !== null) {
+      if (km < 1) {
+        return `${Math.max(50, Math.round(km * 1000))} m`;
+      }
+      return `${km.toFixed(1)} km`;
+    }
+    const city = item.location?.city || item.vendor?.location?.city || item.creator?.location?.city || item.city || item.vendor?.city;
+    if (city) return city;
+    const address = item.location?.address || item.vendor?.location?.address || item.creator?.location?.address;
+    if (address && typeof address === 'string' && address.length <= 22) return address;
+    return 'Nearby';
+  };
+
+  // ── 3. Complete Filtering & Sorting Logic ──
   const processedCombinedFeed = useMemo(() => {
     let items = combinedFeed;
     if (activeTab === 'reels') items = reels.map(r => ({ ...r, postType: 'reel' }));
@@ -431,27 +615,126 @@ export default function CustomerHomePage() {
 
     if (!filters) return items;
 
-    return items.filter((item) => {
+    // 1. FILTERING
+    let filtered = items.filter((item) => {
+      // 1.1 Search Query
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         const title = (item.title || item.caption || '').toLowerCase();
         const desc = (item.description || '').toLowerCase();
-        const vendorName = (item.vendor?.name || item.creator?.name || '').toLowerCase();
-        if (!title.includes(query) && !desc.includes(query) && !vendorName.includes(query)) {
+        const vendorName = (item.vendor?.name || item.creator?.name || item.vendor?.shopName || '').toLowerCase();
+        const categoryName = (item.category || item.subcategory || item.reelType || '').toLowerCase();
+        const locationStr = (item.location?.address || item.location?.city || item.city || '').toLowerCase();
+        const hashtags = Array.isArray(item.hashtags) ? item.hashtags.join(' ').toLowerCase() : '';
+        const tags = Array.isArray(item.tags) ? item.tags.join(' ').toLowerCase() : '';
+
+        const matchesQuery = 
+          title.includes(query) ||
+          desc.includes(query) ||
+          vendorName.includes(query) ||
+          categoryName.includes(query) ||
+          locationStr.includes(query) ||
+          hashtags.includes(query) ||
+          tags.includes(query);
+
+        if (!matchesQuery) return false;
+      }
+
+      // 1.2 Type / Category Filter
+      if (filters.type && filters.type !== 'all') {
+        const itemCategory = (item.category || item.reelType || item.postPurpose || item.type || '').toLowerCase();
+        const itemSubCategory = (item.subcategory || '').toLowerCase();
+        const typeFilter = filters.type.toLowerCase();
+        if (!itemCategory.includes(typeFilter) && !itemSubCategory.includes(typeFilter)) {
           return false;
         }
       }
 
-      if (filters.type && filters.type !== 'all') {
-        const itemCategory = (item.category || item.reelType || '').toLowerCase();
-        if (!itemCategory.includes(filters.type.toLowerCase())) {
+      // 1.3 Video Duration Filter
+      if (filters.duration && filters.duration !== 'all') {
+        if (item.postType === 'reel') {
+          const dur = Number(item.duration || item.videoDuration || 0);
+          if (filters.duration === 'under15' && dur > 0 && dur > 15) {
+            return false;
+          }
+          if (filters.duration === 'under30' && dur > 0 && dur > 30) {
+            return false;
+          }
+        }
+      }
+
+      // 1.4 Upload Date Filter
+      if (filters.uploadDate && filters.uploadDate !== 'all' && item.createdAt) {
+        const createdTime = new Date(item.createdAt).getTime();
+        const now = Date.now();
+        if (!isNaN(createdTime)) {
+          if (filters.uploadDate === 'today' && now - createdTime > 24 * 60 * 60 * 1000) {
+            return false;
+          }
+          if (filters.uploadDate === 'this_week' && now - createdTime > 7 * 24 * 60 * 60 * 1000) {
+            return false;
+          }
+          if (filters.uploadDate === 'this_month' && now - createdTime > 30 * 24 * 60 * 60 * 1000) {
+            return false;
+          }
+        }
+      }
+
+      // 1.5 Location Scope & Distance Filter
+      if (filters.nearby === 'near_me') {
+        if (filters.distanceKm && filters.distanceKm !== 'all') {
+          const maxKm = Number(filters.distanceKm);
+          const distKm = calculateDistanceKm(item);
+          if (distKm !== null && distKm > maxKm) {
+            return false;
+          }
+        }
+      } else if (filters.nearby === 'city') {
+        const userCity = (user?.location?.city || user?.customerProfile?.city || '').toLowerCase();
+        const itemCity = (item.location?.city || item.vendor?.location?.city || item.creator?.location?.city || item.city || item.vendor?.city || '').toLowerCase();
+        if (userCity && itemCity && !itemCity.includes(userCity) && !userCity.includes(itemCity)) {
+          return false;
+        }
+      } else if (filters.nearby === 'state') {
+        const userState = (user?.location?.state || user?.customerProfile?.state || '').toLowerCase();
+        const itemState = (item.location?.state || item.vendor?.location?.state || item.creator?.location?.state || item.state || item.vendor?.state || '').toLowerCase();
+        if (userState && itemState && !itemState.includes(userState) && !userState.includes(itemState)) {
           return false;
         }
       }
 
       return true;
     });
-  }, [combinedFeed, reels, images, activeTab, filters]);
+
+    // 2. SORTING & POPULARITY
+    const popularity = filters.popularity || 'trending';
+    filtered.sort((a, b) => {
+      if (popularity === 'most_viewed') {
+        return (b.views || b.viewCount || 0) - (a.views || a.viewCount || 0);
+      }
+      if (popularity === 'most_liked') {
+        return (b.likesCount || b.likes || 0) - (a.likesCount || a.likes || 0);
+      }
+      if (popularity === 'most_shared') {
+        return (b.sharesCount || b.shares || 0) - (a.sharesCount || a.shares || 0);
+      }
+      if (popularity === 'most_saved') {
+        return (b.savedCount || b.saves || 0) - (a.savedCount || a.saves || 0);
+      }
+      if (popularity === 'distance') {
+        const distA = calculateDistanceKm(a) ?? 99999;
+        const distB = calculateDistanceKm(b) ?? 99999;
+        return distA - distB;
+      }
+      // 'trending' (default)
+      const scoreA = (a.likesCount || a.likes || 0) * 2 + (a.views || a.viewCount || 0) + (a.commentsCount || 0) * 3;
+      const scoreB = (b.likesCount || b.likes || 0) * 2 + (b.views || b.viewCount || 0) + (b.commentsCount || 0) * 3;
+      if (scoreA !== scoreB) return scoreB - scoreA;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+
+    return filtered;
+  }, [combinedFeed, reels, images, activeTab, filters, coords, user]);
 
   const processedReels = useMemo(() => {
     return processedCombinedFeed.filter(item => item.postType === 'reel');
@@ -545,7 +828,7 @@ export default function CustomerHomePage() {
                         </h4>
                         <p className="text-[10px] text-slate-500 flex items-center gap-1">
                           <FiMapPin size={10} className="text-[#d99a3d]" />
-                          {item.location?.address || 'Nearby'}
+                          <span>{formatDistance(item)}</span>
                           <span className="mx-1">•</span>
                           <span>{formatTimeAgo(item.createdAt)}</span>
                         </p>
@@ -726,7 +1009,7 @@ export default function CustomerHomePage() {
                         </h4>
                         <p className="text-[10px] text-slate-500 flex items-center gap-1">
                           <FiMapPin size={10} className="text-[#d99a3d]" />
-                          {item.vendor?.location?.address || 'Nearby'}
+                          <span>{formatDistance(item)}</span>
                           <span className="mx-1">•</span>
                           <span>{formatTimeAgo(item.createdAt)}</span>
                         </p>
@@ -840,6 +1123,39 @@ export default function CustomerHomePage() {
                         </span>
                       )}
                     </div>
+
+                    {/* Add to Cart & Buy Now Quick Action Buttons */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0ebe0]">
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const targetId = item._id || item.id;
+                          try {
+                            await cartApi.add({ listing_id: targetId, quantity: 1 });
+                            notifyCartChanged();
+                            toast.success(`"${item.title || 'Product'}" added to cart!`);
+                          } catch {
+                            toast.error('Could not add item to cart');
+                          }
+                        }}
+                        className="py-2 px-3 rounded-xl bg-[#f8f4ec] hover:bg-[#eae3d2] text-[#1a1a1a] text-xs font-bold transition border border-[#e3dccb] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <FiShoppingCart size={15} className="text-[#d99a3d]" />
+                        <span>Add to Cart</span>
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const targetId = item._id || item.id;
+                          navigate(`/customer/listings/${targetId}`);
+                        }}
+                        className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <FiZap size={15} />
+                        <span>Buy Now</span>
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -856,6 +1172,7 @@ export default function CustomerHomePage() {
       />
 
       <ChatDrawer
+        key={chatDrawerRecipientId || 'chat-drawer'}
         isOpen={chatDrawerOpen}
         onClose={() => setChatDrawerOpen(false)}
         recipientId={chatDrawerRecipientId}

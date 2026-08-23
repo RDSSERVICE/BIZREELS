@@ -178,6 +178,9 @@ class RecommendationService {
           isBoosted: 1, createdAt: 1, creator: 1, category: 1,
           subcategory: 1, postType: 1, mediaUrls: 1, mediaType: 1,
           targetListing: 1, tier: { $literal: 1 },
+          distance_meters: 1,
+          distance: '$distance_meters',
+          distanceKm: { $cond: [{ $ifNull: ['$distance_meters', false] }, { $divide: ['$distance_meters', 1000] }, null] },
         },
       }
     );
@@ -436,7 +439,7 @@ class RecommendationService {
 
     const creatorIds = [...new Set(reels.map(r => r.creator).filter(Boolean))];
     const creators = creatorIds.length > 0
-      ? await User.find({ _id: { $in: creatorIds } }).select('name avatarUrl activeRole role').lean()
+      ? await User.find({ _id: { $in: creatorIds } }).select('name avatarUrl profile_pic activeRole role location phone vendorProfile creatorProfile').lean()
       : [];
     const creatorMap = {};
     creators.forEach(c => { creatorMap[c._id.toString()] = c; });
@@ -458,9 +461,21 @@ class RecommendationService {
       const c = creatorMap[r.creator?.toString()] || {};
       return {
         ...r,
+        creator: {
+          _id: c._id || r.creator,
+          name: c.name || 'BizReels Creator',
+          avatarUrl: c.avatarUrl || c.profile_pic || null,
+          profile_pic: c.profile_pic || c.avatarUrl || null,
+          activeRole: c.activeRole || c.role || 'vendor',
+          location: c.location || r.location || null,
+          phone: c.phone || '',
+          vendorProfile: c.vendorProfile || {},
+          creatorProfile: c.creatorProfile || {},
+        },
         creatorName: c.name || 'BizReels Creator',
-        creatorAvatar: c.avatarUrl || null,
+        creatorAvatar: c.avatarUrl || c.profile_pic || null,
         creatorRole: c.activeRole || c.role || 'vendor',
+        location: r.location && (r.location.coordinates?.[0] !== 0 || r.location.coordinates?.[1] !== 0) ? r.location : (c.location || r.location),
         isLiked: likedReelIds.has(r._id.toString()),
       };
     });
