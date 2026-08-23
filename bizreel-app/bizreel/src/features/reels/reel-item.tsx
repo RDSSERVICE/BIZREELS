@@ -234,7 +234,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
           </>
         ) : (
           <>
-            <Image source={{ uri: imageUrl }} style={styles.media} contentFit="cover" />
+            <Image source={{ uri: imageUrl || undefined }} style={styles.media} contentFit="cover" />
             <View style={[styles.imageTypeBadge, { top: insets.top + 16 }]}>
               <Ionicons name="image-outline" size={14} color="#fff" />
               <Text style={styles.imageTypeText}>Photo Reel</Text>
