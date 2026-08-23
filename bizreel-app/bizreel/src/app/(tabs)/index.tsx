@@ -1,9 +1,10 @@
 /**
- * Reels Feed — TikTok-style full-screen vertical scroll with e-commerce integration.
+ * Reels Feed — TikTok / Instagram style full-screen vertical scroll with e-commerce integration.
+ * Each reel fills 100% of the screen height.
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,7 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, TAB_BAR_HEIGHT } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { flattenReels, usePrefetchNextReelsPage, useReelsFeed } from '@/features/reels/queries';
 import { ReelItem } from '@/features/reels/reel-item';
@@ -30,8 +31,12 @@ export default function ReelsFeedScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
-  const reelHeight = SCREEN_HEIGHT - TAB_BAR_HEIGHT - insets.bottom;
+
+  // Full screen height so reel fills 100% of the screen
+  const reelHeight = SCREEN_HEIGHT;
+
   const [isScreenFocused, setIsScreenFocused] = useState(true);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -39,7 +44,6 @@ export default function ReelsFeedScreen() {
       return () => setIsScreenFocused(false);
     }, [])
   );
-  const [activeIndex, setActiveIndex] = useState(0);
 
   const {
     data,
@@ -119,7 +123,7 @@ export default function ReelsFeedScreen() {
   if (isError) {
     return (
       <View style={styles.center}>
-        <SymbolView name="exclamationmark.triangle" size={48} tintColor={BrandColors.warning} />
+        <Ionicons name="warning-outline" size={48} color={BrandColors.warning} />
         <Text style={styles.errorText}>Failed to load reels</Text>
         <Pressable style={styles.retryBtn} onPress={() => refetch()}>
           <Text style={styles.retryText}>Try Again</Text>
@@ -144,14 +148,14 @@ export default function ReelsFeedScreen() {
           style={styles.headerBtn}
           onPress={() => router.push('/cart')}
           accessibilityLabel="Shopping Cart">
-          <SymbolView name="cart.fill" size={22} tintColor="#fff" />
+          <Ionicons name="cart" size={20} color="#fff" />
         </Pressable>
 
         <Pressable
           style={styles.headerBtn}
           onPress={handleLogout}
           accessibilityLabel="Log out">
-          <SymbolView name="rectangle.portrait.and.arrow.right" size={22} tintColor="#fff" />
+          <Ionicons name="log-out-outline" size={20} color="#fff" />
         </Pressable>
       </View>
 
@@ -231,11 +235,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
 });
