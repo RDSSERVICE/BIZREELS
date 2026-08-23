@@ -12,13 +12,23 @@ class ReelController {
     const {
       caption, tags, lat, lng, address, title,
       postType, category, subcategory, classification, postPurpose,
-      targeting, videoUrl, mediaUrls, mediaType, status, scheduledDate
+      targeting, videoUrl, thumbnailUrl, mediaUrls, mediaType, status, scheduledDate
     } = req.body;
-    const fileBuffer = req.file?.buffer;
+
+    const files = req.files || (req.file ? [req.file] : []);
+    const videoFile = files.find(f => f.fieldname === 'video' || f.fieldname === 'file' || f.mimetype.startsWith('video/'));
+    const thumbnailFile = files.find(f => f.fieldname === 'thumbnail' || f.fieldname === 'cover');
+    const mediaFiles = files.filter(f => f.fieldname === 'media' || f.fieldname === 'images');
+
+    const fileBuffer = videoFile?.buffer || req.file?.buffer;
+    const thumbnailBuffer = thumbnailFile?.buffer;
+    const extraMediaBuffers = mediaFiles.map(f => ({ buffer: f.buffer, mimetype: f.mimetype }));
 
     const reel = await reelService.publishReel({
       userId: req.user._id,
       fileBuffer,
+      thumbnailBuffer,
+      extraMediaBuffers,
       caption: caption || title,
       tags,
       lat,
@@ -31,6 +41,7 @@ class ReelController {
       postPurpose,
       targeting,
       videoUrl,
+      thumbnailUrl,
       mediaUrls,
       mediaType,
       status,

@@ -47,7 +47,7 @@ router.post(
   '/',
   authenticate,
   checkSubscriptionLimit('reels'),
-  upload.single('video'),
+  upload.any(),
   reelValidation.publish,
   validate,
   reelController.publish

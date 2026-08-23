@@ -43,9 +43,9 @@ class ReelService {
   }
 
   async publishReel({
-    userId, fileBuffer, caption, tags, lat, lng, address,
+    userId, fileBuffer, thumbnailBuffer, extraMediaBuffers, caption, tags, lat, lng, address,
     postType, category, subcategory, classification, postPurpose,
-    targeting, videoUrl, mediaUrls, mediaType, status, scheduledDate
+    targeting, videoUrl, thumbnailUrl, mediaUrls, mediaType, status, scheduledDate
   }, req) {
     // Validate scheduled date if status is scheduled
     if (status === 'scheduled' || scheduledDate) {
@@ -141,17 +141,46 @@ class ReelService {
       }
     }
 
-    // Process base64 videoUrl
+    // Process uploaded thumbnail buffer if present
+    let finalThumbnailUrl = await uploadBase64IfPresent(thumbnailUrl);
+    if (thumbnailBuffer) {
+      const thumbUpload = await cloudinaryService.uploadFile(
+        thumbnailBuffer,
+        `thumb_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`,
+        'image/jpeg',
+        'uploads/reels/thumbnails',
+        'image'
+      );
+      finalThumbnailUrl = thumbUpload.secure_url;
+    }
+
+    // Process extra uploaded media buffers if present
+    if (Array.isArray(extraMediaBuffers) && extraMediaBuffers.length > 0) {
+      for (const m of extraMediaBuffers) {
+        const resType = m.mimetype?.startsWith('video/') ? 'video' : 'image';
+        const ext = m.mimetype?.split('/')[1] || 'jpg';
+        const fileUpload = await cloudinaryService.uploadFile(
+          m.buffer,
+          `reel_media_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`,
+          m.mimetype || 'image/jpeg',
+          'uploads/reels',
+          resType
+        );
+        processedMediaUrls.push(fileUpload.secure_url);
+      }
+    }
+
     let processedVideoUrl = await uploadBase64IfPresent(videoUrl);
 
     let finalVideoUrl = processedVideoUrl || (processedMediaUrls.length > 0 && processedMediaUrls[0]) || '';
-    let finalThumbnailUrl = '';
 
     if (fileBuffer) {
       logger.info(`Initiating Reels upload to CDN for user: ${userId}`, { service: 'reels' });
       const uploadResult = await this.uploadVideoStream(fileBuffer);
       finalVideoUrl = uploadResult.secure_url;
-      finalThumbnailUrl = uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url.replace(/\.[^/.]+$/, '.jpg');
+      if (!finalThumbnailUrl) {
+        finalThumbnailUrl = uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url.replace(/\.[^/.]+$/, '.jpg');
+      }
     }
 
     if (!finalThumbnailUrl && finalVideoUrl && finalVideoUrl.includes('cloudinary.com')) {
