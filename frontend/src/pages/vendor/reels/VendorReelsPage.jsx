@@ -69,6 +69,7 @@ export default function VendorReelsPage() {
   const [customMediaList, setCustomMediaList] = useState([]); // Array of { url, name, type } (up to 5)
   const [mediaType, setMediaType] = useState('image'); // 'image' | 'video'
   const [saveToServiceGallery, setSaveToServiceGallery] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
 
   // POST DETAILS
   const [caption, setCaption] = useState('');
@@ -259,6 +260,7 @@ export default function VendorReelsPage() {
         customAudience: customTargetAudience,
         mediaUrls: finalMedia,
         videoUrl: finalMedia[0],
+        thumbnailUrl: thumbnailUrl || finalMedia[0],
         mediaType: finalMediaType,
         saveToServiceGallery,
         status: publishStatus,
@@ -497,6 +499,8 @@ export default function VendorReelsPage() {
         setSaveToServiceGallery={setSaveToServiceGallery}
         caption={caption}
         setCaption={setCaption}
+        thumbnailUrl={thumbnailUrl}
+        setThumbnailUrl={setThumbnailUrl}
         promotionArea={promotionArea}
         setPromotionArea={setPromotionArea}
         selectedTargetAudiences={selectedTargetAudiences}

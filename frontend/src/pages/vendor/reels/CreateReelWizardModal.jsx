@@ -130,6 +130,8 @@ export default function CreateReelWizardModal({
   setSaveToServiceGallery,
   caption,
   setCaption,
+  thumbnailUrl,
+  setThumbnailUrl,
   promotionArea,
   setPromotionArea,
   selectedTargetAudiences,
@@ -1204,6 +1206,51 @@ export default function CreateReelWizardModal({
                   )}
                 </div>
               )}
+
+              {/* UPLOAD REEL THUMBNAIL COVER IMAGE */}
+              <div className="pt-3.5 border-t border-white/10 space-y-2">
+                <label className="text-[10px] font-extrabold text-amber-300 uppercase tracking-wider block">
+                  🖼️ Upload Reel Thumbnail Cover Image (Optional)
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="border border-dashed border-amber-500/40 hover:border-amber-400 rounded-xl p-3.5 bg-[#1c1d22] flex-1 text-center cursor-pointer relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            if (evt.target?.result && typeof setThumbnailUrl === 'function') {
+                              setThumbnailUrl(evt.target.result);
+                              toast.success('Thumbnail cover image selected!');
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    <div className="text-xs text-slate-300 font-bold flex items-center justify-center gap-2">
+                      <FiImage size={16} className="text-amber-400" />
+                      <span>{thumbnailUrl ? 'Change Thumbnail Cover' : 'Click to Upload Custom Cover Thumbnail'}</span>
+                    </div>
+                  </div>
+                  {thumbnailUrl && (
+                    <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-amber-400 relative shrink-0 shadow-md">
+                      <img src={thumbnailUrl} alt="Thumbnail Cover" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => typeof setThumbnailUrl === 'function' && setThumbnailUrl('')}
+                        className="absolute top-0 right-0 p-0.5 bg-red-600 text-white rounded-bl cursor-pointer"
+                      >
+                        <FiX size={12} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3">
