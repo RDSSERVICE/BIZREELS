@@ -57,12 +57,19 @@ export default function VendorReelsScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Video Reels</Text>
-        <TouchableOpacity
-          style={styles.addHeaderBtn}
-          onPress={() => router.push('/vendor/reels/create' as any)}>
-          <Ionicons name="add" size={20} color="#fff" />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Video Reels Studio</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.analyticsHeaderBtn}
+            onPress={() => router.push('/vendor/dashboard' as any)}>
+            <Ionicons name="bar-chart" size={18} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addHeaderBtn}
+            onPress={() => router.push('/vendor/reels/create' as any)}>
+            <Ionicons name="add" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isLoading ? (
@@ -186,6 +193,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  analyticsHeaderBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#2c2c2e',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addHeaderBtn: {
     width: 38,
