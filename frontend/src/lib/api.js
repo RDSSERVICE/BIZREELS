@@ -209,13 +209,18 @@ export const mediaApi = {
  *  - an absolute URL (Cloudinary etc.) — returned as-is
  *  - a relative dev-mode path like "/api/uploads/xxx.jpg" — prefixed with BACKEND_URL
  */
+const DEFAULT_VIDEO_FALLBACK = 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
+
 export function resolveMediaUrl(url) {
-  if (!url) return '';
-  if (typeof url !== 'string') return '';
-  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
-  if (/^https?:\/\//i.test(url)) return url;
-  if (!BACKEND_URL) return url;
-  return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('[')) return DEFAULT_VIDEO_FALLBACK;
+  if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  const host = BACKEND_URL || 'https://bizreels-backend.onrender.com';
+  return `${host}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
 }
 
 // ---- Phase 2 ----

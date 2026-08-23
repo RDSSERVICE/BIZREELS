@@ -51,6 +51,7 @@ interface ReelItemProps {
 }
 
 import { memo } from 'react';
+import { resolveImageUrl } from '@/utils/image';
 
 export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelItemProps) {
   const router = useRouter();
@@ -84,10 +85,11 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
   }));
 
   const isVideo = reel.mediaType === 'video';
-  const imageUrl = reel.mediaUrls?.[0] || reel.thumbnailUrl || reel.videoUrl;
+  const resolvedVideoUrl = resolveImageUrl(reel.videoUrl) || 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
+  const imageUrl = resolveImageUrl(reel.mediaUrls?.[0] || reel.thumbnailUrl || reel.videoUrl);
 
   const player = useVideoPlayer(
-    isVideo && reel.videoUrl?.startsWith('http') ? { uri: reel.videoUrl } : null,
+    isVideo && resolvedVideoUrl ? { uri: resolvedVideoUrl } : null,
     (p) => {
       p.loop = true;
       p.muted = isMuted;

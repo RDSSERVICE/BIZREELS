@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiVideo, FiImage } from 'react-icons/fi';
+import { resolveMediaUrl } from '@/lib/api';
 
 /**
  * ReelCardMediaCarousel Component
@@ -8,12 +9,14 @@ import { FiChevronLeft, FiChevronRight, FiVideo, FiImage } from 'react-icons/fi'
 export default function ReelCardMediaCarousel({ reel }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  const defaultSample = 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
   const rawMediaList = Array.isArray(reel.mediaUrls) && reel.mediaUrls.length > 0
     ? reel.mediaUrls
-    : [reel.videoUrl || reel.thumbnailUrl || 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'];
+    : [reel.videoUrl || reel.thumbnailUrl || defaultSample];
 
   const mediaList = rawMediaList.filter(Boolean);
-  const currentUrl = mediaList[currentIndex] || mediaList[0] || '';
+  const rawUrl = mediaList[currentIndex] || mediaList[0] || defaultSample;
+  const currentUrl = resolveMediaUrl(rawUrl) || defaultSample;
 
   const checkIsVideo = (url) => {
     if (!url) return false;
@@ -26,7 +29,7 @@ export default function ReelCardMediaCarousel({ reel }) {
     }
   };
 
-  const isVideo = reel.mediaType === 'video' || checkIsVideo(currentUrl);
+  const isVideo = reel.mediaType === 'video' || checkIsVideo(currentUrl) || checkIsVideo(rawUrl);
 
   const handlePrev = (e) => {
     e.stopPropagation();
