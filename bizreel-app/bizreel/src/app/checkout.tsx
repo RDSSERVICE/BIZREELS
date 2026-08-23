@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -18,6 +19,7 @@ import { useCart } from '@/features/cart/queries';
 import { checkoutCart } from '@/features/cart/api';
 import { createOrder } from '@/features/orders/api';
 import type { PaymentMethod } from '@/features/orders/types';
+import { getListingImage, resolveImageUrl } from '@/utils/image';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -133,14 +135,31 @@ export default function CheckoutScreen() {
           {groups.map((group) => (
             <View key={group.vendor_id} style={styles.vendorBlock}>
               <Text style={styles.vendorName}>{group.vendor?.name || 'Vendor Partner'}</Text>
-              {group.items.map((item) => (
-                <View key={item.listing_id} style={styles.summaryItemRow}>
-                  <Text style={styles.summaryItemTitle} numberOfLines={1}>
-                    {item.title} x {item.quantity}
-                  </Text>
-                  <Text style={styles.summaryItemPrice}>₹{item.line_total}</Text>
-                </View>
-              ))}
+              {group.items.map((item) => {
+                const itemImg = resolveImageUrl(item.image) || getListingImage(item);
+                return (
+                  <View key={item.listing_id} style={styles.summaryItemRow}>
+                    {itemImg ? (
+                      <Image source={{ uri: itemImg }} style={styles.itemThumb} contentFit="cover" />
+                    ) : (
+                      <View style={styles.itemThumbFallback}>
+                        <Ionicons name="cube-outline" size={18} color="rgba(255,255,255,0.4)" />
+                      </View>
+                    )}
+
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.summaryItemTitle} numberOfLines={2}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.itemQtyPrice}>
+                        ₹{item.price} × {item.quantity}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.summaryItemPrice}>₹{item.line_total}</Text>
+                  </View>
+                );
+              })}
             </View>
           ))}
         </View>
@@ -274,12 +293,36 @@ const styles = StyleSheet.create({
   },
   summaryItemRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.three,
+    marginVertical: 4,
+  },
+  itemThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+  },
+  itemThumbFallback: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#2c2c2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemInfo: {
+    flex: 1,
+    gap: 2,
   },
   summaryItemTitle: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#fff',
     fontSize: FontSize.sm,
-    flex: 1,
+    fontWeight: FontWeight.semibold,
+  },
+  itemQtyPrice: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: FontSize.xs,
   },
   summaryItemPrice: {
     color: '#fff',
