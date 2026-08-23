@@ -100,7 +100,7 @@ export default function CreateListingScreen() {
           name: asset.fileName || 'product-image.jpg',
           type: asset.mimeType || 'image/jpeg',
         } as any);
-        formData.append('folder', 'listings');
+        formData.append('folder', 'listings/misc');
 
         const res = await api.post('/media/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },

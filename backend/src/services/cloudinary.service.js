@@ -49,15 +49,15 @@ const getCloudinarySDK = () => {
   return cloudinary;
 };
 
-const ALLOWED_FOLDER_PREFIXES = ['users/', 'listings/', 'uploads/', 'requirements'];
+const ALLOWED_FOLDER_PREFIXES = ['users', 'listings', 'uploads', 'requirements', 'reels', 'misc'];
 
 const validateFolder = (folder) => {
   if (!folder) {
-    throw ApiError.badRequest('Invalid folder path');
+    return 'listings/misc';
   }
   const isAllowed = ALLOWED_FOLDER_PREFIXES.some(prefix => folder.startsWith(prefix));
   if (!isAllowed) {
-    throw ApiError.badRequest('Invalid folder path');
+    return 'listings/misc';
   }
   return folder;
 };
