@@ -25,6 +25,12 @@ const TABS = [
     activeIcon: 'play-circle',
   },
   {
+    name: 'studio',
+    label: 'Studio',
+    icon: 'videocam-outline',
+    activeIcon: 'videocam',
+  },
+  {
     name: 'search',
     label: 'Search',
     icon: 'search-outline',

@@ -12,7 +12,7 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import { CustomTabBar } from '@/components/custom-tab-bar';
 
 // Tab route names in order — must match file names exactly
-const TAB_ORDER = ['home', 'index', 'search', 'profile'] as const;
+const TAB_ORDER = ['home', 'index', 'studio', 'search', 'profile'] as const;
 type TabName = typeof TAB_ORDER[number];
 
 export default function TabLayout() {
@@ -49,6 +49,7 @@ export default function TabLayout() {
             screenOptions={{ headerShown: false }}>
             <Tabs.Screen name="home" options={{ title: 'Home' }} />
             <Tabs.Screen name="index" options={{ title: 'Reels' }} />
+            <Tabs.Screen name="studio" options={{ title: 'Studio' }} />
             <Tabs.Screen name="search" options={{ title: 'Search' }} />
             <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
             {/* Hide explore from tab bar but keep it routable */}
