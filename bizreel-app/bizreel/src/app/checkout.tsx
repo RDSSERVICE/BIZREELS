@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -24,6 +24,13 @@ import { getListingImage, resolveImageUrl } from '@/utils/image';
 export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{
+    listingId?: string;
+    title?: string;
+    price?: string;
+    image?: string;
+    vendorName?: string;
+  }>();
 
   const { data: cart, refetch: refetchCart } = useCart();
 
@@ -31,8 +38,42 @@ export default function CheckoutScreen() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [submitting, setSubmitting] = useState(false);
 
-  const groups = cart?.groups || [];
-  const totalAmount = cart?.total_amount || 0;
+  const directPrice = parseFloat(params.price || '0');
+  const hasDirectItem = !!(params.title || params.listingId);
+
+  const displayGroups = (cart?.groups && cart.groups.length > 0)
+    ? cart.groups
+    : hasDirectItem
+    ? [
+        {
+          vendor_id: 'direct_vendor',
+          vendor: { name: params.vendorName || 'Verified Vendor' },
+          items: [
+            {
+              listing_id: params.listingId || 'direct_item',
+              title: params.title || 'Product Item',
+              quantity: 1,
+              price: directPrice,
+              line_total: directPrice,
+              image: params.image || '',
+            },
+          ],
+          subtotal: directPrice,
+        },
+      ]
+    : [];
+
+  const displayTotal = cart?.total_amount && cart.total_amount > 0
+    ? cart.total_amount
+    : hasDirectItem
+    ? directPrice
+    : 0;
+
+  const totalItemsCount = cart?.total_items && cart.total_items > 0
+    ? cart.total_items
+    : hasDirectItem
+    ? 1
+    : 0;
 
   const handlePlaceOrder = async () => {
     if (!address.trim()) {
@@ -44,18 +85,20 @@ export default function CheckoutScreen() {
 
     try {
       // 1. Create order records for tracking
-      if (groups.length > 0) {
-        for (const group of groups) {
+      if (displayGroups.length > 0) {
+        for (const group of displayGroups) {
           for (const item of group.items) {
-            try {
-              await createOrder({
-                listingId: item.listing_id,
-                quantity: item.quantity,
-                address: address.trim(),
-                paymentMethod,
-              });
-            } catch (err) {
-              console.warn('Direct order record creation notice', err);
+            if (item.listing_id && item.listing_id !== 'direct_item') {
+              try {
+                await createOrder({
+                  listingId: item.listing_id,
+                  quantity: item.quantity || 1,
+                  address: address.trim(),
+                  paymentMethod,
+                });
+              } catch (err) {
+                console.warn('Direct order record creation notice', err);
+              }
             }
           }
         }
@@ -129,14 +172,15 @@ export default function CheckoutScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="bag-handle" size={20} color={BrandColors.primary} />
-            <Text style={styles.cardTitle}>Order Items ({cart?.total_items || 0})</Text>
+            <Text style={styles.cardTitle}>Order Items ({totalItemsCount})</Text>
           </View>
 
-          {groups.map((group) => (
+          {displayGroups.map((group) => (
             <View key={group.vendor_id} style={styles.vendorBlock}>
               <Text style={styles.vendorName}>{group.vendor?.name || 'Vendor Partner'}</Text>
               {group.items.map((item) => {
                 const itemImg = resolveImageUrl(item.image) || getListingImage(item);
+                const itemPrice = item.price || item.line_total || 0;
                 return (
                   <View key={item.listing_id} style={styles.summaryItemRow}>
                     {itemImg ? (
@@ -152,11 +196,11 @@ export default function CheckoutScreen() {
                         {item.title}
                       </Text>
                       <Text style={styles.itemQtyPrice}>
-                        ₹{item.price} × {item.quantity}
+                        ₹{itemPrice} × {item.quantity || 1}
                       </Text>
                     </View>
 
-                    <Text style={styles.summaryItemPrice}>₹{item.line_total}</Text>
+                    <Text style={styles.summaryItemPrice}>₹{item.line_total || itemPrice}</Text>
                   </View>
                 );
               })}
@@ -195,7 +239,7 @@ export default function CheckoutScreen() {
           <Text style={styles.cardTitle}>Bill Summary</Text>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Item Subtotal</Text>
-            <Text style={styles.billValue}>₹{totalAmount}</Text>
+            <Text style={styles.billValue}>₹{displayTotal}</Text>
           </View>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Delivery Fee</Text>
@@ -203,7 +247,7 @@ export default function CheckoutScreen() {
           </View>
           <View style={[styles.billRow, styles.totalBillRow]}>
             <Text style={styles.totalBillLabel}>To Pay</Text>
-            <Text style={styles.totalBillValue}>₹{totalAmount}</Text>
+            <Text style={styles.totalBillValue}>₹{displayTotal}</Text>
           </View>
         </View>
       </ScrollView>
@@ -217,7 +261,7 @@ export default function CheckoutScreen() {
           {submitting ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.placeOrderBtnText}>Confirm & Place Order (₹{totalAmount})</Text>
+            <Text style={styles.placeOrderBtnText}>Confirm & Place Order (₹{displayTotal})</Text>
           )}
         </TouchableOpacity>
       </View>

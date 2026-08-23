@@ -97,11 +97,37 @@ export default function ListingDetailsScreen() {
   };
 
   const handleBuyNow = () => {
+    const itemPrice = price || listing.price || 0;
+    const itemImage = mainImage || '';
+    const itemVendor = listing.vendor?.name || listing.vendor?.businessName || 'Verified Vendor';
+
     addToCartMutation.mutate(
       { listing_id: listing._id, quantity: 1 },
       {
         onSuccess: () => {
-          router.push('/checkout');
+          router.push({
+            pathname: '/checkout',
+            params: {
+              listingId: listing._id,
+              title: listing.title,
+              price: itemPrice.toString(),
+              image: itemImage,
+              vendorName: itemVendor,
+            },
+          });
+        },
+        onError: () => {
+          // Direct fallback checkout if cart API is delayed
+          router.push({
+            pathname: '/checkout',
+            params: {
+              listingId: listing._id,
+              title: listing.title,
+              price: itemPrice.toString(),
+              image: itemImage,
+              vendorName: itemVendor,
+            },
+          });
         },
       }
     );
