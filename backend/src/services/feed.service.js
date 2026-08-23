@@ -18,9 +18,9 @@ const buildFeed = async ({
   type = 'all',
   lat = null,
   lng = null,
-  radius_km = null,
+  radius_km = 10.0,
   cursor = null,
-  limit = 50,
+  limit = 20,
   user_id = null,
   reels_only = false,
   radiusKm = null,
@@ -38,27 +38,24 @@ const buildFeed = async ({
   const qListings = { isDeleted: { $ne: true }, status: 'published', ...notTestFilter() };
   const qReels = { isDeleted: { $ne: true }, status: 'published', ...notTestFilter() };
 
-  const poolSize = Math.max(limit * 5, 100);
+  const poolSize = Math.max(limit * 5, 40);
   let listingDocs = [];
   let reelDocs = [];
 
   // Query Listings
   if (fetchListings) {
-    if (lat !== null && lng !== null) {
+    if (lat !== null && lng !== null && finalRadiusKm) {
       try {
-        const geoNearStage = {
-          $geoNear: {
-            near: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-            distanceField: 'distance_meters',
-            query: qListings,
-            spherical: true,
-          },
-        };
-        if (finalRadiusKm && !isNaN(parseFloat(finalRadiusKm))) {
-          geoNearStage.$geoNear.maxDistance = parseFloat(finalRadiusKm) * 1000.0;
-        }
         const pipeline = [
-          geoNearStage,
+          {
+            $geoNear: {
+              near: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+              distanceField: 'distance_meters',
+              maxDistance: parseFloat(finalRadiusKm) * 1000.0,
+              query: qListings,
+              spherical: true,
+            },
+          },
           { $sort: { _id: -1 } },
           { $limit: poolSize },
         ];
@@ -73,21 +70,18 @@ const buildFeed = async ({
 
   // Query Reels
   if (fetchReels) {
-    if (lat !== null && lng !== null) {
+    if (lat !== null && lng !== null && finalRadiusKm) {
       try {
-        const geoNearStage = {
-          $geoNear: {
-            near: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-            distanceField: 'distance_meters',
-            query: qReels,
-            spherical: true,
-          },
-        };
-        if (finalRadiusKm && !isNaN(parseFloat(finalRadiusKm))) {
-          geoNearStage.$geoNear.maxDistance = parseFloat(finalRadiusKm) * 1000.0;
-        }
         const pipeline = [
-          geoNearStage,
+          {
+            $geoNear: {
+              near: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+              distanceField: 'distance_meters',
+              maxDistance: parseFloat(finalRadiusKm) * 1000.0,
+              query: qReels,
+              spherical: true,
+            },
+          },
           { $sort: { _id: -1 } },
           { $limit: poolSize },
         ];
@@ -132,7 +126,7 @@ const buildFeed = async ({
     const d = item.d;
     const dist = d.distance_meters;
     const distKm = dist !== undefined && dist !== null ? dist / 1000.0 : null;
-    
+
     // Scoring logic
     let score = 0.0;
     const created = item.createdAt;

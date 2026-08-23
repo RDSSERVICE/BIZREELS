@@ -111,7 +111,7 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
       ([entry]) => {
         if (entry.isIntersecting) {
           if (videoRef.current) {
-            videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+            videoRef.current.play().then(() => setIsPlaying(true)).catch(() => { });
           }
         } else {
           if (videoRef.current) {
@@ -303,16 +303,16 @@ export default function CustomerHomePage() {
 
   useEffect(() => {
     fetchFeedData();
-  }, [activeTab, coords, filters.distanceKm, filters.nearby]);
+  }, [activeTab, coords]);
 
   const fetchFeedData = async () => {
     setLoading(true);
     try {
-      let endpoint = `/v1/feed?type=all&limit=60`;
+      let endpoint = `/v1/listings`;
       if (activeTab === 'reels') {
-        endpoint = `/v1/reels?limit=60`;
-      } else if (activeTab === 'images') {
-        endpoint = `/v1/listings?limit=60`;
+        endpoint = `/v1/reels`;
+      } else if (activeTab === 'combined') {
+        endpoint = `/v1/feed?type=all`;
       }
 
       const params = {};
@@ -321,13 +321,6 @@ export default function CustomerHomePage() {
         params.lng = coords.lng;
       }
 
-      if (filters.nearby === 'near_me' && filters.distanceKm && filters.distanceKm !== 'all') {
-        params.radius = filters.distanceKm;
-        params.distance = filters.distanceKm;
-      } else {
-        params.radius = 'any';
-      }
-      
       const res = await api.get(endpoint, { params });
       const data = res.data;
 
@@ -377,8 +370,8 @@ export default function CustomerHomePage() {
     setLikedMap((prev) => ({ ...prev, [id]: !isLiked }));
     try {
       const item = combinedFeed.find(x => x._id === id || x.id === id) ||
-                   reels.find(x => x._id === id || x.id === id) ||
-                   images.find(x => x._id === id || x.id === id);
+        reels.find(x => x._id === id || x.id === id) ||
+        images.find(x => x._id === id || x.id === id);
       const isReel = customPostType === 'reel' || (item?.postType === 'reel') || (activeTab === 'reels');
       if (isReel) {
         await api.post(`/v1/reels/${id}/like`);
@@ -397,8 +390,8 @@ export default function CustomerHomePage() {
     setSavedMap((prev) => ({ ...prev, [id]: !isSaved }));
     try {
       const item = combinedFeed.find(x => x._id === id || x.id === id) ||
-                   reels.find(x => x._id === id || x.id === id) ||
-                   images.find(x => x._id === id || x.id === id);
+        reels.find(x => x._id === id || x.id === id) ||
+        images.find(x => x._id === id || x.id === id);
       const isReel = customPostType === 'reel' || (item?.postType === 'reel') || (activeTab === 'reels');
       if (isReel) {
         if (isSaved) {
@@ -479,8 +472,8 @@ export default function CustomerHomePage() {
         const itemCoords = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2 && (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0))
           ? item.location.coordinates
           : (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
-          ? vendorObj.location.coordinates
-          : null;
+            ? vendorObj.location.coordinates
+            : null;
 
         if (!itemCoords) {
           const city = item.location?.city || vendorObj.location?.city || item.city || vendorObj.city;
@@ -559,8 +552,8 @@ export default function CustomerHomePage() {
     const itemCoordinates = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2 && (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0))
       ? item.location.coordinates
       : (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
-      ? vendorObj.location.coordinates
-      : null;
+        ? vendorObj.location.coordinates
+        : null;
 
     let targetLat = null;
     let targetLng = null;
@@ -587,9 +580,9 @@ export default function CustomerHomePage() {
       const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos(coords.lat * (Math.PI / 180)) *
-          Math.cos(targetLat * (Math.PI / 180)) *
-          Math.sin(dLng / 2) *
-          Math.sin(dLng / 2);
+        Math.cos(targetLat * (Math.PI / 180)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       const km = R * c;
       if (km < 6000) return km;
@@ -635,7 +628,7 @@ export default function CustomerHomePage() {
         const hashtags = Array.isArray(item.hashtags) ? item.hashtags.join(' ').toLowerCase() : '';
         const tags = Array.isArray(item.tags) ? item.tags.join(' ').toLowerCase() : '';
 
-        const matchesQuery = 
+        const matchesQuery =
           title.includes(query) ||
           desc.includes(query) ||
           vendorName.includes(query) ||
@@ -753,7 +746,7 @@ export default function CustomerHomePage() {
 
   return (
     <div className="flex flex-col h-full w-full font-sans bg-[#f2ede4] overflow-hidden">
-      
+
       {/* ── FIXED TOP CONTROLS & HEADER PANEL (Stationary on screen) ── */}
       <div className="shrink-0 bg-[#f2ede4] py-1 px-1.5 sm:px-3 space-y-1 border-b border-[#e3dccb] shadow-2xs z-20">
         {/* Home Feed Search & Filters Bar */}
@@ -795,383 +788,383 @@ export default function CustomerHomePage() {
           </div>
         ) : (
           <div className="w-full max-w-xl mx-auto px-1 sm:px-0 space-y-6 pb-24 lg:pb-12 font-sans pt-1">
-          {processedCombinedFeed.map((item) => {
-            const itemId = item._id || item.id;
-            const isLiked = likedMap[itemId];
-            const isSaved = savedMap[itemId];
-            const isExpanded = expandedCaptions[itemId];
+            {processedCombinedFeed.map((item) => {
+              const itemId = item._id || item.id;
+              const isLiked = likedMap[itemId];
+              const isSaved = savedMap[itemId];
+              const isExpanded = expandedCaptions[itemId];
 
-            if (item.postType === 'reel') {
-              const vendorId = item.creator?._id || item.creator?.id || item.creator;
-              const isFollowing = followingMap[vendorId];
+              if (item.postType === 'reel') {
+                const vendorId = item.creator?._id || item.creator?.id || item.creator;
+                const isFollowing = followingMap[vendorId];
 
-              return (
-                <motion.div
-                  key={itemId}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
-                >
-                  {/* Card Header (Instagram Style) */}
-                  <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
-                    <div
-                      onClick={() => navigate(`/customer/vendor/${vendorId}`)}
-                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
-                        <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
-                          {item.creator?.avatarUrl || item.creator?.profile_pic ? (
-                            <img src={item.creator.avatarUrl || item.creator.profile_pic} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span>{item.creator?.name ? item.creator.name.charAt(0) : 'V'}</span>
-                          )}
+                return (
+                  <motion.div
+                    key={itemId}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
+                  >
+                    {/* Card Header (Instagram Style) */}
+                    <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
+                      <div
+                        onClick={() => navigate(`/customer/vendor/${vendorId}`)}
+                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
+                          <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
+                            {item.creator?.avatarUrl || item.creator?.profile_pic ? (
+                              <img src={item.creator.avatarUrl || item.creator.profile_pic} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{item.creator?.name ? item.creator.name.charAt(0) : 'V'}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
+                            {item.creator?.name || 'Verified Creator'}
+                            <span className="bg-[#d99a3d]/20 text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Reel</span>
+                          </h4>
+                          <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                            <FiMapPin size={10} className="text-[#d99a3d]" />
+                            <span>{formatDistance(item)}</span>
+                            <span className="mx-1">•</span>
+                            <span>{formatTimeAgo(item.createdAt)}</span>
+                          </p>
                         </div>
                       </div>
-                      <div>
-                        <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
-                          {item.creator?.name || 'Verified Creator'}
-                          <span className="bg-[#d99a3d]/20 text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Reel</span>
-                        </h4>
-                        <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                          <FiMapPin size={10} className="text-[#d99a3d]" />
-                          <span>{formatDistance(item)}</span>
-                          <span className="mx-1">•</span>
-                          <span>{formatTimeAgo(item.createdAt)}</span>
-                        </p>
-                      </div>
+
+                      <button
+                        onClick={() => handleFollow(vendorId)}
+                        className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
+                          ? 'bg-slate-200 text-slate-700'
+                          : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
+                          }`}
+                      >
+                        {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
+                      </button>
                     </div>
 
-                    <button
-                      onClick={() => handleFollow(vendorId)}
-                      className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
-                        ? 'bg-slate-200 text-slate-700'
-                        : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
-                        }`}
+                    {/* Reel Media Section (Auto-Play + Double Tap Heart) */}
+                    <div
+                      onClick={() => {
+                        const idx = processedReels.findIndex(r => r._id === itemId || r.id === itemId);
+                        setReelViewerStartIndex(idx >= 0 ? idx : 0);
+                        setReelViewerOpen(true);
+                      }}
                     >
-                      {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
-                    </button>
-                  </div>
+                      <CustomerReelMedia
+                        reel={item}
+                        muted={muted}
+                        setMuted={setMuted}
+                        onDoubleTap={() => handleLike(itemId, 'reel')}
+                      />
+                    </div>
 
-                  {/* Reel Media Section (Auto-Play + Double Tap Heart) */}
-                  <div
-                    onClick={() => {
-                      const idx = processedReels.findIndex(r => r._id === itemId || r.id === itemId);
-                      setReelViewerStartIndex(idx >= 0 ? idx : 0);
-                      setReelViewerOpen(true);
-                    }}
-                  >
-                    <CustomerReelMedia
-                      reel={item}
-                      muted={muted}
-                      setMuted={setMuted}
-                      onDoubleTap={() => handleLike(itemId, 'reel')}
-                    />
-                  </div>
+                    {/* Action Bar & Details (Instagram Style) */}
+                    <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => handleLike(itemId, 'reel')}
+                            className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
+                            title="Like"
+                          >
+                            <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
+                            <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                          </button>
 
-                  {/* Action Bar & Details (Instagram Style) */}
-                  <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => {
+                              setSelectedReelId(itemId);
+                              setIsCommentsOpen(true);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
+                            title="Comment"
+                          >
+                            <FiMessageCircle size={20} />
+                            <span>{item.commentsCount || 0}</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleShare(item)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
+                            title="Share Post"
+                          >
+                            <FiSend size={18} />
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenChat(
+                              vendorId,
+                              item.creator?.name,
+                              item.creator?.avatarUrl || item.creator?.profile_pic
+                            )}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
+                            title="Chat with Vendor"
+                          >
+                            <FiMessageSquare size={17} className="text-[#d99a3d]" />
+                            <span>Chat</span>
+                          </button>
+                        </div>
+
                         <button
-                          onClick={() => handleLike(itemId, 'reel')}
-                          className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
-                          title="Like"
+                          onClick={() => handleSave(itemId, 'reel')}
+                          className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
+                          title="Save"
                         >
-                          <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
-                          <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                          <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
+                        </button>
+                      </div>
+
+                      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                        {(item.views || 0).toLocaleString()} views
+                      </p>
+
+                      {/* Quick Add to Cart & Buy Now Action Row */}
+                      <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-[#e3dccb]/60">
+                        <button
+                          onClick={async () => {
+                            const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
+                            try {
+                              await cartApi.add({ listing_id: targetId, quantity: 1 });
+                              notifyCartChanged();
+                              openCartDrawer();
+                              toast.success(`"${item.caption || 'Product'}" added to cart!`);
+                            } catch {
+                              toast.error('Could not add item to cart');
+                            }
+                          }}
+                          className="py-2 px-3 rounded-xl bg-[#f8f4ec] hover:bg-[#eae3d2] text-[#1a1a1a] text-xs font-bold transition border border-[#e3dccb] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <FiShoppingCart size={15} className="text-[#d99a3d]" />
+                          <span>Add to Cart</span>
                         </button>
 
                         <button
                           onClick={() => {
-                            setSelectedReelId(itemId);
-                            setIsCommentsOpen(true);
+                            const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
+                            navigate(`/customer/listings/${targetId}`);
                           }}
-                          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
-                          title="Comment"
+                          className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                         >
-                          <FiMessageCircle size={20} />
-                          <span>{item.commentsCount || 0}</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleShare(item)}
-                          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
-                          title="Share Post"
-                        >
-                          <FiSend size={18} />
-                        </button>
-
-                        <button
-                          onClick={() => handleOpenChat(
-                            vendorId,
-                            item.creator?.name,
-                            item.creator?.avatarUrl || item.creator?.profile_pic
-                          )}
-                          className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
-                          title="Chat with Vendor"
-                        >
-                          <FiMessageSquare size={17} className="text-[#d99a3d]" />
-                          <span>Chat</span>
+                          <FiZap size={15} />
+                          <span>Buy Now</span>
                         </button>
                       </div>
 
-                      <button
-                        onClick={() => handleSave(itemId, 'reel')}
-                        className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
-                        title="Save"
-                      >
-                        <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
-                      </button>
+                      {/* Expandable Caption */}
+                      <div className="text-xs text-slate-700 leading-relaxed mt-1">
+                        <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.creator?.name || 'Verified Creator'}</span>
+                        {isExpanded ? (
+                          <span>{item.caption || item.description}</span>
+                        ) : (
+                          <span>
+                            {((item.caption || item.description || '').slice(0, 90))}
+                            {(item.caption || item.description || '').length > 90 && (
+                              <button
+                                onClick={() => toggleCaption(itemId)}
+                                className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
+                              >
+                                ...more
+                              </button>
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                  </motion.div>
+                );
+              } else {
+                const vendorId = item.vendor?._id || item.vendor?.id || item.vendor;
+                const isFollowing = followingMap[vendorId];
 
-                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                      {(item.views || 0).toLocaleString()} views
-                    </p>
-
-                    {/* Quick Add to Cart & Buy Now Action Row */}
-                    <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-[#e3dccb]/60">
-                      <button
-                        onClick={async () => {
-                          const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
-                          try {
-                            await cartApi.add({ listing_id: targetId, quantity: 1 });
-                            notifyCartChanged();
-                            openCartDrawer();
-                            toast.success(`"${item.caption || 'Product'}" added to cart!`);
-                          } catch {
-                            toast.error('Could not add item to cart');
-                          }
-                        }}
-                        className="py-2 px-3 rounded-xl bg-[#f8f4ec] hover:bg-[#eae3d2] text-[#1a1a1a] text-xs font-bold transition border border-[#e3dccb] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                return (
+                  <motion.div
+                    key={itemId}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
+                  >
+                    {/* Card Header (Instagram Style) */}
+                    <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
+                      <div
+                        onClick={() => navigate(`/customer/vendor/${vendorId}`)}
+                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
                       >
-                        <FiShoppingCart size={15} className="text-[#d99a3d]" />
-                        <span>Add to Cart</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
-                          navigate(`/customer/listings/${targetId}`);
-                        }}
-                        className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <FiZap size={15} />
-                        <span>Buy Now</span>
-                      </button>
-                    </div>
-
-                    {/* Expandable Caption */}
-                    <div className="text-xs text-slate-700 leading-relaxed mt-1">
-                      <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.creator?.name || 'Verified Creator'}</span>
-                      {isExpanded ? (
-                        <span>{item.caption || item.description}</span>
-                      ) : (
-                        <span>
-                          {((item.caption || item.description || '').slice(0, 90))}
-                          {(item.caption || item.description || '').length > 90 && (
-                            <button
-                              onClick={() => toggleCaption(itemId)}
-                              className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
-                            >
-                              ...more
-                            </button>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            } else {
-              const vendorId = item.vendor?._id || item.vendor?.id || item.vendor;
-              const isFollowing = followingMap[vendorId];
-
-              return (
-                <motion.div
-                  key={itemId}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
-                >
-                  {/* Card Header (Instagram Style) */}
-                  <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
-                    <div
-                      onClick={() => navigate(`/customer/vendor/${vendorId}`)}
-                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
-                        <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
-                          {item.vendor?.avatarUrl || item.vendor?.profile_pic ? (
-                            <img src={item.vendor.avatarUrl || item.vendor.profile_pic} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span>{item.vendor?.name ? item.vendor.name.charAt(0) : 'V'}</span>
-                          )}
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
+                          <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
+                            {item.vendor?.avatarUrl || item.vendor?.profile_pic ? (
+                              <img src={item.vendor.avatarUrl || item.vendor.profile_pic} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{item.vendor?.name ? item.vendor.name.charAt(0) : 'V'}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
+                            {item.vendor?.name || 'Verified Vendor'}
+                            <span className="bg-emerald-500/15 text-emerald-700 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Product</span>
+                          </h4>
+                          <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                            <FiMapPin size={10} className="text-[#d99a3d]" />
+                            <span>{formatDistance(item)}</span>
+                            <span className="mx-1">•</span>
+                            <span>{formatTimeAgo(item.createdAt)}</span>
+                          </p>
                         </div>
                       </div>
-                      <div>
-                        <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
-                          {item.vendor?.name || 'Verified Vendor'}
-                          <span className="bg-emerald-500/15 text-emerald-700 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Product</span>
-                        </h4>
-                        <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                          <FiMapPin size={10} className="text-[#d99a3d]" />
-                          <span>{formatDistance(item)}</span>
-                          <span className="mx-1">•</span>
-                          <span>{formatTimeAgo(item.createdAt)}</span>
-                        </p>
-                      </div>
+
+                      <button
+                        onClick={() => handleFollow(vendorId)}
+                        className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
+                          ? 'bg-slate-200 text-slate-700'
+                          : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
+                          }`}
+                      >
+                        {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
+                      </button>
                     </div>
 
-                    <button
-                      onClick={() => handleFollow(vendorId)}
-                      className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
-                        ? 'bg-slate-200 text-slate-700'
-                        : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
-                        }`}
+                    {/* Listing Media Section */}
+                    <div
+                      onClick={() => {
+                        const idx = processedImages.findIndex(i => i._id === itemId || i.id === itemId);
+                        setImageViewerStartIndex(idx >= 0 ? idx : 0);
+                        setImageViewerOpen(true);
+                      }}
+                      className="cursor-pointer aspect-square bg-slate-100 relative overflow-hidden select-none"
                     >
-                      {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
-                    </button>
-                  </div>
-
-                  {/* Listing Media Section */}
-                  <div
-                    onClick={() => {
-                      const idx = processedImages.findIndex(i => i._id === itemId || i.id === itemId);
-                      setImageViewerStartIndex(idx >= 0 ? idx : 0);
-                      setImageViewerOpen(true);
-                    }}
-                    className="cursor-pointer aspect-square bg-slate-100 relative overflow-hidden select-none"
-                  >
-                    <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
-                    <div className="absolute top-3 right-3 bg-[#d99a3d] px-3 py-1 rounded text-xs font-extrabold text-[#1a1a1a] shadow-xs border border-[#1a1a1a]/10">
-                      ₹{item.price?.toLocaleString()}
+                      <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
+                      <div className="absolute top-3 right-3 bg-[#d99a3d] px-3 py-1 rounded text-xs font-extrabold text-[#1a1a1a] shadow-xs border border-[#1a1a1a]/10">
+                        ₹{item.price?.toLocaleString()}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Action Bar & Details */}
-                  <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    {/* Action Bar & Details */}
+                    <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLike(itemId, 'listing');
+                            }}
+                            className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
+                            title="Like"
+                          >
+                            <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
+                            <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShare(item);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
+                            title="Share Post"
+                          >
+                            <FiSend size={18} />
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenChat(
+                                vendorId,
+                                item.vendor?.name,
+                                item.vendor?.avatarUrl || item.vendor?.profile_pic
+                              );
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
+                            title="Chat with Vendor"
+                          >
+                            <FiMessageSquare size={17} className="text-[#d99a3d]" />
+                            <span>Chat</span>
+                          </button>
+                        </div>
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleLike(itemId, 'listing');
+                            handleSave(itemId, 'listing');
                           }}
-                          className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
-                          title="Like"
+                          className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
+                          title="Save"
                         >
-                          <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
-                          <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShare(item);
-                          }}
-                          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
-                          title="Share Post"
-                        >
-                          <FiSend size={18} />
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenChat(
-                              vendorId,
-                              item.vendor?.name,
-                              item.vendor?.avatarUrl || item.vendor?.profile_pic
-                            );
-                          }}
-                          className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
-                          title="Chat with Vendor"
-                        >
-                          <FiMessageSquare size={17} className="text-[#d99a3d]" />
-                          <span>Chat</span>
+                          <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
                         </button>
                       </div>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSave(itemId, 'listing');
-                        }}
-                        className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
-                        title="Save"
-                      >
-                        <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
-                      </button>
-                    </div>
+                      {/* Product Title and Price */}
+                      <div className="flex items-baseline justify-between mt-1">
+                        <h4 className="font-extrabold text-sm text-[#1a1a1a]">{item.title}</h4>
+                        <span className="text-xs font-extrabold text-[#d99a3d]">₹{item.price?.toLocaleString()}</span>
+                      </div>
 
-                    {/* Product Title and Price */}
-                    <div className="flex items-baseline justify-between mt-1">
-                      <h4 className="font-extrabold text-sm text-[#1a1a1a]">{item.title}</h4>
-                      <span className="text-xs font-extrabold text-[#d99a3d]">₹{item.price?.toLocaleString()}</span>
-                    </div>
+                      {/* Expandable Caption */}
+                      <div className="text-xs text-slate-700 leading-relaxed mt-1">
+                        <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.vendor?.name || 'Verified Vendor'}</span>
+                        {isExpanded ? (
+                          <span>{item.description}</span>
+                        ) : (
+                          <span>
+                            {((item.description || '').slice(0, 90))}
+                            {(item.description || '').length > 90 && (
+                              <button
+                                onClick={() => toggleCaption(itemId)}
+                                className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
+                              >
+                                ...more
+                              </button>
+                            )}
+                          </span>
+                        )}
+                      </div>
 
-                    {/* Expandable Caption */}
-                    <div className="text-xs text-slate-700 leading-relaxed mt-1">
-                      <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.vendor?.name || 'Verified Vendor'}</span>
-                      {isExpanded ? (
-                        <span>{item.description}</span>
-                      ) : (
-                        <span>
-                          {((item.description || '').slice(0, 90))}
-                          {(item.description || '').length > 90 && (
-                            <button
-                              onClick={() => toggleCaption(itemId)}
-                              className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
-                            >
-                              ...more
-                            </button>
-                          )}
-                        </span>
-                      )}
-                    </div>
+                      {/* Add to Cart & Buy Now Quick Action Buttons */}
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0ebe0]">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const targetId = item._id || item.id;
+                            try {
+                              await cartApi.add({ listing_id: targetId, quantity: 1 });
+                              notifyCartChanged();
+                              openCartDrawer();
+                              toast.success(`"${item.title || 'Product'}" added to cart!`);
+                            } catch {
+                              toast.error('Could not add item to cart');
+                            }
+                          }}
+                          className="py-2 px-3 rounded-xl bg-[#f8f4ec] hover:bg-[#eae3d2] text-[#1a1a1a] text-xs font-bold transition border border-[#e3dccb] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <FiShoppingCart size={15} className="text-[#d99a3d]" />
+                          <span>Add to Cart</span>
+                        </button>
 
-                    {/* Add to Cart & Buy Now Quick Action Buttons */}
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0ebe0]">
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const targetId = item._id || item.id;
-                          try {
-                            await cartApi.add({ listing_id: targetId, quantity: 1 });
-                            notifyCartChanged();
-                            openCartDrawer();
-                            toast.success(`"${item.title || 'Product'}" added to cart!`);
-                          } catch {
-                            toast.error('Could not add item to cart');
-                          }
-                        }}
-                        className="py-2 px-3 rounded-xl bg-[#f8f4ec] hover:bg-[#eae3d2] text-[#1a1a1a] text-xs font-bold transition border border-[#e3dccb] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                      >
-                        <FiShoppingCart size={15} className="text-[#d99a3d]" />
-                        <span>Add to Cart</span>
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const targetId = item._id || item.id;
-                          navigate(`/customer/listings/${targetId}`);
-                        }}
-                        className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <FiZap size={15} />
-                        <span>Buy Now</span>
-                      </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const targetId = item._id || item.id;
+                            navigate(`/customer/listings/${targetId}`);
+                          }}
+                          className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          <FiZap size={15} />
+                          <span>Buy Now</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              );
-            }
-          })}
-        </div>
-      )}
+                  </motion.div>
+                );
+              }
+            })}
+          </div>
+        )}
       </div>
 
       <CommentsDrawer
