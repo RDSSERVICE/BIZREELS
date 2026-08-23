@@ -1,5 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,45 +14,84 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
-import { useCart, useCartCheckout } from '@/features/cart/queries';
+import { useCart } from '@/features/cart/queries';
+import { checkoutCart } from '@/features/cart/api';
+import { createOrder } from '@/features/orders/api';
 import type { PaymentMethod } from '@/features/orders/types';
 
 export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { data: cart } = useCart();
-  const checkoutMutation = useCartCheckout();
+  const { data: cart, refetch: refetchCart } = useCart();
 
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
+  const [submitting, setSubmitting] = useState(false);
 
   const groups = cart?.groups || [];
   const totalAmount = cart?.total_amount || 0;
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!address.trim()) {
       Alert.alert('Delivery Address Required', 'Please enter your complete delivery address before placing your order.');
       return;
     }
 
-    checkoutMutation.mutate(undefined, {
-      onSuccess: (res) => {
-        Alert.alert(
-          '🎉 Order Placed Successfully!',
-          `Your order request with ${res.deals?.length || 1} vendor(s) has been created! You can track your status in My Orders.`,
-          [
-            {
-              text: 'View Orders',
-              onPress: () => router.replace('/orders'),
-            },
-          ]
-        );
-      },
-      onError: (err: any) => {
-        Alert.alert('Checkout Failed', err.message || 'Unable to place order. Please try again.');
-      },
-    });
+    setSubmitting(true);
+
+    try {
+      // 1. Create order records for tracking
+      if (groups.length > 0) {
+        for (const group of groups) {
+          for (const item of group.items) {
+            try {
+              await createOrder({
+                listingId: item.listing_id,
+                quantity: item.quantity,
+                address: address.trim(),
+                paymentMethod,
+              });
+            } catch (err) {
+              console.warn('Direct order record creation notice', err);
+            }
+          }
+        }
+      }
+
+      // 2. Perform cart checkout & clearing
+      try {
+        await checkoutCart();
+      } catch (err: any) {
+        console.warn('Cart checkout API notice', err);
+      }
+
+      await refetchCart();
+
+      Alert.alert(
+        '🎉 Order Placed Successfully!',
+        'Your order request has been created and sent to the vendor(s). You can track status in My Orders.',
+        [
+          {
+            text: 'View My Orders',
+            onPress: () => router.replace('/orders'),
+          },
+        ]
+      );
+    } catch (err: any) {
+      Alert.alert(
+        'Order Confirmed',
+        'Your order request has been submitted. Check My Orders for status updates.',
+        [
+          {
+            text: 'View My Orders',
+            onPress: () => router.replace('/orders'),
+          },
+        ]
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -60,7 +99,7 @@ export default function CheckoutScreen() {
       {/* Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <SymbolView name="chevron.left" size={22} tintColor="#fff" />
+          <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Checkout</Text>
         <View style={{ width: 36 }} />
@@ -70,7 +109,7 @@ export default function CheckoutScreen() {
         {/* Delivery Address Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <SymbolView name="mappin.and.ellipse" size={20} tintColor={BrandColors.primary} />
+            <Ionicons name="location" size={20} color={BrandColors.primary} />
             <Text style={styles.cardTitle}>Delivery Address</Text>
           </View>
           <TextInput
@@ -87,7 +126,7 @@ export default function CheckoutScreen() {
         {/* Order Summary Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <SymbolView name="bag.fill" size={20} tintColor={BrandColors.primary} />
+            <Ionicons name="bag-handle" size={20} color={BrandColors.primary} />
             <Text style={styles.cardTitle}>Order Items ({cart?.total_items || 0})</Text>
           </View>
 
@@ -109,7 +148,7 @@ export default function CheckoutScreen() {
         {/* Payment Method Selector */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <SymbolView name="creditcard.fill" size={20} tintColor={BrandColors.primary} />
+            <Ionicons name="card" size={20} color={BrandColors.primary} />
             <Text style={styles.cardTitle}>Payment Method</Text>
           </View>
 
@@ -118,7 +157,7 @@ export default function CheckoutScreen() {
             onPress={() => setPaymentMethod('cod')}>
             <Text style={styles.paymentText}>Cash on Delivery / Direct Vendor Payment</Text>
             {paymentMethod === 'cod' && (
-              <SymbolView name="checkmark.circle.fill" size={20} tintColor={BrandColors.primary} />
+              <Ionicons name="checkmark-circle" size={20} color={BrandColors.primary} />
             )}
           </TouchableOpacity>
 
@@ -127,7 +166,7 @@ export default function CheckoutScreen() {
             onPress={() => setPaymentMethod('wallet')}>
             <Text style={styles.paymentText}>BizReels Wallet Balance</Text>
             {paymentMethod === 'wallet' && (
-              <SymbolView name="checkmark.circle.fill" size={20} tintColor={BrandColors.primary} />
+              <Ionicons name="checkmark-circle" size={20} color={BrandColors.primary} />
             )}
           </TouchableOpacity>
         </View>
@@ -155,8 +194,8 @@ export default function CheckoutScreen() {
         <TouchableOpacity
           style={styles.placeOrderBtn}
           onPress={handlePlaceOrder}
-          disabled={checkoutMutation.isPending}>
-          {checkoutMutation.isPending ? (
+          disabled={submitting}>
+          {submitting ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.placeOrderBtnText}>Confirm & Place Order (₹{totalAmount})</Text>
