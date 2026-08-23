@@ -210,16 +210,61 @@ export default function HomeScreen() {
           })}
         </ScrollView>
 
-        {/* Vendor Catalog & Product Listings Header Section */}
+        {/* Redesigned Vendor Store Hub & Catalog Section */}
         {user?.activeRole === 'vendor' ? (
-          <View style={styles.section}>
+          <View style={styles.vendorCatalogContainer}>
+            {/* Vendor Store Header Card */}
+            <View style={styles.vendorStoreCard}>
+              <View style={styles.vendorStoreHeaderRow}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.vendorStoreName}>
+                      {user?.vendorProfile?.storeName || user?.vendorProfile?.businessName || user?.name || 'My Store'}
+                    </Text>
+                    <View style={styles.verifiedShieldBadge}>
+                      <Ionicons name="shield-checkmark" size={12} color="#fff" />
+                      <Text style={styles.verifiedShieldText}>VERIFIED</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.vendorStoreSub}>
+                    {user?.vendorProfile?.category || 'Vendor Store Catalog & Live Inventory'}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.addListingBtn}
+                  onPress={() => router.push('/vendor/listings' as any)}>
+                  <Ionicons name="add-circle" size={18} color="#fff" />
+                  <Text style={styles.addListingBtnText}>+ Add Listing</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Quick Metrics Row */}
+              <View style={styles.storeMetricsRow}>
+                <View style={styles.storeMetricChip}>
+                  <Text style={styles.storeMetricValue}>{vendorListings.length}</Text>
+                  <Text style={styles.storeMetricLabel}>Total Items</Text>
+                </View>
+                <View style={styles.storeMetricDivider} />
+                <View style={styles.storeMetricChip}>
+                  <Text style={styles.storeMetricValue}>4.9 ★</Text>
+                  <Text style={styles.storeMetricLabel}>Store Rating</Text>
+                </View>
+                <View style={styles.storeMetricDivider} />
+                <View style={styles.storeMetricChip}>
+                  <Text style={styles.storeMetricValue}>Active</Text>
+                  <Text style={styles.storeMetricLabel}>Status</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Catalog Grid Header */}
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>📦 My Vendor Store Catalog ({vendorListings.length})</Text>
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: BrandColors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, gap: 4 }}
-                onPress={() => router.push('/vendor/listings' as any)}>
-                <Ionicons name="add-circle" size={16} color="#fff" />
-                <Text style={{ color: '#fff', fontSize: 11, fontWeight: FontWeight.bold }}>Manage Catalog</Text>
+              <Text style={styles.sectionTitle}>
+                🛍️ Vendor Catalog ({vendorListings.length})
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/vendor/listings' as any)}>
+                <Text style={styles.seeAllText}>Manage All Catalog ›</Text>
               </TouchableOpacity>
             </View>
 
@@ -227,32 +272,64 @@ export default function HomeScreen() {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.reelsHighlightScroll}>
-                {vendorListings.slice(0, 8).map((item) => {
+                contentContainerStyle={styles.catalogScrollContent}>
+                {vendorListings.map((item) => {
                   const imgUri = getListingImage(item) || 'https://via.placeholder.com/300';
                   return (
                     <TouchableOpacity
                       key={item._id}
-                      style={styles.reelHighlightCard}
+                      style={styles.catalogCard}
                       onPress={() => router.push('/vendor/listings' as any)}>
-                      <Image source={{ uri: imgUri }} style={styles.reelThumbnail} contentFit="cover" />
-                      <View style={styles.reelOverlayGradient} />
-                      <View style={[styles.reelPlayBadge, { backgroundColor: BrandColors.primary }]}>
-                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: FontWeight.bold }}>₹{item.price}</Text>
+                      <Image source={{ uri: imgUri }} style={styles.catalogCardImage} contentFit="cover" />
+                      
+                      {/* Price Badge */}
+                      <View style={styles.catalogPriceBadge}>
+                        <Text style={styles.catalogPriceText}>₹{item.price}</Text>
                       </View>
-                      <Text style={styles.reelCaption} numberOfLines={2}>
-                        {item.title}
-                      </Text>
+
+                      {/* Category Badge */}
+                      <View style={styles.catalogCategoryTag}>
+                        <Text style={styles.catalogCategoryText}>
+                          {item.type === 'service' ? 'Service' : 'Product'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.catalogCardDetails}>
+                        <Text style={styles.catalogItemTitle} numberOfLines={2}>
+                          {item.title}
+                        </Text>
+
+                        <View style={styles.catalogCardFooter}>
+                          <View style={styles.stockBadge}>
+                            <View style={styles.stockDot} />
+                            <Text style={styles.stockText}>In Stock</Text>
+                          </View>
+
+                          <TouchableOpacity
+                            style={styles.editCardBtn}
+                            onPress={() => router.push('/vendor/listings' as any)}>
+                            <Ionicons name="create-outline" size={14} color={BrandColors.primary} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
               </ScrollView>
             ) : (
-              <TouchableOpacity
-                style={{ backgroundColor: '#1c1c1e', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#2c2c2e' }}
-                onPress={() => router.push('/vendor/listings' as any)}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: FontWeight.bold }}>+ Add Product / Service Listing to Store</Text>
-              </TouchableOpacity>
+              <View style={styles.emptyCatalogCard}>
+                <Ionicons name="cube-outline" size={36} color={BrandColors.primary} />
+                <Text style={styles.emptyCatalogTitle}>Your Store Catalog is Empty</Text>
+                <Text style={styles.emptyCatalogDesc}>
+                  Add your first product or service listing to showcase on the marketplace and video reels!
+                </Text>
+                <TouchableOpacity
+                  style={styles.emptyCatalogBtn}
+                  onPress={() => router.push('/vendor/listings' as any)}>
+                  <Ionicons name="add-circle-outline" size={18} color="#fff" />
+                  <Text style={styles.emptyCatalogBtnText}>+ Add First Product / Service</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         ) : (
@@ -678,5 +755,212 @@ const styles = StyleSheet.create({
   emptyListingsText: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: FontSize.sm,
+  },
+
+  // ── Redesigned Vendor Catalog Styles ──
+  vendorCatalogContainer: {
+    paddingHorizontal: Spacing.four,
+    gap: Spacing.three,
+  },
+  vendorStoreCard: {
+    backgroundColor: '#181a20',
+    borderRadius: 16,
+    padding: Spacing.four,
+    borderWidth: 1.5,
+    borderColor: BrandColors.primary,
+    gap: Spacing.three,
+  },
+  vendorStoreHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  vendorStoreName: {
+    color: '#fff',
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.bold,
+  },
+  verifiedShieldBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BrandColors.success,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    gap: 3,
+  },
+  verifiedShieldText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: FontWeight.bold,
+  },
+  vendorStoreSub: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  addListingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    gap: 4,
+  },
+  addListingBtnText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+  },
+  storeMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#22252e',
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.three,
+    borderRadius: 12,
+  },
+  storeMetricChip: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  storeMetricValue: {
+    color: BrandColors.primaryLight,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+  storeMetricLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 9,
+    marginTop: 1,
+  },
+  storeMetricDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+
+  catalogScrollContent: {
+    gap: Spacing.three,
+    paddingVertical: 4,
+  },
+  catalogCard: {
+    width: 160,
+    backgroundColor: '#1c1c1e',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+    position: 'relative',
+  },
+  catalogCardImage: {
+    width: '100%',
+    height: 130,
+  },
+  catalogPriceBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  catalogPriceText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+  },
+  catalogCategoryTag: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  catalogCategoryText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: FontWeight.bold,
+  },
+  catalogCardDetails: {
+    padding: Spacing.two,
+    gap: 6,
+  },
+  catalogItemTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    lineHeight: 16,
+  },
+  catalogCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  stockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  stockDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: BrandColors.success,
+  },
+  stockText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 9,
+  },
+  editCardBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(217,119,6,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  emptyCatalogCard: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 16,
+    padding: Spacing.four,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+    gap: 6,
+  },
+  emptyCatalogTitle: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+  emptyCatalogDesc: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: FontSize.xs,
+    textAlign: 'center',
+  },
+  emptyCatalogBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+    marginTop: Spacing.two,
+  },
+  emptyCatalogBtnText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
   },
 });
