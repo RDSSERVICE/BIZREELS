@@ -32,7 +32,7 @@ export default function CheckoutScreen() {
     vendorName?: string;
   }>();
 
-  const { data: cart, refetch: refetchCart } = useCart();
+  const { data: cart, isLoading, refetch: refetchCart } = useCart();
 
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
@@ -138,6 +138,28 @@ export default function CheckoutScreen() {
       setSubmitting(false);
     }
   };
+
+  if (isLoading && !hasDirectItem) {
+    return (
+      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color={BrandColors.primary} />
+        <Text style={styles.loadingText}>Loading checkout details...</Text>
+      </View>
+    );
+  }
+
+  if (displayGroups.length === 0 && !hasDirectItem) {
+    return (
+      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
+        <Ionicons name="basket-outline" size={64} color="rgba(255,255,255,0.4)" />
+        <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
+        <Text style={styles.emptySub}>Add products or services to your cart to proceed with checkout.</Text>
+        <TouchableOpacity style={styles.browseBtn} onPress={() => router.replace('/(tabs)/home')}>
+          <Text style={styles.browseBtnText}>Explore Products</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -273,6 +295,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
+  },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.four,
+    gap: Spacing.three,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: FontSize.base,
+  },
+  emptyTitle: {
+    color: '#fff',
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+  },
+  emptySub: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: FontSize.sm,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  browseBtn: {
+    backgroundColor: BrandColors.primary,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginTop: Spacing.two,
+  },
+  browseBtnText: {
+    color: '#fff',
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.bold,
   },
   header: {
     flexDirection: 'row',

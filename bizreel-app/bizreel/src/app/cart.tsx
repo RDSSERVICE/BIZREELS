@@ -50,7 +50,7 @@ export default function CartScreen() {
       {/* Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <SymbolView name="chevron.left" size={22} tintColor="#fff" />
+          <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Shopping Cart ({totalItems})</Text>
         <View style={{ width: 36 }} />
@@ -58,7 +58,7 @@ export default function CartScreen() {
 
       {groups.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <SymbolView name="cart" size={64} tintColor="rgba(255,255,255,0.3)" />
+          <Ionicons name="cart-outline" size={64} color="rgba(255,255,255,0.3)" />
           <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
           <Text style={styles.emptySub}>Explore products and services on BizReels to start adding!</Text>
           <TouchableOpacity style={styles.exploreBtn} onPress={() => router.push('/(tabs)/search')}>
