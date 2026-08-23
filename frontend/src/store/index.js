@@ -13,9 +13,8 @@ const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: ['api/executeMutation/fulfilled'],
-      },
+      immutableCheck: false,
+      serializableCheck: false,
     }).concat(apiSlice.middleware),
   devTools: import.meta.env.DEV,
 });
