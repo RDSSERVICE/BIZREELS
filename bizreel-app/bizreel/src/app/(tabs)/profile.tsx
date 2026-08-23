@@ -158,6 +158,8 @@ export default function ProfileScreen() {
   const { signOut } = useAuth();
 
   const { data: user, isLoading, isError, refetch, isRefetching } = useCurrentUserProfile();
+  const [vendorHubCollapsed, setVendorHubCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   function handleLogout() {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
@@ -187,6 +189,7 @@ export default function ProfileScreen() {
           styles.centered,
           { paddingTop: insets.top, backgroundColor: theme.background },
         ]}>
+        <Ionicons name="alert-circle-outline" size={48} color={BrandColors.error} />
         <Text style={[styles.errorText, { color: theme.textSecondary }]}>
           Could not load profile.
         </Text>
@@ -201,7 +204,6 @@ export default function ProfileScreen() {
 
   // ── Derived display values ─────────────────────────────────────────────────
   const avatarUrl = user.profile_pic ?? user.avatarUrl;
-  const [vendorHubCollapsed, setVendorHubCollapsed] = useState(false);
 
   const initials = getInitials(user.name);
   const ratingDisplay =
