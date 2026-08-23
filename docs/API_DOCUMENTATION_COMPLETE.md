@@ -175,7 +175,94 @@
 
 ---
 
-## 6. Sockets Protocol Specifications
+## 6. Shopping Cart & Multi-Vendor Checkout Domain (`/cart`)
+
+### 6.1 `GET /cart` (or `/cart/me`)
+- **Description**: Retrieves current authenticated customer's shopping cart, automatically hydrated with real-time product prices, images, vendor profiles, and grouped by vendor.
+- **Permissions**: Authenticated.
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "id": "64e5f...",
+    "items": [
+      {
+        "listing_id": "60d5ecb8b3b3a2a4b8f72381",
+        "quantity": 2,
+        "variant_selection": null,
+        "added_at": "2026-08-24T00:00:00.000Z"
+      }
+    ],
+    "groups": [
+      {
+        "vendor_id": "60d5ecb8b3b3a2a4b8f72380",
+        "vendor": {
+          "id": "60d5ecb8b3b3a2a4b8f72380",
+          "name": "Royal Electronics",
+          "profile_pic": "https://..."
+        },
+        "items": [
+          {
+            "listing_id": "60d5ecb8b3b3a2a4b8f72381",
+            "quantity": 2,
+            "title": "Wireless Bluetooth Earbuds",
+            "price": 1299,
+            "line_total": 2598,
+            "image": "https://..."
+          }
+        ],
+        "subtotal": 2598
+      }
+    ],
+    "total_items": 2,
+    "total_amount": 2598
+  }
+  ```
+
+### 6.2 `POST /cart/add` (or `/cart/me/add`)
+- **Description**: Adds an item with quantity to the customer's cart or increments existing quantity up to 99.
+- **Permissions**: Authenticated.
+- **Request Body**:
+  ```json
+  {
+    "listing_id": "60d5ecb8b3b3a2a4b8f72381",
+    "quantity": 1,
+    "variant_selection": null
+  }
+  ```
+- **Success Response (200 OK)**: Returns full updated hydrated cart.
+
+### 6.3 `PATCH /cart/items/:listing_id`
+- **Description**: Updates the exact quantity of a listing in the cart (range: 1 - 99).
+- **Permissions**: Authenticated.
+- **Request Body**: `{ "quantity": 3 }`
+- **Success Response (200 OK)**: Returns full updated hydrated cart.
+
+### 6.4 `DELETE /cart/items/:listing_id`
+- **Description**: Removes an item from the cart.
+- **Permissions**: Authenticated.
+- **Success Response (200 OK)**: Returns full updated hydrated cart.
+
+### 6.5 `POST /cart/checkout`
+- **Description**: Executes multi-vendor checkout. Verifies vendor identity verification status, generates negotiating `Deal` records for each vendor group, sends automated itemized summary messages to each vendor's in-app chat thread, and clears the cart upon success.
+- **Permissions**: Authenticated.
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "ok": true,
+    "deals": [
+      {
+        "deal_id": "64e5f...",
+        "vendor_id": "60d5ecb8...",
+        "amount_paise": 259800,
+        "item_count": 1
+      }
+    ]
+  }
+  ```
+
+---
+
+## 7. Sockets Protocol Specifications
 
 | Event Namespace | Event Identifier | Direction | Payload Schema | Action Trigger |
 |---|---|---|---|---|

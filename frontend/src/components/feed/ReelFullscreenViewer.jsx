@@ -249,40 +249,40 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
                 className="w-full h-full object-cover"
               />
 
-              {/* Right-side action buttons */}
-              <div className="absolute right-3 bottom-32 z-30 flex flex-col items-center gap-5">
+              {/* Right-side vertical action rail */}
+              <div className="absolute right-2.5 bottom-48 sm:bottom-52 z-30 flex flex-col items-center gap-4 select-none">
                 {/* Like */}
                 <button
                   onClick={() => onLike?.(reel._id || reel.id)}
-                  className="flex flex-col items-center gap-1"
+                  className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
                 >
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition ${
-                    isLiked ? 'bg-red-500 text-white animate-scale-pop' : 'bg-black/40 text-white'
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md ${
+                    isLiked ? 'bg-red-500 text-white animate-scale-pop' : 'bg-black/50 hover:bg-black/70 text-white border border-white/10'
                   }`}>
                     <FiHeart size={20} fill={isLiked ? 'currentColor' : 'none'} />
                   </div>
-                  <span className="text-white text-[10px] font-bold">{reel.likesCount || 0}</span>
+                  <span className="text-white text-[10px] font-black drop-shadow-md">{reel.likesCount || 0}</span>
                 </button>
 
                 {/* Comments */}
-                <button className="flex flex-col items-center gap-1">
-                  <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center">
+                <button className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent">
+                  <div className="w-11 h-11 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white flex items-center justify-center border border-white/10 shadow-md">
                     <FiMessageCircle size={20} />
                   </div>
-                  <span className="text-white text-[10px] font-bold">{reel.commentsCount || 0}</span>
+                  <span className="text-white text-[10px] font-black drop-shadow-md">{reel.commentsCount || 0}</span>
                 </button>
 
                 {/* Save */}
                 <button
                   onClick={() => onSave?.(reel._id || reel.id)}
-                  className="flex flex-col items-center gap-1"
+                  className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
                 >
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition ${
-                    isSaved ? 'bg-brand-purple text-white' : 'bg-black/40 text-white'
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md ${
+                    isSaved ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-black/50 hover:bg-black/70 text-white border border-white/10'
                   }`}>
                     <FiBookmark size={20} fill={isSaved ? 'currentColor' : 'none'} />
                   </div>
-                  <span className="text-white text-[10px] font-bold">Save</span>
+                  <span className="text-white text-[10px] font-black drop-shadow-md">Save</span>
                 </button>
 
                 {/* Share */}
@@ -292,76 +292,79 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
                     navigator.clipboard?.writeText(url);
                     toast.success('Link copied!');
                   }}
-                  className="flex flex-col items-center gap-1"
+                  className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
                 >
-                  <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center">
+                  <div className="w-11 h-11 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white flex items-center justify-center border border-white/10 shadow-md">
                     <FiShare2 size={20} />
                   </div>
-                  <span className="text-white text-[10px] font-bold">Share</span>
+                  <span className="text-white text-[10px] font-black drop-shadow-md">Share</span>
                 </button>
               </div>
 
               {/* Bottom vendor info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-4 pt-24 text-left">
-                {/* Vendor Profile */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden flex-shrink-0">
-                    {reel.creator?.profile_pic || reel.creator?.avatarUrl ? (
-                      <img
-                        src={reel.creator.profile_pic || reel.creator.avatarUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-brand-purple/30 flex items-center justify-center text-white font-bold text-sm">
-                        {(reel.creator?.name || 'V').charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-white text-sm font-bold truncate">
-                        {reel.creator?.vendorProfile?.shopName || reel.creator?.name || 'Vendor'}
-                      </p>
-                      {reel.isBoosted && (
-                        <span className="bg-yellow-400/20 text-yellow-400 text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-yellow-400/30">
-                          PROMOTED
-                        </span>
+              <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent p-4 pt-20 text-left pr-16 sm:pr-18">
+                {/* Vendor Profile Header Row */}
+                <div className="flex items-center justify-between gap-2.5 mb-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-full border-2 border-[#d99a3d] overflow-hidden flex-shrink-0 bg-white shadow-xs">
+                      {reel.creator?.profile_pic || reel.creator?.avatarUrl ? (
+                        <img
+                          src={reel.creator.profile_pic || reel.creator.avatarUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-black text-sm">
+                          {(reel.creator?.name || 'V').charAt(0)}
+                        </div>
                       )}
                     </div>
-                    <p className="text-white/60 text-[10px] truncate">
-                      {reel.category || 'Business'} • {reel.subcategory || ''}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-white text-xs sm:text-sm font-extrabold truncate">
+                          {reel.creator?.vendorProfile?.shopName || reel.creator?.name || 'Verified Creator'}
+                        </p>
+                        {reel.isBoosted && (
+                          <span className="bg-[#d99a3d]/20 text-[#d99a3d] text-[8px] font-black px-1.5 py-0.2 rounded-full border border-[#d99a3d]/40 uppercase tracking-wide">
+                            PROMOTED
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-white/60 text-[10px] truncate font-medium">
+                        {reel.category || 'Business'} {reel.subcategory ? `• ${reel.subcategory}` : ''}
+                      </p>
+                    </div>
                   </div>
-                  {/* Follow button */}
+
+                  {/* Follow button (neatly placed without overlapping share) */}
                   <button
                     onClick={() => onFollow?.(reel.creator?._id || reel.creator?.id || reel.creator)}
-                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition border ${
+                    className={`px-3 py-1 rounded-full text-[10px] font-black transition shrink-0 cursor-pointer flex items-center gap-1 shadow-xs border ${
                       isFollowing
-                        ? 'bg-white/10 text-white/80 border-white/20'
-                        : 'bg-white text-black border-white hover:bg-white/90'
+                        ? 'bg-white/20 text-white border-white/30 backdrop-blur-xs'
+                        : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] border-[#d99a3d]'
                     }`}
                   >
                     {isFollowing ? (
-                      <><FiCheck size={10} className="inline mr-1" />Following</>
+                      <><FiCheck size={11} /> Following</>
                     ) : (
-                      <><FiUserPlus size={10} className="inline mr-1" />Follow</>
+                      <><FiUserPlus size={11} /> Follow</>
                     )}
                   </button>
                 </div>
 
                 {/* Vendor contact + action buttons */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-4 text-white/70 text-[10px]">
+                  <div className="flex items-center gap-3 text-white/80 text-[10px] font-semibold flex-wrap">
                     <span className="flex items-center gap-1">
-                      <FiMapPin size={10} className="text-brand-orange" /> {maskAddress(reel.creator)}
+                      <FiMapPin size={11} className="text-[#d99a3d]" /> {maskAddress(reel.creator)}
                     </span>
                     <span className="flex items-center gap-1">
-                      <FiPhone size={10} className="text-brand-purple" /> {maskPhone(reel.creator?.phone)}
+                      <FiPhone size={11} className="text-[#d99a3d]" /> {maskPhone(reel.creator?.phone)}
                     </span>
                     {reel.creator?.is_subscribed_verified && (
-                      <span className="flex items-center gap-1 text-emerald-400">
-                        <FiShield size={10} /> Verified
+                      <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                        <FiShield size={11} /> Verified
                       </span>
                     )}
                   </div>
@@ -370,36 +373,36 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
                   <div className="grid grid-cols-4 gap-2">
                     <button
                       onClick={() => handleWhatsApp(reel)}
-                      className="flex flex-col items-center gap-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition border border-emerald-500/20"
+                      className="flex flex-col items-center gap-1 py-1.5 sm:py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition border border-emerald-500/20 cursor-pointer"
                     >
-                      <FaWhatsapp size={16} />
+                      <FaWhatsapp size={15} />
                       <span className="text-[8px] font-bold">WhatsApp</span>
                     </button>
                     <button
                       onClick={() => handleCallRequest(reel)}
-                      className="flex flex-col items-center gap-1 py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/20"
+                      className="flex flex-col items-center gap-1 py-1.5 sm:py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/20 cursor-pointer"
                     >
-                      <FiPhone size={16} />
+                      <FiPhone size={15} />
                       <span className="text-[8px] font-bold">Call</span>
                     </button>
                     <button
                       onClick={() => handleChat(reel)}
-                      className="flex flex-col items-center gap-1 py-2 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition border border-purple-500/20"
+                      className="flex flex-col items-center gap-1 py-1.5 sm:py-2 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition border border-purple-500/20 cursor-pointer"
                     >
-                      <FiMessageSquare size={16} />
+                      <FiMessageSquare size={15} />
                       <span className="text-[8px] font-bold">Chat</span>
                     </button>
                     <button
                       onClick={() => handleInquiry(reel)}
-                      className="flex flex-col items-center gap-1 py-2 rounded-xl bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition border border-orange-500/20"
+                      className="flex flex-col items-center gap-1 py-1.5 sm:py-2 rounded-xl bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition border border-amber-500/20 cursor-pointer"
                     >
-                      <FiMessageCircle size={16} />
+                      <FiMessageCircle size={15} />
                       <span className="text-[8px] font-bold">Inquiry</span>
                     </button>
                   </div>
 
                   {/* Add to Cart & Buy Now Quick Action Buttons */}
-                  <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <div className="grid grid-cols-2 gap-2.5 pt-0.5">
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
@@ -413,9 +416,9 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
                           toast.error('Could not add item to cart');
                         }
                       }}
-                      className="py-2.5 px-3 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-extrabold transition flex items-center justify-center gap-1.5 border border-white/20 shadow-xs cursor-pointer"
+                      className="py-2 px-3 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-extrabold transition flex items-center justify-center gap-1.5 border border-white/20 shadow-xs cursor-pointer"
                     >
-                      <FiShoppingCart size={15} />
+                      <FiShoppingCart size={14} />
                       <span>Add to Cart</span>
                     </button>
 
@@ -425,9 +428,9 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
                         const targetId = reel.taggedListing?._id || reel.taggedListing || reel._id || reel.id;
                         navigate(`/customer/listings/${targetId}`);
                       }}
-                      className="py-2.5 px-3 rounded-xl bg-[#d99a3d] hover:bg-[#c0862b] text-[#1a1a1a] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                      className="py-2 px-3 rounded-xl bg-[#d99a3d] hover:bg-[#c0862b] text-[#1a1a1a] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer border-none"
                     >
-                      <FiZap size={15} />
+                      <FiZap size={14} />
                       <span>Buy Now</span>
                     </button>
                   </div>

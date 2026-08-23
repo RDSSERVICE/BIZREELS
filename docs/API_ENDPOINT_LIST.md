@@ -83,7 +83,19 @@
 
 ---
 
-## 8. Analytics & AI (`/analytics`, `/listings/ai-copy`)
+## 8. Cart & Multi-Vendor Ordering (`/cart`)
+
+| Method | Endpoint | Authorization | Description |
+|---|---|---|---|
+| `GET` | `/cart` (or `/cart/me`) | Authenticated | Retrieve current user cart with vendor groups & item details |
+| `POST` | `/cart/add` (or `/cart/me/add`) | Authenticated | Add listing item and quantity to shopping cart |
+| `PATCH` | `/cart/items/:listing_id` | Authenticated | Update item quantity (1-99) in cart |
+| `DELETE` | `/cart/items/:listing_id` | Authenticated | Remove item from shopping cart |
+| `POST` | `/cart/checkout` | Authenticated | Multi-vendor direct order checkout creating deals and chat notifications |
+
+---
+
+## 9. Analytics & AI (`/analytics`, `/listings/ai-copy`)
 
 | Method | Endpoint | Authorization | Description |
 |---|---|---|---|
