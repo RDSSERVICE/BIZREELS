@@ -2,6 +2,8 @@
  * Create & Publish Reel Screen for Vendors.
  */
 
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
@@ -90,33 +92,76 @@ export default function CreateReelScreen() {
     );
   }
 
-  function pickLocalFile(type: 'video' | 'image') {
-    if (typeof document !== 'undefined') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = type === 'video' ? 'video/*' : 'image/*';
-      input.onchange = (e: any) => {
-        const file = e.target.files?.[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-            if (evt.target?.result) {
-              const res = evt.target.result as string;
-              if (type === 'video') {
-                setVideoUrl(res);
-                Alert.alert('Video Loaded', `Selected video file: ${file.name}`);
-              } else {
-                setThumbnailUrl(res);
-                Alert.alert('Thumbnail Loaded', `Selected image file: ${file.name}`);
-              }
-            }
-          };
-          reader.readAsDataURL(file);
+  async function pickLocalFile(type: 'video' | 'image') {
+    try {
+      if (type === 'video') {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['videos'],
+          allowsEditing: false,
+          quality: 1,
+          base64: true,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const uri = asset.base64 ? `data:video/mp4;base64,${asset.base64}` : asset.uri;
+          setVideoUrl(uri);
+          Alert.alert('Video Selected!', 'Video file loaded successfully.');
+          return;
         }
-      };
-      input.click();
-    } else {
-      Alert.alert('File Upload', 'Please paste direct video file URL or base64 file data.');
+      } else {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          quality: 0.8,
+          base64: true,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const uri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+          setThumbnailUrl(uri);
+          Alert.alert('Thumbnail Selected!', 'Cover image loaded.');
+          return;
+        }
+      }
+
+      // DocumentPicker fallback for native device files
+      const docResult = await DocumentPicker.getDocumentAsync({
+        type: type === 'video' ? 'video/*' : 'image/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!docResult.canceled && docResult.assets && docResult.assets.length > 0) {
+        const asset = docResult.assets[0];
+        if (type === 'video') setVideoUrl(asset.uri);
+        else setThumbnailUrl(asset.uri);
+        Alert.alert('File Loaded!', `Selected ${asset.name}`);
+      }
+    } catch (err: any) {
+      if (typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = type === 'video' ? 'video/*' : 'image/*';
+        input.onchange = (e: any) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              if (evt.target?.result) {
+                const res = evt.target.result as string;
+                if (type === 'video') setVideoUrl(res);
+                else setThumbnailUrl(res);
+                Alert.alert('File Selected!', `Selected ${file.name}`);
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        input.click();
+      } else {
+        Alert.alert('Picker Error', err?.message || 'Could not open media library.');
+      }
     }
   }
 
