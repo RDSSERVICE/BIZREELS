@@ -334,7 +334,19 @@ export default function VendorCatalogScreen() {
                     {/* 1. Analytics */}
                     <TouchableOpacity
                       style={styles.actionIconBtn}
-                      onPress={() => router.push('/vendor/analytics' as any)}>
+                      onPress={() =>
+                        router.push({
+                          pathname: '/vendor/analytics' as any,
+                          params: {
+                            listingId: item._id,
+                            title: item.title,
+                            price: price,
+                            views: itemAny.viewsCount || 0,
+                            likes: itemAny.likesCount || 0,
+                            orders: itemAny.ordersCount || 0,
+                          },
+                        } as any)
+                      }>
                       <Ionicons name="stats-chart-outline" size={16} color="rgba(255,255,255,0.7)" />
                     </TouchableOpacity>
 
