@@ -50,7 +50,9 @@ interface ReelItemProps {
   height: number;
 }
 
-export function ReelItem({ reel, isActive, height }: ReelItemProps) {
+import { memo } from 'react';
+
+export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelItemProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -475,7 +477,7 @@ export function ReelItem({ reel, isActive, height }: ReelItemProps) {
       </Modal>
     </View>
   );
-}
+});
 
 function formatCount(n: number): string {
   if (!n) return '0';

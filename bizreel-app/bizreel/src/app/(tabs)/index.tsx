@@ -11,6 +11,7 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -182,14 +183,16 @@ export default function ReelsFeedScreen() {
         snapToInterval={reelHeight}
         snapToAlignment="start"
         decelerationRate="fast"
+        disableIntervalMomentum
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig.current}
         ListFooterComponent={ListFooter}
-        windowSize={5}
-        maxToRenderPerBatch={3}
+        windowSize={3}
+        maxToRenderPerBatch={2}
         initialNumToRender={2}
-        removeClippedSubviews
+        removeClippedSubviews={Platform.OS === 'android'}
         onScrollToIndexFailed={(info) => {
           setTimeout(() => {
             flatListRef.current?.scrollToIndex({ index: info.index, animated: false });
