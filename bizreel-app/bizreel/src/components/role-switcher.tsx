@@ -1,43 +1,27 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+}
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
-import { switchUserRole } from '@/features/auth/api';
-import { useAuth } from '@/features/auth/context';
-
-export type UserRole = 'customer' | 'vendor' | 'creator';
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
 
 const ROLES_CONFIG: Record<
   UserRole,
-  { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; desc: string }
+  { label: string; icon: keyof typeof Ionicons.glyphMap; desc: string }
 > = {
   customer: {
     label: 'Customer',
-    icon: 'bag-handle',
-    color: '#4A90E2',
+    icon: 'bag-handle-outline',
     desc: 'Browse reels, products & buy directly',
   },
   vendor: {
     label: 'Vendor',
-    icon: 'storefront',
-    color: '#E91E63',
+    icon: 'storefront-outline',
     desc: 'Manage store, products & leads',
   },
   creator: {
     label: 'Creator',
-    icon: 'sparkles',
-    color: '#FF9800',
+    icon: 'sparkles-outline',
     desc: 'Portfolio, reels & brand hires',
   },
 };
@@ -81,16 +65,13 @@ export function RoleSwitcher() {
 
   return (
     <View>
-      {/* Pill Toggle Button */}
+      {/* Compact text chip trigger */}
       <TouchableOpacity
-        style={[styles.rolePill, { borderColor: activeMeta.color }]}
+        style={styles.roleChip}
         onPress={() => setModalVisible(true)}
         accessibilityLabel="Switch Role">
-        <View style={[styles.roleDot, { backgroundColor: activeMeta.color }]} />
-        <Text style={[styles.roleText, { color: activeMeta.color }]}>
-          {activeMeta.label} Mode
-        </Text>
-        <Ionicons name="chevron-down" size={14} color={activeMeta.color} />
+        <Text style={styles.roleChipText}>{activeMeta.label}</Text>
+        <Ionicons name="swap-horizontal-outline" size={12} color={YELLOW} />
       </TouchableOpacity>
 
       {/* Role Selection Modal */}
@@ -103,9 +84,12 @@ export function RoleSwitcher() {
           <Pressable style={styles.backdrop} onPress={() => setModalVisible(false)} />
           <View style={styles.drawer}>
             <View style={styles.drawerHeader}>
-              <Text style={styles.drawerTitle}>Switch Profile Role</Text>
-              <Pressable onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#fff" />
+              <View>
+                <Text style={styles.drawerTitle}>Switch Mode</Text>
+                <Text style={styles.drawerSub}>Currently active: <Text style={{ color: YELLOW }}>{activeMeta.label}</Text></Text>
+              </View>
+              <Pressable style={styles.closeBtn} onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={16} color="#fff" />
               </Pressable>
             </View>
 
@@ -119,16 +103,22 @@ export function RoleSwitcher() {
                   style={[styles.roleOption, isSelected && styles.roleOptionSelected]}
                   onPress={() => handleSelectRole(role)}
                   disabled={switchMutation.isPending}>
-                  <View style={[styles.roleIconBox, { backgroundColor: meta.color + '20' }]}>
-                    <Ionicons name={meta.icon} size={22} color={meta.color} />
+                  <View style={[styles.roleIconBox, isSelected && styles.roleIconBoxSelected]}>
+                    <Ionicons
+                      name={meta.icon}
+                      size={18}
+                      color={isSelected ? BLACK : 'rgba(255,255,255,0.6)'}
+                    />
                   </View>
 
                   <View style={{ flex: 1 }}>
                     <View style={styles.roleTitleRow}>
-                      <Text style={styles.roleOptionTitle}>{meta.label}</Text>
+                      <Text style={[styles.roleOptionTitle, isSelected && styles.roleOptionTitleSelected]}>
+                        {meta.label}
+                      </Text>
                       {isSelected && (
                         <View style={styles.activeTag}>
-                          <Text style={styles.activeTagText}>Active</Text>
+                          <Text style={styles.activeTagText}>ACTIVE</Text>
                         </View>
                       )}
                     </View>
@@ -136,12 +126,12 @@ export function RoleSwitcher() {
                   </View>
 
                   {switchMutation.isPending && role === switchMutation.variables ? (
-                    <ActivityIndicator color={BrandColors.primary} />
+                    <ActivityIndicator color={YELLOW} size="small" />
                   ) : (
                     <Ionicons
-                      name={isSelected ? 'checkmark-circle' : 'chevron-forward'}
-                      size={20}
-                      color={isSelected ? BrandColors.primary : 'rgba(255,255,255,0.3)'}
+                      name={isSelected ? 'checkmark' : 'chevron-forward'}
+                      size={16}
+                      color={isSelected ? BLACK : 'rgba(255,255,255,0.25)'}
                     />
                   )}
                 </TouchableOpacity>
@@ -155,73 +145,95 @@ export function RoleSwitcher() {
 }
 
 const styles = StyleSheet.create({
-  rolePill: {
+  // ── Trigger chip ──
+  roleChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    backgroundColor: DARK_CARD,
     borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: Spacing.three,
+    borderColor: BORDER,
+    paddingHorizontal: 8,
     paddingVertical: 5,
-    backgroundColor: '#1c1c1e',
+    borderRadius: 0,
   },
-  roleDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  roleChipText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  roleText: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
+
+  // ── Modal ──
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
   drawer: {
-    backgroundColor: '#1c1c1e',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: DARK_CARD,
+    borderTopWidth: 2,
+    borderTopColor: YELLOW,
     padding: Spacing.four,
     gap: Spacing.three,
   },
   drawerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     borderBottomWidth: 1,
-    borderBottomColor: '#2c2c2e',
-    paddingBottom: Spacing.two,
+    borderBottomColor: BORDER,
+    paddingBottom: Spacing.three,
   },
   drawerTitle: {
     color: '#fff',
     fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
+  drawerSub: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 0,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ── Role Options ──
   roleOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2c2c2e',
+    backgroundColor: BLACK,
     padding: Spacing.three,
-    borderRadius: 12,
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: BORDER,
     gap: Spacing.three,
   },
   roleOptionSelected: {
-    borderColor: BrandColors.primary,
-    backgroundColor: 'rgba(217, 154, 61, 0.1)',
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
   },
   roleIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 0,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  roleIconBoxSelected: {
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
   roleTitleRow: {
     flexDirection: 'row',
@@ -229,24 +241,29 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   roleOptionTitle: {
-    color: '#fff',
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: FontSize.sm,
+    fontWeight: '900',
+  },
+  roleOptionTitleSelected: {
+    color: BLACK,
   },
   roleOptionDesc: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: FontSize.xs,
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
     marginTop: 2,
   },
   activeTag: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: BLACK,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 0,
   },
   activeTagText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
+    color: YELLOW,
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });
+
