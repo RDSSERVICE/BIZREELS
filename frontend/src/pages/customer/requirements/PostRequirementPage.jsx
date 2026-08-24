@@ -97,9 +97,13 @@ export default function PostRequirementPage() {
     loadStates();
   }, []);
 
+  // Pincode lookup loading & feedback states
+  const [isLookingUpPincode, setIsLookingUpPincode] = useState(false);
+  const [pincodeSuccessInfo, setPincodeSuccessInfo] = useState('');
+
   // Fetch districts list when state changes
   useEffect(() => {
-    if (!state) {
+    if (!state || state === 'Remote') {
       setDistrictsList([]);
       return;
     }
@@ -119,16 +123,80 @@ export default function PostRequirementPage() {
     : [];
 
   const handlePincodeChange = async (pin) => {
-    setPincode(pin);
-    if (pin.length === 6 && /^\d{6}$/.test(pin)) {
+    const cleanedPin = String(pin || '').replace(/\D/g, '').slice(0, 6);
+    setPincode(cleanedPin);
+    setPincodeSuccessInfo('');
+
+    if (cleanedPin.length === 6) {
+      setIsLookingUpPincode(true);
       try {
-        const res = await api.post('/v1/location/pincode-lookup', { pincode: pin });
-        if (res.data && res.data.state) {
-          setState(res.data.state);
-          setCity(res.data.city || res.data.area || '');
-          if (res.data.city) setDistrict(res.data.city);
+        let locData = null;
+
+        // 1. Try Backend pincode lookup
+        try {
+          const res = await api.post('/v1/location/pincode-lookup', { pincode: cleanedPin });
+          if (res.data && (res.data.state || res.data.city || res.data.district)) {
+            locData = res.data;
+          }
+        } catch (e) {
+          // Backend lookup failed, proceed to external fallback
         }
-      } catch {}
+
+        // 2. Direct India Postal Pincode API Fallback
+        if (!locData || !locData.state) {
+          try {
+            const postalRes = await fetch(`https://api.postalpincode.in/pincode/${cleanedPin}`);
+            const pData = await postalRes.json();
+            const entry = Array.isArray(pData) ? pData[0] : pData;
+            if (entry && entry.Status === 'Success' && entry.PostOffice && entry.PostOffice.length > 0) {
+              const po = entry.PostOffice[0];
+              locData = {
+                state: po.State,
+                district: po.District,
+                city: po.District,
+                area: po.Name,
+                country: po.Country || 'India',
+              };
+            }
+          } catch (e) {}
+        }
+
+        if (locData && locData.state) {
+          setState(locData.state);
+          const dist = locData.district || locData.city || '';
+          setDistrict(dist);
+          const areaCity = locData.area || locData.city || locData.tehsil || dist;
+          setCity(areaCity);
+
+          // If address is currently empty, optionally suggest the area
+          if (!address && locData.area && locData.area !== areaCity) {
+            setAddress(locData.area);
+          }
+
+          // Fetch districts for this state immediately
+          try {
+            const distRes = await api.get(`/v1/location/districts?state=${encodeURIComponent(locData.state)}`);
+            if (distRes.data?.districts) {
+              setDistrictsList(distRes.data.districts);
+            }
+          } catch {}
+
+          const summary = `${areaCity ? `${areaCity}, ` : ''}${dist ? `${dist}, ` : ''}${locData.state}`;
+          setPincodeSuccessInfo(summary);
+          toast.success(`📍 Location Auto-Filled: ${summary}`, {
+            duration: 3500,
+            icon: '✅',
+          });
+        } else {
+          toast.error('Pin Code not found. Please select State & District manually.', {
+            icon: '⚠️',
+          });
+        }
+      } catch (err) {
+        toast.error('Error fetching details for this Pin Code.');
+      } finally {
+        setIsLookingUpPincode(false);
+      }
     }
   };
 
@@ -387,9 +455,75 @@ export default function PostRequirementPage() {
         </div>
 
         {type === 'product' ? (
-          <ProductRequirementForm title={title} setTitle={setTitle} category={category} setCategory={setCategory} subcategory={subcategory} setSubcategory={setSubcategory} budgetMin={budgetMin} setBudgetMin={setBudgetMin} budgetMax={budgetMax} setBudgetMax={setBudgetMax} quantity={quantity} setQuantity={setQuantity} state={state} setState={setState} district={district} setDistrict={setDistrict} city={city} setCity={setCity} pincode={pincode} setPincode={setPincode} address={address} setAddress={setAddress} targetDistance={targetDistance} setTargetDistance={setTargetDistance} description={description} setDescription={setDescription} detailedSpecifications={detailedSpecifications} setDetailedSpecifications={setDetailedSpecifications} isGeneratingSpecs={isGeneratingSpecs} handleGenerateSpecs={handleGenerateSpecs} expectedDeliveryDate={expectedDeliveryDate} setExpectedDeliveryDate={setExpectedDeliveryDate} expectedDeliveryTime={expectedDeliveryTime} setExpectedDeliveryTime={setExpectedDeliveryTime} productCondition={productCondition} setProductCondition={setProductCondition} customProductCondition={customProductCondition} setCustomProductCondition={setCustomProductCondition} customCategory={customCategory} setCustomCategory={setCustomCategory} customSubcategory={customSubcategory} setCustomSubcategory={setCustomSubcategory} otherConditions={otherConditions} setOtherConditions={setOtherConditions} photos={photos} video={video} uploading={uploading} handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload} removePhoto={removePhoto} setVideo={setVideo} resolveMediaUrl={resolveMediaUrl} categories={parentCategories} subcategories={subcategories} isLoading={isLoading} statesList={statesList} districtsList={districtsList} handlePincodeChange={handlePincodeChange} onSubmit={handleSubmit} />
+          <ProductRequirementForm
+            title={title} setTitle={setTitle}
+            category={category} setCategory={setCategory}
+            subcategory={subcategory} setSubcategory={setSubcategory}
+            budgetMin={budgetMin} setBudgetMin={setBudgetMin}
+            budgetMax={budgetMax} setBudgetMax={setBudgetMax}
+            quantity={quantity} setQuantity={setQuantity}
+            state={state} setState={setState}
+            district={district} setDistrict={setDistrict}
+            city={city} setCity={setCity}
+            pincode={pincode} setPincode={setPincode}
+            address={address} setAddress={setAddress}
+            targetDistance={targetDistance} setTargetDistance={setTargetDistance}
+            description={description} setDescription={setDescription}
+            detailedSpecifications={detailedSpecifications} setDetailedSpecifications={setDetailedSpecifications}
+            isGeneratingSpecs={isGeneratingSpecs} handleGenerateSpecs={handleGenerateSpecs}
+            expectedDeliveryDate={expectedDeliveryDate} setExpectedDeliveryDate={setExpectedDeliveryDate}
+            expectedDeliveryTime={expectedDeliveryTime} setExpectedDeliveryTime={setExpectedDeliveryTime}
+            productCondition={productCondition} setProductCondition={setProductCondition}
+            customProductCondition={customProductCondition} setCustomProductCondition={setCustomProductCondition}
+            customCategory={customCategory} setCustomCategory={setCustomCategory}
+            customSubcategory={customSubcategory} setCustomSubcategory={setCustomSubcategory}
+            otherConditions={otherConditions} setOtherConditions={setOtherConditions}
+            photos={photos} video={video} uploading={uploading}
+            handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload}
+            removePhoto={removePhoto} setVideo={setVideo}
+            resolveMediaUrl={resolveMediaUrl}
+            categories={parentCategories} subcategories={subcategories}
+            isLoading={isLoading} statesList={statesList} districtsList={districtsList}
+            handlePincodeChange={handlePincodeChange}
+            isLookingUpPincode={isLookingUpPincode}
+            pincodeSuccessInfo={pincodeSuccessInfo}
+            onSubmit={handleSubmit}
+          />
         ) : (
-          <ServiceRequirementForm title={title} setTitle={setTitle} category={category} setCategory={setCategory} subcategory={subcategory} setSubcategory={setSubcategory} budgetMin={budgetMin} setBudgetMin={setBudgetMin} budgetMax={budgetMax} setBudgetMax={setBudgetMax} quantity={quantity} setQuantity={setQuantity} state={state} setState={setState} district={district} setDistrict={setDistrict} city={city} setCity={setCity} pincode={pincode} setPincode={setPincode} address={address} setAddress={setAddress} targetDistance={targetDistance} setTargetDistance={setTargetDistance} description={description} setDescription={setDescription} detailedSpecifications={detailedSpecifications} setDetailedSpecifications={setDetailedSpecifications} isGeneratingSpecs={isGeneratingSpecs} handleGenerateSpecs={handleGenerateSpecs} expectedDeliveryDate={expectedDeliveryDate} setExpectedDeliveryDate={setExpectedDeliveryDate} expectedDeliveryTime={expectedDeliveryTime} setExpectedDeliveryTime={setExpectedDeliveryTime} serviceModel={serviceModel} setServiceModel={setServiceModel} customServiceModel={customServiceModel} setCustomServiceModel={setCustomServiceModel} customCategory={customCategory} setCustomCategory={setCustomCategory} customSubcategory={customSubcategory} setCustomSubcategory={setCustomSubcategory} otherConditions={otherConditions} setOtherConditions={setOtherConditions} photos={photos} video={video} uploading={uploading} handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload} removePhoto={removePhoto} setVideo={setVideo} resolveMediaUrl={resolveMediaUrl} categories={parentCategories} subcategories={subcategories} isLoading={isLoading} statesList={statesList} districtsList={districtsList} handlePincodeChange={handlePincodeChange} onSubmit={handleSubmit} />
+          <ServiceRequirementForm
+            title={title} setTitle={setTitle}
+            category={category} setCategory={setCategory}
+            subcategory={subcategory} setSubcategory={setSubcategory}
+            budgetMin={budgetMin} setBudgetMin={setBudgetMin}
+            budgetMax={budgetMax} setBudgetMax={setBudgetMax}
+            quantity={quantity} setQuantity={setQuantity}
+            state={state} setState={setState}
+            district={district} setDistrict={setDistrict}
+            city={city} setCity={setCity}
+            pincode={pincode} setPincode={setPincode}
+            address={address} setAddress={setAddress}
+            targetDistance={targetDistance} setTargetDistance={setTargetDistance}
+            description={description} setDescription={setDescription}
+            detailedSpecifications={detailedSpecifications} setDetailedSpecifications={setDetailedSpecifications}
+            isGeneratingSpecs={isGeneratingSpecs} handleGenerateSpecs={handleGenerateSpecs}
+            expectedDeliveryDate={expectedDeliveryDate} setExpectedDeliveryDate={setExpectedDeliveryDate}
+            expectedDeliveryTime={expectedDeliveryTime} setExpectedDeliveryTime={setExpectedDeliveryTime}
+            serviceModel={serviceModel} setServiceModel={setServiceModel}
+            customServiceModel={customServiceModel} setCustomServiceModel={setCustomServiceModel}
+            customCategory={customCategory} setCustomCategory={setCustomCategory}
+            customSubcategory={customSubcategory} setCustomSubcategory={setCustomSubcategory}
+            otherConditions={otherConditions} setOtherConditions={setOtherConditions}
+            photos={photos} video={video} uploading={uploading}
+            handleImageUpload={handleImageUpload} handleVideoUpload={handleVideoUpload}
+            removePhoto={removePhoto} setVideo={setVideo}
+            resolveMediaUrl={resolveMediaUrl}
+            categories={parentCategories} subcategories={subcategories}
+            isLoading={isLoading} statesList={statesList} districtsList={districtsList}
+            handlePincodeChange={handlePincodeChange}
+            isLookingUpPincode={isLookingUpPincode}
+            pincodeSuccessInfo={pincodeSuccessInfo}
+            onSubmit={handleSubmit}
+          />
         )}
       </div>
     </div>
