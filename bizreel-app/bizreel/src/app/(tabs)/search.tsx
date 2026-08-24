@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart } from '@/features/cart/queries';
+import { useCreateRequirement } from '@/features/requirements/queries';
 import { useCategories, useListings } from '@/features/search/queries';
 import type { Category } from '@/features/search/types';
 import { getListingImage } from '@/utils/image';
@@ -59,9 +60,20 @@ const RADIUS_OPTIONS = [
 ];
 
 const TYPE_FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'product', label: 'Products' },
-  { id: 'service', label: 'Services' },
+  { id: 'all', label: 'All Results' },
+  { id: 'product', label: 'Products Only' },
+  { id: 'service', label: 'Services Only' },
+];
+
+const REQ_CATEGORIES = [
+  'Electronics',
+  'Fashion & Apparel',
+  'Home & Living',
+  'Vehicles & Auto',
+  'Real Estate',
+  'Beauty & Salon',
+  'Digital Services',
+  'Corporate Gifts',
 ];
 
 export default function SearchScreen() {
@@ -72,8 +84,17 @@ export default function SearchScreen() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedCity, setSelectedCity] = useState<string>('All Cities');
   const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | 'product' | 'service'>('all');
-  const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high'>('newest');
+  const [sortBy, setSortBy] = useState<'latest' | 'price_low' | 'price_high'>('latest');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+
+  // Customer Post Requirement State
+  const [postReqModalVisible, setPostReqModalVisible] = useState(false);
+  const [reqTitle, setReqTitle] = useState('');
+  const [reqCategory, setReqCategory] = useState('Electronics');
+  const [reqDesc, setReqDesc] = useState('');
+  const [reqBudget, setReqBudget] = useState('');
+  const [reqQty, setReqQty] = useState('');
+  const [reqCity, setReqCity] = useState('');
 
   // GPS Location State
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -211,7 +232,44 @@ export default function SearchScreen() {
     else refetchCats();
   }, [isQueryActive, refetchListings, refetchCats]);
 
-  const parentCategories = (categories || []).filter((c) => !c.parent_id);
+  const handlePostRequirementSubmit = () => {
+    if (!reqTitle.trim()) {
+      Alert.alert('Required Field', 'Please enter a requirement title.');
+      return;
+    }
+    if (!reqDesc.trim()) {
+      Alert.alert('Required Field', 'Please enter description for your requirement.');
+      return;
+    }
+
+    createReqMutation.mutate(
+      {
+        title: reqTitle.trim(),
+        category: reqCategory,
+        description: reqDesc.trim(),
+        budget: reqBudget ? parseFloat(reqBudget) : undefined,
+        quantity: reqQty ? parseInt(reqQty, 10) : undefined,
+        city: reqCity.trim() || (selectedCity !== 'All Cities' && selectedCity !== 'Near Me (GPS)' ? selectedCity : undefined),
+      },
+      {
+        onSuccess: () => {
+          setPostReqModalVisible(false);
+          setReqTitle('');
+          setReqDesc('');
+          setReqBudget('');
+          setReqQty('');
+          setReqCity('');
+          Alert.alert(
+            'Requirement Posted! 🚀',
+            'Your requirement is now live. Verified vendors & sellers will send you custom quotes directly.'
+          );
+        },
+        onError: (err: any) => {
+          Alert.alert('Failed to Post', err?.message || 'Could not post requirement. Please try again.');
+        },
+      }
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -221,7 +279,7 @@ export default function SearchScreen() {
           <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search products, services & verified sellers..."
+            placeholder="Search products, services..."
             placeholderTextColor="rgba(255,255,255,0.4)"
             value={searchText}
             onChangeText={(t) => {
@@ -236,6 +294,14 @@ export default function SearchScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        <TouchableOpacity
+          style={styles.postReqBtn}
+          onPress={() => setPostReqModalVisible(true)}
+          accessibilityLabel="Post Requirement">
+          <Ionicons name="add-circle" size={15} color="#0F0F12" />
+          <Text style={styles.postReqBtnText}>Post Requirement</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.filterBtn}
@@ -513,6 +579,122 @@ export default function SearchScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Post Requirement Modal */}
+      <Modal
+        visible={postReqModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPostReqModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setPostReqModalVisible(false)} />
+          <View style={styles.reqModalContent}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>POST CUSTOM REQUIREMENT</Text>
+                <Text style={styles.reqModalSub}>Get direct quotes from verified sellers & vendors</Text>
+              </View>
+              <Pressable style={styles.closeBtn} onPress={() => setPostReqModalVisible(false)}>
+                <Ionicons name="close" size={16} color="#fff" />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.three }}>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>TITLE / NEEDED ITEM *</Text>
+                <TextInput
+                  style={styles.reqInput}
+                  placeholder="e.g. Need 50 Custom Corporate Hampers"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={reqTitle}
+                  onChangeText={setReqTitle}
+                />
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>CATEGORY *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {REQ_CATEGORIES.map((cat) => {
+                    const active = reqCategory === cat;
+                    return (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[styles.reqCatChip, active && styles.reqCatChipActive]}
+                        onPress={() => setReqCategory(cat)}>
+                        <Text style={[styles.reqCatText, active && styles.reqCatTextActive]}>{cat}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>DESCRIPTION & SPECIFICATIONS *</Text>
+                <TextInput
+                  style={[styles.reqInput, styles.reqTextArea]}
+                  placeholder="Describe your exact requirement, brand preferences, specifications & delivery timeline..."
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  multiline
+                  numberOfLines={3}
+                  value={reqDesc}
+                  onChangeText={setReqDesc}
+                />
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+                <View style={[styles.fieldGroup, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>BUDGET (₹)</Text>
+                  <TextInput
+                    style={styles.reqInput}
+                    placeholder="e.g. 15000"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    keyboardType="numeric"
+                    value={reqBudget}
+                    onChangeText={setReqBudget}
+                  />
+                </View>
+
+                <View style={[styles.fieldGroup, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>QUANTITY</Text>
+                  <TextInput
+                    style={styles.reqInput}
+                    placeholder="e.g. 50"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    keyboardType="numeric"
+                    value={reqQty}
+                    onChangeText={setReqQty}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>CITY / LOCATION</Text>
+                <TextInput
+                  style={styles.reqInput}
+                  placeholder="e.g. Delhi, Mumbai..."
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={reqCity}
+                  onChangeText={setReqCity}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={styles.postReqSubmitBtn}
+                onPress={handlePostRequirementSubmit}
+                disabled={createReqMutation.isPending}>
+                {createReqMutation.isPending ? (
+                  <ActivityIndicator color={BLACK} />
+                ) : (
+                  <>
+                    <Ionicons name="paper-plane-outline" size={16} color={BLACK} />
+                    <Text style={styles.postReqSubmitText}>SUBMIT REQUIREMENT</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -531,7 +713,21 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    gap: Spacing.three,
+    gap: Spacing.two,
+  },
+  postReqBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: YELLOW,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: 0,
+  },
+  postReqBtnText: {
+    color: BLACK,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
   },
   searchBarWrapper: {
     flex: 1,
@@ -771,13 +967,80 @@ const styles = StyleSheet.create({
   },
   sortOptionSelected: { backgroundColor: YELLOW, borderColor: YELLOW },
   sortOptionText: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900' },
-  applyFilterBtn: {
+  applyFilterBtnText: { color: BLACK, fontSize: FontSize.base, fontWeight: '900' },
+
+  // ── Post Requirement Modal Styles ──
+  reqModalContent: {
+    backgroundColor: DARK_CARD,
+    borderTopWidth: 2,
+    borderTopColor: YELLOW,
+    padding: Spacing.four,
+    gap: Spacing.three,
+    maxHeight: '85%',
+  },
+  reqModalSub: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 2 },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 0,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fieldGroup: { gap: 6 },
+  fieldLabel: { color: YELLOW, fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
+  reqInput: {
+    backgroundColor: BLACK,
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 10,
+    borderRadius: 0,
+  },
+  reqTextArea: {
+    minHeight: 70,
+    textAlignVertical: 'top',
+  },
+  reqCatChip: {
+    backgroundColor: BLACK,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 6,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  reqCatChipActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  reqCatText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
+  reqCatTextActive: {
+    color: BLACK,
+    fontWeight: '900',
+  },
+  postReqSubmitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
     backgroundColor: YELLOW,
     height: 48,
     borderRadius: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: Spacing.two,
   },
-  applyFilterBtnText: { color: BLACK, fontSize: FontSize.base, fontWeight: '900' },
+  postReqSubmitText: {
+    color: BLACK,
+    fontSize: FontSize.sm,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
 });
