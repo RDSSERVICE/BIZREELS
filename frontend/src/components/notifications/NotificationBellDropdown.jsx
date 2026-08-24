@@ -75,6 +75,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
 
     if (socket) {
       socket.on('notification:new', handleNewNotification);
+      socket.on('notification', handleNewNotification);
     }
 
     const handleClickOutside = (e) => {
@@ -89,6 +90,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
       document.removeEventListener('mousedown', handleClickOutside);
       if (socket) {
         socket.off('notification:new', handleNewNotification);
+        socket.off('notification', handleNewNotification);
       }
     };
   }, [role]);
