@@ -208,40 +208,46 @@ export default function ReelsFeedScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: BLACK,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000',
+    backgroundColor: BLACK,
     gap: 16,
   },
   loadingText: {
     color: '#fff',
     fontSize: FontSize.base,
+    fontWeight: '900',
   },
   errorText: {
     color: '#fff',
     fontSize: FontSize.base,
-    fontWeight: FontWeight.semibold,
+    fontWeight: '900',
   },
   emptyText: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: FontSize.base,
   },
   retryBtn: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    borderRadius: 999,
+    borderRadius: 0,
   },
   retryText: {
-    color: '#fff',
-    fontWeight: FontWeight.semibold,
+    color: BLACK,
+    fontWeight: '900',
     fontSize: FontSize.base,
   },
   footerLoader: {
@@ -255,16 +261,16 @@ const styles = StyleSheet.create({
     zIndex: 100,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   headerBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 36,
+    height: 36,
+    borderRadius: 0,
+    backgroundColor: DARK_CARD,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: YELLOW,
   },
 });

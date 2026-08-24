@@ -143,16 +143,21 @@ export default function CartScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: BLACK,
   },
   center: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121212',
+    justifyContent: 'center',
+    backgroundColor: BLACK,
   },
   header: {
     flexDirection: 'row',
@@ -160,16 +165,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    backgroundColor: BLACK,
+    borderBottomWidth: 2,
+    borderBottomColor: YELLOW,
   },
   iconBtn: {
-    padding: Spacing.two,
+    width: 36,
+    height: 36,
+    borderRadius: 0,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     color: '#fff',
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
+    fontSize: FontSize.md,
+    fontWeight: '900',
   },
   listContent: {
     padding: Spacing.four,
@@ -177,22 +190,22 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   vendorGroupCard: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
+    backgroundColor: DARK_CARD,
+    borderRadius: 0,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2c2c2e',
+    borderColor: BORDER,
     gap: Spacing.two,
   },
   vendorHeader: {
     borderBottomWidth: 1,
-    borderBottomColor: '#2c2c2e',
+    borderBottomColor: BORDER,
     paddingBottom: Spacing.two,
   },
   vendorName: {
-    color: BrandColors.primaryLight,
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
+    color: YELLOW,
+    fontSize: FontSize.sm,
+    fontWeight: '900',
   },
   itemRow: {
     flexDirection: 'row',
@@ -203,13 +216,15 @@ const styles = StyleSheet.create({
   itemImage: {
     width: 56,
     height: 56,
-    borderRadius: 8,
+    borderRadius: 0,
   },
   itemImageFallback: {
     width: 56,
     height: 56,
-    borderRadius: 8,
-    backgroundColor: BrandColors.primary,
+    borderRadius: 0,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -220,45 +235,47 @@ const styles = StyleSheet.create({
   itemTitle: {
     color: '#fff',
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
+    fontWeight: '900',
   },
   itemPrice: {
-    color: BrandColors.primary,
+    color: YELLOW,
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2c2c2e',
-    borderRadius: 16,
+    backgroundColor: BLACK,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: BORDER,
     paddingHorizontal: Spacing.one,
     paddingVertical: 2,
     gap: Spacing.two,
   },
   qtyBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3a3a3c',
+    backgroundColor: YELLOW,
   },
   qtyBtnText: {
-    color: '#fff',
+    color: BLACK,
     fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   qtyText: {
     color: '#fff',
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   vendorSubtotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#2c2c2e',
+    borderTopColor: BORDER,
     paddingTop: Spacing.two,
     marginTop: Spacing.one,
   },
@@ -267,9 +284,9 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
   },
   subtotalValue: {
-    color: '#fff',
+    color: YELLOW,
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   emptyContainer: {
     flex: 1,
@@ -281,7 +298,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: '#fff',
     fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   emptySub: {
     color: 'rgba(255,255,255,0.6)',
@@ -290,15 +307,15 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.four,
   },
   exploreBtn: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    borderRadius: 24,
+    borderRadius: 0,
     marginTop: Spacing.two,
   },
   exploreBtnText: {
-    color: '#fff',
-    fontWeight: FontWeight.bold,
+    color: BLACK,
+    fontWeight: '900',
     fontSize: FontSize.base,
   },
   footer: {
@@ -306,11 +323,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: DARK_CARD,
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.three,
-    borderTopWidth: 1,
-    borderTopColor: '#2c2c2e',
+    borderTopWidth: 2,
+    borderTopColor: YELLOW,
     gap: Spacing.three,
   },
   totalRow: {
@@ -321,23 +338,23 @@ const styles = StyleSheet.create({
   totalLabel: {
     color: '#fff',
     fontSize: FontSize.base,
-    fontWeight: FontWeight.semibold,
+    fontWeight: '900',
   },
   totalPrice: {
-    color: BrandColors.primaryLight,
+    color: YELLOW,
     fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   checkoutBtn: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkoutBtnText: {
-    color: '#fff',
+    color: BLACK,
     fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
 });
