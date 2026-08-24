@@ -14,11 +14,16 @@
     content="Discover local vendors, chat direct, deal fair. India's first visual reels commerce platform connecting local businesses, creators, and buyers." />
   <link rel="canonical" href="https://bizreels.in/" />
 
-  <!-- Fonts & Resource Hints -->
+  <!-- Fonts & Resource Hints (Non-render-blocking) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet" />
+  <link rel="dns-prefetch" href="https://images.unsplash.com" />
+  <link rel="dns-prefetch" href="https://i.pravatar.cc" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" />
+  </noscript>
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
