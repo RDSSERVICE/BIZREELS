@@ -11,6 +11,7 @@ import ListingCard from './components/ListingCard';
 import ListingDetailModal from './components/ListingDetailModal';
 import OrderConfirmedModal from './components/OrderConfirmedModal';
 import BookServiceModal from '../activities/components/BookServiceModal';
+import ClickToCallModal from './components/ClickToCallModal';
 
 import { useLanguage } from '../../../context/LanguageContext';
 
@@ -33,6 +34,7 @@ export default function SearchListingsPage() {
   const [inquiringId, setInquiringId] = useState(null);
 
   const [selectedItem, setSelectedItem] = useState(null);
+  const [callItem, setCallItem] = useState(null);
   const [bookingService, setBookingService] = useState(null);
   const [coords, setCoords] = useState(null);
   const [geocodedCache, setGeocodedCache] = useState({});
@@ -730,6 +732,7 @@ export default function SearchListingsPage() {
                   onToggleLike={toggleLike}
                   onShare={handleShare}
                   onWhatsApp={handleWhatsApp}
+                  onCall={(it) => setCallItem(it)}
                 />
               );
             })}
@@ -747,7 +750,7 @@ export default function SearchListingsPage() {
           toggleLike={toggleLike}
           handleShare={handleShare}
           handleWhatsApp={handleWhatsApp}
-          handleCallRequest={handleCallRequest}
+          handleCallRequest={(it) => setCallItem(it || selectedItem)}
           handleInquire={handleInquire}
           handleOrderRequest={handleOrderRequest}
           reviewsList={reviewsList}
@@ -757,6 +760,16 @@ export default function SearchListingsPage() {
           setReviewText={setReviewText}
           handleAddReview={handleAddReview}
           onOpenBookService={(service) => setBookingService(service)}
+        />
+
+        {/* ── Production Click-To-Call / Contact Vendor Menu Modal ── */}
+        <ClickToCallModal
+          isOpen={!!callItem}
+          item={callItem}
+          onClose={() => setCallItem(null)}
+          onInquire={handleInquire}
+          onWhatsApp={handleWhatsApp}
+          onCallbackRequest={handleCallRequest}
         />
 
         {/* ── Realtime Service Booking Modal matching Customer Activities ── */}

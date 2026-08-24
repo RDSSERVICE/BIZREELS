@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiMapPin, FiStar, FiShoppingBag, FiTool, FiHeart,
-  FiBookmark, FiShare2, FiPhone, FiMessageSquare, FiPackage,
+  FiBookmark, FiShare2, FiPhone, FiPhoneCall, FiMessageSquare, FiPackage,
   FiCheckCircle, FiClock
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
@@ -20,6 +20,7 @@ export default function ListingCard({
   onToggleLike,
   onShare,
   onWhatsApp,
+  onCall,
 }) {
   const navigate = useNavigate();
   const itemId = item._id || item.id;
@@ -225,6 +226,18 @@ export default function ListingCard({
               >
                 <FaWhatsapp size={14} />
               </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onCall) onCall(item);
+                }}
+                className="p-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 transition cursor-pointer"
+                title="Click to Call / Contact Menu"
+              >
+                <FiPhone size={14} />
+              </button>
             </div>
 
             {/* Price Display */}
@@ -250,18 +263,33 @@ export default function ListingCard({
             </div>
           </div>
 
-          {/* View Details / Order CTA Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(item);
-            }}
-            className="w-full py-2 px-3 rounded-lg bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-          >
-            {isService ? <FiTool size={13} /> : <FiPackage size={13} />}
-            <span>{isService ? 'View & Book Service' : 'View Details & Order'}</span>
-          </button>
+          {/* Dual Action Buttons (Click to Call + View/Order) */}
+          <div className="grid grid-cols-12 gap-2 pt-0.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onCall) onCall(item);
+              }}
+              className="col-span-4 py-2 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-extrabold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs group/call"
+              title="Click to Call Vendor"
+            >
+              <FiPhoneCall size={13} className="text-emerald-600 group-hover/call:scale-110 transition" />
+              <span>Call</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(item);
+              }}
+              className="col-span-8 py-2 px-3 rounded-lg bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer truncate"
+            >
+              {isService ? <FiTool size={13} /> : <FiPackage size={13} />}
+              <span className="truncate">{isService ? 'Book Service' : 'View & Order'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
