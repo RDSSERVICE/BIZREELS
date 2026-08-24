@@ -58,9 +58,6 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.outerContainer, { paddingBottom: Math.max(insets.bottom, 10) }]} pointerEvents="box-none">
-      {/* Brutalist top accent bar */}
-      <View style={styles.accentBar} />
-
       <View style={styles.tabBarRow}>
         {visibleTabs.map((tab, i) => {
           const active = isActive(tab.name);
@@ -111,21 +108,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: DARK_BG,
-    borderTopWidth: 2,
-    borderTopColor: YELLOW,
-  },
-  accentBar: {
-    height: 3,
-    backgroundColor: YELLOW,
-    // thick brutalist top stripe already done via borderTopWidth on outerContainer,
-    // this adds a thin inset accent line for extra depth
-    opacity: 0,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
   },
   tabBarRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    borderTopWidth: 0,
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: DARK_BG,
+    borderWidth: 2,
+    borderColor: YELLOW,
+    overflow: 'hidden',
   },
   tabItem: {
     flex: 1,
