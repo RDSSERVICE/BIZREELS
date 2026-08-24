@@ -26,7 +26,7 @@ export default function SearchListingsPage() {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('all'); // 'all' | 'product' | 'service'
   const [category, setCategory] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(200000);
+  const [maxPrice, setMaxPrice] = useState(20000000);
   const [distance, setDistance] = useState('all');
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -517,7 +517,7 @@ export default function SearchListingsPage() {
       if (type !== 'all') params.append('type', type);
       if (category !== 'all') params.append('category', category);
       if (query.trim()) params.append('search', query.trim());
-      if (maxPrice < 200000) params.append('maxPrice', maxPrice);
+      if (maxPrice < 20000000) params.append('maxPrice', maxPrice);
       if (distance && distance !== 'all') params.append('distance', distance);
       if (condition !== 'all') params.append('condition', condition);
       if (sellerType !== 'all') params.append('sellerType', sellerType);

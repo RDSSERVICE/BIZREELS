@@ -178,22 +178,54 @@ export default function SearchFiltersBar({
         })}
       </div>
 
-      {/* ── Price Slider Row ── */}
+      {/* ── Price Slider & Budget Row (Up to ₹2 Crore) ── */}
       <div className="flex flex-wrap items-center justify-between pt-3 border-t border-[#e3dccb] gap-4 text-xs text-slate-600">
-        <div className="flex items-center gap-3">
-          <span className="font-bold text-[#1a1a1a]">Max Budget:</span>
-          <span className="font-extrabold text-[#7c3aed] bg-[#7c3aed]/10 px-2 py-0.5 rounded">
-            ₹{maxPrice.toLocaleString('en-IN')}
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <span className="font-bold text-[#1a1a1a] flex items-center gap-1">
+            <span>Max Budget:</span>
+          </span>
+          <span className="font-extrabold text-[#7c3aed] bg-[#7c3aed]/10 px-2.5 py-0.5 rounded-md text-xs">
+            {maxPrice >= 20000000
+              ? '₹2 Cr (Max)'
+              : maxPrice >= 10000000
+              ? `₹${(maxPrice / 10000000).toFixed(maxPrice % 10000000 === 0 ? 0 : 2)} Cr`
+              : maxPrice >= 100000
+              ? `₹${(maxPrice / 100000).toFixed(maxPrice % 100000 === 0 ? 0 : 1)} Lakh`
+              : `₹${maxPrice.toLocaleString('en-IN')}`}
           </span>
           <input
             type="range"
             min={1000}
-            max={200000}
-            step={5000}
+            max={20000000}
+            step={maxPrice < 100000 ? 5000 : maxPrice < 1000000 ? 25000 : 100000}
             value={maxPrice}
             onChange={(e) => setMaxPrice(Number(e.target.value))}
-            className="accent-[#d99a3d] cursor-pointer w-32 sm:w-44"
+            className="accent-[#d99a3d] cursor-pointer w-32 sm:w-48"
           />
+
+          {/* Quick Preset Chips */}
+          <div className="hidden sm:flex items-center gap-1">
+            {[
+              { label: '50k', val: 50000 },
+              { label: '5L', val: 500000 },
+              { label: '25L', val: 2500000 },
+              { label: '1 Cr', val: 10000000 },
+              { label: '2 Cr', val: 20000000 },
+            ].map((chip) => (
+              <button
+                key={chip.val}
+                type="button"
+                onClick={() => setMaxPrice(chip.val)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer ${
+                  maxPrice === chip.val
+                    ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                    : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb] hover:bg-[#e3dccb]'
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
