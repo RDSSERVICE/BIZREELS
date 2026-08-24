@@ -102,3 +102,24 @@
 | `POST` | `/listings/ai-copy` | Vendor / Creator | AI description description synthesis |
 | `POST` | `/analytics` | Public / User | Track clicks / views analytics log |
 | `GET` | `/analytics/summary` | Admin | Fetch aggregate KPI summaries |
+
+---
+
+## 10. SEO & Sitemaps (`/seo`, `/sitemap.xml`, `/robots.txt`)
+
+| Method | Endpoint | Authorization | Description |
+|---|---|---|---|
+| `GET` | `/sitemap.xml` | Public | Dynamic XML Sitemap with published listings & verified vendors |
+| `GET` | `/sitemap-index.xml` | Public | Dynamic XML Sitemap Index for scalable crawler ingestion |
+| `GET` | `/robots.txt` | Public | Dynamic robots crawler directives |
+| `GET` | `/seo/listing/:idOrSlug` | Public | Dynamic SEO metadata, OpenGraph tags & Schema for listings |
+
+---
+
+## 11. Feed & Discovery (`/feed`)
+
+| Method | Endpoint | Authorization | Description |
+|---|---|---|---|
+| `GET` | `/feed/` | Public / Auth | Geo-proximity blended feed of listings and video reels |
+| `GET` | `/feed/reels` | Public / Auth | 5-Tier personalized video recommendation feed |
+| `GET` | `/feed/home-trending` | Public | High-performance cached trending products and featured cards |
