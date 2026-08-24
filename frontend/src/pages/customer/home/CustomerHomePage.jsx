@@ -798,6 +798,12 @@ export default function CustomerHomePage() {
                 const vendorId = item.creator?._id || item.creator?.id || item.creator;
                 const isFollowing = followingMap[vendorId];
 
+                const reelPrice = Number(item.taggedListing?.salePrice || item.taggedListing?.price || item.price || 0);
+                const reelOriginalPrice = Number(item.taggedListing?.actualPrice || item.taggedListing?.regularPrice || item.regularPrice || 0);
+                const reelDiscount = reelOriginalPrice > reelPrice
+                  ? Math.round(((reelOriginalPrice - reelPrice) / reelOriginalPrice) * 100)
+                  : (Number(item.discount || item.discountPercent || item.taggedListing?.discountPercent || 0));
+
                 return (
                   <motion.div
                     key={itemId}
@@ -853,6 +859,7 @@ export default function CustomerHomePage() {
                         setReelViewerStartIndex(idx >= 0 ? idx : 0);
                         setReelViewerOpen(true);
                       }}
+                      className="relative select-none"
                     >
                       <CustomerReelMedia
                         reel={item}
@@ -860,6 +867,13 @@ export default function CustomerHomePage() {
                         setMuted={setMuted}
                         onDoubleTap={() => handleLike(itemId, 'reel')}
                       />
+
+                      {/* Reel Discount Badge if available */}
+                      {reelDiscount > 0 && (
+                        <div className="absolute bottom-3 left-3 bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded shadow-md z-10 pointer-events-none">
+                          {reelDiscount}% OFF
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Bar & Details (Instagram Style) */}
@@ -918,9 +932,26 @@ export default function CustomerHomePage() {
                         </button>
                       </div>
 
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                        {(item.views || 0).toLocaleString()} views
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                          {(item.views || 0).toLocaleString()} views
+                        </p>
+                        {reelPrice > 0 && (
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-xs font-black text-[#d99a3d]">₹{reelPrice.toLocaleString('en-IN')}</span>
+                            {reelOriginalPrice > reelPrice && (
+                              <span className="text-[10px] text-slate-400 line-through font-bold">
+                                ₹{reelOriginalPrice.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                            {reelDiscount > 0 && (
+                              <span className="text-[9.5px] text-red-600 font-extrabold ml-0.5">
+                                {reelDiscount}% OFF
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
                       {/* Quick Add to Cart & Buy Now Action Row */}
                       <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-[#e3dccb]/60">
@@ -979,6 +1010,11 @@ export default function CustomerHomePage() {
               } else {
                 const vendorId = item.vendor?._id || item.vendor?.id || item.vendor;
                 const isFollowing = followingMap[vendorId];
+                const priceVal = Number(item.salePrice || item.price || 0);
+                const originalPrice = Number(item.actualPrice || item.regularPrice || item.mrp || 0);
+                const discountPercent = originalPrice > priceVal
+                  ? Math.round(((originalPrice - priceVal) / originalPrice) * 100)
+                  : (Number(item.discount || item.discountPercent || 0));
 
                 return (
                   <motion.div
@@ -1038,9 +1074,18 @@ export default function CustomerHomePage() {
                       className="cursor-pointer aspect-square bg-slate-100 relative overflow-hidden select-none"
                     >
                       <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
+                      
+                      {/* Price Badge */}
                       <div className="absolute top-3 right-3 bg-[#d99a3d] px-3 py-1 rounded text-xs font-extrabold text-[#1a1a1a] shadow-xs border border-[#1a1a1a]/10">
-                        ₹{item.price?.toLocaleString()}
+                        ₹{priceVal.toLocaleString('en-IN')}
                       </div>
+
+                      {/* Discount Badge matching /customer/search */}
+                      {discountPercent > 0 && (
+                        <div className="absolute bottom-3 left-3 bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded shadow-md z-10">
+                          {discountPercent}% OFF
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Bar & Details */}
@@ -1099,10 +1144,24 @@ export default function CustomerHomePage() {
                         </button>
                       </div>
 
-                      {/* Product Title and Price */}
-                      <div className="flex items-baseline justify-between mt-1">
-                        <h4 className="font-extrabold text-sm text-[#1a1a1a]">{item.title}</h4>
-                        <span className="text-xs font-extrabold text-[#d99a3d]">₹{item.price?.toLocaleString()}</span>
+                      {/* Product Title and Price with Discount */}
+                      <div className="flex items-baseline justify-between gap-2 mt-1">
+                        <h4 className="font-extrabold text-sm text-[#1a1a1a] truncate">{item.title}</h4>
+                        <div className="text-right shrink-0">
+                          <div className="flex items-baseline gap-1.5 justify-end">
+                            <span className="text-xs font-black text-[#d99a3d]">₹{priceVal.toLocaleString('en-IN')}</span>
+                            {originalPrice > priceVal && (
+                              <span className="text-[10px] text-slate-400 line-through font-bold">
+                                ₹{originalPrice.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </div>
+                          {discountPercent > 0 && (
+                            <span className="text-[9.5px] text-red-600 font-extrabold block text-right">
+                              {discountPercent}% OFF
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Expandable Caption */}
