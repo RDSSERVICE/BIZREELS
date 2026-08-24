@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   FiBriefcase, FiCheckCircle, FiDollarSign, FiFileText, FiMapPin,
-  FiCreditCard, FiArrowRight, FiShield, FiUser, FiTruck, FiClock,
+  FiCreditCard, FiArrowRight, FiArrowLeft, FiShield, FiUser, FiTruck, FiClock,
   FiUploadCloud, FiSearch, FiCheck, FiGlobe, FiPhone, FiMessageSquare,
   FiMail, FiCamera, FiImage, FiCompass, FiX, FiLayers, FiTag, FiNavigation,
   FiCpu, FiMic, FiMicOff, FiZap
@@ -646,8 +646,33 @@ export default function BecomeVendorPage({ isEditMode = false }) {
     }
   };
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else if (effectiveEditMode) {
+      navigate('/vendor/dashboard');
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6 font-sans p-2 sm:p-4 min-h-screen pb-16">
+    <div className="max-w-4xl mx-auto space-y-4 font-sans p-2 sm:p-4 min-h-screen pb-16">
+      {/* Top Back Navigation Bar */}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={handleGoBack}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-[#e3dccb] hover:bg-[#f8f4ec] text-[#1a1a1a] text-xs font-bold transition shadow-2xs cursor-pointer"
+        >
+          <FiArrowLeft size={14} className="text-[#d99a3d]" />
+          <span>← Go Back</span>
+        </button>
+        <span className="text-[11px] font-semibold text-slate-500 hidden sm:inline">
+          {effectiveEditMode ? 'Vendor Profile Editor' : 'Vendor Onboarding Setup'}
+        </span>
+      </div>
+
       {/* Header Banner - Matching Customer Layout & Home Style */}
       <div className="bg-[#241b15] text-white p-6 rounded-2xl border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -1570,24 +1595,35 @@ export default function BecomeVendorPage({ isEditMode = false }) {
           </label>
         </div>
 
-        {/* SUBMIT BUTTON */}
-        <button
-          type="submit"
-          disabled={loading || !termsAccepted}
-          className="w-full py-4 bg-[#241b15] text-[#d99a3d] border-2 border-[#241b15] rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-premium hover:bg-[#342820] transition flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
-        >
-          {effectiveEditMode ? (
-            <>
-              <FiCheckCircle size={18} />
-              <span>{loading ? 'Saving Changes...' : 'Update Profile Details'}</span>
-            </>
-          ) : (
-            <>
-              <span>{loading ? 'Registering & Launching Portal...' : 'Complete Registration & Launch Vendor Portal'}</span>
-              <FiArrowRight size={18} />
-            </>
-          )}
-        </button>
+        {/* ACTION BUTTONS ROW */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="w-full sm:w-auto px-6 py-4 bg-white border border-[#e3dccb] hover:bg-[#f8f4ec] text-[#1a1a1a] rounded-2xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+          >
+            <FiArrowLeft size={16} className="text-slate-500" />
+            <span>Cancel &amp; Go Back</span>
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading || !termsAccepted}
+            className="flex-1 w-full py-4 bg-[#241b15] text-[#d99a3d] border-2 border-[#241b15] rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-premium hover:bg-[#342820] transition flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
+          >
+            {effectiveEditMode ? (
+              <>
+                <FiCheckCircle size={18} />
+                <span>{loading ? 'Saving Changes...' : 'Update Profile Details'}</span>
+              </>
+            ) : (
+              <>
+                <span>{loading ? 'Registering & Launching Portal...' : 'Complete Registration & Launch Vendor Portal'}</span>
+                <FiArrowRight size={18} />
+              </>
+            )}
+          </button>
+        </div>
       </form>
 
       {/* Terms & Conditions Modal */}

@@ -59,9 +59,9 @@ const Register = () => {
       const activeRole = data.role || user?.activeRole || user?.current_role || 'customer';
       let targetPath = getRoleDashboard(activeRole);
       if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
-        targetPath = '/vendor/profile';
+        targetPath = '/vendor/onboarding';
       } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
-        targetPath = '/creator/profile';
+        targetPath = '/creator/onboarding';
       }
       navigate(targetPath, { replace: true });
     } catch (err) {
