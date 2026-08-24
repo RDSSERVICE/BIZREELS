@@ -245,12 +245,10 @@ const styles = StyleSheet.create({
   },
   backdropTouch: { flex: 1 },
   drawerContainer: {
-    width: '70%',
-    maxWidth: 270,
+    width: '60%',
+    maxWidth: 240,
     backgroundColor: '#0F0F12',
-    borderRightWidth: 2,
-    borderRightColor: '#F59E0B',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
   },
 
   header: {
