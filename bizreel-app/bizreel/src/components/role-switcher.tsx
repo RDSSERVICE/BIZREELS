@@ -192,8 +192,8 @@ const styles = StyleSheet.create({
   },
   drawer: {
     backgroundColor: DARK_CARD,
-    borderTopWidth: 2,
-    borderTopColor: YELLOW,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
     padding: Spacing.four,
     gap: Spacing.three,
   },

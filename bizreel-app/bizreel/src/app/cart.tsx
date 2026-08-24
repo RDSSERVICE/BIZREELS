@@ -166,8 +166,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     backgroundColor: BLACK,
-    borderBottomWidth: 2,
-    borderBottomColor: YELLOW,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
   iconBtn: {
     width: 36,

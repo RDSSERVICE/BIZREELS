@@ -109,8 +109,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: DARK_BG,
-    borderTopWidth: 2,
-    borderTopColor: YELLOW,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
   },
   tabBarRow: {
     flexDirection: 'row',

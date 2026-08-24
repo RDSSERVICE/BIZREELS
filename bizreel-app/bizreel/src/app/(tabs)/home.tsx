@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    borderBottomWidth: 2,
-    borderBottomColor: YELLOW,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
     backgroundColor: BLACK,
   },
   brandGroup: {
