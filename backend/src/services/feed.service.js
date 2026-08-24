@@ -4,6 +4,7 @@ const Reel = require('../models/Reel');
 const followService = require('./follow.service');
 const { serializeListing } = require('./listing.service');
 const { notTestFilter } = require('../utils/helpers');
+const cache = require('../utils/cache');
 
 const TYPE_FILTER = {
   all: null,
@@ -238,16 +239,8 @@ const buildFeed = async ({
 
 const getHomeTrendingFeed = async () => {
   try {
-    // 1. Trending Products (Top 15 Listings sorted by views & orders)
-    let listings = await Listing.find({
-      status: 'published',
-      isDeleted: { $ne: true },
-      ...notTestFilter()
-    })
-      .sort({ views: -1, orders_count: -1, _id: -1 })
-      .limit(15)
-      .populate('vendor', 'name business_name profile_pic avatarUrl')
-      .lean();
+    const cached = await cache.getCache('feed:home_trending');
+    if (cached) return cached;
 
     const defaultTrending = [
       { num: '01', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=1050&fit=crop&q=85', title: 'Premium Office Chair', sub: 'ErgoComfort Pro', meta: '1.2K views · 86 leads', id: null },
@@ -259,6 +252,58 @@ const getHomeTrendingFeed = async () => {
       { num: '07', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=1050&fit=crop&q=85', title: 'Luxury Fleet Rental', sub: 'Prestige Cars', meta: '590 views · 39 leads', id: null },
       { num: '08', img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1050&fit=crop&q=85', title: 'Commercial Interior Design', sub: 'Apex Architects', meta: '540 views · 35 leads', id: null }
     ];
+
+    const defaultFeatured = [
+      { badge: 'Featured', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=1050&fit=crop&q=85', views: '2.1K', title: 'ErgoComfort Pro Premium Office Chair', category: 'Furniture', id: null },
+      { badge: null, img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=1050&fit=crop&q=85', views: '1.8K', title: 'Social Media Growth Service', category: 'Digital Marketing', id: null },
+      { badge: null, img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=1050&fit=crop&q=85', views: '3.4K', title: 'Solar Rooftop System 3kW On-Grid', category: 'Energy', id: null },
+      { badge: 'Hot Deal', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1050&fit=crop&q=85', views: '1.5K', title: 'Custom Italian Modular Kitchen', category: 'Home & Living', id: null },
+      { badge: 'Popular', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=1050&fit=crop&q=85', views: '2.9K', title: 'Premium Festive Gift Hampers', category: 'Corporate Gifts', id: null }
+    ];
+
+    const categoryService = require('./category.service');
+
+    // Run independent database queries in parallel
+    const [listings, featuredBoosted, totalVendors, totalListings, categoriesList] = await Promise.all([
+      Listing.find({
+        status: { $in: ['published', 'active'] },
+        isDeleted: { $ne: true },
+        ...notTestFilter()
+      })
+        .sort({ views: -1, orders_count: -1, _id: -1 })
+        .limit(15)
+        .populate('vendor', 'name business_name profile_pic avatarUrl')
+        .lean(),
+
+      Listing.find({
+        status: { $in: ['published', 'active'] },
+        isDeleted: { $ne: true },
+        isBoosted: true,
+        ...notTestFilter()
+      })
+        .sort({ views: -1, _id: -1 })
+        .limit(10)
+        .lean(),
+
+      User.countDocuments({ $or: [{ role: 'vendor' }, { roles: 'vendor' }], is_deleted: { $ne: true } }),
+      Listing.countDocuments({ status: { $in: ['published', 'active'] }, isDeleted: { $ne: true } }),
+      categoryService.listCategories({ only_top_level: true }).catch(() => [])
+    ]);
+
+    let featured = featuredBoosted || [];
+    if (featured.length < 5) {
+      const needed = 10 - featured.length;
+      const extra = await Listing.find({
+        status: { $in: ['published', 'active'] },
+        isDeleted: { $ne: true },
+        _id: { $nin: featured.map(f => f._id) },
+        ...notTestFilter()
+      })
+        .sort({ views: -1, rating: -1, _id: -1 })
+        .limit(needed)
+        .lean();
+      featured = [...featured, ...(extra || [])];
+    }
 
     const trendingProducts = (listings || []).map((l, index) => ({
       id: l._id.toString(),
@@ -277,39 +322,6 @@ const getHomeTrendingFeed = async () => {
         trendingProducts.push(defaultTrending[idx % defaultTrending.length]);
       }
     }
-
-    // 2. Featured Cards (Up to 10 Cards)
-    let featured = await Listing.find({
-      status: 'published',
-      isDeleted: { $ne: true },
-      isBoosted: true,
-      ...notTestFilter()
-    })
-      .sort({ views: -1, _id: -1 })
-      .limit(10)
-      .lean();
-
-    if (!featured || featured.length < 5) {
-      const needed = 10 - (featured ? featured.length : 0);
-      const extra = await Listing.find({
-        status: 'published',
-        isDeleted: { $ne: true },
-        _id: { $nin: (featured || []).map(f => f._id) },
-        ...notTestFilter()
-      })
-        .sort({ views: -1, rating: -1, _id: -1 })
-        .limit(needed)
-        .lean();
-      featured = [...(featured || []), ...(extra || [])];
-    }
-
-    const defaultFeatured = [
-      { badge: 'Featured', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=1050&fit=crop&q=85', views: '2.1K', title: 'ErgoComfort Pro Premium Office Chair', category: 'Furniture', id: null },
-      { badge: null, img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=1050&fit=crop&q=85', views: '1.8K', title: 'Social Media Growth Service', category: 'Digital Marketing', id: null },
-      { badge: null, img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=1050&fit=crop&q=85', views: '3.4K', title: 'Solar Rooftop System 3kW On-Grid', category: 'Energy', id: null },
-      { badge: 'Hot Deal', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1050&fit=crop&q=85', views: '1.5K', title: 'Custom Italian Modular Kitchen', category: 'Home & Living', id: null },
-      { badge: 'Popular', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=1050&fit=crop&q=85', views: '2.9K', title: 'Premium Festive Gift Hampers', category: 'Corporate Gifts', id: null }
-    ];
 
     const featuredCards = (featured || []).map((f, index) => {
       const viewCount = f.views || 0;
@@ -331,19 +343,7 @@ const getHomeTrendingFeed = async () => {
       }
     }
 
-    // 3. Stats & Categories
-    const totalVendors = await User.countDocuments({ role: 'vendor', isDeleted: { $ne: true } });
-    const totalListings = await Listing.countDocuments({ status: 'published', isDeleted: { $ne: true } });
-
-    const categoryService = require('./category.service');
-    let categoriesList = [];
-    try {
-      categoriesList = await categoryService.listCategories({ only_top_level: true });
-    } catch (e) {
-      categoriesList = [];
-    }
-
-    return {
+    const result = {
       trendingProducts,
       featuredCards,
       stats: [
@@ -354,6 +354,11 @@ const getHomeTrendingFeed = async () => {
       ],
       categories: categoriesList && categoriesList.length > 0 ? categoriesList : []
     };
+
+    // Store in cache for 60 seconds
+    await cache.setCache('feed:home_trending', result, 60);
+
+    return result;
   } catch (err) {
     console.error('Error fetching home trending feed:', err);
     throw err;

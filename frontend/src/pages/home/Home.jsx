@@ -187,12 +187,46 @@ export default function Home() {
     return [...uniqueApiCats, ...fillList];
   }, [feed.categories, dbCategories, defaultCategoryList]);
 
+  const homeStructuredData = React.useMemo(() => [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      'name': 'BizReels',
+      'url': 'https://bizreels.in/',
+      'description': "Discover local vendors, chat direct, deal fair. India's first visual reels commerce platform.",
+      'potentialAction': {
+        '@type': 'SearchAction',
+        'target': {
+          '@type': 'EntryPoint',
+          'urlTemplate': 'https://bizreels.in/customer/search?query={search_term_string}'
+        },
+        'query-input': 'required name=search_term_string'
+      }
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      'name': 'BizReels',
+      'url': 'https://bizreels.in/',
+      'logo': 'https://bizreels.in/logo.png',
+      'description': "India's local video-first marketplace connecting businesses, content creators, and local buyers.",
+      'sameAs': [
+        'https://instagram.com/BizReels',
+        'https://youtube.com/@BizReels',
+        'https://linkedin.com/company/bizreels',
+        'https://twitter.com/BizReels'
+      ]
+    }
+  ], []);
+
   return (
     <div className="w-full max-w-full overflow-x-hidden bg-[#f2ede4] min-h-screen select-none font-sans">
       <SEO
         title="Watch. Discover. Shop. — India's Visual Commerce Platform"
         description="Discover local vendors, chat direct, deal fair. India's first visual reels commerce platform."
-        url="https://bizreels.in/"
+        canonical="https://bizreels.in/"
+        ogType="website"
+        structuredData={homeStructuredData}
       />
 
       {/* ── HERO SECTION ─────────────────────────────────────────── */}

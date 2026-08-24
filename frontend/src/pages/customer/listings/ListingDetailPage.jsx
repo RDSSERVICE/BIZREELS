@@ -11,6 +11,8 @@ import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { api, resolveMediaUrl, locationApi, cartApi } from '../../../lib/api';
 import { notifyCartChanged, openCartDrawer } from '../../../components/app/CartDrawer';
+import SEO from '../../../components/common/SEO';
+import LazyImage from '../../../components/common/LazyImage';
 
 /**
  * OfferCountdown component for active promo offers
@@ -467,8 +469,85 @@ export default function ListingDetailPage() {
     }
   };
 
+  const listingStructuredData = React.useMemo(() => {
+    if (!item) return [];
+    const mainImg = images[0] ? resolveMediaUrl(images[0]) : 'https://bizreels.in/logo.png';
+    const canonicalLink = `https://bizreels.in/customer/listings/${itemId}`;
+
+    const mainSchema = isService
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Service',
+          'name': item.title,
+          'image': mainImg,
+          'description': item.description || item.title,
+          'provider': {
+            '@type': 'LocalBusiness',
+            'name': vendorName,
+          },
+          'offers': {
+            '@type': 'Offer',
+            'url': canonicalLink,
+            'priceCurrency': 'INR',
+            'price': priceVal || 0,
+            'availability': 'https://schema.org/InStock',
+          },
+        }
+      : {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          'name': item.title,
+          'image': mainImg,
+          'description': item.description || item.title,
+          'sku': item.sku || undefined,
+          'brand': {
+            '@type': 'Brand',
+            'name': item.brand || vendorName,
+          },
+          'offers': {
+            '@type': 'Offer',
+            'url': canonicalLink,
+            'priceCurrency': 'INR',
+            'price': priceVal || 0,
+            'availability': (item.stock > 0 || item.stock === undefined) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+            'seller': {
+              '@type': 'Organization',
+              'name': vendorName,
+            },
+          },
+          ...(item.rating && item.rating > 0 ? {
+            'aggregateRating': {
+              '@type': 'AggregateRating',
+              'ratingValue': item.rating,
+              'reviewCount': item.totalReviews || 1,
+            }
+          } : {})
+        };
+
+    const breadcrumbs = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bizreels.in/' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Browse Listings', 'item': 'https://bizreels.in/customer/search' },
+        ...(item.category ? [{ '@type': 'ListItem', 'position': 3, 'name': item.category, 'item': `https://bizreels.in/customer/search?category=${encodeURIComponent(item.category)}` }] : []),
+        { '@type': 'ListItem', 'position': item.category ? 4 : 3, 'name': item.title, 'item': canonicalLink }
+      ]
+    };
+
+    return [mainSchema, breadcrumbs];
+  }, [item, isService, images, itemId, vendorName, priceVal]);
+
   return (
     <div className="min-h-screen bg-[#f8f4ec] text-[#1a1a1a] font-sans pb-16">
+      <SEO
+        title={`${item.title} — ${vendorName}`}
+        description={item.description?.slice(0, 160) || `${item.title} available on BizReels marketplace.`}
+        canonical={`https://bizreels.in/customer/listings/${itemId}`}
+        ogImage={images[0] ? resolveMediaUrl(images[0]) : 'https://bizreels.in/logo.png'}
+        ogType={isService ? 'website' : 'product'}
+        structuredData={listingStructuredData}
+      />
       {/* ── Top Header / Breadcrumb Bar ──────────────────────────────── */}
       <div className="sticky top-0 z-30 bg-white border-b border-[#e3dccb] px-4 py-3 shadow-2xs">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">

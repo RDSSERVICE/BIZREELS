@@ -14,6 +14,7 @@ import { setCredentials, logout, selectCurrentUser, setActiveRole } from '../../
 import { api, tokenStore } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 import { useLanguage } from '../../context/LanguageContext';
+import SEO from '../../components/common/SEO';
 
 /**
  * CreatorLayout — Warm Editorial Bento Sidebar Layout for Creator Studio
@@ -275,6 +276,7 @@ export default function CreatorLayout() {
 
   return (
     <div className="min-h-screen bg-surface-secondary flex font-sans">
+      <SEO title="Creator Studio" robots="noindex, nofollow" />
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-surface border-r border-border fixed top-0 bottom-0 left-0 z-30">
         <SidebarContent onItemClick={() => {}} />

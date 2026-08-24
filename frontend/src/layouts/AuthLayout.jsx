@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { selectIsAuthenticated, selectCurrentUser, selectActiveRole } from '../features/auth/authSlice';
 import { getRoleDashboard } from '../lib/roleNav';
 import { FiVideo, FiZap, FiShield } from 'react-icons/fi';
+import SEO from '../components/common/SEO';
 
 /**
  * Layout for Authentication views (Login, Register, Reset Password)
@@ -31,6 +32,7 @@ const AuthLayout = () => {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden flex items-center justify-center font-sans px-4 py-10 sm:px-6 lg:px-8" style={{ backgroundColor: '#f2ede4' }}>
+      <SEO title="Authentication" robots="noindex, nofollow" />
       
       <div className="w-full max-w-5xl grid lg:grid-cols-12 gap-8 items-center z-10">
         {/* Left Side: Brand Visual (Desktop only) */}

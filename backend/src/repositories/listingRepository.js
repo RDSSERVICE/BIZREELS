@@ -392,7 +392,13 @@ class ListingRepository {
       },
     });
 
-    const listings = await Listing.aggregate(pipeline);
+    const limitNum = parseInt(limit, 10) || 10;
+    const pageNum = parseInt(page, 10) || 1;
+
+    const [listings, rawCount] = await Promise.all([
+      Listing.aggregate(pipeline),
+      pageNum > 1 ? Listing.countDocuments(match) : Promise.resolve(null),
+    ]);
 
     // Calculate/override distance based on vendor's actual profile location coordinates
     if (coordinates && coordinates.length === 2 && (parseFloat(coordinates[0]) !== 0 || parseFloat(coordinates[1]) !== 0)) {
@@ -414,14 +420,14 @@ class ListingRepository {
         listing.distance = undefined;
       });
     }
-    
-    let total;
-    const limitNum = parseInt(limit, 10) || 10;
-    const pageNum = parseInt(page, 10) || 1;
-    if (pageNum === 1 && listings.length < limitNum) {
-      total = listings.length;
-    } else {
-      total = await Listing.countDocuments(match);
+
+    let total = rawCount;
+    if (pageNum === 1) {
+      if (listings.length < limitNum) {
+        total = listings.length;
+      } else {
+        total = await Listing.countDocuments(match);
+      }
     }
 
     return { listings, total };

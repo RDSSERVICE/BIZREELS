@@ -14,6 +14,7 @@ import BookServiceModal from '../activities/components/BookServiceModal';
 import ClickToCallModal from './components/ClickToCallModal';
 
 import { useLanguage } from '../../../context/LanguageContext';
+import SEO from '../../../components/common/SEO';
 
 export default function SearchListingsPage() {
   const navigate = useNavigate();
@@ -649,8 +650,43 @@ export default function SearchListingsPage() {
     }
   }
 
+  const searchStructuredData = React.useMemo(() => [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bizreels.in/' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Search & Browse', 'item': 'https://bizreels.in/customer/search' },
+      ]
+    }
+  ], []);
+
+  const hasSpecificCategory = category && category !== 'all';
+  const hasSpecificQuery = Boolean(query && query.trim());
+  const seoTitle = hasSpecificQuery
+    ? `Search Results for "${query.trim()}"`
+    : hasSpecificCategory
+    ? `Explore ${category} Products & Services`
+    : 'Explore Products & Services';
+  const seoDesc = hasSpecificCategory
+    ? `Discover top rated local ${category} vendors, products, and services on BizReels marketplace.`
+    : 'Discover local vendors, browse products and services, and get deals on BizReels.';
+  const seoCanonical = hasSpecificCategory && !hasSpecificQuery
+    ? `https://bizreels.in/customer/search?category=${encodeURIComponent(category)}`
+    : 'https://bizreels.in/customer/search';
+  const seoRobots = hasSpecificQuery || showAdvanced || hasOffers
+    ? 'noindex, follow'
+    : 'index, follow';
+
   return (
     <div className="min-h-full bg-[#f8f4ec] py-4 px-3 sm:px-6 pb-24 sm:pb-12 font-sans">
+      <SEO
+        title={seoTitle}
+        description={seoDesc}
+        canonical={seoCanonical}
+        robots={seoRobots}
+        structuredData={searchStructuredData}
+      />
       <div className="max-w-6xl mx-auto space-y-5 animate-fade-in">
         
         {/* ── Page Header matching Home Feed ── */}

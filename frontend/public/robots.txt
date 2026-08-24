@@ -1,0 +1,30 @@
+# robots.txt for https://bizreels.in
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /local-reels
+Allow: /creator-marketplace
+Allow: /customer/search
+Allow: /customer/listings/
+Allow: /customer/vendor/
+Allow: /customer/home
+
+# Disallow Private Portals, Auth, and Interactive Customer Dashboards
+Disallow: /admin
+Disallow: /admin/
+Disallow: /adminlogin
+Disallow: /auth/
+Disallow: /vendor/
+Disallow: /creator/
+Disallow: /customer/chat
+Disallow: /customer/settings
+Disallow: /customer/mycart
+Disallow: /customer/cart
+Disallow: /customer/activities
+Disallow: /customer/notifications
+Disallow: /customer/post-requirement
+Disallow: /customer/my-requirements
+Disallow: /customer/choose-interests
+Disallow: /api/
+
+Sitemap: https://bizreels.in/sitemap.xml

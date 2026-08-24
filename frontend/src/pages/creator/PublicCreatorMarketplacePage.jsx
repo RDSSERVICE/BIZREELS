@@ -113,12 +113,44 @@ const PublicCreatorMarketplacePage = () => {
     }
   };
 
+  const creatorMarketplaceStructuredData = React.useMemo(() => [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      'name': 'Creator Marketplace | BizReels',
+      'url': 'https://bizreels.in/creator-marketplace',
+      'description': 'Hire professional creators to produce high-engaging video reels for your local business.',
+      'mainEntity': {
+        '@type': 'ItemList',
+        'itemListElement': creators.slice(0, 10).map((c, idx) => ({
+          '@type': 'ListItem',
+          'position': idx + 1,
+          'item': {
+            '@type': 'Person',
+            'name': c.name || 'Content Creator',
+            'description': c.bio || 'Creator on BizReels',
+            'image': c.avatarUrl || 'https://bizreels.in/logo.png',
+          }
+        }))
+      }
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bizreels.in/' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Creator Marketplace', 'item': 'https://bizreels.in/creator-marketplace' }
+      ]
+    }
+  ], [creators]);
+
   return (
     <div className="pb-16 font-sans" style={{ backgroundColor: '#f2ede4', minHeight: '100vh' }}>
       <SEO 
-        title="Creator Marketplace"
+        title="Creator Marketplace — Hire Reel Creators"
         description="Hire professional creators to produce high-engaging video reels for your local business. Browse creator portfolios, pricing, and availability."
-        url="https://bizreels.in/creator-marketplace"
+        canonical="https://bizreels.in/creator-marketplace"
+        structuredData={creatorMarketplaceStructuredData}
       />
 
       {/* ── 1. HERO SECTION — Bento 2-Column Split ────────────────── */}

@@ -36,11 +36,37 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            return 'vendor';
+            if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router-dom/')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@reduxjs') || id.includes('react-redux')) {
+              return 'vendor-redux';
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('react-icons') || id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (
+              id.includes('@radix-ui') ||
+              id.includes('cmdk') ||
+              id.includes('vaul') ||
+              id.includes('embla-carousel') ||
+              id.includes('sonner') ||
+              id.includes('react-hot-toast')
+            ) {
+              return 'vendor-ui';
+            }
+            return 'vendor-core';
           }
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 600,
+    cssCodeSplit: true,
   },
 });

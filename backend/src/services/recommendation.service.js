@@ -115,17 +115,22 @@ class RecommendationService {
     // 6. Enrich with creator info and like status
     const enrichedReels = await this._enrichReels(diversified, userId);
 
-    // 7. Calculate total published reels count
-    const total = await Reel.countDocuments({
-      isDeleted: false,
-      isDraft: false,
-      status: 'published',
-    });
+    // 7. Fetch or use cached total published reels count (60s TTL)
+    let total = await cache.getCache('reels:total_published_count');
+    if (total === null || total === undefined) {
+      total = await Reel.countDocuments({
+        isDeleted: false,
+        isDraft: false,
+        status: 'published',
+      });
+      await cache.setCache('reels:total_published_count', total, 60);
+    }
 
     const response = { reels: enrichedReels, total };
 
-    // Cache results for 30 seconds
-    await cache.setCache(cacheKey, response, 30);
+    // Cache results (60 seconds for guests, 30 seconds for logged-in users)
+    const ttl = userId ? 30 : 60;
+    await cache.setCache(cacheKey, response, ttl);
 
     return response;
   }

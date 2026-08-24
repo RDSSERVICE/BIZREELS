@@ -62,16 +62,16 @@ const PublicLocalReelsPage = () => {
   const videoRef = useRef(null);
   const watchStartRef = useRef(null);
 
-  // Fetch Reels feed with 5s real-time live polling
+  // Fetch Reels feed with optimized polling
   const { data: reelsRes, isLoading: isReelsLoading } = useGetReelsFeedQuery(
     { page: 1, limit: 20 },
-    { pollingInterval: 5000 }
+    { refetchOnFocus: false }
   );
 
-  // Fetch Vendor Listings (Posts) feed with 5s real-time live polling
+  // Fetch Vendor Listings (Posts) feed with optimized polling
   const { data: listingsRes, isLoading: isListingsLoading } = useGetVendorListingsQuery(
     { page: 1, limit: 20 },
-    { pollingInterval: 5000 }
+    { refetchOnFocus: false }
   );
 
   const [toggleLikeReel] = useToggleLikeReelMutation();
@@ -79,6 +79,39 @@ const PublicLocalReelsPage = () => {
 
   const reels = reelsRes?.data || [];
   const listings = listingsRes?.data || [];
+
+  const reelsStructuredData = React.useMemo(() => [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      'name': 'Local Reels & Business Video Feed | BizReels',
+      'url': 'https://bizreels.in/local-reels',
+      'description': 'Watch short video reels from verified local businesses, products, and services across India.',
+      'mainEntity': {
+        '@type': 'ItemList',
+        'itemListElement': reels.slice(0, 10).map((r, idx) => ({
+          '@type': 'ListItem',
+          'position': idx + 1,
+          'item': {
+            '@type': 'VideoObject',
+            'name': r.caption || `Reel by ${r.creator?.name || 'Local Business'}`,
+            'description': r.caption || 'Watch local video reel on BizReels.',
+            'thumbnailUrl': resolveMediaUrl(r.thumbnailUrl || r.targetListing?.images?.[0]) || 'https://bizreels.in/logo.png',
+            'uploadDate': r.created_at || r.createdAt || new Date().toISOString(),
+            'contentUrl': r.videoUrl ? resolveMediaUrl(r.videoUrl) : undefined,
+          }
+        }))
+      }
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bizreels.in/' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Local Reels', 'item': 'https://bizreels.in/local-reels' }
+      ]
+    }
+  ], [reels]);
 
   const currentReel = selectedReelIndex !== null && reels[selectedReelIndex] ? reels[selectedReelIndex] : null;
 
@@ -250,9 +283,10 @@ const PublicLocalReelsPage = () => {
   return (
     <div className="pb-16 font-sans" style={{ backgroundColor: '#f2ede4', minHeight: '100vh' }}>
       <SEO
-        title="Local Reels & Listings - BizReels"
+        title="Local Business Reels & Video Feed"
         description="Watch short-form video reels and explore product listing posts from local vendors in your area. Watch directly and connect with verified businesses!"
-        url="https://bizreels.in/local-reels"
+        canonical="https://bizreels.in/local-reels"
+        structuredData={reelsStructuredData}
       />
 
       {/* ── 1. HERO SECTION — Bento 2-Column Split ────────────────── */}

@@ -219,6 +219,11 @@ export function resolveMediaUrl(url) {
   if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
 
+  // Handle local mobile file paths (e.g. Expo ImagePicker cache)
+  if (/^file:\/\//i.test(trimmed) || trimmed.includes('/host.exp.exponent/')) {
+    return DEFAULT_VIDEO_FALLBACK;
+  }
+
   const host = BACKEND_URL || 'https://bizreels-backend.onrender.com';
   return `${host}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
 }
