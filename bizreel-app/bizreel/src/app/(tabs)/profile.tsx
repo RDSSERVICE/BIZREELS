@@ -1,11 +1,12 @@
 /**
- * Profile Screen — Minimalistic & Professional User & Vendor Profile.
+ * Profile Screen — Classic Brutalist Yellow & Black palette
+ * Minimalistic, clean, professional.
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +25,11 @@ import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useCurrentUserProfile } from '@/features/auth/queries';
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -41,7 +47,7 @@ export default function ProfileScreen() {
   if (isLoading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={BrandColors.primary} />
+        <ActivityIndicator size="large" color={YELLOW} />
       </View>
     );
   }
@@ -49,7 +55,7 @@ export default function ProfileScreen() {
   if (isError || !user) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Ionicons name="alert-circle-outline" size={48} color={BrandColors.error} />
+        <Ionicons name="alert-circle-outline" size={48} color={YELLOW} />
         <Text style={styles.errorText}>Could not load user profile.</Text>
         <Pressable onPress={() => refetch()} style={styles.retryBtn}>
           <Text style={styles.retryText}>Try Again</Text>
@@ -69,13 +75,30 @@ export default function ProfileScreen() {
 
   const ratingDisplay = user.rating_count > 0 ? `${user.rating_avg.toFixed(1)} ★` : '4.9 ★';
 
+  const VENDOR_MENU = [
+    { label: 'Store Dashboard & Analytics', route: '/vendor/dashboard', icon: 'grid-outline' },
+    { label: 'Video Reels & AI Ads', route: '/vendor/reels', icon: 'videocam-outline' },
+    { label: 'Product & Service Catalog', route: '/vendor/listings', icon: 'cube-outline' },
+    { label: 'Customer Orders & Requests', route: '/vendor/orders', icon: 'cart-outline' },
+    { label: 'Chat & Inbox Messages', route: '/messages', icon: 'chatbubble-ellipses-outline' },
+    { label: 'KYC Business Verification', route: '/vendor/verification', icon: 'shield-checkmark-outline' },
+    { label: 'Store Settings & Operations', route: '/vendor/settings', icon: 'options-outline' },
+  ];
+
+  const FINANCE_MENU = [
+    { label: 'Subscription & Billing', route: '/vendor/subscription', icon: 'card-outline' },
+    { label: 'Vendor Wallet & Credits', route: '/vendor/wallet', icon: 'wallet-outline' },
+    { label: 'Credit Rate Schedule', route: '/vendor/rates', icon: 'flash-outline' },
+    { label: 'Refer & Earn Rewards', route: '/vendor/referrals', icon: 'person-add-outline' },
+  ];
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* App Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <TouchableOpacity style={styles.iconBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={BrandColors.error} />
+        <TouchableOpacity style={styles.logoutIconBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={18} color={YELLOW} />
         </TouchableOpacity>
       </View>
 
@@ -86,11 +109,12 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={BrandColors.primary}
-            colors={[BrandColors.primary]}
+            tintColor={YELLOW}
+            colors={[YELLOW]}
           />
         }>
-        {/* ── User Header Banner Card ── */}
+
+        {/* ── User Profile Header Card ── */}
         <View style={styles.profileCard}>
           <View style={styles.avatarWrapper}>
             {avatarUrl ? (
@@ -101,7 +125,7 @@ export default function ProfileScreen() {
               </View>
             )}
             <View style={styles.verifiedDot}>
-              <Ionicons name="checkmark" size={10} color="#fff" />
+              <Ionicons name="checkmark" size={8} color={BLACK} />
             </View>
           </View>
 
@@ -120,7 +144,6 @@ export default function ProfileScreen() {
                   KYC {user.kyc_status?.toUpperCase() || 'VERIFIED'}
                 </Text>
               </View>
-
               <View style={styles.planBadge}>
                 <Text style={styles.planText}>
                   {user.subscription?.plan?.toUpperCase() || 'STARTER PLAN'}
@@ -130,82 +153,71 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ── Quick Metrics Stat Strip ── */}
+        {/* ── Quick Stats Strip ── */}
         <View style={styles.statsStrip}>
           <View style={styles.statCell}>
             <Text style={styles.statValue}>{user.followersCount || 0}</Text>
             <Text style={styles.statLabel}>Followers</Text>
           </View>
-
           <View style={styles.statDivider} />
-
           <View style={styles.statCell}>
             <Text style={styles.statValue}>{user.followingCount || 0}</Text>
             <Text style={styles.statLabel}>Following</Text>
           </View>
-
           <View style={styles.statDivider} />
-
           <View style={styles.statCell}>
             <Text style={styles.statValue}>{ratingDisplay}</Text>
             <Text style={styles.statLabel}>Store Rating</Text>
           </View>
         </View>
 
-        {/* ── Vendor Management Menu Options ── */}
+        {/* ── Vendor Management Section ── */}
         {user.activeRole === 'vendor' && (
           <View style={styles.menuSectionCard}>
-            <Text style={styles.menuSectionHeader}>VENDOR MANAGEMENT</Text>
+            <View style={styles.sectionLabelRow}>
+              <View style={styles.sectionBar} />
+              <Text style={styles.menuSectionHeader}>VENDOR MANAGEMENT</Text>
+            </View>
 
-            {[
-              { label: 'Store Dashboard & Analytics', route: '/vendor/dashboard', icon: 'grid-outline', color: '#38BDF8' },
-              { label: 'Video Reels & AI Ads', route: '/vendor/reels', icon: 'videocam-outline', color: '#EC4899' },
-              { label: 'Product & Service Catalog', route: '/vendor/listings', icon: 'cube-outline', color: '#F59E0B' },
-              { label: 'Customer Orders & Requests', route: '/vendor/orders', icon: 'cart-outline', color: '#10B981' },
-              { label: 'Chat & Inbox Messages', route: '/messages', icon: 'chatbubble-ellipses-outline', color: '#6366F1' },
-              { label: 'KYC Business Verification', route: '/vendor/verification', icon: 'shield-checkmark-outline', color: '#10B981' },
-              { label: 'Store Settings & Operations', route: '/vendor/settings', icon: 'options-outline', color: '#3B82F6' },
-            ].map((menu, idx) => (
+            {VENDOR_MENU.map((menu, idx) => (
               <TouchableOpacity
                 key={idx}
-                style={styles.menuRow}
+                style={[styles.menuRow, idx === VENDOR_MENU.length - 1 && styles.menuRowLast]}
                 onPress={() => router.push(menu.route as any)}>
-                <View style={[styles.menuIconBox, { backgroundColor: menu.color + '1A' }]}>
-                  <Ionicons name={menu.icon as any} size={18} color={menu.color} />
+                <View style={styles.menuIconBox}>
+                  <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
                 </View>
                 <Text style={styles.menuLabel}>{menu.label}</Text>
-                <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+                <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
               </TouchableOpacity>
             ))}
           </View>
         )}
 
-        {/* ── Finance & Account Settings ── */}
+        {/* ── Finance & Account Section ── */}
         <View style={styles.menuSectionCard}>
-          <Text style={styles.menuSectionHeader}>FINANCE & ACCOUNT PREFERENCES</Text>
+          <View style={styles.sectionLabelRow}>
+            <View style={styles.sectionBar} />
+            <Text style={styles.menuSectionHeader}>FINANCE & ACCOUNT</Text>
+          </View>
 
-          {[
-            { label: 'Subscription & Billing', route: '/vendor/subscription', icon: 'card-outline', color: '#EAB308' },
-            { label: 'Vendor Wallet & Credits', route: '/vendor/wallet', icon: 'wallet-outline', color: '#10B981' },
-            { label: 'Credit Rate Schedule', route: '/vendor/rates', icon: 'flash-outline', color: '#38BDF8' },
-            { label: 'Refer & Earn Rewards', route: '/vendor/referrals', icon: 'person-add-outline', color: '#EAB308' },
-          ].map((menu, idx) => (
+          {FINANCE_MENU.map((menu, idx) => (
             <TouchableOpacity
               key={idx}
-              style={styles.menuRow}
+              style={[styles.menuRow, idx === FINANCE_MENU.length - 1 && styles.menuRowLast]}
               onPress={() => router.push(menu.route as any)}>
-              <View style={[styles.menuIconBox, { backgroundColor: menu.color + '1A' }]}>
-                <Ionicons name={menu.icon as any} size={18} color={menu.color} />
+              <View style={styles.menuIconBox}>
+                <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
               </View>
               <Text style={styles.menuLabel}>{menu.label}</Text>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+              <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
             </TouchableOpacity>
           ))}
         </View>
 
         {/* ── Log Out Button ── */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={18} color={BrandColors.error} />
+          <Ionicons name="log-out-outline" size={18} color="#EF4444" />
           <Text style={styles.logoutBtnText}>Log Out of Account</Text>
         </TouchableOpacity>
 
@@ -216,17 +228,17 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#121212' },
+  container: { flex: 1, backgroundColor: BLACK },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: BLACK },
   errorText: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.sm, marginTop: 8 },
   retryBtn: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 10,
     marginTop: 12,
   },
-  retryText: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  retryText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
 
   header: {
     flexDirection: 'row',
@@ -235,47 +247,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: BORDER,
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: FontWeight.bold },
-  iconBtn: {
+  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900' },
+  logoutIconBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(239,68,68,0.1)',
+    borderRadius: 8,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  scrollContent: { padding: Spacing.four, gap: Spacing.four },
+  scrollContent: { padding: Spacing.four, gap: Spacing.three },
 
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1c24',
+    backgroundColor: DARK_CARD,
     padding: Spacing.four,
-    borderRadius: 20,
+    borderRadius: 14,
     gap: Spacing.three,
-    borderWidth: 1,
-    borderColor: '#292c3a',
+    borderWidth: 1.5,
+    borderColor: YELLOW,
   },
-  avatarWrapper: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
+  avatarWrapper: { position: 'relative' },
+  avatar: { width: 56, height: 56, borderRadius: 28 },
   avatarFallback: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+  avatarText: { color: BLACK, fontSize: FontSize.lg, fontWeight: '900' },
   verifiedDot: {
     position: 'absolute',
     bottom: 0,
@@ -283,69 +291,73 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: BrandColors.success,
+    backgroundColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#1a1c24',
+    borderColor: DARK_CARD,
   },
 
   userInfoCol: { flex: 1, gap: 4 },
   nameRoleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  userName: { color: '#fff', fontSize: FontSize.base, fontWeight: FontWeight.bold, flex: 1, marginRight: 6 },
+  userName: { color: '#fff', fontSize: FontSize.base, fontWeight: '900', flex: 1, marginRight: 6 },
   userEmail: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
 
   badgePillsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   kycBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16,185,129,0.15)',
+    backgroundColor: 'rgba(245,158,11,0.15)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 6,
     gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.4)',
   },
-  kycDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' },
-  kycText: { color: '#10B981', fontSize: 9, fontWeight: FontWeight.bold },
+  kycDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: YELLOW },
+  kycText: { color: YELLOW, fontSize: 9, fontWeight: '900' },
   planBadge: {
-    backgroundColor: 'rgba(217,119,6,0.15)',
+    backgroundColor: '#1C1C22',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
-  planText: { color: '#D97706', fontSize: 9, fontWeight: FontWeight.bold },
+  planText: { color: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: '900' },
 
   statsStrip: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1a1c24',
+    backgroundColor: DARK_CARD,
     paddingVertical: 14,
     paddingHorizontal: Spacing.four,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#292c3a',
+    borderColor: BORDER,
   },
   statCell: { flex: 1, alignItems: 'center' },
-  statValue: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
-  statLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 2 },
-  statDivider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.1)' },
+  statValue: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900' },
+  statLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 },
+  statDivider: { width: 1, height: 24, backgroundColor: BORDER },
 
   menuSectionCard: {
-    backgroundColor: '#1a1c24',
-    borderRadius: 20,
+    backgroundColor: DARK_CARD,
+    borderRadius: 14,
     paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.four,
     borderWidth: 1,
-    borderColor: '#292c3a',
-    gap: 2,
+    borderColor: BORDER,
   },
+  sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  sectionBar: { width: 3, height: 10, borderRadius: 1.5, backgroundColor: YELLOW },
   menuSectionHeader: {
-    color: 'rgba(255,255,255,0.4)',
+    color: YELLOW,
     fontSize: 9,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
     letterSpacing: 1,
-    marginBottom: 8,
   },
   menuRow: {
     flexDirection: 'row',
@@ -353,12 +365,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: BORDER,
   },
+  menuRowLast: { borderBottomWidth: 0 },
   menuIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(245,158,11,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -373,13 +387,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239,68,68,0.1)',
+    backgroundColor: 'rgba(239,68,68,0.08)',
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.2)',
-    marginTop: Spacing.two,
+    borderColor: 'rgba(239,68,68,0.25)',
   },
-  logoutBtnText: { color: BrandColors.error, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  logoutBtnText: { color: '#EF4444', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
 });
