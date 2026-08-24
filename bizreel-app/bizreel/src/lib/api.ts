@@ -24,11 +24,29 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Normalize error responses & retry network timeouts
+type UnauthorizedCallback = () => void;
+let unauthorizedHandler: UnauthorizedCallback | null = null;
+
+export function setUnauthorizedHandler(handler: UnauthorizedCallback | null) {
+  unauthorizedHandler = handler;
+}
+
+// Normalize error responses, handle 401 token expiry & retry network timeouts
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const config = error.config;
+    const isAuthEndpoint = config?.url?.includes('/auth/login') || config?.url?.includes('/auth/register');
+
+    // Automatically handle 401 Unauthorized (Expired or Invalid Token)
+    if (error?.response?.status === 401 && !isAuthEndpoint) {
+      tokenStore.removeItem('accessToken');
+      tokenStore.removeItem('refreshToken');
+      if (unauthorizedHandler) {
+        unauthorizedHandler();
+      }
+    }
+
     if (config && !config._retry && (error?.code === 'ECONNABORTED' || !error?.response)) {
       config._retry = true;
       try {
@@ -50,3 +68,4 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message));
   }
 );
+

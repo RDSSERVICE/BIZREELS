@@ -14,6 +14,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
+import { setUnauthorizedHandler } from '@/lib/api';
 import { tokenStore } from '@/lib/storage';
 import { fetchCurrentUser } from './api';
 import type { AuthUser } from './types';
@@ -45,6 +46,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     tokenStore.getItem('accessToken') ? 'loading' : 'unauthed'
   );
 
+  const signOut = useCallback(() => {
+    tokenStore.removeItem('accessToken');
+    tokenStore.removeItem('refreshToken');
+    queryClient.clear();
+    setUserState(null);
+    setStatus('unauthed');
+  }, [queryClient]);
+
+  // Hook up API 401 Unauthorized handler to trigger signOut automatically
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      signOut();
+    });
+    return () => {
+      setUnauthorizedHandler(null);
+    };
+  }, [signOut]);
+
   // On mount — if a token exists, verify it with /auth/me
   useEffect(() => {
     const token = tokenStore.getItem('accessToken');
@@ -61,25 +80,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {
         // Token invalid/expired — clear it
-        tokenStore.removeItem('accessToken');
-        tokenStore.removeItem('refreshToken');
-        setStatus('unauthed');
+        signOut();
       });
-  }, []);
+  }, [signOut]);
 
   /** Called immediately after login/register — no second network call needed */
   const setUser = useCallback((newUser: AuthUser) => {
     setUserState(newUser);
     setStatus('authed');
   }, []);
-
-  const signOut = useCallback(() => {
-    tokenStore.removeItem('accessToken');
-    tokenStore.removeItem('refreshToken');
-    queryClient.clear();
-    setUserState(null);
-    setStatus('unauthed');
-  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ status, user, setUser, signOut }}>
