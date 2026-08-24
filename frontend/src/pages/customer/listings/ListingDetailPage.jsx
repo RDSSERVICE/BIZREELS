@@ -835,8 +835,37 @@ export default function ListingDetailPage() {
                 </div>
 
                 {/* Payment Option */}
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Payment Preference</label>
+                <div className="space-y-3 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Payment Preference</label>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <FiShield size={11} className="text-amber-600" />
+                      <span>Direct Vendor Settlement</span>
+                    </span>
+                  </div>
+
+                  {/* Production Payment Advisory & Fraud Protection Disclaimer Banner */}
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border-2 border-amber-400/80 shadow-xs space-y-2">
+                    <div className="flex items-start gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-700 shrink-0 mt-0.5">
+                        <FiAlertTriangle size={17} className="text-amber-600" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h5 className="text-xs font-black text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
+                            <span>⚠️ महत्वपूर्ण भुगतान व सुरक्षा सूचना (Important Safety Advisory)</span>
+                          </h5>
+                        </div>
+                        <p className="text-xs text-amber-950 font-bold leading-relaxed">
+                          साथ में यह मेसेज की payment भुगतान वेंडर और यूजर संतुष्ट होने पर ही करे, BizReels platform किसी भी प्रकार की वाद विवाद या फ्रॉड के लिए जिम्मेदार नही होगा।
+                        </p>
+                        <p className="text-[11px] text-amber-800/90 font-medium leading-normal">
+                          (Please proceed with payment only after mutual satisfaction between the vendor and user. BizReels platform will not be held responsible for any disputes, damages, or fraudulent transactions.)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
                       { id: 'vendor_upi', label: 'UPI / GPay' },

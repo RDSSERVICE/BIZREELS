@@ -1,9 +1,9 @@
 import React from 'react';
-import { FiMessageSquare, FiShield, FiTruck, FiCreditCard } from 'react-icons/fi';
+import { FiMessageSquare, FiShield, FiTruck, FiCreditCard, FiAlertTriangle } from 'react-icons/fi';
 
 export default function CartOrderSummary({ totalAmount, totalItems, vendorCount, onCheckout, isCheckingOut }) {
   return (
-    <div className="bg-white border border-[#e3dccb] rounded-2xl p-5 sm:p-6 shadow-xs space-y-6 sticky top-24">
+    <div className="bg-white border border-[#e3dccb] rounded-2xl p-5 sm:p-6 shadow-xs space-y-5 sticky top-24">
       {/* Header */}
       <div className="border-b border-[#e3dccb] pb-4">
         <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm sm:text-base font-black text-[#1a1a1a] uppercase tracking-wide">
@@ -39,6 +39,21 @@ export default function CartOrderSummary({ totalAmount, totalItems, vendorCount,
               ₹{totalAmount?.toLocaleString()}
             </span>
             <span className="block text-[9.5px] text-slate-400 font-semibold">Taxes calculated on confirmation</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Production Safety & Payment Disclaimer */}
+      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/80 space-y-1">
+        <div className="flex items-start gap-2">
+          <FiAlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={15} />
+          <div className="space-y-0.5 text-left">
+            <p className="text-[11px] text-amber-950 font-bold leading-snug">
+              साथ में यह मेसेज की payment भुगतान वेंडर और यूजर संतुष्ट होने पर ही करे, bizreel platform किसी भी प्रकार की वाद विवाद या फ्रॉड के लिए जिम्मेदार नही होगा।
+            </p>
+            <p className="text-[9.5px] text-amber-800 font-medium">
+              (Pay vendor directly only after satisfaction upon delivery/inspection.)
+            </p>
           </div>
         </div>
       </div>

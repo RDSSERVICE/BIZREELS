@@ -226,10 +226,26 @@ export default function BookServiceModal({
           </div>
 
           {/* Direct Vendor Payment Method */}
-          <div className="space-y-2 pt-1">
+          <div className="space-y-2.5 pt-1">
             <label className="block text-[10.5px] font-extrabold text-slate-600 uppercase">
               Payment Method (Pay Directly to Vendor)
             </label>
+
+            {/* Safety & Fraud Protection Advisory */}
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/80 space-y-1">
+              <div className="flex items-start gap-2">
+                <FiAlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={15} />
+                <div className="space-y-0.5 text-left">
+                  <p className="text-[11px] text-amber-950 font-bold leading-tight">
+                    साथ में यह मेसेज की payment भुगतान वेंडर और यूजर संतुष्ट होने पर ही करे, bizreel platform किसी भी प्रकार की वाद विवाद या फ्रॉड के लिए जिम्मेदार नही होगा।
+                  </p>
+                  <p className="text-[9.5px] text-amber-800 font-medium">
+                    (Pay only upon mutual satisfaction after service verification. BizReels is not liable for disputes.)
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-4 gap-1.5">
               {[
                 { id: 'vendor_upi', label: 'UPI / GPay', icon: FiCreditCard, color: 'text-[#d99a3d]' },
