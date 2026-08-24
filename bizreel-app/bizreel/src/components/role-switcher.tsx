@@ -1,4 +1,22 @@
-}
+import { Ionicons } from '@expo/vector-icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import { FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { switchUserRole } from '@/features/auth/api';
+import { useAuth } from '@/features/auth/context';
+
+export type UserRole = 'customer' | 'vendor' | 'creator';
 
 const YELLOW = '#F59E0B';
 const BLACK = '#0F0F12';
@@ -86,7 +104,9 @@ export function RoleSwitcher() {
             <View style={styles.drawerHeader}>
               <View>
                 <Text style={styles.drawerTitle}>Switch Mode</Text>
-                <Text style={styles.drawerSub}>Currently active: <Text style={{ color: YELLOW }}>{activeMeta.label}</Text></Text>
+                <Text style={styles.drawerSub}>
+                  Currently active: <Text style={{ color: YELLOW }}>{activeMeta.label}</Text>
+                </Text>
               </View>
               <Pressable style={styles.closeBtn} onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={16} color="#fff" />
@@ -145,7 +165,6 @@ export function RoleSwitcher() {
 }
 
 const styles = StyleSheet.create({
-  // ── Trigger chip ──
   roleChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -163,8 +182,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.3,
   },
-
-  // ── Modal ──
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -208,8 +225,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // ── Role Options ──
   roleOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -266,4 +281,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
-
