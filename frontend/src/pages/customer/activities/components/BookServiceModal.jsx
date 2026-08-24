@@ -237,7 +237,7 @@ export default function BookServiceModal({
                 <FiAlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={15} />
                 <div className="space-y-0.5 text-left">
                   <p className="text-[11px] text-amber-950 font-bold leading-tight">
-                    साथ में यह मेसेज की payment भुगतान वेंडर और यूजर संतुष्ट होने पर ही करे, bizreel platform किसी भी प्रकार की वाद विवाद या फ्रॉड के लिए जिम्मेदार नही होगा।
+                    कृपया भुगतान तभी करें जब आप और वेंडर दोनों संतुष्ट हों। BizReels प्लेटफ़ॉर्म किसी भी प्रकार के वाद-विवाद या धोखाधड़ी के लिए जिम्मेदार नहीं होगा।
                   </p>
                   <p className="text-[9.5px] text-amber-800 font-medium">
                     (Pay only upon mutual satisfaction after service verification. BizReels is not liable for disputes.)

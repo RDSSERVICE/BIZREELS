@@ -845,22 +845,20 @@ export default function ListingDetailPage() {
                   </div>
 
                   {/* Production Payment Advisory & Fraud Protection Disclaimer Banner */}
-                  <div className="p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border-2 border-amber-400/80 shadow-xs space-y-2">
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border-2 border-amber-400/80 shadow-xs space-y-1.5">
                     <div className="flex items-start gap-2.5">
                       <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-700 shrink-0 mt-0.5">
                         <FiAlertTriangle size={17} className="text-amber-600" />
                       </div>
                       <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h5 className="text-xs font-black text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
-                            <span>⚠️ महत्वपूर्ण भुगतान व सुरक्षा सूचना (Important Safety Advisory)</span>
-                          </h5>
-                        </div>
+                        <h5 className="text-xs font-black text-amber-950 uppercase tracking-wide">
+                          ⚠️ महत्वपूर्ण भुगतान व सुरक्षा सूचना (Payment Safety Advisory)
+                        </h5>
                         <p className="text-xs text-amber-950 font-bold leading-relaxed">
-                          साथ में यह मेसेज की payment भुगतान वेंडर और यूजर संतुष्ट होने पर ही करे, BizReels platform किसी भी प्रकार की वाद विवाद या फ्रॉड के लिए जिम्मेदार नही होगा।
+                          कृपया भुगतान तभी करें जब आप और वेंडर दोनों संतुष्ट हों। BizReels प्लेटफ़ॉर्म किसी भी प्रकार के वाद-विवाद या धोखाधड़ी के लिए जिम्मेदार नहीं होगा।
                         </p>
-                        <p className="text-[11px] text-amber-800/90 font-medium leading-normal">
-                          (Please proceed with payment only after mutual satisfaction between the vendor and user. BizReels platform will not be held responsible for any disputes, damages, or fraudulent transactions.)
+                        <p className="text-[11px] text-amber-800 font-medium leading-normal">
+                          (Please make payment only after mutual satisfaction and verification. BizReels platform is not liable for any disputes or fraud.)
                         </p>
                       </div>
                     </div>
