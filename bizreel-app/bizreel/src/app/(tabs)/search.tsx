@@ -232,6 +232,8 @@ export default function SearchScreen() {
     else refetchCats();
   }, [isQueryActive, refetchListings, refetchCats]);
 
+  const parentCategories = (categories || []).filter((c) => !c.parent_id);
+
   const handlePostRequirementSubmit = () => {
     if (!reqTitle.trim()) {
       Alert.alert('Required Field', 'Please enter a requirement title.');
