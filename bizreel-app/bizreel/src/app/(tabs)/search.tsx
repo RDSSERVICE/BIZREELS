@@ -241,7 +241,7 @@ export default function SearchScreen() {
           style={styles.filterBtn}
           onPress={() => setFilterModalVisible(true)}
           accessibilityLabel="Filter Options">
-          <Ionicons name="options-outline" size={20} color="#fff" />
+          <Ionicons name="options-outline" size={20} color="#0F0F12" />
         </TouchableOpacity>
       </View>
 
@@ -531,6 +531,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: 2,
     borderBottomColor: YELLOW,
+    gap: Spacing.three,
+  },
+  searchBarWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 8,
     gap: Spacing.two,
   },
   searchInput: {
@@ -539,42 +550,32 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: FontWeight.semibold,
   },
-  searchBarInner: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: DARK_CARD,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 9,
-    gap: Spacing.two,
-  },
-  filterIconBtn: {
-    width: 38,
-    height: 38,
+  filterBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 0,
-    backgroundColor: DARK_CARD,
-    borderWidth: 1,
-    borderColor: BORDER,
+    backgroundColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  locationRow: {
+  citySelectorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.two,
-    paddingLeft: Spacing.three,
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.four,
+    backgroundColor: BLACK,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     gap: Spacing.two,
+    marginTop: Spacing.one,
+    marginBottom: Spacing.one,
   },
   gpsDetectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: YELLOW,
     paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 0,
     gap: 4,
   },
@@ -601,6 +602,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     gap: Spacing.two,
+    marginTop: 4,
+    marginBottom: 4,
   },
   radiusLabel: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: '900' },
   radiusChip: {
@@ -615,9 +618,11 @@ const styles = StyleSheet.create({
   radiusChipText: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs },
   radiusChipTextActive: { color: BLACK, fontWeight: '900' },
   filterTabsRow: {
-    paddingVertical: Spacing.two,
+    paddingVertical: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
+    marginTop: Spacing.one,
+    marginBottom: Spacing.two,
   },
   tabsScroll: { paddingHorizontal: Spacing.four, gap: Spacing.two, alignItems: 'center' },
   filterChip: {
