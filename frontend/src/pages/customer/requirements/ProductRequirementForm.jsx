@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import {
   FiShoppingBag, FiDollarSign, FiMapPin, FiUpload, FiImage, FiVideo, FiX, FiTarget, FiAlertCircle, FiCpu, FiCheckCircle, FiLoader, FiCheck
 } from 'react-icons/fi';
@@ -46,6 +47,7 @@ export default function ProductRequirementForm({
   onSubmit
 }) {
   const { bi } = useLanguage();
+  const [isCustomDistrict, setIsCustomDistrict] = useState(false);
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       {/* Title */}
@@ -310,18 +312,45 @@ export default function ProductRequirementForm({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('District *', 'जिला *')}</label>
-            {districtsList.length > 0 ? (
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">{bi('District *', 'जिला *')}</label>
+              {isCustomDistrict && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomDistrict(false);
+                    setDistrict('');
+                  }}
+                  className="text-[9.5px] text-brand-purple hover:underline cursor-pointer"
+                >
+                  {bi('Choose from list', 'सूची से चुनें')}
+                </button>
+              )}
+            </div>
+            {districtsList.length > 0 && !isCustomDistrict ? (
               <select
                 required
                 value={district}
-                onChange={(e) => setDistrict(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'Other') {
+                    setIsCustomDistrict(true);
+                    setDistrict('');
+                  } else {
+                    setIsCustomDistrict(false);
+                    setDistrict(val);
+                  }
+                }}
                 className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               >
                 <option value="">{bi('Select District', 'जिला चुनें')}</option>
+                {district && !districtsList.includes(district) && (
+                  <option value={district}>{district} ({bi('Auto-Detected', 'स्वतः प्राप्त')})</option>
+                )}
                 {districtsList.map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
+                <option value="Other">{bi('➕ Other (Type Manually)', '➕ अन्य (मैन्युअल दर्ज करें)')}</option>
               </select>
             ) : (
               <input
@@ -329,8 +358,9 @@ export default function ProductRequirementForm({
                 required
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                placeholder={bi('e.g. Pune', 'उदाहरण: पुणे')}
+                placeholder={bi('e.g. Pune / Type District Name', 'उदाहरण: पुणे / जिले का नाम')}
                 className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                autoFocus={isCustomDistrict}
               />
             )}
           </div>

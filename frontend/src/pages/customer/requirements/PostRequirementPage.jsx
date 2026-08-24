@@ -162,28 +162,33 @@ export default function PostRequirementPage() {
         }
 
         if (locData && locData.state) {
+          // 1. Set State
           setState(locData.state);
+
+          // 2. Set District (and load districts for that state)
           const dist = locData.district || locData.city || '';
           setDistrict(dist);
+
+          try {
+            const distRes = await api.get(`/v1/location/districts?state=${encodeURIComponent(locData.state)}`);
+            let dList = distRes.data?.districts || [];
+            if (dist && !dList.includes(dist)) {
+              dList = [dist, ...dList];
+            }
+            setDistrictsList(dList);
+          } catch {}
+
+          // 3. Set City / Town / Area
           const areaCity = locData.area || locData.city || locData.tehsil || dist;
           setCity(areaCity);
 
-          // If address is currently empty, optionally suggest the area
-          if (!address && locData.area && locData.area !== areaCity) {
-            setAddress(locData.area);
-          }
-
-          // Fetch districts for this state immediately
-          try {
-            const distRes = await api.get(`/v1/location/districts?state=${encodeURIComponent(locData.state)}`);
-            if (distRes.data?.districts) {
-              setDistrictsList(distRes.data.districts);
-            }
-          } catch {}
+          // 4. Auto-fill full address completely
+          const autoAddress = `${locData.area ? `${locData.area}, ` : ''}${areaCity && areaCity !== locData.area ? `${areaCity}, ` : ''}${dist ? `${dist}, ` : ''}${locData.state} - ${cleanedPin}`;
+          setAddress(autoAddress);
 
           const summary = `${areaCity ? `${areaCity}, ` : ''}${dist ? `${dist}, ` : ''}${locData.state}`;
           setPincodeSuccessInfo(summary);
-          toast.success(`📍 Location Auto-Filled: ${summary}`, {
+          toast.success(`📍 Everything Auto-Filled: ${summary}`, {
             duration: 3500,
             icon: '✅',
           });
