@@ -544,14 +544,18 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 function formatCount(n: number): string {
   if (!n) return '0';
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
 }
+
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
 
 const styles = StyleSheet.create({
   container: {
     width: SCREEN_WIDTH,
-    backgroundColor: '#000',
+    backgroundColor: BLACK,
     position: 'relative',
   },
   mediaTouchable: {
@@ -565,7 +569,7 @@ const styles = StyleSheet.create({
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   playPauseOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -573,15 +577,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   playPauseCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    width: 64,
+    height: 64,
+    borderRadius: 0,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderWidth: 2,
+    borderColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
   },
   heartOverlay: {
     ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerHeartOverlay: {
+    position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -591,97 +602,6 @@ const styles = StyleSheet.create({
     right: 76,
     paddingHorizontal: Spacing.four,
     gap: Spacing.two,
-  },
-  reelBuyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    marginTop: Spacing.two,
-  },
-  reelCartBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  reelCartText: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  reelBuyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: BrandColors.primary,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-  },
-  reelBuyText: {
-    color: '#000',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  taggedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(24, 24, 28, 0.92)',
-    borderRadius: 12,
-    padding: Spacing.two,
-    borderWidth: 1,
-    borderColor: BrandColors.primary,
-    marginBottom: Spacing.one,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-  taggedContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  taggedImage: {
-    width: 38,
-    height: 38,
-    borderRadius: 8,
-  },
-  taggedImageFallback: {
-    width: 38,
-    height: 38,
-    borderRadius: 8,
-    backgroundColor: BrandColors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  taggedTitle: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  taggedPrice: {
-    color: BrandColors.primaryLight,
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  addToCartBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: BrandColors.primary,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
-    borderRadius: 16,
-  centerHeartOverlay: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   infoContainer: {
     position: 'absolute',
@@ -801,6 +721,96 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textShadowColor: 'rgba(0,0,0,0.9)',
     textShadowRadius: 3,
+  },
+  reelBuyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  reelCartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DARK_CARD,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 8,
+    borderRadius: 0,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  reelCartText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+  },
+  reelBuyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: YELLOW,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 8,
+    borderRadius: 0,
+    gap: 6,
+  },
+  reelBuyText: {
+    color: BLACK,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+  },
+  taggedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DARK_CARD,
+    borderRadius: 0,
+    padding: Spacing.two,
+    borderWidth: 1.5,
+    borderColor: YELLOW,
+    marginBottom: Spacing.one,
+  },
+  taggedContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  taggedImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 0,
+  },
+  taggedImageFallback: {
+    width: 38,
+    height: 38,
+    borderRadius: 0,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taggedTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+  },
+  taggedPrice: {
+    color: YELLOW,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+  },
+  addToCartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: YELLOW,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 6,
+    borderRadius: 0,
+  },
+  addToCartBtnText: {
+    color: BLACK,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
   },
   modalOverlay: {
     flex: 1,
