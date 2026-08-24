@@ -67,6 +67,8 @@ export default function BecomeVendorPage({ isEditMode = false }) {
   const [loading, setLoading] = useState(false);
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // 1. Business Type & Vendor Type
   const [businessType, setBusinessType] = useState('Retailer');
@@ -75,6 +77,69 @@ export default function BecomeVendorPage({ isEditMode = false }) {
   // 2. Shop / Business Info
   const [shopName, setShopName] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedSubCategories, setSelectedSubCategories] = useState([]);
+
+  // States for searchable dropdowns & terms modal
+  const [catSearch, setCatSearch] = useState('');
+  const [subSearch, setSubSearch] = useState('');
+  const [showCatDropdown, setShowCatDropdown] = useState(false);
+  const [showSubDropdown, setShowSubDropdown] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
+  const [businessDescription, setBusinessDescription] = useState('');
+  const [shopLogo, setShopLogo] = useState(user?.profile_pic || user?.avatarUrl || '');
+  const [shopCoverImage, setShopCoverImage] = useState('');
+
+  // AI Description & Bio states
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGeneratingAiBio, setIsGeneratingAiBio] = useState(false);
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
+
+  // 3. Contact Info
+  const [mobileNumber, setMobileNumber] = useState(user?.phone || '');
+  const [whatsappNumber, setWhatsappNumber] = useState(user?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [website, setWebsite] = useState('');
+
+  // 4. Business Address
+  const [pincode, setPincode] = useState('');
+  const [stateName, setStateName] = useState('Madhya Pradesh');
+  const [district, setDistrict] = useState('Indore');
+  const [city, setCity] = useState('Indore');
+  const [areaLocality, setAreaLocality] = useState('');
+  const [fullAddress, setFullAddress] = useState('');
+  const [googleMapLocation, setGoogleMapLocation] = useState('');
+
+  // 5. Delivery & Service Area
+  const [homeDeliveryEnabled, setHomeDeliveryEnabled] = useState(true);
+  const [homeDeliveryRadius, setHomeDeliveryRadius] = useState('5 km');
+  const [homeDeliveryMinOrder, setHomeDeliveryMinOrder] = useState('200');
+  const [homeDeliveryCharge, setHomeDeliveryCharge] = useState('30');
+
+  const [courierByVendor, setCourierByVendor] = useState(true);
+  const [customerVisitShop, setCustomerVisitShop] = useState(true);
+
+  const [serviceAtCustomerLocation, setServiceAtCustomerLocation] = useState(false);
+  const [serviceRadius, setServiceRadius] = useState('10 km');
+  const [serviceMinOrder, setServiceMinOrder] = useState('500');
+
+  // 6. Business Timing
+  const [openingTime, setOpeningTime] = useState('09:00 AM');
+  const [closingTime, setClosingTime] = useState('09:00 PM');
+  const [weeklyOff, setWeeklyOff] = useState('Sunday');
+  const [open24x7, setOpen24x7] = useState(false);
+
+  const toggleWeeklyOffDay = (day) => {
+    let currentDays = weeklyOff === 'None' ? [] : weeklyOff.split(', ').filter(Boolean);
+    if (currentDays.includes(day)) {
+      currentDays = currentDays.filter(d => d !== day);
+    } else {
+      currentDays = [...currentDays, day];
+    }
+    setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
+  };
+
   const { data: categoriesDataRes } = useListCategoriesQuery();
   const categoriesList = categoriesDataRes?.items || categoriesDataRes?.categories || (Array.isArray(categoriesDataRes) ? categoriesDataRes : []);
 
@@ -103,16 +168,6 @@ export default function BecomeVendorPage({ isEditMode = false }) {
     return data;
   }, [categoriesList, vendorType]);
 
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedSubCategories, setSelectedSubCategories] = useState([]);
-
-  // States for searchable dropdowns & terms modal
-  const [catSearch, setCatSearch] = useState('');
-  const [subSearch, setSubSearch] = useState('');
-  const [showCatDropdown, setShowCatDropdown] = useState(false);
-  const [showSubDropdown, setShowSubDropdown] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
-
   // Reset category selections when vendorType changes to prevent cross-type garbage data
   useEffect(() => {
     if (isHydrated) {
@@ -121,16 +176,7 @@ export default function BecomeVendorPage({ isEditMode = false }) {
       setCatSearch('');
       setSubSearch('');
     }
-  }, [vendorType]);
-
-  const [businessDescription, setBusinessDescription] = useState('');
-  const [shopLogo, setShopLogo] = useState(user?.profile_pic || user?.avatarUrl || '');
-  const [shopCoverImage, setShopCoverImage] = useState('');
-
-  // AI Description & Bio states
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [isGeneratingAiBio, setIsGeneratingAiBio] = useState(false);
-  const [isListeningVoice, setIsListeningVoice] = useState(false);
+  }, [vendorType, isHydrated]);
 
   const handleGenerateAiBio = async () => {
     const sName = shopName.trim() || displayName.trim() || 'Our Business';
@@ -199,54 +245,6 @@ export default function BecomeVendorPage({ isEditMode = false }) {
     recognition.onend = () => setIsListeningVoice(false);
     recognition.start();
   };
-
-  // 3. Contact Info
-  const [mobileNumber, setMobileNumber] = useState(user?.phone || '');
-  const [whatsappNumber, setWhatsappNumber] = useState(user?.phone || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [website, setWebsite] = useState('');
-
-  // 4. Business Address
-  const [pincode, setPincode] = useState('');
-  const [stateName, setStateName] = useState('Madhya Pradesh');
-  const [district, setDistrict] = useState('Indore');
-  const [city, setCity] = useState('Indore');
-  const [areaLocality, setAreaLocality] = useState('');
-  const [fullAddress, setFullAddress] = useState('');
-  const [googleMapLocation, setGoogleMapLocation] = useState('');
-
-  // 5. Delivery & Service Area
-  const [homeDeliveryEnabled, setHomeDeliveryEnabled] = useState(true);
-  const [homeDeliveryRadius, setHomeDeliveryRadius] = useState('5 km');
-  const [homeDeliveryMinOrder, setHomeDeliveryMinOrder] = useState('200');
-  const [homeDeliveryCharge, setHomeDeliveryCharge] = useState('30');
-
-  const [courierByVendor, setCourierByVendor] = useState(true);
-  const [customerVisitShop, setCustomerVisitShop] = useState(true);
-
-  const [serviceAtCustomerLocation, setServiceAtCustomerLocation] = useState(false);
-  const [serviceRadius, setServiceRadius] = useState('10 km');
-  const [serviceMinOrder, setServiceMinOrder] = useState('500');
-
-  // 6. Business Timing
-  const [openingTime, setOpeningTime] = useState('09:00 AM');
-  const [closingTime, setClosingTime] = useState('09:00 PM');
-  const [weeklyOff, setWeeklyOff] = useState('Sunday');
-  const [open24x7, setOpen24x7] = useState(false);
-
-  const toggleWeeklyOffDay = (day) => {
-    let currentDays = weeklyOff === 'None' ? [] : weeklyOff.split(', ').filter(Boolean);
-    if (currentDays.includes(day)) {
-      currentDays = currentDays.filter(d => d !== day);
-    } else {
-      currentDays = [...currentDays, day];
-    }
-    setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
-  };
-
-  // 7. Terms Declaration
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   // Hydrate form data when user already has vendorProfile (Edit Mode)
   useEffect(() => {
