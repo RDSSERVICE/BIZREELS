@@ -7,6 +7,7 @@ import {
   FiMenu, FiX, FiArrowRight, FiSearch, FiGlobe,
 } from 'react-icons/fi';
 import { useLanguage } from '../context/LanguageContext';
+import WelcomeModal from '../components/common/WelcomeModal';
 
 /* ─── Brand tokens (from design image) ───────────────────────── */
 const CREAM    = '#F2EDE4';
@@ -543,6 +544,9 @@ const PublicLayout = () => {
           </div>
         </div>
       </footer>
+
+      {/* ── Welcome Dialog & Notification ── */}
+      <WelcomeModal />
 
     </div>
   );
