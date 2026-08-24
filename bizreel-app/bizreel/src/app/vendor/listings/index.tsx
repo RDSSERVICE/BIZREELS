@@ -399,292 +399,65 @@ export default function VendorCatalogScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
+  container: { flex: 1, backgroundColor: BLACK },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.four, paddingVertical: Spacing.three,
+    borderBottomWidth: 2, borderBottomColor: YELLOW,
   },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#1c1c1e',
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900' },
+  addBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: YELLOW, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 0,
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: FontWeight.bold },
-  addHeaderBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: BrandColors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+  addBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: DARK_CARD, marginHorizontal: Spacing.four, marginVertical: Spacing.three,
+    paddingHorizontal: Spacing.three, paddingVertical: 9,
+    borderWidth: 1, borderColor: BORDER, gap: Spacing.two,
   },
-
-  tabsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    gap: Spacing.two,
-    backgroundColor: '#18191e',
-    borderBottomWidth: 1,
-    borderBottomColor: '#222',
+  searchInput: { flex: 1, color: '#fff', fontSize: FontSize.sm },
+  listContent: { paddingHorizontal: Spacing.four, paddingBottom: 80, gap: Spacing.three },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.three },
+  emptyText: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.sm, textAlign: 'center' },
+  listingCard: {
+    flexDirection: 'row', backgroundColor: DARK_CARD,
+    borderWidth: 1, borderColor: BORDER, overflow: 'hidden',
   },
-  tabPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 16,
-    backgroundColor: '#242630',
-    gap: 6,
+  listingImage: { width: 90, height: 90 },
+  listingImageFallback: {
+    width: 90, height: 90, backgroundColor: BLACK,
+    alignItems: 'center', justifyContent: 'center',
   },
-  tabPillActive: {
-    backgroundColor: '#D97706',
+  listingBody: { flex: 1, padding: Spacing.two, justifyContent: 'space-between' },
+  listingTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900' },
+  listingCategory: { color: 'rgba(255,255,255,0.5)', fontSize: 10 },
+  listingMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  listingPrice: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900' },
+  listingActions: { flexDirection: 'row', gap: Spacing.two },
+  actionBtn: {
+    width: 28, height: 28, borderRadius: 0, backgroundColor: BLACK,
+    borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center',
   },
-  tabPillText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
-    fontWeight: FontWeight.bold,
+  analyticsBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(245,158,11,0.12)', paddingHorizontal: 8, paddingVertical: 3,
+    borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)',
   },
-  tabPillTextActive: {
-    color: '#fff',
-  },
-  countBadge: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 8,
-  },
-  countBadgeActive: {
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  countText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-  },
-
-  filterControlRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    gap: Spacing.two,
-  },
-  searchBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#2c2c2e',
-  },
-  searchInput: {
-    flex: 1,
-    color: '#fff',
-    fontSize: FontSize.xs,
-  },
-  sortBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#27272a',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 12,
-    gap: 4,
-  },
-  sortBtnText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: FontWeight.bold,
-  },
-
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  listContent: { padding: Spacing.three, gap: Spacing.three },
-
-  card: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 14,
-    padding: Spacing.three,
-    gap: Spacing.two,
-    borderWidth: 1,
-    borderColor: '#2c2c2e',
-  },
-  cardSelected: {
-    borderColor: BrandColors.primary,
-    backgroundColor: '#24201b',
-  },
-  cardHidden: {
-    opacity: 0.6,
-  },
-
-  cardMainRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  checkbox: {
-    padding: 2,
-  },
-  cardImage: {
-    width: 52,
-    height: 52,
-    borderRadius: 10,
-  },
-  cardImageFallback: {
-    width: 52,
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: '#2c2c2e',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  cardTitle: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  categorySubText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 9,
-    fontWeight: FontWeight.bold,
-  },
-  metaBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-  },
-  priceText: {
-    color: '#10B981',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  typeBadge: {
-    backgroundColor: '#27272a',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-  },
-  typeBadgeText: {
-    color: '#fff',
-    fontSize: 8,
-    fontWeight: FontWeight.bold,
-  },
+  analyticsBadgeText: { color: YELLOW, fontSize: 9, fontWeight: '900' },
   statusBadge: {
-    backgroundColor: 'rgba(16,185,129,0.2)',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1,
   },
-  statusBadgeDraft: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  statusBadgeText: {
-    color: '#10B981',
-    fontSize: 8,
-    fontWeight: FontWeight.bold,
-  },
-  statusBadgeTextDraft: {
-    color: 'rgba(255,255,255,0.6)',
-  },
-
-  stockPill: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-  },
-  stockPillLow: {
-    backgroundColor: 'rgba(217,119,6,0.2)',
-  },
-  stockPillText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 8,
-    fontWeight: FontWeight.bold,
-  },
-  stockPillTextLow: {
-    color: '#D97706',
-  },
-
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  metricItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  metricValue: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-  },
-  dateText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 9,
-    marginLeft: 4,
-  },
-
-  actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionIconBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-    gap: 8,
-  },
-  emptyTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
-  emptyDesc: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs, textAlign: 'center' },
-  createListingBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: BrandColors.primary,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
-    marginTop: Spacing.two,
-  },
-  createListingBtnText: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  statusActive: { backgroundColor: 'rgba(34,197,94,0.1)', borderColor: '#22C55E' },
+  statusInactive: { backgroundColor: 'rgba(239,68,68,0.1)', borderColor: '#EF4444' },
+  statusText: { fontSize: 8, fontWeight: '900' },
+  statusTextActive: { color: '#22C55E' },
+  statusTextInactive: { color: '#EF4444' },
 });

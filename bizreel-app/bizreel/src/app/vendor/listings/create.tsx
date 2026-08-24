@@ -470,144 +470,72 @@ export default function CreateListingScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
+  container: { flex: 1, backgroundColor: BLACK },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.two,
+    paddingHorizontal: Spacing.four, paddingVertical: Spacing.three,
+    borderBottomWidth: 2, borderBottomColor: YELLOW,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1c1c1e',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 34, height: 34, borderRadius: 0, backgroundColor: DARK_CARD,
+    borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center',
   },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1c1c1e',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
-
-  scrollContent: { padding: Spacing.three, gap: Spacing.three },
-
+  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900', flex: 1 },
+  scrollContent: { padding: Spacing.four, gap: Spacing.four, paddingBottom: 100 },
   sectionCard: {
-    backgroundColor: '#1a1c24',
-    borderRadius: 16,
-    padding: Spacing.three,
-    gap: Spacing.two,
-    borderWidth: 1,
-    borderColor: '#282b37',
+    backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.four, gap: Spacing.three,
   },
-  sectionHeaderTitle: {
-    color: '#D97706',
-    fontSize: 11,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 0.5,
+  sectionTitle: {
+    color: YELLOW, fontSize: 9, fontWeight: '900', letterSpacing: 1, marginBottom: 2,
+    borderLeftWidth: 3, borderLeftColor: YELLOW, paddingLeft: 8,
   },
-
-  typeRow: { flexDirection: 'row', gap: Spacing.two },
-  typeChip: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#222530',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#2e3242',
-  },
-  typeChipActive: {
-    backgroundColor: BrandColors.primary,
-    borderColor: BrandColors.primary,
-  },
-  typeChipText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  typeChipTextActive: { color: '#fff' },
-
-  fieldLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-  },
-  autoGenBtnText: {
-    color: BrandColors.primaryLight,
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-  },
-  chipScroll: { gap: 8, paddingVertical: 4 },
-  chip: {
-    backgroundColor: '#262936',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  chipActive: { backgroundColor: BrandColors.primary },
-  chipText: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
-  chipTextActive: { color: '#fff', fontWeight: FontWeight.bold },
-
-  fieldGroup: { gap: 4 },
+  label: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: '700', marginBottom: 4 },
   input: {
-    backgroundColor: '#20232e',
-    color: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 10,
-    fontSize: FontSize.xs,
-    borderWidth: 1,
-    borderColor: '#2d3040',
+    backgroundColor: BLACK, color: '#fff', fontSize: FontSize.sm,
+    borderWidth: 1, borderColor: BORDER, paddingHorizontal: Spacing.three, paddingVertical: 10,
   },
-  row: { flexDirection: 'row', gap: Spacing.two },
-
+  textArea: { minHeight: 80, textAlignVertical: 'top' },
+  picker: {
+    backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, color: '#fff',
+  },
+  row: { flexDirection: 'row', gap: Spacing.three },
+  halfInput: { flex: 1 },
+  typeToggleRow: { flexDirection: 'row', gap: Spacing.two },
+  typeBtn: {
+    flex: 1, paddingVertical: 10, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: BLACK, alignItems: 'center',
+  },
+  typeBtnActive: { backgroundColor: YELLOW, borderColor: YELLOW },
+  typeBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: '900' },
+  typeBtnTextActive: { color: BLACK },
+  imagePickerBox: {
+    height: 100, backgroundColor: BLACK, borderWidth: 2, borderColor: BORDER,
+    alignItems: 'center', justifyContent: 'center', gap: 6,
+  },
+  imagePickerText: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs },
+  imageThumb: { width: 80, height: 80, marginRight: Spacing.two },
+  discountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   discountBadge: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: YELLOW, paddingHorizontal: 10, paddingVertical: 4,
   },
-  discountBadgeText: { color: '#fff', fontSize: 10, fontWeight: FontWeight.bold },
-
-  uploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#20232e',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: BrandColors.primary,
-    borderStyle: 'dashed',
+  discountText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+  skuRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  skuBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: DARK_CARD, borderWidth: 1, borderColor: YELLOW,
+    paddingHorizontal: 10, paddingVertical: 8,
   },
-  uploadBtnText: { color: BrandColors.primaryLight, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
-
+  skuBtnText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
   submitBtn: {
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.two,
+    backgroundColor: YELLOW, paddingVertical: 16,
+    alignItems: 'center', justifyContent: 'center', marginTop: Spacing.two,
   },
-  submitBtnText: {
-    color: '#fff',
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 1,
-  },
+  submitBtnText: { color: BLACK, fontSize: FontSize.base, fontWeight: '900', letterSpacing: 0.5 },
+  errorText: { color: '#EF4444', fontSize: FontSize.xs },
 });

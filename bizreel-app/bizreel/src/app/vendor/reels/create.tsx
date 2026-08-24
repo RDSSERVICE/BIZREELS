@@ -575,399 +575,76 @@ export default function CreateReelScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
+  container: { flex: 1, backgroundColor: BLACK },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.two,
+    paddingHorizontal: Spacing.four, paddingVertical: Spacing.three,
+    borderBottomWidth: 2, borderBottomColor: YELLOW,
   },
   backBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#1c1c1e',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#1c1c1e',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-    marginHorizontal: 8,
-  },
-
-  stepHeaderCard: {
-    backgroundColor: '#16181f',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-    gap: Spacing.two,
-  },
-  stepIndicatorPill: {
-    backgroundColor: 'rgba(217,119,6,0.15)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BrandColors.primary,
-  },
-  stepIndicatorText: {
-    color: '#D97706',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 0.5,
-  },
-  stepPillsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  stepBtn: {
-    flex: 1,
-    backgroundColor: '#20232e',
-    paddingVertical: 8,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepBtnActive: {
-    backgroundColor: '#D97706',
-  },
-  stepBtnDone: {
-    backgroundColor: 'rgba(16,185,129,0.2)',
-  },
-  stepBtnText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-  },
-  stepBtnTextActive: {
-    color: '#fff',
-  },
-
-  scrollContent: {
-    padding: Spacing.three,
-  },
-  wizardStepContainer: {
-    gap: Spacing.four,
-  },
-  fieldGroup: {
-    gap: 8,
-  },
-  labelTitle: {
-    color: '#D97706',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 0.5,
-  },
-  typeGrid: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  typeCard: {
-    flex: 1,
-    backgroundColor: '#1d1f27',
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#2c2e3a',
-  },
-  typeCardActive: {
-    backgroundColor: '#D97706',
-    borderColor: '#D97706',
-  },
-  typeText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-    fontWeight: FontWeight.bold,
-  },
-  typeTextActive: {
-    color: '#fff',
-  },
-
-  darkSectionCard: {
-    backgroundColor: '#1a1c24',
-    borderRadius: 16,
-    padding: Spacing.three,
-    gap: Spacing.two,
-    borderWidth: 1,
-    borderColor: '#292c39',
-  },
-  darkSectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  darkSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  darkSectionTitle: {
-    color: '#D97706',
-    fontSize: 11,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 0.5,
-  },
-  availableCountText: {
-    color: '#D97706',
-    fontSize: 9,
-    fontWeight: FontWeight.bold,
-  },
-
-  subLabel: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-    marginTop: 4,
-  },
-  dropdownRow: {
-    marginTop: 4,
-  },
-  chipScroll: {
-    gap: 8,
-    paddingVertical: 4,
-  },
-  chip: {
-    backgroundColor: '#262936',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  chipActive: {
-    backgroundColor: BrandColors.primary,
-  },
-  chipText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-  },
-  chipTextActive: {
-    color: '#fff',
-    fontWeight: FontWeight.bold,
-  },
-
-  purposeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  purposeCard: {
-    width: '48%',
-    backgroundColor: '#1d1f27',
-    borderRadius: 14,
-    padding: Spacing.three,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: '#2c2e3a',
-  },
-  purposeCardActive: {
-    backgroundColor: '#352719',
-    borderColor: '#D97706',
-  },
-  purposeHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  purposeIconCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(217,119,6,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  purposeIconCircleActive: {
-    backgroundColor: '#D97706',
-  },
-  purposeLabel: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: FontWeight.bold,
-    marginTop: 4,
-  },
-  purposeLabelActive: {
-    color: '#D97706',
-  },
-  purposeDesc: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 9,
-  },
-
-  optionBRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 6,
-  },
-  cantFindText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-  },
-  optionBBtn: {
-    backgroundColor: 'rgba(217,119,6,0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: BrandColors.primary,
-  },
-  optionBBtnText: {
-    color: BrandColors.primaryLight,
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-  },
-
-  captionInput: {
-    backgroundColor: '#1a1c24',
-    borderRadius: 14,
-    padding: Spacing.three,
-    color: '#fff',
-    fontSize: FontSize.xs,
-    borderWidth: 1,
-    borderColor: '#292c39',
-    textAlignVertical: 'top',
-  },
-
-  mediaTabRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  mediaTabBtn: {
-    flex: 1,
-    backgroundColor: '#242634',
-    paddingVertical: 9,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  mediaTabBtnActive: {
-    backgroundColor: BrandColors.primary,
-  },
-  mediaTabText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-  },
-  mediaTabTextActive: {
-    color: '#fff',
-  },
-
-  dropzoneBox: {
-    gap: 8,
-  },
-  uploadCounterRow: {
-    alignSelf: 'flex-end',
-    backgroundColor: 'rgba(217,119,6,0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  uploadCounterText: {
-    color: '#D97706',
-    fontSize: 9,
-    fontWeight: FontWeight.bold,
-  },
-  dropzoneArea: {
-    backgroundColor: '#20232e',
-    borderRadius: 14,
-    paddingVertical: 24,
-    paddingHorizontal: Spacing.three,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: BrandColors.primary,
-    borderStyle: 'dashed',
-    gap: 6,
-  },
-  dropzoneTitle: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  dropzoneSub: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 9,
-  },
-
-  urlInput: {
-    backgroundColor: '#20232e',
-    borderRadius: 12,
-    padding: Spacing.three,
-    color: '#fff',
-    fontSize: FontSize.xs,
-  },
-
-  uploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#20232e',
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
-  },
-  uploadBtnText: {
-    color: BrandColors.primaryLight,
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  checkboxText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 10,
-  },
-
-  nextStepBtn: {
-    backgroundColor: BrandColors.primary,
-    paddingVertical: 14,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nextStepBtnText: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 0.5,
-  },
-
-  publishBtn: {
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  publishBtnText: {
-    color: '#fff',
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 1,
-  },
+    width: 34, height: 34, borderRadius: 0, backgroundColor: DARK_CARD,
+    borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center',
+  },
+  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900', flex: 1 },
+  scrollContent: { padding: Spacing.four, gap: Spacing.four, paddingBottom: 120 },
+  sectionCard: {
+    backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.four, gap: Spacing.three,
+  },
+  sectionTitle: {
+    color: YELLOW, fontSize: 9, fontWeight: '900', letterSpacing: 1, marginBottom: 2,
+    borderLeftWidth: 3, borderLeftColor: YELLOW, paddingLeft: 8,
+  },
+  label: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: '700', marginBottom: 4 },
+  input: {
+    backgroundColor: BLACK, color: '#fff', fontSize: FontSize.sm,
+    borderWidth: 1, borderColor: BORDER, paddingHorizontal: Spacing.three, paddingVertical: 10,
+  },
+  textArea: { minHeight: 80, textAlignVertical: 'top' },
+  videoPickerBox: {
+    height: 160, backgroundColor: BLACK, borderWidth: 2, borderColor: BORDER,
+    alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  videoPickerText: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs },
+  videoThumb: { width: '100%', height: 160 },
+  playOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center',
+  },
+  thumbnailBox: {
+    height: 100, backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER,
+    alignItems: 'center', justifyContent: 'center', gap: 4,
+  },
+  thumbnailThumb: { width: '100%', height: 100 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  tag: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: YELLOW,
+    paddingHorizontal: 8, paddingVertical: 4,
+  },
+  tagText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
+  addTagBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER,
+    paddingHorizontal: 8, paddingVertical: 4,
+  },
+  addTagBtnText: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs },
+  submitBtn: {
+    backgroundColor: YELLOW, paddingVertical: 16,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  submitBtnText: { color: BLACK, fontSize: FontSize.base, fontWeight: '900', letterSpacing: 0.5 },
+  progressBar: { height: 3, backgroundColor: YELLOW, marginBottom: Spacing.two },
+  progressText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900', textAlign: 'center' },
+  aiBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: YELLOW,
+    paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'flex-start',
+  },
+  aiBtnText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
 });
