@@ -451,6 +451,36 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
           <Text style={styles.actionCount}>Share</Text>
         </TouchableOpacity>
 
+        {/* Direct Chat with Seller Button */}
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => {
+            const recipientId = (reel as any).creatorId || (reel as any).creator || (reel as any).vendor_id?._id || (reel as any).vendor_id || (reel as any).user_id;
+            const recipientName = reel.creatorName || 'Seller';
+            const recipientAvatar = reel.creatorAvatar || '';
+
+            if (!recipientId) {
+              Alert.alert('Seller Info', 'Could not open chat for this seller.');
+              return;
+            }
+
+            router.push({
+              pathname: '/messages/[id]' as any,
+              params: {
+                id: `direct_${recipientId}`,
+                recipientId,
+                name: recipientName,
+                avatar: recipientAvatar,
+              },
+            } as any);
+          }}
+          accessibilityLabel="Chat with Seller">
+          <View style={styles.actionIconCircle}>
+            <Ionicons name="chatbubble-ellipses-outline" size={24} color="#F59E0B" />
+          </View>
+          <Text style={styles.actionCount}>Chat</Text>
+        </TouchableOpacity>
+
         {/* Save / Bookmark Button */}
         <TouchableOpacity style={styles.actionBtn} onPress={handleSaveButton} accessibilityLabel="Bookmark">
           <View style={styles.actionIconCircle}>

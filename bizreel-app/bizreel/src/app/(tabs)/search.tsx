@@ -463,12 +463,36 @@ export default function SearchScreen() {
                     <View style={styles.resultPriceRow}>
                       <Text style={styles.resultPrice}>₹{price}</Text>
 
-                      <TouchableOpacity
-                        style={styles.addCartSmallBtn}
-                        onPress={() => addToCartMutation.mutate({ listing_id: item._id, quantity: 1 })}>
-                        <Ionicons name="add" size={14} color="#fff" />
-                        <Text style={styles.addCartSmallText}>Add</Text>
-                      </TouchableOpacity>
+                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                        <TouchableOpacity
+                          style={styles.chatSmallBtn}
+                          onPress={() => {
+                            const recipientId = item.vendor?._id || item.vendor?.id || item.vendor_id || item.user_id;
+                            const vendorName = item.vendor?.businessName || item.vendor?.name || 'Seller';
+                            if (!recipientId) {
+                              Alert.alert('Seller Info', 'Seller details not available for this item.');
+                              return;
+                            }
+                            router.push({
+                              pathname: '/messages/[id]' as any,
+                              params: {
+                                id: `direct_${recipientId}`,
+                                recipientId,
+                                name: vendorName,
+                                avatar: item.vendor?.avatarUrl || '',
+                              },
+                            } as any);
+                          }}>
+                          <Ionicons name="chatbubble-ellipses-outline" size={14} color={YELLOW} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.addCartSmallBtn}
+                          onPress={() => addToCartMutation.mutate({ listing_id: item._id, quantity: 1 })}>
+                          <Ionicons name="add" size={14} color={BLACK} />
+                          <Text style={styles.addCartSmallText}>Add</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -896,6 +920,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 0,
     gap: 2,
+  },
+  chatSmallBtn: {
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addCartSmallText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
   browseScroll: { padding: Spacing.four, gap: Spacing.four },

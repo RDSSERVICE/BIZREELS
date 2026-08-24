@@ -202,8 +202,13 @@ export default function ChatInboxScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
+  container: { flex: 1, backgroundColor: BLACK },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -211,17 +216,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: BORDER,
+    backgroundColor: BLACK,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#1c1c1e',
+    width: 36,
+    height: 36,
+    borderRadius: 0,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900' },
 
   tabBar: {
     flexDirection: 'row',
@@ -229,9 +237,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     gap: Spacing.two,
-    backgroundColor: '#18191e',
+    backgroundColor: BLACK,
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: BORDER,
   },
   tabBtn: {
     flex: 1,
@@ -239,34 +247,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: '#242630',
+    borderRadius: 0,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
     gap: 6,
   },
   tabBtnActive: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
   },
   tabText: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 11,
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.semibold,
   },
   tabTextActive: {
-    color: '#fff',
+    color: BLACK,
+    fontWeight: '900',
   },
 
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1c1c1e',
+    backgroundColor: BLACK,
     marginHorizontal: Spacing.three,
     marginTop: Spacing.two,
     paddingHorizontal: Spacing.three,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: 0,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#2c2c2e',
+    borderColor: BORDER,
   },
   searchInput: {
     flex: 1,
@@ -280,44 +292,46 @@ const styles = StyleSheet.create({
   threadCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1c1c1e',
+    backgroundColor: DARK_CARD,
     padding: Spacing.three,
-    borderRadius: 16,
+    borderRadius: 0,
     gap: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2c2c2e',
+    borderColor: BORDER,
   },
   avatarContainer: {
     position: 'relative',
   },
   avatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 0,
   },
   avatarFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: BrandColors.primary,
+    width: 44,
+    height: 44,
+    borderRadius: 0,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#fff',
+    color: YELLOW,
     fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   onlineDot: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#10B981',
-    borderWidth: 2,
-    borderColor: '#1c1c1e',
+    bottom: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 0,
+    backgroundColor: YELLOW,
+    borderWidth: 1,
+    borderColor: BLACK,
   },
 
   threadDetails: {
@@ -332,7 +346,7 @@ const styles = StyleSheet.create({
   participantName: {
     color: '#fff',
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
     flex: 1,
   },
   timeText: {
@@ -350,15 +364,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   unreadBadge: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 0,
   },
   unreadText: {
-    color: '#fff',
+    color: BLACK,
     fontSize: 9,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
 
   emptyContainer: {
@@ -367,6 +381,6 @@ const styles = StyleSheet.create({
     paddingVertical: 50,
     gap: 8,
   },
-  emptyTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  emptyTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900' },
   emptyDesc: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs, textAlign: 'center' },
 });
