@@ -272,35 +272,8 @@ export default function VendorProfilePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="w-12 h-12 border-4 border-brand-purple border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-semibold text-text-tertiary">Loading premium profile...</p>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="text-center py-20 glass border border-border rounded-2xl max-w-lg mx-auto">
-        <FiAlertTriangle className="mx-auto text-brand-orange w-12 h-12 mb-4" />
-        <h3 className="font-bold text-base text-text-primary">Vendor Profile Not Found</h3>
-        <p className="text-xs text-text-tertiary mt-2">This business profile may have been closed or is temporarily unavailable.</p>
-        <button onClick={() => navigate(-1)} className="mt-4 px-4 py-2 bg-brand-purple text-white font-bold text-xs rounded-xl shadow-premium">
-          Go Back
-        </button>
-      </div>
-    );
-  }
-
-  // Filter listings
-  const products = listings.filter(l => l.type === 'product');
-  const services = listings.filter(l => l.type === 'service');
-  const videosList = posts.filter(p => p.mediaType === 'video' || p.videoUrl?.endsWith('.mp4'));
-
-  const vendorName = profile.shop_name || profile.business_name || profile.name || 'Vendor Profile';
-  const vendorAvatarUrl = profile.avatar || profile.logo || profile.profile_pic
+  const vendorName = profile?.shop_name || profile?.business_name || profile?.name || 'Vendor Profile';
+  const vendorAvatarUrl = profile?.avatar || profile?.logo || profile?.profile_pic
     ? resolveMediaUrl(profile.avatar || profile.logo || profile.profile_pic)
     : 'https://bizreels.in/logo.png';
   const canonicalUrl = `https://bizreels.in/customer/vendor/${vendorId}`;
@@ -348,6 +321,33 @@ export default function VendorProfilePage() {
 
     return [localBizSchema, breadcrumbs];
   }, [profile, vendorName, vendorAvatarUrl, canonicalUrl]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <div className="w-12 h-12 border-4 border-brand-purple border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-semibold text-text-tertiary">Loading premium profile...</p>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="text-center py-20 glass border border-border rounded-2xl max-w-lg mx-auto">
+        <FiAlertTriangle className="mx-auto text-brand-orange w-12 h-12 mb-4" />
+        <h3 className="font-bold text-base text-text-primary">Vendor Profile Not Found</h3>
+        <p className="text-xs text-text-tertiary mt-2">This business profile may have been closed or is temporarily unavailable.</p>
+        <button onClick={() => navigate(-1)} className="mt-4 px-4 py-2 bg-brand-purple text-white font-bold text-xs rounded-xl shadow-premium">
+          Go Back
+        </button>
+      </div>
+    );
+  }
+
+  // Filter listings
+  const products = listings.filter(l => l.type === 'product');
+  const services = listings.filter(l => l.type === 'service');
+  const videosList = posts.filter(p => p.mediaType === 'video' || p.videoUrl?.endsWith('.mp4'));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in relative pb-10">

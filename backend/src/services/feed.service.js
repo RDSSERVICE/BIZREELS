@@ -19,7 +19,7 @@ const buildFeed = async ({
   type = 'all',
   lat = null,
   lng = null,
-  radius_km = 10.0,
+  radius_km = null,
   cursor = null,
   limit = 20,
   user_id = null,
@@ -29,7 +29,7 @@ const buildFeed = async ({
   reelsOnly = false
 } = {}) => {
   const finalUserId = user_id || userId;
-  const finalRadiusKm = radiusKm !== null ? radiusKm : radius_km;
+  const finalRadiusKm = radiusKm !== null ? radiusKm : (radius_km !== null ? radius_km : null);
   const finalReelsOnly = reels_only || reelsOnly;
 
   // If type is 'all' and not reelsOnly, we fetch both Reels and Listings
@@ -39,7 +39,7 @@ const buildFeed = async ({
   const qListings = { isDeleted: { $ne: true }, status: 'published', ...notTestFilter() };
   const qReels = { isDeleted: { $ne: true }, status: 'published', ...notTestFilter() };
 
-  const poolSize = Math.max(limit * 5, 40);
+  const poolSize = Math.max(limit * 5, 50);
   let listingDocs = [];
   let reelDocs = [];
 
@@ -67,6 +67,16 @@ const buildFeed = async ({
     } else {
       listingDocs = await Listing.find(qListings).sort({ _id: -1 }).limit(poolSize).lean();
     }
+
+    // Backfill listings if geo-filter returned fewer than needed and no strict radius was demanded
+    if (!finalRadiusKm && listingDocs.length < poolSize) {
+      const existingIds = new Set(listingDocs.map(d => String(d._id)));
+      const extraListings = await Listing.find({ ...qListings, _id: { $nin: Array.from(existingIds) } })
+        .sort({ _id: -1 })
+        .limit(poolSize - listingDocs.length)
+        .lean();
+      listingDocs = [...listingDocs, ...extraListings];
+    }
   }
 
   // Query Reels
@@ -92,6 +102,16 @@ const buildFeed = async ({
       }
     } else {
       reelDocs = await Reel.find(qReels).sort({ _id: -1 }).limit(poolSize).lean();
+    }
+
+    // Backfill reels if geo-filter returned fewer than needed and no strict radius was demanded
+    if (!finalRadiusKm && reelDocs.length < poolSize) {
+      const existingIds = new Set(reelDocs.map(d => String(d._id)));
+      const extraReels = await Reel.find({ ...qReels, _id: { $nin: Array.from(existingIds) } })
+        .sort({ _id: -1 })
+        .limit(poolSize - reelDocs.length)
+        .lean();
+      reelDocs = [...reelDocs, ...extraReels];
     }
   }
 
@@ -195,7 +215,7 @@ const buildFeed = async ({
 
   if (allUserIds.length > 0) {
     const users = await User.find({ _id: { $in: allUserIds } })
-      .select('name profile_pic avatarUrl')
+      .select('name profile_pic avatarUrl shop_name business_name location city address')
       .lean();
     const umap = {};
     for (const u of users) {
@@ -208,9 +228,14 @@ const buildFeed = async ({
         const userObj = {
           id: u._id.toString(),
           _id: u._id.toString(),
-          name: u.name,
+          name: u.shop_name || u.business_name || u.name,
+          shop_name: u.shop_name,
+          business_name: u.business_name,
           profile_pic: u.profile_pic || u.avatarUrl,
           avatarUrl: u.avatarUrl || u.profile_pic,
+          location: u.location,
+          city: u.city || u.location?.city,
+          address: u.address || u.location?.address,
         };
         if (r.postType === 'listing') {
           r.vendor = userObj;

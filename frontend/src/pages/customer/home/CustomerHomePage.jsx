@@ -536,6 +536,10 @@ export default function CustomerHomePage() {
     if (!item) return null;
 
     // Check precalculated backend distance
+    if (item.distance_meters !== undefined && item.distance_meters !== null && !isNaN(item.distance_meters)) {
+      const km = item.distance_meters / 1000;
+      if (km < 6000) return km;
+    }
     if (item.distance !== undefined && item.distance !== null && !isNaN(item.distance)) {
       const km = item.distance / 1000;
       if (km < 6000) return km;
@@ -591,8 +595,9 @@ export default function CustomerHomePage() {
     return null;
   };
 
-  // Format distance display string: e.g. "2.4 km", "850 m", or City/Nearby
+  // Format distance display string: e.g. "2.4 km", "850 m", or City/Area
   const formatDistance = (item) => {
+    if (!item) return 'Local';
     const km = calculateDistanceKm(item);
     if (km !== null) {
       if (km < 1) {
@@ -600,11 +605,14 @@ export default function CustomerHomePage() {
       }
       return `${km.toFixed(1)} km`;
     }
-    const city = item.location?.city || item.vendor?.location?.city || item.creator?.location?.city || item.city || item.vendor?.city;
-    if (city) return city;
-    const address = item.location?.address || item.vendor?.location?.address || item.creator?.location?.address;
-    if (address && typeof address === 'string' && address.length <= 22) return address;
-    return 'Nearby';
+    const city = item.location?.city || item.vendor?.city || item.vendor?.location?.city || item.creator?.city || item.creator?.location?.city || item.city;
+    if (city && city !== 'Local') return city;
+    const address = item.location?.address || item.vendor?.address || item.vendor?.location?.address || item.creator?.address || item.creator?.location?.address;
+    if (address && typeof address === 'string') {
+      const shortAddr = address.split(',')[0].trim();
+      if (shortAddr && shortAddr.length <= 25) return shortAddr;
+    }
+    return item.category || 'Local Business';
   };
 
   // ── 3. Complete Filtering & Sorting Logic ──

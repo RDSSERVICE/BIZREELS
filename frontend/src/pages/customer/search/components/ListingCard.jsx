@@ -34,7 +34,7 @@ export default function ListingCard({
   const isService = item.type === 'service';
 
   // Distance calculation
-  let distStr = 'Nearby';
+  let distStr = null;
   const itemAddress = item.location?.address || vendorObj.location?.address || vendorObj.address;
   const itemState = item.location?.state || vendorObj.location?.state || vendorObj.state;
   const itemPincode = item.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
@@ -42,14 +42,24 @@ export default function ListingCard({
 
   const vendorCoords = (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
     ? vendorObj.location.coordinates
-    : (geocodedCache[itemLocStr] ? [geocodedCache[itemLocStr].lng, geocodedCache[itemLocStr].lat] : null);
+    : (geocodedCache?.[itemLocStr] ? [geocodedCache[itemLocStr].lng, geocodedCache[itemLocStr].lat] : null);
   const itemCoords = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2 && (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0))
     ? item.location.coordinates
     : null;
 
   const targetCoords = itemCoords || vendorCoords;
 
-  if (coords && targetCoords && (coords.lat !== 0 || coords.lng !== 0)) {
+  if (item.distance_meters !== undefined && item.distance_meters !== null && !isNaN(item.distance_meters)) {
+    const km = item.distance_meters / 1000;
+    if (km < 6000) {
+      distStr = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+    }
+  } else if (item.distance !== undefined && item.distance !== null && item.distance / 1000 < 6000) {
+    const km = item.distance / 1000;
+    distStr = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+  } else if (item.distanceKm !== undefined && item.distanceKm !== null && Number(item.distanceKm) < 6000) {
+    distStr = `${Number(item.distanceKm).toFixed(1)} km`;
+  } else if (coords && targetCoords && (coords.lat !== 0 || coords.lng !== 0)) {
     const [targetLng, targetLat] = targetCoords;
     const R = 6371; // Earth radius in km
     const dLat = (targetLat - coords.lat) * (Math.PI / 180);
@@ -63,13 +73,12 @@ export default function ListingCard({
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const calculatedKm = R * c;
     if (calculatedKm < 6000) {
-      distStr = `${calculatedKm.toFixed(1)} km`;
+      distStr = calculatedKm < 1 ? `${Math.round(calculatedKm * 1000)} m` : `${calculatedKm.toFixed(1)} km`;
     }
-  } else if (item.distance !== undefined && item.distance !== null && item.distance / 1000 < 6000) {
-    const km = item.distance / 1000;
-    distStr = `${km.toFixed(1)} km`;
-  } else if (item.distanceKm !== undefined && item.distanceKm !== null && Number(item.distanceKm) < 6000) {
-    distStr = `${Number(item.distanceKm).toFixed(1)} km`;
+  }
+
+  if (!distStr) {
+    distStr = city && city !== 'Local' ? city : (itemAddress ? itemAddress.split(',')[0].trim() : 'Local');
   }
 
   const priceVal = Number(item.salePrice || item.price || 0);
