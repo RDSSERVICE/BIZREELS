@@ -1,6 +1,6 @@
 /**
  * Vendor Hamburger Side Drawer Modal — Mobile Application
- * Aligned with Frontend VendorLayout menu structure (Warm Editorial Bento style).
+ * Classic Brutalist Yellow & Black Palette.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -66,44 +66,44 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
       key: 'MAIN',
       title: 'MAIN NAVIGATION',
       items: [
-        { title: 'Dashboard', route: '/vendor/dashboard', icon: 'grid', color: '#38BDF8' },
-        { title: 'My Listings', route: '/vendor/listings', icon: 'cube', color: '#F59E0B' },
-        { title: 'Reels & AI Ads', route: '/vendor/reels', icon: 'videocam', color: '#EC4899' },
-        { title: 'Leads / Enquiries', route: '/inquiries', icon: 'mail', color: '#8B5CF6' },
-        { title: 'Order Requests', route: '/vendor/orders', icon: 'cart', color: '#10B981' },
-        { title: 'Chat / Inbox', route: '/messages', icon: 'chatbubble-ellipses', color: '#6366F1' },
+        { title: 'Dashboard', route: '/vendor/dashboard', icon: 'grid-outline' },
+        { title: 'My Listings', route: '/vendor/listings', icon: 'cube-outline' },
+        { title: 'Reels & AI Ads', route: '/vendor/reels', icon: 'videocam-outline' },
+        { title: 'Leads / Enquiries', route: '/inquiries', icon: 'mail-outline' },
+        { title: 'Order Requests', route: '/vendor/orders', icon: 'cart-outline' },
+        { title: 'Chat / Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
       ],
     },
     {
       key: 'PORTALS',
       title: 'PORTALS & FEEDS',
       items: [
-        { title: 'Customer Feed', route: '/(tabs)/home', icon: 'tv', color: '#38BDF8' },
-        { title: 'Creator Portal', route: '/vendor/hire-creator', icon: 'film', color: '#EC4899' },
+        { title: 'Customer Feed', route: '/(tabs)/home', icon: 'tv-outline' },
+        { title: 'Creator Portal', route: '/vendor/hire-creator', icon: 'film-outline' },
       ],
     },
     {
       key: 'BUSINESS',
       title: 'BUSINESS & GROWTH',
       items: [
-        { title: 'Business Profile', route: '/vendor/profile', icon: 'person', color: '#3B82F6' },
-        { title: 'Onboarding Details', route: '/vendor/onboarding', icon: 'document-text', color: '#14B8A6' },
-        { title: 'Verification Center', route: '/vendor/verification', icon: 'shield-checkmark', color: '#10B981', badge: 'VERIFIED' },
-        { title: 'Analytics', route: '/vendor/analytics', icon: 'analytics', color: '#F43F5E' },
-        { title: 'Refer & Earn', route: '/vendor/referrals', icon: 'person-add', color: '#EAB308' },
-        { title: 'Hire Creator', route: '/vendor/hire-creator', icon: 'people', color: '#A855F7' },
-        { title: 'Reviews', route: '/vendor/reviews', icon: 'star', color: '#F59E0B' },
-        { title: 'Followers', route: '/vendor/followers', icon: 'heart', color: '#EC4899' },
+        { title: 'Business Profile', route: '/vendor/profile', icon: 'person-outline' },
+        { title: 'Onboarding Details', route: '/vendor/onboarding', icon: 'document-text-outline' },
+        { title: 'Verification Center', route: '/vendor/verification', icon: 'shield-checkmark-outline', badge: 'VERIFIED' },
+        { title: 'Analytics', route: '/vendor/analytics', icon: 'stats-chart-outline' },
+        { title: 'Refer & Earn', route: '/vendor/referrals', icon: 'person-add-outline' },
+        { title: 'Hire Creator', route: '/vendor/hire-creator', icon: 'people-outline' },
+        { title: 'Reviews', route: '/vendor/reviews', icon: 'star-outline' },
+        { title: 'Followers', route: '/vendor/followers', icon: 'heart-outline' },
       ],
     },
     {
       key: 'FINANCE',
       title: 'FINANCE & ACCOUNT',
       items: [
-        { title: 'Subscription Plan', route: '/vendor/subscription', icon: 'card', color: '#EAB308' },
-        { title: 'Vendor Wallet', route: '/vendor/wallet', icon: 'wallet', color: '#10B981' },
-        { title: 'Credit Rates', route: '/vendor/rates', icon: 'flash', color: '#38BDF8' },
-        { title: 'Store Settings', route: '/vendor/settings', icon: 'settings', color: '#64748B' },
+        { title: 'Subscription Plan', route: '/vendor/subscription', icon: 'card-outline' },
+        { title: 'Vendor Wallet', route: '/vendor/wallet', icon: 'wallet-outline' },
+        { title: 'Credit Rates', route: '/vendor/rates', icon: 'flash-outline' },
+        { title: 'Store Settings', route: '/vendor/settings', icon: 'settings-outline' },
       ],
     },
   ];
@@ -125,14 +125,14 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
               </View>
               <View>
                 <Text style={styles.brandTitle}>
-                  Biz<Text style={{ color: BrandColors.primary }}>Reel</Text>s
+                  Biz<Text style={{ color: '#F59E0B' }}>Reel</Text>s
                 </Text>
                 <Text style={styles.brandSubtitle}>VENDOR PORTAL</Text>
               </View>
             </View>
 
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Ionicons name="close" size={20} color="#fff" />
+              <Ionicons name="close" size={18} color="#F59E0B" />
             </TouchableOpacity>
           </View>
 
@@ -145,7 +145,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
               <View style={styles.nameRow}>
                 <Text style={styles.profileName} numberOfLines={1}>{vendorName}</Text>
                 <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                  <Ionicons name="checkmark-circle" size={12} color="#F59E0B" />
                 </View>
               </View>
               <Text style={styles.profileEmail} numberOfLines={1}>{vendorEmail}</Text>
@@ -170,7 +170,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
                     <Ionicons
                       name={isCollapsed ? 'chevron-down' : 'chevron-up'}
                       size={14}
-                      color="rgba(255,255,255,0.4)"
+                      color="#F59E0B"
                     />
                   </TouchableOpacity>
 
@@ -185,8 +185,12 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
                             key={idx}
                             style={[styles.menuItemRow, isActive && styles.menuItemRowActive]}
                             onPress={() => handleNavigate(item.route)}>
-                            <View style={[styles.iconBox, { backgroundColor: item.color + '1F' }]}>
-                              <Ionicons name={item.icon as any} size={16} color={item.color} />
+                            <View style={[styles.iconBox, isActive && styles.iconBoxActive]}>
+                              <Ionicons
+                                name={item.icon as any}
+                                size={16}
+                                color={isActive ? '#000' : '#F59E0B'}
+                              />
                             </View>
 
                             <Text style={[styles.menuItemTitle, isActive && styles.menuItemTitleActive]}>
@@ -194,8 +198,10 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
                             </Text>
 
                             {item.badge && (
-                              <View style={styles.itemBadge}>
-                                <Text style={styles.itemBadgeText}>{item.badge}</Text>
+                              <View style={[styles.itemBadge, isActive && styles.itemBadgeActive]}>
+                                <Text style={[styles.itemBadgeText, isActive && styles.itemBadgeTextActive]}>
+                                  {item.badge}
+                                </Text>
                               </View>
                             )}
                           </TouchableOpacity>
@@ -213,12 +219,12 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
           {/* Footer Action Buttons */}
           <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             <TouchableOpacity style={styles.switchFeedBtn} onPress={() => handleNavigate('/(tabs)/home')}>
-              <Ionicons name="swap-horizontal" size={16} color={BrandColors.primary} />
+              <Ionicons name="swap-horizontal" size={16} color="#F59E0B" />
               <Text style={styles.switchFeedText}>Switch to Buyer Feed</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={16} color={BrandColors.error} />
+              <Ionicons name="log-out-outline" size={16} color="#EF4444" />
               <Text style={styles.logoutText}>Log Out</Text>
             </TouchableOpacity>
           </View>
@@ -234,18 +240,16 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     flexDirection: 'row',
   },
-  backdropTouch: {
-    flex: 1,
-  },
+  backdropTouch: { flex: 1 },
   drawerContainer: {
-    width: '82%',
+    width: '84%',
     maxWidth: 320,
-    backgroundColor: '#16171d',
-    borderRightWidth: 1,
-    borderRightColor: '#282b37',
+    backgroundColor: '#0F0F12',
+    borderRightWidth: 1.5,
+    borderRightColor: '#F59E0B',
     paddingHorizontal: Spacing.three,
   },
 
@@ -255,50 +259,52 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: Spacing.two,
     borderBottomWidth: 1,
-    borderBottomColor: '#252733',
+    borderBottomColor: '#26262E',
   },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoBadge: {
     width: 34,
     height: 34,
-    borderRadius: 10,
-    backgroundColor: BrandColors.primary,
+    borderRadius: 8,
+    backgroundColor: '#F59E0B',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoText: { color: '#fff', fontSize: FontSize.md, fontWeight: FontWeight.black },
+  logoText: { color: '#000', fontSize: FontSize.md, fontWeight: '900' },
   brandTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
-  brandSubtitle: { color: BrandColors.primaryLight, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1 },
+  brandSubtitle: { color: '#F59E0B', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
 
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#252733',
+    borderRadius: 8,
+    backgroundColor: '#1C1C22',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
   },
 
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1f212c',
+    backgroundColor: '#18181C',
     padding: Spacing.three,
-    borderRadius: 14,
+    borderRadius: 12,
     marginVertical: Spacing.two,
     gap: 10,
     borderWidth: 1,
-    borderColor: '#2b2e3e',
+    borderColor: '#2D2D36',
   },
   avatarCircle: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: BrandColors.primary,
+    backgroundColor: '#F59E0B',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  avatarText: { color: '#000', fontSize: FontSize.sm, fontWeight: '900' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   profileName: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold, flex: 1 },
   verifiedBadge: { marginLeft: 2 },
@@ -315,72 +321,88 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sectionTitleLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionLine: { width: 3, height: 10, borderRadius: 2, backgroundColor: BrandColors.primary },
-  sectionTitle: { color: '#D97706', fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8 },
+  sectionLine: { width: 3, height: 10, borderRadius: 1, backgroundColor: '#F59E0B' },
+  sectionTitle: { color: '#F59E0B', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
 
-  itemsList: { gap: 2 },
+  itemsList: { gap: 3 },
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 9,
     paddingHorizontal: 10,
-    borderRadius: 12,
+    borderRadius: 10,
     gap: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   menuItemRowActive: {
-    backgroundColor: '#252836',
-    borderLeftWidth: 3,
-    borderLeftColor: BrandColors.primary,
+    backgroundColor: '#F59E0B',
+    borderColor: '#F59E0B',
   },
   iconBox: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: 'rgba(245,158,11,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconBoxActive: {
+    backgroundColor: '#000',
+  },
   menuItemTitle: {
     flex: 1,
-    color: 'rgba(255,255,255,0.75)',
+    color: 'rgba(255,255,255,0.85)',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
   },
   menuItemTitleActive: {
-    color: '#fff',
-    fontWeight: FontWeight.bold,
+    color: '#000',
+    fontWeight: '900',
   },
   itemBadge: {
-    backgroundColor: 'rgba(16,185,129,0.15)',
+    backgroundColor: 'rgba(245,158,11,0.2)',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
   },
-  itemBadgeText: { color: '#10B981', fontSize: 8, fontWeight: FontWeight.bold },
+  itemBadgeActive: {
+    backgroundColor: '#000',
+    borderColor: '#000',
+  },
+  itemBadgeText: { color: '#F59E0B', fontSize: 8, fontWeight: '900' },
+  itemBadgeTextActive: { color: '#F59E0B' },
 
   footer: {
     paddingTop: Spacing.two,
     borderTopWidth: 1,
-    borderTopColor: '#252733',
+    borderTopColor: '#26262E',
     gap: 8,
   },
   switchFeedBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#222533',
+    backgroundColor: '#18181C',
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 10,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
   },
-  switchFeedText: { color: BrandColors.primaryLight, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  switchFeedText: { color: '#F59E0B', fontSize: FontSize.xs, fontWeight: '900' },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(239,68,68,0.1)',
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 10,
     gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)',
   },
-  logoutText: { color: BrandColors.error, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  logoutText: { color: '#EF4444', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
 });
