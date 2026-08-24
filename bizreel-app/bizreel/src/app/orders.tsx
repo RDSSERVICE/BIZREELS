@@ -154,10 +154,15 @@ export default function CustomerOrdersScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: BLACK,
   },
   center: {
     flex: 1,
@@ -171,15 +176,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: BORDER,
+    backgroundColor: BLACK,
   },
-  iconBtn: {
-    padding: Spacing.two,
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 0,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     color: '#fff',
     fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   filterRow: {
     flexDirection: 'row',
@@ -188,16 +201,16 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   filterChip: {
-    backgroundColor: '#1c1c1e',
+    backgroundColor: DARK_CARD,
     paddingHorizontal: Spacing.three,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: '#2c2c2e',
+    borderColor: BORDER,
   },
   filterChipActive: {
-    backgroundColor: BrandColors.primary,
-    borderColor: BrandColors.primary,
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
   },
   filterChipText: {
     color: 'rgba(255,255,255,0.7)',
@@ -205,19 +218,19 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.semibold,
   },
   filterChipTextActive: {
-    color: '#fff',
-    fontWeight: FontWeight.bold,
+    color: BLACK,
+    fontWeight: '900',
   },
   listContent: {
     padding: Spacing.four,
     gap: Spacing.three,
   },
   orderCard: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
+    backgroundColor: DARK_CARD,
+    borderRadius: 0,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2c2c2e',
+    borderColor: BORDER,
     gap: Spacing.two,
   },
   orderCardHeader: {
@@ -228,21 +241,21 @@ const styles = StyleSheet.create({
   orderIdText: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   statusBadge: {
     paddingHorizontal: Spacing.two,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 0,
   },
   statusText: {
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   vendorName: {
-    color: BrandColors.primaryLight,
+    color: YELLOW,
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   itemRow: {
     flexDirection: 'row',
@@ -251,7 +264,7 @@ const styles = StyleSheet.create({
   listingTitle: {
     color: '#fff',
     fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   itemMeta: {
     color: 'rgba(255,255,255,0.7)',
@@ -266,21 +279,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     borderTopWidth: 1,
-    borderTopColor: '#2c2c2e',
+    borderTopColor: BORDER,
     paddingTop: Spacing.two,
     marginTop: Spacing.one,
   },
   cancelBtn: {
     borderWidth: 1,
-    borderColor: BrandColors.error,
+    borderColor: '#EF4444',
     paddingHorizontal: Spacing.three,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 0,
+    backgroundColor: 'rgba(239,68,68,0.1)',
   },
   cancelBtnText: {
-    color: BrandColors.error,
+    color: '#EF4444',
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -291,7 +305,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: '#fff',
     fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   emptySub: {
     color: 'rgba(255,255,255,0.5)',

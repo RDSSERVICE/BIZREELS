@@ -211,10 +211,15 @@ export default function InquiriesScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: BLACK,
   },
   header: {
     flexDirection: 'row',
@@ -223,20 +228,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: BORDER,
+    backgroundColor: BLACK,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1c1c1e',
+    borderRadius: 0,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     color: '#fff',
     fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   centered: {
     flex: 1,
@@ -253,7 +261,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: '#fff',
     fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   emptySub: {
     color: 'rgba(255,255,255,0.6)',
@@ -262,27 +270,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   browseBtn: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
-    borderRadius: 20,
+    borderRadius: 0,
     marginTop: Spacing.two,
   },
   browseBtnText: {
-    color: '#fff',
+    color: BLACK,
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   listContent: {
     padding: Spacing.four,
     gap: Spacing.three,
   },
   card: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
+    backgroundColor: DARK_CARD,
+    borderRadius: 0,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2c2c2e',
+    borderColor: BORDER,
     gap: Spacing.two,
   },
   cardHeader: {
@@ -293,13 +301,15 @@ const styles = StyleSheet.create({
   listingThumb: {
     width: 44,
     height: 44,
-    borderRadius: 8,
+    borderRadius: 0,
   },
   listingThumbFallback: {
     width: 44,
     height: 44,
-    borderRadius: 8,
-    backgroundColor: '#2c2c2e',
+    borderRadius: 0,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -309,25 +319,28 @@ const styles = StyleSheet.create({
   vendorName: {
     color: '#fff',
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   subjectText: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: FontSize.xs,
   },
   statusBadge: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: BLACK,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   statusBadgeReplied: {
-    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
   },
   statusBadgeText: {
-    color: '#fff',
+    color: YELLOW,
     fontSize: 10,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   messagePreview: {
     color: 'rgba(255,255,255,0.8)',
@@ -339,7 +352,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#2c2c2e',
+    borderTopColor: BORDER,
     paddingTop: Spacing.two,
   },
   dateText: {
@@ -347,9 +360,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   viewThreadText: {
-    color: BrandColors.primaryLight,
+    color: YELLOW,
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   modalOverlay: {
     flex: 1,
@@ -357,12 +370,12 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
   modalContent: {
-    backgroundColor: '#1c1c1e',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: DARK_CARD,
+    borderTopWidth: 2,
+    borderTopColor: YELLOW,
     padding: Spacing.four,
     maxHeight: '80%',
     gap: Spacing.three,
@@ -372,13 +385,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#2c2c2e',
+    borderBottomColor: BORDER,
     paddingBottom: Spacing.two,
   },
   modalTitle: {
     color: '#fff',
     fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
     flex: 1,
   },
   threadBox: {
@@ -386,28 +399,32 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
   },
   threadSubject: {
-    color: BrandColors.primaryLight,
+    color: YELLOW,
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   msgBubbleCustomer: {
-    backgroundColor: 'rgba(217, 154, 61, 0.15)',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: YELLOW,
     padding: Spacing.two,
-    borderRadius: 8,
+    borderRadius: 0,
     alignSelf: 'flex-end',
     maxWidth: '85%',
   },
   msgBubbleVendor: {
-    backgroundColor: '#2c2c2e',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
     padding: Spacing.two,
-    borderRadius: 8,
+    borderRadius: 0,
     alignSelf: 'flex-start',
     maxWidth: '85%',
   },
   msgSenderName: {
-    color: 'rgba(255,255,255,0.5)',
+    color: YELLOW,
     fontSize: 10,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
     marginBottom: 2,
   },
   msgText: {
@@ -420,13 +437,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     borderTopWidth: 1,
-    borderTopColor: '#2c2c2e',
+    borderTopColor: BORDER,
     paddingTop: Spacing.two,
   },
   replyInput: {
     flex: 1,
-    backgroundColor: '#2c2c2e',
-    borderRadius: 20,
+    backgroundColor: BLACK,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: BORDER,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     color: '#fff',
@@ -435,8 +454,8 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 38,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: BrandColors.primary,
+    borderRadius: 0,
+    backgroundColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
   },

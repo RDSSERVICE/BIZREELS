@@ -127,10 +127,15 @@ export default function SavedScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: BLACK,
   },
   header: {
     flexDirection: 'row',
@@ -139,20 +144,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: BORDER,
+    backgroundColor: BLACK,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1c1c1e',
+    borderRadius: 0,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     color: '#fff',
     fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   centered: {
     flex: 1,
@@ -169,7 +177,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: '#fff',
     fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   emptySub: {
     color: 'rgba(255,255,255,0.6)',
@@ -178,16 +186,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   exploreBtn: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
-    borderRadius: 20,
+    borderRadius: 0,
     marginTop: Spacing.two,
   },
   exploreBtnText: {
-    color: '#fff',
+    color: BLACK,
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   listContent: {
     padding: Spacing.four,
@@ -195,20 +203,23 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
+    backgroundColor: DARK_CARD,
+    borderRadius: 0,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#2c2c2e',
+    borderColor: BORDER,
   },
   cardImage: {
     width: 90,
     height: 90,
+    borderRadius: 0,
   },
   cardImageFallback: {
     width: 90,
     height: 90,
-    backgroundColor: '#2c2c2e',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -220,12 +231,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: '#fff',
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   cardPrice: {
-    color: BrandColors.primaryLight,
+    color: YELLOW,
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   cardVendor: {
     color: 'rgba(255,255,255,0.5)',
