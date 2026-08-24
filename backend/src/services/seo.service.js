@@ -38,7 +38,7 @@ const listingSeo = async (idOrSlug, baseUrl = 'https://bizreels.in') => {
   const doc = await Listing.findOne(query).populate('vendor', 'name shop_name business_name city').lean();
   if (!doc) {
     return {
-      title: "BizReels — Watch. Discover. Shop.",
+      title: "BizReels — Watch. Discover. Connect.",
       description: "Discover local vendors, chat direct, deal fair. India's first reels commerce platform.",
       image: 'https://bizreels.in/logo.png',
       url: `${cleanBase}/customer/search`,

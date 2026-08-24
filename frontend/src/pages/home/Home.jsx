@@ -222,7 +222,7 @@ export default function Home() {
   return (
     <div className="w-full max-w-full overflow-x-hidden bg-[#f2ede4] min-h-screen select-none font-sans">
       <SEO
-        title="Watch. Discover. Shop. — India's Visual Commerce Platform"
+        title="Watch. Discover. Connect. — India's Visual Commerce Platform"
         description="Discover local vendors, chat direct, deal fair. India's first visual reels commerce platform."
         canonical="https://bizreels.in/"
         ogType="website"

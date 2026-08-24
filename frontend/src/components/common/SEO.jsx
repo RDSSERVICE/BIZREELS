@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-const DEFAULT_TITLE = "BizReels — Watch. Discover. Shop.";
+const DEFAULT_TITLE = "BizReels — Watch. Discover. Connect.";
 const DEFAULT_DESCRIPTION = "Discover local vendors, chat direct, deal fair. India-first reels commerce platform connecting local businesses, creators, and customers.";
 const DEFAULT_IMAGE = "https://bizreels.in/logo.png";
 const DEFAULT_DOMAIN = "https://bizreels.in";
