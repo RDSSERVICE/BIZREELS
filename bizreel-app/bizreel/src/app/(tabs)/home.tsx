@@ -105,31 +105,37 @@ export default function HomeScreen() {
         {/* Top App Header */}
         <View style={styles.topHeader}>
           <View style={styles.brandGroup}>
-            {user?.activeRole === 'vendor' && (
-              <TouchableOpacity
-                style={{ marginRight: 8, padding: 4 }}
-                onPress={() => setDrawerOpen(true)}>
-                <Ionicons name="menu-outline" size={26} color={BrandColors.primary} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={{ marginRight: 8, padding: 4 }}
+              onPress={() => setDrawerOpen(true)}>
+              <Ionicons name="menu-outline" size={26} color={YELLOW} />
+            </TouchableOpacity>
             <Text style={styles.brandTitle}>BIZ<Text style={styles.brandAccent}>REELS</Text></Text>
           </View>
 
-        <View style={styles.headerRightGroup}>
-          <RoleSwitcher />
-          <TouchableOpacity
-            style={styles.cartIconBtn}
-            onPress={() => router.push('/cart')}
-            accessibilityLabel="Cart">
-            <Ionicons name="cart" size={20} color="#fff" />
-            {cartItemCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <View style={styles.headerRightGroup}>
+            <RoleSwitcher />
+
+            <TouchableOpacity
+              style={styles.chatIconBtn}
+              onPress={() => router.push('/messages' as any)}
+              accessibilityLabel="Messages Inbox">
+              <Ionicons name="chatbubble-ellipses-outline" size={20} color={YELLOW} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cartIconBtn}
+              onPress={() => router.push('/cart')}
+              accessibilityLabel="Cart">
+              <Ionicons name="cart" size={20} color="#fff" />
+              {cartItemCount > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -522,6 +528,16 @@ const styles = StyleSheet.create({
     color: YELLOW,
   },
   cartIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 0,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatIconBtn: {
     width: 36,
     height: 36,
     borderRadius: 0,

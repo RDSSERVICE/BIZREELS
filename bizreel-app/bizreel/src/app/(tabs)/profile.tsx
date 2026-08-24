@@ -75,6 +75,14 @@ export default function ProfileScreen() {
 
   const ratingDisplay = user.rating_count > 0 ? `${user.rating_avg.toFixed(1)} ★` : '4.9 ★';
 
+  const CUSTOMER_MENU = [
+    { label: 'Chat & Messages Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
+    { label: 'My Inquiries & Quotes', route: '/inquiries', icon: 'mail-outline' },
+    { label: 'My Orders', route: '/orders', icon: 'cart-outline' },
+    { label: 'Saved Products & Reels', route: '/saved', icon: 'bookmark-outline' },
+    { label: 'My Wallet', route: '/wallet', icon: 'wallet-outline' },
+  ];
+
   const VENDOR_MENU = [
     { label: 'Store Dashboard & Analytics', route: '/vendor/dashboard', icon: 'grid-outline' },
     { label: 'Video Reels & AI Ads', route: '/vendor/reels', icon: 'videocam-outline' },
@@ -97,9 +105,17 @@ export default function ProfileScreen() {
       {/* App Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <TouchableOpacity style={styles.logoutIconBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={18} color={YELLOW} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <TouchableOpacity
+            style={styles.logoutIconBtn}
+            onPress={() => router.push('/messages' as any)}
+            accessibilityLabel="Chat Inbox">
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={YELLOW} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutIconBtn} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={18} color={YELLOW} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -169,6 +185,27 @@ export default function ProfileScreen() {
             <Text style={styles.statValue}>{ratingDisplay}</Text>
             <Text style={styles.statLabel}>Store Rating</Text>
           </View>
+        </View>
+
+        {/* ── Customer Hub Section ── */}
+        <View style={styles.menuSectionCard}>
+          <View style={styles.sectionLabelRow}>
+            <View style={styles.sectionBar} />
+            <Text style={styles.menuSectionHeader}>CUSTOMER HUB</Text>
+          </View>
+
+          {CUSTOMER_MENU.map((menu, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[styles.menuRow, idx === CUSTOMER_MENU.length - 1 && styles.menuRowLast]}
+              onPress={() => router.push(menu.route as any)}>
+              <View style={styles.menuIconBox}>
+                <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
+              </View>
+              <Text style={styles.menuLabel}>{menu.label}</Text>
+              <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* ── Vendor Management Section ── */}
