@@ -58,10 +58,31 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
     ]);
   }
 
-  const vendorName = (user as any)?.vendorProfile?.storeName || (user as any)?.vendorProfile?.businessName || user?.name || 'Vendor Store';
-  const vendorEmail = user?.email || 'vendor@bizreels.com';
+  const isVendor = user?.activeRole === 'vendor';
+  const displayName = isVendor
+    ? (user as any)?.vendorProfile?.storeName || (user as any)?.vendorProfile?.businessName || user?.name || 'Vendor Store'
+    : user?.name || 'Customer';
+  const displayEmail = user?.email || 'user@bizreels.com';
+  const subtitleRole = isVendor ? 'VENDOR PORTAL' : 'CUSTOMER MENU';
 
-  const NAV_SECTIONS = [
+  const CUSTOMER_SECTIONS = [
+    {
+      key: 'MAIN',
+      title: 'CUSTOMER NAVIGATION',
+      items: [
+        { title: 'Home Marketplace', route: '/(tabs)/home', icon: 'home-outline' },
+        { title: 'Explore & Search', route: '/(tabs)/search', icon: 'search-outline' },
+        { title: 'Chat & Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
+        { title: 'My Inquiries & Quotes', route: '/inquiries', icon: 'mail-outline' },
+        { title: 'My Orders', route: '/orders', icon: 'cart-outline' },
+        { title: 'Saved Items & Reels', route: '/saved', icon: 'bookmark-outline' },
+        { title: 'My Wallet', route: '/wallet', icon: 'wallet-outline' },
+        { title: 'My Profile', route: '/(tabs)/profile', icon: 'person-outline' },
+      ],
+    },
+  ];
+
+  const VENDOR_SECTIONS = [
     {
       key: 'MAIN',
       title: 'MAIN NAVIGATION',
@@ -108,6 +129,8 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
     },
   ];
 
+  const NAV_SECTIONS = isVendor ? VENDOR_SECTIONS : CUSTOMER_SECTIONS;
+
   return (
     <Modal
       visible={isOpen}
@@ -127,7 +150,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
                 <Text style={styles.brandTitle}>
                   Biz<Text style={{ color: '#F59E0B' }}>Reel</Text>s
                 </Text>
-                <Text style={styles.brandSubtitle}>VENDOR PORTAL</Text>
+                <Text style={styles.brandSubtitle}>{subtitleRole}</Text>
               </View>
             </View>
 
@@ -136,19 +159,21 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
             </TouchableOpacity>
           </View>
 
-          {/* Vendor Profile Header Card */}
+          {/* User Profile Header Card */}
           <View style={styles.profileCard}>
             <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>{vendorName.charAt(0).toUpperCase()}</Text>
+              <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <View style={styles.nameRow}>
-                <Text style={styles.profileName} numberOfLines={1}>{vendorName}</Text>
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={12} color="#F59E0B" />
-                </View>
+                <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
+                {isVendor && (
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark-circle" size={12} color="#F59E0B" />
+                  </View>
+                )}
               </View>
-              <Text style={styles.profileEmail} numberOfLines={1}>{vendorEmail}</Text>
+              <Text style={styles.profileEmail} numberOfLines={1}>{displayEmail}</Text>
             </View>
           </View>
 
