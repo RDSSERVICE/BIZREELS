@@ -14,7 +14,10 @@
     "android": {
       "package": "com.bizreel.app",
       "usesCleartextTraffic": true,
-      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"],
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -43,9 +46,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "80b20b9c-9d58-4ec4-824c-6fe6d7992879"
+        "projectId": "73784184-6b0a-418e-b5dc-b158952f2767"
       }
     },
-    "owner": "amiteshore"
+    "owner": "bheem-bharat"
   }
 }
