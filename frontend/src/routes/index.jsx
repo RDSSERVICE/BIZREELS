@@ -16,6 +16,7 @@ import Loader from '../components/common/Loader';
 // Public & Auth Pages
 const Home = React.lazy(() => import('../pages/home/Home'));
 const About = React.lazy(() => import('../pages/home/About'));
+const Pricing = React.lazy(() => import('../pages/home/Pricing'));
 const PublicLocalReelsPage = React.lazy(() => import('../pages/reels/PublicLocalReelsPage'));
 const PublicCreatorMarketplacePage = React.lazy(() => import('../pages/creator/PublicCreatorMarketplacePage'));
 const Login = React.lazy(() => import('../pages/auth/Login'));
@@ -117,6 +118,7 @@ const AppRoutes = () => {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/local-reels" element={<PublicLocalReelsPage />} />
         <Route path="/creator-marketplace" element={<PublicCreatorMarketplacePage />} />
       </Route>

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
-import { FiShoppingCart, FiArrowRight } from 'react-icons/fi';
-import { useLoginWithEmailMutation, useRequestOtpMutation, useVerifyOtpMutation, useSwitchRoleMutation } from '../../features/auth/authApi';
+import { FiShoppingCart, FiArrowRight, FiRotateCw, FiSmartphone } from 'react-icons/fi';
+import { useLoginWithEmailMutation, useSendOtpMutation, useVerifyOtpMutation, useSwitchRoleMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
 import Input from '../../components/common/Input';
 import RoleQuickSwitcher from '../../components/auth/RoleQuickSwitcher';
@@ -23,11 +23,23 @@ const VendorLogin = () => {
   const [loginMode, setLoginMode] = useState('email');
   const [otpSent, setOtpSent] = useState(false);
   const [otpIdentifier, setOtpIdentifier] = useState('');
-  const [otpType, setOtpType] = useState('email');
+  const [otpType, setOtpType] = useState('phone');
+  const [otpChannel, setOtpChannel] = useState('sms'); // sms | whatsapp
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setInterval(() => {
+        setCooldown((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const [loginEmail, { isLoading: isEmailLoading }] = useLoginWithEmailMutation();
-  const [requestOtp, { isLoading: isOtpRequestLoading }] = useRequestOtpMutation();
-  const [verifyOtp, { isLoading: isOtpVerifyLoading }] = useVerifyOtpMutation();
+  const [sendOtpMutation, { isLoading: isOtpRequestLoading }] = useSendOtpMutation();
+  const [verifyOtpMutation, { isLoading: isOtpVerifyLoading }] = useVerifyOtpMutation();
   const [switchRoleApi] = useSwitchRoleMutation();
 
   const from = location.state?.from?.pathname;
@@ -83,25 +95,45 @@ const VendorLogin = () => {
     }
   };
 
-  const handleSendOtp = async () => {
-    const identifier = otpForm.getValues('identifier');
+  const handleSendOtp = async (selectedChannel = otpChannel) => {
+    if (cooldown > 0) return;
+    const identifier = otpForm.getValues('identifier') || otpIdentifier;
     const isEmail = identifier.includes('@');
     const type = isEmail ? 'email' : 'phone';
-    if (!identifier) { toast.error('Please enter email or phone number first.'); return; }
+    if (!identifier) { toast.error('Please enter phone number or email first.'); return; }
     try {
       setOtpType(type);
       setOtpIdentifier(identifier);
-      await requestOtp({ identifier, identifierType: type, purpose: 'login' }).unwrap();
+      setOtpChannel(selectedChannel);
+
+      const payload = {
+        phone: type === 'phone' ? identifier : undefined,
+        identifier: type === 'email' ? identifier : undefined,
+        identifierType: type,
+        channel: type === 'phone' ? selectedChannel : undefined,
+        purpose: 'login',
+      };
+
+      const res = await sendOtpMutation(payload).unwrap();
       setOtpSent(true);
-      toast.success('OTP sent successfully!');
+      setCooldown(res?.data?.cooldownSeconds || 60);
+      toast.success(res?.message || `OTP sent via ${selectedChannel.toUpperCase()}!`);
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to send OTP.');
+      toast.error(err?.data?.message || 'Failed to send OTP. Please try again.');
     }
   };
 
   const onOtpSubmit = async (data) => {
     try {
-      const res = await verifyOtp({ identifier: otpIdentifier, identifierType: otpType, otp: data.otp }).unwrap();
+      const res = await verifyOtpMutation({
+        phone: otpType === 'phone' ? otpIdentifier : undefined,
+        identifier: otpType === 'email' ? otpIdentifier : undefined,
+        identifierType: otpType,
+        channel: otpType === 'phone' ? otpChannel : undefined,
+        purpose: 'login',
+        otp: data.otp,
+      }).unwrap();
+
       await handlePostLogin(res);
     } catch (err) {
       toast.error(err?.data?.message || 'Invalid or expired OTP.');
@@ -145,12 +177,12 @@ const VendorLogin = () => {
             loginMode === 'otp' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
           }`}
         >
-          One-Time Password (OTP)
+          Instant OTP Login
         </button>
       </div>
 
       {loginMode === 'email' ? (
-        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-4">
+        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-3.5">
           <Input
             label="Email Address"
             placeholder="vendor@example.com"
@@ -158,74 +190,132 @@ const VendorLogin = () => {
             {...emailForm.register('email', { required: 'Email is required' })}
           />
 
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
-              <label className="text-[11px] font-bold tracking-wide text-slate-700 uppercase">Password</label>
-              <Link to="/auth/forgot-password" className="text-xs font-bold text-[#d99a3d] hover:underline">Forgot password?</Link>
-            </div>
+          <div className="flex flex-col gap-1">
             <Input
+              label="Password"
               type="password"
               placeholder="••••••••"
               error={emailForm.formState.errors.password}
               {...emailForm.register('password', { required: 'Password is required' })}
             />
+            <div className="text-right">
+              <Link to="/auth/forgot-password" className="text-[11px] font-bold text-[#d99a3d] hover:underline">
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={isEmailLoading}
-            className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
           >
             {isEmailLoading ? 'Signing In...' : 'SIGN IN AS VENDOR'}
             <FiArrowRight className="w-4 h-4" />
           </button>
         </form>
       ) : (
-        <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="flex flex-col gap-4">
+        <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="flex flex-col gap-3.5">
           {!otpSent ? (
             <>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                  Select OTP Channel
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOtpChannel('sms')}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                      otpChannel === 'sms'
+                        ? 'bg-[#1c1a17] text-[#d99a3d] border-[#1c1a17] shadow-xs'
+                        : 'bg-white text-slate-600 border-[#e3dccb] hover:bg-slate-50'
+                    }`}
+                  >
+                    <FiSmartphone className="w-3.5 h-3.5" />
+                    SMS OTP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOtpChannel('whatsapp')}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                      otpChannel === 'whatsapp'
+                        ? 'bg-[#1c1a17] text-[#25D366] border-[#1c1a17] shadow-xs'
+                        : 'bg-white text-slate-600 border-[#e3dccb] hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#25D366]"></span>
+                    WhatsApp OTP
+                  </button>
+                </div>
+              </div>
+
               <Input
-                label="Email or Phone Number"
-                placeholder="vendor@example.com or +91XXXXXXXXXX"
+                label="Mobile Phone Number (India)"
+                type="tel"
+                placeholder="e.g. 9876543210"
                 error={otpForm.formState.errors.identifier}
-                {...otpForm.register('identifier', { required: 'Email or Phone is required' })}
+                {...otpForm.register('identifier', { required: 'Phone number is required' })}
               />
 
               <button
                 type="button"
-                onClick={handleSendOtp}
-                disabled={isOtpRequestLoading}
-                className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+                onClick={() => handleSendOtp(otpChannel)}
+                disabled={isOtpRequestLoading || cooldown > 0}
+                className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
               >
-                {isOtpRequestLoading ? 'Sending OTP...' : 'SEND OTP'}
+                {isOtpRequestLoading ? 'Sending OTP...' : `SEND OTP VIA ${otpChannel.toUpperCase()}`}
                 <FiArrowRight className="w-4 h-4" />
               </button>
             </>
           ) : (
             <>
-              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl flex flex-col gap-1 text-center">
-                <span className="text-xs font-semibold text-slate-700">OTP sent to:</span>
-                <span className="text-xs font-bold text-[#d99a3d]">{otpIdentifier}</span>
-                <button
-                  type="button"
-                  onClick={() => setOtpSent(false)}
-                  className="text-xs font-bold text-slate-600 hover:underline mt-1 cursor-pointer border-none bg-transparent"
-                >
-                  Change Email/Phone
-                </button>
+              <div className="bg-[#fdfaf3] p-3 rounded-lg border border-[#e3dccb] flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">Sent to: </span>
+                  <span className="text-xs font-bold text-[#d99a3d]">{otpIdentifier} ({otpChannel.toUpperCase()})</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-[#e3dccb]/60 text-xs">
+                  {cooldown > 0 ? (
+                    <span className="text-slate-500 font-medium flex items-center gap-1">
+                      <FiRotateCw className="w-3 h-3 animate-spin text-[#d99a3d]" />
+                      Resend in <strong className="text-[#d99a3d]">{cooldown}s</strong>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleSendOtp(otpChannel)}
+                      disabled={isOtpRequestLoading}
+                      className="text-xs font-bold text-[#d99a3d] hover:underline cursor-pointer bg-transparent border-none p-0 flex items-center gap-1"
+                    >
+                      <FiRotateCw className="w-3 h-3" /> Resend Code
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setOtpSent(false); setCooldown(0); }}
+                    className="text-xs font-bold text-slate-600 hover:underline cursor-pointer border-none bg-transparent p-0"
+                  >
+                    Change Phone
+                  </button>
+                </div>
               </div>
 
               <Input
-                label="Enter 6-Digit OTP"
+                label="Enter 6-Digit Verification Code"
                 placeholder="000000"
                 error={otpForm.formState.errors.otp}
-                {...otpForm.register('otp', { required: 'OTP is required' })}
+                {...otpForm.register('otp', {
+                  required: 'OTP is required',
+                  minLength: { value: 6, message: 'OTP must be 6 digits' },
+                  maxLength: { value: 6, message: 'OTP must be 6 digits' },
+                })}
               />
 
               <button
                 type="submit"
                 disabled={isOtpVerifyLoading}
-                className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
               >
                 {isOtpVerifyLoading ? 'Verifying...' : 'VERIFY & LOGIN'}
                 <FiArrowRight className="w-4 h-4" />
@@ -252,7 +342,15 @@ const VendorLogin = () => {
         <span>Sign in with Google</span>
       </button>
 
-      <RoleQuickSwitcher />
+      <div className="text-center text-xs font-medium text-slate-600 mt-2 space-y-3">
+        <p>
+          New merchant or business?{' '}
+          <Link to="/auth/register?role=vendor" className="font-bold text-[#d99a3d] hover:underline">
+            Create Vendor Account
+          </Link>
+        </p>
+        <RoleQuickSwitcher />
+      </div>
     </div>
   );
 };

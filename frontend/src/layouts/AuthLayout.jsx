@@ -47,7 +47,7 @@ const AuthLayout = () => {
           <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-4xl xl:text-5xl text-[#1a1a1a] uppercase leading-[1.05] tracking-tight">
             WATCH.<br />
             DISCOVER.<br />
-            <span style={{ color: '#d99a3d' }}>SHOP.</span>
+            <span style={{ color: '#d99a3d' }}>CONNECT.</span>
           </h1>
 
           <p className="text-sm text-[#4a4a4a] leading-relaxed max-w-md font-medium">
