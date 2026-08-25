@@ -212,6 +212,7 @@ export default function Home() {
       'description': "India's local video-first marketplace connecting businesses, content creators, and local buyers.",
       'sameAs': [
         'https://www.instagram.com/_bizreels/',
+        'https://www.facebook.com/profile.php?id=61593340033476',
         'https://youtube.com/@BizReels',
         'https://linkedin.com/company/bizreels',
         'https://twitter.com/BizReels'
