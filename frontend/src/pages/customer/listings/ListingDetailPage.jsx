@@ -469,7 +469,7 @@ export default function ListingDetailPage() {
     }
   };
 
-  const listingStructuredData = React.useMemo(() => {
+  const listingStructuredData = (() => {
     if (!item) return [];
     const mainImg = images[0] ? resolveMediaUrl(images[0]) : 'https://bizreels.in/logo.png';
     const canonicalLink = `https://bizreels.in/customer/listings/${itemId}`;
@@ -536,7 +536,7 @@ export default function ListingDetailPage() {
     };
 
     return [mainSchema, breadcrumbs];
-  }, [item, isService, images, itemId, vendorName, priceVal]);
+  })();
 
   return (
     <div className="min-h-screen bg-[#f8f4ec] text-[#1a1a1a] font-sans pb-16">
