@@ -58,7 +58,7 @@ function InstagramPostSkeleton() {
       </div>
 
       {/* Media Skeleton */}
-      <div className="w-full aspect-[9/16] max-h-[440px] bg-slate-200 relative flex items-center justify-center">
+      <div className="w-full aspect-[4/5] sm:aspect-[9/16] max-h-[500px] bg-slate-200 relative flex items-center justify-center">
         <div className="w-10 h-10 rounded-full bg-slate-300/60" />
       </div>
 
@@ -158,12 +158,15 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
           loop
           muted={muted}
           playsInline
+          preload="metadata"
           className="w-full h-full object-cover"
         />
       ) : (
         <img
           src={currentUrl}
           alt={reel.caption || reel.title || 'Reel Post'}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover"
         />
       )}
@@ -458,80 +461,7 @@ export default function CustomerHomePage() {
     setExpandedCaptions(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const [geocodedCache, setGeocodedCache] = useState({});
-
-  // ── 2. Geocoding Fallback for Items without Coordinates ──
-  useEffect(() => {
-    const geocodeLocations = async () => {
-      const allItems = [...combinedFeed, ...reels, ...images];
-      if (allItems.length === 0) return;
-
-      const toGeocode = [];
-      for (const item of allItems) {
-        const vendorObj = item.vendor || item.creator || item.vendorId || {};
-        const itemCoords = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2 && (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0))
-          ? item.location.coordinates
-          : (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
-            ? vendorObj.location.coordinates
-            : null;
-
-        if (!itemCoords) {
-          const city = item.location?.city || vendorObj.location?.city || item.city || vendorObj.city;
-          const address = item.location?.address || vendorObj.location?.address || vendorObj.address;
-          const state = item.location?.state || vendorObj.location?.state || vendorObj.state;
-          const pincode = item.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
-          const locStr = [address, city, state, pincode].filter(Boolean).join(', ') || city || address;
-          if (locStr && locStr.trim() && !geocodedCache[locStr]) {
-            toGeocode.push(locStr);
-          }
-        }
-      }
-
-      const uniqueToGeocode = [...new Set(toGeocode)].slice(0, 10);
-      if (uniqueToGeocode.length === 0) return;
-
-      const newCache = {};
-      let updated = false;
-
-      for (const locStr of uniqueToGeocode) {
-        try {
-          const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-          if (apiKey) {
-            const res = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locStr)}&key=${apiKey}`
-            );
-            const data = await res.json();
-            if (data && data.results && data.results.length > 0) {
-              const loc = data.results[0].geometry.location;
-              newCache[locStr] = { lat: loc.lat, lng: loc.lng };
-              updated = true;
-              continue;
-            }
-          }
-          // Nominatim OpenStreetMap geocoding fallback
-          const osmRes = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locStr)}&limit=1`,
-            { headers: { 'Accept-Language': 'en' } }
-          );
-          const osmData = await osmRes.json();
-          if (Array.isArray(osmData) && osmData.length > 0) {
-            newCache[locStr] = { lat: parseFloat(osmData[0].lat), lng: parseFloat(osmData[0].lon) };
-            updated = true;
-          }
-        } catch (e) {
-          // ignore geocoding errors
-        }
-      }
-
-      if (updated) {
-        setGeocodedCache(prev => ({ ...prev, ...newCache }));
-      }
-    };
-
-    geocodeLocations();
-  }, [combinedFeed, reels, images, geocodedCache]);
-
-  // ── 3. Precise Haversine Distance Calculation ──
+  // ── 2. Precise Haversine Distance Calculation (Instant & Non-blocking) ──
   const calculateDistanceKm = (item) => {
     if (!item) return null;
 
@@ -559,37 +489,23 @@ export default function CustomerHomePage() {
         ? vendorObj.location.coordinates
         : null;
 
-    let targetLat = null;
-    let targetLng = null;
-
     if (itemCoordinates) {
-      targetLng = itemCoordinates[0];
-      targetLat = itemCoordinates[1];
-    } else {
-      const city = item.location?.city || vendorObj.location?.city || item.city || vendorObj.city;
-      const address = item.location?.address || vendorObj.location?.address || vendorObj.address;
-      const state = item.location?.state || vendorObj.location?.state || vendorObj.state;
-      const pincode = item.location?.pincode || vendorObj.location?.pincode || vendorObj.pincode;
-      const locStr = [address, city, state, pincode].filter(Boolean).join(', ') || city || address;
-      if (locStr && geocodedCache[locStr]) {
-        targetLat = geocodedCache[locStr].lat;
-        targetLng = geocodedCache[locStr].lng;
+      const targetLng = itemCoordinates[0];
+      const targetLat = itemCoordinates[1];
+      if (targetLat && targetLng && (targetLat !== 0 || targetLng !== 0)) {
+        const R = 6371; // Earth radius in km
+        const dLat = (targetLat - coords.lat) * (Math.PI / 180);
+        const dLng = (targetLng - coords.lng) * (Math.PI / 180);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(coords.lat * (Math.PI / 180)) *
+          Math.cos(targetLat * (Math.PI / 180)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const km = R * c;
+        if (km < 6000) return km;
       }
-    }
-
-    if (targetLat && targetLng && (targetLat !== 0 || targetLng !== 0)) {
-      const R = 6371; // Earth radius in km
-      const dLat = (targetLat - coords.lat) * (Math.PI / 180);
-      const dLng = (targetLng - coords.lng) * (Math.PI / 180);
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(coords.lat * (Math.PI / 180)) *
-        Math.cos(targetLat * (Math.PI / 180)) *
-        Math.sin(dLng / 2) *
-        Math.sin(dLng / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const km = R * c;
-      if (km < 6000) return km;
     }
 
     return null;
@@ -813,11 +729,8 @@ export default function CustomerHomePage() {
                   : (Number(item.discount || item.discountPercent || item.taggedListing?.discountPercent || 0));
 
                 return (
-                  <motion.div
+                  <div
                     key={itemId}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25 }}
                     className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
                   >
                     {/* Card Header (Instagram Style) */}
@@ -826,10 +739,10 @@ export default function CustomerHomePage() {
                         onClick={() => navigate(`/customer/vendor/${vendorId}`)}
                         className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
                       >
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5 shrink-0">
                           <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
                             {item.creator?.avatarUrl || item.creator?.profile_pic ? (
-                              <img src={item.creator.avatarUrl || item.creator.profile_pic} alt="" className="w-full h-full object-cover" />
+                              <img src={item.creator.avatarUrl || item.creator.profile_pic} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                             ) : (
                               <span>{item.creator?.name ? item.creator.name.charAt(0) : 'V'}</span>
                             )}
@@ -1013,7 +926,7 @@ export default function CustomerHomePage() {
                         )}
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               } else {
                 const vendorId = item.vendor?._id || item.vendor?.id || item.vendor;
@@ -1025,11 +938,8 @@ export default function CustomerHomePage() {
                   : (Number(item.discount || item.discountPercent || 0));
 
                 return (
-                  <motion.div
+                  <div
                     key={itemId}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25 }}
                     className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
                   >
                     {/* Card Header (Instagram Style) */}
@@ -1038,10 +948,10 @@ export default function CustomerHomePage() {
                         onClick={() => navigate(`/customer/vendor/${vendorId}`)}
                         className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
                       >
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5 shrink-0">
                           <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
                             {item.vendor?.avatarUrl || item.vendor?.profile_pic ? (
-                              <img src={item.vendor.avatarUrl || item.vendor.profile_pic} alt="" className="w-full h-full object-cover" />
+                              <img src={item.vendor.avatarUrl || item.vendor.profile_pic} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                             ) : (
                               <span>{item.vendor?.name ? item.vendor.name.charAt(0) : 'V'}</span>
                             )}
@@ -1081,7 +991,13 @@ export default function CustomerHomePage() {
                       }}
                       className="cursor-pointer aspect-square bg-slate-100 relative overflow-hidden select-none"
                     >
-                      <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
+                      <img
+                        src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'}
+                        alt={item.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover"
+                      />
                       
                       {/* Price Badge */}
                       <div className="absolute top-3 right-3 bg-[#d99a3d] px-3 py-1 rounded text-xs font-extrabold text-[#1a1a1a] shadow-xs border border-[#1a1a1a]/10">
@@ -1226,7 +1142,7 @@ export default function CustomerHomePage() {
                         </button>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               }
             })}
