@@ -443,12 +443,12 @@ const PublicLayout = () => {
               {/* Social icons */}
               <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
                 {[
-                  { label: 'Instagram', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16 }}><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg> },
-                  { label: 'YouTube', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16 }}><rect x="2" y="5" width="20" height="14" rx="3" /><polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none" /></svg> },
-                  { label: 'LinkedIn', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16 }}><rect x="2" y="2" width="20" height="20" rx="3" /><line x1="8" y1="11" x2="8" y2="16" /><line x1="8" y1="8" x2="8" y2="8.5" /><path d="M12 11v5M12 11c0-1.5 4-2 4 1v4" /></svg> },
-                  { label: 'Twitter', svg: <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 16, height: 16 }}><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg> },
-                ].map(({ label, svg }) => (
-                  <a key={label} href="#" aria-label={label}
+                  { label: 'Instagram', href: 'https://www.instagram.com/_bizreels/', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16 }}><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg> },
+                  { label: 'YouTube', href: 'https://youtube.com/@BizReels', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16 }}><rect x="2" y="5" width="20" height="14" rx="3" /><polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none" /></svg> },
+                  { label: 'LinkedIn', href: 'https://linkedin.com/company/bizreels', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16 }}><rect x="2" y="2" width="20" height="20" rx="3" /><line x1="8" y1="11" x2="8" y2="16" /><line x1="8" y1="8" x2="8" y2="8.5" /><path d="M12 11v5M12 11c0-1.5 4-2 4 1v4" /></svg> },
+                  { label: 'Twitter', href: 'https://twitter.com/BizReels', svg: <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 16, height: 16 }}><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg> },
+                ].map(({ label, href, svg }) => (
+                  <a key={label} href={href} target={href && href !== '#' ? '_blank' : undefined} rel={href && href !== '#' ? 'noopener noreferrer' : undefined} aria-label={label}
                     style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8578', textDecoration: 'none', transition: 'color .15s, background .15s' }}
                     onMouseEnter={(e) => { e.currentTarget.style.color = '#d99a3d'; e.currentTarget.style.backgroundColor = 'rgba(217,154,61,0.1)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.color = '#8a8578'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'; }}

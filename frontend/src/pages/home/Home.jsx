@@ -211,7 +211,7 @@ export default function Home() {
       'logo': 'https://bizreels.in/logo.png',
       'description': "India's local video-first marketplace connecting businesses, content creators, and local buyers.",
       'sameAs': [
-        'https://instagram.com/BizReels',
+        'https://www.instagram.com/_bizreels/',
         'https://youtube.com/@BizReels',
         'https://linkedin.com/company/bizreels',
         'https://twitter.com/BizReels'
