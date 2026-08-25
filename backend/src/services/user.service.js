@@ -47,6 +47,14 @@ const updateProfile = async (userId, updates) => {
   for (const k of allowed) {
     if (updates[k] !== undefined) clean[k] = updates[k];
   }
+  if (clean.phone) {
+    const digits = String(clean.phone).replace(/\D/g, '');
+    if (digits.length === 10) {
+      clean.phone = `+91${digits}`;
+    } else if (digits.length === 12 && digits.startsWith('91')) {
+      clean.phone = `+${digits}`;
+    }
+  }
   if (Object.keys(clean).length === 0) throw ApiError.badRequest('No updatable fields');
 
   const user = await User.findByIdAndUpdate(userId, { $set: clean }, { returnDocument: 'after' });

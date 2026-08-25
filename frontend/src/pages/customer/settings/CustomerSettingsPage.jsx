@@ -78,7 +78,8 @@ export default function CustomerSettingsPage() {
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');
-      setPhone(user.phone || '');
+      const rawPhone = user.phone || user.mobile || user.mobileNumber || user.customerProfile?.phone || user.customerProfile?.mobileNumber || user.contactNumber || '';
+      setPhone(rawPhone);
       setGender(user.gender || 'male');
       
       const userProf = user.profession || user.occupation || '';
@@ -201,11 +202,21 @@ export default function CustomerSettingsPage() {
 
     const resolvedProfession = profession === 'Other / Custom Profession' ? customProfession.trim() : profession;
 
+    let cleanPhone = (phone || '').trim();
+    if (cleanPhone) {
+      const digits = cleanPhone.replace(/\D/g, '');
+      if (digits.length === 10) {
+        cleanPhone = `+91${digits}`;
+      } else if (digits.length === 12 && digits.startsWith('91')) {
+        cleanPhone = `+${digits}`;
+      }
+    }
+
     try {
       const payload = {
         name,
         email,
-        phone,
+        phone: cleanPhone || undefined,
         gender,
         profession: resolvedProfession,
         occupation: resolvedProfession,
@@ -503,13 +514,25 @@ export default function CustomerSettingsPage() {
                 <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
                   {bi('Mobile Number', 'मोबाइल नंबर')}
                 </label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={bi('e.g. +91 9876543210', 'उदा. +91 9876543210')}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                />
+                <div className="flex gap-2">
+                  <div className="flex items-center justify-center px-3.5 py-3 text-xs font-black text-[#1a1a1a] bg-slate-100 border border-slate-200 rounded-xl min-w-[52px] select-none">
+                    +91
+                  </div>
+                  <input
+                    type="tel"
+                    value={phone.replace(/^\+91/, '')}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPhone(val ? `+91${val}` : '');
+                    }}
+                    placeholder={bi('9876543210', '९८७६५४३२१०')}
+                    maxLength={10}
+                    className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  {bi('Used for OTP verification & order notifications', 'ओटीपी सत्यापन और ऑर्डर सूचनाओं के लिए उपयोग किया जाता है')}
+                </span>
               </div>
 
               <div className="sm:col-span-2">

@@ -77,7 +77,15 @@ class AuthService {
 
   async registerWithEmail({ name, email, phone, password, role, referralCode }, req) {
     const cleanEmail = (typeof email === 'string' && email.trim()) ? email.trim().toLowerCase() : undefined;
-    const cleanPhone = (typeof phone === 'string' && phone.trim()) ? phone.trim() : undefined;
+    let cleanPhone = (typeof phone === 'string' && phone.trim()) ? phone.trim() : undefined;
+    if (cleanPhone) {
+      const digits = cleanPhone.replace(/\D/g, '');
+      if (digits.length === 10) {
+        cleanPhone = `+91${digits}`;
+      } else if (digits.length === 12 && digits.startsWith('91')) {
+        cleanPhone = `+${digits}`;
+      }
+    }
 
     if (cleanEmail) {
       const existingUser = await authRepository.findUserByEmail(cleanEmail);
@@ -551,7 +559,22 @@ class AuthService {
       updateFields.avatarUrl = resolvedPic;
       updateFields.profile_pic = resolvedPic;
     }
-    if (phone) updateFields.phone = phone;
+    if (phone !== undefined) {
+      let cleanPhone = (typeof phone === 'string') ? phone.trim() : '';
+      if (cleanPhone) {
+        const digits = cleanPhone.replace(/\D/g, '');
+        if (digits.length === 10) {
+          cleanPhone = `+91${digits}`;
+        } else if (digits.length === 12 && digits.startsWith('91')) {
+          cleanPhone = `+${digits}`;
+        }
+        const existingPhone = await authRepository.findUserByPhone(cleanPhone);
+        if (existingPhone && existingPhone._id.toString() !== userId.toString()) {
+          throw ApiError.conflict('This mobile number is already registered to another account.');
+        }
+        updateFields.phone = cleanPhone;
+      }
+    }
     if (gender) updateFields.gender = gender;
     if (profession !== undefined) {
       updateFields.profession = profession;
