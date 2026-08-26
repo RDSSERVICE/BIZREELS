@@ -58,3 +58,16 @@ BizReels integrates with external systems to provide AI, payment, messaging, not
 * **Service Module**: `backend/src/services/fcm.service.js`
 * **API Details**: Connects via `firebase-admin` client libraries in production.
 * **Behavior**: Registers FCM device tokens on login. Delivers background push notifications when listings receive updates or deals require attention.
+
+---
+
+## 6. Shiprocket (Logistics & Dynamic Shipping Rates)
+
+* **Service Module**: `backend/src/services/shiprocket.service.js`
+* **API Details**: Interacts with the Shiprocket REST API (`https://apiv2.shiprocket.in/v1/external`) for authentication, courier serviceability checks, tracking, and rate lookup.
+* **Authentication**: Obtains a 10-day cached JWT token via `POST /auth/login` using `SHIPROCKET_EMAIL` and `SHIPROCKET_PASSWORD`, or directly via `SHIPROCKET_API_TOKEN`.
+* **Key Features**:
+  * **Serviceability & Rate Lookup (`POST /courier/serviceability/`)**: Calculates live shipping rates from origin pincode to customer delivery pincode based on weight and dimensions.
+  * **Free Delivery Rule**: Standard Flipkart-style threshold logic automatically waives delivery fees (`shippingFee: 0, isFree: true`) when order total >= ₹499.
+  * **Fallback Handling**: Seamless fallback estimator if external Shiprocket API is unreachable.
+

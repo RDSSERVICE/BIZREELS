@@ -18,12 +18,32 @@ class OrderController {
       scheduledVisitTime,
       bookingNotes,
       paymentMethod = 'vendor_upi',
-      paymentDetails = null
+      paymentDetails = null,
+      couponCode = null,
+      couponDiscount = 0,
+      shippingCharges = 0,
+      shippingDetails = null,
+      pincode = '',
     } = req.body;
 
-    const listing = await Listing.findById(listingId).populate('vendor');
+    let listing = await Listing.findById(listingId).populate('vendor');
     if (!listing) {
-      throw ApiError.notFound('Listing not found');
+      const Reel = require('../models/Reel');
+      const reel = await Reel.findById(listingId).populate('creator');
+      if (reel) {
+        listing = {
+          _id: reel._id,
+          id: reel._id.toString(),
+          title: reel.caption || 'Reel Promotion',
+          type: reel.postType === 'service' || reel.postType === 'services' ? 'service' : 'product',
+          vendor: reel.creator,
+          salePrice: Number(reel.targetListing?.salePrice || reel.salePrice || reel.price || 0),
+          price: Number(reel.targetListing?.price || reel.price || 0),
+          serviceDetails: {},
+        };
+      } else {
+        throw ApiError.notFound('Listing or product not found');
+      }
     }
 
     const unitPriceCandidates = [
@@ -41,18 +61,80 @@ class OrderController {
     ];
     const validUnitPrice = unitPriceCandidates.map(p => parseFloat(p)).find(p => !isNaN(p) && p > 0);
     const unitPrice = validUnitPrice || 0;
-    const price = unitPrice * (quantity || 1);
+    const isService = listing.type === 'service' || listing.postType === 'service' || listing.postType === 'services';
+    const effectiveQty = isService ? 1 : (quantity || 1);
+    const itemTotal = unitPrice * effectiveQty;
+
+    // Process coupon if supplied
+    let validatedCouponDiscount = 0;
+    let validatedCouponCode = null;
+    if (couponCode && typeof couponCode === 'string' && couponCode.trim()) {
+      const cleanCode = couponCode.trim().toUpperCase();
+      const Offer = require('../models/Offer');
+      const now = new Date();
+      const offerDoc = await Offer.findOne({
+        $or: [
+          { code: { $regex: new RegExp(`^${cleanCode}$`, 'i') } },
+          { 'config.couponCode': { $regex: new RegExp(`^${cleanCode}$`, 'i') } },
+        ],
+        status: 'Active',
+        isDeleted: { $ne: true },
+        startTime: { $lte: now },
+        endTime: { $gte: now },
+      });
+
+      if (offerDoc) {
+        const config = offerDoc.config || {};
+        const dType = config.couponType || config.discountType || offerDoc.discountType || 'percentage';
+        const dVal = Number(config.discountValue || offerDoc.discountValue || 0);
+        const maxLim = config.maxDiscountLimit || offerDoc.maxDiscountLimit;
+        const minAmt = Number(config.minOrderAmount || offerDoc.minOrderAmount || 0);
+
+        if (itemTotal >= minAmt) {
+          if (dType === 'percentage' || dType === 'percent') {
+            validatedCouponDiscount = Math.round((itemTotal * dVal) / 100);
+            if (maxLim && validatedCouponDiscount > maxLim) {
+              validatedCouponDiscount = maxLim;
+            }
+          } else {
+            validatedCouponDiscount = Math.min(itemTotal, dVal);
+          }
+          validatedCouponCode = cleanCode;
+
+          // Record redemption in offer asynchronously
+          Offer.updateOne(
+            { _id: offerDoc._id },
+            {
+              $inc: { usedCount: 1, 'analytics.totalSales': itemTotal },
+              $push: {
+                redemptions: {
+                  userId: req.user._id,
+                  redeemedAt: new Date(),
+                  discountAmount: validatedCouponDiscount,
+                }
+              }
+            }
+          ).catch(e => console.warn('Non-blocking offer redemption recording error:', e));
+        }
+      } else if (Number(couponDiscount) > 0) {
+        validatedCouponDiscount = Math.min(itemTotal, Number(couponDiscount));
+        validatedCouponCode = cleanCode;
+      }
+    }
+
+    const validShipping = Math.max(0, parseFloat(shippingCharges) || 0);
+    const finalPayable = Math.max(0, itemTotal - validatedCouponDiscount + (isService ? 0 : validShipping));
     let finalPaymentStatus = 'unpaid';
 
     // If wallet payment is explicitly chosen, check and debit wallet
     if (paymentMethod === 'wallet') {
-      if (req.user.walletBalance < price) {
+      if (req.user.walletBalance < finalPayable) {
         throw ApiError.badRequest('Insufficient wallet balance to place this order with Wallet. You can choose Vendor UPI/QR/Cash payment.');
       }
 
       await walletRepository.updateWalletBalance(
         req.user._id,
-        -price,
+        -finalPayable,
         'payment',
         null,
         `Ordered: "${listing.title}"`
@@ -60,7 +142,7 @@ class OrderController {
 
       await walletRepository.updateWalletBalance(
         listing.vendor._id,
-        price,
+        finalPayable,
         'deposit',
         null,
         `Received payment for order: "${listing.title}"`
@@ -99,8 +181,14 @@ class OrderController {
       customer: req.user._id,
       listing: listingId,
       vendor: listing.vendor._id,
-      quantity: quantity || 1,
-      price,
+      quantity: effectiveQty,
+      itemTotal,
+      couponCode: validatedCouponCode,
+      couponDiscount: validatedCouponDiscount,
+      shippingCharges: isService ? 0 : validShipping,
+      shippingDetails,
+      pincode: pincode || '',
+      price: finalPayable,
       status: 'pending',
       paymentStatus: finalPaymentStatus,
       paymentMethod,
@@ -113,14 +201,14 @@ class OrderController {
     });
 
     // Notify vendor
-    const isService = listing.type === 'service' || !!computedVisitTime;
+    const isServiceBooking = isService || !!computedVisitTime;
     const methodLabel = paymentMethod === 'wallet' ? 'Wallet' : paymentMethod === 'cod' ? 'Cash on Delivery' : 'Vendor UPI / QR / Bank Transfer';
     const notifyVendor = await Notification.create({
       recipient: listing.vendor._id,
       sender: req.user._id,
       type: 'payment',
-      title: isService ? 'New Service Booking Received' : 'New Product Order Received',
-      message: `${req.user.name} placed order for ${quantity || 1}x "${listing.title}" (₹${price}) via ${methodLabel}.`,
+      title: isServiceBooking ? 'New Service Booking Received' : 'New Product Order Received',
+      message: `${req.user.name} placed order for ${effectiveQty}x "${listing.title}" (Total: ₹${finalPayable}${validatedCouponDiscount > 0 ? ` with ₹${validatedCouponDiscount} coupon discount` : ''}) via ${methodLabel}.`,
       data: { orderId: order._id },
     });
     emitToUser(listing.vendor._id.toString(), 'notification', notifyVendor);

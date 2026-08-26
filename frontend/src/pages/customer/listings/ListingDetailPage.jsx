@@ -85,10 +85,94 @@ export default function ListingDetailPage() {
   const [orderAddress, setOrderAddress] = useState('');
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('09:00 AM - 12:00 PM');
+  const [bookingTimeMode, setBookingTimeMode] = useState('slot'); // 'slot' | 'custom'
+  const [customTimeVal, setCustomTimeVal] = useState('10:00');
   const [bookingNotes, setBookingNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('vendor_upi');
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+
+  const formatTime12h = (time24) => {
+    if (!time24) return '';
+    const [hStr, mStr] = time24.split(':');
+    let h = parseInt(hStr, 10);
+    const m = mStr || '00';
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h < 10 ? '0' + h : h}:${m} ${ampm}`;
+  };
+
+  const handleFetchLiveLocation = async () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setIsFetchingLocation(true);
+    const toastId = toast.loading('Detecting your live GPS location...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        let resolvedAddress = '';
+
+        // 1. Try reverse geocoding via OpenStreetMap Nominatim
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.display_name) {
+              resolvedAddress = data.display_name;
+            }
+          }
+        } catch (err) {
+          console.warn('Nominatim reverse geocode error:', err);
+        }
+
+        // 2. Fallback to backend reverse-geocode
+        if (!resolvedAddress) {
+          try {
+            const backendGeo = await locationApi.reverseGeocode(latitude, longitude);
+            const geoData = backendGeo.data?.data || backendGeo.data || {};
+            const parts = [
+              geoData.address,
+              geoData.area,
+              geoData.city,
+              geoData.state,
+              geoData.pincode,
+            ].filter(Boolean);
+            if (parts.length > 0) {
+              resolvedAddress = parts.join(', ');
+            }
+          } catch (e) {
+            console.warn('Backend reverseGeocode error:', e);
+          }
+        }
+
+        setIsFetchingLocation(false);
+        if (resolvedAddress) {
+          setOrderAddress(resolvedAddress);
+          toast.success('Live location & address fetched successfully!', { id: toastId });
+        } else {
+          toast.error('Could not detect exact street address. Please type address manually.', { id: toastId });
+        }
+      },
+      (error) => {
+        setIsFetchingLocation(false);
+        console.error('Geolocation error:', error);
+        toast.error(
+          error.code === 1
+            ? 'Location permission denied. Please allow location access or type manually.'
+            : 'Failed to retrieve GPS location.',
+          { id: toastId }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   // Reviews States
   const [reviewsList, setReviewsList] = useState([]);
@@ -865,36 +949,100 @@ export default function ListingDetailPage() {
                       <input
                         type="date"
                         required
+                        min={new Date().toISOString().split('T')[0]}
                         value={bookingDate}
                         onChange={(e) => setBookingDate(e.target.value)}
                         className="w-full p-2.5 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-bold focus:outline-none focus:border-[#d99a3d]"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Time Slot</label>
-                      <select
-                        value={bookingTime}
-                        onChange={(e) => setBookingTime(e.target.value)}
-                        className="w-full p-2.5 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-bold focus:outline-none focus:border-[#d99a3d]"
-                      >
-                        <option>09:00 AM - 12:00 PM</option>
-                        <option>12:00 PM - 03:00 PM</option>
-                        <option>03:00 PM - 06:00 PM</option>
-                        <option>06:00 PM - 09:00 PM</option>
-                      </select>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Preferred Time</label>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setBookingTimeMode('slot')}
+                            className={`px-2 py-0.5 text-[9.5px] font-bold rounded transition cursor-pointer border ${
+                              bookingTimeMode === 'slot'
+                                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                                : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb]'
+                            }`}
+                          >
+                            Slots
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBookingTimeMode('custom');
+                              if (customTimeVal) setBookingTime(formatTime12h(customTimeVal));
+                            }}
+                            className={`px-2 py-0.5 text-[9.5px] font-bold rounded transition cursor-pointer border ${
+                              bookingTimeMode === 'custom'
+                                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                                : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb]'
+                            }`}
+                          >
+                            ⏰ Exact Time
+                          </button>
+                        </div>
+                      </div>
+
+                      {bookingTimeMode === 'slot' ? (
+                        <select
+                          value={bookingTime}
+                          onChange={(e) => setBookingTime(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-bold focus:outline-none focus:border-[#d99a3d] cursor-pointer"
+                        >
+                          <option value="09:00 AM - 12:00 PM">Morning (09:00 AM - 12:00 PM)</option>
+                          <option value="12:00 PM - 03:00 PM">Afternoon (12:00 PM - 03:00 PM)</option>
+                          <option value="03:00 PM - 06:00 PM">Evening (03:00 PM - 06:00 PM)</option>
+                          <option value="06:00 PM - 09:00 PM">Night (06:00 PM - 09:00 PM)</option>
+                        </select>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="time"
+                            required
+                            value={customTimeVal}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCustomTimeVal(val);
+                              if (val) setBookingTime(formatTime12h(val));
+                            }}
+                            className="w-full p-2.5 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-bold focus:outline-none focus:border-[#d99a3d] cursor-pointer"
+                          />
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
 
-                {/* Delivery Address */}
+                {/* Delivery / Service Location Address */}
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">
-                    {isService ? 'Service Location / Address' : 'Delivery Address'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-1.5">
+                      <FiMapPin size={13} className="text-[#d99a3d]" />
+                      <span>{isService ? 'Service Location / Address' : 'Delivery Address'}</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleFetchLiveLocation}
+                      disabled={isFetchingLocation}
+                      className="px-2.5 py-1 rounded-lg bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-[10.5px] font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs border-none disabled:opacity-50"
+                      title="Fetch live location via GPS"
+                    >
+                      {isFetchingLocation ? (
+                        <div className="w-3 h-3 rounded-full border-2 border-[#d99a3d] border-t-transparent animate-spin" />
+                      ) : (
+                        <FiMapPin size={11} />
+                      )}
+                      <span>{isFetchingLocation ? 'Detecting GPS...' : '📍 Fetch My Location'}</span>
+                    </button>
+                  </div>
                   <textarea
                     rows={2}
                     required
-                    placeholder="Enter full street address, landmark, and pin code..."
+                    placeholder="Enter full street address, landmark, and pin code or click 'Fetch My Location' above..."
                     value={orderAddress}
                     onChange={(e) => setOrderAddress(e.target.value)}
                     className="w-full p-3 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-medium focus:outline-none focus:border-[#d99a3d]"

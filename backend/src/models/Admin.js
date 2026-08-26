@@ -136,6 +136,18 @@ const subscriptionPlanSchema = new mongoose.Schema({
   priority_support: { type: Boolean, default: false },
   analytics_access: { type: Boolean, default: false },
   priority_ranking: { type: Boolean, default: false },
+  // Add-Ons available for this plan
+  add_ons: [{
+    id: { type: String, required: true },
+    title: { type: String, required: true, trim: true },
+    description: { type: String, default: '' },
+    price_inr: { type: Number, required: true, min: 0 },
+    billing_type: { type: String, enum: ['monthly', 'yearly', 'one_time', 'per_cycle'], default: 'per_cycle' },
+    quota_type: { type: String, enum: ['reels_limit', 'ai_credits', 'leads_limit', 'product_limit', 'service_limit', 'verified_badge', 'custom'], default: 'custom' },
+    quota_value: { type: Number, default: 0 },
+    is_active: { type: Boolean, default: true },
+    icon: { type: String, default: 'zap' },
+  }],
   // Status
   is_active: { type: Boolean, default: true },
   is_archived: { type: Boolean, default: false },

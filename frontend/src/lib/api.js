@@ -159,7 +159,15 @@ export const cartApi = {
   add: (payload) => api.post("/v1/cart/me/add", payload),
   update: (listing_id, quantity) => api.patch(`/v1/cart/me/items/${listing_id}`, { quantity }),
   remove: (listing_id) => api.delete(`/v1/cart/me/items/${listing_id}`),
-  checkout: () => api.post("/v1/cart/me/checkout"),
+  checkout: (payload = {}) => api.post("/v1/cart/me/checkout", payload),
+};
+
+export const offersApi = {
+  active: () => api.get("/v1/offers/active"),
+  validateCoupon: (payload) => api.post("/v1/offers/validate-coupon", payload),
+  getApplicable: (params = {}) => api.get("/v1/offers/applicable", { params }),
+  calculateShipping: (payload) => api.post("/v1/offers/calculate-shipping", payload),
+  trackClick: (id) => api.post(`/v1/offers/${id}/click`),
 };
 
 export const moreFromVendor = (vendor_id, exclude_listing_id, limit = 12) =>

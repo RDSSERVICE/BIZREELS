@@ -193,3 +193,72 @@ To maintain compatibility with legacy schemas, all Mongoose models in `backend/s
   * `user_id`: String (required, index), `token_hash`: String (required, index), `revoked`: Boolean (default false)
   * `expires_at`: Date (required)
   * *TTL index*: `{ expires_at: 1 }` with `expireAfterSeconds: 0`
+
+### 8. Order (`orders`)
+* **Fields**:
+  * `orderId`: String (required, unique, index)
+  * `customer`: ObjectId ref `User` (required, index)
+  * `vendor`: ObjectId ref `User` (required, index)
+  * `listing`: ObjectId ref `Listing` (optional, index)
+  * `itemTotal`: Number (required)
+  * `price`: Number (final payable total amount)
+  * `quantity`: Number (default 1)
+  * `bookingDate`: Date (optional)
+  * `bookingTime`: String (optional)
+  * `bookingNotes`: String (optional)
+  * `paymentMethod`: String (enum: `['online', 'cod', 'wallet', 'vendor_upi', 'bank_transfer']`, default `'vendor_upi'`)
+  * `paymentDetails`: Mixed
+  * `couponCode`: String (default null)
+  * `couponDiscount`: Number (default 0)
+  * `shippingCharges`: Number (default 0)
+  * `shippingDetails`: Mixed (courier info, tracking metadata)
+  * `address`: String (required)
+  * `pincode`: String (default null)
+  * `status`: String (enum: `['pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'disputed']`, default `'pending'`, index)
+* **Timestamps**: `createdAt`, `updatedAt`
+
+### 9. SubscriptionPlan (`subscription_plans`)
+* **Fields**:
+  * `title`: String (required)
+  * `description`: String (default null)
+  * `plan_type`: String (enum: `['basic', 'standard', 'premium', 'enterprise', 'custom']`, default `'basic'`)
+  * `user_type`: String (enum: `['vendor', 'creator', 'all']`, default `'vendor'`)
+  * `billing_cycle`: String (enum: `['monthly', 'quarterly', 'half_yearly', 'yearly']`, required)
+  * `price_inr`: Number (required)
+  * `duration_days`: Number (default 30)
+  * `discount_percentage`: Number (default 0)
+  * `product_limit`: Number (default null), `service_limit`: Number (default null)
+  * `reels_limit`: Number (default null), `leads_limit`: Number (default null)
+  * `ai_credits`: Number (default 0)
+  * `verified_badge`: Boolean (default true), `priority_support`: Boolean (default false), `analytics_access`: Boolean (default false)
+  * `add_ons`: Array of:
+    * `id`: String (required), `title`: String (required), `description`: String
+    * `price_inr`: Number (required), `billing_type`: String, `quota_type`: String, `quota_value`: Number, `is_active`: Boolean
+  * `is_active`: Boolean (default true), `is_archived`: Boolean (default false), `is_deleted`: Boolean (default false)
+* **Timestamps**: `created_at`, `updated_at`
+
+### 10. UserSubscription (`user_subscriptions`)
+* **Fields**:
+  * `user_id`: String (required, index)
+  * `user_name`: String, `user_role`: String (enum: `['vendor', 'creator']`)
+  * `plan_id`: String (required), `plan_name`: String (required)
+  * `billing_cycle`: String (default `'monthly'`)
+  * `start_date`: Date (required), `expiry_date`: Date (required, index)
+  * `status`: String (enum: `['active', 'expired', 'cancelled', 'upgraded', 'downgraded', 'suspended']`, default `'active'`, index)
+  * `base_plan_price`: Number (default 0), `addons_total`: Number (default 0)
+  * `selected_addons`: Array of `{ id: String, title: String, price_inr: Number, quota_type: String, quota_value: Number }`
+  * `original_amount`: Number (required), `paid_amount`: Number (required)
+  * `payment_method`: String (default `'razorpay'`), `payment_id`: String
+* **Timestamps**: `created_at`, `updated_at`
+
+### 11. SubscriptionInvoice (`subscription_invoices`)
+* **Fields**:
+  * `invoice_number`: String (unique, index)
+  * `user_id`: String (required, index), `user_name`: String, `user_email`: String
+  * `plan_id`: String, `plan_name`: String
+  * `base_amount`: Number, `addons_total`: Number, `addons`: Array of `{ id: String, title: String, price_inr: Number }`
+  * `discount_amount`: Number, `coupon_code`: String, `subtotal`: Number
+  * `gst_percentage`: Number (default 18), `gst_amount`: Number, `total_amount`: Number
+  * `payment_status`: String (enum: `['paid', 'pending', 'failed', 'refunded']`, default `'paid'`, index)
+* **Timestamps**: `created_at`, `updated_at`
+

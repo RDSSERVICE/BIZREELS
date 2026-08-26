@@ -35,6 +35,34 @@ const orderSchema = new Schema(
       required: true,
       min: 0,
     },
+    itemTotal: {
+      type: Number,
+      default: 0,
+    },
+    couponCode: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    couponDiscount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    shippingCharges: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    shippingDetails: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    pincode: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     status: {
       type: String,
       enum: ['pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'rejected', 'refunded'],

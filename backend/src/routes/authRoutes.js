@@ -41,7 +41,7 @@ const ApiResponse = require('../utils/ApiResponse');
 router.post('/dev/admin-login', authLimiter, asyncHandler(async (req, res) => {
   const { token } = req.body;
   const result = await adminPhoneService.devAdminLogin(token);
-  
+
   if (result.refreshToken) {
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
@@ -87,7 +87,7 @@ router.get(
       if (config.google.callbackUrl) {
         callbackPath = new URL(config.google.callbackUrl).pathname;
       }
-    } catch (err) {}
+    } catch (err) { }
     const callbackURL = `${req.protocol}://${req.get('host')}${callbackPath}`;
     passport.authenticate('google', {
       scope: ['profile', 'email'],
@@ -106,7 +106,7 @@ router.get(
       if (config.google.callbackUrl) {
         callbackPath = new URL(config.google.callbackUrl).pathname;
       }
-    } catch (err) {}
+    } catch (err) { }
     const callbackURL = `${req.protocol}://${req.get('host')}${callbackPath}`;
     passport.authenticate('google', {
       failureRedirect: '/login',

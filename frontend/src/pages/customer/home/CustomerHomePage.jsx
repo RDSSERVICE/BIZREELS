@@ -18,6 +18,7 @@ import ChatDrawer from '../../../components/ui/ChatDrawer';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import ReelFullscreenViewer from '../../../components/feed/ReelFullscreenViewer';
 import ImageFullscreenViewer from '../../../components/feed/ImageFullscreenViewer';
+import DirectBuyModal from '../../../components/common/DirectBuyModal';
 import { useLanguage } from '../../../context/LanguageContext';
 
 /**
@@ -231,6 +232,15 @@ export default function CustomerHomePage() {
     setChatDrawerRecipientName(recipientName || 'Vendor Partner');
     setChatDrawerRecipientAvatar(recipientAvatar);
     setChatDrawerOpen(true);
+  };
+
+  // Direct Buy / Instant Purchase Modal State
+  const [directBuyOpen, setDirectBuyOpen] = useState(false);
+  const [directBuyItem, setDirectBuyItem] = useState(null);
+
+  const handleOpenDirectBuy = (item) => {
+    setDirectBuyItem(item);
+    setDirectBuyOpen(true);
   };
 
   // Fullscreen viewer state
@@ -895,11 +905,11 @@ export default function CustomerHomePage() {
                         </button>
 
                         <button
-                          onClick={() => {
-                            const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
-                            navigate(`/customer/listings/${targetId}`);
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDirectBuy(item);
                           }}
-                          className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                          className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-none"
                         >
                           <FiZap size={15} />
                           <span>Buy Now</span>
@@ -1132,10 +1142,9 @@ export default function CustomerHomePage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            const targetId = item._id || item.id;
-                            navigate(`/customer/listings/${targetId}`);
+                            handleOpenDirectBuy(item);
                           }}
-                          className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                          className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-none"
                         >
                           <FiZap size={15} />
                           <span>Buy Now</span>
@@ -1174,6 +1183,7 @@ export default function CustomerHomePage() {
           onLike={handleLike}
           onSave={handleSave}
           onFollow={handleFollow}
+          onOpenDirectBuy={handleOpenDirectBuy}
           likedMap={likedMap}
           savedMap={savedMap}
           followingMap={followingMap}
@@ -1189,11 +1199,20 @@ export default function CustomerHomePage() {
           onLike={handleLike}
           onSave={handleSave}
           onFollow={handleFollow}
+          onOpenDirectBuy={handleOpenDirectBuy}
           likedMap={likedMap}
           savedMap={savedMap}
           followingMap={followingMap}
         />
       )}
+
+      {/* Direct Buy / Instant Purchase Modal */}
+      <DirectBuyModal
+        isOpen={directBuyOpen}
+        item={directBuyItem}
+        onClose={() => setDirectBuyOpen(false)}
+        onOpenChat={handleOpenChat}
+      />
     </div>
   );
 }

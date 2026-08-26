@@ -12,15 +12,30 @@ import { api, cartApi } from '../../lib/api';
 import { notifyCartChanged, openCartDrawer } from '../app/CartDrawer';
 import ChatDrawer from '../ui/ChatDrawer';
 
+import DirectBuyModal from '../common/DirectBuyModal';
+
 /**
  * ReelFullscreenViewer
  * Full-screen vertical scroll-snap viewer for video reels.
  * Shows vendor profile for boosted reels with masked contact info.
  */
-export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, onLike, onSave, onFollow, likedMap = {}, savedMap = {}, followingMap = {} }) {
+export default function ReelFullscreenViewer({
+  reels,
+  startIndex = 0,
+  onClose,
+  onLike,
+  onSave,
+  onFollow,
+  onOpenDirectBuy,
+  likedMap = {},
+  savedMap = {},
+  followingMap = {}
+}) {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [muted, setMuted] = useState(true);
+  const [directBuyModalOpen, setDirectBuyModalOpen] = useState(false);
+  const [selectedBuyItem, setSelectedBuyItem] = useState(null);
   const containerRef = useRef(null);
 
   // In-context Chat drawer state
@@ -422,8 +437,12 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        const targetId = reel.taggedListing?._id || reel.taggedListing || reel._id || reel.id;
-                        navigate(`/customer/listings/${targetId}`);
+                        if (onOpenDirectBuy) {
+                          onOpenDirectBuy(reel);
+                        } else {
+                          setSelectedBuyItem(reel);
+                          setDirectBuyModalOpen(true);
+                        }
                       }}
                       className="py-2 px-3 rounded-xl bg-[#d99a3d] hover:bg-[#c0862b] text-[#1a1a1a] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer border-none"
                     >
@@ -445,6 +464,19 @@ export default function ReelFullscreenViewer({ reels, startIndex = 0, onClose, o
         recipientId={chatDrawerRecipientId}
         recipientName={chatDrawerRecipientName}
         recipientAvatar={chatDrawerRecipientAvatar}
+      />
+
+      {/* Direct Buy / Instant Purchase Modal */}
+      <DirectBuyModal
+        isOpen={directBuyModalOpen}
+        item={selectedBuyItem}
+        onClose={() => setDirectBuyModalOpen(false)}
+        onOpenChat={(id, name, avatar) => {
+          setChatDrawerRecipientId(id);
+          setChatDrawerRecipientName(name);
+          setChatDrawerRecipientAvatar(avatar);
+          setChatDrawerOpen(true);
+        }}
       />
     </motion.div>
   );

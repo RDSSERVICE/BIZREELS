@@ -215,7 +215,7 @@ const buildFeed = async ({
 
   if (allUserIds.length > 0) {
     const users = await User.find({ _id: { $in: allUserIds } })
-      .select('name profile_pic avatarUrl shop_name business_name location city address')
+      .select('name profile_pic avatarUrl shop_name business_name location city address phone vendorProfile isVerified kyc_status is_subscribed_verified paymentDetails payoutDetails')
       .lean();
     const umap = {};
     for (const u of users) {
@@ -233,9 +233,15 @@ const buildFeed = async ({
           business_name: u.business_name,
           profile_pic: u.profile_pic || u.avatarUrl,
           avatarUrl: u.avatarUrl || u.profile_pic,
+          phone: u.phone,
           location: u.location,
           city: u.city || u.location?.city,
           address: u.address || u.location?.address,
+          vendorProfile: u.vendorProfile,
+          isVerified: u.isVerified || u.vendorProfile?.isVerified || false,
+          kyc_status: u.kyc_status,
+          is_subscribed_verified: u.is_subscribed_verified,
+          paymentDetails: u.vendorProfile?.paymentDetails || u.paymentDetails || u.vendorProfile?.payoutDetails || u.payoutDetails,
         };
         if (r.postType === 'listing') {
           r.vendor = userObj;

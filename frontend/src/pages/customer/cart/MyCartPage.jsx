@@ -19,6 +19,9 @@ export default function MyCartPage() {
   const [updatingId, setUpdatingId] = useState(null);
   const [checkingOut, setCheckingOut] = useState(false);
 
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [deliveryPincode, setDeliveryPincode] = useState(user?.location?.pincode || user?.pincode || '');
+
   const fetchCart = async () => {
     if (!user) {
       setCart(null);
@@ -72,10 +75,24 @@ export default function MyCartPage() {
     }
   };
 
+  const groups = cart?.groups || [];
+  const totalItems = cart?.total_items || 0;
+  const totalAmount = cart?.total_amount || 0;
+  const isFreeDelivery = totalAmount >= 499 || totalAmount === 0;
+  const deliveryFee = isFreeDelivery ? 0 : 40;
+  const couponDiscount = appliedCoupon ? Number(appliedCoupon.discountAmount || 0) : 0;
+  const finalPayable = Math.max(0, totalAmount - couponDiscount + deliveryFee);
+
   const handleCheckout = async () => {
     setCheckingOut(true);
     try {
-      const { data } = await cartApi.checkout();
+      const { data } = await cartApi.checkout({
+        couponCode: appliedCoupon ? appliedCoupon.couponCode : undefined,
+        couponDiscount,
+        shippingCharges: deliveryFee,
+        pincode: deliveryPincode,
+        address: user?.location?.address || user?.address || 'Customer Address',
+      });
       toast.success(`Order request sent to ${data.deals?.length || 1} vendor(s)!`);
       notifyCartChanged();
       await fetchCart();
@@ -86,10 +103,6 @@ export default function MyCartPage() {
       setCheckingOut(false);
     }
   };
-
-  const groups = cart?.groups || [];
-  const totalItems = cart?.total_items || 0;
-  const totalAmount = cart?.total_amount || 0;
 
   return (
     <div className="min-h-screen bg-[#f2ede4] font-sans pb-24 lg:pb-16 text-[#1a1a1a]">
@@ -189,7 +202,7 @@ export default function MyCartPage() {
               </AnimatePresence>
             </div>
 
-            {/* Right: Order Summary Card (4 Columns) */}
+            {/* Right: Flipkart-Style Order Summary Card (4 Columns) */}
             <div className="lg:col-span-4">
               <CartOrderSummary
                 totalAmount={totalAmount}
@@ -197,6 +210,13 @@ export default function MyCartPage() {
                 vendorCount={groups.length}
                 onCheckout={handleCheckout}
                 isCheckingOut={checkingOut}
+                appliedCoupon={appliedCoupon}
+                onApplyCoupon={(c) => setAppliedCoupon(c)}
+                onRemoveCoupon={() => setAppliedCoupon(null)}
+                deliveryFee={deliveryFee}
+                isFreeDelivery={isFreeDelivery}
+                pincode={deliveryPincode}
+                onPincodeChange={setDeliveryPincode}
               />
             </div>
           </div>

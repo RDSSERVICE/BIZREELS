@@ -97,7 +97,7 @@ router.post('/subscription/change', authenticate, (req, res, next) => {
 // Direct Razorpay subscription purchase (creates Razorpay order)
 router.post('/subscription/purchase-razorpay', authenticate, async (req, res, next) => {
   try {
-    const { plan_id } = req.body;
+    const { plan_id, selected_addons = [] } = req.body;
     if (!plan_id) {
       return res.status(400).json({ success: false, message: 'plan_id is required' });
     }
@@ -119,7 +119,7 @@ router.post('/subscription/purchase-razorpay', authenticate, async (req, res, ne
       return res.status(400).json({ success: false, message: `Plan not found: "${plan_id}"` });
     }
 
-    // Prevent duplicate subscription purchase
+    // Prevent duplicate subscription purchase if no add-ons and already on same plan
     const UserSubscription = require('../models/UserSubscription.model');
     const activeSub = await UserSubscription.findOne({
       user_id: req.user._id.toString(),
@@ -127,20 +127,58 @@ router.post('/subscription/purchase-razorpay', authenticate, async (req, res, ne
       is_deleted: { $ne: true }
     });
 
-    if (activeSub && activeSub.plan_id === planDoc._id.toString()) {
+    if (activeSub && activeSub.plan_id === planDoc._id.toString() && (!selected_addons || selected_addons.length === 0)) {
       return res.status(400).json({
         success: false,
-        message: `You already have an active subscription for the "${planDoc.title}" plan. Duplicate purchases are not allowed.`
+        message: `You already have an active subscription for the "${planDoc.title}" plan.`
       });
     }
 
-    const amountPaise = Math.round(planDoc.price_inr * 100);
+    // Validate and calculate add-ons total
+    let validatedAddons = [];
+    let addonsTotal = 0;
+    if (Array.isArray(selected_addons) && selected_addons.length > 0) {
+      const planAddons = planDoc.add_ons || [];
+      for (const reqAddon of selected_addons) {
+        const matched = planAddons.find(a => a.id === reqAddon.id || a.title?.toLowerCase() === reqAddon.title?.toLowerCase());
+        if (matched) {
+          const addonPrice = Number(matched.price_inr || 0);
+          addonsTotal += addonPrice;
+          validatedAddons.push({
+            id: matched.id,
+            title: matched.title,
+            price_inr: addonPrice,
+            quota_type: matched.quota_type,
+            quota_value: matched.quota_value,
+          });
+        } else if (reqAddon.title && Number(reqAddon.price_inr) > 0) {
+          const addonPrice = Number(reqAddon.price_inr);
+          addonsTotal += addonPrice;
+          validatedAddons.push({
+            id: reqAddon.id || `addon_${Date.now()}`,
+            title: reqAddon.title,
+            price_inr: addonPrice,
+            quota_type: reqAddon.quota_type || 'custom',
+            quota_value: reqAddon.quota_value || 0,
+          });
+        }
+      }
+    }
+
+    const totalInr = Math.max(0, planDoc.price_inr + addonsTotal);
+    const amountPaise = Math.round(totalInr * 100);
     const paymentService = require('../services/payment.service');
     const result = await paymentService.createPaymentOrder(
       req.user._id.toString(),
       'subscription_plan',
       amountPaise,
-      planDoc._id.toString()
+      planDoc._id.toString(),
+      {
+        plan_id: planDoc._id.toString(),
+        selected_addons: validatedAddons,
+        base_price_inr: planDoc.price_inr,
+        addons_total_inr: addonsTotal,
+      }
     );
 
     return res.json({
@@ -149,7 +187,10 @@ router.post('/subscription/purchase-razorpay', authenticate, async (req, res, ne
         ...result,
         plan_id: planDoc._id.toString(),
         plan_title: planDoc.title,
-        amount_inr: planDoc.price_inr,
+        base_price_inr: planDoc.price_inr,
+        addons_total_inr: addonsTotal,
+        amount_inr: totalInr,
+        selected_addons: validatedAddons,
       },
     });
   } catch (err) {

@@ -10,16 +10,33 @@ import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { api } from '../../lib/api';
 import ChatDrawer from '../ui/ChatDrawer';
+import DirectBuyModal from '../common/DirectBuyModal';
+import { FiZap, FiShoppingCart } from 'react-icons/fi';
+import { cartApi } from '../../lib/api';
+import { notifyCartChanged, openCartDrawer } from '../app/CartDrawer';
 
 /**
  * ImageFullscreenViewer
  * Full-screen vertical scroll viewer for image posts only.
  * Similar to ReelFullscreenViewer but for static image content.
  */
-export default function ImageFullscreenViewer({ images, startIndex = 0, onClose, onLike, onSave, onFollow, likedMap = {}, savedMap = {}, followingMap = {} }) {
+export default function ImageFullscreenViewer({
+  images,
+  startIndex = 0,
+  onClose,
+  onLike,
+  onSave,
+  onFollow,
+  onOpenDirectBuy,
+  likedMap = {},
+  savedMap = {},
+  followingMap = {}
+}) {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [directBuyModalOpen, setDirectBuyModalOpen] = useState(false);
+  const [selectedBuyItem, setSelectedBuyItem] = useState(null);
 
   // In-context Chat drawer state
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
@@ -437,9 +454,48 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
                 <span className="text-[9px] font-extrabold tracking-tight">Inquiry</span>
               </button>
             </div>
+
+            {/* Add to Cart & Buy Now Quick Action Buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-white/10">
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const targetId = currentPost._id || currentPost.id;
+                  try {
+                    await cartApi.add({ listing_id: targetId, quantity: 1 });
+                    notifyCartChanged();
+                    openCartDrawer();
+                    toast.success(`"${currentPost.title || 'Product'}" added to cart!`);
+                  } catch {
+                    toast.error('Could not add item to cart');
+                  }
+                }}
+                className="py-2 px-3 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-extrabold transition flex items-center justify-center gap-1.5 border border-white/20 shadow-xs cursor-pointer"
+              >
+                <FiShoppingCart size={14} />
+                <span>Add to Cart</span>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onOpenDirectBuy) {
+                    onOpenDirectBuy(currentPost);
+                  } else {
+                    setSelectedBuyItem(currentPost);
+                    setDirectBuyModalOpen(true);
+                  }
+                }}
+                className="py-2 px-3 rounded-xl bg-[#d99a3d] hover:bg-[#c0862b] text-[#1a1a1a] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer border-none"
+              >
+                <FiZap size={14} />
+                <span>Buy Now</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
       {/* In-context Chat Drawer */}
       <ChatDrawer
         isOpen={chatDrawerOpen}
@@ -447,6 +503,19 @@ export default function ImageFullscreenViewer({ images, startIndex = 0, onClose,
         recipientId={chatDrawerRecipientId}
         recipientName={chatDrawerRecipientName}
         recipientAvatar={chatDrawerRecipientAvatar}
+      />
+
+      {/* Direct Buy / Instant Purchase Modal */}
+      <DirectBuyModal
+        isOpen={directBuyModalOpen}
+        item={selectedBuyItem}
+        onClose={() => setDirectBuyModalOpen(false)}
+        onOpenChat={(id, name, avatar) => {
+          setChatDrawerRecipientId(id);
+          setChatDrawerRecipientName(name);
+          setChatDrawerRecipientAvatar(avatar);
+          setChatDrawerOpen(true);
+        }}
       />
     </motion.div>
   );

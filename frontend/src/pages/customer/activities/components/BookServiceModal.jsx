@@ -15,10 +15,22 @@ export default function BookServiceModal({
 }) {
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('09:00 AM');
+  const [bookingTimeMode, setBookingTimeMode] = useState('slot'); // 'slot' | 'custom'
+  const [customTimeVal, setCustomTimeVal] = useState('10:00');
   const [bookingAddress, setBookingAddress] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('vendor_upi');
   const [loading, setLoading] = useState(false);
+
+  const formatTime12h = (time24) => {
+    if (!time24) return '';
+    const [hStr, mStr] = time24.split(':');
+    let h = parseInt(hStr, 10);
+    const m = mStr || '00';
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h < 10 ? '0' + h : h}:${m} ${ampm}`;
+  };
 
   const [copiedKey, setCopiedKey] = useState('');
   const handleCopy = (text, key) => {
@@ -178,21 +190,65 @@ export default function BookServiceModal({
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                Preferred Time
-              </label>
-              <select
-                value={bookingTime}
-                onChange={(e) => setBookingTime(e.target.value)}
-                className="w-full px-3 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] cursor-pointer"
-              >
-                <option value="09:00 AM">09:00 AM</option>
-                <option value="10:00 AM">10:00 AM</option>
-                <option value="12:00 PM">12:00 PM</option>
-                <option value="02:00 PM">02:00 PM</option>
-                <option value="04:00 PM">04:00 PM</option>
-                <option value="06:00 PM">06:00 PM</option>
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-bold text-slate-600">
+                  Preferred Time
+                </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setBookingTimeMode('slot')}
+                    className={`px-1.5 py-0.2 text-[9px] font-bold rounded border ${
+                      bookingTimeMode === 'slot'
+                        ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                        : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb]'
+                    }`}
+                  >
+                    Presets
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBookingTimeMode('custom');
+                      if (customTimeVal) setBookingTime(formatTime12h(customTimeVal));
+                    }}
+                    className={`px-1.5 py-0.2 text-[9px] font-bold rounded border ${
+                      bookingTimeMode === 'custom'
+                        ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                        : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb]'
+                    }`}
+                  >
+                    ⏰ Exact
+                  </button>
+                </div>
+              </div>
+
+              {bookingTimeMode === 'slot' ? (
+                <select
+                  value={bookingTime}
+                  onChange={(e) => setBookingTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] cursor-pointer"
+                >
+                  <option value="09:00 AM">09:00 AM</option>
+                  <option value="10:00 AM">10:00 AM</option>
+                  <option value="12:00 PM">12:00 PM</option>
+                  <option value="02:00 PM">02:00 PM</option>
+                  <option value="04:00 PM">04:00 PM</option>
+                  <option value="06:00 PM">06:00 PM</option>
+                </select>
+              ) : (
+                <input
+                  type="time"
+                  required
+                  value={customTimeVal}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCustomTimeVal(val);
+                    if (val) setBookingTime(formatTime12h(val));
+                  }}
+                  className="w-full px-3 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] cursor-pointer"
+                />
+              )}
             </div>
           </div>
 

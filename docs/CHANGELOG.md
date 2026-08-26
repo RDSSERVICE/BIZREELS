@@ -4,6 +4,20 @@ All notable changes to the BizReels local social commerce platform will be docum
 
 ---
 
+## [1.2.0] - 2026-08-26
+
+### Added
+* **Flipkart-Style Multi-Step Instant Checkout**: Redesigned Direct Buy checkout flow into a 4-step accordion experience: Delivery Address (with live GPS detection), Order Summary (Quantity +/- and booking slots), Coupons & Bank Offers, and Payment Options (Vendor UPI/QR, COD, Bank Transfer).
+* **Coupons & Promo Codes System**: Added real-time coupon code validation (`POST /v1/offers/validate-coupon`), 1-click applicable coupons drawer (`GET /v1/offers/applicable`), and savings preview banners.
+* **Shiprocket Logistics & Shipping Engine**: Added `shiprocket.service.js` with live courier rate estimation (`POST /v1/offers/calculate-shipping`) and Free Delivery above ₹499 rule.
+* **Subscription Add-Ons System**:
+  * Added dynamic Add-ons manager for Admins (`PlanAddonEditor.jsx`) to attach optional capacity add-ons (reels limit, AI credits, leads quota, verified badges) to subscription plans.
+  * Added interactive Add-ons selector (`AddonsSelector.jsx`) and SaaS checkout modal (`SubscriptionCheckoutModal.jsx`) for Vendors and Creators with real-time price tallying (`Base Plan + Addons Total`).
+  * Updated Razorpay and Wallet checkout services to process and record selected add-ons.
+* **Modular React Subcomponents Architecture**: Refactored `DirectBuyModal.jsx` and `SubscriptionTab.jsx` into focused, reusable subcomponents.
+
+---
+
 ## [1.1.0] - 2026-08-24
 
 ### Added

@@ -1,12 +1,16 @@
-import React, { useEffect } from 'react';
-import { FiCheckCircle, FiStar, FiCalendar, FiCreditCard, FiZap, FiShield } from 'react-icons/fi';
-import Button from '../../components/common/Button';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { FiLayers, FiShield } from 'react-icons/fi';
 import { useGetSubscriptionPlansQuery, useChangeSubscriptionMutation, usePurchaseSubscriptionRazorpayMutation } from '../vendor/vendorApi';
 import { useGetCreatorWalletQuery, useGetVendorWalletQuery } from '../wallet/walletApi';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { getSocket } from '../../lib/socket';
+
+// Modular Components
+import ActiveSubscriptionCard from './components/ActiveSubscriptionCard';
+import PlanCard from './components/PlanCard';
+import SubscriptionCheckoutModal from './components/SubscriptionCheckoutModal';
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -19,7 +23,10 @@ const loadRazorpayScript = () => {
   });
 };
 
-const SubscriptionTab = ({ user, refetchUser, role }) => {
+/**
+ * SubscriptionTab — Modular orchestrator for Vendor and Creator subscription management
+ */
+export default function SubscriptionTab({ user, refetchUser, role }) {
   const { refreshMe } = useAuth();
   const currentRole = role || user?.current_role || (typeof window !== 'undefined' && window.location.pathname.startsWith('/creator') ? 'creator' : 'vendor');
   const roleParam = currentRole === 'creator' ? 'creator' : 'vendor';
@@ -41,7 +48,11 @@ const SubscriptionTab = ({ user, refetchUser, role }) => {
     pollingInterval: 30000,
   });
 
-  const isSubscribing = isSubscribingWallet || isSubscribingRzp;
+  // Modal checkout state
+  const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const isSubscribing = isSubscribingWallet || isSubscribingRzp || isProcessingPayment;
 
   // Listen for real-time updates
   useEffect(() => {
@@ -61,7 +72,7 @@ const SubscriptionTab = ({ user, refetchUser, role }) => {
     };
   }, [refetchPlans, refetchUser, roleParam, refetchCreatorWallet, refetchVendorWallet]);
 
-  // Role-specific Active Plan and Expiry
+  // Active Plan Metadata
   const currentPlan = roleParam === 'creator'
     ? (user?.creatorProfile?.subscription?.plan || (user?.current_role === 'creator' ? user?.subscription?.plan : null) || 'Free Creator')
     : (user?.vendorProfile?.subscription?.plan || user?.subscription?.plan || 'Free Member');
@@ -70,45 +81,45 @@ const SubscriptionTab = ({ user, refetchUser, role }) => {
     ? (user?.creatorProfile?.subscription?.expiresAt || (user?.current_role === 'creator' ? user?.subscription?.expiresAt : null))
     : (user?.vendorProfile?.subscription?.expiresAt || user?.subscription?.expiresAt);
 
-  // Role-isolated Wallet Balance (Creator wallet vs Vendor wallet)
+  const activeSubscription = roleParam === 'creator'
+    ? (user?.creatorProfile?.subscription || user?.subscription)
+    : (user?.vendorProfile?.subscription || user?.subscription);
+
+  // Role-isolated Wallet Balance
   const walletBalance = roleParam === 'creator'
     ? (creatorWalletData?.data?.balance ?? creatorWalletData?.balance ?? 0)
     : (vendorWalletData?.data?.balance ?? vendorWalletData?.balance ?? user?.walletBalance ?? 0);
 
   const plans = plansData?.data?.items || plansData?.items || [];
-  const activePlans = plans.filter(p => p.is_active && !p.is_archived);
+  const activePlans = plans.filter((p) => p.is_active && !p.is_archived);
 
-  // Razorpay-based subscription purchase
-  const handleRazorpayPurchase = async (plan) => {
-    if (user?.subscription?.plan && user.subscription.plan.toLowerCase() === plan.title.toLowerCase() && user.subscription.status === 'active') {
-      toast.error(`You are already subscribed to the ${plan.title} plan.`);
-      return;
-    }
+  // Open Checkout Modal
+  const handleSelectPlan = (plan) => {
+    setSelectedPlanForCheckout(plan);
+  };
 
-    if (!window.confirm(`Subscribe to ${plan.title} for ₹${plan.price_inr?.toLocaleString('en-IN')}/${plan.billing_cycle}?`)) return;
-
+  // Razorpay Payment Handler (with Add-Ons)
+  const handleRazorpayPurchase = async (plan, selectedAddons = []) => {
+    setIsProcessingPayment(true);
     try {
-      // 1. Create Razorpay order via backend
-      const res = await api.post('/v1/subscription/purchase-razorpay', { plan_id: plan.id });
+      // 1. Create Razorpay order via backend including selected add-ons
+      const res = await api.post('/v1/subscription/purchase-razorpay', {
+        plan_id: plan.id,
+        selected_addons: selectedAddons,
+      });
 
       const orderData = res?.data?.data;
       if (!orderData?.razorpay_order_id) {
-        console.error('[BizReels] Subscription order response missing razorpay_order_id:', res?.data);
         toast.error('Failed to create payment order. Please try again.');
+        setIsProcessingPayment(false);
         return;
       }
-
-      console.log('[BizReels] Subscription order created:', {
-        order_id: orderData.razorpay_order_id,
-        amount_paise: orderData.amount_paise,
-        plan: plan.title,
-      });
 
       // 2. Load Razorpay SDK
       const sdkLoaded = await loadRazorpayScript();
       if (!sdkLoaded || !window.Razorpay) {
-        console.error('[BizReels] Razorpay SDK failed to load. window.Razorpay =', window.Razorpay);
-        toast.error('Payment gateway could not be loaded. Please check your internet connection and try again.');
+        toast.error('Payment gateway could not be loaded. Please check your internet connection.');
+        setIsProcessingPayment(false);
         return;
       }
 
@@ -118,7 +129,7 @@ const SubscriptionTab = ({ user, refetchUser, role }) => {
         amount: orderData.amount_paise,
         currency: 'INR',
         name: 'BizReels Subscription',
-        description: `${plan.title} - ${plan.billing_cycle}`,
+        description: `${plan.title} ${selectedAddons.length > 0 ? `(+${selectedAddons.length} Add-on${selectedAddons.length > 1 ? 's' : ''})` : ''}`,
         order_id: orderData.razorpay_order_id,
         handler: async (response) => {
           try {
@@ -127,18 +138,20 @@ const SubscriptionTab = ({ user, refetchUser, role }) => {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
-            toast.success(`Successfully subscribed to ${plan.title}!`);
+            toast.success(`🎉 Successfully subscribed to ${plan.title}!`);
+            setSelectedPlanForCheckout(null);
             await refreshMe();
             if (refetchUser) refetchUser();
             refetchPlans();
           } catch (err) {
-            console.error('[BizReels] Subscription payment verification failed:', err);
             toast.error('Payment was received but verification failed. Please contact support.');
+          } finally {
+            setIsProcessingPayment(false);
           }
         },
         modal: {
           ondismiss: () => {
-            console.log('[BizReels] Razorpay modal dismissed by user');
+            setIsProcessingPayment(false);
             toast('Payment cancelled.', { icon: '⚠️' });
           },
         },
@@ -147,232 +160,124 @@ const SubscriptionTab = ({ user, refetchUser, role }) => {
           email: user?.email || '',
           contact: user?.phone || '',
         },
-        theme: { color: '#7C3AED' },
+        theme: { color: '#241B15' },
       };
 
       const rzp = new window.Razorpay(options);
-
       rzp.on('payment.failed', (response) => {
-        console.error('[BizReels] Razorpay payment failed:', {
-          code: response.error?.code,
-          description: response.error?.description,
-          source: response.error?.source,
-          step: response.error?.step,
-          reason: response.error?.reason,
-        });
+        setIsProcessingPayment(false);
         toast.error(response.error?.description || 'Payment failed. Please try again.');
       });
-
       rzp.open();
     } catch (err) {
-      console.error('[BizReels] Subscription purchase error:', err);
+      setIsProcessingPayment(false);
       toast.error(err?.response?.data?.message || err?.message || 'Subscription purchase failed');
     }
   };
 
-  // Wallet-based purchase (fallback)
-  const handleWalletPurchase = async (plan) => {
-    if (currentPlan && currentPlan.toLowerCase() === plan.title.toLowerCase()) {
-      toast.error(`You are already subscribed to the ${plan.title} plan.`);
+  // Wallet Payment Handler (with Add-Ons)
+  const handleWalletPurchase = async (plan, selectedAddons = []) => {
+    const basePrice = Number(plan.price_inr || 0);
+    const addonsTotal = selectedAddons.reduce((sum, a) => sum + (Number(a.price_inr) || 0), 0);
+    const totalDue = basePrice + addonsTotal;
+
+    if (walletBalance < totalDue) {
+      toast.error(`Insufficient wallet balance (₹${walletBalance?.toLocaleString('en-IN')}). Required: ₹${totalDue.toLocaleString('en-IN')}`);
       return;
     }
 
-    if (walletBalance < plan.price_inr) {
-      return toast.error(`Insufficient ${roleParam === 'creator' ? 'Creator' : 'Vendor'} wallet balance (₹${walletBalance?.toLocaleString('en-IN')}). Please recharge or pay via Razorpay.`);
-    }
-    if (window.confirm(`Upgrade/Renew subscription to ${plan.title} plan using ₹${plan.price_inr} from your ${roleParam === 'creator' ? 'Creator' : 'Vendor'} wallet?`)) {
-      try {
-        await changeSubscription({ plan: plan.id, role: roleParam }).unwrap();
-        toast.success(`Successfully subscribed to ${plan.title}!`);
-        await refreshMe();
-        if (refetchUser) refetchUser();
-        if (roleParam === 'creator' && refetchCreatorWallet) refetchCreatorWallet();
-        if (roleParam === 'vendor' && refetchVendorWallet) refetchVendorWallet();
-        refetchPlans();
-      } catch (err) {
-        toast.error(err?.data?.message || 'Subscription purchase failed.');
-      }
+    setIsProcessingPayment(true);
+    try {
+      await api.post('/v1/wallet/purchase-plan', {
+        planId: plan.id,
+        selected_addons: selectedAddons,
+      });
+
+      toast.success(`🎉 Subscribed to ${plan.title} successfully!`);
+      setSelectedPlanForCheckout(null);
+      await refreshMe();
+      if (refetchUser) refetchUser();
+      if (roleParam === 'creator' && refetchCreatorWallet) refetchCreatorWallet();
+      if (roleParam === 'vendor' && refetchVendorWallet) refetchVendorWallet();
+      refetchPlans();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.data?.message || 'Subscription purchase failed.');
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-8 animate-fade-in">
-      {/* Current Plan Overview Card */}
-      <div className="glass p-6 rounded-2xl border border-white/50 shadow-glass flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-brand-purple/10 text-brand-purple rounded-2xl">
-            <FiStar className="w-8 h-8 fill-brand-purple/20" />
-          </div>
+    <div className="space-y-6 animate-fade-in text-xs">
+      {/* Active Subscription Overview Card */}
+      <ActiveSubscriptionCard
+        currentPlan={currentPlan}
+        planExpires={planExpires}
+        roleParam={roleParam}
+        walletBalance={walletBalance}
+        activeSubscription={activeSubscription}
+      />
+
+      {/* Available Plans Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              Current {roleParam === 'creator' ? 'Creator' : 'Vendor'} Account Tier
-            </span>
-            <h3 className="text-xl font-black text-brand-navy font-display mt-0.5">{currentPlan}</h3>
-            {planExpires && (
-              <span className="text-xs text-slate-500 mt-1 block flex items-center gap-1.5">
-                <FiCalendar className="w-3.5 h-3.5 text-brand-purple" />
-                Active until: {new Date(planExpires).toLocaleDateString()}
-              </span>
-            )}
+            <h3 className="text-base sm:text-lg font-black text-[#1a1a1a] tracking-tight">
+              Choose Your Membership Tier
+            </h3>
+            <p className="text-xs text-slate-500 font-medium">
+              Select a base tier and customize with flexible Add-Ons anytime
+            </p>
           </div>
+          <span className="text-[11px] font-bold text-slate-500">
+            {activePlans.length} plans available
+          </span>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-xl flex flex-col sm:flex-row gap-4 shrink-0 sm:items-center">
-          <div className="flex items-center gap-3">
-            <FiCreditCard className="text-brand-purple w-5 h-5" />
-            <div className="flex flex-col">
-              <span className="text-[9px] text-slate-400 font-bold uppercase">
-                {roleParam === 'creator' ? 'Creator' : 'Vendor'} Wallet Balance
-              </span>
-              <span className="text-xs font-bold text-emerald-600 font-display">₹{walletBalance?.toLocaleString('en-IN')}</span>
-            </div>
+        {loadingPlans && activePlans.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-72 rounded-2xl bg-slate-100 animate-pulse border border-[#e3dccb]" />
+            ))}
           </div>
-          <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 sm:pl-4">
-            <FiShield className="text-emerald-500 w-5 h-5" />
-            <div className="flex flex-col">
-              <span className="text-[9px] text-slate-400 font-bold uppercase">Payment Security</span>
-              <span className="text-xs font-bold text-brand-navy">Razorpay Secured</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Subscription Plans Grid */}
-      <div className="flex flex-col gap-4">
-        <h4 className="text-xs font-bold text-brand-navy uppercase tracking-wider px-1">Available Subscription Plans</h4>
-
-        {loadingPlans ? (
-          <div className="text-center py-12 text-text-tertiary animate-pulse">Loading subscription plans...</div>
         ) : activePlans.length === 0 ? (
-          <div className="text-center py-16 text-text-tertiary">
-            <FiCreditCard className="w-10 h-10 mx-auto mb-3 text-text-quaternary" />
-            <p className="font-bold text-sm">No plans available</p>
-            <p className="text-xs mt-1">Subscription plans will appear here once configured by the admin.</p>
+          <div className="p-8 text-center bg-white rounded-2xl border border-[#e3dccb] space-y-2">
+            <FiLayers size={28} className="mx-auto text-slate-300" />
+            <p className="text-slate-500 font-bold text-xs">No active subscription tiers published yet.</p>
+            <p className="text-slate-400 text-[11px]">Please check back shortly.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activePlans.map((plan, idx) => {
-              const isCurrent = currentPlan.toLowerCase() === plan.title.toLowerCase();
-              const isPopular = idx === 1 || plan.plan_type === 'premium';
-              const features = plan.features_list?.length > 0
-                ? plan.features_list
-                : (plan.features ? plan.features.split(',').map(f => f.trim()).filter(Boolean) : []);
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+            {activePlans.map((plan) => {
+              const isCurrent = Boolean(
+                currentPlan &&
+                currentPlan.toLowerCase() === (plan.title || '').toLowerCase()
+              );
 
               return (
-                <div
+                <PlanCard
                   key={plan.id}
-                  className={`glass p-6 rounded-2xl border flex flex-col relative overflow-hidden transition-all duration-300 hover:shadow-premium
-                    ${isPopular ? 'border-brand-purple shadow-premium ring-2 ring-brand-purple/15' : 'border-white/50 shadow-glass'}
-                    ${isCurrent ? 'bg-slate-50/70 border-brand-purple' : ''}
-                  `}
-                >
-                  {isPopular && (
-                    <span className="absolute top-3 right-3 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white bg-brand-purple rounded-lg shadow-sm">
-                      Recommended
-                    </span>
-                  )}
-
-                  <div className="flex flex-col gap-1">
-                    <h4 className="text-sm font-black text-brand-navy font-display uppercase tracking-wide">{plan.title}</h4>
-                    {plan.description && (
-                      <p className="text-[10px] text-slate-400 line-clamp-2">{plan.description}</p>
-                    )}
-                    <div className="flex items-baseline gap-1 mt-3">
-                      <span className="text-2xl font-black text-brand-navy font-display">₹{plan.price_inr?.toLocaleString('en-IN')}</span>
-                      <span className="text-xs text-slate-400">/ {plan.billing_cycle}</span>
-                    </div>
-                    {plan.discount_percentage > 0 && (
-                      <span className="text-[10px] text-emerald-600 font-bold">{plan.discount_percentage}% OFF</span>
-                    )}
-                  </div>
-
-                  <ul className="flex flex-col gap-2.5 my-6 text-xs text-slate-600 flex-grow">
-                    {plan.product_limit != null && (
-                      <li className="flex items-start gap-2 leading-relaxed">
-                        <FiCheckCircle className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-                        <span>Listings: <strong>{plan.product_limit}</strong></span>
-                      </li>
-                    )}
-                    {plan.leads_limit != null && (
-                      <li className="flex items-start gap-2 leading-relaxed">
-                        <FiCheckCircle className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-                        <span>Leads: <strong>{plan.leads_limit}</strong></span>
-                      </li>
-                    )}
-                    {plan.reels_limit != null && (
-                      <li className="flex items-start gap-2 leading-relaxed">
-                        <FiCheckCircle className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-                        <span>Reels: <strong>{plan.reels_limit}</strong></span>
-                      </li>
-                    )}
-                    {plan.ai_credits > 0 && (
-                      <li className="flex items-start gap-2 leading-relaxed">
-                        <FiCheckCircle className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-                        <span>AI Credits: <strong>{plan.ai_credits}</strong></span>
-                      </li>
-                    )}
-                    {plan.verified_badge && (
-                      <li className="flex items-start gap-2 leading-relaxed">
-                        <FiCheckCircle className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-                        <span>Verified Badge</span>
-                      </li>
-                    )}
-                    {plan.priority_support && (
-                      <li className="flex items-start gap-2 leading-relaxed">
-                        <FiCheckCircle className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-                        <span>Priority Support (24/7)</span>
-                      </li>
-                    )}
-                    {plan.analytics_access && (
-                      <li className="flex items-start gap-2 leading-relaxed">
-                        <FiCheckCircle className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-                        <span>Advanced Analytics</span>
-                      </li>
-                    )}
-                    {features.map((feat, fidx) => (
-                      <li key={fidx} className="flex items-start gap-2 leading-relaxed">
-                        <FiCheckCircle className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {isCurrent ? (
-                    <span className="w-full text-center py-2.5 text-xs font-bold text-brand-purple bg-brand-purple-50 rounded-xl border border-brand-purple/20">
-                      Active Plan
-                    </span>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleRazorpayPurchase(plan)}
-                        disabled={isSubscribing}
-                        className="w-full py-2 text-xs font-bold text-white bg-brand-purple rounded-xl shadow-premium hover:bg-brand-purple-800 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                      >
-                        <FiZap className="w-3.5 h-3.5 fill-current text-white" /> Pay via Razorpay
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleWalletPurchase(plan)}
-                        disabled={isSubscribing}
-                        className={`w-full py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 ${
-                          walletBalance >= plan.price_inr
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'
-                        }`}
-                      >
-                        <FiCreditCard className="w-3.5 h-3.5" /> Pay via {roleParam === 'creator' ? 'Creator' : 'Vendor'} Wallet
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  plan={plan}
+                  isCurrent={isCurrent}
+                  onSelectPlan={handleSelectPlan}
+                  isSubscribing={isSubscribing}
+                />
               );
             })}
           </div>
         )}
       </div>
+
+      {/* Subscription & Add-ons Checkout Modal */}
+      <SubscriptionCheckoutModal
+        isOpen={Boolean(selectedPlanForCheckout)}
+        plan={selectedPlanForCheckout}
+        onClose={() => setSelectedPlanForCheckout(null)}
+        walletBalance={walletBalance}
+        isSubscribing={isSubscribing}
+        onPayRazorpay={handleRazorpayPurchase}
+        onPayWallet={handleWalletPurchase}
+      />
     </div>
   );
-};
-
-export default SubscriptionTab;
+}

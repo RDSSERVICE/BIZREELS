@@ -137,7 +137,12 @@ export default function PlansList({ onEdit, onCreateNew }) {
                         {plan.analytics_access && (
                           <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-500 rounded text-[9px] font-bold">Analytics</span>
                         )}
-                        {!plan.verified_badge && !plan.priority_support && !plan.analytics_access && (
+                        {Array.isArray(plan.add_ons) && plan.add_ons.length > 0 && (
+                          <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 rounded text-[9px] font-black border border-emerald-500/30">
+                            +{plan.add_ons.length} Add-on{plan.add_ons.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {!plan.verified_badge && !plan.priority_support && !plan.analytics_access && (!plan.add_ons || plan.add_ons.length === 0) && (
                           <span className="text-text-tertiary">—</span>
                         )}
                       </div>
