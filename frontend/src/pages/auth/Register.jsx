@@ -63,7 +63,7 @@ const Register = () => {
       } else if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
         targetPath = '/vendor/profile';
       } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
-        targetPath = '/creator/profile';
+        targetPath = '/creator/onboarding';
       }
       navigate(targetPath, { replace: true });
     } catch (err) {

@@ -36,6 +36,23 @@ const hydrateCart = async (cart) => {
     lookup[l._id.toString()] = l;
   }
 
+  const missingIds = listingIds.filter(id => !lookup[id.toString()]);
+  if (missingIds.length > 0) {
+    const Reel = require('../models/Reel');
+    const reels = await Reel.find({ _id: { $in: missingIds }, isDeleted: { $ne: true } }).populate('creator');
+    for (const r of reels) {
+      lookup[r._id.toString()] = {
+        _id: r._id,
+        vendor_id: r.creator?._id || r.creator,
+        vendor: r.creator?._id || r.creator,
+        title: r.caption || 'Reel Product',
+        salePrice: Number(r.targetListing?.salePrice || r.salePrice || r.price || 0),
+        price: Number(r.targetListing?.price || r.price || 0),
+        images: [{ url: r.thumbnailUrl || (r.mediaUrls && r.mediaUrls[0]) || '' }],
+      };
+    }
+  }
+
   const groups = {};
   let total = 0;
 
@@ -106,7 +123,11 @@ router.post(['/add', '/me/add'], requireAuth, catchAsync(async (req, res) => {
 
   const li = await Listing.findOne({ _id: listing_id, is_deleted: { $ne: true } });
   if (!li) {
-    throw ApiError.notFound('Listing not found');
+    const Reel = require('../models/Reel');
+    const reel = await Reel.findOne({ _id: listing_id, isDeleted: { $ne: true } });
+    if (!reel) {
+      throw ApiError.notFound('Listing or product not found');
+    }
   }
 
   const now = new Date().toISOString();
@@ -198,6 +219,7 @@ router.delete(['/items/:listing_id', '/me/items/:listing_id'], requireAuth, catc
 }));
 
 router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, res) => {
+  const { couponCode, couponDiscount = 0, shippingCharges = 0, address, pincode } = req.body || {};
   const cart = await getCart(req.user._id.toString());
   const hydrated = await hydrateCart(cart);
   if (hydrated.groups.length === 0) {
@@ -228,10 +250,18 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
 
   const now = new Date().toISOString();
   const created = [];
+  const totalSubtotal = hydrated.total_amount || 0;
+  const numGroups = hydrated.groups.length;
 
-  for (const group of hydrated.groups) {
+  for (let idx = 0; idx < hydrated.groups.length; idx++) {
+    const group = hydrated.groups[idx];
     const vendorId = group.vendor_id;
     const subtotal = group.subtotal;
+    const groupRatio = totalSubtotal > 0 ? subtotal / totalSubtotal : 1 / numGroups;
+    const allocatedDiscount = Math.round((Number(couponDiscount) || 0) * groupRatio);
+    const allocatedShipping = Math.round((Number(shippingCharges) || 0) * groupRatio);
+    const groupFinalAmount = Math.max(0, subtotal - allocatedDiscount + allocatedShipping);
+
     const itemsSnapshot = group.items.map(i => ({
       listing_id: i.listing_id,
       title: i.title,
@@ -245,7 +275,13 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
       vendor_id: vendorId,
       seller_id: vendorId,
       items: itemsSnapshot,
-      amount_paise: Math.round(subtotal * 100),
+      amount_paise: Math.round(groupFinalAmount * 100),
+      item_total: subtotal,
+      coupon_code: couponCode || null,
+      coupon_discount: allocatedDiscount,
+      shipping_charges: allocatedShipping,
+      delivery_address: address || null,
+      pincode: pincode || null,
       status: 'negotiating',
       source: 'cart_checkout',
       created_at: now,
@@ -264,7 +300,19 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
       for (const i of itemsSnapshot) {
         summaryLines.push(`  • ${i.title} x ${i.quantity} = ₹${Math.round(i.line_total)}`);
       }
-      summaryLines.push(`Total: ₹${Math.round(subtotal)}`);
+      summaryLines.push(`Subtotal: ₹${Math.round(subtotal)}`);
+      if (allocatedDiscount > 0) {
+        summaryLines.push(`🏷️ Coupon Discount (${couponCode || 'PROMO'}): -₹${allocatedDiscount}`);
+      }
+      if (allocatedShipping > 0) {
+        summaryLines.push(`🚚 Shipping Charges: ₹${allocatedShipping}`);
+      } else {
+        summaryLines.push(`🚚 Delivery: FREE`);
+      }
+      summaryLines.push(`Total Amount: ₹${Math.round(groupFinalAmount)}`);
+      if (address) {
+        summaryLines.push(`📍 Deliver to: ${address}`);
+      }
 
       await chatService.sendMessage(
         thread._id.toString(),

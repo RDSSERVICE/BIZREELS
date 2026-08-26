@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  FiShoppingBag, FiDollarSign, FiMapPin, FiUpload, FiImage, FiVideo, FiX, FiTarget, FiAlertCircle, FiCpu
+  FiShoppingBag, FiDollarSign, FiMapPin, FiUpload, FiImage, FiVideo, FiX, FiTarget, FiAlertCircle, FiCpu, FiCheckCircle, FiLoader, FiCheck
 } from 'react-icons/fi';
 import { SearchableCategorySelect, SearchableSubcategoryMultiSelect } from './SearchableSelects';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -43,9 +43,11 @@ export default function ProductRequirementForm({
   handleImageUpload, handleVideoUpload, removePhoto, setVideo,
   resolveMediaUrl, categories, subcategories = [],
   isLoading, statesList = [], districtsList = [], handlePincodeChange,
+  isLookingUpPincode = false, pincodeSuccessInfo = '',
   onSubmit
 }) {
   const { bi } = useLanguage();
+  const [isCustomDistrict, setIsCustomDistrict] = useState(false);
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       {/* Title */}
@@ -221,13 +223,65 @@ export default function ProductRequirementForm({
       </div>
 
       {/* Target Location Details */}
-      <div className="glass rounded-xl p-4 border border-border/50 space-y-4">
-        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
-          <FiTarget size={12} className="text-brand-orange" />
-          {bi('Target Delivery Location', 'डिलीवरी स्थान विवरण')}
-        </label>
+      <div className="glass rounded-xl p-4 sm:p-5 border border-border/50 space-y-4">
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
+            <FiTarget size={12} className="text-brand-orange" />
+            {bi('Target Delivery Location', 'डिलीवरी स्थान विवरण')}
+          </label>
+          <span className="text-[10px] font-semibold text-brand-purple bg-brand-purple/10 px-2 py-0.5 rounded-full">
+            {bi('⚡ Fast Pin Code Auto-Fill', '⚡ पिन कोड से स्वतः विवरण')}
+          </span>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Prominent Pin Code Input (First Field) */}
+        <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
+            <label className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+              <FiMapPin className="text-amber-600" size={14} />
+              <span>{bi('Enter 6-Digit Pin Code *', '6-अंकों का पिन कोड दर्ज करें *')}</span>
+            </label>
+            <span className="text-[10px] text-slate-500">
+              {bi('Type 6 digits to automatically fetch State, District & City', 'पिन कोड डालते ही राज्य, जिला और शहर स्वतः भर जाएंगे')}
+            </span>
+          </div>
+
+          <div className="relative">
+            <input
+              type="text"
+              required
+              value={pincode}
+              onChange={(e) => handlePincodeChange(e.target.value)}
+              placeholder="e.g. 411005 / 110001 / 400001"
+              maxLength={6}
+              className="w-full pl-4 pr-24 py-2.5 bg-white border border-amber-300/80 rounded-xl text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40 shadow-xs"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+              {isLookingUpPincode && (
+                <div className="flex items-center gap-1 text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-md">
+                  <FiLoader className="animate-spin" size={14} />
+                  <span>{bi('Fetching...', 'प्राप्त हो रहा है...')}</span>
+                </div>
+              )}
+              {!isLookingUpPincode && pincodeSuccessInfo && (
+                <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  <FiCheckCircle size={13} className="text-emerald-600" />
+                  <span>{bi('Fetched', 'प्राप्त')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {pincodeSuccessInfo && (
+            <div className="mt-2 text-xs font-semibold text-emerald-800 bg-emerald-50/80 border border-emerald-200/80 px-3 py-1.5 rounded-lg flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>📍 {pincodeSuccessInfo}</span>
+            </div>
+          )}
+        </div>
+
+        {/* State, District & City Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <div>
             <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('State *', 'राज्य *')}</label>
             {statesList.length > 0 ? (
@@ -238,7 +292,7 @@ export default function ProductRequirementForm({
                   setState(e.target.value);
                   setDistrict('');
                 }}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               >
                 <option value="">{bi('Select State', 'राज्य चुनें')}</option>
                 {statesList.map(s => (
@@ -252,24 +306,51 @@ export default function ProductRequirementForm({
                 value={state}
                 onChange={(e) => setState(e.target.value)}
                 placeholder={bi('e.g. Maharashtra', 'उदाहरण: महाराष्ट्र')}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               />
             )}
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('District *', 'जिला *')}</label>
-            {districtsList.length > 0 ? (
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">{bi('District *', 'जिला *')}</label>
+              {isCustomDistrict && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomDistrict(false);
+                    setDistrict('');
+                  }}
+                  className="text-[9.5px] text-brand-purple hover:underline cursor-pointer"
+                >
+                  {bi('Choose from list', 'सूची से चुनें')}
+                </button>
+              )}
+            </div>
+            {districtsList.length > 0 && !isCustomDistrict ? (
               <select
                 required
                 value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'Other') {
+                    setIsCustomDistrict(true);
+                    setDistrict('');
+                  } else {
+                    setIsCustomDistrict(false);
+                    setDistrict(val);
+                  }
+                }}
+                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
               >
                 <option value="">{bi('Select District', 'जिला चुनें')}</option>
+                {district && !districtsList.includes(district) && (
+                  <option value={district}>{district} ({bi('Auto-Detected', 'स्वतः प्राप्त')})</option>
+                )}
                 {districtsList.map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
+                <option value="Other">{bi('➕ Other (Type Manually)', '➕ अन्य (मैन्युअल दर्ज करें)')}</option>
               </select>
             ) : (
               <input
@@ -277,33 +358,22 @@ export default function ProductRequirementForm({
                 required
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                placeholder={bi('e.g. Pune', 'उदाहरण: पुणे')}
-                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                placeholder={bi('e.g. Pune / Type District Name', 'उदाहरण: पुणे / जिले का नाम')}
+                className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+                autoFocus={isCustomDistrict}
               />
             )}
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('City/Town *', 'शहर / कस्बा *')}</label>
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('City / Town / Area *', 'शहर / कस्बा / क्षेत्र *')}</label>
             <input
               type="text"
               required
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder={bi('e.g. Shivaji Nagar', 'उदाहरण: शिवाजी नगर')}
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Pin Code', 'पिन कोड')}</label>
-            <input
-              type="text"
-              value={pincode}
-              onChange={(e) => handlePincodeChange(e.target.value)}
-              placeholder="e.g. 411005"
-              maxLength={6}
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
+              placeholder={bi('e.g. Shivaji Nagar / Central Market', 'उदाहरण: शिवाजी नगर')}
+              className="w-full px-3.5 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
             />
           </div>
         </div>
@@ -321,7 +391,7 @@ export default function ProductRequirementForm({
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Within Distance', 'दूरी सीमा')}</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Within Distance (Optional)', 'दूरी सीमा (वैकल्पिक)')}</label>
           <select
             value={targetDistance}
             onChange={(e) => setTargetDistance(e.target.value)}

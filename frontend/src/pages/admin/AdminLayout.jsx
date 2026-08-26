@@ -18,6 +18,7 @@ import { useEffect } from 'react';
 import { getSocket, disconnectSocket } from '../../lib/socket';
 import adminApi, { useGetAdminOverviewQuery } from '../../features/admin/adminApi';
 import AdminQuickSearchModal from '../../features/admin/components/AdminQuickSearchModal';
+import SEO from '../../components/common/SEO';
 
 
 const NAV_SECTIONS = [
@@ -286,6 +287,7 @@ const AdminLayout = () => {
 
   return (
     <div className="min-h-screen bg-surface-secondary flex">
+      <SEO title="Admin Portal" robots="noindex, nofollow" />
       {/* Quick Search Command Palette Modal */}
       <AdminQuickSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 

@@ -33,24 +33,35 @@ export default function ChatDrawer({
   const { data: convData, refetch: refetchConvs } = useGetConversationsQuery(undefined, { skip: !isOpen });
   const conversationsList = convData?.data?.conversations || convData?.conversations || convData?.data || [];
 
-  // Find if there is an existing conversation
-  const existingConv = conversationsList.find((c) =>
-    c.participants?.some((p) => (p._id || p.id || p).toString() === recipientId?.toString())
-  );
+  // Reset input when recipient changes or drawer opens
+  useEffect(() => {
+    setMessageInput('');
+  }, [recipientId, isOpen]);
 
-  const conversationId = existingConv ? (existingConv._id || existingConv.id) : `temp-${recipientId}`;
+  // Find if there is an existing conversation specifically with this recipient
+  const existingConv = React.useMemo(() => {
+    if (!recipientId || !conversationsList || conversationsList.length === 0) return null;
+    return conversationsList.find((c) =>
+      c.participants?.some((p) => (p._id || p.id || p)?.toString() === recipientId?.toString())
+    );
+  }, [conversationsList, recipientId]);
 
-  // Fetch messages history
+  const conversationId = existingConv ? (existingConv._id || existingConv.id) : null;
+
+  // Fetch messages history strictly for this conversation
   const { data: msgData, isLoading: isMsgLoading, refetch: refetchMessages } = useGetMessagesQuery(
     { conversationId },
     {
-      skip: !isOpen || !conversationId || String(conversationId).startsWith('temp-'),
+      skip: !isOpen || !conversationId,
       pollingInterval: 120000,
     }
   );
 
   const [sendMessageApi, { isLoading: isSending }] = useSendMessageMutation();
-  const messagesList = msgData?.data?.messages || msgData?.messages || msgData?.data || [];
+  // Ensure messagesList is empty for new/unstarted conversations with a recipient
+  const messagesList = conversationId && msgData
+    ? (msgData?.data?.messages || msgData?.messages || msgData?.data || [])
+    : [];
 
   // Socket IO Sync
   useEffect(() => {
@@ -201,11 +212,11 @@ export default function ChatDrawer({
 
           {/* ── MESSAGES LIST ── */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-[#f2ede4]">
-            {isMsgLoading && !String(conversationId).startsWith('temp-') ? (
+            {isMsgLoading && conversationId ? (
               <div className="py-20 flex justify-center">
                 <Loader size="sm" />
               </div>
-            ) : String(conversationId).startsWith('temp-') && messagesList.length === 0 ? (
+            ) : (!conversationId || messagesList.length === 0) ? (
               /* EMPTY STATE — BENTO STYLING */
               <div className="py-8 space-y-4">
                 <div className="bg-[#f8f4ec] border border-[#e3dccb] rounded-2xl p-6 shadow-xs text-center max-w-sm mx-auto space-y-3">

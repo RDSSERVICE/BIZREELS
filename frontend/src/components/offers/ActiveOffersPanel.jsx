@@ -125,15 +125,6 @@ export default function ActiveOffersPanel({ role = 'customer' }) {
     setCurrentIndex(prev => (prev - 1 + offers.length) % offers.length);
   };
 
-  if (loading && offers.length === 0) {
-    return (
-      <div className="glass p-6 rounded-3xl border border-white/10 flex justify-center items-center shadow-card bg-surface/40 backdrop-blur-md">
-        <div className="w-5 h-5 border-2 border-brand-purple border-t-transparent rounded-full animate-spin mr-2" />
-        <span className="text-xs text-text-secondary font-bold">Scanning active deals...</span>
-      </div>
-    );
-  }
-
   if (offers.length === 0) return null;
 
   const currentOffer = offers[currentIndex];

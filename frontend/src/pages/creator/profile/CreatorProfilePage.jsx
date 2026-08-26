@@ -1,31 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { FiUser, FiSave, FiFileText } from 'react-icons/fi';
+import { FiUser, FiFileText, FiCheck } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import { api, tokenStore } from '../../../lib/api';
 import toast from 'react-hot-toast';
-import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 
-const CREATOR_PROFESSIONS = [
-  'Product Reel Creator',
-  'Product Photographer / Videographer',
-  'Video Editor',
-  'Graphic Designer',
-  'UGC Creator / Brand Reviewer',
-  'Influencer / Content Creator',
-  'Voice Over Artist / Podcaster',
-  'AI Content Creator & Visualizer',
-  'Script Writer / Copywriter',
-  'Drone Videographer',
-  'Livestream Host / Model',
-  'Thumbnail & Creative Artist',
-  'Cinematographer / Filmmaker',
-  'Fashion / Lifestyle Creator',
-  'Food & Travel Vlogger',
-  'Other / Custom Creative Field'
-];
+import CreatorBasicInfoSection, { CREATOR_PROFESSIONS } from './components/CreatorBasicInfoSection';
+import CreatorSocialMediaSection from './components/CreatorSocialMediaSection';
+import CreatorAddressSection from './components/CreatorAddressSection';
+import CreatorLanguagesSection from './components/CreatorLanguagesSection';
 
 export default function CreatorProfilePage() {
   const dispatch = useDispatch();
@@ -39,36 +24,138 @@ export default function CreatorProfilePage() {
   const user = profileRes?.data?.user || profileRes?.user || authUser || {};
   const creatorProfile = user.creatorProfile || {};
 
+  // Basic Info state
   const [name, setName] = useState('');
   const [profession, setProfession] = useState('Product Reel Creator');
   const [customProfession, setCustomProfession] = useState('');
   const [bio, setBio] = useState('');
-  const [languages, setLanguages] = useState('English, Hindi');
   const [experienceYears, setExperienceYears] = useState('2');
-  const [city, setCity] = useState('Mumbai');
   const [travelAvailable, setTravelAvailable] = useState('Yes');
   const [profilePhoto, setProfilePhoto] = useState('');
+
+  // Languages Spoken state
+  const [languages, setLanguages] = useState('English, Hindi');
+
+  // Address Details state
+  const [address, setAddress] = useState({
+    street: '',
+    areaLocality: '',
+    city: 'Mumbai',
+    district: '',
+    state: 'Maharashtra',
+    pincode: '',
+    country: 'India'
+  });
+
+  // Social Media state
+  const [socialMedia, setSocialMedia] = useState({
+    instagram: { handleOrUrl: '', totalReels: '', totalFollowers: '' },
+    facebook: { handleOrUrl: '', totalReels: '', totalFollowers: '' },
+    customPlatforms: []
+  });
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (creatorProfile) {
+    if (user && Object.keys(user).length > 0) {
+      // 1. Basic Info
       setName(creatorProfile.name || user.name || '');
 
-      const currentProf = creatorProfile.profession || creatorProfile.category || user.profession || user.occupation || 'Product Reel Creator';
+      const currentProf =
+        creatorProfile.profession ||
+        creatorProfile.category ||
+        user.profession ||
+        user.occupation ||
+        'Product Reel Creator';
+
       if (CREATOR_PROFESSIONS.includes(currentProf)) {
         setProfession(currentProf);
         setCustomProfession('');
       } else {
         setProfession('Other / Custom Creative Field');
-        setCustomProfession(currentProf);
+        setCustomProfession(currentProf || '');
       }
 
       setBio(creatorProfile.bio || '');
-      setLanguages(creatorProfile.languages || 'English, Hindi');
       setExperienceYears(creatorProfile.experienceYears || '2');
-      setCity(creatorProfile.city || user.city || 'Mumbai');
       setTravelAvailable(creatorProfile.travelAvailable ? 'Yes' : 'No');
-      setProfilePhoto(creatorProfile.profilePhoto || '');
+      setProfilePhoto(creatorProfile.profilePhoto || user.avatarUrl || user.profile_pic || '');
+
+      // 2. Languages
+      const rawLang = creatorProfile.languages || user.language || 'English, Hindi';
+      const normalizedLangStr = Array.isArray(rawLang)
+        ? rawLang.join(', ')
+        : typeof rawLang === 'string'
+        ? rawLang
+        : 'English, Hindi';
+      setLanguages(normalizedLangStr);
+
+      // 3. Address
+      const existingAddr =
+        typeof creatorProfile.address === 'object' && creatorProfile.address
+          ? creatorProfile.address
+          : {};
+      const userLoc = user.location || {};
+      setAddress({
+        street: existingAddr.street || userLoc.address || '',
+        areaLocality: existingAddr.areaLocality || '',
+        city: existingAddr.city || creatorProfile.city || user.city || userLoc.city || 'Mumbai',
+        district: existingAddr.district || userLoc.district || '',
+        state: existingAddr.state || creatorProfile.state || userLoc.state || 'Maharashtra',
+        pincode: existingAddr.pincode || creatorProfile.pincode || userLoc.pincode || '',
+        country: existingAddr.country || 'India'
+      });
+
+      // 4. Social Media
+      const rawSm = creatorProfile.socialMedia;
+      let insta = { handleOrUrl: '', totalReels: '', totalFollowers: '' };
+      let fb = { handleOrUrl: '', totalReels: '', totalFollowers: '' };
+      let custom = [];
+
+      if (Array.isArray(rawSm)) {
+        rawSm.forEach((item) => {
+          const pName = (item.platform || '').toLowerCase();
+          if (pName === 'instagram') {
+            insta = {
+              handleOrUrl: item.handleOrUrl || item.url || item.handle || '',
+              totalReels: item.totalReels !== undefined ? item.totalReels : '',
+              totalFollowers: item.totalFollowers || item.followers || ''
+            };
+          } else if (pName === 'facebook') {
+            fb = {
+              handleOrUrl: item.handleOrUrl || item.url || item.handle || '',
+              totalReels: item.totalReels !== undefined ? item.totalReels : '',
+              totalFollowers: item.totalFollowers || item.followers || ''
+            };
+          } else {
+            custom.push({
+              id: item.id || Date.now() + Math.random().toString(),
+              name: item.platform || 'Custom',
+              handleOrUrl: item.handleOrUrl || item.url || item.handle || '',
+              totalReels: item.totalReels !== undefined ? item.totalReels : '',
+              totalFollowers: item.totalFollowers || item.followers || ''
+            });
+          }
+        });
+      } else if (rawSm && typeof rawSm === 'object') {
+        if (rawSm.instagram) insta = { ...insta, ...rawSm.instagram };
+        if (rawSm.facebook) fb = { ...fb, ...rawSm.facebook };
+        if (Array.isArray(rawSm.customPlatforms)) custom = rawSm.customPlatforms;
+      } else {
+        // Fallbacks from previous data models
+        if (creatorProfile.portfolio?.instagramLink || creatorProfile.socialLinks?.instagram) {
+          insta.handleOrUrl = creatorProfile.portfolio?.instagramLink || creatorProfile.socialLinks?.instagram || '';
+        }
+        if (creatorProfile.portfolio?.facebookLink || creatorProfile.socialLinks?.facebook) {
+          fb.handleOrUrl = creatorProfile.portfolio?.facebookLink || creatorProfile.socialLinks?.facebook || '';
+        }
+      }
+
+      setSocialMedia({
+        instagram: insta,
+        facebook: fb,
+        customPlatforms: custom
+      });
     }
   }, [creatorProfile, user]);
 
@@ -99,11 +186,52 @@ export default function CreatorProfilePage() {
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
-    const resolvedProf = profession === 'Other / Custom Creative Field' ? customProfession.trim() : profession;
+    const resolvedProf =
+      profession === 'Other / Custom Creative Field' ? customProfession.trim() : profession;
+
+    const normalizedCity = address.city?.trim() || 'Mumbai';
+
+    // Compile social media list
+    const socialMediaList = [
+      {
+        platform: 'Instagram',
+        handleOrUrl: socialMedia.instagram?.handleOrUrl?.trim() || '',
+        totalReels:
+          socialMedia.instagram?.totalReels !== '' ? Number(socialMedia.instagram.totalReels) : 0,
+        totalFollowers: socialMedia.instagram?.totalFollowers?.trim() || ''
+      },
+      {
+        platform: 'Facebook',
+        handleOrUrl: socialMedia.facebook?.handleOrUrl?.trim() || '',
+        totalReels:
+          socialMedia.facebook?.totalReels !== '' ? Number(socialMedia.facebook.totalReels) : 0,
+        totalFollowers: socialMedia.facebook?.totalFollowers?.trim() || ''
+      },
+      ...(socialMedia.customPlatforms || [])
+        .filter((p) => p.name?.trim() || p.handleOrUrl?.trim())
+        .map((p) => ({
+          id: p.id,
+          platform: p.name?.trim() || 'Custom',
+          handleOrUrl: p.handleOrUrl?.trim() || '',
+          totalReels: p.totalReels !== '' ? Number(p.totalReels) : 0,
+          totalFollowers: p.totalFollowers?.trim() || ''
+        }))
+    ];
+
     try {
       const payload = {
+        name,
+        city: normalizedCity,
         profession: resolvedProf,
         occupation: resolvedProf,
+        language: languages,
+        location: {
+          address: [address.street, address.areaLocality].filter(Boolean).join(', '),
+          city: normalizedCity,
+          district: address.district?.trim() || '',
+          state: address.state?.trim() || '',
+          pincode: address.pincode?.trim() || ''
+        },
         creatorProfile: {
           ...creatorProfile,
           name,
@@ -112,7 +240,28 @@ export default function CreatorProfilePage() {
           bio,
           languages,
           experienceYears,
-          city,
+          city: normalizedCity,
+          state: address.state?.trim() || '',
+          pincode: address.pincode?.trim() || '',
+          address: {
+            street: address.street?.trim() || '',
+            areaLocality: address.areaLocality?.trim() || '',
+            city: normalizedCity,
+            district: address.district?.trim() || '',
+            state: address.state?.trim() || '',
+            pincode: address.pincode?.trim() || '',
+            country: address.country?.trim() || 'India'
+          },
+          socialMedia: socialMediaList,
+          socialLinks: {
+            instagram: socialMedia.instagram?.handleOrUrl?.trim() || '',
+            facebook: socialMedia.facebook?.handleOrUrl?.trim() || ''
+          },
+          portfolio: {
+            ...(creatorProfile.portfolio || {}),
+            instagramLink: socialMedia.instagram?.handleOrUrl?.trim() || '',
+            facebookLink: socialMedia.facebook?.handleOrUrl?.trim() || ''
+          },
           travelAvailable: travelAvailable === 'Yes',
           profilePhoto,
           updatedAt: new Date().toISOString()
@@ -121,165 +270,102 @@ export default function CreatorProfilePage() {
 
       const res = await updateProfileApi(payload).unwrap();
       dispatch(setCredentials({ user: res.user || res.data?.user }));
-      toast.success('Creator profile updated!');
+      toast.success('Creator profile updated successfully!');
     } catch (err) {
-      toast.error('Failed to update creator profile');
+      console.error('Failed to update creator profile:', err);
+      toast.error(err?.data?.message || 'Failed to update creator profile');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
-      <AdminPageHeader
-        icon={FiUser}
-        title="Creator Profile Details"
-        subtitle="Update your stage name, bio pitch, language fluencies, and travel availability"
-      />
+    <div className="max-w-4xl mx-auto space-y-6 font-sans p-2 sm:p-4 min-h-screen">
+      {/* Header Banner in Onboarding Style */}
+      <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">
+            CREATOR PROFILE &amp; SOCIAL METRICS
+          </span>
+          <h1
+            style={{ fontFamily: "'Archivo Black', sans-serif" }}
+            className="text-xl sm:text-2xl uppercase tracking-wide text-white"
+          >
+            CREATOR PROFILE DETAILS
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 max-w-md">
+            Manage your stage name, social media metrics, physical studio address, and language fluencies.
+          </p>
+        </div>
+
+        <div className="w-10 h-10 rounded-full bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center font-black shrink-0 border border-[#1a1a1a]">
+          <FiUser size={20} />
+        </div>
+      </div>
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-2 flex-wrap">
         <Link
           to="/creator/profile"
-          className="px-4 py-2 rounded-xl text-xs font-black bg-[#241b15] text-[#d99a3d] shadow-xs flex items-center gap-2"
+          className="px-4 py-2 rounded-md text-xs font-black bg-[#241b15] text-[#d99a3d] shadow-xs flex items-center gap-2"
         >
           <FiUser className="w-3.5 h-3.5" />
-          <span>Basic Profile</span>
+          <span>Basic &amp; Social Profile</span>
         </Link>
         <Link
           to="/creator/onboarding-details"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-[#1a1a1a] hover:bg-[#f8f4ec] transition flex items-center gap-2"
+          className="px-4 py-2 rounded-md text-xs font-bold text-slate-600 hover:text-[#1a1a1a] hover:bg-[#f8f4ec] transition flex items-center gap-2"
         >
           <FiFileText className="w-3.5 h-3.5" />
           <span>Full Creator Setup Details</span>
         </Link>
       </div>
 
-      <form onSubmit={handleSave} className="glass rounded-2xl p-6 border border-white/50 shadow-card space-y-5">
-        {/* Profile Photo Upload Section */}
-        <div className="flex flex-col items-center gap-3 pb-4 border-b border-border">
-          <div className="relative group">
-            <img
-              src={profilePhoto || '/logo.png'}
-              alt="Profile Preview"
-              className="w-24 h-24 rounded-full object-cover border-2 border-brand-purple shadow-md bg-white p-0.5 animate-fade-in"
-            />
-            <label className="absolute bottom-0 right-0 p-2 bg-brand-purple text-white rounded-full cursor-pointer hover:bg-brand-purple/90 transition shadow-md">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
-              </svg>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
-            </label>
-          </div>
-          <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Creator Avatar</span>
-        </div>
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* SECTION 1: BASIC INFORMATION & BIO */}
+        <CreatorBasicInfoSection
+          name={name}
+          setName={setName}
+          profession={profession}
+          setProfession={setProfession}
+          customProfession={customProfession}
+          setCustomProfession={setCustomProfession}
+          experienceYears={experienceYears}
+          setExperienceYears={setExperienceYears}
+          travelAvailable={travelAvailable}
+          setTravelAvailable={setTravelAvailable}
+          bio={bio}
+          setBio={setBio}
+          profilePhoto={profilePhoto}
+          handlePhotoUpload={handlePhotoUpload}
+        />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Creator / Stage Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-            />
-          </div>
+        {/* SECTION 2: SOCIAL MEDIA STATS & HANDLES */}
+        <CreatorSocialMediaSection
+          socialMedia={socialMedia}
+          setSocialMedia={setSocialMedia}
+        />
 
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Profession / Creator Category</label>
-            <select
-              value={profession}
-              onChange={(e) => {
-                setProfession(e.target.value);
-                if (e.target.value !== 'Other / Custom Creative Field') {
-                  setCustomProfession('');
-                }
-              }}
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple cursor-pointer"
-            >
-              {CREATOR_PROFESSIONS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
+        {/* SECTION 3: STUDIO ADDRESS & PHYSICAL LOCATION */}
+        <CreatorAddressSection
+          address={address}
+          setAddress={setAddress}
+        />
 
-            {profession === 'Other / Custom Creative Field' && (
-              <input
-                type="text"
-                value={customProfession}
-                onChange={(e) => setCustomProfession(e.target.value)}
-                placeholder="Enter custom creative specialization..."
-                className="w-full mt-2 px-4 py-2.5 bg-surface border border-brand-purple rounded-xl text-xs text-text-primary focus:outline-none animate-fade-in"
-              />
-            )}
-          </div>
+        {/* SECTION 4: LANGUAGES SPOKEN */}
+        <CreatorLanguagesSection
+          languages={languages}
+          setLanguages={setLanguages}
+        />
 
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Base City</label>
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Languages Spoken</label>
-            <input
-              type="text"
-              value={languages}
-              onChange={(e) => setLanguages(e.target.value)}
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Years of Experience</label>
-            <input
-              type="number"
-              value={experienceYears}
-              onChange={(e) => setExperienceYears(e.target.value)}
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Travel Available (Outstation Shoot)</label>
-            <select
-              value={travelAvailable}
-              onChange={(e) => setTravelAvailable(e.target.value)}
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-            >
-              <option value="Yes">Yes (Available to Travel)</option>
-              <option value="No">No (Local City Only)</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Bio Pitch</label>
-          <textarea
-            rows={4}
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple"
-          />
-        </div>
-
+        {/* SUBMIT BUTTON AT THE VERY END (NON-STICKY, NATURAL FLOW) */}
         <button
           type="submit"
           disabled={saving}
-          className="w-full py-3 rounded-xl gradient-brand text-white font-bold text-xs shadow-premium hover:opacity-90 transition flex items-center justify-center gap-2"
+          className="w-full py-3.5 bg-[#241b15] text-[#d99a3d] border border-[#241b15] rounded-md text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#342820] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
-          <FiSave size={16} /> Save Creator Profile
+          <FiCheck size={16} />
+          <span>{saving ? 'Saving Creator Profile...' : 'Save Creator Profile'}</span>
         </button>
       </form>
     </div>

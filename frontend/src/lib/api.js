@@ -159,7 +159,15 @@ export const cartApi = {
   add: (payload) => api.post("/v1/cart/me/add", payload),
   update: (listing_id, quantity) => api.patch(`/v1/cart/me/items/${listing_id}`, { quantity }),
   remove: (listing_id) => api.delete(`/v1/cart/me/items/${listing_id}`),
-  checkout: () => api.post("/v1/cart/me/checkout"),
+  checkout: (payload = {}) => api.post("/v1/cart/me/checkout", payload),
+};
+
+export const offersApi = {
+  active: () => api.get("/v1/offers/active"),
+  validateCoupon: (payload) => api.post("/v1/offers/validate-coupon", payload),
+  getApplicable: (params = {}) => api.get("/v1/offers/applicable", { params }),
+  calculateShipping: (payload) => api.post("/v1/offers/calculate-shipping", payload),
+  trackClick: (id) => api.post(`/v1/offers/${id}/click`),
 };
 
 export const moreFromVendor = (vendor_id, exclude_listing_id, limit = 12) =>
@@ -219,6 +227,11 @@ export function resolveMediaUrl(url) {
   if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
 
+  // Handle local mobile file paths (e.g. Expo ImagePicker cache)
+  if (/^file:\/\//i.test(trimmed) || trimmed.includes('/host.exp.exponent/')) {
+    return DEFAULT_VIDEO_FALLBACK;
+  }
+
   const host = BACKEND_URL || 'https://bizreels-backend.onrender.com';
   return `${host}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
 }
@@ -252,6 +265,20 @@ export const searchApi = {
 export const locationApi = {
   reverseGeocode: (lat, lng) => api.post("/v1/utils/reverse-geocode", { lat, lng }),
   pincode: (pincode) => api.post("/v1/utils/pincode-lookup", { pincode }),
+  calculateDistance: (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const R = 6371; // km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  },
 };
 
 export const vendorApi = {

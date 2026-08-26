@@ -62,8 +62,18 @@ const notificationSchema = new Schema(
   }
 );
 
+// Virtuals for robust field naming compatibility across client versions
+notificationSchema.virtual('is_read').get(function () {
+  return this.isRead;
+});
+
+notificationSchema.virtual('action_url').get(function () {
+  return this.actionUrl;
+});
+
 // Indexes
 notificationSchema.index({ createdAt: -1 });
+notificationSchema.index({ recipient: 1, isRead: 1 });
 notificationSchema.index({ recipient: 1, recipientRole: 1, isRead: 1, createdAt: -1 });
 
 module.exports = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);

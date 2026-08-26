@@ -78,7 +78,8 @@ export default function CustomerSettingsPage() {
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');
-      setPhone(user.phone || '');
+      const rawPhone = user.phone || user.mobile || user.mobileNumber || user.customerProfile?.phone || user.customerProfile?.mobileNumber || user.contactNumber || '';
+      setPhone(rawPhone);
       setGender(user.gender || 'male');
       
       const userProf = user.profession || user.occupation || '';
@@ -201,11 +202,21 @@ export default function CustomerSettingsPage() {
 
     const resolvedProfession = profession === 'Other / Custom Profession' ? customProfession.trim() : profession;
 
+    let cleanPhone = (phone || '').trim();
+    if (cleanPhone) {
+      const digits = cleanPhone.replace(/\D/g, '');
+      if (digits.length === 10) {
+        cleanPhone = `+91${digits}`;
+      } else if (digits.length === 12 && digits.startsWith('91')) {
+        cleanPhone = `+${digits}`;
+      }
+    }
+
     try {
       const payload = {
         name,
         email,
-        phone,
+        phone: cleanPhone || undefined,
         gender,
         profession: resolvedProfession,
         occupation: resolvedProfession,
@@ -503,13 +514,25 @@ export default function CustomerSettingsPage() {
                 <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1.5">
                   {bi('Mobile Number', 'मोबाइल नंबर')}
                 </label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={bi('e.g. +91 9876543210', 'उदा. +91 9876543210')}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
-                />
+                <div className="flex gap-2">
+                  <div className="flex items-center justify-center px-3.5 py-3 text-xs font-black text-[#1a1a1a] bg-slate-100 border border-slate-200 rounded-xl min-w-[52px] select-none">
+                    +91
+                  </div>
+                  <input
+                    type="tel"
+                    value={phone.replace(/^\+91/, '')}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPhone(val ? `+91${val}` : '');
+                    }}
+                    placeholder={bi('9876543210', '९८७६५४३२१०')}
+                    maxLength={10}
+                    className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:bg-white transition"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  {bi('Used for OTP verification & order notifications', 'ओटीपी सत्यापन और ऑर्डर सूचनाओं के लिए उपयोग किया जाता है')}
+                </span>
               </div>
 
               <div className="sm:col-span-2">
@@ -647,29 +670,41 @@ export default function CustomerSettingsPage() {
         {/* TAB 3: FEED INTERESTS */}
         {activeTab === 'interests' && (
           <form onSubmit={handleSaveInterests} className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e3dccb] shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
               <div>
                 <h2 className="text-base font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
-                  <FiGrid className="text-[#d99a3d]" />
+                  <span className="w-2 h-2 rounded-full bg-[#d99a3d]" />
                   {bi('Personalized Feed Interests', 'व्यक्तिगत फ़ीड रुचियां')}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {bi('Select at least 5 categories to customize your Reels & Marketplace feed', 'अपने फ़ीड को कस्टमाइज़ करने के लिए कम से कम 5 श्रेणियों का चयन करें')}
+                  {bi('Search & select categories to customize your Reels and marketplace feed', 'अपने रील्स और मार्केटप्लेस फ़ीड को कस्टमाइज़ करने के लिए श्रेणियां खोजें और चुनें')}
                 </p>
               </div>
 
-              <span className={`text-[10.5px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${
-                selectedInterests.length >= 5
-                  ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border border-[#d99a3d]/40'
-                  : 'bg-red-500/10 text-red-700 border border-red-200'
-              }`}>
-                {selectedInterests.length} {bi('Selected (Min 5)', 'चयनित (न्यूनतम 5)')}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className={`text-[10.5px] font-black px-3 py-1.5 rounded-xl uppercase tracking-wider ${
+                  selectedInterests.length >= 5
+                    ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border border-[#d99a3d]/40'
+                    : 'bg-red-500/10 text-red-700 border border-red-200'
+                }`}>
+                  {selectedInterests.length} {bi('Selected (Min 5)', 'चयनित (न्यूनतम 5)')}
+                </span>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-black rounded-xl text-xs uppercase tracking-wider shadow-2xs transition cursor-pointer flex items-center gap-2 border border-[#1a1a1a] disabled:opacity-50"
+                >
+                  <FiSave size={15} />
+                  <span>{saving ? bi('Saving...', 'सहेजा जा रहा है...') : bi('Save Interests', 'रुचियां सहेजें')}</span>
+                </button>
+              </div>
             </div>
 
-            <InterestSelector selected={selectedInterests} setSelected={setSelectedInterests} />
+            {/* Enhanced Category & Subcategory Selector with Live Search Menu */}
+            <InterestSelector selected={selectedInterests} setSelected={setSelectedInterests} showSearch={true} />
 
-            <div className="pt-2 flex justify-end">
+            <div className="pt-4 border-t border-slate-100 flex justify-end">
               <button
                 type="submit"
                 disabled={saving}

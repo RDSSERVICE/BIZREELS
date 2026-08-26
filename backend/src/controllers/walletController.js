@@ -111,6 +111,7 @@ class WalletController {
         analytics_access: obj.analytics_access || false,
         priority_ranking: obj.priority_ranking || false,
         discount_percentage: obj.discount_percentage || 0,
+        add_ons: obj.add_ons || [],
         is_active: obj.is_active !== false,
         is_archived: obj.is_archived || false,
       };
@@ -162,12 +163,14 @@ class WalletController {
   // ── Purchase Plan ───────────────────────────────────────
   purchaseSubscription = asyncHandler(async (req, res) => {
     const plan = req.body.plan || req.body.planId;
+    const selected_addons = req.body.selected_addons || [];
     if (!plan) {
       return ApiResponse.ok(res, 'Plan is required.', null);
     }
     const result = await walletService.purchasePlan({
       userId: req.user._id,
       plan,
+      selected_addons,
     });
     return ApiResponse.ok(res, `Subscribed to plan successfully.`, {
       subscription: result.user.subscription,

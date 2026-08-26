@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
-import { FiGrid, FiZap, FiChevronRight } from 'react-icons/fi';
+import { FiGrid, FiZap, FiChevronRight, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
 import { useGetMeQuery } from '../../../features/auth/authApi';
@@ -41,111 +41,123 @@ export default function InterestSelectionPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex flex-col animate-fade-in">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="w-16 h-16 mx-auto rounded-2xl gradient-brand flex items-center justify-center shadow-premium mb-4"
-        >
-          <FiGrid className="text-white" size={28} />
-        </motion.div>
-        <motion.h1
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="text-2xl font-black text-text-primary font-display"
-        >
-          Choose Your <span className="gradient-text">Interests</span>
-        </motion.h1>
-        <motion.p
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-xs text-text-tertiary mt-2 max-w-md mx-auto"
-        >
-          Select at least <strong className="text-brand-purple">5 categories</strong> that interest you.
-          We'll personalize your reels & posts feed based on your choices.
-        </motion.p>
+    <div className="max-w-4xl mx-auto space-y-6 font-sans p-2 sm:p-4 min-h-[85vh] animate-fade-in pb-20">
+      {/* ── 1. HEADER BANNER IN PERSONAL INFO / ONBOARDING STYLE ── */}
+      <div className="bg-[#241b15] text-white p-6 sm:p-8 rounded-2xl border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[9.5px] font-black text-[#d99a3d] uppercase tracking-widest block mb-1">
+            CUSTOMER ONBOARDING • PERSONALIZED EXPERIENCE
+          </span>
+          <h1
+            style={{ fontFamily: "'Archivo Black', sans-serif" }}
+            className="text-xl sm:text-2xl uppercase tracking-wide text-white"
+          >
+            CHOOSE YOUR FEED INTERESTS
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 max-w-lg">
+            Select at least <strong className="text-[#d99a3d]">5 categories &amp; subcategories</strong> that you love. 
+            We'll customize your reels, marketplace listings, and local promotions based on your choices.
+          </p>
+        </div>
+
+        <div className="w-12 h-12 rounded-full bg-[#d99a3d] text-[#1a1a1a] flex items-center justify-center font-black shrink-0 border border-[#1a1a1a] shadow-xs">
+          <FiGrid size={22} />
+        </div>
       </div>
 
-      {/* Selection Counter */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="glass rounded-2xl p-4 border border-white/40 shadow-card mb-6 flex items-center justify-between"
-      >
+      {/* ── 2. SELECTION COUNTER BAR ── */}
+      <div className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm transition-all duration-300 ${
             selected.length >= 5
-              ? 'gradient-brand text-white shadow-premium'
-              : 'bg-surface-tertiary text-text-tertiary'
+              ? 'bg-[#241b15] text-[#d99a3d] border border-[#241b15] shadow-2xs'
+              : 'bg-slate-100 text-slate-600 border border-slate-200'
           }`}>
             {selected.length}
           </div>
           <div>
-            <p className="text-xs font-bold text-text-primary">
-              {selected.length >= 5 ? '✨ Great selection!' : `${5 - selected.length} more needed`}
+            <p className="text-xs font-black text-[#1a1a1a] uppercase tracking-wide">
+              {selected.length >= 5 ? '✨ Minimum Requirement Met!' : `${5 - selected.length} more needed to continue`}
             </p>
-            <p className="text-[10px] text-text-tertiary">
+            <p className="text-[11px] text-slate-500 font-medium">
               {selected.length >= 5
-                ? 'You can continue or add more interests'
-                : 'Select categories & subcategories below'}
+                ? 'Great choices! You can continue now or add more categories below.'
+                : 'Search or browse categories below to choose your interests.'}
             </p>
           </div>
         </div>
-        <div className="flex gap-1">
-          {[...Array(Math.min(10, Math.max(5, selected.length)))].map((_, i) => (
-            <div
-              key={i}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                i < selected.length ? 'bg-brand-purple scale-110' : 'bg-border'
-              }`}
-            />
-          ))}
-        </div>
-      </motion.div>
 
-      {/* Reusable Category Selector Grid */}
-      <div className="mb-8">
-        <InterestSelector selected={selected} setSelected={setSelected} />
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          <span className={`text-[10.5px] font-black px-3 py-1.5 rounded-xl uppercase tracking-wider ${
+            selected.length >= 5
+              ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border border-[#d99a3d]/40'
+              : 'bg-red-500/10 text-red-700 border border-red-200'
+          }`}>
+            {selected.length} / 5 Selected
+          </span>
+
+          <button
+            onClick={handleContinue}
+            disabled={selected.length < 5 || saving}
+            className="px-5 py-2.5 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-black rounded-xl text-xs uppercase tracking-wider shadow-2xs transition cursor-pointer flex items-center gap-2 border border-[#1a1a1a] disabled:opacity-50"
+          >
+            <FiZap size={14} />
+            <span>{saving ? 'Saving...' : 'Save & Continue'}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Continue Button */}
-      <motion.div
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="sticky bottom-6 z-20"
-      >
+      {/* ── 3. MAIN INTEREST SELECTOR WITH LIVE SEARCH & FILTERING MENU ── */}
+      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e3dccb] shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+          <div>
+            <h2 className="text-base font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#d99a3d]" />
+              Explore All Categories &amp; Subcategories
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Use the search bar to quickly find any specific product or service niche
+            </p>
+          </div>
+        </div>
+
+        <InterestSelector 
+          selected={selected} 
+          setSelected={setSelected} 
+          showSearch={true}
+          theme="settings"
+        />
+      </div>
+
+      {/* ── 4. STICKY BOTTOM SUBMIT ACTION ── */}
+      <div className="sticky bottom-4 z-20 pt-2">
         <button
           onClick={handleContinue}
           disabled={selected.length < 5 || saving}
-          className={`w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-premium ${
+          className={`w-full py-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 shadow-md ${
             selected.length >= 5
-              ? 'gradient-brand text-white hover:opacity-95 hover:shadow-lg'
-              : 'bg-surface-tertiary text-text-tertiary cursor-not-allowed'
+              ? 'bg-[#241b15] text-[#d99a3d] hover:bg-[#1a1a1a] border border-[#241b15] cursor-pointer'
+              : 'bg-slate-200 text-slate-500 border border-slate-300 cursor-not-allowed'
           }`}
         >
           {saving ? (
             <>
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Saving Your Interests...
+              <div className="w-4 h-4 border-2 border-[#d99a3d]/30 border-t-[#d99a3d] rounded-full animate-spin" />
+              <span>Saving Your Interests...</span>
             </>
           ) : (
             <>
               <FiZap size={16} />
-              {selected.length >= 5
-                ? `Continue with ${selected.length} Interests`
-                : `Select ${5 - selected.length} More to Continue`}
+              <span>
+                {selected.length >= 5
+                  ? `Save & Continue with ${selected.length} Interests`
+                  : `Select ${5 - selected.length} More Categories to Continue`}
+              </span>
               <FiChevronRight size={14} />
             </>
           )}
         </button>
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -16,6 +16,7 @@ import Loader from '../components/common/Loader';
 // Public & Auth Pages
 const Home = React.lazy(() => import('../pages/home/Home'));
 const About = React.lazy(() => import('../pages/home/About'));
+const Pricing = React.lazy(() => import('../pages/home/Pricing'));
 const PublicLocalReelsPage = React.lazy(() => import('../pages/reels/PublicLocalReelsPage'));
 const PublicCreatorMarketplacePage = React.lazy(() => import('../pages/creator/PublicCreatorMarketplacePage'));
 const Login = React.lazy(() => import('../pages/auth/Login'));
@@ -41,6 +42,7 @@ const BecomeCreatorPage = React.lazy(() => import('../pages/creator/onboarding/B
 const VendorProfilePage = React.lazy(() => import('../pages/customer/vendor/VendorProfilePage'));
 const InterestSelectionPage = React.lazy(() => import('../pages/customer/onboarding/InterestSelectionPage'));
 const ListingDetailPage = React.lazy(() => import('../pages/customer/listings/ListingDetailPage'));
+const MyCartPage = React.lazy(() => import('../pages/customer/cart/MyCartPage'));
 
 // Vendor Pages
 const VendorDashboardPage = React.lazy(() => import('../pages/vendor/dashboard/VendorDashboardPage'));
@@ -116,6 +118,7 @@ const AppRoutes = () => {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/local-reels" element={<PublicLocalReelsPage />} />
         <Route path="/creator-marketplace" element={<PublicCreatorMarketplacePage />} />
       </Route>
@@ -161,6 +164,8 @@ const AppRoutes = () => {
         <Route path="notifications" element={<CustomerNotificationsPage />} />
         <Route path="chat" element={<CustomerChatPage />} />
         <Route path="settings" element={<CustomerSettingsPage />} />
+        <Route path="mycart" element={<MyCartPage />} />
+        <Route path="cart" element={<Navigate to="/customer/mycart" replace />} />
         <Route path="vendor/:vendorId" element={<VendorProfilePage />} />
         <Route path="choose-interests" element={<InterestSelectionPage />} />
         {/* Backward compatibility: old onboarding URLs redirect to new namespace */}

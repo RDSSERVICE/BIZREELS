@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   FiBriefcase, FiCheckCircle, FiDollarSign, FiFileText, FiMapPin,
-  FiCreditCard, FiArrowRight, FiShield, FiUser, FiTruck, FiClock,
+  FiCreditCard, FiArrowRight, FiArrowLeft, FiShield, FiUser, FiTruck, FiClock,
   FiUploadCloud, FiSearch, FiCheck, FiGlobe, FiPhone, FiMessageSquare,
   FiMail, FiCamera, FiImage, FiCompass, FiX, FiLayers, FiTag, FiNavigation,
   FiCpu, FiMic, FiMicOff, FiZap
@@ -67,6 +67,8 @@ export default function BecomeVendorPage({ isEditMode = false }) {
   const [loading, setLoading] = useState(false);
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // 1. Business Type & Vendor Type
   const [businessType, setBusinessType] = useState('Retailer');
@@ -75,6 +77,69 @@ export default function BecomeVendorPage({ isEditMode = false }) {
   // 2. Shop / Business Info
   const [shopName, setShopName] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedSubCategories, setSelectedSubCategories] = useState([]);
+
+  // States for searchable dropdowns & terms modal
+  const [catSearch, setCatSearch] = useState('');
+  const [subSearch, setSubSearch] = useState('');
+  const [showCatDropdown, setShowCatDropdown] = useState(false);
+  const [showSubDropdown, setShowSubDropdown] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
+  const [businessDescription, setBusinessDescription] = useState('');
+  const [shopLogo, setShopLogo] = useState(user?.profile_pic || user?.avatarUrl || '');
+  const [shopCoverImage, setShopCoverImage] = useState('');
+
+  // AI Description & Bio states
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGeneratingAiBio, setIsGeneratingAiBio] = useState(false);
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
+
+  // 3. Contact Info
+  const [mobileNumber, setMobileNumber] = useState(user?.phone || '');
+  const [whatsappNumber, setWhatsappNumber] = useState(user?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [website, setWebsite] = useState('');
+
+  // 4. Business Address
+  const [pincode, setPincode] = useState('');
+  const [stateName, setStateName] = useState('Madhya Pradesh');
+  const [district, setDistrict] = useState('Indore');
+  const [city, setCity] = useState('Indore');
+  const [areaLocality, setAreaLocality] = useState('');
+  const [fullAddress, setFullAddress] = useState('');
+  const [googleMapLocation, setGoogleMapLocation] = useState('');
+
+  // 5. Delivery & Service Area
+  const [homeDeliveryEnabled, setHomeDeliveryEnabled] = useState(true);
+  const [homeDeliveryRadius, setHomeDeliveryRadius] = useState('5 km');
+  const [homeDeliveryMinOrder, setHomeDeliveryMinOrder] = useState('200');
+  const [homeDeliveryCharge, setHomeDeliveryCharge] = useState('30');
+
+  const [courierByVendor, setCourierByVendor] = useState(true);
+  const [customerVisitShop, setCustomerVisitShop] = useState(true);
+
+  const [serviceAtCustomerLocation, setServiceAtCustomerLocation] = useState(false);
+  const [serviceRadius, setServiceRadius] = useState('10 km');
+  const [serviceMinOrder, setServiceMinOrder] = useState('500');
+
+  // 6. Business Timing
+  const [openingTime, setOpeningTime] = useState('09:00 AM');
+  const [closingTime, setClosingTime] = useState('09:00 PM');
+  const [weeklyOff, setWeeklyOff] = useState('Sunday');
+  const [open24x7, setOpen24x7] = useState(false);
+
+  const toggleWeeklyOffDay = (day) => {
+    let currentDays = weeklyOff === 'None' ? [] : weeklyOff.split(', ').filter(Boolean);
+    if (currentDays.includes(day)) {
+      currentDays = currentDays.filter(d => d !== day);
+    } else {
+      currentDays = [...currentDays, day];
+    }
+    setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
+  };
+
   const { data: categoriesDataRes } = useListCategoriesQuery();
   const categoriesList = categoriesDataRes?.items || categoriesDataRes?.categories || (Array.isArray(categoriesDataRes) ? categoriesDataRes : []);
 
@@ -103,16 +168,6 @@ export default function BecomeVendorPage({ isEditMode = false }) {
     return data;
   }, [categoriesList, vendorType]);
 
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedSubCategories, setSelectedSubCategories] = useState([]);
-
-  // States for searchable dropdowns & terms modal
-  const [catSearch, setCatSearch] = useState('');
-  const [subSearch, setSubSearch] = useState('');
-  const [showCatDropdown, setShowCatDropdown] = useState(false);
-  const [showSubDropdown, setShowSubDropdown] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
-
   // Reset category selections when vendorType changes to prevent cross-type garbage data
   useEffect(() => {
     if (isHydrated) {
@@ -121,16 +176,7 @@ export default function BecomeVendorPage({ isEditMode = false }) {
       setCatSearch('');
       setSubSearch('');
     }
-  }, [vendorType]);
-
-  const [businessDescription, setBusinessDescription] = useState('');
-  const [shopLogo, setShopLogo] = useState(user?.profile_pic || user?.avatarUrl || '');
-  const [shopCoverImage, setShopCoverImage] = useState('');
-
-  // AI Description & Bio states
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [isGeneratingAiBio, setIsGeneratingAiBio] = useState(false);
-  const [isListeningVoice, setIsListeningVoice] = useState(false);
+  }, [vendorType, isHydrated]);
 
   const handleGenerateAiBio = async () => {
     const sName = shopName.trim() || displayName.trim() || 'Our Business';
@@ -199,54 +245,6 @@ export default function BecomeVendorPage({ isEditMode = false }) {
     recognition.onend = () => setIsListeningVoice(false);
     recognition.start();
   };
-
-  // 3. Contact Info
-  const [mobileNumber, setMobileNumber] = useState(user?.phone || '');
-  const [whatsappNumber, setWhatsappNumber] = useState(user?.phone || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [website, setWebsite] = useState('');
-
-  // 4. Business Address
-  const [pincode, setPincode] = useState('');
-  const [stateName, setStateName] = useState('Madhya Pradesh');
-  const [district, setDistrict] = useState('Indore');
-  const [city, setCity] = useState('Indore');
-  const [areaLocality, setAreaLocality] = useState('');
-  const [fullAddress, setFullAddress] = useState('');
-  const [googleMapLocation, setGoogleMapLocation] = useState('');
-
-  // 5. Delivery & Service Area
-  const [homeDeliveryEnabled, setHomeDeliveryEnabled] = useState(true);
-  const [homeDeliveryRadius, setHomeDeliveryRadius] = useState('5 km');
-  const [homeDeliveryMinOrder, setHomeDeliveryMinOrder] = useState('200');
-  const [homeDeliveryCharge, setHomeDeliveryCharge] = useState('30');
-
-  const [courierByVendor, setCourierByVendor] = useState(true);
-  const [customerVisitShop, setCustomerVisitShop] = useState(true);
-
-  const [serviceAtCustomerLocation, setServiceAtCustomerLocation] = useState(false);
-  const [serviceRadius, setServiceRadius] = useState('10 km');
-  const [serviceMinOrder, setServiceMinOrder] = useState('500');
-
-  // 6. Business Timing
-  const [openingTime, setOpeningTime] = useState('09:00 AM');
-  const [closingTime, setClosingTime] = useState('09:00 PM');
-  const [weeklyOff, setWeeklyOff] = useState('Sunday');
-  const [open24x7, setOpen24x7] = useState(false);
-
-  const toggleWeeklyOffDay = (day) => {
-    let currentDays = weeklyOff === 'None' ? [] : weeklyOff.split(', ').filter(Boolean);
-    if (currentDays.includes(day)) {
-      currentDays = currentDays.filter(d => d !== day);
-    } else {
-      currentDays = [...currentDays, day];
-    }
-    setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
-  };
-
-  // 7. Terms Declaration
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   // Hydrate form data when user already has vendorProfile (Edit Mode)
   useEffect(() => {
@@ -646,8 +644,33 @@ export default function BecomeVendorPage({ isEditMode = false }) {
     }
   };
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else if (effectiveEditMode) {
+      navigate('/vendor/dashboard');
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6 font-sans p-2 sm:p-4 min-h-screen pb-16">
+    <div className="max-w-4xl mx-auto space-y-4 font-sans p-2 sm:p-4 min-h-screen pb-16">
+      {/* Top Back Navigation Bar */}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={handleGoBack}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-[#e3dccb] hover:bg-[#f8f4ec] text-[#1a1a1a] text-xs font-bold transition shadow-2xs cursor-pointer"
+        >
+          <FiArrowLeft size={14} className="text-[#d99a3d]" />
+          <span>← Go Back</span>
+        </button>
+        <span className="text-[11px] font-semibold text-slate-500 hidden sm:inline">
+          {effectiveEditMode ? 'Vendor Profile Editor' : 'Vendor Onboarding Setup'}
+        </span>
+      </div>
+
       {/* Header Banner - Matching Customer Layout & Home Style */}
       <div className="bg-[#241b15] text-white p-6 rounded-2xl border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -1555,7 +1578,7 @@ export default function BecomeVendorPage({ isEditMode = false }) {
           )}
         </div>
 
-        {/* SECTION 7: DECLARATION & TERMS */}
+        {/* SECTION 6: DECLARATION & TERMS */}
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-4">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -1570,24 +1593,35 @@ export default function BecomeVendorPage({ isEditMode = false }) {
           </label>
         </div>
 
-        {/* SUBMIT BUTTON */}
-        <button
-          type="submit"
-          disabled={loading || !termsAccepted}
-          className="w-full py-4 bg-[#241b15] text-[#d99a3d] border-2 border-[#241b15] rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-premium hover:bg-[#342820] transition flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
-        >
-          {effectiveEditMode ? (
-            <>
-              <FiCheckCircle size={18} />
-              <span>{loading ? 'Saving Changes...' : 'Update Profile Details'}</span>
-            </>
-          ) : (
-            <>
-              <span>{loading ? 'Registering & Launching Portal...' : 'Complete Registration & Launch Vendor Portal'}</span>
-              <FiArrowRight size={18} />
-            </>
-          )}
-        </button>
+        {/* ACTION BUTTONS ROW */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="w-full sm:w-auto px-6 py-4 bg-white border border-[#e3dccb] hover:bg-[#f8f4ec] text-[#1a1a1a] rounded-2xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+          >
+            <FiArrowLeft size={16} className="text-slate-500" />
+            <span>Cancel &amp; Go Back</span>
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading || !termsAccepted}
+            className="flex-1 w-full py-4 bg-[#241b15] text-[#d99a3d] border-2 border-[#241b15] rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-premium hover:bg-[#342820] transition flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
+          >
+            {effectiveEditMode ? (
+              <>
+                <FiCheckCircle size={18} />
+                <span>{loading ? 'Saving Changes...' : 'Update Profile Details'}</span>
+              </>
+            ) : (
+              <>
+                <span>{loading ? 'Registering & Launching Portal...' : 'Complete Registration & Launch Vendor Portal'}</span>
+                <FiArrowRight size={18} />
+              </>
+            )}
+          </button>
+        </div>
       </form>
 
       {/* Terms & Conditions Modal */}

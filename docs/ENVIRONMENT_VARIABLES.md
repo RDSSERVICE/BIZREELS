@@ -31,6 +31,10 @@ The application requires specific configurations configured in `.env` files.
 | **`GOOGLE_CLIENT_ID`** | No | `your-google-client-id` | Client ID credential for Google OAuth integrations. |
 | **`GOOGLE_CLIENT_SECRET`**| No | `your-google-client-secret` | Client Secret credential for Google OAuth integrations. |
 | **`GOOGLE_AI_API_KEY`** | No | `your-gemini-ai-key` | API authorization key for Google Gemini model APIs. |
+| **`SHIPROCKET_EMAIL`** | No | `your-shiprocket-email` | Shiprocket account email for JWT authentication. |
+| **`SHIPROCKET_PASSWORD`** | No | `your-shiprocket-password` | Shiprocket account password for JWT authentication. |
+| **`SHIPROCKET_API_TOKEN`** | No | `your-shiprocket-token` | Optional direct pre-generated Shiprocket bearer token. |
+| **`SHIPROCKET_PICKUP_PINCODE`** | No | `110001` | Default origin pickup pincode for courier rate lookups. |
 | **`ADMIN_PHONE`** | Yes | `9999999999` | Mobile phone number linked to the system's default admin profile. |
 | **`ADMIN_NAME`** | Yes | `Admin` | Default name label for the platform administrator. |
 | **`ALLOW_DEV_ADMIN_LOGIN`**| Yes | `true` | Toggles the dev admin bypass login endpoint. |

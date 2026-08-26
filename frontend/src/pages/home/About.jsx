@@ -47,12 +47,47 @@ const About = () => {
     },
   ];
 
+  const aboutStructuredData = React.useMemo(() => [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'AboutPage',
+      'name': 'About BizReels',
+      'url': 'https://bizreels.in/about',
+      'description': "Learn more about BizReels - India's first visual reels commerce platform connecting local vendors, creators, and buyers.",
+      'mainEntity': {
+        '@type': 'Organization',
+        'name': 'BizReels',
+        'url': 'https://bizreels.in/',
+        'logo': 'https://bizreels.in/logo.png'
+      }
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        {
+          '@type': 'ListItem',
+          'position': 1,
+          'name': 'Home',
+          'item': 'https://bizreels.in/'
+        },
+        {
+          '@type': 'ListItem',
+          'position': 2,
+          'name': 'About Us',
+          'item': 'https://bizreels.in/about'
+        }
+      ]
+    }
+  ], []);
+
   return (
     <div className="overflow-x-hidden font-sans" style={{ backgroundColor: '#f2ede4', minHeight: '100vh' }}>
       <SEO 
         title="About Us"
         description="Learn more about BizReels - India's first visual reels commerce platform connecting local vendors, creators, and buyers."
-        url="https://bizreels.in/about"
+        canonical="https://bizreels.in/about"
+        structuredData={aboutStructuredData}
       />
 
       {/* ── 1. HERO SECTION — Bento 2-Column Split ──────────────── */}

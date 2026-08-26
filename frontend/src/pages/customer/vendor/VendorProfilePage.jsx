@@ -10,6 +10,7 @@ import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { api, resolveMediaUrl } from '../../../lib/api';
 import { getSocket } from '../../../lib/socket';
+import SEO from '../../../components/common/SEO';
 
 export default function VendorProfilePage() {
   const { vendorId } = useParams();
@@ -271,6 +272,56 @@ export default function VendorProfilePage() {
     }
   };
 
+  const vendorName = profile?.shop_name || profile?.business_name || profile?.name || 'Vendor Profile';
+  const vendorAvatarUrl = profile?.avatar || profile?.logo || profile?.profile_pic
+    ? resolveMediaUrl(profile.avatar || profile.logo || profile.profile_pic)
+    : 'https://bizreels.in/logo.png';
+  const canonicalUrl = `https://bizreels.in/customer/vendor/${vendorId}`;
+
+  const vendorStructuredData = React.useMemo(() => {
+    if (!profile) return [];
+
+    const isServiceBiz = (profile.business_category || '').toLowerCase().includes('service');
+    const localBizSchema = {
+      '@context': 'https://schema.org',
+      '@type': isServiceBiz ? 'ProfessionalService' : 'LocalBusiness',
+      'name': vendorName,
+      'image': vendorAvatarUrl,
+      'description': profile.bio || profile.description || `${vendorName} on BizReels marketplace.`,
+      'url': canonicalUrl,
+      'telephone': profile.phone || profile.whatsapp || undefined,
+      ...(profile.location?.address || profile.city ? {
+        'address': {
+          '@type': 'PostalAddress',
+          'streetAddress': profile.location?.address || undefined,
+          'addressLocality': profile.city || profile.location?.city || undefined,
+          'addressRegion': profile.location?.state || undefined,
+          'postalCode': profile.location?.pincode || undefined,
+          'addressCountry': 'IN',
+        }
+      } : {}),
+      ...(profile.rating_avg && profile.rating_avg > 0 ? {
+        'aggregateRating': {
+          '@type': 'AggregateRating',
+          'ratingValue': profile.rating_avg,
+          'reviewCount': profile.rating_count || 1,
+        }
+      } : {}),
+    };
+
+    const breadcrumbs = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bizreels.in/' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Vendors', 'item': 'https://bizreels.in/customer/search' },
+        { '@type': 'ListItem', 'position': 3, 'name': vendorName, 'item': canonicalUrl },
+      ]
+    };
+
+    return [localBizSchema, breadcrumbs];
+  }, [profile, vendorName, vendorAvatarUrl, canonicalUrl]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
@@ -300,6 +351,14 @@ export default function VendorProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in relative pb-10">
+      <SEO
+        title={`${vendorName} — Local Business`}
+        description={profile.bio || profile.description || `Discover ${vendorName} on BizReels marketplace.`}
+        canonical={canonicalUrl}
+        ogImage={vendorAvatarUrl}
+        ogType="profile"
+        structuredData={vendorStructuredData}
+      />
       
       {/* ── PROFILE HEADER (COVER BANNER & OVERLAPPING AVATAR) ── */}
       <div className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card relative">

@@ -103,20 +103,30 @@ class NotificationService {
       console.error('Error saving notification in DB:', err.message);
     }
 
-    emitToUser(userId.toString(), 'notification:new', {
+    const payload = {
       _id: savedNotif?._id ? savedNotif._id.toString() : Date.now().toString(),
+      id: savedNotif?._id ? savedNotif._id.toString() : Date.now().toString(),
       userId,
-      type,
-      title,
+      recipient: userId,
+      type: type || 'system',
+      title: title || 'New Alert',
       body: body || title || '',
       message: body || title || '',
-      data,
-      actionUrl: resolvedUrl,
+      data: data || {},
+      actionUrl: resolvedUrl || null,
+      action_url: resolvedUrl || null,
       recipientRole: resolvedRole || null,
+      isRead: false,
+      is_read: false,
       createdAt: new Date().toISOString(),
-    });
+      created_at: new Date().toISOString(),
+    };
 
-    return savedNotif || { userId, type, title, body, data, actionUrl: resolvedUrl, recipientRole: resolvedRole };
+    // Dual emit for complete frontend subscriber compatibility
+    emitToUser(userId.toString(), 'notification:new', payload);
+    emitToUser(userId.toString(), 'notification', payload);
+
+    return savedNotif || payload;
   }
 
   async listMine(userId, isRead = null, cursor = null, limit = 30, role = null) {
@@ -133,7 +143,15 @@ class NotificationService {
     const nextCursor = hasMore && items.length > 0 ? items[items.length - 1]._id.toString() : null;
 
     return {
-      items: items.map(n => ({ ...n, id: n._id.toString() })),
+      items: items.map(n => ({
+        ...n,
+        id: n._id?.toString() || n.id,
+        _id: n._id?.toString() || n.id,
+        isRead: n.isRead !== undefined ? n.isRead : (n.is_read || false),
+        is_read: n.isRead !== undefined ? n.isRead : (n.is_read || false),
+        actionUrl: n.actionUrl || n.action_url || null,
+        action_url: n.actionUrl || n.action_url || null,
+      })),
       next_cursor: nextCursor,
       has_more: hasMore,
     };

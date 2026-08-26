@@ -377,7 +377,7 @@ class WalletService {
   }
 
   // ─── Purchase Plan (Subscription Deduction) ──────────────
-  async purchasePlan({ userId, plan }) {
+  async purchasePlan({ userId, plan, selected_addons = [] }) {
     const { SubscriptionPlan } = require('../models/Admin');
     const UserSubscription = require('../models/UserSubscription.model');
 
@@ -397,12 +397,29 @@ class WalletService {
     }
 
     const uid = userId.toString();
-    const cost = planDoc.price_inr;
+    const baseCost = planDoc.price_inr;
+    let addonsTotal = 0;
+    const validatedAddons = [];
+    if (Array.isArray(selected_addons)) {
+      for (const a of selected_addons) {
+        const p = Number(a.price_inr || 0);
+        addonsTotal += p;
+        validatedAddons.push({
+          id: a.id || `addon_${Date.now()}`,
+          title: a.title || 'Add-on',
+          price_inr: p,
+          quota_type: a.quota_type,
+          quota_value: a.quota_value,
+        });
+      }
+    }
+
+    const cost = baseCost + addonsTotal;
     const durationDays = planDoc.duration_days || 30;
     const refId = `sub_${planDoc._id}_${Date.now()}`;
     const targetRole = planDoc.target_role || (planDoc.role === 'creator' || String(planDoc.title).toLowerCase().includes('creator') ? 'creator' : 'vendor');
 
-    // Prevent duplicate subscription purchase
+    // Prevent duplicate subscription purchase if no add-ons
     const activeSub = await UserSubscription.findOne({
       user_id: uid,
       user_role: targetRole,
@@ -410,7 +427,7 @@ class WalletService {
       plan_id: planDoc._id.toString(),
       is_deleted: { $ne: true }
     });
-    if (activeSub) {
+    if (activeSub && (!selected_addons || selected_addons.length === 0)) {
       throw ApiError.badRequest(`You already have an active subscription for the "${planDoc.title}" plan.`);
     }
 
@@ -529,144 +546,14 @@ class WalletService {
           source: 'subscription',
           status: 'completed',
           reference_id: refId,
-          admin_remarks: `Subscribed to ${planDoc.title}`,
-          meta: { plan_id: planDoc._id.toString(), plan_name: planDoc.title, duration_days: durationDays, role: targetRole },
-        }], { session });
-        txn = txnArr[0];
-
-        // Deactivate existing active subscriptions for THIS role only
-        await UserSubscription.updateMany(
-          { user_id: uid, user_role: targetRole, status: 'active' },
-          { $set: { status: 'cancelled', cancelled_at: new Date(), cancelled_reason: 'New plan purchased' } },
-          { session }
-        );
-
-        // Create new subscription record
-        await UserSubscription.create([{
-          user_id: uid,
-          user_name: user?.name || '',
-          user_role: targetRole,
-          plan_id: planDoc._id.toString(),
-          plan_name: planDoc.title,
-          plan_type: planDoc.plan_type || 'basic',
-          billing_cycle: planDoc.billing_cycle || 'monthly',
-          start_date: new Date(),
-          expiry_date: expiresAt,
-          auto_renewal: false,
-          status: 'active',
-          original_amount: cost,
-          paid_amount: cost,
-          payment_method: 'wallet',
-        }], { session });
-
-        // Update user subscription flag for the role
-        const subData = {
-          plan: planDoc.title,
-          plan_id: planDoc._id.toString(),
-          startedAt: new Date(),
-          expiresAt,
-          autoRenew: false,
-          status: 'active',
-        };
-
-        const updateSet = {};
-        if (targetRole === 'creator') {
-          updateSet['creatorProfile.subscription'] = subData;
-          updateSet['creatorProfile.is_subscribed_verified'] = true;
-        } else {
-          updateSet['is_subscribed_verified'] = true;
-          updateSet['subscription'] = subData;
-          updateSet['vendorProfile.subscription'] = subData;
-        }
-
-        await User.updateOne(
-          { _id: userId },
-          { $set: updateSet },
-          { session }
-        );
-      });
-
-      // Emit real-time events AFTER commit
-      this._emitWalletUpdate(uid, updatedBalance, 'debit', cost, `Subscribed to ${planDoc.title}`);
-      this._emitSubscriptionUpdate(uid);
-
-      logger.info(`Subscription purchase: ${planDoc.title} by user ${uid} (-₹${cost})`, { service: 'wallet' });
-      return {
-        transaction: this._serializeTxn(txn),
-        user: { walletBalance: updatedBalance, subscription: { plan: planDoc.title } },
-      };
-    } finally {
-      await session.endSession();
-    }
-  }
-
-  // ─── Purchase Plan Direct (Razorpay — no wallet debit) ────
-  async purchasePlanDirect({ userId, planId, paymentId, razorpayPaymentId }) {
-    const { SubscriptionPlan } = require('../models/Admin');
-    const UserSubscription = require('../models/UserSubscription.model');
-
-    let planDoc = null;
-    if (mongoose.Types.ObjectId.isValid(planId)) {
-      planDoc = await SubscriptionPlan.findById(planId);
-    }
-    if (!planDoc) {
-      planDoc = await SubscriptionPlan.findOne({
-        title: { $regex: new RegExp(`^${planId}$`, 'i') },
-        is_deleted: { $ne: true },
-        is_active: true,
-      });
-    }
-    if (!planDoc) {
-      throw ApiError.badRequest(`Invalid subscription plan: "${planId}".`);
-    }
-
-    const uid = userId.toString();
-
-    const targetRole = planDoc.target_role || (planDoc.role === 'creator' || String(planDoc.title).toLowerCase().includes('creator') ? 'creator' : 'vendor');
-
-    // Prevent duplicate subscription purchase
-    const activeSub = await UserSubscription.findOne({
-      user_id: uid,
-      user_role: targetRole,
-      status: 'active',
-      plan_id: planDoc._id.toString(),
-      is_deleted: { $ne: true }
-    });
-    if (activeSub) {
-      throw ApiError.badRequest(`You already have an active subscription for the "${planDoc.title}" plan.`);
-    }
-
-    const cost = planDoc.price_inr;
-    const durationDays = planDoc.duration_days || 30;
-    const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
-
-    const session = await mongoose.startSession();
-    let txn;
-
-    try {
-      await session.withTransaction(async () => {
-        // Create transaction record (no wallet debit — paid via Razorpay)
-        const user = await User.findById(userId).select('name current_role roles').session(session).lean();
-        const txnArr = await WalletTransactionV2.create([{
-          user_id: uid,
-          user_name: user?.name || 'Unknown',
-          user_role: targetRole,
-          transaction_type: 'subscription_purchase',
-          credit_debit: 'debit',
-          amount: cost,
-          previous_balance: 0,
-          updated_balance: 0,
-          payment_method: 'razorpay',
-          source: 'subscription_direct',
-          status: 'completed',
-          reference_id: `sub_direct_${planDoc._id}_${Date.now()}`,
-          admin_remarks: `Subscribed to ${planDoc.title} via Razorpay`,
+          admin_remarks: `Subscribed to ${planDoc.title} ${validatedAddons.length > 0 ? `with ${validatedAddons.length} Add-on(s)` : ''}`,
           meta: {
             plan_id: planDoc._id.toString(),
             plan_name: planDoc.title,
             duration_days: durationDays,
-            payment_id: paymentId || null,
-            razorpay_payment_id: razorpayPaymentId || null,
+            base_plan_price: baseCost,
+            addons_total: addonsTotal,
+            selected_addons: validatedAddons,
             role: targetRole,
           },
         }], { session });
@@ -692,16 +579,19 @@ class WalletService {
           expiry_date: expiresAt,
           auto_renewal: false,
           status: 'active',
+          base_plan_price: baseCost,
+          addons_total: addonsTotal,
+          selected_addons: validatedAddons,
           original_amount: cost,
           paid_amount: cost,
-          payment_method: 'razorpay',
-          payment_id: razorpayPaymentId || paymentId || null,
+          payment_method: 'wallet',
         }], { session });
 
-        // Update user subscription flag for this role
+        // Update user subscription flag for the role
         const subData = {
           plan: planDoc.title,
           plan_id: planDoc._id.toString(),
+          selected_addons: validatedAddons,
           startedAt: new Date(),
           expiresAt,
           autoRenew: false,
@@ -718,9 +608,187 @@ class WalletService {
           updateSet['vendorProfile.subscription'] = subData;
         }
 
+        // Apply bonus AI credits if add-ons include ai_credits
+        const bonusAiCredits = validatedAddons
+          .filter(a => a.quota_type === 'ai_credits' && Number(a.quota_value) > 0)
+          .reduce((sum, a) => sum + Number(a.quota_value), 0);
+        if (bonusAiCredits > 0) {
+          updateSet['$inc'] = { ai_credits: bonusAiCredits };
+        }
+
         await User.updateOne(
           { _id: userId },
-          { $set: updateSet },
+          updateSet['$inc'] ? { $set: Object.fromEntries(Object.entries(updateSet).filter(([k]) => k !== '$inc')), $inc: updateSet['$inc'] } : { $set: updateSet },
+          { session }
+        );
+      });
+
+      // Emit real-time events AFTER commit
+      this._emitWalletUpdate(uid, updatedBalance, 'debit', cost, `Subscribed to ${planDoc.title}`);
+      this._emitSubscriptionUpdate(uid);
+
+      logger.info(`Subscription purchase: ${planDoc.title} by user ${uid} (-₹${cost})`, { service: 'wallet' });
+      return {
+        transaction: this._serializeTxn(txn),
+        user: { walletBalance: updatedBalance, subscription: { plan: planDoc.title } },
+      };
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  // ─── Purchase Plan Direct (Razorpay — no wallet debit) ────
+  async purchasePlanDirect({ userId, planId, paymentId, razorpayPaymentId, selected_addons = [] }) {
+    const { SubscriptionPlan } = require('../models/Admin');
+    const UserSubscription = require('../models/UserSubscription.model');
+
+    let planDoc = null;
+    if (mongoose.Types.ObjectId.isValid(planId)) {
+      planDoc = await SubscriptionPlan.findById(planId);
+    }
+    if (!planDoc) {
+      planDoc = await SubscriptionPlan.findOne({
+        title: { $regex: new RegExp(`^${planId}$`, 'i') },
+        is_deleted: { $ne: true },
+        is_active: true,
+      });
+    }
+    if (!planDoc) {
+      throw ApiError.badRequest(`Invalid subscription plan: "${planId}".`);
+    }
+
+    const uid = userId.toString();
+    const targetRole = planDoc.target_role || (planDoc.role === 'creator' || String(planDoc.title).toLowerCase().includes('creator') ? 'creator' : 'vendor');
+
+    // Prevent duplicate subscription purchase if no add-ons
+    const activeSub = await UserSubscription.findOne({
+      user_id: uid,
+      user_role: targetRole,
+      status: 'active',
+      plan_id: planDoc._id.toString(),
+      is_deleted: { $ne: true }
+    });
+    if (activeSub && (!selected_addons || selected_addons.length === 0)) {
+      throw ApiError.badRequest(`You already have an active subscription for the "${planDoc.title}" plan.`);
+    }
+
+    const baseCost = planDoc.price_inr;
+    let addonsTotal = 0;
+    const validatedAddons = [];
+    if (Array.isArray(selected_addons)) {
+      for (const a of selected_addons) {
+        const p = Number(a.price_inr || 0);
+        addonsTotal += p;
+        validatedAddons.push({
+          id: a.id || `addon_${Date.now()}`,
+          title: a.title || 'Add-on',
+          price_inr: p,
+          quota_type: a.quota_type,
+          quota_value: a.quota_value,
+        });
+      }
+    }
+
+    const totalCost = baseCost + addonsTotal;
+    const durationDays = planDoc.duration_days || 30;
+    const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+
+    const session = await mongoose.startSession();
+    let txn;
+
+    try {
+      await session.withTransaction(async () => {
+        // Create transaction record
+        const user = await User.findById(userId).select('name current_role roles').session(session).lean();
+        const txnArr = await WalletTransactionV2.create([{
+          user_id: uid,
+          user_name: user?.name || 'Unknown',
+          user_role: targetRole,
+          transaction_type: 'subscription_purchase',
+          credit_debit: 'debit',
+          amount: totalCost,
+          previous_balance: 0,
+          updated_balance: 0,
+          payment_method: 'razorpay',
+          source: 'subscription_direct',
+          status: 'completed',
+          reference_id: `sub_direct_${planDoc._id}_${Date.now()}`,
+          admin_remarks: `Subscribed to ${planDoc.title} ${validatedAddons.length > 0 ? `with ${validatedAddons.length} Add-on(s)` : ''} via Razorpay`,
+          meta: {
+            plan_id: planDoc._id.toString(),
+            plan_name: planDoc.title,
+            duration_days: durationDays,
+            base_plan_price: baseCost,
+            addons_total: addonsTotal,
+            selected_addons: validatedAddons,
+            payment_id: paymentId || null,
+            razorpay_payment_id: razorpayPaymentId || null,
+            role: targetRole,
+          },
+        }], { session });
+        txn = txnArr[0];
+
+        // Deactivate existing active subscriptions for THIS role only
+        await UserSubscription.updateMany(
+          { user_id: uid, user_role: targetRole, status: 'active' },
+          { $set: { status: 'cancelled', cancelled_at: new Date(), cancelled_reason: 'New plan purchased' } },
+          { session }
+        );
+
+        // Create new subscription record with add-ons
+        await UserSubscription.create([{
+          user_id: uid,
+          user_name: user?.name || '',
+          user_role: targetRole,
+          plan_id: planDoc._id.toString(),
+          plan_name: planDoc.title,
+          plan_type: planDoc.plan_type || 'basic',
+          billing_cycle: planDoc.billing_cycle || 'monthly',
+          start_date: new Date(),
+          expiry_date: expiresAt,
+          auto_renewal: false,
+          status: 'active',
+          base_plan_price: baseCost,
+          addons_total: addonsTotal,
+          selected_addons: validatedAddons,
+          original_amount: totalCost,
+          paid_amount: totalCost,
+          payment_method: 'razorpay',
+          payment_id: razorpayPaymentId || paymentId || null,
+        }], { session });
+
+        // Update user subscription flag for this role
+        const subData = {
+          plan: planDoc.title,
+          plan_id: planDoc._id.toString(),
+          selected_addons: validatedAddons,
+          startedAt: new Date(),
+          expiresAt,
+          autoRenew: false,
+          status: 'active',
+        };
+
+        const updateSet = {};
+        if (targetRole === 'creator') {
+          updateSet['creatorProfile.subscription'] = subData;
+          updateSet['creatorProfile.is_subscribed_verified'] = true;
+        } else {
+          updateSet['is_subscribed_verified'] = true;
+          updateSet['subscription'] = subData;
+          updateSet['vendorProfile.subscription'] = subData;
+        }
+
+        // Apply bonus AI credits if add-ons include ai_credits
+        const bonusAiCredits = validatedAddons
+          .filter(a => a.quota_type === 'ai_credits' && Number(a.quota_value) > 0)
+          .reduce((sum, a) => sum + Number(a.quota_value), 0);
+        if (bonusAiCredits > 0) {
+          updateSet['$inc'] = { ai_credits: bonusAiCredits };
+        }
+
+        await User.updateOne(
+          { _id: userId },
+          updateSet['$inc'] ? { $set: Object.fromEntries(Object.entries(updateSet).filter(([k]) => k !== '$inc')), $inc: updateSet['$inc'] } : { $set: updateSet },
           { session }
         );
       });

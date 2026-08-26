@@ -175,10 +175,225 @@
 
 ---
 
-## 6. Sockets Protocol Specifications
+## 6. Shopping Cart & Multi-Vendor Checkout Domain (`/cart`)
+
+### 6.1 `GET /cart` (or `/cart/me`)
+- **Description**: Retrieves current authenticated customer's shopping cart, automatically hydrated with real-time product prices, images, vendor profiles, and grouped by vendor.
+- **Permissions**: Authenticated.
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "id": "64e5f...",
+    "items": [
+      {
+        "listing_id": "60d5ecb8b3b3a2a4b8f72381",
+        "quantity": 2,
+        "variant_selection": null,
+        "added_at": "2026-08-24T00:00:00.000Z"
+      }
+    ],
+    "groups": [
+      {
+        "vendor_id": "60d5ecb8b3b3a2a4b8f72380",
+        "vendor": {
+          "id": "60d5ecb8b3b3a2a4b8f72380",
+          "name": "Royal Electronics",
+          "profile_pic": "https://..."
+        },
+        "items": [
+          {
+            "listing_id": "60d5ecb8b3b3a2a4b8f72381",
+            "quantity": 2,
+            "title": "Wireless Bluetooth Earbuds",
+            "price": 1299,
+            "line_total": 2598,
+            "image": "https://..."
+          }
+        ],
+        "subtotal": 2598
+      }
+    ],
+    "total_items": 2,
+    "total_amount": 2598
+  }
+  ```
+
+### 6.2 `POST /cart/add` (or `/cart/me/add`)
+- **Description**: Adds an item with quantity to the customer's cart or increments existing quantity up to 99.
+- **Permissions**: Authenticated.
+- **Request Body**:
+  ```json
+  {
+    "listing_id": "60d5ecb8b3b3a2a4b8f72381",
+    "quantity": 1,
+    "variant_selection": null
+  }
+  ```
+- **Success Response (200 OK)**: Returns full updated hydrated cart.
+
+### 6.3 `PATCH /cart/items/:listing_id`
+- **Description**: Updates the exact quantity of a listing in the cart (range: 1 - 99).
+- **Permissions**: Authenticated.
+- **Request Body**: `{ "quantity": 3 }`
+- **Success Response (200 OK)**: Returns full updated hydrated cart.
+
+### 6.4 `DELETE /cart/items/:listing_id`
+- **Description**: Removes an item from the cart.
+- **Permissions**: Authenticated.
+- **Success Response (200 OK)**: Returns full updated hydrated cart.
+
+### 6.5 `POST /cart/checkout`
+- **Description**: Executes multi-vendor checkout. Accepts applied coupon discount, Shiprocket shipping charges, delivery address, and pincode. Allocates discounts and shipping fees across vendor deals, sends itemized chat messages, and clears the cart upon success.
+- **Permissions**: Authenticated.
+- **Request Body**:
+  ```json
+  {
+    "address": "Flat 402, Sunshine Apts, New Delhi - 110001",
+    "pincode": "110001",
+    "couponCode": "WELCOME10",
+    "couponDiscount": 150,
+    "shippingCharges": 0
+  }
+  ```
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "ok": true,
+    "deals": [
+      {
+        "deal_id": "64e5f...",
+        "vendor_id": "60d5ecb8...",
+        "amount_paise": 244800,
+        "item_count": 1
+      }
+    ]
+  }
+  ```
+
+---
+
+## 7. Offers & Coupons Domain
+
+### 7.1 `POST /v1/offers/validate-coupon`
+- **Description**: Validates a promo coupon code against active platform and vendor offers. Checks expiration date, min order amount, max discount cap, usage limits, and user limits.
+- **Permissions**: Authenticated.
+- **Request Body**:
+  ```json
+  {
+    "couponCode": "FESTIVE20",
+    "orderAmount": 1500,
+    "vendorId": "60d5ecb8b3b3a2a4b8f72381",
+    "listingId": "64e5f..."
+  }
+  ```
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "valid": true,
+      "couponCode": "FESTIVE20",
+      "discountAmount": 300,
+      "finalAmount": 1200,
+      "offerId": "64e5f...",
+      "discountType": "percentage",
+      "discountValue": 20
+    }
+  }
+  ```
+
+### 7.2 `GET /v1/offers/applicable`
+- **Description**: Retrieves active applicable public coupons and offers for 1-click apply in checkout and cart drawers.
+- **Permissions**: Authenticated.
+- **Query Params**: `vendorId` (optional), `orderAmount` (optional).
+- **Success Response (200 OK)**: Returns list of available coupon cards with code, title, discount info, and min order requirements.
+
+### 7.3 `POST /v1/offers/calculate-shipping`
+- **Description**: Calculates live courier shipping charges via Shiprocket API integration based on delivery pincode and weight. Automatically enforces Free Delivery rules for orders >= ₹499.
+- **Permissions**: Public / Authenticated.
+- **Request Body**:
+  ```json
+  {
+    "deliveryPincode": "110001",
+    "orderAmount": 650,
+    "weightKg": 0.5
+  }
+  ```
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "shippingFee": 0,
+      "originalFee": 40,
+      "isFree": true,
+      "courierName": "Shiprocket Fast Express",
+      "estimatedDays": "2-4 business days"
+    }
+  }
+  ```
+
+---
+
+## 8. Subscriptions & Add-Ons Domain
+
+### 8.1 `POST /v1/subscription/purchase-razorpay`
+- **Description**: Initiates Razorpay payment order for subscription tiers with dynamic Add-Ons selection.
+- **Permissions**: Authenticated.
+- **Request Body**:
+  ```json
+  {
+    "plan_id": "60d5ecb8b3b3a2a4b8f72381",
+    "selected_addons": [
+      {
+        "id": "addon_1",
+        "title": "Extra 50 Reels Uploads",
+        "price_inr": 199,
+        "quota_type": "reels_limit",
+        "quota_value": 50
+      }
+    ]
+  }
+  ```
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "payment_id": "...",
+      "razorpay_order_id": "order_MN67...",
+      "amount_paise": 119800,
+      "plan_id": "60d5ecb8...",
+      "plan_title": "Vendor Premium Pro",
+      "base_price_inr": 999,
+      "addons_total_inr": 199,
+      "amount_inr": 1198,
+      "selected_addons": [...]
+    }
+  }
+  ```
+
+### 8.2 `POST /v1/wallet/purchase-plan`
+- **Description**: Purchases or upgrades a subscription plan directly with Wallet Balance, supporting selected Add-ons.
+- **Permissions**: Authenticated.
+- **Request Body**:
+  ```json
+  {
+    "planId": "60d5ecb8b3b3a2a4b8f72381",
+    "selected_addons": [...]
+  }
+  ```
+- **Success Response (200 OK)**: Deducts `baseCost + addonsTotal`, activates subscription, and credits bonus quotas.
+
+---
+
+## 9. Sockets Protocol Specifications
 
 | Event Namespace | Event Identifier | Direction | Payload Schema | Action Trigger |
 |---|---|---|---|---|
 | `/` | `join_conversation` | Client -> Server | `conversationId` string | Mounts user to thread chatroom. |
 | `/` | `message` | Server -> Client | Message model JSON | Delivers live chat message. |
 | `/` | `typing` | Client <-> Server | `{ conversationId, isTyping }` | Displays live active typing state. |
+| `/` | `subscription:updated` | Server -> Client | `{ updated: true }` | Live refetch of user subscription & plans. |
+| `/` | `wallet:updated` | Server -> Client | `{ balance, ... }` | Live balance update after transactions. |
+

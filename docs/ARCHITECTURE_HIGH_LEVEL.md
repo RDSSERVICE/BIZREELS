@@ -90,3 +90,28 @@ To optimize database load and sustain sub-200ms proximity query performance, Biz
 ### 3.3 Session Tokens Cache
 - **Implementation**: Refresh tokens are registered in Redis. Used to handle instant logout revocations (Token Blacklisting).
 - **Key Schema**: `blacklist:<RefreshTokenID>` (TTL: matching refresh token lifespan).
+
+### 3.4 Feed & Discovery Caching
+- **Implementation**: Public trending feed and personalized 5-tier recommendation feeds use in-memory / Redis multi-tier caching.
+- **Key Schema**:
+  - `feed:home_trending` (TTL: 60 seconds)
+  - `feed:5tier:<userId>:<page>:<coords>` (TTL: 30–60 seconds)
+  - `reels:total_published_count` (TTL: 60 seconds)
+
+---
+
+## 4. SEO & Core Web Vitals Architecture
+
+```mermaid
+graph TD
+  GoogleBot((Search Engine Bot)) -->|Crawls /robots.txt| BackendRobots[robots.txt Handler]
+  GoogleBot -->|Fetches /sitemap.xml| BackendSitemap[Dynamic XML Sitemap Engine]
+  GoogleBot -->|Inspects Public URLs| FrontendMeta[SEO.jsx + Schema.org JSON-LD]
+  
+  UserAgent((Browser Client)) -->|Loads Page| ViteBundle[Modular Chunks: vendor-react, vendor-core, vendor-charts]
+  UserAgent -->|Renders Images| LazyImage[LazyImage Component + Cloudinary AVIF/WebP + LCP fetchpriority]
+```
+
+1. **Structured Data Layer**: Declarative Schema.org JSON-LD scripts (`Product`, `Service`, `LocalBusiness`, `Organization`, `WebSite`, `BreadcrumbList`, `VideoObject`).
+2. **Dynamic Sitemap Generation**: Real-time MongoDB streaming with ISO `lastmod` timestamps and `Cache-Control` CDN headers.
+3. **Core Web Vitals Enforcement**: Eager LCP loading for above-the-fold hero images with CLS-preventing layout aspect ratio reservation.

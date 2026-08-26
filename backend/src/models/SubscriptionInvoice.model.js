@@ -28,6 +28,12 @@ const subscriptionInvoiceSchema = new mongoose.Schema({
   billing_cycle: { type: String, default: 'monthly' },
   // Amounts
   base_amount: { type: Number, required: true },
+  addons: [{
+    id: { type: String },
+    title: { type: String },
+    price_inr: { type: Number },
+  }],
+  addons_total: { type: Number, default: 0 },
   discount_amount: { type: Number, default: 0 },
   coupon_code: { type: String, default: null },
   subtotal: { type: Number, required: true },

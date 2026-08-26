@@ -7,6 +7,7 @@ import { useGetMeQuery } from './features/auth/authApi';
 import { setCredentials, logout, setLoading, selectAuthLoading } from './features/auth/authSlice';
 import AppRoutes from './routes';
 import Loader from './components/common/Loader';
+import CookieConsent from './components/common/CookieConsent';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 
@@ -88,6 +89,7 @@ function App() {
           />
           <SonnerToaster position="bottom-right" richColors />
           <AppRoutes />
+          <CookieConsent />
         </BrowserRouter>
       </LanguageProvider>
     </AuthProvider>

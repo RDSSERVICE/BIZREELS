@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { selectIsAuthenticated, selectCurrentUser, selectActiveRole } from '../features/auth/authSlice';
 import { getRoleDashboard } from '../lib/roleNav';
 import { FiVideo, FiZap, FiShield } from 'react-icons/fi';
+import SEO from '../components/common/SEO';
 
 /**
  * Layout for Authentication views (Login, Register, Reset Password)
@@ -30,11 +31,12 @@ const AuthLayout = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden flex items-center justify-center font-sans px-4 py-10 sm:px-6 lg:px-8" style={{ backgroundColor: '#f2ede4' }}>
+    <div className="relative min-h-screen overflow-x-hidden flex items-start sm:items-center justify-center font-sans px-4 py-8 sm:py-12 sm:px-6 lg:px-8" style={{ backgroundColor: '#f2ede4' }}>
+      <SEO title="Authentication" robots="noindex, nofollow" />
       
-      <div className="w-full max-w-5xl grid lg:grid-cols-12 gap-8 items-center z-10">
+      <div className="w-full max-w-5xl grid lg:grid-cols-12 gap-8 lg:gap-12 items-start z-10 my-auto">
         {/* Left Side: Brand Visual (Desktop only) */}
-        <div className="hidden lg:flex lg:col-span-6 flex-col justify-center text-left space-y-6">
+        <div className="hidden lg:flex lg:col-span-6 flex-col justify-start text-left space-y-6 lg:sticky lg:top-10 pt-2">
           <Link to="/" className="flex items-center gap-2.5">
             <img src="/logo.png" alt="BizReels Logo" className="h-12 w-auto" />
             <span className="text-2xl font-heading font-extrabold tracking-tight text-[#1a1a1a]">
@@ -45,7 +47,7 @@ const AuthLayout = () => {
           <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-4xl xl:text-5xl text-[#1a1a1a] uppercase leading-[1.05] tracking-tight">
             WATCH.<br />
             DISCOVER.<br />
-            <span style={{ color: '#d99a3d' }}>SHOP.</span>
+            <span style={{ color: '#d99a3d' }}>CONNECT.</span>
           </h1>
 
           <p className="text-sm text-[#4a4a4a] leading-relaxed max-w-md font-medium">

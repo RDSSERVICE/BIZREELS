@@ -17,12 +17,13 @@ const serializePayment = (d) => {
   return out;
 };
 
-const createPaymentOrder = async (userId, purpose, amountPaise, refId = null) => {
+const createPaymentOrder = async (userId, purpose, amountPaise, refId = null, extraNotes = {}) => {
   if (amountPaise <= 0) {
     throw ApiError.badRequest('amount must be > 0');
   }
   const receipt = `rcpt_${crypto.randomBytes(6).toString('hex')}`;
-  const order = await razorpayService.createOrder(amountPaise, receipt, { purpose, user_id: userId });
+  const notesPayload = { purpose, user_id: userId, ...(extraNotes || {}) };
+  const order = await razorpayService.createOrder(amountPaise, receipt, notesPayload);
 
   const payment = await Payment.create({
     user_id: userId,
@@ -35,7 +36,7 @@ const createPaymentOrder = async (userId, purpose, amountPaise, refId = null) =>
     razorpay_signature: null,
     status: 'created',
     receipt,
-    notes: order.notes || {},
+    notes: { ...notesPayload, ...(order.notes || {}) },
     attempts: [],
   });
 
@@ -94,12 +95,14 @@ const applySuccess = async (payment, razorpayPaymentId, signature) => {
   } else if (purpose === 'subscription_plan') {
     // Direct subscription purchase via Razorpay
     const planId = updated.notes?.plan_id || updated.ref_id;
+    const selectedAddons = updated.notes?.selected_addons || [];
     if (planId) {
       const result = await walletService.purchasePlanDirect({
         userId,
         planId,
         paymentId: updated._id.toString(),
         razorpayPaymentId,
+        selected_addons: selectedAddons,
       });
       subscriptionOut = result.user?.subscription || null;
 

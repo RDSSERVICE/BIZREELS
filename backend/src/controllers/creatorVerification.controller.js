@@ -233,7 +233,7 @@ const verifyContact = catchAsync(async (req, res) => {
 // 4. PAN VERIFICATION (SANDBOX API)
 // ─────────────────────────────────────────────────────────────
 const verifyPan = catchAsync(async (req, res) => {
-  const { panNumber, frontUrl, backUrl } = req.body;
+  const { panNumber, frontUrl, backUrl, fullName: reqFullName, dob: reqDob } = req.body;
   if (!panNumber) throw ApiError.badRequest('PAN number is required');
 
   const user = await User.findById(req.user._id);
@@ -242,8 +242,9 @@ const verifyPan = catchAsync(async (req, res) => {
   const currentCp = user.creatorProfile || {};
   const currentDocs = currentCp.documents || {};
 
-  const fallbackName = user.name || currentCp.displayName || 'Taxpayer Validated';
-  const sandboxRes = await sandboxService.verifyPan(panNumber, fallbackName);
+  const fallbackName = reqFullName || currentCp.name || user.name || currentCp.displayName || 'Taxpayer Validated';
+  const targetDob = reqDob || currentCp.dob || user.dob || '';
+  const sandboxRes = await sandboxService.verifyPan(panNumber, fallbackName, targetDob);
   const isApproved = sandboxRes.success && sandboxRes.verified;
   const now = new Date();
 
@@ -574,7 +575,7 @@ const verifyDocument = catchAsync(async (req, res) => {
 
   if (docType === 'pan' && docNumber) {
     const fallbackName = user.name || currentCp.displayName || 'Taxpayer Validated';
-    const sandboxRes = await sandboxService.verifyPan(docNumber, fallbackName);
+    const sandboxRes = await sandboxService.verifyPan(docNumber, fallbackName, currentCp.dob || user.dob);
     const isApproved = sandboxRes.success && sandboxRes.verified;
 
     currentDocs.pan = {

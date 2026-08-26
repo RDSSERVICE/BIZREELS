@@ -96,9 +96,19 @@ export default function MyOrdersTab({
                 <p className="text-xs text-slate-500 truncate mt-0.5">
                   Vendor: <strong className="text-[#1a1a1a]">{vendorName}</strong>
                 </p>
-                <div className="flex items-center gap-3 mt-1.5 text-xs">
+                <div className="flex items-center gap-3 mt-1.5 text-xs flex-wrap">
                   <span className="text-slate-500">Qty: <strong>{o.quantity || 1}</strong></span>
                   <span className="text-sm font-black text-[#1a1a1a]">₹{Number(o.price || 0).toLocaleString('en-IN')}</span>
+                  {o.couponCode && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      🏷️ {o.couponCode} (-₹{o.couponDiscount || 0})
+                    </span>
+                  )}
+                  {Number(o.shippingCharges) > 0 && (
+                    <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                      🚚 Shipping: ₹{o.shippingCharges}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

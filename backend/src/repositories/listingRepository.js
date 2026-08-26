@@ -40,13 +40,13 @@ class ListingRepository {
 
   async findListingById(id) {
     if (mongoose.Types.ObjectId.isValid(id)) {
-      const listing = await Listing.findById(id).populate('vendor', 'name avatarUrl activeRole phone email vendorProfile location');
+      const listing = await Listing.findById(id).populate('vendor', 'name avatarUrl profile_pic activeRole phone email vendorProfile location kyc_status is_subscribed_verified isPhoneVerified isVerified is_verified rating_avg rating_count');
       if (listing) return listing;
     }
     return Listing.findOne({
       $or: [{ slug: id }, { listing_id: id }],
       is_deleted: { $ne: true }
-    }).populate('vendor', 'name avatarUrl activeRole phone email vendorProfile location');
+    }).populate('vendor', 'name avatarUrl profile_pic activeRole phone email vendorProfile location kyc_status is_subscribed_verified isPhoneVerified isVerified is_verified rating_avg rating_count');
   }
 
   async updateListing(id, vendorId, updateData) {
@@ -373,7 +373,13 @@ class ListingRepository {
           _id: '$vendorDetails._id',
           name: '$vendorDetails.name',
           avatarUrl: '$vendorDetails.avatarUrl',
+          profile_pic: '$vendorDetails.profile_pic',
           phone: '$vendorDetails.phone',
+          kyc_status: '$vendorDetails.kyc_status',
+          is_subscribed_verified: '$vendorDetails.is_subscribed_verified',
+          isVerified: { $ifNull: ['$vendorDetails.isVerified', '$vendorDetails.is_verified', '$vendorDetails.vendorProfile.isVerified'] },
+          is_verified: '$vendorDetails.is_verified',
+          isPhoneVerified: '$vendorDetails.isPhoneVerified',
           vendorProfile: '$vendorDetails.vendorProfile',
           businessName: { $ifNull: ['$vendorDetails.vendorProfile.businessName', '$vendorDetails.name'] },
           rating: '$vendorDetails.vendorProfile.rating',
@@ -386,7 +392,13 @@ class ListingRepository {
       },
     });
 
-    const listings = await Listing.aggregate(pipeline);
+    const limitNum = parseInt(limit, 10) || 10;
+    const pageNum = parseInt(page, 10) || 1;
+
+    const [listings, rawCount] = await Promise.all([
+      Listing.aggregate(pipeline),
+      pageNum > 1 ? Listing.countDocuments(match) : Promise.resolve(null),
+    ]);
 
     // Calculate/override distance based on vendor's actual profile location coordinates
     if (coordinates && coordinates.length === 2 && (parseFloat(coordinates[0]) !== 0 || parseFloat(coordinates[1]) !== 0)) {
@@ -408,14 +420,14 @@ class ListingRepository {
         listing.distance = undefined;
       });
     }
-    
-    let total;
-    const limitNum = parseInt(limit, 10) || 10;
-    const pageNum = parseInt(page, 10) || 1;
-    if (pageNum === 1 && listings.length < limitNum) {
-      total = listings.length;
-    } else {
-      total = await Listing.countDocuments(match);
+
+    let total = rawCount;
+    if (pageNum === 1) {
+      if (listings.length < limitNum) {
+        total = listings.length;
+      } else {
+        total = await Listing.countDocuments(match);
+      }
     }
 
     return { listings, total };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
@@ -9,7 +10,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api, cartApi } from '../../../lib/api';
-import { notifyCartChanged } from '../../../components/app/CartDrawer';
+import { notifyCartChanged, openCartDrawer } from '../../../components/app/CartDrawer';
 import { getSocket } from '../../../lib/socket';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
 import CommentsDrawer from '../../../components/ui/CommentsDrawer';
@@ -17,6 +18,7 @@ import ChatDrawer from '../../../components/ui/ChatDrawer';
 import ActiveOffersPanel from '../../../components/offers/ActiveOffersPanel';
 import ReelFullscreenViewer from '../../../components/feed/ReelFullscreenViewer';
 import ImageFullscreenViewer from '../../../components/feed/ImageFullscreenViewer';
+import DirectBuyModal from '../../../components/common/DirectBuyModal';
 import { useLanguage } from '../../../context/LanguageContext';
 
 /**
@@ -57,7 +59,7 @@ function InstagramPostSkeleton() {
       </div>
 
       {/* Media Skeleton */}
-      <div className="w-full aspect-[9/16] max-h-[440px] bg-slate-200 relative flex items-center justify-center">
+      <div className="w-full aspect-[4/5] sm:aspect-[9/16] max-h-[500px] bg-slate-200 relative flex items-center justify-center">
         <div className="w-10 h-10 rounded-full bg-slate-300/60" />
       </div>
 
@@ -110,7 +112,7 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
       ([entry]) => {
         if (entry.isIntersecting) {
           if (videoRef.current) {
-            videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+            videoRef.current.play().then(() => setIsPlaying(true)).catch(() => { });
           }
         } else {
           if (videoRef.current) {
@@ -157,12 +159,15 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
           loop
           muted={muted}
           playsInline
+          preload="metadata"
           className="w-full h-full object-cover"
         />
       ) : (
         <img
           src={currentUrl}
           alt={reel.caption || reel.title || 'Reel Post'}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover"
         />
       )}
@@ -200,6 +205,7 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
 
 export default function CustomerHomePage() {
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth || {});
   const { lang, bi, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('combined');
   const [combinedFeed, setCombinedFeed] = useState([]);
@@ -213,6 +219,7 @@ export default function CustomerHomePage() {
   const [muted, setMuted] = useState(true);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [selectedReelId, setSelectedReelId] = useState(null);
+  const [coords, setCoords] = useState(null);
 
   // In-context Chat drawer state
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
@@ -225,6 +232,15 @@ export default function CustomerHomePage() {
     setChatDrawerRecipientName(recipientName || 'Vendor Partner');
     setChatDrawerRecipientAvatar(recipientAvatar);
     setChatDrawerOpen(true);
+  };
+
+  // Direct Buy / Instant Purchase Modal State
+  const [directBuyOpen, setDirectBuyOpen] = useState(false);
+  const [directBuyItem, setDirectBuyItem] = useState(null);
+
+  const handleOpenDirectBuy = (item) => {
+    setDirectBuyItem(item);
+    setDirectBuyOpen(true);
   };
 
   // Fullscreen viewer state
@@ -243,6 +259,31 @@ export default function CustomerHomePage() {
     uploadDate: 'all',
     popularity: 'trending',
   });
+
+  // ── 1. Geolocation Detection on Mount & from Customer Profile ──
+  useEffect(() => {
+    // 1. Check user profile / address coordinates
+    if (user?.location?.coordinates && Array.isArray(user.location.coordinates) && user.location.coordinates.length === 2) {
+      if (user.location.coordinates[0] !== 0 || user.location.coordinates[1] !== 0) {
+        setCoords({ lat: user.location.coordinates[1], lng: user.location.coordinates[0] });
+      }
+    }
+
+    // 2. Request browser Geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (pos.coords.latitude && pos.coords.longitude) {
+            setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          }
+        },
+        (err) => {
+          console.warn('Customer home geolocation error:', err);
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+      );
+    }
+  }, [user]);
 
   const fetchFollowings = async () => {
     try {
@@ -275,7 +316,7 @@ export default function CustomerHomePage() {
 
   useEffect(() => {
     fetchFeedData();
-  }, [activeTab]);
+  }, [activeTab, coords]);
 
   const fetchFeedData = async () => {
     setLoading(true);
@@ -286,8 +327,14 @@ export default function CustomerHomePage() {
       } else if (activeTab === 'combined') {
         endpoint = `/v1/feed?type=all`;
       }
-      
-      const res = await api.get(endpoint);
+
+      const params = {};
+      if (coords?.lat && coords?.lng) {
+        params.lat = coords.lat;
+        params.lng = coords.lng;
+      }
+
+      const res = await api.get(endpoint, { params });
       const data = res.data;
 
       if (activeTab === 'reels') {
@@ -336,8 +383,8 @@ export default function CustomerHomePage() {
     setLikedMap((prev) => ({ ...prev, [id]: !isLiked }));
     try {
       const item = combinedFeed.find(x => x._id === id || x.id === id) ||
-                   reels.find(x => x._id === id || x.id === id) ||
-                   images.find(x => x._id === id || x.id === id);
+        reels.find(x => x._id === id || x.id === id) ||
+        images.find(x => x._id === id || x.id === id);
       const isReel = customPostType === 'reel' || (item?.postType === 'reel') || (activeTab === 'reels');
       if (isReel) {
         await api.post(`/v1/reels/${id}/like`);
@@ -356,8 +403,8 @@ export default function CustomerHomePage() {
     setSavedMap((prev) => ({ ...prev, [id]: !isSaved }));
     try {
       const item = combinedFeed.find(x => x._id === id || x.id === id) ||
-                   reels.find(x => x._id === id || x.id === id) ||
-                   images.find(x => x._id === id || x.id === id);
+        reels.find(x => x._id === id || x.id === id) ||
+        images.find(x => x._id === id || x.id === id);
       const isReel = customPostType === 'reel' || (item?.postType === 'reel') || (activeTab === 'reels');
       if (isReel) {
         if (isSaved) {
@@ -424,6 +471,77 @@ export default function CustomerHomePage() {
     setExpandedCaptions(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // ── 2. Precise Haversine Distance Calculation (Instant & Non-blocking) ──
+  const calculateDistanceKm = (item) => {
+    if (!item) return null;
+
+    // Check precalculated backend distance
+    if (item.distance_meters !== undefined && item.distance_meters !== null && !isNaN(item.distance_meters)) {
+      const km = item.distance_meters / 1000;
+      if (km < 6000) return km;
+    }
+    if (item.distance !== undefined && item.distance !== null && !isNaN(item.distance)) {
+      const km = item.distance / 1000;
+      if (km < 6000) return km;
+    }
+    if (item.distanceKm !== undefined && item.distanceKm !== null && !isNaN(item.distanceKm)) {
+      const km = Number(item.distanceKm);
+      if (km < 6000) return km;
+    }
+
+    // Client-side Haversine formula calculation
+    if (!coords || (coords.lat === 0 && coords.lng === 0)) return null;
+
+    const vendorObj = item.vendor || item.creator || item.vendorId || {};
+    const itemCoordinates = (item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2 && (item.location.coordinates[0] !== 0 || item.location.coordinates[1] !== 0))
+      ? item.location.coordinates
+      : (vendorObj.location && Array.isArray(vendorObj.location.coordinates) && vendorObj.location.coordinates.length === 2 && (vendorObj.location.coordinates[0] !== 0 || vendorObj.location.coordinates[1] !== 0))
+        ? vendorObj.location.coordinates
+        : null;
+
+    if (itemCoordinates) {
+      const targetLng = itemCoordinates[0];
+      const targetLat = itemCoordinates[1];
+      if (targetLat && targetLng && (targetLat !== 0 || targetLng !== 0)) {
+        const R = 6371; // Earth radius in km
+        const dLat = (targetLat - coords.lat) * (Math.PI / 180);
+        const dLng = (targetLng - coords.lng) * (Math.PI / 180);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(coords.lat * (Math.PI / 180)) *
+          Math.cos(targetLat * (Math.PI / 180)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const km = R * c;
+        if (km < 6000) return km;
+      }
+    }
+
+    return null;
+  };
+
+  // Format distance display string: e.g. "2.4 km", "850 m", or City/Area
+  const formatDistance = (item) => {
+    if (!item) return 'Local';
+    const km = calculateDistanceKm(item);
+    if (km !== null) {
+      if (km < 1) {
+        return `${Math.max(50, Math.round(km * 1000))} m`;
+      }
+      return `${km.toFixed(1)} km`;
+    }
+    const city = item.location?.city || item.vendor?.city || item.vendor?.location?.city || item.creator?.city || item.creator?.location?.city || item.city;
+    if (city && city !== 'Local') return city;
+    const address = item.location?.address || item.vendor?.address || item.vendor?.location?.address || item.creator?.address || item.creator?.location?.address;
+    if (address && typeof address === 'string') {
+      const shortAddr = address.split(',')[0].trim();
+      if (shortAddr && shortAddr.length <= 25) return shortAddr;
+    }
+    return item.category || 'Local Business';
+  };
+
+  // ── 3. Complete Filtering & Sorting Logic ──
   const processedCombinedFeed = useMemo(() => {
     let items = combinedFeed;
     if (activeTab === 'reels') items = reels.map(r => ({ ...r, postType: 'reel' }));
@@ -431,27 +549,126 @@ export default function CustomerHomePage() {
 
     if (!filters) return items;
 
-    return items.filter((item) => {
+    // 1. FILTERING
+    let filtered = items.filter((item) => {
+      // 1.1 Search Query
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         const title = (item.title || item.caption || '').toLowerCase();
         const desc = (item.description || '').toLowerCase();
-        const vendorName = (item.vendor?.name || item.creator?.name || '').toLowerCase();
-        if (!title.includes(query) && !desc.includes(query) && !vendorName.includes(query)) {
+        const vendorName = (item.vendor?.name || item.creator?.name || item.vendor?.shopName || '').toLowerCase();
+        const categoryName = (item.category || item.subcategory || item.reelType || '').toLowerCase();
+        const locationStr = (item.location?.address || item.location?.city || item.city || '').toLowerCase();
+        const hashtags = Array.isArray(item.hashtags) ? item.hashtags.join(' ').toLowerCase() : '';
+        const tags = Array.isArray(item.tags) ? item.tags.join(' ').toLowerCase() : '';
+
+        const matchesQuery =
+          title.includes(query) ||
+          desc.includes(query) ||
+          vendorName.includes(query) ||
+          categoryName.includes(query) ||
+          locationStr.includes(query) ||
+          hashtags.includes(query) ||
+          tags.includes(query);
+
+        if (!matchesQuery) return false;
+      }
+
+      // 1.2 Type / Category Filter
+      if (filters.type && filters.type !== 'all') {
+        const itemCategory = (item.category || item.reelType || item.postPurpose || item.type || '').toLowerCase();
+        const itemSubCategory = (item.subcategory || '').toLowerCase();
+        const typeFilter = filters.type.toLowerCase();
+        if (!itemCategory.includes(typeFilter) && !itemSubCategory.includes(typeFilter)) {
           return false;
         }
       }
 
-      if (filters.type && filters.type !== 'all') {
-        const itemCategory = (item.category || item.reelType || '').toLowerCase();
-        if (!itemCategory.includes(filters.type.toLowerCase())) {
+      // 1.3 Video Duration Filter
+      if (filters.duration && filters.duration !== 'all') {
+        if (item.postType === 'reel') {
+          const dur = Number(item.duration || item.videoDuration || 0);
+          if (filters.duration === 'under15' && dur > 0 && dur > 15) {
+            return false;
+          }
+          if (filters.duration === 'under30' && dur > 0 && dur > 30) {
+            return false;
+          }
+        }
+      }
+
+      // 1.4 Upload Date Filter
+      if (filters.uploadDate && filters.uploadDate !== 'all' && item.createdAt) {
+        const createdTime = new Date(item.createdAt).getTime();
+        const now = Date.now();
+        if (!isNaN(createdTime)) {
+          if (filters.uploadDate === 'today' && now - createdTime > 24 * 60 * 60 * 1000) {
+            return false;
+          }
+          if (filters.uploadDate === 'this_week' && now - createdTime > 7 * 24 * 60 * 60 * 1000) {
+            return false;
+          }
+          if (filters.uploadDate === 'this_month' && now - createdTime > 30 * 24 * 60 * 60 * 1000) {
+            return false;
+          }
+        }
+      }
+
+      // 1.5 Location Scope & Distance Filter
+      if (filters.nearby === 'near_me') {
+        if (filters.distanceKm && filters.distanceKm !== 'all') {
+          const maxKm = Number(filters.distanceKm);
+          const distKm = calculateDistanceKm(item);
+          if (distKm !== null && distKm > maxKm) {
+            return false;
+          }
+        }
+      } else if (filters.nearby === 'city') {
+        const userCity = (user?.location?.city || user?.customerProfile?.city || '').toLowerCase();
+        const itemCity = (item.location?.city || item.vendor?.location?.city || item.creator?.location?.city || item.city || item.vendor?.city || '').toLowerCase();
+        if (userCity && itemCity && !itemCity.includes(userCity) && !userCity.includes(itemCity)) {
+          return false;
+        }
+      } else if (filters.nearby === 'state') {
+        const userState = (user?.location?.state || user?.customerProfile?.state || '').toLowerCase();
+        const itemState = (item.location?.state || item.vendor?.location?.state || item.creator?.location?.state || item.state || item.vendor?.state || '').toLowerCase();
+        if (userState && itemState && !itemState.includes(userState) && !userState.includes(itemState)) {
           return false;
         }
       }
 
       return true;
     });
-  }, [combinedFeed, reels, images, activeTab, filters]);
+
+    // 2. SORTING & POPULARITY
+    const popularity = filters.popularity || 'trending';
+    filtered.sort((a, b) => {
+      if (popularity === 'most_viewed') {
+        return (b.views || b.viewCount || 0) - (a.views || a.viewCount || 0);
+      }
+      if (popularity === 'most_liked') {
+        return (b.likesCount || b.likes || 0) - (a.likesCount || a.likes || 0);
+      }
+      if (popularity === 'most_shared') {
+        return (b.sharesCount || b.shares || 0) - (a.sharesCount || a.shares || 0);
+      }
+      if (popularity === 'most_saved') {
+        return (b.savedCount || b.saves || 0) - (a.savedCount || a.saves || 0);
+      }
+      if (popularity === 'distance') {
+        const distA = calculateDistanceKm(a) ?? 99999;
+        const distB = calculateDistanceKm(b) ?? 99999;
+        return distA - distB;
+      }
+      // 'trending' (default)
+      const scoreA = (a.likesCount || a.likes || 0) * 2 + (a.views || a.viewCount || 0) + (a.commentsCount || 0) * 3;
+      const scoreB = (b.likesCount || b.likes || 0) * 2 + (b.views || b.viewCount || 0) + (b.commentsCount || 0) * 3;
+      if (scoreA !== scoreB) return scoreB - scoreA;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+
+    return filtered;
+  }, [combinedFeed, reels, images, activeTab, filters, coords, user]);
 
   const processedReels = useMemo(() => {
     return processedCombinedFeed.filter(item => item.postType === 'reel');
@@ -463,7 +680,7 @@ export default function CustomerHomePage() {
 
   return (
     <div className="flex flex-col h-full w-full font-sans bg-[#f2ede4] overflow-hidden">
-      
+
       {/* ── FIXED TOP CONTROLS & HEADER PANEL (Stationary on screen) ── */}
       <div className="shrink-0 bg-[#f2ede4] py-1 px-1.5 sm:px-3 space-y-1 border-b border-[#e3dccb] shadow-2xs z-20">
         {/* Home Feed Search & Filters Bar */}
@@ -505,348 +722,441 @@ export default function CustomerHomePage() {
           </div>
         ) : (
           <div className="w-full max-w-xl mx-auto px-1 sm:px-0 space-y-6 pb-24 lg:pb-12 font-sans pt-1">
-          {processedCombinedFeed.map((item) => {
-            const itemId = item._id || item.id;
-            const isLiked = likedMap[itemId];
-            const isSaved = savedMap[itemId];
-            const isExpanded = expandedCaptions[itemId];
+            {processedCombinedFeed.map((item) => {
+              const itemId = item._id || item.id;
+              const isLiked = likedMap[itemId];
+              const isSaved = savedMap[itemId];
+              const isExpanded = expandedCaptions[itemId];
 
-            if (item.postType === 'reel') {
-              const vendorId = item.creator?._id || item.creator?.id || item.creator;
-              const isFollowing = followingMap[vendorId];
+              if (item.postType === 'reel') {
+                const vendorId = item.creator?._id || item.creator?.id || item.creator;
+                const isFollowing = followingMap[vendorId];
 
-              return (
-                <motion.div
-                  key={itemId}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
-                >
-                  {/* Card Header (Instagram Style) */}
-                  <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
-                    <div
-                      onClick={() => navigate(`/customer/vendor/${vendorId}`)}
-                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
-                        <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
-                          {item.creator?.avatarUrl || item.creator?.profile_pic ? (
-                            <img src={item.creator.avatarUrl || item.creator.profile_pic} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span>{item.creator?.name ? item.creator.name.charAt(0) : 'V'}</span>
-                          )}
+                const reelPrice = Number(item.taggedListing?.salePrice || item.taggedListing?.price || item.price || 0);
+                const reelOriginalPrice = Number(item.taggedListing?.actualPrice || item.taggedListing?.regularPrice || item.regularPrice || 0);
+                const reelDiscount = reelOriginalPrice > reelPrice
+                  ? Math.round(((reelOriginalPrice - reelPrice) / reelOriginalPrice) * 100)
+                  : (Number(item.discount || item.discountPercent || item.taggedListing?.discountPercent || 0));
+
+                return (
+                  <div
+                    key={itemId}
+                    className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
+                  >
+                    {/* Card Header (Instagram Style) */}
+                    <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
+                      <div
+                        onClick={() => navigate(`/customer/vendor/${vendorId}`)}
+                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5 shrink-0">
+                          <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
+                            {item.creator?.avatarUrl || item.creator?.profile_pic ? (
+                              <img src={item.creator.avatarUrl || item.creator.profile_pic} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{item.creator?.name ? item.creator.name.charAt(0) : 'V'}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
+                            {item.creator?.name || 'Verified Creator'}
+                            <span className="bg-[#d99a3d]/20 text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Reel</span>
+                          </h4>
+                          <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                            <FiMapPin size={10} className="text-[#d99a3d]" />
+                            <span>{formatDistance(item)}</span>
+                            <span className="mx-1">•</span>
+                            <span>{formatTimeAgo(item.createdAt)}</span>
+                          </p>
                         </div>
                       </div>
-                      <div>
-                        <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
-                          {item.creator?.name || 'Verified Creator'}
-                          <span className="bg-[#d99a3d]/20 text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Reel</span>
-                        </h4>
-                        <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                          <FiMapPin size={10} className="text-[#d99a3d]" />
-                          {item.location?.address || 'Nearby'}
-                          <span className="mx-1">•</span>
-                          <span>{formatTimeAgo(item.createdAt)}</span>
-                        </p>
-                      </div>
+
+                      <button
+                        onClick={() => handleFollow(vendorId)}
+                        className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
+                          ? 'bg-slate-200 text-slate-700'
+                          : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
+                          }`}
+                      >
+                        {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
+                      </button>
                     </div>
 
-                    <button
-                      onClick={() => handleFollow(vendorId)}
-                      className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
-                        ? 'bg-slate-200 text-slate-700'
-                        : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
-                        }`}
+                    {/* Reel Media Section (Auto-Play + Double Tap Heart) */}
+                    <div
+                      onClick={() => {
+                        const idx = processedReels.findIndex(r => r._id === itemId || r.id === itemId);
+                        setReelViewerStartIndex(idx >= 0 ? idx : 0);
+                        setReelViewerOpen(true);
+                      }}
+                      className="relative select-none"
                     >
-                      {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
-                    </button>
-                  </div>
+                      <CustomerReelMedia
+                        reel={item}
+                        muted={muted}
+                        setMuted={setMuted}
+                        onDoubleTap={() => handleLike(itemId, 'reel')}
+                      />
 
-                  {/* Reel Media Section (Auto-Play + Double Tap Heart) */}
-                  <div
-                    onClick={() => {
-                      const idx = processedReels.findIndex(r => r._id === itemId || r.id === itemId);
-                      setReelViewerStartIndex(idx >= 0 ? idx : 0);
-                      setReelViewerOpen(true);
-                    }}
-                  >
-                    <CustomerReelMedia
-                      reel={item}
-                      muted={muted}
-                      setMuted={setMuted}
-                      onDoubleTap={() => handleLike(itemId, 'reel')}
-                    />
-                  </div>
-
-                  {/* Action Bar & Details (Instagram Style) */}
-                  <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => handleLike(itemId, 'reel')}
-                          className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
-                          title="Like"
-                        >
-                          <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
-                          <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setSelectedReelId(itemId);
-                            setIsCommentsOpen(true);
-                          }}
-                          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
-                          title="Comment"
-                        >
-                          <FiMessageCircle size={20} />
-                          <span>{item.commentsCount || 0}</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleShare(item)}
-                          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
-                          title="Share Post"
-                        >
-                          <FiSend size={18} />
-                        </button>
-
-                        <button
-                          onClick={() => handleOpenChat(
-                            vendorId,
-                            item.creator?.name,
-                            item.creator?.avatarUrl || item.creator?.profile_pic
-                          )}
-                          className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
-                          title="Chat with Vendor"
-                        >
-                          <FiMessageSquare size={17} className="text-[#d99a3d]" />
-                          <span>Chat</span>
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={() => handleSave(itemId, 'reel')}
-                        className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
-                        title="Save"
-                      >
-                        <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
-                      </button>
-                    </div>
-
-                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                      {(item.views || 0).toLocaleString()} views
-                    </p>
-
-                    {/* Quick Add to Cart & Buy Now Action Row */}
-                    <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-[#e3dccb]/60">
-                      <button
-                        onClick={async () => {
-                          const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
-                          try {
-                            await cartApi.add({ listing_id: targetId, quantity: 1 });
-                            notifyCartChanged();
-                            toast.success(`"${item.caption || 'Product'}" added to cart!`);
-                          } catch {
-                            toast.error('Could not add item to cart');
-                          }
-                        }}
-                        className="py-2 px-3 rounded-xl bg-[#f8f4ec] hover:bg-[#eae3d2] text-[#1a1a1a] text-xs font-bold transition border border-[#e3dccb] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                      >
-                        <FiShoppingCart size={15} className="text-[#d99a3d]" />
-                        <span>Add to Cart</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
-                          navigate(`/customer/listings/${targetId}`);
-                        }}
-                        className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <FiZap size={15} />
-                        <span>Buy Now</span>
-                      </button>
-                    </div>
-
-                    {/* Expandable Caption */}
-                    <div className="text-xs text-slate-700 leading-relaxed mt-1">
-                      <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.creator?.name || 'Verified Creator'}</span>
-                      {isExpanded ? (
-                        <span>{item.caption || item.description}</span>
-                      ) : (
-                        <span>
-                          {((item.caption || item.description || '').slice(0, 90))}
-                          {(item.caption || item.description || '').length > 90 && (
-                            <button
-                              onClick={() => toggleCaption(itemId)}
-                              className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
-                            >
-                              ...more
-                            </button>
-                          )}
-                        </span>
+                      {/* Reel Discount Badge if available */}
+                      {reelDiscount > 0 && (
+                        <div className="absolute bottom-3 left-3 bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded shadow-md z-10 pointer-events-none">
+                          {reelDiscount}% OFF
+                        </div>
                       )}
                     </div>
-                  </div>
-                </motion.div>
-              );
-            } else {
-              const vendorId = item.vendor?._id || item.vendor?.id || item.vendor;
-              const isFollowing = followingMap[vendorId];
 
-              return (
-                <motion.div
-                  key={itemId}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
-                >
-                  {/* Card Header (Instagram Style) */}
-                  <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
-                    <div
-                      onClick={() => navigate(`/customer/vendor/${vendorId}`)}
-                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5">
-                        <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
-                          {item.vendor?.avatarUrl || item.vendor?.profile_pic ? (
-                            <img src={item.vendor.avatarUrl || item.vendor.profile_pic} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span>{item.vendor?.name ? item.vendor.name.charAt(0) : 'V'}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
-                          {item.vendor?.name || 'Verified Vendor'}
-                          <span className="bg-emerald-500/15 text-emerald-700 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Product</span>
-                        </h4>
-                        <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                          <FiMapPin size={10} className="text-[#d99a3d]" />
-                          {item.vendor?.location?.address || 'Nearby'}
-                          <span className="mx-1">•</span>
-                          <span>{formatTimeAgo(item.createdAt)}</span>
-                        </p>
-                      </div>
-                    </div>
+                    {/* Action Bar & Details (Instagram Style) */}
+                    <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => handleLike(itemId, 'reel')}
+                            className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
+                            title="Like"
+                          >
+                            <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
+                            <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                          </button>
 
-                    <button
-                      onClick={() => handleFollow(vendorId)}
-                      className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
-                        ? 'bg-slate-200 text-slate-700'
-                        : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
-                        }`}
-                    >
-                      {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
-                    </button>
-                  </div>
+                          <button
+                            onClick={() => {
+                              setSelectedReelId(itemId);
+                              setIsCommentsOpen(true);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
+                            title="Comment"
+                          >
+                            <FiMessageCircle size={20} />
+                            <span>{item.commentsCount || 0}</span>
+                          </button>
 
-                  {/* Listing Media Section */}
-                  <div
-                    onClick={() => {
-                      const idx = processedImages.findIndex(i => i._id === itemId || i.id === itemId);
-                      setImageViewerStartIndex(idx >= 0 ? idx : 0);
-                      setImageViewerOpen(true);
-                    }}
-                    className="cursor-pointer aspect-square bg-slate-100 relative overflow-hidden select-none"
-                  >
-                    <img src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'} alt={item.title} className="w-full h-full object-cover" />
-                    <div className="absolute top-3 right-3 bg-[#d99a3d] px-3 py-1 rounded text-xs font-extrabold text-[#1a1a1a] shadow-xs border border-[#1a1a1a]/10">
-                      ₹{item.price?.toLocaleString()}
-                    </div>
-                  </div>
+                          <button
+                            onClick={() => handleShare(item)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
+                            title="Share Post"
+                          >
+                            <FiSend size={18} />
+                          </button>
 
-                  {/* Action Bar & Details */}
-                  <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLike(itemId, 'listing');
-                          }}
-                          className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
-                          title="Like"
-                        >
-                          <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
-                          <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShare(item);
-                          }}
-                          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
-                          title="Share Post"
-                        >
-                          <FiSend size={18} />
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenChat(
+                          <button
+                            onClick={() => handleOpenChat(
                               vendorId,
-                              item.vendor?.name,
-                              item.vendor?.avatarUrl || item.vendor?.profile_pic
-                            );
-                          }}
-                          className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
-                          title="Chat with Vendor"
+                              item.creator?.name,
+                              item.creator?.avatarUrl || item.creator?.profile_pic
+                            )}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
+                            title="Chat with Vendor"
+                          >
+                            <FiMessageSquare size={17} className="text-[#d99a3d]" />
+                            <span>Chat</span>
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => handleSave(itemId, 'reel')}
+                          className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
+                          title="Save"
                         >
-                          <FiMessageSquare size={17} className="text-[#d99a3d]" />
-                          <span>Chat</span>
+                          <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
                         </button>
                       </div>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSave(itemId, 'listing');
-                        }}
-                        className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
-                        title="Save"
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                          {(item.views || 0).toLocaleString()} views
+                        </p>
+                        {reelPrice > 0 && (
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-xs font-black text-[#d99a3d]">₹{reelPrice.toLocaleString('en-IN')}</span>
+                            {reelOriginalPrice > reelPrice && (
+                              <span className="text-[10px] text-slate-400 line-through font-bold">
+                                ₹{reelOriginalPrice.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                            {reelDiscount > 0 && (
+                              <span className="text-[9.5px] text-red-600 font-extrabold ml-0.5">
+                                {reelDiscount}% OFF
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quick Add to Cart & Buy Now Action Row */}
+                      <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-[#e3dccb]/60">
+                        <button
+                          onClick={async () => {
+                            const targetId = item.taggedListing?._id || item.taggedListing || item._id || item.id;
+                            try {
+                              await cartApi.add({ listing_id: targetId, quantity: 1 });
+                              notifyCartChanged();
+                              openCartDrawer();
+                              toast.success(`"${item.caption || 'Product'}" added to cart!`);
+                            } catch {
+                              toast.error('Could not add item to cart');
+                            }
+                          }}
+                          className="py-2 px-3 rounded-xl bg-[#f8f4ec] hover:bg-[#eae3d2] text-[#1a1a1a] text-xs font-bold transition border border-[#e3dccb] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <FiShoppingCart size={15} className="text-[#d99a3d]" />
+                          <span>Add to Cart</span>
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDirectBuy(item);
+                          }}
+                          className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-none"
+                        >
+                          <FiZap size={15} />
+                          <span>Buy Now</span>
+                        </button>
+                      </div>
+
+                      {/* Expandable Caption */}
+                      <div className="text-xs text-slate-700 leading-relaxed mt-1">
+                        <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.creator?.name || 'Verified Creator'}</span>
+                        {isExpanded ? (
+                          <span>{item.caption || item.description}</span>
+                        ) : (
+                          <span>
+                            {((item.caption || item.description || '').slice(0, 90))}
+                            {(item.caption || item.description || '').length > 90 && (
+                              <button
+                                onClick={() => toggleCaption(itemId)}
+                                className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
+                              >
+                                ...more
+                              </button>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else {
+                const vendorId = item.vendor?._id || item.vendor?.id || item.vendor;
+                const isFollowing = followingMap[vendorId];
+                const priceVal = Number(item.salePrice || item.price || 0);
+                const originalPrice = Number(item.actualPrice || item.regularPrice || item.mrp || 0);
+                const discountPercent = originalPrice > priceVal
+                  ? Math.round(((originalPrice - priceVal) / originalPrice) * 100)
+                  : (Number(item.discount || item.discountPercent || 0));
+
+                return (
+                  <div
+                    key={itemId}
+                    className="w-full bg-white border border-[#e3dccb] rounded-md overflow-hidden shadow-xs relative flex flex-col justify-between"
+                  >
+                    {/* Card Header (Instagram Style) */}
+                    <div className="p-3.5 flex items-center justify-between bg-slate-50 border-b border-[#e3dccb]">
+                      <div
+                        onClick={() => navigate(`/customer/vendor/${vendorId}`)}
+                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
                       >
-                        <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5 shrink-0">
+                          <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
+                            {item.vendor?.avatarUrl || item.vendor?.profile_pic ? (
+                              <img src={item.vendor.avatarUrl || item.vendor.profile_pic} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{item.vendor?.name ? item.vendor.name.charAt(0) : 'V'}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-extrabold text-[#1a1a1a] flex items-center gap-1.5">
+                            {item.vendor?.name || 'Verified Vendor'}
+                            <span className="bg-emerald-500/15 text-emerald-700 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Product</span>
+                          </h4>
+                          <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                            <FiMapPin size={10} className="text-[#d99a3d]" />
+                            <span>{formatDistance(item)}</span>
+                            <span className="mx-1">•</span>
+                            <span>{formatTimeAgo(item.createdAt)}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleFollow(vendorId)}
+                        className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
+                          ? 'bg-slate-200 text-slate-700'
+                          : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
+                          }`}
+                      >
+                        {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
                       </button>
                     </div>
 
-                    {/* Product Title and Price */}
-                    <div className="flex items-baseline justify-between mt-1">
-                      <h4 className="font-extrabold text-sm text-[#1a1a1a]">{item.title}</h4>
-                      <span className="text-xs font-extrabold text-[#d99a3d]">₹{item.price?.toLocaleString()}</span>
-                    </div>
+                    {/* Listing Media Section */}
+                    <div
+                      onClick={() => {
+                        const idx = processedImages.findIndex(i => i._id === itemId || i.id === itemId);
+                        setImageViewerStartIndex(idx >= 0 ? idx : 0);
+                        setImageViewerOpen(true);
+                      }}
+                      className="cursor-pointer aspect-square bg-slate-100 relative overflow-hidden select-none"
+                    >
+                      <img
+                        src={item.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'}
+                        alt={item.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover"
+                      />
+                      
+                      {/* Price Badge */}
+                      <div className="absolute top-3 right-3 bg-[#d99a3d] px-3 py-1 rounded text-xs font-extrabold text-[#1a1a1a] shadow-xs border border-[#1a1a1a]/10">
+                        ₹{priceVal.toLocaleString('en-IN')}
+                      </div>
 
-                    {/* Expandable Caption */}
-                    <div className="text-xs text-slate-700 leading-relaxed mt-1">
-                      <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.vendor?.name || 'Verified Vendor'}</span>
-                      {isExpanded ? (
-                        <span>{item.description}</span>
-                      ) : (
-                        <span>
-                          {((item.description || '').slice(0, 90))}
-                          {(item.description || '').length > 90 && (
-                            <button
-                              onClick={() => toggleCaption(itemId)}
-                              className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
-                            >
-                              ...more
-                            </button>
-                          )}
-                        </span>
+                      {/* Discount Badge matching /customer/search */}
+                      {discountPercent > 0 && (
+                        <div className="absolute bottom-3 left-3 bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded shadow-md z-10">
+                          {discountPercent}% OFF
+                        </div>
                       )}
                     </div>
+
+                    {/* Action Bar & Details */}
+                    <div className="p-4 bg-white space-y-3 border-t border-[#e3dccb]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLike(itemId, 'listing');
+                            }}
+                            className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border-none bg-transparent ${isLiked ? 'text-[#d99a3d]' : 'text-slate-600 hover:text-[#d99a3d]'}`}
+                            title="Like"
+                          >
+                            <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
+                            <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShare(item);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] cursor-pointer border-none bg-transparent"
+                            title="Share Post"
+                          >
+                            <FiSend size={18} />
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenChat(
+                                vendorId,
+                                item.vendor?.name,
+                                item.vendor?.avatarUrl || item.vendor?.profile_pic
+                              );
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#1a1a1a] hover:text-[#d99a3d] cursor-pointer border-none bg-transparent"
+                            title="Chat with Vendor"
+                          >
+                            <FiMessageSquare size={17} className="text-[#d99a3d]" />
+                            <span>Chat</span>
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSave(itemId, 'listing');
+                          }}
+                          className={`transition cursor-pointer border-none bg-transparent ${isSaved ? 'text-[#d99a3d]' : 'text-slate-500 hover:text-[#1a1a1a]'}`}
+                          title="Save"
+                        >
+                          <FiBookmark size={20} className={isSaved ? 'fill-[#d99a3d]' : ''} />
+                        </button>
+                      </div>
+
+                      {/* Product Title and Price with Discount */}
+                      <div className="flex items-baseline justify-between gap-2 mt-1">
+                        <h4 className="font-extrabold text-sm text-[#1a1a1a] truncate">{item.title}</h4>
+                        <div className="text-right shrink-0">
+                          <div className="flex items-baseline gap-1.5 justify-end">
+                            <span className="text-xs font-black text-[#d99a3d]">₹{priceVal.toLocaleString('en-IN')}</span>
+                            {originalPrice > priceVal && (
+                              <span className="text-[10px] text-slate-400 line-through font-bold">
+                                ₹{originalPrice.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </div>
+                          {discountPercent > 0 && (
+                            <span className="text-[9.5px] text-red-600 font-extrabold block text-right">
+                              {discountPercent}% OFF
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expandable Caption */}
+                      <div className="text-xs text-slate-700 leading-relaxed mt-1">
+                        <span className="font-extrabold text-[#1a1a1a] mr-1.5">{item.vendor?.name || 'Verified Vendor'}</span>
+                        {isExpanded ? (
+                          <span>{item.description}</span>
+                        ) : (
+                          <span>
+                            {((item.description || '').slice(0, 90))}
+                            {(item.description || '').length > 90 && (
+                              <button
+                                onClick={() => toggleCaption(itemId)}
+                                className="text-slate-400 font-bold ml-1 hover:underline border-none bg-transparent cursor-pointer"
+                              >
+                                ...more
+                              </button>
+                            )}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Add to Cart & Buy Now Quick Action Buttons */}
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0ebe0]">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const targetId = item._id || item.id;
+                            try {
+                              await cartApi.add({ listing_id: targetId, quantity: 1 });
+                              notifyCartChanged();
+                              openCartDrawer();
+                              toast.success(`"${item.title || 'Product'}" added to cart!`);
+                            } catch {
+                              toast.error('Could not add item to cart');
+                            }
+                          }}
+                          className="py-2 px-3 rounded-xl bg-[#f8f4ec] hover:bg-[#eae3d2] text-[#1a1a1a] text-xs font-bold transition border border-[#e3dccb] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <FiShoppingCart size={15} className="text-[#d99a3d]" />
+                          <span>Add to Cart</span>
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDirectBuy(item);
+                          }}
+                          className="py-2 px-3 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-none"
+                        >
+                          <FiZap size={15} />
+                          <span>Buy Now</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </motion.div>
-              );
-            }
-          })}
-        </div>
-      )}
+                );
+              }
+            })}
+          </div>
+        )}
       </div>
 
       <CommentsDrawer
@@ -856,6 +1166,7 @@ export default function CustomerHomePage() {
       />
 
       <ChatDrawer
+        key={chatDrawerRecipientId || 'chat-drawer'}
         isOpen={chatDrawerOpen}
         onClose={() => setChatDrawerOpen(false)}
         recipientId={chatDrawerRecipientId}
@@ -872,6 +1183,7 @@ export default function CustomerHomePage() {
           onLike={handleLike}
           onSave={handleSave}
           onFollow={handleFollow}
+          onOpenDirectBuy={handleOpenDirectBuy}
           likedMap={likedMap}
           savedMap={savedMap}
           followingMap={followingMap}
@@ -887,11 +1199,20 @@ export default function CustomerHomePage() {
           onLike={handleLike}
           onSave={handleSave}
           onFollow={handleFollow}
+          onOpenDirectBuy={handleOpenDirectBuy}
           likedMap={likedMap}
           savedMap={savedMap}
           followingMap={followingMap}
         />
       )}
+
+      {/* Direct Buy / Instant Purchase Modal */}
+      <DirectBuyModal
+        isOpen={directBuyOpen}
+        item={directBuyItem}
+        onClose={() => setDirectBuyOpen(false)}
+        onOpenChat={handleOpenChat}
+      />
     </div>
   );
 }

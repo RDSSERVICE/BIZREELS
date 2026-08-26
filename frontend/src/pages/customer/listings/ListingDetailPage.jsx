@@ -4,12 +4,15 @@ import {
   FiArrowLeft, FiMapPin, FiStar, FiHeart, FiBookmark, FiShare2,
   FiPhone, FiMessageSquare, FiShoppingCart, FiClock, FiCheckCircle,
   FiTruck, FiShield, FiCreditCard, FiPackage, FiTool, FiCheck, FiX,
-  FiChevronRight
+  FiChevronRight, FiCopy, FiAlertTriangle, FiLock, FiDollarSign, FiExternalLink
 } from 'react-icons/fi';
+import { BsQrCode } from 'react-icons/bs';
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { api, resolveMediaUrl, locationApi, cartApi } from '../../../lib/api';
-import { notifyCartChanged } from '../../../components/app/CartDrawer';
+import { notifyCartChanged, openCartDrawer } from '../../../components/app/CartDrawer';
+import SEO from '../../../components/common/SEO';
+import LazyImage from '../../../components/common/LazyImage';
 
 /**
  * OfferCountdown component for active promo offers
@@ -82,9 +85,94 @@ export default function ListingDetailPage() {
   const [orderAddress, setOrderAddress] = useState('');
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('09:00 AM - 12:00 PM');
+  const [bookingTimeMode, setBookingTimeMode] = useState('slot'); // 'slot' | 'custom'
+  const [customTimeVal, setCustomTimeVal] = useState('10:00');
   const [bookingNotes, setBookingNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('vendor_upi');
   const [orderSubmitting, setOrderSubmitting] = useState(false);
+  const [copiedKey, setCopiedKey] = useState('');
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+
+  const formatTime12h = (time24) => {
+    if (!time24) return '';
+    const [hStr, mStr] = time24.split(':');
+    let h = parseInt(hStr, 10);
+    const m = mStr || '00';
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h < 10 ? '0' + h : h}:${m} ${ampm}`;
+  };
+
+  const handleFetchLiveLocation = async () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setIsFetchingLocation(true);
+    const toastId = toast.loading('Detecting your live GPS location...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        let resolvedAddress = '';
+
+        // 1. Try reverse geocoding via OpenStreetMap Nominatim
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.display_name) {
+              resolvedAddress = data.display_name;
+            }
+          }
+        } catch (err) {
+          console.warn('Nominatim reverse geocode error:', err);
+        }
+
+        // 2. Fallback to backend reverse-geocode
+        if (!resolvedAddress) {
+          try {
+            const backendGeo = await locationApi.reverseGeocode(latitude, longitude);
+            const geoData = backendGeo.data?.data || backendGeo.data || {};
+            const parts = [
+              geoData.address,
+              geoData.area,
+              geoData.city,
+              geoData.state,
+              geoData.pincode,
+            ].filter(Boolean);
+            if (parts.length > 0) {
+              resolvedAddress = parts.join(', ');
+            }
+          } catch (e) {
+            console.warn('Backend reverseGeocode error:', e);
+          }
+        }
+
+        setIsFetchingLocation(false);
+        if (resolvedAddress) {
+          setOrderAddress(resolvedAddress);
+          toast.success('Live location & address fetched successfully!', { id: toastId });
+        } else {
+          toast.error('Could not detect exact street address. Please type address manually.', { id: toastId });
+        }
+      },
+      (error) => {
+        setIsFetchingLocation(false);
+        console.error('Geolocation error:', error);
+        toast.error(
+          error.code === 1
+            ? 'Location permission denied. Please allow location access or type manually.'
+            : 'Failed to retrieve GPS location.',
+          { id: toastId }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   // Reviews States
   const [reviewsList, setReviewsList] = useState([]);
@@ -132,14 +220,25 @@ export default function ListingDetailPage() {
       if (coords && Array.isArray(coords) && coords.length === 2) {
         navigator.geolocation?.getCurrentPosition(
           (pos) => {
-            const dist = locationApi.calculateDistance(
-              pos.coords.latitude,
-              pos.coords.longitude,
-              coords[1],
-              coords[0]
-            );
-            if (dist !== null) {
-              setDetailDistStr(`${dist.toFixed(1)} km away`);
+            const lat1 = pos.coords.latitude;
+            const lon1 = pos.coords.longitude;
+            const lat2 = coords[1];
+            const lon2 = coords[0];
+            if (lat1 && lon1 && lat2 && lon2) {
+              const R = 6371;
+              const dLat = ((lat2 - lat1) * Math.PI) / 180;
+              const dLon = ((lon2 - lon1) * Math.PI) / 180;
+              const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos((lat1 * Math.PI) / 180) *
+                  Math.cos((lat2 * Math.PI) / 180) *
+                  Math.sin(dLon / 2) *
+                  Math.sin(dLon / 2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+              const dist = R * c;
+              if (dist !== null && !isNaN(dist)) {
+                setDetailDistStr(`${dist.toFixed(1)} km away`);
+              }
             }
           },
           () => {}
@@ -234,10 +333,61 @@ export default function ListingDetailPage() {
   const discountPercent = (originalPrice > priceVal && priceVal > 0) ? Math.round(((originalPrice - priceVal) / originalPrice) * 100) : 0;
 
   const vendorObj = item.vendor || item.vendorId || item.seller || {};
-  const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || item.vendorName || 'Verified Business';
+  const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || item.vendorName || 'Vendor';
   const vendorAvatar = vendorObj.avatarUrl || vendorObj.logo || vendorObj.profile_pic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
   const city = item.city || vendorObj.city || item.location?.city || 'Local Area';
-  const vendorPhone = vendorObj.phone || vendorObj.whatsapp || '919876543210';
+
+  // Check vendor verification status & onboarding credentials
+  const isVendorVerified = (vendor) => {
+    if (!vendor) return false;
+    if (typeof vendor !== 'object') return false;
+    if (vendor.kyc_status === 'approved') return true;
+    if (vendor.is_subscribed_verified === true) return true;
+    if (vendor.isVerified === true || vendor.is_verified === true) return true;
+    if (vendor.vendorProfile?.isVerified === true || vendor.vendorProfile?.is_verified === true) return true;
+    if (vendor.verified_badge === true) return true;
+    const status = vendor.vendorProfile?.verificationStatus || vendor.verificationStatus || vendor.vendorProfile?.tier || vendor.tier;
+    if (['verified_vendor', 'premium_verified', 'trusted_vendor', 'premium_vendor', 'verified'].includes(status)) {
+      return true;
+    }
+    if (vendor.vendorProfile?.contactVerified?.whatsapp || vendor.vendorProfile?.contactVerified?.mobile || vendor.isPhoneVerified) {
+      return true;
+    }
+    const docs = vendor.vendorProfile?.documents || {};
+    if (docs.pan?.status === 'approved' || docs.pan?.verified || docs.aadhaar?.status === 'approved' || docs.aadhaar?.verified || docs.gst?.status === 'approved' || docs.gst?.verified || docs.shopLicense?.status === 'approved') {
+      return true;
+    }
+    const payment = vendor.vendorProfile?.paymentDetails || vendor.vendorProfile?.payoutDetails || vendor.paymentDetails || {};
+    if (payment.upiVerified || payment.verified || payment.status === 'approved') {
+      return true;
+    }
+    // If vendor set up payment details during onboarding or in profile
+    if (payment.upiId || payment.bankAccount || vendor.vendorProfile?.upiId || vendor.vendorProfile?.bankDetails?.accountNumber || vendor.vendorProfile?.bankAccount) {
+      return true;
+    }
+    return false;
+  };
+
+  const isVerified = isVendorVerified(vendorObj);
+  const vp = vendorObj.vendorProfile || {};
+  const vendorPayment = vp.paymentDetails || vp.payoutDetails || vendorObj.paymentDetails || vp.bankDetails || vendorObj.bankDetails || {};
+  const vendorUpi = vendorPayment.upiId || vendorPayment.upi_id || vendorPayment.maskedUpi || vp.upiId || vp.upi_id || vp.upi || vendorObj.upiId || vendorObj.upi || '';
+  const vendorQr = vendorPayment.qrCodeUrl || vendorPayment.qrCode || vendorPayment.qr_code || vp.qrCodeUrl || vp.qrCode || vp.qr_code || vendorObj.qrCode || vendorObj.qrCodeUrl || '';
+  const vendorBank = {
+    bankName: vendorPayment.bankName || vendorPayment.bank_name || vp.bankDetails?.bankName || vp.bankName || vendorObj.bankDetails?.bankName || 'Commercial Bank',
+    accountHolderName: vendorPayment.verifiedAccountName || vendorPayment.accountHolderName || vendorPayment.account_holder_name || vp.bankDetails?.accountHolderName || vendorName || '',
+    accountNumber: vendorPayment.bankAccount || vendorPayment.accountNumber || vendorPayment.account_number || vendorPayment.maskedAccount || vp.bankDetails?.accountNumber || vendorObj.bankDetails?.accountNumber || '',
+    ifscCode: vendorPayment.ifscCode || vendorPayment.ifsc_code || vendorPayment.ifsc || vp.bankDetails?.ifscCode || vendorObj.bankDetails?.ifscCode || '',
+    branchName: vendorPayment.branchName || vendorPayment.branch_name || vp.bankDetails?.branchName || vendorPayment.city || '',
+  };
+
+  const handleCopy = (text, key) => {
+    if (!text) return;
+    navigator.clipboard?.writeText(text);
+    setCopiedKey(key);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopiedKey(''), 2000);
+  };
 
   // Toggle Save & Like Handlers
   const handleToggleSave = async () => {
@@ -276,8 +426,61 @@ export default function ListingDetailPage() {
   };
 
   const handleWhatsApp = () => {
-    const text = encodeURIComponent(`Hi ${vendorName}, I saw your listing "${item.title}" on BizReels (₹${priceVal.toLocaleString('en-IN')}). I would like to inquire about details/availability.`);
-    window.open(`https://wa.me/${vendorPhone.replace(/\D/g, '')}?text=${text}`, '_blank');
+    // 1. Check if vendor is verified
+    if (!isVerified) {
+      toast.error(
+        '⚠️ This vendor is not verified yet. Direct WhatsApp inquiry is only available for verified vendors.',
+        { duration: 5000, id: 'unverified-vendor-whatsapp' }
+      );
+      return;
+    }
+
+    // 2. Extract vendor phone / WhatsApp number
+    const rawPhone =
+      vendorObj.vendorProfile?.whatsapp ||
+      vendorObj.vendorProfile?.whatsappNumber ||
+      vendorObj.phone ||
+      vendorObj.vendorProfile?.mobileNumber ||
+      vendorObj.vendorProfile?.phone ||
+      vendorObj.whatsapp ||
+      item.phone ||
+      item.whatsapp ||
+      '';
+
+    if (!rawPhone) {
+      toast.error('WhatsApp contact number is not available for this vendor.', {
+        id: 'no-vendor-phone'
+      });
+      return;
+    }
+
+    let cleanPhone = String(rawPhone).replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
+      cleanPhone = `91${cleanPhone.slice(1)}`;
+    }
+
+    if (!cleanPhone || cleanPhone.length < 10) {
+      toast.error('Invalid vendor phone number format for WhatsApp.', {
+        id: 'invalid-vendor-phone'
+      });
+      return;
+    }
+
+    // 3. Track interaction
+    try {
+      api.post('/v1/users/me/track-interaction', {
+        type: 'whatsapp_contact',
+        listingId: itemId,
+        targetUserId: vendorObj._id || vendorObj.id,
+      }).catch(() => {});
+    } catch {}
+
+    const text = encodeURIComponent(
+      `Hello ${vendorName}!\nI found your listing "${item.title}" on BizReels (₹${priceVal.toLocaleString('en-IN')}).\nLink: ${window.location.href}\nI would like to inquire about details/availability.`
+    );
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
   };
 
   // Add to Shopping Cart
@@ -285,6 +488,7 @@ export default function ListingDetailPage() {
     try {
       await cartApi.add({ listing_id: itemId, quantity: orderQty || 1 });
       notifyCartChanged();
+      openCartDrawer();
       toast.success(`"${item.title}" added to your cart!`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Could not add item to cart.');
@@ -349,8 +553,85 @@ export default function ListingDetailPage() {
     }
   };
 
+  const listingStructuredData = (() => {
+    if (!item) return [];
+    const mainImg = images[0] ? resolveMediaUrl(images[0]) : 'https://bizreels.in/logo.png';
+    const canonicalLink = `https://bizreels.in/customer/listings/${itemId}`;
+
+    const mainSchema = isService
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Service',
+          'name': item.title,
+          'image': mainImg,
+          'description': item.description || item.title,
+          'provider': {
+            '@type': 'LocalBusiness',
+            'name': vendorName,
+          },
+          'offers': {
+            '@type': 'Offer',
+            'url': canonicalLink,
+            'priceCurrency': 'INR',
+            'price': priceVal || 0,
+            'availability': 'https://schema.org/InStock',
+          },
+        }
+      : {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          'name': item.title,
+          'image': mainImg,
+          'description': item.description || item.title,
+          'sku': item.sku || undefined,
+          'brand': {
+            '@type': 'Brand',
+            'name': item.brand || vendorName,
+          },
+          'offers': {
+            '@type': 'Offer',
+            'url': canonicalLink,
+            'priceCurrency': 'INR',
+            'price': priceVal || 0,
+            'availability': (item.stock > 0 || item.stock === undefined) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+            'seller': {
+              '@type': 'Organization',
+              'name': vendorName,
+            },
+          },
+          ...(item.rating && item.rating > 0 ? {
+            'aggregateRating': {
+              '@type': 'AggregateRating',
+              'ratingValue': item.rating,
+              'reviewCount': item.totalReviews || 1,
+            }
+          } : {})
+        };
+
+    const breadcrumbs = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bizreels.in/' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Browse Listings', 'item': 'https://bizreels.in/customer/search' },
+        ...(item.category ? [{ '@type': 'ListItem', 'position': 3, 'name': item.category, 'item': `https://bizreels.in/customer/search?category=${encodeURIComponent(item.category)}` }] : []),
+        { '@type': 'ListItem', 'position': item.category ? 4 : 3, 'name': item.title, 'item': canonicalLink }
+      ]
+    };
+
+    return [mainSchema, breadcrumbs];
+  })();
+
   return (
     <div className="min-h-screen bg-[#f8f4ec] text-[#1a1a1a] font-sans pb-16">
+      <SEO
+        title={`${item.title} — ${vendorName}`}
+        description={item.description?.slice(0, 160) || `${item.title} available on BizReels marketplace.`}
+        canonical={`https://bizreels.in/customer/listings/${itemId}`}
+        ogImage={images[0] ? resolveMediaUrl(images[0]) : 'https://bizreels.in/logo.png'}
+        ogType={isService ? 'website' : 'product'}
+        structuredData={listingStructuredData}
+      />
       {/* ── Top Header / Breadcrumb Bar ──────────────────────────────── */}
       <div className="sticky top-0 z-30 bg-white border-b border-[#e3dccb] px-4 py-3 shadow-2xs">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
@@ -482,9 +763,15 @@ export default function ListingDetailPage() {
                     <span className="text-slate-400">({item.reviewsCount || reviewsList.length || '12'})</span>
                   </div>
                   <span className="text-slate-400">•</span>
-                  <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[11px]">
-                    <FiCheckCircle size={12} /> In Stock & Verified
-                  </span>
+                  {isVerified ? (
+                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[11px] font-bold">
+                      <FiCheckCircle size={12} className="text-emerald-600" /> In Stock & Verified Business
+                    </span>
+                  ) : (
+                    <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1 text-[11px] font-bold">
+                      <FiShield size={12} className="text-amber-600" /> Unverified Vendor
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -588,7 +875,11 @@ export default function ListingDetailPage() {
                 <div className="min-w-0 space-y-0.5">
                   <div className="flex items-center gap-1.5">
                     <h4 className="text-sm font-extrabold text-[#1a1a1a] truncate">{vendorName}</h4>
-                    <FiCheckCircle className="text-emerald-600 flex-shrink-0" size={14} />
+                    {isVerified ? (
+                      <FiCheckCircle className="text-emerald-600 flex-shrink-0" size={14} title="Verified Vendor" />
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold">Unverified</span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500 truncate">{city} • Local Vendor</p>
                 </div>
@@ -658,36 +949,100 @@ export default function ListingDetailPage() {
                       <input
                         type="date"
                         required
+                        min={new Date().toISOString().split('T')[0]}
                         value={bookingDate}
                         onChange={(e) => setBookingDate(e.target.value)}
                         className="w-full p-2.5 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-bold focus:outline-none focus:border-[#d99a3d]"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Time Slot</label>
-                      <select
-                        value={bookingTime}
-                        onChange={(e) => setBookingTime(e.target.value)}
-                        className="w-full p-2.5 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-bold focus:outline-none focus:border-[#d99a3d]"
-                      >
-                        <option>09:00 AM - 12:00 PM</option>
-                        <option>12:00 PM - 03:00 PM</option>
-                        <option>03:00 PM - 06:00 PM</option>
-                        <option>06:00 PM - 09:00 PM</option>
-                      </select>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Preferred Time</label>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setBookingTimeMode('slot')}
+                            className={`px-2 py-0.5 text-[9.5px] font-bold rounded transition cursor-pointer border ${
+                              bookingTimeMode === 'slot'
+                                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                                : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb]'
+                            }`}
+                          >
+                            Slots
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBookingTimeMode('custom');
+                              if (customTimeVal) setBookingTime(formatTime12h(customTimeVal));
+                            }}
+                            className={`px-2 py-0.5 text-[9.5px] font-bold rounded transition cursor-pointer border ${
+                              bookingTimeMode === 'custom'
+                                ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                                : 'bg-[#f8f4ec] text-slate-600 border-[#e3dccb]'
+                            }`}
+                          >
+                            ⏰ Exact Time
+                          </button>
+                        </div>
+                      </div>
+
+                      {bookingTimeMode === 'slot' ? (
+                        <select
+                          value={bookingTime}
+                          onChange={(e) => setBookingTime(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-bold focus:outline-none focus:border-[#d99a3d] cursor-pointer"
+                        >
+                          <option value="09:00 AM - 12:00 PM">Morning (09:00 AM - 12:00 PM)</option>
+                          <option value="12:00 PM - 03:00 PM">Afternoon (12:00 PM - 03:00 PM)</option>
+                          <option value="03:00 PM - 06:00 PM">Evening (03:00 PM - 06:00 PM)</option>
+                          <option value="06:00 PM - 09:00 PM">Night (06:00 PM - 09:00 PM)</option>
+                        </select>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="time"
+                            required
+                            value={customTimeVal}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCustomTimeVal(val);
+                              if (val) setBookingTime(formatTime12h(val));
+                            }}
+                            className="w-full p-2.5 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-bold focus:outline-none focus:border-[#d99a3d] cursor-pointer"
+                          />
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
 
-                {/* Delivery Address */}
+                {/* Delivery / Service Location Address */}
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">
-                    {isService ? 'Service Location / Address' : 'Delivery Address'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-1.5">
+                      <FiMapPin size={13} className="text-[#d99a3d]" />
+                      <span>{isService ? 'Service Location / Address' : 'Delivery Address'}</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleFetchLiveLocation}
+                      disabled={isFetchingLocation}
+                      className="px-2.5 py-1 rounded-lg bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-[10.5px] font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs border-none disabled:opacity-50"
+                      title="Fetch live location via GPS"
+                    >
+                      {isFetchingLocation ? (
+                        <div className="w-3 h-3 rounded-full border-2 border-[#d99a3d] border-t-transparent animate-spin" />
+                      ) : (
+                        <FiMapPin size={11} />
+                      )}
+                      <span>{isFetchingLocation ? 'Detecting GPS...' : '📍 Fetch My Location'}</span>
+                    </button>
+                  </div>
                   <textarea
                     rows={2}
                     required
-                    placeholder="Enter full street address, landmark, and pin code..."
+                    placeholder="Enter full street address, landmark, and pin code or click 'Fetch My Location' above..."
                     value={orderAddress}
                     onChange={(e) => setOrderAddress(e.target.value)}
                     className="w-full p-3 rounded-xl border border-[#e3dccb] bg-[#f8f4ec] text-xs font-medium focus:outline-none focus:border-[#d99a3d]"
@@ -707,8 +1062,35 @@ export default function ListingDetailPage() {
                 </div>
 
                 {/* Payment Option */}
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Payment Preference</label>
+                <div className="space-y-3 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Payment Preference</label>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <FiShield size={11} className="text-amber-600" />
+                      <span>Direct Vendor Settlement</span>
+                    </span>
+                  </div>
+
+                  {/* Production Payment Advisory & Fraud Protection Disclaimer Banner */}
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border-2 border-amber-400/80 shadow-xs space-y-1.5">
+                    <div className="flex items-start gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-700 shrink-0 mt-0.5">
+                        <FiAlertTriangle size={17} className="text-amber-600" />
+                      </div>
+                      <div className="space-y-1">
+                        <h5 className="text-xs font-black text-amber-950 uppercase tracking-wide">
+                          ⚠️ महत्वपूर्ण भुगतान व सुरक्षा सूचना (Payment Safety Advisory)
+                        </h5>
+                        <p className="text-xs text-amber-950 font-bold leading-relaxed">
+                          कृपया भुगतान तभी करें जब आप और वेंडर दोनों संतुष्ट हों। BizReels प्लेटफ़ॉर्म किसी भी प्रकार के वाद-विवाद या धोखाधड़ी के लिए जिम्मेदार नहीं होगा।
+                        </p>
+                        <p className="text-[11px] text-amber-800 font-medium leading-normal">
+                          (Please make payment only after mutual satisfaction and verification. BizReels platform is not liable for any disputes or fraud.)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
                       { id: 'vendor_upi', label: 'UPI / GPay' },
@@ -733,6 +1115,230 @@ export default function ListingDetailPage() {
                         />
                       </label>
                     ))}
+                  </div>
+
+                  {/* Dynamic Payment Method Details & Security Gate */}
+                  <div className="mt-3 p-4 rounded-xl border transition-all duration-200 bg-[#fdfbf7] border-[#e3dccb]">
+                    {paymentMethod === 'vendor_upi' && (
+                      isVerified ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                <FiCreditCard size={16} />
+                              </span>
+                              <div>
+                                <h5 className="text-xs font-black text-[#1a1a1a] flex items-center gap-1.5">
+                                  <span>Verified Merchant UPI Details</span>
+                                  <FiCheckCircle className="text-emerald-600" size={13} />
+                                </h5>
+                                <p className="text-[11px] text-slate-500">Pay directly to vendor's verified UPI account</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                              Verified Merchant
+                            </span>
+                          </div>
+
+                          {vendorUpi ? (
+                            <div className="p-3 rounded-lg bg-white border border-[#e3dccb] flex items-center justify-between gap-3 shadow-2xs">
+                              <div className="min-w-0">
+                                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">UPI ID</span>
+                                <span className="text-xs font-black text-[#1a1a1a] font-mono select-all truncate block">{vendorUpi}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(vendorUpi, 'upi')}
+                                className="px-3 py-1.5 rounded-lg bg-[#f8f4ec] border border-[#e3dccb] hover:border-[#d99a3d] text-xs font-bold text-[#1a1a1a] flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer transition"
+                              >
+                                {copiedKey === 'upi' ? <><FiCheck size={12} className="text-emerald-600" /> Copied</> : <><FiCopy size={12} /> Copy UPI</>}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                              ℹ️ Vendor has not configured a direct UPI ID. You can pay via UPI upon visit/delivery.
+                            </div>
+                          )}
+
+                          <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                            <span>Payable Amount: <strong className="text-[#1a1a1a]">₹{(priceVal * orderQty).toLocaleString('en-IN')}</strong>. Keep your transaction reference handy.</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1.5">
+                          <div className="flex items-center gap-2 text-amber-900 font-extrabold text-xs">
+                            <FiLock className="text-amber-700" size={15} />
+                            <span>Advance UPI Details Hidden (Unverified Merchant)</span>
+                          </div>
+                          <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                            For your safety, direct digital advance payment details are hidden because this vendor is not yet verified. We recommend selecting <strong>Cash on Delivery</strong> or <strong>Chatting with Vendor</strong> before making advance payments.
+                          </p>
+                        </div>
+                      )
+                    )}
+
+                    {paymentMethod === 'vendor_qr' && (
+                      isVerified ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                <BsQrCode size={16} />
+                              </span>
+                              <div>
+                                <h5 className="text-xs font-black text-[#1a1a1a] flex items-center gap-1.5">
+                                  <span>Verified Vendor Payment QR Code</span>
+                                  <FiCheckCircle className="text-emerald-600" size={13} />
+                                </h5>
+                                <p className="text-[11px] text-slate-500">Scan using Google Pay, PhonePe, Paytm, or BHIM</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                              Verified QR
+                            </span>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row items-center gap-4 p-3.5 rounded-lg bg-white border border-[#e3dccb]">
+                            {vendorQr ? (
+                              <img
+                                src={resolveMediaUrl(vendorQr)}
+                                alt="Vendor Payment QR"
+                                className="w-32 h-32 object-contain rounded-lg border border-[#e3dccb] bg-white p-1 shadow-2xs"
+                              />
+                            ) : vendorUpi ? (
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=${vendorUpi}&pn=${encodeURIComponent(vendorName)}&am=${priceVal * orderQty}&cu=INR`)}`}
+                                alt="Dynamic UPI QR"
+                                className="w-32 h-32 object-contain rounded-lg border border-[#e3dccb] bg-white p-1 shadow-2xs"
+                              />
+                            ) : (
+                              <div className="w-32 h-32 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400 text-[10px] p-2 text-center">
+                                <BsQrCode size={24} className="mb-1" />
+                                <span>No QR uploaded</span>
+                              </div>
+                            )}
+
+                            <div className="space-y-1.5 text-xs text-center sm:text-left flex-1">
+                              <span className="text-[11px] font-bold text-slate-600 block">Payable Amount: <strong className="text-base text-[#1a1a1a]">₹{(priceVal * orderQty).toLocaleString('en-IN')}</strong></span>
+                              {vendorUpi && (
+                                <p className="text-[11px] text-slate-500 font-mono">UPI ID: {vendorUpi}</p>
+                              )}
+                              <p className="text-[11px] text-slate-500 leading-tight">Scan the QR code directly from your mobile UPI application to complete payment.</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1.5">
+                          <div className="flex items-center gap-2 text-amber-900 font-extrabold text-xs">
+                            <FiLock className="text-amber-700" size={15} />
+                            <span>QR Code Hidden (Unverified Merchant)</span>
+                          </div>
+                          <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                            Vendor payment QR is restricted for unverified accounts to protect against unverified transactions. Please choose <strong>Cash on Delivery</strong> or in-person settlement.
+                          </p>
+                        </div>
+                      )
+                    )}
+
+                    {paymentMethod === 'bank_transfer' && (
+                      isVerified ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                <FiShield size={16} />
+                              </span>
+                              <div>
+                                <h5 className="text-xs font-black text-[#1a1a1a] flex items-center gap-1.5">
+                                  <span>Verified Vendor Bank Account</span>
+                                  <FiCheckCircle className="text-emerald-600" size={13} />
+                                </h5>
+                                <p className="text-[11px] text-slate-500">Direct IMPS / NEFT / RTGS Bank Transfer</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                              Verified Account
+                            </span>
+                          </div>
+
+                          {(vendorBank.accountNumber || vendorBank.ifscCode) ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-lg bg-white border border-[#e3dccb] text-xs shadow-2xs">
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Account Holder</span>
+                                <p className="font-extrabold text-[#1a1a1a]">{vendorBank.accountHolderName || vendorName}</p>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Bank Name</span>
+                                <p className="font-extrabold text-[#1a1a1a]">{vendorBank.bankName || 'Commercial Bank'}</p>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Account Number</span>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-mono font-extrabold text-[#1a1a1a] select-all">{vendorBank.accountNumber}</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(vendorBank.accountNumber, 'acc')}
+                                    className="p-1 text-slate-500 hover:text-[#d99a3d] cursor-pointer"
+                                    title="Copy Account Number"
+                                  >
+                                    {copiedKey === 'acc' ? <FiCheck size={12} className="text-emerald-600" /> : <FiCopy size={12} />}
+                                  </button>
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">IFSC Code</span>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-mono font-extrabold text-[#1a1a1a] select-all">{vendorBank.ifscCode}</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(vendorBank.ifscCode, 'ifsc')}
+                                    className="p-1 text-slate-500 hover:text-[#d99a3d] cursor-pointer"
+                                    title="Copy IFSC"
+                                  >
+                                    {copiedKey === 'ifsc' ? <FiCheck size={12} className="text-emerald-600" /> : <FiCopy size={12} />}
+                                  </button>
+                                </div>
+                              </div>
+                              {vendorBank.branchName && (
+                                <div className="sm:col-span-2">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase">Branch</span>
+                                  <p className="font-semibold text-slate-700">{vendorBank.branchName}</p>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                              ℹ️ Bank transfer details not provided by vendor. Please choose UPI or Cash on Delivery.
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1.5">
+                          <div className="flex items-center gap-2 text-amber-900 font-extrabold text-xs">
+                            <FiLock className="text-amber-700" size={15} />
+                            <span>Bank Details Hidden (Unverified Merchant)</span>
+                          </div>
+                          <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                            Direct bank account details are hidden for unverified merchant listings to protect against fraudulent transfers. Please select <strong>Cash on Delivery</strong> or in-person settlement.
+                          </p>
+                        </div>
+                      )
+                    )}
+
+                    {paymentMethod === 'cod' && (
+                      <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200 space-y-1.5">
+                        <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-xs">
+                          <FiDollarSign className="text-emerald-600" size={16} />
+                          <span>{isService ? 'Pay in Person after Service Completion' : 'Cash on Delivery / Pay on Handover'}</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
+                          {isService
+                            ? 'No advance payment required. Inspect the completed service and pay the service technician directly via Cash or UPI at your location.'
+                            : 'No advance online payment required. Inspect your package when delivered at your address and pay in cash or scan vendor QR.'}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

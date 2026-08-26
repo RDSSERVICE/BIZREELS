@@ -29,31 +29,31 @@ export default function Home() {
   const { lang, t } = useLanguage();
   const [showCategoryModal, setShowCategoryModal] = React.useState(false);
   const { data: homeFeedData } = useGetHomeTrendingFeedQuery();
-  const { data: dbListingsRes } = useGetListingsQuery({ limit: 50 });
+  const { data: dbListingsRes } = useGetListingsQuery({ limit: 12 });
   const feed = homeFeedData?.data || {};
   const dbListings = dbListingsRes?.data || dbListingsRes?.items || [];
 
   const getHighResMedia = (url) => {
     if (!url || typeof url !== 'string') return url;
     if (url.includes('images.unsplash.com')) {
-      return url.replace(/w=\d+/, 'w=800').replace(/h=\d+/, 'h=1050').replace(/q=\d+/, 'q=85');
+      return url.replace(/w=\d+/, 'w=600').replace(/h=\d+/, 'h=600').replace(/q=\d+/, 'q=75') + (url.includes('auto=format') ? '' : '&auto=format');
     }
     return url;
   };
 
   const fallbackList = React.useMemo(() => [
-    { num: '01', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=1050&fit=crop&q=85', title: 'Premium Office Chair', sub: 'ErgoComfort Pro', meta: '1.2K views · 86 leads', category: 'Furniture' },
-    { num: '02', img: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=1050&fit=crop&q=85', title: 'Digital Marketing Service', sub: 'Grow Your Brand Online', meta: '980 views · 64 leads', category: 'Digital Marketing' },
-    { num: '03', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=1050&fit=crop&q=85', title: 'Solar Rooftop System', sub: 'Save Electricity Bills', meta: '875 views · 59 leads', category: 'Energy' },
-    { num: '04', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1050&fit=crop&q=85', title: 'Modern Modular Kitchen', sub: 'Designs That Inspire', meta: '765 views · 51 leads', category: 'Home & Living' },
-    { num: '05', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=1050&fit=crop&q=85', title: 'Corporate Gift Hampers', sub: 'For Every Occasion', meta: '680 views · 48 leads', category: 'Corporate Gifts' },
-    { num: '06', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&h=1050&fit=crop&q=85', title: 'Luxury Bridal Makeup', sub: 'Glow Studio', meta: '610 views · 42 leads', category: 'Beauty & Salon' },
-    { num: '07', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=1050&fit=crop&q=85', title: 'Luxury Fleet Rental', sub: 'Prestige Cars', meta: '590 views · 39 leads', category: 'Vehicles' },
-    { num: '08', img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1050&fit=crop&q=85', title: 'Commercial Interior Design', sub: 'Apex Architects', meta: '540 views · 35 leads', category: 'Real Estate' },
-    { num: '09', img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=1050&fit=crop&q=85', title: 'Social Media Growth Service', sub: 'Viral Boost', meta: '1.8K views · 92 leads', category: 'Digital Marketing' },
-    { num: '10', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=1050&fit=crop&q=85', title: 'Noise Cancelling Headphones', sub: 'Acoustic Sound', meta: '2.4K views · 110 leads', category: 'Electronics' },
-    { num: '11', img: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800&h=1050&fit=crop&q=85', title: 'Pro Running Sneakers', sub: 'Speed Runner', meta: '1.4K views · 74 leads', category: 'Fashion' },
-    { num: '12', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=1050&fit=crop&q=85', title: 'Smart Fitness Watch', sub: 'Pulse Pro', meta: '3.1K views · 145 leads', category: 'Electronics' }
+    { num: '01', img: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=600&auto=format&fit=crop&q=75', title: 'Premium Office Chair', sub: 'ErgoComfort Pro', meta: '1.2K views · 86 leads', category: 'Furniture' },
+    { num: '02', img: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=600&auto=format&fit=crop&q=75', title: 'Digital Marketing Service', sub: 'Grow Your Brand Online', meta: '980 views · 64 leads', category: 'Digital Marketing' },
+    { num: '03', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&auto=format&fit=crop&q=75', title: 'Solar Rooftop System', sub: 'Save Electricity Bills', meta: '875 views · 59 leads', category: 'Energy' },
+    { num: '04', img: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=600&auto=format&fit=crop&q=75', title: 'Modern Modular Kitchen', sub: 'Designs That Inspire', meta: '765 views · 51 leads', category: 'Home & Living' },
+    { num: '05', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&auto=format&fit=crop&q=75', title: 'Corporate Gift Hampers', sub: 'For Every Occasion', meta: '680 views · 48 leads', category: 'Corporate Gifts' },
+    { num: '06', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&auto=format&fit=crop&q=75', title: 'Luxury Bridal Makeup', sub: 'Glow Studio', meta: '610 views · 42 leads', category: 'Beauty & Salon' },
+    { num: '07', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&auto=format&fit=crop&q=75', title: 'Luxury Fleet Rental', sub: 'Prestige Cars', meta: '590 views · 39 leads', category: 'Vehicles' },
+    { num: '08', img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=75', title: 'Commercial Interior Design', sub: 'Apex Architects', meta: '540 views · 35 leads', category: 'Real Estate' },
+    { num: '09', img: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600&auto=format&fit=crop&q=75', title: 'Social Media Growth Service', sub: 'Viral Boost', meta: '1.8K views · 92 leads', category: 'Digital Marketing' },
+    { num: '10', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=75', title: 'Noise Cancelling Headphones', sub: 'Acoustic Sound', meta: '2.4K views · 110 leads', category: 'Electronics' },
+    { num: '11', img: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&auto=format&fit=crop&q=75', title: 'Pro Running Sneakers', sub: 'Speed Runner', meta: '1.4K views · 74 leads', category: 'Fashion' },
+    { num: '12', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=75', title: 'Smart Fitness Watch', sub: 'Pulse Pro', meta: '3.1K views · 145 leads', category: 'Electronics' }
   ], []);
 
   const statsList = feed.stats || [
@@ -187,12 +187,47 @@ export default function Home() {
     return [...uniqueApiCats, ...fillList];
   }, [feed.categories, dbCategories, defaultCategoryList]);
 
+  const homeStructuredData = React.useMemo(() => [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      'name': 'BizReels',
+      'url': 'https://bizreels.in/',
+      'description': "Discover local vendors, chat direct, deal fair. India's first visual reels commerce platform.",
+      'potentialAction': {
+        '@type': 'SearchAction',
+        'target': {
+          '@type': 'EntryPoint',
+          'urlTemplate': 'https://bizreels.in/customer/search?query={search_term_string}'
+        },
+        'query-input': 'required name=search_term_string'
+      }
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      'name': 'BizReels',
+      'url': 'https://bizreels.in/',
+      'logo': 'https://bizreels.in/logo.png',
+      'description': "India's local video-first marketplace connecting businesses, content creators, and local buyers.",
+      'sameAs': [
+        'https://www.instagram.com/_bizreels/',
+        'https://www.facebook.com/profile.php?id=61593340033476',
+        'https://youtube.com/@BizReels',
+        'https://linkedin.com/company/bizreels',
+        'https://twitter.com/BizReels'
+      ]
+    }
+  ], []);
+
   return (
     <div className="w-full max-w-full overflow-x-hidden bg-[#f2ede4] min-h-screen select-none font-sans">
       <SEO
-        title="Watch. Discover. Shop. — India's Visual Commerce Platform"
+        title="Watch. Discover. Connect. — India's Visual Commerce Platform"
         description="Discover local vendors, chat direct, deal fair. India's first visual reels commerce platform."
-        url="https://bizreels.in/"
+        canonical="https://bizreels.in/"
+        ogType="website"
+        structuredData={homeStructuredData}
       />
 
       {/* ── HERO SECTION ─────────────────────────────────────────── */}
@@ -260,6 +295,10 @@ export default function Home() {
                       key={id}
                       src={`https://i.pravatar.cc/64?img=${id}`}
                       alt="BizReels user"
+                      loading="lazy"
+                      decoding="async"
+                      width="32"
+                      height="32"
                       className="w-8 h-8 rounded-full border-2 border-[#f2ede4] object-cover bg-slate-300"
                     />
                   ))}
@@ -274,6 +313,10 @@ export default function Home() {
                 src="/hero-logo.png"
                 alt=""
                 aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+                width="256"
+                height="256"
                 className="absolute right-0 top-1/2 -translate-y-1/2 w-48 sm:w-64 opacity-25 pointer-events-none z-0 hidden sm:block"
               />
             </div>
@@ -468,7 +511,15 @@ export default function Home() {
                         <div className={`text-xs font-black w-5 shrink-0 ${isCurrent ? 'text-[#d99a3d]' : 'text-[#8a8578]'}`}>
                           {num}
                         </div>
-                        <img src={img} alt={title} className="w-10 h-10 rounded-lg object-cover shrink-0 bg-slate-800 border border-white/10" />
+                        <img
+                          src={img}
+                          alt={title}
+                          loading="lazy"
+                          decoding="async"
+                          width="40"
+                          height="40"
+                          className="w-10 h-10 rounded-lg object-cover shrink-0 bg-slate-800 border border-white/10"
+                        />
                         <div className="min-w-0 flex-1">
                           <div className={`truncate text-xs font-bold leading-tight transition-colors ${isCurrent ? 'text-[#d99a3d]' : 'text-white group-hover:text-[#d99a3d]'}`}>
                             {title}
@@ -521,12 +572,16 @@ export default function Home() {
                   <AnimatePresence mode="wait">
                     <motion.img
                       key={activeProduct?.img || activeCardIndex}
-                      initial={{ opacity: 0, scale: 1.06, filter: 'blur(8px)' }}
-                      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                      exit={{ opacity: 0, scale: 0.96, filter: 'blur(8px)' }}
-                      transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}
+                      initial={{ opacity: 0, scale: 1.04 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                       src={activeProduct?.img}
                       alt={activeProduct?.title}
+                      fetchPriority="high"
+                      decoding="async"
+                      width="600"
+                      height="450"
                       className="w-full h-full object-cover"
                     />
                   </AnimatePresence>
@@ -660,8 +715,12 @@ export default function Home() {
 
               <div className="mt-6 pt-4 border-t border-[#1a1a1a]/20 flex items-center gap-3">
                 <img
-                  src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop"
+                  src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&auto=format&fit=crop&q=75"
                   alt="Rohit Mehra"
+                  loading="lazy"
+                  decoding="async"
+                  width="36"
+                  height="36"
                   className="w-9 h-9 rounded-full object-cover shrink-0 border border-[#1a1a1a]"
                 />
                 <div>
@@ -676,12 +735,16 @@ export default function Home() {
               <AnimatePresence mode="wait">
                 <motion.img
                   key={currentPanelItem?.img || panelImageIndex}
-                  initial={{ opacity: 0, scale: 1.05, filter: 'blur(6px)' }}
-                  animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, scale: 0.96, filter: 'blur(6px)' }}
-                  transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
-                  src={currentPanelItem?.img || "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&h=1050&fit=crop&q=85"}
+                  initial={{ opacity: 0, scale: 1.04 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+                  src={currentPanelItem?.img || "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&auto=format&fit=crop&q=75"}
                   alt={currentPanelItem?.title || "BizReels live feed"}
+                  loading="lazy"
+                  decoding="async"
+                  width="600"
+                  height="400"
                   className="w-full h-full object-cover absolute inset-0"
                 />
               </AnimatePresence>

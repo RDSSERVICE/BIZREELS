@@ -1297,7 +1297,7 @@ export default function BecomeVendorPage() {
           )}
         </div>
 
-        {/* SECTION 7: DECLARATION & TERMS */}
+        {/* SECTION 6: DECLARATION & TERMS */}
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e3dccb] shadow-xs space-y-4">
           <label className="flex items-start gap-3 cursor-pointer">
             <input

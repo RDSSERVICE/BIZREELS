@@ -11,8 +11,10 @@ import ListingCard from './components/ListingCard';
 import ListingDetailModal from './components/ListingDetailModal';
 import OrderConfirmedModal from './components/OrderConfirmedModal';
 import BookServiceModal from '../activities/components/BookServiceModal';
+import ClickToCallModal from './components/ClickToCallModal';
 
 import { useLanguage } from '../../../context/LanguageContext';
+import SEO from '../../../components/common/SEO';
 
 export default function SearchListingsPage() {
   const navigate = useNavigate();
@@ -25,7 +27,7 @@ export default function SearchListingsPage() {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('all'); // 'all' | 'product' | 'service'
   const [category, setCategory] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(200000);
+  const [maxPrice, setMaxPrice] = useState(20000000);
   const [distance, setDistance] = useState('all');
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,7 @@ export default function SearchListingsPage() {
   const [inquiringId, setInquiringId] = useState(null);
 
   const [selectedItem, setSelectedItem] = useState(null);
+  const [callItem, setCallItem] = useState(null);
   const [bookingService, setBookingService] = useState(null);
   const [coords, setCoords] = useState(null);
   const [geocodedCache, setGeocodedCache] = useState({});
@@ -337,24 +340,64 @@ export default function SearchListingsPage() {
   // WhatsApp Contact
   const handleWhatsApp = async (item) => {
     const vendorObj = item.vendor || item.vendorId || {};
-    const phone =
-      vendorObj.phone ||
-      vendorObj.vendorProfile?.whatsapp ||
-      vendorObj.vendorProfile?.whatsappNumber ||
-      vendorObj.whatsappNumber ||
-      '';
-    if (!phone) {
-      toast.error('WhatsApp contact is not configured for this vendor');
+
+    // Verification check
+    const isVerified =
+      vendorObj.kyc_status === 'approved' ||
+      vendorObj.is_subscribed_verified === true ||
+      vendorObj.isVerified === true ||
+      vendorObj.is_verified === true ||
+      vendorObj.vendorProfile?.isVerified === true ||
+      vendorObj.verified_badge === true ||
+      ['verified_vendor', 'premium_verified', 'trusted_vendor', 'premium_vendor', 'verified'].includes(
+        vendorObj.vendorProfile?.verificationStatus || vendorObj.verificationStatus || vendorObj.vendorProfile?.tier || vendorObj.tier
+      ) ||
+      Boolean(vendorObj.vendorProfile?.contactVerified?.whatsapp || vendorObj.vendorProfile?.contactVerified?.mobile);
+
+    if (!isVerified) {
+      toast.error(
+        '⚠️ This vendor is not verified yet. Direct WhatsApp inquiry is only available for verified vendors.',
+        { duration: 5000, id: 'unverified-vendor-whatsapp' }
+      );
       return;
     }
-    const productLink = `${window.location.origin}/customer/search?productId=${item._id || item.id}`;
-    const text = encodeURIComponent(
-      `Hello! I found your listing "${item.title}" on BizReels.\nLink: ${productLink}\nPlease provide more details.`
-    );
-    let formattedPhone = phone.replace(/[^0-9]/g, '');
-    if (formattedPhone.length === 10) {
-      formattedPhone = '91' + formattedPhone;
+
+    const rawPhone =
+      vendorObj.vendorProfile?.whatsapp ||
+      vendorObj.vendorProfile?.whatsappNumber ||
+      vendorObj.phone ||
+      vendorObj.vendorProfile?.mobileNumber ||
+      vendorObj.vendorProfile?.phone ||
+      vendorObj.whatsapp ||
+      item.phone ||
+      '';
+
+    if (!rawPhone) {
+      toast.error('WhatsApp contact number is not available for this vendor.', {
+        id: 'no-vendor-phone'
+      });
+      return;
     }
+
+    let cleanPhone = String(rawPhone).replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
+      cleanPhone = `91${cleanPhone.slice(1)}`;
+    }
+
+    if (!cleanPhone || cleanPhone.length < 10) {
+      toast.error('Invalid vendor phone number format for WhatsApp.', {
+        id: 'invalid-vendor-phone'
+      });
+      return;
+    }
+
+    const productLink = `${window.location.origin}/customer/listings/${item._id || item.id}`;
+    const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || 'Vendor';
+    const text = encodeURIComponent(
+      `Hello ${vendorName}!\nI found your listing "${item.title}" on BizReels.\nLink: ${productLink}\nI would like to inquire about details/availability.`
+    );
 
     try {
       const listingId = item._id || item.id;
@@ -368,7 +411,7 @@ export default function SearchListingsPage() {
       console.warn('Failed to track WhatsApp interaction:', err);
     }
 
-    window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
   };
 
   // Call Request
@@ -475,7 +518,7 @@ export default function SearchListingsPage() {
       if (type !== 'all') params.append('type', type);
       if (category !== 'all') params.append('category', category);
       if (query.trim()) params.append('search', query.trim());
-      if (maxPrice < 200000) params.append('maxPrice', maxPrice);
+      if (maxPrice < 20000000) params.append('maxPrice', maxPrice);
       if (distance && distance !== 'all') params.append('distance', distance);
       if (condition !== 'all') params.append('condition', condition);
       if (sellerType !== 'all') params.append('sellerType', sellerType);
@@ -607,8 +650,43 @@ export default function SearchListingsPage() {
     }
   }
 
+  const searchStructuredData = React.useMemo(() => [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bizreels.in/' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Search & Browse', 'item': 'https://bizreels.in/customer/search' },
+      ]
+    }
+  ], []);
+
+  const hasSpecificCategory = category && category !== 'all';
+  const hasSpecificQuery = Boolean(query && query.trim());
+  const seoTitle = hasSpecificQuery
+    ? `Search Results for "${query.trim()}"`
+    : hasSpecificCategory
+    ? `Explore ${category} Products & Services`
+    : 'Explore Products & Services';
+  const seoDesc = hasSpecificCategory
+    ? `Discover top rated local ${category} vendors, products, and services on BizReels marketplace.`
+    : 'Discover local vendors, browse products and services, and get deals on BizReels.';
+  const seoCanonical = hasSpecificCategory && !hasSpecificQuery
+    ? `https://bizreels.in/customer/search?category=${encodeURIComponent(category)}`
+    : 'https://bizreels.in/customer/search';
+  const seoRobots = hasSpecificQuery || showAdvanced || hasOffers
+    ? 'noindex, follow'
+    : 'index, follow';
+
   return (
     <div className="min-h-full bg-[#f8f4ec] py-4 px-3 sm:px-6 pb-24 sm:pb-12 font-sans">
+      <SEO
+        title={seoTitle}
+        description={seoDesc}
+        canonical={seoCanonical}
+        robots={seoRobots}
+        structuredData={searchStructuredData}
+      />
       <div className="max-w-6xl mx-auto space-y-5 animate-fade-in">
         
         {/* ── Page Header matching Home Feed ── */}
@@ -690,6 +768,7 @@ export default function SearchListingsPage() {
                   onToggleLike={toggleLike}
                   onShare={handleShare}
                   onWhatsApp={handleWhatsApp}
+                  onCall={(it) => setCallItem(it)}
                 />
               );
             })}
@@ -707,7 +786,7 @@ export default function SearchListingsPage() {
           toggleLike={toggleLike}
           handleShare={handleShare}
           handleWhatsApp={handleWhatsApp}
-          handleCallRequest={handleCallRequest}
+          handleCallRequest={(it) => setCallItem(it || selectedItem)}
           handleInquire={handleInquire}
           handleOrderRequest={handleOrderRequest}
           reviewsList={reviewsList}
@@ -717,6 +796,16 @@ export default function SearchListingsPage() {
           setReviewText={setReviewText}
           handleAddReview={handleAddReview}
           onOpenBookService={(service) => setBookingService(service)}
+        />
+
+        {/* ── Production Click-To-Call / Contact Vendor Menu Modal ── */}
+        <ClickToCallModal
+          isOpen={!!callItem}
+          item={callItem}
+          onClose={() => setCallItem(null)}
+          onInquire={handleInquire}
+          onWhatsApp={handleWhatsApp}
+          onCallbackRequest={handleCallRequest}
         />
 
         {/* ── Realtime Service Booking Modal matching Customer Activities ── */}

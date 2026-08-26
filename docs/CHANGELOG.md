@@ -4,6 +4,32 @@ All notable changes to the BizReels local social commerce platform will be docum
 
 ---
 
+## [1.2.0] - 2026-08-26
+
+### Added
+* **Flipkart-Style Multi-Step Instant Checkout**: Redesigned Direct Buy checkout flow into a 4-step accordion experience: Delivery Address (with live GPS detection), Order Summary (Quantity +/- and booking slots), Coupons & Bank Offers, and Payment Options (Vendor UPI/QR, COD, Bank Transfer).
+* **Coupons & Promo Codes System**: Added real-time coupon code validation (`POST /v1/offers/validate-coupon`), 1-click applicable coupons drawer (`GET /v1/offers/applicable`), and savings preview banners.
+* **Shiprocket Logistics & Shipping Engine**: Added `shiprocket.service.js` with live courier rate estimation (`POST /v1/offers/calculate-shipping`) and Free Delivery above ₹499 rule.
+* **Subscription Add-Ons System**:
+  * Added dynamic Add-ons manager for Admins (`PlanAddonEditor.jsx`) to attach optional capacity add-ons (reels limit, AI credits, leads quota, verified badges) to subscription plans.
+  * Added interactive Add-ons selector (`AddonsSelector.jsx`) and SaaS checkout modal (`SubscriptionCheckoutModal.jsx`) for Vendors and Creators with real-time price tallying (`Base Plan + Addons Total`).
+  * Updated Razorpay and Wallet checkout services to process and record selected add-ons.
+* **Modular React Subcomponents Architecture**: Refactored `DirectBuyModal.jsx` and `SubscriptionTab.jsx` into focused, reusable subcomponents.
+
+---
+
+## [1.1.0] - 2026-08-24
+
+### Added
+* **Dynamic SEO & Structured Data Engine**: Implemented full Schema.org JSON-LD structured data (`WebSite`, `Organization`, `Product`, `Service`, `LocalBusiness`, `BreadcrumbList`, `CollectionPage`, `VideoObject`) across all public pages.
+* **Dynamic XML Sitemap & Index**: Added dynamic backend sitemap generation (`/sitemap.xml`, `/sitemap-index.xml`) indexing published listings, active categories, and verified vendors with automated ISO `lastmod` dates and `Cache-Control` headers.
+* **Production Crawl Directives**: Added `robots.txt` protecting administrative, authenticated, and private customer dashboards while exposing public discovery routes to search engines.
+* **Responsive Image System (`LazyImage.jsx`)**: Integrated Cloudinary AVIF/WebP auto-formatting with responsive multi-resolution `srcset` (`400w`, `800w`, `1200w`), LCP priority mode (`fetchpriority="high"`), skeleton placeholders, and CLS layout reservation.
+* **Granular Rollup Code Splitting**: Restructured Vite manual chunking to split monolithic 1,047 kB bundle into modular packages (`vendor-react`, `vendor-core`, `vendor-charts`, `vendor-icons`, `vendor-ui`, `vendor-motion`).
+* **Backend Query & Caching Optimizations**: Parallelized database queries with `Promise.all`, added 30–60s multi-tier TTL caching on trending and recommended feeds, and implemented media URI defensive sanitizers.
+
+---
+
 ## [1.0.0] - 2026-07-15
 
 ### Added

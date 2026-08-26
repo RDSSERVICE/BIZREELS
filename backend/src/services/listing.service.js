@@ -349,8 +349,49 @@ class ListingService {
   }
 
   async getListingDetails(id) {
-    const listing = await listingRepository.findListingById(id);
+    let listing = await listingRepository.findListingById(id);
     if (!listing) {
+      try {
+        const Reel = require('../models/Reel');
+        const reel = await Reel.findById(id).populate('creator', 'name shop_name business_name profile_pic avatarUrl phone location city address vendorProfile isVerified kyc_status is_subscribed_verified').lean();
+        if (reel) {
+          const creatorObj = reel.creator || {};
+          const isService = reel.postType === 'service' || reel.postType === 'services';
+          const media = Array.isArray(reel.mediaUrls) && reel.mediaUrls.length > 0
+            ? reel.mediaUrls
+            : [reel.videoUrl || reel.thumbnailUrl || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=600&q=80'];
+
+          listing = {
+            _id: reel._id,
+            id: reel._id.toString(),
+            title: reel.caption || 'Reel Promotion',
+            description: reel.caption || '',
+            shortDescription: reel.caption?.slice(0, 100) || '',
+            category: reel.category || 'General',
+            subcategory: reel.subcategory || 'General',
+            type: isService ? 'service' : 'product',
+            price: Number(reel.targetListing?.price || reel.price || 0),
+            salePrice: Number(reel.targetListing?.salePrice || reel.salePrice || reel.price || 0),
+            actualPrice: Number(reel.targetListing?.actualPrice || reel.actualPrice || 0),
+            sellingPrice: Number(reel.targetListing?.salePrice || reel.salePrice || reel.price || 0),
+            images: media,
+            videos: reel.videoUrl ? [reel.videoUrl] : [],
+            vendor: creatorObj,
+            vendorId: creatorObj,
+            seller: creatorObj,
+            city: creatorObj.city || creatorObj.location?.city || 'Local Area',
+            location: reel.location || creatorObj.location,
+            views: reel.views || 0,
+            likes: reel.likesCount || 0,
+            status: reel.status || 'published',
+            isReelPost: true,
+            createdAt: reel.createdAt,
+          };
+          return listing;
+        }
+      } catch (err) {
+        console.error('Error fetching reel fallback in getListingDetails:', err);
+      }
       throw ApiError.notFound('Listing not found.');
     }
     return listing;

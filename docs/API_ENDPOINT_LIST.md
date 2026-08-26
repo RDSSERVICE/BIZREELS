@@ -83,10 +83,43 @@
 
 ---
 
-## 8. Analytics & AI (`/analytics`, `/listings/ai-copy`)
+## 8. Cart & Multi-Vendor Ordering (`/cart`)
+
+| Method | Endpoint | Authorization | Description |
+|---|---|---|---|
+| `GET` | `/cart` (or `/cart/me`) | Authenticated | Retrieve current user cart with vendor groups & item details |
+| `POST` | `/cart/add` (or `/cart/me/add`) | Authenticated | Add listing item and quantity to shopping cart |
+| `PATCH` | `/cart/items/:listing_id` | Authenticated | Update item quantity (1-99) in cart |
+| `DELETE` | `/cart/items/:listing_id` | Authenticated | Remove item from shopping cart |
+| `POST` | `/cart/checkout` | Authenticated | Multi-vendor direct order checkout creating deals and chat notifications |
+
+---
+
+## 9. Analytics & AI (`/analytics`, `/listings/ai-copy`)
 
 | Method | Endpoint | Authorization | Description |
 |---|---|---|---|
 | `POST` | `/listings/ai-copy` | Vendor / Creator | AI description description synthesis |
 | `POST` | `/analytics` | Public / User | Track clicks / views analytics log |
 | `GET` | `/analytics/summary` | Admin | Fetch aggregate KPI summaries |
+
+---
+
+## 10. SEO & Sitemaps (`/seo`, `/sitemap.xml`, `/robots.txt`)
+
+| Method | Endpoint | Authorization | Description |
+|---|---|---|---|
+| `GET` | `/sitemap.xml` | Public | Dynamic XML Sitemap with published listings & verified vendors |
+| `GET` | `/sitemap-index.xml` | Public | Dynamic XML Sitemap Index for scalable crawler ingestion |
+| `GET` | `/robots.txt` | Public | Dynamic robots crawler directives |
+| `GET` | `/seo/listing/:idOrSlug` | Public | Dynamic SEO metadata, OpenGraph tags & Schema for listings |
+
+---
+
+## 11. Feed & Discovery (`/feed`)
+
+| Method | Endpoint | Authorization | Description |
+|---|---|---|---|
+| `GET` | `/feed/` | Public / Auth | Geo-proximity blended feed of listings and video reels |
+| `GET` | `/feed/reels` | Public / Auth | 5-Tier personalized video recommendation feed |
+| `GET` | `/feed/home-trending` | Public | High-performance cached trending products and featured cards |

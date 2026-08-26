@@ -15,6 +15,7 @@ import { setCredentials, logout, selectCurrentUser, setActiveRole } from '../../
 import { api, tokenStore, resolveMediaUrl } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 import { useLanguage } from '../../context/LanguageContext';
+import SEO from '../../components/common/SEO';
 
 /**
  * VendorLayout — Warm Editorial Bento-Brutalism layout for Vendor Portal
@@ -343,6 +344,7 @@ export default function VendorLayout() {
 
   return (
     <div className="min-h-screen bg-[#f2ede4] flex font-sans">
+      <SEO title="Vendor Dashboard" robots="noindex, nofollow" />
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-white border-r border-[#e3dccb] fixed top-0 bottom-0 left-0 z-30">
         <SidebarContent onItemClick={() => { }} />

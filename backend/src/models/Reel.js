@@ -183,4 +183,27 @@ reelSchema.pre(/^find/, function () {
   this.where({ isDeleted: { $ne: true } });
 });
 
+const sanitizeMediaUrl = (url) => {
+  if (!url || typeof url !== 'string') return url;
+  if (/^file:\/\//i.test(url) || url.includes('/host.exp.exponent/')) {
+    return 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
+  }
+  return url;
+};
+
+reelSchema.post(['find', 'findOne', 'findOneAndUpdate'], function (docs) {
+  if (!docs) return;
+  const sanitizeDoc = (doc) => {
+    if (doc.videoUrl) doc.videoUrl = sanitizeMediaUrl(doc.videoUrl);
+    if (doc.thumbnailUrl && (/^file:\/\//i.test(doc.thumbnailUrl) || doc.thumbnailUrl.includes('/host.exp.exponent/'))) {
+      doc.thumbnailUrl = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80';
+    }
+  };
+  if (Array.isArray(docs)) {
+    docs.forEach(sanitizeDoc);
+  } else {
+    sanitizeDoc(docs);
+  }
+});
+
 module.exports = mongoose.models.Reel || mongoose.model('Reel', reelSchema);

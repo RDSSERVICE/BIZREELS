@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   FiVideo, FiUser, FiCamera, FiDollarSign, FiMapPin, FiGlobe,
-  FiArrowRight, FiCheck, FiMail, FiPhone, FiMessageSquare, FiUploadCloud,
+  FiArrowRight, FiArrowLeft, FiCheck, FiMail, FiPhone, FiMessageSquare, FiUploadCloud,
   FiCalendar, FiAward, FiClock,
   FiCompass, FiLayers, FiScissors
 } from 'react-icons/fi';
@@ -348,8 +348,33 @@ export default function BecomeCreatorPage({ isEditMode = false }) {
     }
   };
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else if (effectiveEditMode) {
+      navigate('/creator/dashboard');
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6 font-sans p-2 sm:p-4 min-h-screen">
+    <div className="max-w-4xl mx-auto space-y-4 font-sans p-2 sm:p-4 min-h-screen">
+      {/* Top Back Navigation Bar */}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={handleGoBack}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-[#e3dccb] hover:bg-[#f8f4ec] text-[#1a1a1a] text-xs font-bold transition shadow-2xs cursor-pointer"
+        >
+          <FiArrowLeft size={14} className="text-[#d99a3d]" />
+          <span>← Go Back</span>
+        </button>
+        <span className="text-[11px] font-semibold text-slate-500 hidden sm:inline">
+          {effectiveEditMode ? 'Creator Studio Profile Editor' : 'Creator Onboarding Setup'}
+        </span>
+      </div>
+
       {/* Header Banner */}
       <div className="bg-[#241b15] text-white p-6 rounded-md border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -567,24 +592,35 @@ export default function BecomeCreatorPage({ isEditMode = false }) {
           </label>
         </div>
 
-        {/* SUBMIT BUTTON */}
-        <button
-          type="submit"
-          disabled={loading || !termsAccepted}
-          className="w-full py-3.5 bg-[#241b15] text-[#d99a3d] border border-[#241b15] rounded-md text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#342820] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-        >
-          {effectiveEditMode ? (
-            <>
-              <FiCheck size={16} />
-              <span>{loading ? 'Saving Changes...' : 'Update Creator Profile'}</span>
-            </>
-          ) : (
-            <>
-              <span>{loading ? 'Activating Creator Studio...' : 'Register Profile & Launch Creator Studio'}</span>
-              <FiArrowRight size={16} />
-            </>
-          )}
-        </button>
+        {/* ACTION BUTTONS ROW */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="w-full sm:w-auto px-6 py-3.5 bg-white border border-[#e3dccb] hover:bg-[#f8f4ec] text-[#1a1a1a] rounded-md text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+          >
+            <FiArrowLeft size={16} className="text-slate-500" />
+            <span>Cancel &amp; Go Back</span>
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading || !termsAccepted}
+            className="flex-1 w-full py-3.5 bg-[#241b15] text-[#d99a3d] border border-[#241b15] rounded-md text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#342820] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            {effectiveEditMode ? (
+              <>
+                <FiCheck size={16} />
+                <span>{loading ? 'Saving Changes...' : 'Update Creator Profile'}</span>
+              </>
+            ) : (
+              <>
+                <span>{loading ? 'Activating Creator Studio...' : 'Register Profile & Launch Creator Studio'}</span>
+                <FiArrowRight size={16} />
+              </>
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );

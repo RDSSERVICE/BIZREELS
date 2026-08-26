@@ -509,17 +509,28 @@ router.patch('/me/interests', requireAuth, catchAsync(async (req, res) => {
   });
 }));
 
+// In-memory short-lived cache for fast user activity counts (3 second TTL)
+const activityCountsCache = new Map();
+
 // ── Activity Counts (Analytics for Activities Dashboard) ───────────────
 router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
+  const uid = req.user._id.toString();
+  const now = Date.now();
+
+  const cached = activityCountsCache.get(uid);
+  if (cached && (now - cached.timestamp < 3000)) {
+    return res.json(cached.data);
+  }
+
   const Interaction = require('../models/Interaction');
   const Notification = require('../models/Notification');
   const { ChatMessage } = require('../models/Chat');
-  const uid = req.user._id.toString();
+  const Listing = require('../models/Listing');
 
-  // Run queries in parallel. Replaced slow non-indexed aggregation lookup with direct index queries.
+  // Run indexed queries in parallel
   const [
     byTypeCounts,
-    savedServices,
+    savedItems,
     unreadNotifications,
     unreadChat
   ] = await Promise.all([
@@ -527,13 +538,7 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
       { $match: { user_id: uid } },
       { $group: { _id: '$type', count: { $sum: 1 } } }
     ]),
-    (async () => {
-      const savedInters = await Interaction.find({ user_id: uid, type: 'save', listing_id: { $ne: null } }).select('listing_id').lean();
-      const listingIds = savedInters.map(i => i.listing_id).filter(id => /^[0-9a-fA-F]{24}$/.test(id));
-      if (listingIds.length === 0) return 0;
-      const Listing = require('../models/Listing');
-      return await Listing.countDocuments({ _id: { $in: listingIds }, type: 'service', isDeleted: { $ne: true } });
-    })(),
+    Interaction.find({ user_id: uid, type: 'save' }).select('listing_id').lean(),
     Notification.countDocuments({ recipient: uid, isRead: false }).catch(() => 0),
     ChatMessage.countDocuments({ receiver_id: uid, read_at: null, is_deleted: { $ne: true } }).catch(() => 0)
   ]);
@@ -547,11 +552,28 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
     chat_inquiry: 0
   };
 
-  byTypeCounts.forEach(item => {
-    if (item._id in counts) {
+  for (let i = 0; i < byTypeCounts.length; i++) {
+    const item = byTypeCounts[i];
+    if (item && item._id in counts) {
       counts[item._id] = item.count;
     }
-  });
+  }
+
+  // Calculate saved services vs products efficiently
+  let savedServices = 0;
+  if (counts.save > 0 && savedItems && savedItems.length > 0) {
+    const listingIds = savedItems
+      .map(i => i.listing_id)
+      .filter(id => id && /^[0-9a-fA-F]{24}$/.test(id));
+
+    if (listingIds.length > 0) {
+      savedServices = await Listing.countDocuments({
+        _id: { $in: listingIds },
+        type: 'service',
+        isDeleted: { $ne: true }
+      }).catch(() => 0);
+    }
+  }
 
   const savedReels = counts.save_reel;
   const savedImages = counts.save_image;
@@ -560,10 +582,9 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
   const chatInquiries = counts.chat_inquiry;
 
   const actualSavedProducts = Math.max(0, counts.save - savedServices);
-
   const total = actualSavedProducts + savedServices + savedReels + savedImages + clickToCalled + whatsappContacted + chatInquiries;
 
-  res.json({
+  const responsePayload = {
     success: true,
     savedProducts: Math.max(0, actualSavedProducts),
     savedServices,
@@ -575,7 +596,24 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
     total,
     unreadNotifications,
     unreadChat,
+  };
+
+  // Cache response for 3 seconds
+  activityCountsCache.set(uid, {
+    timestamp: now,
+    data: responsePayload
   });
+
+  // Clean cache periodically
+  if (activityCountsCache.size > 1000) {
+    for (const [k, v] of activityCountsCache.entries()) {
+      if (now - v.timestamp > 10000) {
+        activityCountsCache.delete(k);
+      }
+    }
+  }
+
+  res.json(responsePayload);
 }));
 
 // ── GET Activities List ────────────────────────────────────────────────
