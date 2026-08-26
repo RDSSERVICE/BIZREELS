@@ -873,8 +873,8 @@ class AuthService {
 
   _parseExpiry(expiry) {
     const units = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
-    const match = expiry.match(/^(\d+)([smhd])$/);
-    if (!match) return 7 * 86400000;
+    const match = expiry ? expiry.match(/^(\d+)([smhd])$/) : null;
+    if (!match) return 60 * 86400000;
     return parseInt(match[1], 10) * units[match[2]];
   }
 
