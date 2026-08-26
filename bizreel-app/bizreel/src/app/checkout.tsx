@@ -291,6 +291,11 @@ export default function CheckoutScreen() {
   );
 }
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -318,10 +323,9 @@ const styles = StyleSheet.create({
     maxWidth: 280,
   },
   browseBtn: {
-    backgroundColor: BrandColors.primary,
+    backgroundColor: YELLOW,
     paddingHorizontal: Spacing.four,
     paddingVertical: 12,
-    borderRadius: 24,
     borderRadius: 0,
     marginTop: Spacing.two,
   },

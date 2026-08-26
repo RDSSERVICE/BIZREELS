@@ -20,7 +20,7 @@ export default function TabLayout() {
   const segments = useSegments();
 
   // Determine currently active tab index
-  const currentTab = (segments[1] as TabName) || 'index';
+  const currentTab = (segments[1] as TabName) || 'home';
   const currentIndex = TAB_ORDER.indexOf(currentTab as TabName);
 
   // Swipe left → next tab, swipe right → previous tab
@@ -45,6 +45,7 @@ export default function TabLayout() {
       <GestureDetector gesture={swipeGesture}>
         <View style={styles.root}>
           <Tabs
+            initialRouteName="home"
             tabBar={(props) => <CustomTabBar {...props} />}
             screenOptions={{ headerShown: false }}>
             <Tabs.Screen name="home" options={{ title: 'Home' }} />

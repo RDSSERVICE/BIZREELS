@@ -7,8 +7,28 @@ import axios from 'axios';
 
 import { tokenStore } from './storage';
 
+const DEFAULT_BACKEND_URL = 'https://bizreels-backend.onrender.com/api/v1';
+
+export const getBaseUrl = (): string => {
+  const envUrl =
+    process.env.EXPO_PUBLIC_BASE_URL ||
+    process.env.EXPO_PUBLIC_API_URL ||
+    process.env.EXPO_PUBLIC_BACKEND_URL ||
+    DEFAULT_BACKEND_URL;
+
+  let cleanUrl = envUrl.trim().replace(/\/+$/, '');
+  if (!cleanUrl.endsWith('/api/v1')) {
+    if (cleanUrl.endsWith('/api')) {
+      cleanUrl = `${cleanUrl}/v1`;
+    } else {
+      cleanUrl = `${cleanUrl}/api/v1`;
+    }
+  }
+  return cleanUrl;
+};
+
 export const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_BASE_URL || 'https://bizreels-backend.onrender.com/api/v1',
+  baseURL: getBaseUrl(),
   timeout: 35_000,
   headers: {
     'Content-Type': 'application/json',

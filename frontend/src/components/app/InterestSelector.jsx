@@ -42,6 +42,11 @@ const getCategoryIcon = (categoryName) => {
     'real estate': FiHome,
     'construction': FiHome,
     'property': FiHome,
+    'home': FiHome,
+    'clean': FiHome,
+    'cleaning': FiHome,
+    'housekeeping': FiHome,
+    'maid': FiHome,
     'education': FiBookOpen,
     'coaching': FiBookOpen,
   };

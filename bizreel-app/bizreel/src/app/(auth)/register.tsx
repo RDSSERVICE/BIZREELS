@@ -1,25 +1,28 @@
+import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 import { BrandColors, Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { useRegister } from '@/features/auth/mutations';
 import { registerSchema, type RegisterFormValues } from '@/features/auth/schema';
 import { useTheme } from '@/hooks/use-theme';
+import { api } from '@/lib/api';
 
 type PasswordRule = { label: string; test: (pw: string) => boolean };
 
@@ -30,17 +33,38 @@ const PASSWORD_RULES: PasswordRule[] = [
   { label: 'Includes a special character', test: (pw) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw) },
 ];
 
+interface DBSubCategory {
+  id: string;
+  name: string;
+}
+
+interface DBCategory {
+  id: string;
+  name: string;
+  icon_url?: string;
+  children?: DBSubCategory[];
+}
+
 export default function RegisterScreen() {
   const theme = useTheme();
   const s = makeStyles(theme);
+  const [step, setStep] = useState<1 | 2>(1);
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  // Interest categories from DB
+  const [dbCategories, setDbCategories] = useState<DBCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [selectedInterests, setSelectedInterests] = useState<Array<{ category: string; subcategory?: string | null }>>([]);
+  const [expandedCatId, setExpandedCatId] = useState<string | null>(null);
+
   const { mutate: register, isPending } = useRegister();
 
   const {
     control,
     handleSubmit,
     watch,
+    trigger,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -50,13 +74,69 @@ export default function RegisterScreen() {
 
   const passwordValue = watch('password');
 
+  // Fetch live categories taxonomy from DB API when entering Step 2
+  useEffect(() => {
+    if (step === 2 && dbCategories.length === 0) {
+      setLoadingCategories(true);
+      api.get('/categories?tree=true')
+        .then((res: any) => {
+          const items = res.data?.items || res.data || [];
+          const formatted = items
+            .filter((c: any) => !c.parent_id && c.is_active !== false)
+            .map((c: any) => ({
+              id: c._id || c.id,
+              name: c.name,
+              icon_url: c.icon_url,
+              children: (c.children || []).map((sub: any) => ({
+                id: sub._id || sub.id,
+                name: sub.name,
+              })),
+            }));
+          setDbCategories(formatted);
+        })
+        .catch((err) => {
+          console.warn('Failed to load DB categories during signup:', err);
+        })
+        .finally(() => setLoadingCategories(false));
+    }
+  }, [step]);
+
+  const handleNextStep = async () => {
+    setServerError(null);
+    const valid = await trigger(['name', 'email', 'password']);
+    if (valid) {
+      setStep(2);
+    }
+  };
+
+  const toggleInterest = (category: string, subcategory: string | null = null) => {
+    setSelectedInterests((prev) => {
+      const exists = prev.some((item) => item.category === category && item.subcategory === subcategory);
+      if (exists) {
+        return prev.filter((item) => !(item.category === category && item.subcategory === subcategory));
+      } else {
+        return [...prev, { category, subcategory }];
+      }
+    });
+  };
+
+  const isInterestSelected = (category: string, subcategory: string | null = null) => {
+    return selectedInterests.some((item) => item.category === category && item.subcategory === subcategory);
+  };
+
   function onSubmit(values: RegisterFormValues) {
     setServerError(null);
-    register(values, {
-      onError: (error) => {
-        setServerError(error.message);
+    register(
+      {
+        ...values,
+        interests: selectedInterests,
       },
-    });
+      {
+        onError: (error) => {
+          setServerError(error.message);
+        },
+      }
+    );
   }
 
   return (
@@ -72,7 +152,7 @@ export default function RegisterScreen() {
         {/* Back button */}
         <Pressable
           style={({ pressed }) => [s.backButton, pressed && s.pressed]}
-          onPress={() => router.back()}
+          onPress={() => (step === 2 ? setStep(1) : router.back())}
           accessibilityLabel="Go back"
           accessibilityRole="button">
           <SymbolView
@@ -90,12 +170,12 @@ export default function RegisterScreen() {
             contentFit="contain"
           />
           <View style={s.headingRow}>
-            <Text style={s.heading}>Create Your Account </Text>
-            <Text style={s.sparkle}>✦</Text>
+            <Text style={s.heading}>{step === 1 ? 'Create Account' : 'Choose Interests'}</Text>
           </View>
           <Text style={s.subheading}>
-            Join BizReels and start showcasing your products, generating leads and growing your
-            business.
+            {step === 1
+              ? 'Join BizReels and discover local products, verified vendors & personalized video reels.'
+              : 'Select categories & subcategories to personalize your local feed. (Step 2 of 2)'}
           </Text>
         </View>
 
@@ -114,164 +194,277 @@ export default function RegisterScreen() {
             </View>
           )}
 
-          {/* Full Name */}
-          <View style={s.fieldGroup}>
-            <Text style={s.label}>Full Name</Text>
-            <Controller
-              control={control}
-              name="name"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View style={[s.inputRow, errors.name && s.inputError]}>
-                  <SymbolView
-                    name={{ ios: 'person', android: 'person', web: 'person' }}
-                    size={18}
-                    tintColor={BrandColors.primary}
-                    style={s.inputIcon}
-                  />
-                  <TextInput
-                    style={s.input}
-                    placeholder="Enter your full name"
-                    placeholderTextColor={theme.placeholder}
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                    returnKeyType="next"
-                    value={value}
-                    onChangeText={(v) => { onChange(v); setServerError(null); }}
-                    onBlur={onBlur}
-                    accessibilityLabel="Full Name"
-                  />
+          {step === 1 ? (
+            /* STEP 1: Account Credentials */
+            <>
+              {/* Full Name */}
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Full Name</Text>
+                <Controller
+                  control={control}
+                  name="name"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View style={[s.inputRow, errors.name && s.inputError]}>
+                      <SymbolView
+                        name={{ ios: 'person', android: 'person', web: 'person' }}
+                        size={18}
+                        tintColor={BrandColors.primary}
+                        style={s.inputIcon}
+                      />
+                      <TextInput
+                        style={s.input}
+                        placeholder="Enter your full name"
+                        placeholderTextColor={theme.placeholder}
+                        autoCapitalize="words"
+                        autoCorrect={false}
+                        returnKeyType="next"
+                        value={value}
+                        onChangeText={(v) => { onChange(v); setServerError(null); }}
+                        onBlur={onBlur}
+                        accessibilityLabel="Full Name"
+                      />
+                    </View>
+                  )}
+                />
+                {errors.name && <Text style={s.fieldError}>{errors.name.message}</Text>}
+              </View>
+
+              {/* Email */}
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Email Address</Text>
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View style={[s.inputRow, (errors.email || !!serverError) && s.inputError]}>
+                      <SymbolView
+                        name={{ ios: 'envelope', android: 'email', web: 'email' }}
+                        size={18}
+                        tintColor={BrandColors.primary}
+                        style={s.inputIcon}
+                      />
+                      <TextInput
+                        style={s.input}
+                        placeholder="Enter your email address"
+                        placeholderTextColor={theme.placeholder}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="email-address"
+                        returnKeyType="next"
+                        value={value}
+                        onChangeText={(v) => { onChange(v); setServerError(null); }}
+                        onBlur={onBlur}
+                        accessibilityLabel="Email Address"
+                      />
+                    </View>
+                  )}
+                />
+                {errors.email && <Text style={s.fieldError}>{errors.email.message}</Text>}
+              </View>
+
+              {/* Password */}
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Password</Text>
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View style={[s.inputRow, errors.password && s.inputError]}>
+                      <SymbolView
+                        name={{ ios: 'lock', android: 'lock', web: 'lock' }}
+                        size={18}
+                        tintColor={BrandColors.primary}
+                        style={s.inputIcon}
+                      />
+                      <TextInput
+                        style={s.input}
+                        placeholder="Create a password"
+                        placeholderTextColor={theme.placeholder}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        secureTextEntry={!showPassword}
+                        returnKeyType="done"
+                        value={value}
+                        onChangeText={(v) => { onChange(v); setServerError(null); }}
+                        onBlur={onBlur}
+                        onSubmitEditing={handleNextStep}
+                        accessibilityLabel="Password"
+                      />
+                      <Pressable
+                        onPress={() => setShowPassword((v) => !v)}
+                        style={s.eyeButton}
+                        accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                        accessibilityRole="button">
+                        <SymbolView
+                          name={
+                            showPassword
+                              ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                              : { ios: 'eye', android: 'visibility', web: 'visibility' }
+                          }
+                          size={18}
+                          tintColor={theme.textSecondary}
+                        />
+                      </Pressable>
+                    </View>
+                  )}
+                />
+
+                {/* Password strength checklist */}
+                <View style={s.rulesList}>
+                  {PASSWORD_RULES.map((rule) => {
+                    const passed = rule.test(passwordValue ?? '');
+                    return (
+                      <View key={rule.label} style={s.ruleRow}>
+                        <SymbolView
+                          name={
+                            passed
+                              ? { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' }
+                              : { ios: 'circle', android: 'radio_button_unchecked', web: 'radio_button_unchecked' }
+                          }
+                          size={14}
+                          tintColor={passed ? BrandColors.success : theme.textSecondary}
+                        />
+                        <Text style={[s.ruleText, passed && s.ruleTextPassed]}>{rule.label}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
-              )}
-            />
-            {errors.name && <Text style={s.fieldError}>{errors.name.message}</Text>}
-          </View>
+              </View>
 
-          {/* Email */}
-          <View style={s.fieldGroup}>
-            <Text style={s.label}>Email Address</Text>
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View style={[s.inputRow, (errors.email || !!serverError) && s.inputError]}>
-                  <SymbolView
-                    name={{ ios: 'envelope', android: 'email', web: 'email' }}
-                    size={18}
-                    tintColor={BrandColors.primary}
-                    style={s.inputIcon}
-                  />
-                  <TextInput
-                    style={s.input}
-                    placeholder="Enter your email address"
-                    placeholderTextColor={theme.placeholder}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                    returnKeyType="next"
-                    value={value}
-                    onChangeText={(v) => { onChange(v); setServerError(null); }}
-                    onBlur={onBlur}
-                    accessibilityLabel="Email Address"
-                  />
-                </View>
-              )}
-            />
-            {errors.email && <Text style={s.fieldError}>{errors.email.message}</Text>}
-          </View>
-
-          {/* Password */}
-          <View style={s.fieldGroup}>
-            <Text style={s.label}>Password</Text>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View style={[s.inputRow, errors.password && s.inputError]}>
-                  <SymbolView
-                    name={{ ios: 'lock', android: 'lock', web: 'lock' }}
-                    size={18}
-                    tintColor={BrandColors.primary}
-                    style={s.inputIcon}
-                  />
-                  <TextInput
-                    style={s.input}
-                    placeholder="Create a password"
-                    placeholderTextColor={theme.placeholder}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    secureTextEntry={!showPassword}
-                    returnKeyType="done"
-                    value={value}
-                    onChangeText={(v) => { onChange(v); setServerError(null); }}
-                    onBlur={onBlur}
-                    onSubmitEditing={handleSubmit(onSubmit)}
-                    accessibilityLabel="Password"
-                  />
-                  <Pressable
-                    onPress={() => setShowPassword((v) => !v)}
-                    style={s.eyeButton}
-                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                    accessibilityRole="button">
-                    <SymbolView
-                      name={
-                        showPassword
-                          ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
-                          : { ios: 'eye', android: 'visibility', web: 'visibility' }
-                      }
-                      size={18}
-                      tintColor={theme.textSecondary}
-                    />
-                  </Pressable>
-                </View>
-              )}
-            />
-
-            {/* Password strength checklist */}
-            <View style={s.rulesList}>
-              {PASSWORD_RULES.map((rule) => {
-                const passed = rule.test(passwordValue ?? '');
-                return (
-                  <View key={rule.label} style={s.ruleRow}>
-                    <SymbolView
-                      name={
-                        passed
-                          ? { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' }
-                          : { ios: 'circle', android: 'radio_button_unchecked', web: 'radio_button_unchecked' }
-                      }
-                      size={14}
-                      tintColor={passed ? BrandColors.success : theme.textSecondary}
-                    />
-                    <Text style={[s.ruleText, passed && s.ruleTextPassed]}>{rule.label}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Create Account button */}
-          <Pressable
-            style={({ pressed }) => [
-              s.primaryButton,
-              pressed && s.primaryButtonPressed,
-              isPending && s.primaryButtonDisabled,
-            ]}
-            onPress={handleSubmit(onSubmit)}
-            disabled={isPending}
-            accessibilityLabel="Create Account"
-            accessibilityRole="button">
-            {isPending ? (
-              <ActivityIndicator color={BrandColors.onPrimary} />
-            ) : (
-              <>
-                <Text style={s.primaryButtonText}>Create Account</Text>
+              {/* Next: Select Interests button */}
+              <Pressable
+                style={({ pressed }) => [s.primaryButton, pressed && s.primaryButtonPressed]}
+                onPress={handleNextStep}
+                accessibilityLabel="Next Step">
+                <Text style={s.primaryButtonText}>Next: Select Interests</Text>
                 <SymbolView
                   name={{ ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }}
                   size={16}
                   tintColor={BrandColors.onPrimary}
                 />
-              </>
-            )}
-          </Pressable>
+              </Pressable>
+            </>
+          ) : (
+            /* STEP 2: Category & Subcategory Interest Selection */
+            <>
+              <View style={s.interestHeaderRow}>
+                <Text style={s.interestTitle}>CATEGORIES & SUBCATEGORIES</Text>
+                <View style={s.selectedBadge}>
+                  <Text style={s.selectedBadgeText}>
+                    {selectedInterests.length} Selected
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={s.interestSub}>
+                Select at least 5 categories or subcategories from DB taxonomy below:
+              </Text>
+
+              {loadingCategories ? (
+                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                  <ActivityIndicator color={YELLOW} />
+                  <Text style={{ color: '#fff', fontSize: FontSize.xs, marginTop: 8 }}>
+                    Fetching categories from database...
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  {dbCategories.map((cat) => {
+                    const isCatSelected = isInterestSelected(cat.name, null);
+                    const isExpanded = expandedCatId === cat.id;
+                    const subCount = selectedInterests.filter((i) => i.category === cat.name && i.subcategory).length;
+
+                    return (
+                      <View key={cat.id} style={s.catCard}>
+                        {/* Parent Category Header */}
+                        <TouchableOpacity
+                          style={s.catCardHeader}
+                          onPress={() => setExpandedCatId(isExpanded ? null : cat.id)}>
+                          <TouchableOpacity
+                            style={[s.catCheckBtn, isCatSelected && s.catCheckBtnActive]}
+                            onPress={() => toggleInterest(cat.name, null)}>
+                            <Ionicons
+                              name={isCatSelected ? 'checkmark' : 'add'}
+                              size={14}
+                              color={isCatSelected ? BLACK : '#fff'}
+                            />
+                          </TouchableOpacity>
+
+                          <View style={{ flex: 1 }}>
+                            <Text style={s.catName}>{cat.name}</Text>
+                            {subCount > 0 && (
+                              <Text style={s.subCountBadge}>{subCount} subcategory selected</Text>
+                            )}
+                          </View>
+
+                          {cat.children && cat.children.length > 0 && (
+                            <Ionicons
+                              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                              size={16}
+                              color="#F59E0B"
+                            />
+                          )}
+                        </TouchableOpacity>
+
+                        {/* Subcategories Accordion */}
+                        {isExpanded && cat.children && cat.children.length > 0 && (
+                          <View style={s.subsContainer}>
+                            {cat.children.map((sub) => {
+                              const isSubSelected = isInterestSelected(cat.name, sub.name);
+                              return (
+                                <TouchableOpacity
+                                  key={sub.id}
+                                  style={[s.subChip, isSubSelected && s.subChipActive]}
+                                  onPress={() => toggleInterest(cat.name, sub.name)}>
+                                  <Ionicons
+                                    name={isSubSelected ? 'checkmark-circle' : 'ellipse-outline'}
+                                    size={12}
+                                    color={isSubSelected ? BLACK : 'rgba(255,255,255,0.6)'}
+                                  />
+                                  <Text style={[s.subText, isSubSelected && s.subTextActive]}>
+                                    {sub.name}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* Complete Registration Button */}
+              <Pressable
+                style={({ pressed }) => [
+                  s.primaryButton,
+                  pressed && s.primaryButtonPressed,
+                  isPending && s.primaryButtonDisabled,
+                ]}
+                onPress={handleSubmit(onSubmit)}
+                disabled={isPending}>
+                {isPending ? (
+                  <ActivityIndicator color={BLACK} />
+                ) : (
+                  <>
+                    <Text style={s.primaryButtonText}>
+                      Create Account ({selectedInterests.length} Selected)
+                    </Text>
+                    <SymbolView
+                      name={{ ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }}
+                      size={16}
+                      tintColor={BLACK}
+                    />
+                  </>
+                )}
+              </Pressable>
+
+              <TouchableOpacity style={s.backToStep1Btn} onPress={() => setStep(1)}>
+                <Text style={s.backToStep1Text}>← Edit Name & Password</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Sign in link */}
@@ -282,19 +475,6 @@ export default function RegisterScreen() {
               <Text style={s.signinLink}>Sign In</Text>
             </Pressable>
           </Link>
-        </View>
-
-        {/* Security note */}
-        <View style={s.securityNote}>
-          <SymbolView
-            name={{ ios: 'shield', android: 'security', web: 'security' }}
-            size={20}
-            tintColor={theme.textSecondary}
-          />
-          <View>
-            <Text style={s.securityTitle}>Your information is secure with us.</Text>
-            <Text style={s.securitySub}>We never share your data.</Text>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -350,7 +530,6 @@ function makeStyles(_theme: any) {
       borderWidth: 2,
       borderColor: YELLOW,
     },
-    // Inline server error banner
     errorBanner: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -414,6 +593,7 @@ function makeStyles(_theme: any) {
       alignItems: 'center',
       justifyContent: 'center',
       gap: Spacing.two,
+      marginTop: 8,
     },
     primaryButtonPressed: { opacity: 0.8 },
     primaryButtonDisabled: { opacity: 0.7 },
@@ -422,6 +602,107 @@ function makeStyles(_theme: any) {
       fontSize: FontSize.base,
       fontWeight: '900',
       letterSpacing: 0.5,
+    },
+    interestHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    interestTitle: {
+      color: YELLOW,
+      fontSize: FontSize.sm,
+      fontWeight: '900',
+      letterSpacing: 1,
+    },
+    selectedBadge: {
+      backgroundColor: BLACK,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderWidth: 1,
+      borderColor: YELLOW,
+    },
+    selectedBadgeText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: '900',
+    },
+    interestSub: {
+      color: 'rgba(255,255,255,0.6)',
+      fontSize: FontSize.xs,
+    },
+    catCard: {
+      backgroundColor: BLACK,
+      borderWidth: 1,
+      borderColor: BORDER,
+      padding: Spacing.two,
+    },
+    catCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    catCheckBtn: {
+      width: 22,
+      height: 22,
+      borderWidth: 1,
+      borderColor: BORDER,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: BLACK,
+    },
+    catCheckBtnActive: {
+      backgroundColor: YELLOW,
+      borderColor: YELLOW,
+    },
+    catName: {
+      color: '#fff',
+      fontSize: FontSize.sm,
+      fontWeight: '900',
+    },
+    subCountBadge: {
+      color: YELLOW,
+      fontSize: 9,
+    },
+    subsContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      paddingTop: 8,
+      marginTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: BORDER,
+    },
+    subChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      backgroundColor: DARK_CARD,
+      borderWidth: 1,
+      borderColor: BORDER,
+    },
+    subChipActive: {
+      backgroundColor: YELLOW,
+      borderColor: YELLOW,
+    },
+    subText: {
+      color: 'rgba(255,255,255,0.7)',
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    subTextActive: {
+      color: BLACK,
+      fontWeight: '900',
+    },
+    backToStep1Btn: {
+      alignItems: 'center',
+      paddingVertical: 8,
+    },
+    backToStep1Text: {
+      color: 'rgba(255,255,255,0.6)',
+      fontSize: FontSize.xs,
+      fontWeight: '700',
     },
     signinRow: {
       flexDirection: 'row',
@@ -433,22 +714,6 @@ function makeStyles(_theme: any) {
       fontSize: FontSize.sm,
       fontWeight: '900',
       color: YELLOW,
-    },
-    securityNote: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: Spacing.two,
-      paddingHorizontal: Spacing.four,
-    },
-    securityTitle: {
-      fontSize: FontSize.xs,
-      fontWeight: '700',
-      color: 'rgba(255,255,255,0.5)',
-    },
-    securitySub: {
-      fontSize: FontSize.xs,
-      color: 'rgba(255,255,255,0.4)',
     },
   });
 }

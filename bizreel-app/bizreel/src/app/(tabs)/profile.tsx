@@ -80,7 +80,6 @@ export default function ProfileScreen() {
     { label: 'My Inquiries & Quotes', route: '/inquiries', icon: 'mail-outline' },
     { label: 'My Orders', route: '/orders', icon: 'cart-outline' },
     { label: 'Saved Products & Reels', route: '/saved', icon: 'bookmark-outline' },
-    { label: 'My Wallet', route: '/wallet', icon: 'wallet-outline' },
   ];
 
   const VENDOR_MENU = [
@@ -93,11 +92,29 @@ export default function ProfileScreen() {
     { label: 'Store Settings & Operations', route: '/vendor/settings', icon: 'options-outline' },
   ];
 
+  const CREATOR_MENU = [
+    { label: 'Creator Studio Dashboard', route: '/creator/dashboard', icon: 'grid-outline' },
+    { label: 'Portfolio Gallery & Reels', route: '/creator/portfolio', icon: 'film-outline' },
+    { label: 'Package Rates & Pricing', route: '/creator/pricing', icon: 'pricetag-outline' },
+    { label: 'Availability Schedule', route: '/creator/availability', icon: 'calendar-outline' },
+    { label: 'Campaign Orders & Shoots', route: '/creator/orders', icon: 'briefcase-outline' },
+    { label: 'Client Messages & Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
+    { label: 'KYC Identity Verification', route: '/creator/verification', icon: 'shield-checkmark-outline' },
+    { label: 'Reels Analytics', route: '/creator/analytics', icon: 'stats-chart-outline' },
+    { label: 'Reviews & Feedback', route: '/creator/reviews', icon: 'star-outline' },
+    { label: 'Studio Settings', route: '/creator/settings', icon: 'options-outline' },
+  ];
+
   const FINANCE_MENU = [
     { label: 'Subscription & Billing', route: '/vendor/subscription', icon: 'card-outline' },
     { label: 'Vendor Wallet & Credits', route: '/vendor/wallet', icon: 'wallet-outline' },
     { label: 'Credit Rate Schedule', route: '/vendor/rates', icon: 'flash-outline' },
     { label: 'Refer & Earn Rewards', route: '/vendor/referrals', icon: 'person-add-outline' },
+  ];
+
+  const CREATOR_FINANCE_MENU = [
+    { label: 'Creator Subscription Plan', route: '/creator/subscription', icon: 'card-outline' },
+    { label: 'Wallet & Payout Earnings', route: '/creator/wallet', icon: 'wallet-outline' },
   ];
 
   return (
@@ -231,6 +248,29 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* ── Creator Studio Section ── */}
+        {user.activeRole === 'creator' && (
+          <View style={styles.menuSectionCard}>
+            <View style={styles.sectionLabelRow}>
+              <View style={styles.sectionBar} />
+              <Text style={styles.menuSectionHeader}>CREATOR STUDIO</Text>
+            </View>
+
+            {CREATOR_MENU.map((menu, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.menuRow, idx === CREATOR_MENU.length - 1 && styles.menuRowLast]}
+                onPress={() => router.push(menu.route as any)}>
+                <View style={styles.menuIconBox}>
+                  <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
+                </View>
+                <Text style={styles.menuLabel}>{menu.label}</Text>
+                <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* ── Finance & Account Section ── */}
         <View style={styles.menuSectionCard}>
           <View style={styles.sectionLabelRow}>
@@ -238,10 +278,10 @@ export default function ProfileScreen() {
             <Text style={styles.menuSectionHeader}>FINANCE & ACCOUNT</Text>
           </View>
 
-          {FINANCE_MENU.map((menu, idx) => (
+          {(user.activeRole === 'creator' ? CREATOR_FINANCE_MENU : FINANCE_MENU).map((menu, idx) => (
             <TouchableOpacity
               key={idx}
-              style={[styles.menuRow, idx === FINANCE_MENU.length - 1 && styles.menuRowLast]}
+              style={[styles.menuRow, idx === (user.activeRole === 'creator' ? CREATOR_FINANCE_MENU : FINANCE_MENU).length - 1 && styles.menuRowLast]}
               onPress={() => router.push(menu.route as any)}>
               <View style={styles.menuIconBox}>
                 <Ionicons name={menu.icon as any} size={17} color={YELLOW} />

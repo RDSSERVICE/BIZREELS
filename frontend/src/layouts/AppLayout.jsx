@@ -138,7 +138,7 @@ const AppLayout = () => {
         items: [
           { name: 'Notifications', path: '/notifications', icon: FiBell },
           { name: 'Chats & Messages', path: '/chats', icon: FiMessageSquare },
-          { name: 'Wallet & Payouts', path: '/wallet', icon: FiBriefcase },
+          ...(activeRole !== 'customer' ? [{ name: 'Wallet & Payouts', path: '/wallet', icon: FiBriefcase }] : []),
           { name: 'Subscription', path: '/subscription', icon: FiShield },
         ]
       },

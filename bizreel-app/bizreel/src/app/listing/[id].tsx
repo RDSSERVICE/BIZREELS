@@ -52,7 +52,8 @@ export default function ListingDetailsScreen() {
     api
       .get(`/listings/${id}`)
       .then(({ data }) => {
-        setListing(data.data || data);
+        const itemData = data.data?.listing || data.listing || data.data || data;
+        setListing(itemData);
       })
       .catch((err) => {
         setError(err.message || 'Failed to load details');
@@ -79,11 +80,26 @@ export default function ListingDetailsScreen() {
     );
   }
 
-  const images = listing.images || [];
+  const images = listing.images || listing.photos || [];
   const mainImage = getListingImage(listing);
-  const price = listing.salePrice || listing.sellingPrice || listing.price || 0;
-  const originalPrice = listing.actualPrice || listing.price;
-  const hasDiscount = originalPrice > price;
+
+  const priceCandidates = [
+    listing.sellingPrice,
+    listing.salePrice,
+    listing.offer_price,
+    listing.price,
+    listing.rate,
+    listing.pricing?.amount,
+    listing.pricing?.price,
+    listing.actualPrice,
+    listing.regularPrice,
+    listing.originalPrice,
+    listing.cost,
+  ];
+  const validPrice = priceCandidates.map((p) => Number(p)).find((p) => !isNaN(p) && p > 0);
+  const price = validPrice || 0;
+  const originalPrice = Number(listing.actualPrice || listing.regularPrice || listing.originalPrice || 0);
+  const hasDiscount = originalPrice > price && price > 0;
 
   const handleAddToCart = () => {
     addToCartMutation.mutate(

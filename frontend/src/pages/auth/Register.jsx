@@ -58,7 +58,9 @@ const Register = () => {
       const user = res.data?.user || res.data;
       const activeRole = data.role || user?.activeRole || user?.current_role || 'customer';
       let targetPath = getRoleDashboard(activeRole);
-      if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
+      if (activeRole === 'customer') {
+        targetPath = '/customer/choose-interests';
+      } else if (activeRole === 'vendor' && !user?.vendorProfile?.shopName) {
         targetPath = '/vendor/profile';
       } else if (activeRole === 'creator' && !user?.creatorProfile?.displayName) {
         targetPath = '/creator/profile';

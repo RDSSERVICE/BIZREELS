@@ -20,6 +20,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 
+interface DrawerItem {
+  title: string;
+  route: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  badge?: string;
+}
+
+interface DrawerSection {
+  key: string;
+  title: string;
+  items: DrawerItem[];
+}
+
 interface VendorDrawerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -65,7 +78,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
   const displayEmail = user?.email || 'user@bizreels.com';
   const subtitleRole = isVendor ? 'VENDOR PORTAL' : 'CUSTOMER MENU';
 
-  const CUSTOMER_SECTIONS = [
+  const CUSTOMER_SECTIONS: DrawerSection[] = [
     {
       key: 'MAIN',
       title: 'CUSTOMER NAVIGATION',
@@ -75,14 +88,13 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
         { title: 'Chat & Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
         { title: 'My Inquiries & Quotes', route: '/inquiries', icon: 'mail-outline' },
         { title: 'My Orders', route: '/orders', icon: 'cart-outline' },
-        { title: 'Saved Items & Reels', route: '/saved', icon: 'bookmark-outline' },
-        { title: 'My Wallet', route: '/wallet', icon: 'wallet-outline' },
+        { title: 'Saved Items', route: '/saved', icon: 'bookmark-outline' },
         { title: 'My Profile', route: '/(tabs)/profile', icon: 'person-outline' },
       ],
     },
   ];
 
-  const VENDOR_SECTIONS = [
+  const VENDOR_SECTIONS: DrawerSection[] = [
     {
       key: 'MAIN',
       title: 'MAIN NAVIGATION',
@@ -129,7 +141,48 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
     },
   ];
 
-  const NAV_SECTIONS = isVendor ? VENDOR_SECTIONS : CUSTOMER_SECTIONS;
+  const CREATOR_SECTIONS: DrawerSection[] = [
+    {
+      key: 'OVERVIEW',
+      title: 'OVERVIEW',
+      items: [
+        { title: 'Creator Dashboard', route: '/creator/dashboard', icon: 'grid-outline' },
+        { title: 'Creator Settings', route: '/creator/settings', icon: 'settings-outline' },
+      ],
+    },
+    {
+      key: 'PROFILE_WORK',
+      title: 'PROFILE & WORK',
+      items: [
+        { title: 'Creator Profile', route: '/creator/onboarding', icon: 'person-outline' },
+        { title: 'Verification Center', route: '/creator/verification', icon: 'shield-checkmark-outline', badge: 'VERIFIED' },
+        { title: 'Portfolio Gallery', route: '/creator/portfolio', icon: 'film-outline' },
+        { title: 'Pricing Rates', route: '/creator/pricing', icon: 'pricetag-outline' },
+        { title: 'Availability Schedule', route: '/creator/availability', icon: 'calendar-outline' },
+      ],
+    },
+    {
+      key: 'PROJECTS_EARNINGS',
+      title: 'PROJECTS & EARNINGS',
+      items: [
+        { title: 'My Shoot Orders', route: '/creator/orders', icon: 'briefcase-outline' },
+        { title: 'Client Messages', route: '/messages', icon: 'chatbubbles-outline' },
+        { title: 'Reviews & Feedback', route: '/creator/reviews', icon: 'star-outline' },
+        { title: 'Reels Analytics', route: '/creator/analytics', icon: 'stats-chart-outline' },
+      ],
+    },
+    {
+      key: 'FINANCE_ACCOUNT',
+      title: 'FINANCE & ACCOUNT',
+      items: [
+        { title: 'Subscription Plan', route: '/creator/subscription', icon: 'card-outline' },
+        { title: 'Wallet & Payouts', route: '/creator/wallet', icon: 'wallet-outline' },
+      ],
+    },
+  ];
+
+  const activeRole = user?.activeRole || user?.current_role || (isVendor ? 'vendor' : 'customer');
+  const NAV_SECTIONS = activeRole === 'creator' ? CREATOR_SECTIONS : activeRole === 'vendor' ? VENDOR_SECTIONS : CUSTOMER_SECTIONS;
 
   return (
     <Modal

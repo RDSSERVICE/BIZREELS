@@ -4,6 +4,7 @@ export interface RegisterPayload {
   name: string;
   email: string;
   password: string;
+  interests?: Array<{ category: string; subcategory?: string | null }>;
 }
 
 export interface LoginPayload {

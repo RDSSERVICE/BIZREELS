@@ -97,7 +97,7 @@ export default function SavedScreen() {
                 style={styles.card}
                 onPress={() => {
                   if (item.title) router.push(`/listing/${item._id}`);
-                  else router.push('/(tabs)');
+                  else router.push('/(tabs)/home');
                 }}>
                 {image ? (
                   <Image source={{ uri: image }} style={styles.cardImage} contentFit="cover" />

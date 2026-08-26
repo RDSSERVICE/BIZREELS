@@ -75,7 +75,7 @@ class AuthService {
   // REGISTRATION
   // ══════════════════════════════════════════════════════════
 
-  async registerWithEmail({ name, email, phone, password, role, referralCode }, req) {
+  async registerWithEmail({ name, email, phone, password, role, referralCode, interests }, req) {
     const cleanEmail = (typeof email === 'string' && email.trim()) ? email.trim().toLowerCase() : undefined;
     const cleanPhone = (typeof phone === 'string' && phone.trim()) ? phone.trim() : undefined;
 
@@ -99,6 +99,14 @@ class AuthService {
       roles.push(targetRole);
     }
 
+    let cleanedInterests = [];
+    if (Array.isArray(interests) && interests.length > 0) {
+      cleanedInterests = interests.map(i => ({
+        category: String(typeof i === 'string' ? i : i.category || i.name || '').trim(),
+        subcategory: (typeof i === 'object' && i.subcategory) ? String(i.subcategory).trim() : null,
+      })).filter(i => i.category);
+    }
+
     const user = await authRepository.createUser({
       name,
       ...(cleanEmail && { email: cleanEmail }),
@@ -108,6 +116,12 @@ class AuthService {
       roles,
       activeRole: targetRole,
       current_role: targetRole,
+      ...(cleanedInterests.length > 0 && {
+        customerProfile: {
+          interests: cleanedInterests,
+          interestsSelectedAt: new Date(),
+        }
+      })
     });
 
     const tokens = await this.generateTokenPair(user, req);

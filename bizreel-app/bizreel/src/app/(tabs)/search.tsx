@@ -25,6 +25,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
 import { useAddToCart } from '@/features/cart/queries';
 import { useCreateRequirement } from '@/features/requirements/queries';
 import { useCategories, useListings } from '@/features/search/queries';
@@ -76,9 +77,60 @@ const REQ_CATEGORIES = [
   'Corporate Gifts',
 ];
 
+function renderCategoryIcon(catName: string, iconUrl?: string) {
+  if (iconUrl && iconUrl.length <= 4 && !iconUrl.startsWith('http')) {
+    return <Text style={styles.categoryEmoji}>{iconUrl}</Text>;
+  }
+
+  const name = (catName || '').toLowerCase().trim();
+
+  let iconName: keyof typeof Ionicons.glyphMap = 'grid-outline';
+
+  if (name.includes('home') || name.includes('clean') || name.includes('housekeeping') || name.includes('maid') || name.includes('furniture') || name.includes('decor') || name.includes('living') || name.includes('interior') || name.includes('appliance')) {
+    iconName = 'home-outline';
+  } else if (name.includes('electronic') || name.includes('tech') || name.includes('gadget') || name.includes('mobile') || name.includes('phone') || name.includes('computer') || name.includes('it')) {
+    iconName = 'hardware-chip-outline';
+  } else if (name.includes('fashion') || name.includes('apparel') || name.includes('cloth') || name.includes('wear') || name.includes('garment') || name.includes('textile')) {
+    iconName = 'shirt-outline';
+  } else if (name.includes('vehicle') || name.includes('auto') || name.includes('car') || name.includes('bike') || name.includes('motor') || name.includes('drive')) {
+    iconName = 'car-outline';
+  } else if (name.includes('beauty') || name.includes('salon') || name.includes('spa') || name.includes('cosmetics') || name.includes('care') || name.includes('wellness')) {
+    iconName = 'sparkles-outline';
+  } else if (name.includes('digital') || name.includes('service') || name.includes('marketing') || name.includes('agency') || name.includes('work') || name.includes('professional')) {
+    iconName = 'briefcase-outline';
+  } else if (name.includes('gift') || name.includes('toy') || name.includes('handicraft') || name.includes('craft') || name.includes('stationery') || name.includes('book')) {
+    iconName = 'gift-outline';
+  } else if (name.includes('real estate') || name.includes('property') || name.includes('construction') || name.includes('builder') || name.includes('architect')) {
+    iconName = 'business-outline';
+  } else if (name.includes('food') || name.includes('restaurant') || name.includes('cafe') || name.includes('catering') || name.includes('bakery') || name.includes('sweets')) {
+    iconName = 'restaurant-outline';
+  } else if (name.includes('education') || name.includes('coaching') || name.includes('school') || name.includes('course') || name.includes('tuition') || name.includes('training')) {
+    iconName = 'book-outline';
+  } else if (name.includes('fitness') || name.includes('gym') || name.includes('sport') || name.includes('health') || name.includes('medical') || name.includes('hospital')) {
+    iconName = 'fitness-outline';
+  } else if (name.includes('jewelry') || name.includes('jewel') || name.includes('watch') || name.includes('accessory') || name.includes('gold') || name.includes('silver')) {
+    iconName = 'diamond-outline';
+  } else if (name.includes('event') || name.includes('wedding') || name.includes('party') || name.includes('music') || name.includes('photo') || name.includes('studio')) {
+    iconName = 'camera-outline';
+  } else if (name.includes('grocery') || name.includes('supermarket') || name.includes('store') || name.includes('shop') || name.includes('mart')) {
+    iconName = 'basket-outline';
+  } else if (name.includes('repair') || name.includes('maintenance') || name.includes('plumb') || name.includes('electr')) {
+    iconName = 'construct-outline';
+  } else if (name.includes('travel') || name.includes('tourism') || name.includes('hotel') || name.includes('resort')) {
+    iconName = 'airplane-outline';
+  }
+
+  return <Ionicons name={iconName} size={22} color={YELLOW} />;
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const activeRole = user?.activeRole || user?.current_role || user?.role || 'customer';
+  const isCustomer = activeRole === 'customer';
+  const isCreator = activeRole === 'creator';
+  const isVendor = activeRole === 'vendor';
 
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -106,6 +158,7 @@ export default function SearchScreen() {
   const [selectedRadius, setSelectedRadius] = useState<number>(10); // default 10 km
 
   const addToCartMutation = useAddToCart();
+  const createReqMutation = useCreateRequirement();
 
   // Defer search input to keep typing butter smooth
   const deferredSearch = useDeferredValue(searchText.trim());
@@ -297,13 +350,15 @@ export default function SearchScreen() {
           )}
         </View>
 
-        <TouchableOpacity
-          style={styles.postReqBtn}
-          onPress={() => setPostReqModalVisible(true)}
-          accessibilityLabel="Post Requirement">
-          <Ionicons name="add-circle" size={15} color="#0F0F12" />
-          <Text style={styles.postReqBtnText}>Post Requirement</Text>
-        </TouchableOpacity>
+        {isCustomer && (
+          <TouchableOpacity
+            style={styles.postReqBtn}
+            onPress={() => setPostReqModalVisible(true)}
+            accessibilityLabel="Post Requirement">
+            <Ionicons name="add-circle" size={15} color="#0F0F12" />
+            <Text style={styles.postReqBtnText}>Post Requirement</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.filterBtn}
@@ -488,12 +543,14 @@ export default function SearchScreen() {
                           <Ionicons name="chatbubble-ellipses-outline" size={14} color={YELLOW} />
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                          style={styles.addCartSmallBtn}
-                          onPress={() => addToCartMutation.mutate({ listing_id: item._id, quantity: 1 })}>
-                          <Ionicons name="add" size={14} color={BLACK} />
-                          <Text style={styles.addCartSmallText}>Add</Text>
-                        </TouchableOpacity>
+                        {isCustomer && (
+                          <TouchableOpacity
+                            style={styles.addCartSmallBtn}
+                            onPress={() => addToCartMutation.mutate({ listing_id: item._id, quantity: 1 })}>
+                            <Ionicons name="add" size={14} color={BLACK} />
+                            <Text style={styles.addCartSmallText}>Add</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                   </View>
@@ -544,9 +601,7 @@ export default function SearchScreen() {
                     style={styles.categoryGridCard}
                     onPress={() => setSelectedCategory(cat)}>
                     <View style={styles.categoryIconCircle}>
-                      <Text style={styles.categoryEmoji}>
-                        {cat.icon_url && cat.icon_url.length <= 4 ? cat.icon_url : '🗂️'}
-                      </Text>
+                      {renderCategoryIcon(cat.name, cat.icon_url)}
                     </View>
                     <Text style={styles.categoryGridTitle} numberOfLines={2}>
                       {cat.name}
@@ -577,10 +632,10 @@ export default function SearchScreen() {
 
             <Text style={styles.filterSectionTitle}>Sort By</Text>
             <TouchableOpacity
-              style={[styles.sortOption, sortBy === 'newest' && styles.sortOptionSelected]}
-              onPress={() => setSortBy('newest')}>
+              style={[styles.sortOption, sortBy === 'latest' && styles.sortOptionSelected]}
+              onPress={() => setSortBy('latest')}>
               <Text style={styles.sortOptionText}>Newest Listings</Text>
-              {sortBy === 'newest' && <Ionicons name="checkmark" size={16} color={BrandColors.primary} />}
+              {sortBy === 'latest' && <Ionicons name="checkmark" size={16} color={BrandColors.primary} />}
             </TouchableOpacity>
 
             <TouchableOpacity

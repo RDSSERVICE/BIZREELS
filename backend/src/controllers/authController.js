@@ -10,14 +10,15 @@ const asyncHandler = require('../utils/asyncHandler');
 class AuthController {
   // ── Register ────────────────────────────────────────────
   register = asyncHandler(async (req, res) => {
-    const { name, email, phone, password, role, referralCode, ref } = req.body;
+    const { name, email, phone, password, role, referralCode, ref, interests } = req.body;
     const result = await authService.registerWithEmail({
       name,
       email,
       phone,
       password,
       role,
-      referralCode: referralCode || ref
+      referralCode: referralCode || ref,
+      interests
     }, req);
 
     this._setRefreshTokenCookie(res, result.refreshToken);

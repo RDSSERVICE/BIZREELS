@@ -128,8 +128,7 @@ export default function RegisterPhoneScreen() {
             contentFit="contain"
           />
           <View style={s.headingRow}>
-            <Text style={s.heading}>Create Your Account </Text>
-            <Text style={s.sparkle}>✦</Text>
+            <Text style={s.heading}>Create Your Account</Text>
           </View>
           <Text style={s.subheading}>
             Join BizReels and start showcasing your products, generating leads and growing your

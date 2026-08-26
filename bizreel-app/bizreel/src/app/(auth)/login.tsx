@@ -78,8 +78,7 @@ export default function LoginScreen() {
             contentFit="contain"
           />
           <View style={s.headingRow}>
-            <Text style={s.heading}>Welcome Back </Text>
-            <Text style={s.sparkle}>✦</Text>
+            <Text style={s.heading}>Welcome Back</Text>
           </View>
           <Text style={s.subheading}>
             Sign in to your BizReels account to continue showcasing your products and growing your

@@ -20,6 +20,9 @@ const authValidation = {
       .isLength({ min: 8 }).withMessage('Password must be at least 8 characters.')
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]/)
       .withMessage('Password must contain uppercase, lowercase, number, and special character.'),
+    body('interests')
+      .optional()
+      .isArray().withMessage('Interests must be an array.'),
   ],
 
   loginEmail: [
