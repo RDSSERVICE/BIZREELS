@@ -217,6 +217,18 @@ class AuthService {
   async requestOtp(identifier, identifierType = 'phone', purpose = 'login', channel = 'sms') {
     const otpService = require('./otp.service');
 
+    if (purpose === 'signup') {
+      let existingUser = null;
+      if (identifierType === 'phone' || (identifier && /^\+?[\d\s-]{8,}$/.test(identifier))) {
+        existingUser = await authRepository.findUserByPhone(identifier);
+      } else {
+        existingUser = await authRepository.findUserByEmail(identifier);
+      }
+      if (existingUser) {
+        throw ApiError.conflict('Account with this phone number or email already exists. Please Sign In.');
+      }
+    }
+
     if (identifierType === 'phone') {
       const result = await otpService.sendOtp({
         phone: identifier,

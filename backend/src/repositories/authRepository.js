@@ -27,7 +27,20 @@ class AuthRepository {
 
   async findUserByPhone(phone) {
     if (!phone || typeof phone !== 'string' || !phone.trim()) return null;
-    return User.findOne({ phone: phone.trim() }).select('+password');
+    const clean = phone.trim().replace(/[^\d+]/g, '');
+    const digitsOnly = clean.replace(/[^\d]/g, '');
+    const last10 = digitsOnly.slice(-10);
+    if (!last10) return null;
+
+    return User.findOne({
+      $or: [
+        { phone: clean },
+        { phone: digitsOnly },
+        { phone: last10 },
+        { phone: `+91${last10}` },
+        { phone: { $regex: `${last10}$` } },
+      ],
+    }).select('+password');
   }
 
   async findUserByGoogleId(googleId) {
