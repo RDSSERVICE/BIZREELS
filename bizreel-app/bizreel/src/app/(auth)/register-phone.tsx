@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
@@ -14,6 +15,7 @@ import {
     StyleSheet,
     Text,
     TextInput,
+    TouchableOpacity,
     View,
 } from 'react-native';
 
@@ -110,17 +112,13 @@ export default function RegisterPhoneScreen() {
         showsVerticalScrollIndicator={false}>
 
         {/* Back button */}
-        <Pressable
-          style={({ pressed }) => [s.backButton, pressed && s.pressed]}
+        <TouchableOpacity
+          style={s.backButton}
           onPress={() => router.back()}
           accessibilityLabel="Go back"
           accessibilityRole="button">
-          <SymbolView
-            name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
-            size={20}
-            tintColor={theme.text}
-          />
-        </Pressable>
+          <Ionicons name="arrow-back" size={20} color={BrandColors.primary} />
+        </TouchableOpacity>
 
         {/* Logo + heading */}
         <View style={s.headerSection}>
@@ -492,7 +490,10 @@ function makeStyles(theme: Theme) {
       height: 36,
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: Radius.full,
+      borderRadius: Radius.md,
+      backgroundColor: theme.inputBackground,
+      borderWidth: 1,
+      borderColor: BrandColors.primary,
     },
     pressed: { opacity: 0.6 },
 

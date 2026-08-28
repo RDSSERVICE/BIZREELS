@@ -153,17 +153,13 @@ export default function RegisterScreen() {
         showsVerticalScrollIndicator={false}>
 
         {/* Back button */}
-        <Pressable
-          style={({ pressed }) => [s.backButton, pressed && s.pressed]}
+        <TouchableOpacity
+          style={s.backButton}
           onPress={() => (step === 2 ? setStep(1) : router.back())}
           accessibilityLabel="Go back"
           accessibilityRole="button">
-          <SymbolView
-            name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
-            size={20}
-            tintColor={theme.text}
-          />
-        </Pressable>
+          <Ionicons name="arrow-back" size={20} color={YELLOW} />
+        </TouchableOpacity>
 
         {/* Logo + heading */}
         <View style={s.headerSection}>
@@ -536,7 +532,7 @@ function makeStyles(_theme: any) {
       borderRadius: 0,
       backgroundColor: DARK_CARD,
       borderWidth: 1,
-      borderColor: BORDER,
+      borderColor: YELLOW,
     },
     pressed: { opacity: 0.6 },
     headerSection: { gap: Spacing.two },
