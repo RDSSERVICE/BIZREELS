@@ -259,7 +259,7 @@ router.get(['/reels/:id', '/reels/share/:id'], async (req, res) => {
       }
     }
     const creatorName = reel.creator?.name || 'BIZREELS Creator';
-    const appDeepLink = `bizreels://reels/${reel._id}`;
+    const appDeepLink = `bizreel://reels/${reel._id}`;
     const webUrl = `${req.protocol}://${req.get('host')}/reels/${reel._id}`;
 
     const html = `<!DOCTYPE html>
@@ -268,6 +268,14 @@ router.get(['/reels/:id', '/reels/share/:id'], async (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
+
+  <!-- Auto-launch Mobile App if installed -->
+  <script>
+    (function() {
+      // Attempt to launch BizReels Mobile App directly
+      window.location.href = "${appDeepLink}";
+    })();
+  </script>
 
   <!-- OpenGraph / WhatsApp Instagram-style Preview Meta Tags -->
   <meta property="og:site_name" content="BIZREELS">
