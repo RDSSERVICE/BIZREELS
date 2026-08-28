@@ -237,8 +237,121 @@ router.use('/subscriptions', lazyLoad('./subscription.routes'));
 router.use('/referrals', lazyLoad('./referral.routes'));
 
 // Admin module routes
-router.use('/admin', lazyLoad('./admin.routes'));
-router.use('/', lazyLoad('./report.routes'));
-router.use('/', lazyLoad('./kyc.routes'));
+// Web Landing & OpenGraph Share Preview for Shared Reels
+router.get(['/reels/:id', '/reels/share/:id'], async (req, res) => {
+  try {
+    const reelRepo = require('../repositories/reelRepository');
+    const reel = await reelRepo.findReelById(req.params.id);
+    if (!reel) {
+      return res.status(404).send('<h1 style="color:#fff;background:#000;padding:40px;text-align:center;">Reel Not Found</h1>');
+    }
+
+    const title = reel.caption ? `${reel.caption.slice(0, 60)} | BIZREELS` : 'Watch Reel on BIZREELS';
+    const videoUrl = reel.videoUrl || '';
+    const thumbnailUrl = reel.thumbnailUrl || (videoUrl ? videoUrl.replace(/\.[^/.]+$/, '.jpg') : '');
+    const creatorName = reel.creator?.name || 'BIZREELS Creator';
+    const appDeepLink = `bizreels://reels/${reel._id}`;
+    const webUrl = `${req.protocol}://${req.get('host')}/reels/${reel._id}`;
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+
+  <!-- OpenGraph / WhatsApp Preview Meta Tags -->
+  <meta property="og:site_name" content="BIZREELS">
+  <meta property="og:type" content="video.other">
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="Watch this reel by ${creatorName} on BIZREELS!">
+  <meta property="og:image" content="${thumbnailUrl}">
+  <meta property="og:video" content="${videoUrl}">
+  <meta property="og:video:type" content="video/mp4">
+  <meta property="og:url" content="${webUrl}">
+
+  <!-- Twitter Meta Tags -->
+  <meta name="twitter:card" content="player">
+  <meta name="twitter:title" content="${title}">
+  <meta name="twitter:description" content="Watch this reel by ${creatorName} on BIZREELS!">
+  <meta name="twitter:image" content="${thumbnailUrl}">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0f0f12;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .card {
+      max-width: 420px;
+      width: 90%;
+      background-color: #18181c;
+      border: 1px solid #2d2d36;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    video {
+      width: 100%;
+      max-height: 480px;
+      object-fit: cover;
+      background: #000;
+    }
+    .info {
+      padding: 16px;
+    }
+    .creator {
+      font-weight: 800;
+      color: #f59e0b;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .caption {
+      font-size: 15px;
+      margin: 8px 0 16px;
+      line-height: 1.4;
+    }
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 14px 0;
+      background-color: #f59e0b;
+      color: #0f0f12;
+      font-weight: 900;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 14px;
+      letter-spacing: 1px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <video src="${videoUrl}" poster="${thumbnailUrl}" controls autoplay muted playsinline></video>
+    <div class="info">
+      <div class="creator">BY ${creatorName.toUpperCase()}</div>
+      <div class="caption">${reel.caption || 'Check out this reel on BIZREELS!'}</div>
+      <a href="${appDeepLink}" class="btn">OPEN IN BIZREELS APP</a>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    res.header('Content-Type', 'text/html');
+    return res.status(200).send(html);
+  } catch (err) {
+    return res.status(500).send('Server Error');
+  }
+});
 
 module.exports = router;
