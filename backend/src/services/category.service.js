@@ -132,9 +132,9 @@ const seedCategories = async () => {
 
 const cache = require('../utils/cache');
 
-const listCategories = async ({ parent_id = null, only_top_level = false, as_tree = false, category_type = null } = {}) => {
+const listCategories = async ({ parent_id = null, only_top_level = false, as_tree = false, category_type = null, search = null } = {}) => {
   const version = await cache.getCache('categories:version') || 1;
-  const cacheKey = `categories:v${version}:${parent_id || 'null'}:${only_top_level}:${as_tree}:${category_type || 'null'}`;
+  const cacheKey = `categories:v${version}:${parent_id || 'null'}:${only_top_level}:${as_tree}:${category_type || 'null'}:${search || 'null'}`;
   
   const cached = await cache.getCache(cacheKey);
   if (cached) {
@@ -149,6 +149,12 @@ const listCategories = async ({ parent_id = null, only_top_level = false, as_tre
   }
   if (category_type) {
     q.category_type = category_type;
+  }
+  if (search && search.trim()) {
+    q.$or = [
+      { name: { $regex: search.trim(), $options: 'i' } },
+      { slug: { $regex: search.trim(), $options: 'i' } },
+    ];
   }
   const docs = await Category.find(q).sort({ sort_order: 1, name: 1 }).lean();
   const serialized = docs.map(serializeCategory);
