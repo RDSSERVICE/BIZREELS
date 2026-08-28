@@ -205,18 +205,19 @@ class AuthController {
 
   // ── Forgot Password ────────────────────────────────────
   forgotPassword = asyncHandler(async (req, res) => {
-    const { email } = req.body;
-    const result = await authService.forgotPassword(email);
+    const identifier = req.body.identifier || req.body.phone || req.body.email;
+    const result = await authService.forgotPassword(identifier);
 
-    return ApiResponse.ok(res, result.message);
+    return ApiResponse.ok(res, result.message, result);
   });
 
   // ── Reset Password ─────────────────────────────────────
   resetPassword = asyncHandler(async (req, res) => {
-    const { email, otp, newPassword } = req.body;
-    const result = await authService.resetPassword(email, otp, newPassword, req);
+    const identifier = req.body.identifier || req.body.phone || req.body.email;
+    const { otp, newPassword, confirmPassword } = req.body;
+    const result = await authService.resetPassword(identifier, otp, newPassword || confirmPassword, req);
 
-    return ApiResponse.ok(res, result.message);
+    return ApiResponse.ok(res, result.message, result);
   });
 
   // ── Switch Role ─────────────────────────────────────────

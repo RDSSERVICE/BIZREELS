@@ -498,45 +498,89 @@ class AuthService {
   // FORGOT PASSWORD
   // ══════════════════════════════════════════════════════════
 
-  async forgotPassword(email) {
-    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
-    const user = await authRepository.findUserByEmail(cleanEmail);
-    if (!user) {
-      throw ApiError.notFound('No account found with this email address. Please check your email or create a new account.');
+  async forgotPassword(identifier) {
+    if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
+      throw ApiError.badRequest('Mobile number or email is required.');
     }
-    const otpResult = await this.requestOtp(cleanEmail, 'email', 'forgot-password');
-    return { message: otpResult.message || 'Password reset OTP sent to your email.' };
+    const clean = identifier.trim();
+    const isPhone = /^\+?[\d\s-]{8,}$/.test(clean);
+
+    let user = null;
+    if (isPhone) {
+      user = await authRepository.findUserByPhone(clean);
+    } else {
+      user = await authRepository.findUserByEmail(clean.toLowerCase());
+    }
+
+    if (!user) {
+      throw ApiError.notFound(
+        isPhone
+          ? 'No account found with this phone number.'
+          : 'No account found with this email address.'
+      );
+    }
+
+    const identifierType = isPhone ? 'phone' : 'email';
+    const targetIdentifier = isPhone ? (user.phone || clean) : user.email;
+
+    const otpResult = await this.requestOtp(targetIdentifier, identifierType, 'forgot-password');
+    return {
+      message: otpResult.message || `Password reset OTP sent to your ${isPhone ? 'mobile number' : 'email'}.`,
+      identifier: targetIdentifier,
+      identifierType,
+    };
   }
 
-  async resetPassword(email, otp, newPassword, req) {
-    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
-    const otpDoc = await authRepository.findLatestOtp(cleanEmail, 'forgot-password');
-
-    if (!otpDoc) {
-      throw ApiError.badRequest('OTP expired or not found. Please request a new OTP.');
+  async resetPassword(identifier, otp, newPassword, req) {
+    if (!identifier || !otp || !newPassword) {
+      throw ApiError.badRequest('Mobile number/Email, OTP, and new password are required.');
     }
 
-    if (otpDoc.isMaxAttemptsReached && otpDoc.isMaxAttemptsReached()) {
-      throw ApiError.tooMany('Maximum OTP attempts reached. Please request a new OTP.');
+    const clean = identifier.trim();
+    const isPhone = /^\+?[\d\s-]{8,}$/.test(clean);
+
+    let user = null;
+    if (isPhone) {
+      user = await authRepository.findUserByPhone(clean);
+    } else {
+      user = await authRepository.findUserByEmail(clean.toLowerCase());
     }
 
-    if (otpDoc.otp !== otp) {
-      await otpDoc.incrementAttempts();
-      throw ApiError.badRequest('Invalid OTP code. Please check and try again.');
-    }
-
-    await otpDoc.markUsed();
-
-    const user = await authRepository.findUserByEmail(cleanEmail);
     if (!user) {
       throw ApiError.notFound('User not found.');
+    }
+
+    if (isPhone) {
+      const otpService = require('./otp.service');
+      await otpService.verifyOtp({
+        phone: user.phone || clean,
+        otp,
+        purpose: 'forgot-password',
+      });
+    } else {
+      const targetEmail = (user.email || clean).toLowerCase();
+      const otpDoc = await authRepository.findLatestOtp(targetEmail, 'forgot-password');
+
+      if (!otpDoc) {
+        throw ApiError.badRequest('OTP expired or not found. Please request a new OTP.');
+      }
+
+      if (otpDoc.isMaxAttemptsReached && otpDoc.isMaxAttemptsReached()) {
+        throw ApiError.tooMany('Maximum OTP attempts reached. Please request a new OTP.');
+      }
+
+      if (otpDoc.otp !== otp) {
+        await otpDoc.incrementAttempts();
+        throw ApiError.badRequest('Invalid OTP code. Please check and try again.');
+      }
+
+      await otpDoc.markUsed();
     }
 
     user.password = newPassword;
     await user.save();
 
     await authRepository.revokeAllUserTokens(user._id);
-
     await this._logAction(user._id, 'PASSWORD_RESET', 'User', user._id, 'Password reset via OTP', req);
 
     return { message: 'Password reset successfully. Please log in again.' };
