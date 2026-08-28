@@ -205,6 +205,29 @@ class ReelController {
     const result = await boostService.boostReelWithCredits(req.user._id, id, durationDays);
     return ApiResponse.ok(res, 'Reel boosted successfully.', result);
   });
+
+  // ── Get Saved Reels for Current User ──────────────────────
+  getSavedReels = asyncHandler(async (req, res) => {
+    const Interaction = require('../models/Interaction');
+    const Reel = require('../models/Reel');
+
+    const interactions = await Interaction.find({
+      user_id: req.user._id.toString(),
+      type: 'save_reel',
+    }).select('reel_id');
+
+    const reelIds = interactions.map((i) => i.reel_id).filter(Boolean);
+
+    const reels = await Reel.find({
+      _id: { $in: reelIds },
+      is_deleted: { $ne: true },
+      isDeleted: { $ne: true },
+    })
+      .populate('user_id creator vendor', 'name businessName phone phone_number avatarUrl city')
+      .sort({ createdAt: -1 });
+
+    return ApiResponse.ok(res, 'Saved reels retrieved successfully.', { reels });
+  });
 }
 
 module.exports = new ReelController();

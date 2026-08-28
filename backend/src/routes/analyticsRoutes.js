@@ -25,6 +25,9 @@ router.post(
   analyticsController.track
 );
 
+// ── Retrieve Vendor Lead Analytics ────────────────────────
+router.get('/vendor', authenticate, analyticsController.getVendorAnalytics);
+
 // ── Retrieve aggregated summaries (Admin restricted) ──────
 router.get(
   '/summary',

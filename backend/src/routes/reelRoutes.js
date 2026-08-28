@@ -25,6 +25,7 @@ const router = express.Router();
  */
 
 // ── Public Feed and Comments ─────────────────────────────
+router.get('/saved', authenticate, reelController.getSavedReels);
 router.get('/my-reels', authenticate, reelController.getMyReels);
 router.get('/', reelValidation.getFeed, validate, (req, res, next) => {
   if (req.query.myReels === 'true') {

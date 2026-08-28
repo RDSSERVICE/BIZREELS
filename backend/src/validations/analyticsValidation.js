@@ -6,7 +6,18 @@ const { body, query } = require('express-validator');
 const analyticsValidation = {
   track: [
     body('type')
-      .isIn(['reel_view', 'listing_click', 'profile_view', 'search_query', 'conversion'])
+      .isIn([
+        'reel_view',
+        'listing_click',
+        'profile_view',
+        'search_query',
+        'conversion',
+        'call_vendor',
+        'whatsapp_vendor',
+        'chat_vendor',
+        'send_inquiry',
+        'reel_save',
+      ])
       .withMessage('Invalid analytics tracking event type.'),
     body('targetId')
       .optional()
@@ -20,7 +31,18 @@ const analyticsValidation = {
   querySummary: [
     query('type')
       .optional()
-      .isIn(['reel_view', 'listing_click', 'profile_view', 'search_query', 'conversion'])
+      .isIn([
+        'reel_view',
+        'listing_click',
+        'profile_view',
+        'search_query',
+        'conversion',
+        'call_vendor',
+        'whatsapp_vendor',
+        'chat_vendor',
+        'send_inquiry',
+        'reel_save',
+      ])
       .withMessage('Invalid analytics event type filter.'),
     query('targetId')
       .optional()

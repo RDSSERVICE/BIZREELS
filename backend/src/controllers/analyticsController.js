@@ -40,6 +40,36 @@ class AnalyticsController {
 
     return ApiResponse.ok(res, 'Analytics metrics loaded.', { summary });
   });
+
+  // ── Get Vendor Dashboard Analytics ───────────────────────
+  getVendorAnalytics = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    const Analytics = require('../models/Analytics');
+    const Inquiry = require('../models/Inquiry');
+    const Interaction = require('../models/Interaction');
+
+    const [
+      callsCount,
+      whatsappCount,
+      chatsCount,
+      inquiriesCount,
+      savedReelsCount,
+    ] = await Promise.all([
+      Analytics.countDocuments({ targetId: userId, type: 'call_vendor' }),
+      Analytics.countDocuments({ targetId: userId, type: 'whatsapp_vendor' }),
+      Analytics.countDocuments({ targetId: userId, type: 'chat_vendor' }),
+      Inquiry.countDocuments({ vendorId: userId }),
+      Interaction.countDocuments({ type: 'save_reel' }),
+    ]);
+
+    return ApiResponse.ok(res, 'Vendor analytics loaded.', {
+      callsCount,
+      whatsappCount,
+      chatsCount,
+      inquiriesCount,
+      savedReelsCount,
+    });
+  });
 }
 
 module.exports = new AnalyticsController();
