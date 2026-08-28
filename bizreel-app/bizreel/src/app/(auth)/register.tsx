@@ -101,6 +101,8 @@ export default function RegisterScreen() {
     }
   }, [step]);
 
+  const [selectedRole, setSelectedRole] = useState<'customer' | 'vendor' | 'creator'>('customer');
+
   const handleNextStep = async () => {
     setServerError(null);
     const valid = await trigger(['name', 'email', 'password']);
@@ -129,6 +131,7 @@ export default function RegisterScreen() {
     register(
       {
         ...values,
+        role: selectedRole,
         interests: selectedInterests,
       },
       {
@@ -197,6 +200,35 @@ export default function RegisterScreen() {
           {step === 1 ? (
             /* STEP 1: Account Credentials */
             <>
+              {/* Join As Role Selection */}
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>JOIN AS *</Text>
+                <View style={s.roleSelectorRow}>
+                  {[
+                    { id: 'customer', label: 'Customer', icon: 'bag-handle-outline' },
+                    { id: 'vendor', label: 'Vendor', icon: 'storefront-outline' },
+                    { id: 'creator', label: 'Creator', icon: 'sparkles-outline' },
+                  ].map((r) => {
+                    const isSelected = selectedRole === r.id;
+                    return (
+                      <TouchableOpacity
+                        key={r.id}
+                        style={[s.roleCard, isSelected && s.roleCardSelected]}
+                        onPress={() => setSelectedRole(r.id as any)}>
+                        <Ionicons
+                          name={r.icon as any}
+                          size={18}
+                          color={isSelected ? BLACK : YELLOW}
+                        />
+                        <Text style={[s.roleCardTitle, isSelected && s.roleCardTitleSelected]}>
+                          {r.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
               {/* Full Name */}
               <View style={s.fieldGroup}>
                 <Text style={s.label}>Full Name</Text>
@@ -714,6 +746,37 @@ function makeStyles(_theme: any) {
       fontSize: FontSize.sm,
       fontWeight: '900',
       color: YELLOW,
+    },
+    // Join As Role Selector Styles
+    roleSelectorRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+      marginTop: 4,
+    },
+    roleCard: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: BLACK,
+      borderWidth: 1,
+      borderColor: BORDER,
+      paddingVertical: 10,
+      borderRadius: 0,
+    },
+    roleCardSelected: {
+      backgroundColor: YELLOW,
+      borderColor: YELLOW,
+    },
+    roleCardTitle: {
+      color: '#fff',
+      fontSize: FontSize.xs,
+      fontWeight: '900',
+    },
+    roleCardTitleSelected: {
+      color: BLACK,
+      fontWeight: '900',
     },
   });
 }

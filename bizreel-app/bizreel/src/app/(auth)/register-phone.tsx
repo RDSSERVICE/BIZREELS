@@ -81,6 +81,8 @@ export default function RegisterPhoneScreen() {
 
   const passwordValue = watch('password');
 
+  const [selectedRole, setSelectedRole] = useState<'customer' | 'vendor' | 'creator'>('customer');
+
   function onSubmit(values: RegisterWithPhoneFormValues) {
     // Prepend country dial code if user typed bare number
     const phone = values.phone.startsWith('+')
@@ -88,7 +90,7 @@ export default function RegisterPhoneScreen() {
       : `${selectedCountry.dial}${values.phone}`;
 
     register(
-      { ...values, phone },
+      { ...values, phone, role: selectedRole },
       {
         onError: (error) => {
           Alert.alert('Registration Failed', error.message);
@@ -138,6 +140,30 @@ export default function RegisterPhoneScreen() {
 
         {/* Form card */}
         <View style={s.card}>
+
+          {/* Join As Role Selection */}
+          <View style={s.fieldGroup}>
+            <Text style={s.label}>JOIN AS *</Text>
+            <View style={s.roleSelectorRow}>
+              {[
+                { id: 'customer', label: 'Customer' },
+                { id: 'vendor', label: 'Vendor' },
+                { id: 'creator', label: 'Creator' },
+              ].map((r) => {
+                const isSelected = selectedRole === r.id;
+                return (
+                  <Pressable
+                    key={r.id}
+                    style={[s.roleCard, isSelected && s.roleCardSelected]}
+                    onPress={() => setSelectedRole(r.id as any)}>
+                    <Text style={[s.roleCardTitle, isSelected && s.roleCardTitleSelected]}>
+                      {r.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
 
           {/* Full Name */}
           <View style={s.fieldGroup}>
@@ -650,6 +676,38 @@ function makeStyles(theme: Theme) {
     securitySub: {
       fontSize: FontSize.xs,
       color: theme.textSecondary,
+    },
+
+    // Join As Role Selector Styles
+    roleSelectorRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+      marginTop: 4,
+    },
+    roleCard: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: theme.inputBackground,
+      borderWidth: 1,
+      borderColor: theme.border,
+      paddingVertical: 10,
+      borderRadius: Radius.md,
+    },
+    roleCardSelected: {
+      backgroundColor: BrandColors.primary,
+      borderColor: BrandColors.primary,
+    },
+    roleCardTitle: {
+      color: theme.text,
+      fontSize: FontSize.xs,
+      fontWeight: '900',
+    },
+    roleCardTitleSelected: {
+      color: BrandColors.onPrimary,
+      fontWeight: '900',
     },
   });
 }

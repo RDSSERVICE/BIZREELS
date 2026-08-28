@@ -4,6 +4,8 @@ export interface RegisterPayload {
   name: string;
   email: string;
   password: string;
+  phone?: string;
+  role?: 'customer' | 'vendor' | 'creator';
   interests?: Array<{ category: string; subcategory?: string | null }>;
 }
 
