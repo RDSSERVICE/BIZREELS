@@ -322,12 +322,12 @@ class ReelService {
   }
 
   // ── Fetch Feed (Recommendation Engine) ──────────────────
-  async getFeed({ currentUserId, viewerId, creatorId, hashtags, lat, lng, distance, page, limit }) {
+  async getFeed({ currentUserId, viewerId, creatorId, hashtags, query, category, subcategory, lat, lng, distance, page, limit }) {
     const userCoords = (lat && lng) ? [parseFloat(lng), parseFloat(lat)] : null;
     const uid = currentUserId || viewerId;
 
-    // Use 5-tier recommendation engine for feed when no creator/hashtag filters are applied
-    if (!creatorId && (!hashtags || hashtags.length === 0)) {
+    // Use 5-tier recommendation engine for feed when no search/creator/hashtag filters are applied
+    if (!creatorId && (!hashtags || hashtags.length === 0) && !query && !category) {
       try {
         const recommendationService = require('./recommendation.service');
         return await recommendationService.getRecommendedFeed(uid, page, limit, userCoords);
@@ -342,6 +342,9 @@ class ReelService {
       currentUserId,
       creatorId,
       hashtags,
+      query,
+      category,
+      subcategory,
       coordinates,
       distanceKm: distance || 10,
       page,

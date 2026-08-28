@@ -26,7 +26,7 @@ class ReelRepository {
    * Retrieves paginated reels.
    * Dynamically checks if the current user has liked each reel using an lookup stage.
    */
-  async getReelsFeed({ currentUserId, creatorId, hashtags, coordinates, distanceKm = 10, page = 1, limit = 10 }) {
+  async getReelsFeed({ currentUserId, creatorId, hashtags, query, category, subcategory, coordinates, distanceKm = 10, page = 1, limit = 10 }) {
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
     const skip = (pageNum - 1) * limitNum;
@@ -38,6 +38,25 @@ class ReelRepository {
 
     if (hashtags && hashtags.length > 0) {
       match.hashtags = { $in: hashtags.map(h => h.toLowerCase()) };
+    }
+
+    if (query) {
+      const qRegex = new RegExp(query, 'i');
+      match.$or = [
+        { caption: qRegex },
+        { title: qRegex },
+        { hashtags: qRegex },
+        { category: qRegex },
+        { subcategory: qRegex },
+      ];
+    }
+
+    if (category) {
+      match.category = new RegExp(category, 'i');
+    }
+
+    if (subcategory) {
+      match.subcategory = new RegExp(subcategory, 'i');
     }
 
 

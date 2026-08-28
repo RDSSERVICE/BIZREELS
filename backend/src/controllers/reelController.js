@@ -65,10 +65,11 @@ class ReelController {
 
   // ── Get Feed ────────────────────────────────────────────
   getFeed = asyncHandler(async (req, res) => {
-    const { creatorId, hashtags, lat, lng, distance, page = 1, limit = 10 } = req.query;
+    const { creatorId, hashtags, search, q, category, subcategory, lat, lng, distance, page = 1, limit = 10 } = req.query;
     
     // Parse comma-separated hashtags if present
     const hashtagsList = hashtags ? hashtags.split(',').map(h => h.trim()) : undefined;
+    const query = (q || search || '').trim();
 
     const viewerId = req.user?._id?.toString() || req.ip || req.headers['x-forwarded-for'] || 'anonymous';
 
@@ -77,6 +78,9 @@ class ReelController {
       viewerId,
       creatorId,
       hashtags: hashtagsList,
+      query,
+      category,
+      subcategory,
       lat,
       lng,
       distance: distance ? parseFloat(distance) : undefined,
