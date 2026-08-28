@@ -39,7 +39,7 @@ const ROLES_CONFIG: Record<
   },
   creator: {
     label: 'Creator',
-    icon: 'sparkles-outline',
+    icon: 'videocam-outline',
     desc: 'Portfolio, reels & brand hires',
   },
 };

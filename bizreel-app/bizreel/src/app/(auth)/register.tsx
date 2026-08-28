@@ -207,7 +207,7 @@ export default function RegisterScreen() {
                   {[
                     { id: 'customer', label: 'Customer', icon: 'bag-handle-outline' },
                     { id: 'vendor', label: 'Vendor', icon: 'storefront-outline' },
-                    { id: 'creator', label: 'Creator', icon: 'sparkles-outline' },
+                    { id: 'creator', label: 'Creator', icon: 'videocam-outline' },
                   ].map((r) => {
                     const isSelected = selectedRole === r.id;
                     return (

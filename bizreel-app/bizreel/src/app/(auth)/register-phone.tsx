@@ -146,9 +146,9 @@ export default function RegisterPhoneScreen() {
             <Text style={s.label}>JOIN AS *</Text>
             <View style={s.roleSelectorRow}>
               {[
-                { id: 'customer', label: 'Customer' },
-                { id: 'vendor', label: 'Vendor' },
-                { id: 'creator', label: 'Creator' },
+                { id: 'customer', label: 'Customer', icon: 'bag-handle-outline' },
+                { id: 'vendor', label: 'Vendor', icon: 'storefront-outline' },
+                { id: 'creator', label: 'Creator', icon: 'videocam-outline' },
               ].map((r) => {
                 const isSelected = selectedRole === r.id;
                 return (
@@ -156,6 +156,11 @@ export default function RegisterPhoneScreen() {
                     key={r.id}
                     style={[s.roleCard, isSelected && s.roleCardSelected]}
                     onPress={() => setSelectedRole(r.id as any)}>
+                    <SymbolView
+                      name={{ ios: 'video', android: 'videocam', web: 'videocam' }}
+                      size={16}
+                      tintColor={isSelected ? BrandColors.onPrimary : BrandColors.primary}
+                    />
                     <Text style={[s.roleCardTitle, isSelected && s.roleCardTitleSelected]}>
                       {r.label}
                     </Text>
