@@ -248,7 +248,16 @@ router.get(['/reels/:id', '/reels/share/:id'], async (req, res) => {
 
     const title = reel.caption ? `${reel.caption.slice(0, 60)} | BIZREELS` : 'Watch Reel on BIZREELS';
     const videoUrl = reel.videoUrl || '';
-    const thumbnailUrl = reel.thumbnailUrl || (videoUrl ? videoUrl.replace(/\.[^/.]+$/, '.jpg') : '');
+    let thumbnailUrl = reel.thumbnailUrl || '';
+    if (!thumbnailUrl && videoUrl) {
+      if (videoUrl.includes('cloudinary.com')) {
+        thumbnailUrl = videoUrl
+          .replace(/\/video\/upload\//, '/video/upload/so_0.5,w_1080,h_1920,c_fill,q_auto,f_jpg/')
+          .replace(/\.[^/.]+$/, '.jpg');
+      } else {
+        thumbnailUrl = videoUrl.replace(/\.[^/.]+$/, '.jpg');
+      }
+    }
     const creatorName = reel.creator?.name || 'BIZREELS Creator';
     const appDeepLink = `bizreels://reels/${reel._id}`;
     const webUrl = `${req.protocol}://${req.get('host')}/reels/${reel._id}`;
@@ -260,18 +269,27 @@ router.get(['/reels/:id', '/reels/share/:id'], async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
 
-  <!-- OpenGraph / WhatsApp Preview Meta Tags -->
+  <!-- OpenGraph / WhatsApp Instagram-style Preview Meta Tags -->
   <meta property="og:site_name" content="BIZREELS">
   <meta property="og:type" content="video.other">
   <meta property="og:title" content="${title}">
   <meta property="og:description" content="Watch this reel by ${creatorName} on BIZREELS!">
   <meta property="og:image" content="${thumbnailUrl}">
+  <meta property="og:image:secure_url" content="${thumbnailUrl}">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1080">
+  <meta property="og:image:height" content="1920">
+  <meta property="og:image:alt" content="${title}">
   <meta property="og:video" content="${videoUrl}">
+  <meta property="og:video:secure_url" content="${videoUrl}">
   <meta property="og:video:type" content="video/mp4">
+  <meta property="og:video:width" content="1080">
+  <meta property="og:video:height" content="1920">
   <meta property="og:url" content="${webUrl}">
 
-  <!-- Twitter Meta Tags -->
-  <meta name="twitter:card" content="player">
+  <!-- Twitter Card Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@BIZREELS">
   <meta name="twitter:title" content="${title}">
   <meta name="twitter:description" content="Watch this reel by ${creatorName} on BIZREELS!">
   <meta name="twitter:image" content="${thumbnailUrl}">
