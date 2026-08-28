@@ -75,4 +75,12 @@ export interface ListingsParams {
   limit?: number;
   search?: string;
   category?: string;
+  subcategory?: string;
+  type?: 'product' | 'service';
+  minPrice?: number;
+  maxPrice?: number;
+  lat?: number;
+  lng?: number;
+  distance?: number;
+  sort?: string;
 }

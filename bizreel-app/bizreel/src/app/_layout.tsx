@@ -23,7 +23,7 @@ function AuthGate() {
     if (status === 'unauthed' && !inAuthGroup) {
       router.replace('/(auth)/register');
     } else if (status === 'authed' && inAuthGroup) {
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)');
     }
   }, [status, segments]);
 

@@ -64,6 +64,7 @@ export default function RegisterPhoneScreen() {
   const s = makeStyles(theme);
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country>(POPULAR_COUNTRIES[0]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
 
@@ -77,7 +78,7 @@ export default function RegisterPhoneScreen() {
     formState: { errors },
   } = useForm<RegisterWithPhoneFormValues>({
     resolver: zodResolver(registerWithPhoneSchema),
-    defaultValues: { name: '', phone: '', email: '', password: '' },
+    defaultValues: { name: '', phone: '', email: '', password: '', confirmPassword: '' },
     mode: 'onChange',
   });
 
@@ -110,15 +111,6 @@ export default function RegisterPhoneScreen() {
         contentContainerStyle={s.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-
-        {/* Back button */}
-        <TouchableOpacity
-          style={s.backButton}
-          onPress={() => router.back()}
-          accessibilityLabel="Go back"
-          accessibilityRole="button">
-          <Ionicons name="arrow-back" size={20} color={BrandColors.primary} />
-        </TouchableOpacity>
 
         {/* Logo + heading */}
         <View style={s.headerSection}>
@@ -390,6 +382,57 @@ export default function RegisterPhoneScreen() {
             </View>
           </View>
 
+          {/* Confirm Password */}
+          <View style={s.fieldGroup}>
+            <Text style={s.label}>Confirm Password</Text>
+            <Controller
+              control={control}
+              name="confirmPassword"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={[s.inputRow, errors.confirmPassword && s.inputError]}>
+                  <SymbolView
+                    name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+                    size={18}
+                    tintColor={BrandColors.primary}
+                    style={s.inputIcon}
+                  />
+                  <TextInput
+                    style={s.input}
+                    placeholder="Re-enter your password"
+                    placeholderTextColor={theme.placeholder}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    secureTextEntry={!showConfirmPassword}
+                    returnKeyType="done"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    onSubmitEditing={handleSubmit(onSubmit)}
+                    accessibilityLabel="Confirm Password"
+                  />
+                  <Pressable
+                    onPress={() => setShowConfirmPassword((v) => !v)}
+                    style={s.eyeButton}
+                    accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    accessibilityRole="button">
+                    <SymbolView
+                      name={
+                        showConfirmPassword
+                          ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                          : { ios: 'eye', android: 'visibility', web: 'visibility' }
+                      }
+                      size={18}
+                      tintColor={theme.textSecondary}
+                    />
+                  </Pressable>
+                </View>
+              )}
+            />
+            {errors.confirmPassword && (
+              <Text style={s.errorText}>{errors.confirmPassword.message}</Text>
+            )}
+          </View>
+
           {/* Create Account button */}
           <Pressable
             style={({ pressed }) => [
@@ -480,20 +523,9 @@ function makeStyles(theme: Theme) {
     scroll: { flex: 1, backgroundColor: theme.background },
     scrollContent: {
       paddingHorizontal: Spacing.five,
-      paddingTop: Spacing.six,
+      paddingTop: Platform.OS === 'ios' ? 60 : 48,
       paddingBottom: Spacing.seven,
       gap: Spacing.four,
-    },
-
-    backButton: {
-      width: 36,
-      height: 36,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: Radius.md,
-      backgroundColor: theme.inputBackground,
-      borderWidth: 1,
-      borderColor: BrandColors.primary,
     },
     pressed: { opacity: 0.6 },
 

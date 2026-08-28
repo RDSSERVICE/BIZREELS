@@ -149,21 +149,32 @@ export default function HomeScreen() {
           />
         }>
         {/* Search Bar */}
-        <View style={styles.searchBar}>
+        <TouchableOpacity
+          style={styles.searchBar}
+          activeOpacity={0.9}
+          onPress={() => router.push('/(tabs)/search' as any)}>
           <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search products, services & verified sellers..."
+            placeholder="Search 10,000+ Products, Services & Sellers..."
             placeholderTextColor="rgba(255,255,255,0.4)"
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={(t) => {
+              setSearchQuery(t);
+            }}
+            onSubmitEditing={() => {
+              if (searchQuery.trim()) {
+                router.push(`/(tabs)/search?q=${encodeURIComponent(searchQuery.trim())}` as any);
+              }
+            }}
+            returnKeyType="search"
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
               <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           )}
-        </View>
+        </TouchableOpacity>
 
         {/* Hero Promotional Card Banner */}
         <View style={styles.heroBanner}>

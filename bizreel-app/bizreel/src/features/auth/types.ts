@@ -14,6 +14,20 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface SendOtpPayload {
+  phone: string;
+  purpose?: string;
+}
+
+export interface VerifyOtpPayload {
+  phone: string;
+  otp: string;
+  name?: string;
+  email?: string;
+  role?: 'customer' | 'vendor' | 'creator';
+  referral_code?: string;
+}
+
 export interface UserSubscription {
   plan: string;
   plan_id: string | null;

@@ -59,15 +59,6 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
 
-        {/* Back button */}
-        <TouchableOpacity
-          style={s.backButton}
-          onPress={() => router.back()}
-          accessibilityLabel="Go back"
-          accessibilityRole="button">
-          <Ionicons name="arrow-back" size={20} color={YELLOW} />
-        </TouchableOpacity>
-
         {/* Logo + heading */}
         <View style={s.headerSection}>
           <Image
@@ -253,19 +244,9 @@ function makeStyles(_theme: any) {
     scroll: { flex: 1, backgroundColor: BLACK },
     scrollContent: {
       paddingHorizontal: Spacing.four,
-      paddingTop: Spacing.six,
+      paddingTop: Platform.OS === 'ios' ? 60 : 48,
       paddingBottom: Spacing.seven,
       gap: Spacing.four,
-    },
-    backButton: {
-      width: 36,
-      height: 36,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 0,
-      backgroundColor: DARK_CARD,
-      borderWidth: 1,
-      borderColor: YELLOW,
     },
     pressed: { opacity: 0.6 },
     headerSection: { gap: Spacing.two },

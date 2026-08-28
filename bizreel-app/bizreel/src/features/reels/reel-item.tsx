@@ -13,6 +13,7 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  Linking,
   Modal,
   Pressable,
   Share,
@@ -32,6 +33,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAddToCart } from '@/features/cart/queries';
+import { api } from '@/lib/api';
 import {
   useAddReelComment,
   useFollowUser,
@@ -178,13 +180,47 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
   async function handleShareButton() {
     try {
-      await Share.share({
-        message: `Check out this reel by ${reel.creatorName} on BIZREELS: ${reel.caption || ''}`,
-        title: `BIZREELS — ${reel.creatorName}`,
-      });
+      const shareUrl = `https://bizreels-backend.onrender.com/reels/${reel._id}`;
+      const captionText = reel.caption ? `\n"${reel.caption.trim()}"` : '';
+      const shareMessage = `Check out this reel by ${reel.creatorName || 'a creator'} on BIZREELS!${captionText}\n\n👉 ${shareUrl}`;
+
+      await Share.share(
+        {
+          message: shareMessage,
+          title: `BIZREELS — ${reel.creatorName || 'Reel'}`,
+        },
+        {
+          dialogTitle: `Share Reel by ${reel.creatorName || 'Creator'}`,
+        }
+      );
     } catch (err) {
       console.warn('Share error', err);
     }
+  }
+
+  function handleCallVendor() {
+    const vendorPhone = (reel as any).phone || (reel as any).phone_number || (reel as any).user_id?.phone || '919876543210';
+    const targetVendorId = (reel as any).creatorId || (reel as any).creator || (reel as any).vendor_id?._id || (reel as any).vendor_id;
+
+    if (targetVendorId) {
+      api.post('/analytics', { type: 'call_vendor', targetId: targetVendorId }).catch(() => {});
+    }
+
+    Linking.openURL(`tel:${vendorPhone}`);
+  }
+
+  function handleWhatsAppVendor() {
+    const vendorPhone = (reel as any).phone || (reel as any).phone_number || (reel as any).user_id?.phone || '919876543210';
+    const targetVendorId = (reel as any).creatorId || (reel as any).creator || (reel as any).vendor_id?._id || (reel as any).vendor_id;
+
+    if (targetVendorId) {
+      api.post('/analytics', { type: 'whatsapp_vendor', targetId: targetVendorId }).catch(() => {});
+    }
+
+    const cleanPhone = vendorPhone.replace(/\D/g, '');
+    const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const msg = encodeURIComponent(`Hi! I saw your reel on BizReels: "${reel.caption || 'Reel Product'}"\nhttps://bizreels-backend.onrender.com/reels/${reel._id}`);
+    Linking.openURL(`https://wa.me/${formattedPhone}?text=${msg}`);
   }
 
   function handleSendComment() {
@@ -216,6 +252,15 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
   const bottomMargin = Math.max(insets.bottom, 12) + 70;
 
+  const displayPrice =
+    (reel as any).price ||
+    (reel as any).salePrice ||
+    taggedListing?.salePrice ||
+    taggedListing?.price ||
+    (reel as any).taggedListing?.price ||
+    (reel as any).productPrice ||
+    null;
+
   return (
     <View style={[styles.container, { height }]}>
       {/* Media Touchable Container */}
@@ -241,6 +286,14 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
             </View>
           </>
         )}
+
+        {/* PROMINENT REEL PRODUCT PRICE BADGE */}
+        {displayPrice ? (
+          <View style={[styles.topPriceBadge, { top: insets.top + 16 }]}>
+            <Ionicons name="pricetag" size={14} color="#0F0F12" />
+            <Text style={styles.topPriceText}>₹{displayPrice}</Text>
+          </View>
+        ) : null}
 
         <View style={styles.gradientOverlay} pointerEvents="none" />
 
@@ -304,7 +357,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
         {/* Creator Info Row */}
         <View style={styles.creatorRow}>
-          <View style={styles.avatar}>
+          <View style={styles.avatarContainer}>
             {reel.creatorAvatar ? (
               <Image source={{ uri: reel.creatorAvatar }} style={styles.avatarImage} contentFit="cover" />
             ) : (
@@ -359,6 +412,12 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
         {/* Quick Add to Cart & Buy Now Action Row */}
         <View style={styles.reelBuyRow}>
+          {displayPrice ? (
+            <View style={styles.pricePillTag}>
+              <Text style={styles.pricePillText}>₹{displayPrice}</Text>
+            </View>
+          ) : null}
+
           <TouchableOpacity
             style={styles.reelCartBtn}
             onPress={() => {
@@ -449,6 +508,22 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
             <Ionicons name="share-social-outline" size={24} color="#FFFFFF" />
           </View>
           <Text style={styles.actionCount}>Share</Text>
+        </TouchableOpacity>
+
+        {/* Call Vendor Button */}
+        <TouchableOpacity style={styles.actionBtn} onPress={handleCallVendor} accessibilityLabel="Call Vendor">
+          <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
+            <Ionicons name="call-outline" size={22} color="#3B82F6" />
+          </View>
+          <Text style={styles.actionCount}>Call</Text>
+        </TouchableOpacity>
+
+        {/* WhatsApp Vendor Button */}
+        <TouchableOpacity style={styles.actionBtn} onPress={handleWhatsAppVendor} accessibilityLabel="WhatsApp Vendor">
+          <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(34,197,94,0.2)' }]}>
+            <Ionicons name="logo-whatsapp" size={22} color="#22C55E" />
+          </View>
+          <Text style={styles.actionCount}>WhatsApp</Text>
         </TouchableOpacity>
 
         {/* Direct Chat with Seller Button */}
@@ -921,5 +996,36 @@ const styles = StyleSheet.create({
     backgroundColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  topPriceBadge: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: YELLOW,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#0F0F12',
+  },
+  topPriceText: {
+    color: BLACK,
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  pricePillTag: {
+    backgroundColor: YELLOW,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pricePillText: {
+    color: BLACK,
+    fontSize: 13,
+    fontWeight: '900',
   },
 });

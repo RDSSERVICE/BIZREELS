@@ -1,7 +1,15 @@
 /** Raw API call functions for auth endpoints. */
 
 import { api } from '@/lib/api';
-import type { AuthResponse, AuthUser, LoginPayload, RegisterPayload, UsersMeResponse } from './types';
+import type {
+  AuthResponse,
+  AuthUser,
+  LoginPayload,
+  RegisterPayload,
+  SendOtpPayload,
+  UsersMeResponse,
+  VerifyOtpPayload,
+} from './types';
 
 export async function registerUser(payload: RegisterPayload): Promise<AuthResponse> {
   const response = await api.post<AuthResponse>('/auth/register', payload);
@@ -10,6 +18,16 @@ export async function registerUser(payload: RegisterPayload): Promise<AuthRespon
 
 export async function loginUser(payload: LoginPayload): Promise<AuthResponse> {
   const response = await api.post<AuthResponse>('/auth/login', payload);
+  return response.data;
+}
+
+export async function sendOtp(payload: SendOtpPayload): Promise<{ success: boolean; message: string }> {
+  const response = await api.post<{ success: boolean; message: string }>('/auth/otp/send', payload);
+  return response.data;
+}
+
+export async function verifyOtp(payload: VerifyOtpPayload): Promise<AuthResponse> {
+  const response = await api.post<AuthResponse>('/auth/otp/verify', payload);
   return response.data;
 }
 

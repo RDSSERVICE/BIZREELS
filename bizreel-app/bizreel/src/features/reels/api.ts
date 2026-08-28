@@ -3,9 +3,12 @@ import type { Comment, ReelsFeedResponse } from './types';
 
 export const REELS_LIMIT = 5;
 
-export async function fetchReelsFeed(page: number): Promise<ReelsFeedResponse> {
+export async function fetchReelsFeed(
+  page: number,
+  searchParams?: { q?: string; hashtags?: string; category?: string }
+): Promise<ReelsFeedResponse> {
   const response = await api.get<ReelsFeedResponse>('/reels', {
-    params: { page, limit: REELS_LIMIT },
+    params: { page, limit: REELS_LIMIT, ...searchParams },
   });
   return response.data;
 }

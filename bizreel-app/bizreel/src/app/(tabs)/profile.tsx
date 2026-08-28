@@ -73,13 +73,29 @@ export default function ProfileScreen() {
         .join('')
     : 'U';
 
+  const [vendorAnalytics, setVendorAnalytics] = useState<{
+    callsCount: number;
+    whatsappCount: number;
+    chatsCount: number;
+    inquiriesCount: number;
+    savedReelsCount: number;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (user?.activeRole === 'vendor' || user?.current_role === 'vendor' || user?.role === 'vendor') {
+      api.get('/analytics/vendor')
+        .then(({ data }) => setVendorAnalytics(data?.data || data))
+        .catch((err) => console.warn('Failed to load vendor analytics', err));
+    }
+  }, [user]);
+
   const ratingDisplay = user.rating_count > 0 ? `${user.rating_avg.toFixed(1)} ★` : '4.9 ★';
 
   const CUSTOMER_MENU = [
     { label: 'Chat & Messages Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
-    { label: 'My Inquiries & Quotes', route: '/inquiries', icon: 'mail-outline' },
+    { label: 'My Requirements & Quotes', route: '/post-requirement', icon: 'mail-outline' },
     { label: 'My Orders', route: '/orders', icon: 'cart-outline' },
-    { label: 'Saved Products & Reels', route: '/saved', icon: 'bookmark-outline' },
+    { label: 'Saved Reels & Bookmarks', route: '/saved-reels', icon: 'bookmark-outline' },
   ];
 
   const VENDOR_MENU = [
@@ -203,6 +219,42 @@ export default function ProfileScreen() {
             <Text style={styles.statLabel}>Store Rating</Text>
           </View>
         </View>
+
+        {/* ── Vendor Lead & Contact Analytics Card ── */}
+        {(user.activeRole === 'vendor' || user.current_role === 'vendor' || user.role === 'vendor') && (
+          <View style={styles.leadAnalyticsCard}>
+            <View style={styles.leadAnalyticsHeader}>
+              <Ionicons name="bar-chart" size={16} color={YELLOW} />
+              <Text style={styles.leadAnalyticsTitle}>LEAD & CONTACT ANALYTICS</Text>
+            </View>
+
+            <View style={styles.leadGrid}>
+              <View style={styles.leadGridItem}>
+                <Ionicons name="call" size={16} color="#3B82F6" />
+                <Text style={styles.leadVal}>{vendorAnalytics?.callsCount || 0}</Text>
+                <Text style={styles.leadLbl}>Call Clicks</Text>
+              </View>
+
+              <View style={styles.leadGridItem}>
+                <Ionicons name="logo-whatsapp" size={16} color="#22C55E" />
+                <Text style={styles.leadVal}>{vendorAnalytics?.whatsappCount || 0}</Text>
+                <Text style={styles.leadLbl}>WhatsApp</Text>
+              </View>
+
+              <View style={styles.leadGridItem}>
+                <Ionicons name="chatbubble-ellipses" size={16} color={YELLOW} />
+                <Text style={styles.leadVal}>{vendorAnalytics?.chatsCount || 0}</Text>
+                <Text style={styles.leadLbl}>Chats</Text>
+              </View>
+
+              <View style={styles.leadGridItem}>
+                <Ionicons name="mail" size={16} color="#EC407A" />
+                <Text style={styles.leadVal}>{vendorAnalytics?.inquiriesCount || 0}</Text>
+                <Text style={styles.leadLbl}>Inquiries</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* ── Customer Hub Section ── */}
         <View style={styles.menuSectionCard}>
@@ -470,4 +522,52 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(239,68,68,0.4)',
   },
   logoutBtnText: { color: '#EF4444', fontSize: FontSize.xs, fontWeight: '900' },
+
+  leadAnalyticsCard: {
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: Spacing.four,
+    marginBottom: Spacing.four,
+    gap: 12,
+  },
+  leadAnalyticsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    paddingBottom: 6,
+  },
+  leadAnalyticsTitle: {
+    color: YELLOW,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  leadGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  leadGridItem: {
+    alignItems: 'center',
+    backgroundColor: BLACK,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    flex: 1,
+    marginHorizontal: 3,
+    borderWidth: 1,
+    borderColor: BORDER,
+    gap: 4,
+  },
+  leadVal: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  leadLbl: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    fontWeight: '700',
+  },
 });

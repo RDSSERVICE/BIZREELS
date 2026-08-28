@@ -18,12 +18,13 @@ const DARK_BG = '#18181C';
 const BORDER = '#2D2D36';
 
 const TABS = [
-  { name: 'home',    label: 'HOME',    icon: 'home-outline',         activeIcon: 'home' },
-  { name: 'index',   label: 'REELS',   icon: 'play-circle-outline',  activeIcon: 'play-circle' },
-  { name: 'studio',  label: 'STUDIO',  icon: 'videocam-outline',     activeIcon: 'videocam' },
-  { name: 'search',  label: 'SEARCH',  icon: 'search-outline',       activeIcon: 'search' },
-  { name: 'profile', label: 'ME',      icon: 'person-outline',       activeIcon: 'person' },
-] as const;
+  { name: 'home',             label: 'HOME',     icon: 'home-outline',         activeIcon: 'home',             forRole: 'all' },
+  { name: 'index',            label: 'REELS',    icon: 'play-circle-outline',  activeIcon: 'play-circle',      forRole: 'all' },
+  { name: 'studio',           label: 'STUDIO',   icon: 'videocam-outline',     activeIcon: 'videocam',         forRole: 'vendor' },
+  { name: 'post-requirement', label: 'POST REQ', icon: 'clipboard-outline',    activeIcon: 'clipboard',        forRole: 'customer' },
+  { name: 'search',           label: 'SEARCH',   icon: 'search-outline',       activeIcon: 'search',           forRole: 'all' },
+  { name: 'profile',          label: 'ME',       icon: 'person-outline',       activeIcon: 'person',           forRole: 'all' },
+];
 
 export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -32,7 +33,11 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const cartTotalItems = cart?.total_items || 0;
 
   const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
-  const visibleTabs = TABS.filter((tab) => isVendor || tab.name !== 'studio');
+  const visibleTabs = TABS.filter((tab) => {
+    if (tab.forRole === 'vendor') return isVendor;
+    if (tab.forRole === 'customer') return !isVendor;
+    return true;
+  });
 
   function getRouteIndex(name: string) {
     return state.routes.findIndex((r) => r.name === name);

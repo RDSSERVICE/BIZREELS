@@ -19,8 +19,9 @@ import {
 } from 'react-native';
 
 import { BrandColors, Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
-import { useRegister } from '@/features/auth/mutations';
+import { useRegister, useSendOtp } from '@/features/auth/mutations';
 import { registerSchema, type RegisterFormValues } from '@/features/auth/schema';
+import { OtpVerificationModal } from '@/components/auth/otp-verification-modal';
 import { useTheme } from '@/hooks/use-theme';
 import { api } from '@/lib/api';
 
@@ -50,64 +51,103 @@ export default function RegisterScreen() {
   const s = makeStyles(theme);
   const [step, setStep] = useState<1 | 2>(1);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [otpModalVisible, setOtpModalVisible] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
   // Interest categories from DB
   const [dbCategories, setDbCategories] = useState<DBCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
   const [selectedInterests, setSelectedInterests] = useState<Array<{ category: string; subcategory?: string | null }>>([]);
   const [expandedCatId, setExpandedCatId] = useState<string | null>(null);
 
   const { mutate: register, isPending } = useRegister();
+  const { mutate: sendOtp, isPending: isSendingOtp } = useSendOtp();
 
   const {
     control,
     handleSubmit,
     watch,
+    getValues,
     trigger,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '' },
+    defaultValues: { name: '', phone: '', email: '', password: '', confirmPassword: '' },
     mode: 'onChange',
   });
 
   const passwordValue = watch('password');
+  const phoneValue = watch('phone');
+  const emailValue = watch('email');
+  const nameValue = watch('name');
 
-  // Fetch live categories taxonomy from DB API when entering Step 2
+  // Fetch live categories taxonomy from DB API when entering Step 2 or searching
   useEffect(() => {
-    if (step === 2 && dbCategories.length === 0) {
-      setLoadingCategories(true);
-      api.get('/categories?tree=true')
-        .then((res: any) => {
-          const items = res.data?.items || res.data || [];
-          const formatted = items
-            .filter((c: any) => !c.parent_id && c.is_active !== false)
-            .map((c: any) => ({
-              id: c._id || c.id,
-              name: c.name,
-              icon_url: c.icon_url,
-              children: (c.children || []).map((sub: any) => ({
-                id: sub._id || sub.id,
-                name: sub.name,
-              })),
-            }));
-          setDbCategories(formatted);
-        })
-        .catch((err) => {
-          console.warn('Failed to load DB categories during signup:', err);
-        })
-        .finally(() => setLoadingCategories(false));
+    if (step === 2) {
+      const handler = setTimeout(() => {
+        setLoadingCategories(true);
+        const searchParam = categorySearchQuery.trim()
+          ? `&q=${encodeURIComponent(categorySearchQuery.trim())}`
+          : '';
+
+        api.get(`/categories?tree=true${searchParam}`)
+          .then((res: any) => {
+            const items = res.data?.items || res.data || [];
+            const formatted = items
+              .filter((c: any) => !c.parent_id && c.is_active !== false)
+              .map((c: any) => ({
+                id: c._id || c.id,
+                name: c.name,
+                icon_url: c.icon_url,
+                children: (c.children || []).map((sub: any) => ({
+                  id: sub._id || sub.id,
+                  name: sub.name,
+                })),
+              }));
+            setDbCategories(formatted);
+          })
+          .catch((err) => {
+            console.warn('Failed to load DB categories during signup:', err);
+          })
+          .finally(() => setLoadingCategories(false));
+      }, 300);
+
+      return () => clearTimeout(handler);
     }
-  }, [step]);
+  }, [step, categorySearchQuery]);
 
   const [selectedRole, setSelectedRole] = useState<'customer' | 'vendor' | 'creator'>('customer');
 
   const handleNextStep = async () => {
     setServerError(null);
-    const valid = await trigger(['name', 'email', 'password']);
+    if (!isVerified) {
+      setServerError('Please verify your mobile number via OTP first.');
+      return;
+    }
+    const valid = await trigger(['name', 'phone', 'email', 'password', 'confirmPassword']);
     if (valid) {
       setStep(2);
+    }
+  };
+
+  const handleTriggerOtpModal = async () => {
+    setServerError(null);
+    const valid = await trigger(['name', 'phone', 'email', 'password', 'confirmPassword']);
+    if (valid) {
+      sendOtp(
+        { phone: phoneValue, purpose: 'signup' },
+        {
+          onSuccess: () => {
+            setOtpModalVisible(true);
+          },
+          onError: (err) => {
+            setServerError(err.message || 'Account with this phone number already exists. Please Sign In.');
+          },
+        }
+      );
     }
   };
 
@@ -151,15 +191,6 @@ export default function RegisterScreen() {
         contentContainerStyle={s.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-
-        {/* Back button */}
-        <TouchableOpacity
-          style={s.backButton}
-          onPress={() => (step === 2 ? setStep(1) : router.back())}
-          accessibilityLabel="Go back"
-          accessibilityRole="button">
-          <Ionicons name="arrow-back" size={20} color={YELLOW} />
-        </TouchableOpacity>
 
         {/* Logo + heading */}
         <View style={s.headerSection}>
@@ -255,6 +286,35 @@ export default function RegisterScreen() {
                   )}
                 />
                 {errors.name && <Text style={s.fieldError}>{errors.name.message}</Text>}
+              </View>
+
+              {/* Mobile Number */}
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Mobile Number *</Text>
+                <Controller
+                  control={control}
+                  name="phone"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View style={[s.inputRow, errors.phone && s.inputError]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 6 }}>
+                        <Text style={{ color: YELLOW, fontWeight: '900', fontSize: 13 }}>🇮🇳 +91</Text>
+                      </View>
+                      <TextInput
+                        style={s.input}
+                        placeholder="Enter 10-digit mobile number"
+                        placeholderTextColor={theme.placeholder}
+                        keyboardType="phone-pad"
+                        maxLength={10}
+                        returnKeyType="next"
+                        value={value}
+                        onChangeText={(v) => { onChange(v); setServerError(null); }}
+                        onBlur={onBlur}
+                        accessibilityLabel="Mobile Number"
+                      />
+                    </View>
+                  )}
+                />
+                {errors.phone && <Text style={s.fieldError}>{errors.phone.message}</Text>}
               </View>
 
               {/* Email */}
@@ -359,21 +419,93 @@ export default function RegisterScreen() {
                 </View>
               </View>
 
-              {/* Next: Select Interests button */}
-              <Pressable
-                style={({ pressed }) => [s.primaryButton, pressed && s.primaryButtonPressed]}
-                onPress={handleNextStep}
-                accessibilityLabel="Next Step">
-                <Text style={s.primaryButtonText}>Next: Select Interests</Text>
-                <SymbolView
-                  name={{ ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }}
-                  size={16}
-                  tintColor={BrandColors.onPrimary}
+              {/* Confirm Password */}
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Confirm Password</Text>
+                <Controller
+                  control={control}
+                  name="confirmPassword"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View style={[s.inputRow, errors.confirmPassword && s.inputError]}>
+                      <SymbolView
+                        name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+                        size={18}
+                        tintColor={BrandColors.primary}
+                        style={s.inputIcon}
+                      />
+                      <TextInput
+                        style={s.input}
+                        placeholder="Re-enter your password"
+                        placeholderTextColor={theme.placeholder}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        secureTextEntry={!showConfirmPassword}
+                        returnKeyType="done"
+                        value={value}
+                        onChangeText={(v) => { onChange(v); setServerError(null); }}
+                        onBlur={onBlur}
+                        onSubmitEditing={handleNextStep}
+                        accessibilityLabel="Confirm Password"
+                      />
+                      <Pressable
+                        onPress={() => setShowConfirmPassword((v) => !v)}
+                        style={s.eyeButton}
+                        accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                        accessibilityRole="button">
+                        <SymbolView
+                          name={
+                            showConfirmPassword
+                              ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                              : { ios: 'eye', android: 'visibility', web: 'visibility' }
+                          }
+                          size={18}
+                          tintColor={theme.textSecondary}
+                        />
+                      </Pressable>
+                    </View>
+                  )}
                 />
-              </Pressable>
+                {errors.confirmPassword && (
+                  <Text style={s.fieldError}>{errors.confirmPassword.message}</Text>
+                )}
+              </View>
+
+              {/* Primary Action Button: Send OTP & Verify */}
+              <View style={{ gap: Spacing.three, marginTop: Spacing.two }}>
+                {!isVerified ? (
+                  <Pressable
+                    style={({ pressed }) => [
+                      s.primaryButton,
+                      pressed && s.primaryButtonPressed,
+                      isSendingOtp && s.primaryButtonDisabled,
+                    ]}
+                    onPress={handleTriggerOtpModal}
+                    disabled={isSendingOtp}
+                    accessibilityLabel="Verify OTP & Continue to Interests">
+                    {isSendingOtp ? (
+                      <ActivityIndicator color={BLACK} />
+                    ) : (
+                      <>
+                        <Text style={s.primaryButtonText}>VERIFY OTP & CONTINUE</Text>
+                        <SymbolView
+                          name={{ ios: 'shield.checkmark', android: 'security', web: 'security' }}
+                          size={18}
+                          tintColor={BLACK}
+                        />
+                      </>
+                    )}
+                  </Pressable>
+                ) : (
+                  <TouchableOpacity
+                    style={s.primaryButton}
+                    onPress={() => setStep(2)}>
+                    <Text style={s.primaryButtonText}>✓ MOBILE VERIFIED — SELECT INTERESTS →</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </>
           ) : (
-            /* STEP 2: Category & Subcategory Interest Selection */
+            /* STEP 2: Category & Subcategory Interest Selection (Unlocked ONLY after OTP Verification) */
             <>
               <View style={s.interestHeaderRow}>
                 <Text style={s.interestTitle}>CATEGORIES & SUBCATEGORIES</Text>
@@ -388,6 +520,25 @@ export default function RegisterScreen() {
                 Select at least 5 categories or subcategories from DB taxonomy below:
               </Text>
 
+              {/* Category & Subcategory Live Keyword Search Bar */}
+              <View style={s.searchBarRow}>
+                <Ionicons name="search-outline" size={18} color={YELLOW} style={s.searchIcon} />
+                <TextInput
+                  style={s.searchInput}
+                  placeholder="Search categories or subcategories..."
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={categorySearchQuery}
+                  onChangeText={setCategorySearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {!!categorySearchQuery && (
+                  <TouchableOpacity onPress={() => setCategorySearchQuery('')} style={s.clearSearchBtn}>
+                    <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
               {loadingCategories ? (
                 <View style={{ paddingVertical: 20, alignItems: 'center' }}>
                   <ActivityIndicator color={YELLOW} />
@@ -397,69 +548,94 @@ export default function RegisterScreen() {
                 </View>
               ) : (
                 <View style={{ gap: 10 }}>
-                  {dbCategories.map((cat) => {
-                    const isCatSelected = isInterestSelected(cat.name, null);
-                    const isExpanded = expandedCatId === cat.id;
-                    const subCount = selectedInterests.filter((i) => i.category === cat.name && i.subcategory).length;
+                  {(() => {
+                    const q = categorySearchQuery.trim().toLowerCase();
+                    const filtered = dbCategories.filter((cat) => {
+                      if (!q) return true;
+                      const catMatch = cat.name.toLowerCase().includes(q);
+                      const subMatch = (cat.children || []).some((sub) => sub.name.toLowerCase().includes(q));
+                      return catMatch || subMatch;
+                    });
 
-                    return (
-                      <View key={cat.id} style={s.catCard}>
-                        {/* Parent Category Header */}
-                        <TouchableOpacity
-                          style={s.catCardHeader}
-                          onPress={() => setExpandedCatId(isExpanded ? null : cat.id)}>
+                    if (filtered.length === 0) {
+                      return (
+                        <View style={{ paddingVertical: 24, alignItems: 'center', gap: 6 }}>
+                          <Ionicons name="search-outline" size={28} color={YELLOW} />
+                          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs, fontWeight: '700' }}>
+                            No categories matching "{categorySearchQuery}"
+                          </Text>
+                        </View>
+                      );
+                    }
+
+                    return filtered.map((cat) => {
+                      const isCatSelected = isInterestSelected(cat.name, null);
+                      const subCount = selectedInterests.filter((i) => i.category === cat.name && i.subcategory).length;
+                      const matchingSubs = (cat.children || []).filter((sub) => {
+                        if (!q) return true;
+                        return cat.name.toLowerCase().includes(q) || sub.name.toLowerCase().includes(q);
+                      });
+                      const isExpanded = expandedCatId === cat.id || (!!q && matchingSubs.length > 0);
+
+                      return (
+                        <View key={cat.id} style={s.catCard}>
+                          {/* Parent Category Header */}
                           <TouchableOpacity
-                            style={[s.catCheckBtn, isCatSelected && s.catCheckBtnActive]}
-                            onPress={() => toggleInterest(cat.name, null)}>
-                            <Ionicons
-                              name={isCatSelected ? 'checkmark' : 'add'}
-                              size={14}
-                              color={isCatSelected ? BLACK : '#fff'}
-                            />
+                            style={s.catCardHeader}
+                            onPress={() => setExpandedCatId(isExpanded && !q ? null : cat.id)}>
+                            <TouchableOpacity
+                              style={[s.catCheckBtn, isCatSelected && s.catCheckBtnActive]}
+                              onPress={() => toggleInterest(cat.name, null)}>
+                              <Ionicons
+                                name={isCatSelected ? 'checkmark' : 'add'}
+                                size={14}
+                                color={isCatSelected ? BLACK : '#fff'}
+                              />
+                            </TouchableOpacity>
+
+                            <View style={{ flex: 1 }}>
+                              <Text style={s.catName}>{cat.name}</Text>
+                              {subCount > 0 && (
+                                <Text style={s.subCountBadge}>{subCount} subcategory selected</Text>
+                              )}
+                            </View>
+
+                            {cat.children && cat.children.length > 0 && (
+                              <Ionicons
+                                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                size={16}
+                                color="#F59E0B"
+                              />
+                            )}
                           </TouchableOpacity>
 
-                          <View style={{ flex: 1 }}>
-                            <Text style={s.catName}>{cat.name}</Text>
-                            {subCount > 0 && (
-                              <Text style={s.subCountBadge}>{subCount} subcategory selected</Text>
-                            )}
-                          </View>
-
-                          {cat.children && cat.children.length > 0 && (
-                            <Ionicons
-                              name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                              size={16}
-                              color="#F59E0B"
-                            />
+                          {/* Subcategories Accordion */}
+                          {isExpanded && matchingSubs.length > 0 && (
+                            <View style={s.subsContainer}>
+                              {matchingSubs.map((sub) => {
+                                const isSubSelected = isInterestSelected(cat.name, sub.name);
+                                return (
+                                  <TouchableOpacity
+                                    key={sub.id}
+                                    style={[s.subChip, isSubSelected && s.subChipActive]}
+                                    onPress={() => toggleInterest(cat.name, sub.name)}>
+                                    <Ionicons
+                                      name={isSubSelected ? 'checkmark-circle' : 'ellipse-outline'}
+                                      size={12}
+                                      color={isSubSelected ? BLACK : 'rgba(255,255,255,0.6)'}
+                                    />
+                                    <Text style={[s.subText, isSubSelected && s.subTextActive]}>
+                                      {sub.name}
+                                    </Text>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
                           )}
-                        </TouchableOpacity>
-
-                        {/* Subcategories Accordion */}
-                        {isExpanded && cat.children && cat.children.length > 0 && (
-                          <View style={s.subsContainer}>
-                            {cat.children.map((sub) => {
-                              const isSubSelected = isInterestSelected(cat.name, sub.name);
-                              return (
-                                <TouchableOpacity
-                                  key={sub.id}
-                                  style={[s.subChip, isSubSelected && s.subChipActive]}
-                                  onPress={() => toggleInterest(cat.name, sub.name)}>
-                                  <Ionicons
-                                    name={isSubSelected ? 'checkmark-circle' : 'ellipse-outline'}
-                                    size={12}
-                                    color={isSubSelected ? BLACK : 'rgba(255,255,255,0.6)'}
-                                  />
-                                  <Text style={[s.subText, isSubSelected && s.subTextActive]}>
-                                    {sub.name}
-                                  </Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        )}
-                      </View>
-                    );
-                  })}
+                        </View>
+                      );
+                    });
+                  })()}
                 </View>
               )}
 
@@ -505,6 +681,22 @@ export default function RegisterScreen() {
           </Link>
         </View>
       </ScrollView>
+
+      {/* OTP Verification Sheet Modal */}
+      <OtpVerificationModal
+        visible={otpModalVisible}
+        phone={phoneValue}
+        email={emailValue}
+        name={nameValue}
+        role={selectedRole}
+        autoLogin={false}
+        onClose={() => setOtpModalVisible(false)}
+        onSuccess={() => {
+          setIsVerified(true);
+          setOtpModalVisible(false);
+          setStep(2);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -520,19 +712,9 @@ function makeStyles(_theme: any) {
     scroll: { flex: 1, backgroundColor: BLACK },
     scrollContent: {
       paddingHorizontal: Spacing.four,
-      paddingTop: Spacing.six,
+      paddingTop: Platform.OS === 'ios' ? 60 : 48,
       paddingBottom: Spacing.seven,
       gap: Spacing.four,
-    },
-    backButton: {
-      width: 36,
-      height: 36,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 0,
-      backgroundColor: DARK_CARD,
-      borderWidth: 1,
-      borderColor: YELLOW,
     },
     pressed: { opacity: 0.6 },
     headerSection: { gap: Spacing.two },
@@ -773,6 +955,44 @@ function makeStyles(_theme: any) {
     roleCardTitleSelected: {
       color: BLACK,
       fontWeight: '900',
+    },
+    secondaryStepBtn: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: BLACK,
+    },
+    secondaryStepBtnText: {
+      color: 'rgba(255,255,255,0.7)',
+      fontSize: FontSize.xs,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    searchBarRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: BLACK,
+      borderWidth: 1,
+      borderColor: BORDER,
+      paddingHorizontal: Spacing.three,
+      height: 44,
+      borderRadius: 0,
+      marginVertical: Spacing.two,
+    },
+    searchIcon: {
+      marginRight: Spacing.two,
+    },
+    searchInput: {
+      flex: 1,
+      color: '#fff',
+      fontSize: FontSize.xs,
+      fontWeight: '700',
+      height: '100%',
+    },
+    clearSearchBtn: {
+      padding: Spacing.one,
     },
   });
 }

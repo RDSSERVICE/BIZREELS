@@ -13,29 +13,47 @@ const passwordSchema = z
 // ---------------------------------------------------------------------------
 // Email registration
 // ---------------------------------------------------------------------------
-export const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name is too long'),
-  email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
-  password: passwordSchema,
-  role: z.enum(['customer', 'vendor', 'creator']).optional().default('customer'),
-  interests: z.array(z.object({ category: z.string(), subcategory: z.string().nullable().optional() })).optional(),
-});
+export const registerSchema = z
+  .object({
+    name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name is too long'),
+    phone: z
+      .string()
+      .min(10, 'Enter a valid 10-digit mobile number')
+      .regex(/^\+?[0-9]{10,15}$/, 'Enter a valid mobile number (e.g. 9876543210 or +919876543210)'),
+    email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    role: z.enum(['customer', 'vendor', 'creator']).optional().default('customer'),
+    interests: z
+      .array(z.object({ category: z.string(), subcategory: z.string().nullable().optional() }))
+      .optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
 // ---------------------------------------------------------------------------
 // Phone registration (name + phone + email + password — email required by server)
 // ---------------------------------------------------------------------------
-export const registerWithPhoneSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name is too long'),
-  phone: z
-    .string()
-    .min(1, 'Phone number is required')
-    .regex(/^\+?[1-9]\d{7,14}$/, 'Enter a valid phone number (e.g. +919876543210)'),
-  email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
-  password: passwordSchema,
-  role: z.enum(['customer', 'vendor', 'creator']).optional().default('customer'),
-});
+export const registerWithPhoneSchema = z
+  .object({
+    name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name is too long'),
+    phone: z
+      .string()
+      .min(1, 'Phone number is required')
+      .regex(/^\+?[1-9]\d{7,14}$/, 'Enter a valid phone number (e.g. +919876543210)'),
+    email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    role: z.enum(['customer', 'vendor', 'creator']).optional().default('customer'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 export type RegisterWithPhoneFormValues = z.infer<typeof registerWithPhoneSchema>;
 

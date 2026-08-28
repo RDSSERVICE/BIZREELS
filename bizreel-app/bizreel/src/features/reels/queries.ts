@@ -20,10 +20,10 @@ import type { Reel } from './types';
 
 export const REELS_QUERY_KEY = ['reels', 'feed'] as const;
 
-export function useReelsFeed() {
+export function useReelsFeed(searchParams?: { q?: string; hashtags?: string; category?: string }) {
   return useInfiniteQuery({
-    queryKey: REELS_QUERY_KEY,
-    queryFn: ({ pageParam }) => fetchReelsFeed(pageParam as number),
+    queryKey: ['reels', 'feed', searchParams?.q || '', searchParams?.hashtags || '', searchParams?.category || ''],
+    queryFn: ({ pageParam }) => fetchReelsFeed(pageParam as number, searchParams),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.meta?.hasNextPage ? lastPage.meta.page + 1 : undefined,

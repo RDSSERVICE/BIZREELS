@@ -1,6 +1,7 @@
 /**
- * Search Screen — Modern e-commerce & location-based discovery search.
- * Includes GPS location detection & "Nearby" radius search.
+ * Search Screen — Web-Style Multi-Tier Discovery & Filter Engine.
+ * Features distance radius (5, 10, 15, 25, 50, 100km, Anywhere), price ranges (₹1 to ₹2 Cr),
+ * product/service type toggles, sorting, and GPS location detection.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -53,28 +54,39 @@ const POPULAR_CITIES = [
   'Chennai',
 ];
 
-const RADIUS_OPTIONS = [
+const DISTANCE_OPTIONS = [
   { label: '5 km', value: 5 },
   { label: '10 km', value: 10 },
+  { label: '15 km', value: 15 },
   { label: '25 km', value: 25 },
   { label: '50 km', value: 50 },
+  { label: '100 km', value: 100 },
+  { label: 'Anywhere (Global)', value: 0 },
+];
+
+const PRICE_PRESETS = [
+  { label: 'All Prices', min: undefined, max: undefined },
+  { label: 'Under ₹500', min: 0, max: 500 },
+  { label: '₹500 - ₹2,000', min: 500, max: 2000 },
+  { label: '₹2,000 - ₹10,000', min: 2000, max: 10000 },
+  { label: '₹10,000 - ₹50,000', min: 10000, max: 50000 },
+  { label: '₹50,000 - ₹1 Lakh', min: 50000, max: 100000 },
+  { label: '₹1 Lakh - ₹10 Lakh', min: 100000, max: 1000000 },
+  { label: '₹10 Lakh - ₹50 Lakh', min: 1000000, max: 5000000 },
+  { label: '₹50 Lakh - ₹2 Cr', min: 5000000, max: 20000000 },
 ];
 
 const TYPE_FILTERS = [
-  { id: 'all', label: 'All Results' },
+  { id: 'all', label: 'All Types' },
   { id: 'product', label: 'Products Only' },
   { id: 'service', label: 'Services Only' },
 ];
 
-const REQ_CATEGORIES = [
-  'Electronics',
-  'Fashion & Apparel',
-  'Home & Living',
-  'Vehicles & Auto',
-  'Real Estate',
-  'Beauty & Salon',
-  'Digital Services',
-  'Corporate Gifts',
+const SORT_OPTIONS = [
+  { id: 'latest', label: 'Newest First' },
+  { id: 'price_low', label: 'Price: Low to High' },
+  { id: 'price_high', label: 'Price: High to Low' },
+  { id: 'nearest', label: 'Nearest First' },
 ];
 
 function renderCategoryIcon(catName: string, iconUrl?: string) {
@@ -83,41 +95,20 @@ function renderCategoryIcon(catName: string, iconUrl?: string) {
   }
 
   const name = (catName || '').toLowerCase().trim();
-
   let iconName: keyof typeof Ionicons.glyphMap = 'grid-outline';
 
-  if (name.includes('home') || name.includes('clean') || name.includes('housekeeping') || name.includes('maid') || name.includes('furniture') || name.includes('decor') || name.includes('living') || name.includes('interior') || name.includes('appliance')) {
+  if (name.includes('home') || name.includes('living') || name.includes('furniture')) {
     iconName = 'home-outline';
-  } else if (name.includes('electronic') || name.includes('tech') || name.includes('gadget') || name.includes('mobile') || name.includes('phone') || name.includes('computer') || name.includes('it')) {
+  } else if (name.includes('electronic') || name.includes('tech') || name.includes('mobile')) {
     iconName = 'hardware-chip-outline';
-  } else if (name.includes('fashion') || name.includes('apparel') || name.includes('cloth') || name.includes('wear') || name.includes('garment') || name.includes('textile')) {
+  } else if (name.includes('fashion') || name.includes('apparel') || name.includes('cloth')) {
     iconName = 'shirt-outline';
-  } else if (name.includes('vehicle') || name.includes('auto') || name.includes('car') || name.includes('bike') || name.includes('motor') || name.includes('drive')) {
+  } else if (name.includes('vehicle') || name.includes('auto') || name.includes('car')) {
     iconName = 'car-outline';
-  } else if (name.includes('beauty') || name.includes('salon') || name.includes('spa') || name.includes('cosmetics') || name.includes('care') || name.includes('wellness')) {
+  } else if (name.includes('beauty') || name.includes('salon') || name.includes('spa')) {
     iconName = 'sparkles-outline';
-  } else if (name.includes('digital') || name.includes('service') || name.includes('marketing') || name.includes('agency') || name.includes('work') || name.includes('professional')) {
+  } else if (name.includes('digital') || name.includes('service') || name.includes('marketing')) {
     iconName = 'briefcase-outline';
-  } else if (name.includes('gift') || name.includes('toy') || name.includes('handicraft') || name.includes('craft') || name.includes('stationery') || name.includes('book')) {
-    iconName = 'gift-outline';
-  } else if (name.includes('real estate') || name.includes('property') || name.includes('construction') || name.includes('builder') || name.includes('architect')) {
-    iconName = 'business-outline';
-  } else if (name.includes('food') || name.includes('restaurant') || name.includes('cafe') || name.includes('catering') || name.includes('bakery') || name.includes('sweets')) {
-    iconName = 'restaurant-outline';
-  } else if (name.includes('education') || name.includes('coaching') || name.includes('school') || name.includes('course') || name.includes('tuition') || name.includes('training')) {
-    iconName = 'book-outline';
-  } else if (name.includes('fitness') || name.includes('gym') || name.includes('sport') || name.includes('health') || name.includes('medical') || name.includes('hospital')) {
-    iconName = 'fitness-outline';
-  } else if (name.includes('jewelry') || name.includes('jewel') || name.includes('watch') || name.includes('accessory') || name.includes('gold') || name.includes('silver')) {
-    iconName = 'diamond-outline';
-  } else if (name.includes('event') || name.includes('wedding') || name.includes('party') || name.includes('music') || name.includes('photo') || name.includes('studio')) {
-    iconName = 'camera-outline';
-  } else if (name.includes('grocery') || name.includes('supermarket') || name.includes('store') || name.includes('shop') || name.includes('mart')) {
-    iconName = 'basket-outline';
-  } else if (name.includes('repair') || name.includes('maintenance') || name.includes('plumb') || name.includes('electr')) {
-    iconName = 'construct-outline';
-  } else if (name.includes('travel') || name.includes('tourism') || name.includes('hotel') || name.includes('resort')) {
-    iconName = 'airplane-outline';
   }
 
   return <Ionicons name={iconName} size={22} color={YELLOW} />;
@@ -125,28 +116,34 @@ function renderCategoryIcon(catName: string, iconUrl?: string) {
 
 export default function SearchScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ q?: string; category?: string }>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const activeRole = user?.activeRole || user?.current_role || user?.role || 'customer';
   const isCustomer = activeRole === 'customer';
-  const isCreator = activeRole === 'creator';
-  const isVendor = activeRole === 'vendor';
 
+  // Search Text State
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedCity, setSelectedCity] = useState<string>('All Cities');
-  const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | 'product' | 'service'>('all');
-  const [sortBy, setSortBy] = useState<'latest' | 'price_low' | 'price_high'>('latest');
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  // Customer Post Requirement State
+  useEffect(() => {
+    if (params.q) {
+      setSearchText(params.q);
+    }
+  }, [params.q]);
+
+  // Filter States
+  const [selectedRadius, setSelectedRadius] = useState<number>(10); // 5, 10, 15, 25, 50, 100, 0
+  const [selectedPricePreset, setSelectedPricePreset] = useState<number | null>(null);
+  const [minPriceInput, setMinPriceInput] = useState('');
+  const [maxPriceInput, setMaxPriceInput] = useState('');
+  const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | 'product' | 'service'>('all');
+  const [sortBy, setSortBy] = useState<'latest' | 'price_low' | 'price_high' | 'nearest'>('latest');
+
+  // Modal Visibility
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [postReqModalVisible, setPostReqModalVisible] = useState(false);
-  const [reqTitle, setReqTitle] = useState('');
-  const [reqCategory, setReqCategory] = useState('Electronics');
-  const [reqDesc, setReqDesc] = useState('');
-  const [reqBudget, setReqBudget] = useState('');
-  const [reqQty, setReqQty] = useState('');
-  const [reqCity, setReqCity] = useState('');
 
   // GPS Location State
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -155,18 +152,22 @@ export default function SearchScreen() {
     lng: number;
     city?: string;
   } | null>(null);
-  const [selectedRadius, setSelectedRadius] = useState<number>(10); // default 10 km
 
   const addToCartMutation = useAddToCart();
   const createReqMutation = useCreateRequirement();
 
-  // Defer search input to keep typing butter smooth
+  // Defer search input for smooth typing
   const deferredSearch = useDeferredValue(searchText.trim());
   const isQueryActive =
     deferredSearch.length > 0 ||
     selectedCategory !== null ||
     selectedCity !== 'All Cities' ||
-    userLocation !== null;
+    userLocation !== null ||
+    selectedPricePreset !== null ||
+    minPriceInput !== '' ||
+    maxPriceInput !== '' ||
+    activeTypeFilter !== 'all' ||
+    selectedRadius !== 10;
 
   // Request GPS Location & Detect City
   async function handleDetectCurrentLocation() {
@@ -232,14 +233,33 @@ export default function SearchScreen() {
 
   const isGpsActive = selectedCity === 'Near Me (GPS)' && userLocation !== null;
 
+  // Price calculations from preset or custom inputs
+  const computedMinPrice =
+    selectedPricePreset !== null && PRICE_PRESETS[selectedPricePreset].min !== undefined
+      ? PRICE_PRESETS[selectedPricePreset].min
+      : minPriceInput
+      ? parseFloat(minPriceInput)
+      : undefined;
+
+  const computedMaxPrice =
+    selectedPricePreset !== null && PRICE_PRESETS[selectedPricePreset].max !== undefined
+      ? PRICE_PRESETS[selectedPricePreset].max
+      : maxPriceInput
+      ? parseFloat(maxPriceInput)
+      : undefined;
+
   const listingsParams = {
     page: 1,
     search: deferredSearch || undefined,
     category: selectedCategory?.name || undefined,
+    type: activeTypeFilter !== 'all' ? activeTypeFilter : undefined,
+    minPrice: computedMinPrice,
+    maxPrice: computedMaxPrice,
     city: !isGpsActive && selectedCity !== 'All Cities' ? selectedCity : undefined,
     lat: isGpsActive ? userLocation?.lat : undefined,
     lng: isGpsActive ? userLocation?.lng : undefined,
-    radius: isGpsActive ? selectedRadius : undefined,
+    distance: selectedRadius > 0 ? selectedRadius : undefined,
+    sort: sortBy,
   };
 
   const {
@@ -254,23 +274,18 @@ export default function SearchScreen() {
     isLoading: listingsLoading,
     isFetching: listingsFetching,
     refetch: refetchListings,
-    isRefetching: listingsRefetching,
   } = useListings(listingsParams, isQueryActive);
 
   const rawListings = listingsData?.data ?? [];
 
-  // Filter & Sort results locally
+  // Filter & Sort results locally fallback
   const filteredListings = rawListings.filter((item: any) => {
     if (activeTypeFilter !== 'all') {
       const itemType = item.category_type || item.type;
       if (itemType !== activeTypeFilter) return false;
     }
-    if (!isGpsActive && selectedCity !== 'All Cities') {
-      const itemCity = item.city || item.location?.city || item.vendor?.city || '';
-      if (itemCity && !itemCity.toLowerCase().includes(selectedCity.toLowerCase())) {
-        return false;
-      }
-    }
+    if (computedMinPrice !== undefined && (item.price || 0) < computedMinPrice) return false;
+    if (computedMaxPrice !== undefined && (item.price || 0) > computedMaxPrice) return false;
     return true;
   });
 
@@ -280,51 +295,26 @@ export default function SearchScreen() {
     filteredListings.sort((a, b) => (b.price || 0) - (a.price || 0));
   }
 
+  const resetAllFilters = () => {
+    setSearchText('');
+    setSelectedCategory(null);
+    setSelectedCity('All Cities');
+    setUserLocation(null);
+    setSelectedRadius(10);
+    setSelectedPricePreset(null);
+    setMinPriceInput('');
+    setMaxPriceInput('');
+    setActiveTypeFilter('all');
+    setSortBy('latest');
+    setFilterModalVisible(false);
+  };
+
   const handleRefresh = useCallback(() => {
     if (isQueryActive) refetchListings();
     else refetchCats();
   }, [isQueryActive, refetchListings, refetchCats]);
 
   const parentCategories = (categories || []).filter((c) => !c.parent_id);
-
-  const handlePostRequirementSubmit = () => {
-    if (!reqTitle.trim()) {
-      Alert.alert('Required Field', 'Please enter a requirement title.');
-      return;
-    }
-    if (!reqDesc.trim()) {
-      Alert.alert('Required Field', 'Please enter description for your requirement.');
-      return;
-    }
-
-    createReqMutation.mutate(
-      {
-        title: reqTitle.trim(),
-        category: reqCategory,
-        description: reqDesc.trim(),
-        budget: reqBudget ? parseFloat(reqBudget) : undefined,
-        quantity: reqQty ? parseInt(reqQty, 10) : undefined,
-        city: reqCity.trim() || (selectedCity !== 'All Cities' && selectedCity !== 'Near Me (GPS)' ? selectedCity : undefined),
-      },
-      {
-        onSuccess: () => {
-          setPostReqModalVisible(false);
-          setReqTitle('');
-          setReqDesc('');
-          setReqBudget('');
-          setReqQty('');
-          setReqCity('');
-          Alert.alert(
-            'Requirement Posted! 🚀',
-            'Your requirement is now live. Verified vendors & sellers will send you custom quotes directly.'
-          );
-        },
-        onError: (err: any) => {
-          Alert.alert('Failed to Post', err?.message || 'Could not post requirement. Please try again.');
-        },
-      }
-    );
-  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -334,7 +324,7 @@ export default function SearchScreen() {
           <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search products, services..."
+            placeholder="Search products, services, suppliers..."
             placeholderTextColor="rgba(255,255,255,0.4)"
             value={searchText}
             onChangeText={(t) => {
@@ -353,9 +343,9 @@ export default function SearchScreen() {
         {isCustomer && (
           <TouchableOpacity
             style={styles.postReqBtn}
-            onPress={() => setPostReqModalVisible(true)}
+            onPress={() => router.push('/post-requirement' as any)}
             accessibilityLabel="Post Requirement">
-            <Ionicons name="add-circle" size={15} color="#0F0F12" />
+            <Ionicons name="add-circle" size={15} color={BLACK} />
             <Text style={styles.postReqBtnText}>Post Requirement</Text>
           </TouchableOpacity>
         )}
@@ -364,11 +354,11 @@ export default function SearchScreen() {
           style={styles.filterBtn}
           onPress={() => setFilterModalVisible(true)}
           accessibilityLabel="Filter Options">
-          <Ionicons name="options-outline" size={20} color="#0F0F12" />
+          <Ionicons name="options-outline" size={20} color={BLACK} />
         </TouchableOpacity>
       </View>
 
-      {/* Location City & GPS Detection Row */}
+      {/* Location City Selector Row */}
       <View style={styles.citySelectorRow}>
         <TouchableOpacity
           style={[styles.gpsDetectBtn, isGpsActive && styles.gpsDetectBtnActive]}
@@ -403,42 +393,79 @@ export default function SearchScreen() {
         </ScrollView>
       </View>
 
-      {/* GPS Radius Filter Chips (Visible when GPS Location Active) */}
-      {isGpsActive && (
-        <View style={styles.radiusRow}>
-          <Text style={styles.radiusLabel}>Distance:</Text>
-          {RADIUS_OPTIONS.map((opt) => (
-            <TouchableOpacity
-              key={opt.value}
-              style={[styles.radiusChip, selectedRadius === opt.value && styles.radiusChipActive]}
-              onPress={() => setSelectedRadius(opt.value)}>
-              <Text style={[styles.radiusChipText, selectedRadius === opt.value && styles.radiusChipTextActive]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
+      {/* Web-Style Quick Filter Bar (Distance, Price Range, Type, Sort) */}
+      <View style={styles.webFilterBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.webFilterScroll}>
+          {/* Distance Filter Quick Pill */}
+          <TouchableOpacity
+            style={[styles.webFilterPill, selectedRadius !== 10 && styles.webFilterPillActive]}
+            onPress={() => setFilterModalVisible(true)}>
+            <Ionicons name="location" size={12} color={selectedRadius !== 10 ? BLACK : YELLOW} />
+            <Text style={[styles.webFilterPillText, selectedRadius !== 10 && styles.webFilterPillTextActive]}>
+              Distance: {selectedRadius === 0 ? 'Anywhere' : `${selectedRadius}km`}
+            </Text>
+            <Ionicons name="chevron-down" size={12} color={selectedRadius !== 10 ? BLACK : 'rgba(255,255,255,0.6)'} />
+          </TouchableOpacity>
 
-      {/* Type Filter Tabs Row */}
-      <View style={styles.filterTabsRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
-          {TYPE_FILTERS.map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              style={[styles.filterChip, activeTypeFilter === tab.id && styles.filterChipActive]}
-              onPress={() => setActiveTypeFilter(tab.id as any)}>
-              <Text style={[styles.filterChipText, activeTypeFilter === tab.id && styles.filterChipTextActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {/* Price Range Filter Quick Pill */}
+          <TouchableOpacity
+            style={[
+              styles.webFilterPill,
+              (selectedPricePreset !== null || !!minPriceInput || !!maxPriceInput) && styles.webFilterPillActive,
+            ]}
+            onPress={() => setFilterModalVisible(true)}>
+            <Ionicons
+              name="cash-outline"
+              size={12}
+              color={selectedPricePreset !== null || !!minPriceInput ? BLACK : YELLOW}
+            />
+            <Text
+              style={[
+                styles.webFilterPillText,
+                (selectedPricePreset !== null || !!minPriceInput || !!maxPriceInput) && styles.webFilterPillTextActive,
+              ]}>
+              Price:{' '}
+              {selectedPricePreset !== null
+                ? PRICE_PRESETS[selectedPricePreset].label
+                : minPriceInput || maxPriceInput
+                ? `₹${minPriceInput || 0} - ₹${maxPriceInput || '2Cr+'}`
+                : '₹1 to ₹2Cr'}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={12}
+              color={selectedPricePreset !== null || !!minPriceInput ? BLACK : 'rgba(255,255,255,0.6)'}
+            />
+          </TouchableOpacity>
 
+          {/* Type Filter Quick Pill */}
+          <TouchableOpacity
+            style={[styles.webFilterPill, activeTypeFilter !== 'all' && styles.webFilterPillActive]}
+            onPress={() =>
+              setActiveTypeFilter(activeTypeFilter === 'all' ? 'product' : activeTypeFilter === 'product' ? 'service' : 'all')
+            }>
+            <Ionicons name="cube" size={12} color={activeTypeFilter !== 'all' ? BLACK : YELLOW} />
+            <Text style={[styles.webFilterPillText, activeTypeFilter !== 'all' && styles.webFilterPillTextActive]}>
+              Type: {activeTypeFilter.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Sort Filter Quick Pill */}
+          <TouchableOpacity
+            style={[styles.webFilterPill, sortBy !== 'latest' && styles.webFilterPillActive]}
+            onPress={() => setFilterModalVisible(true)}>
+            <Ionicons name="swap-vertical" size={12} color={sortBy !== 'latest' ? BLACK : YELLOW} />
+            <Text style={[styles.webFilterPillText, sortBy !== 'latest' && styles.webFilterPillTextActive]}>
+              Sort: {SORT_OPTIONS.find((s) => s.id === sortBy)?.label || 'Latest'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Active Category Chip */}
           {selectedCategory && (
             <View style={styles.activeCategoryTag}>
               <Text style={styles.activeCategoryTagText}>{selectedCategory.name}</Text>
               <TouchableOpacity onPress={() => setSelectedCategory(null)} hitSlop={4}>
-                <Ionicons name="close" size={12} color="#fff" />
+                <Ionicons name="close" size={12} color={BLACK} />
               </TouchableOpacity>
             </View>
           )}
@@ -448,151 +475,115 @@ export default function SearchScreen() {
       {/* Main Content Area */}
       {isQueryActive ? (
         /* Results View */
-        listingsLoading && filteredListings.length === 0 ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={BrandColors.primary} />
-          </View>
-        ) : filteredListings.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="location-outline" size={56} color="rgba(255,255,255,0.3)" />
-            <Text style={styles.emptyTitle}>No Nearby Results Found</Text>
-            <Text style={styles.emptySub}>
-              We couldn't find matching items {isGpsActive ? `within ${selectedRadius} km of your location` : `in "${selectedCity}"`}. Try increasing distance or searching all cities.
+        <FlatList
+          data={filteredListings}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.resultsList}
+          refreshControl={
+            <RefreshControl refreshing={listingsRefetching} onRefresh={handleRefresh} tintColor={YELLOW} />
+          }
+          ListHeaderComponent={
+            <Text style={styles.resultsCountText}>
+              FOUND {filteredListings.length} RESULTS{' '}
+              {selectedRadius > 0 && isGpsActive ? `WITHIN ${selectedRadius}KM` : 'NATIONWIDE'}
             </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={filteredListings}
-            keyExtractor={(item) => item._id}
-            contentContainerStyle={styles.resultsList}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={listingsRefetching}
-                onRefresh={handleRefresh}
-                tintColor={BrandColors.primary}
-                colors={[BrandColors.primary]}
-              />
-            }
-            ListHeaderComponent={
-              <Text style={styles.resultsCountText}>
-                {listingsFetching
-                  ? 'Updating results…'
-                  : `${filteredListings.length} local items found ${isGpsActive ? `within ${selectedRadius} km` : selectedCity !== 'All Cities' ? `in ${selectedCity}` : ''}`}
-              </Text>
-            }
-            renderItem={({ item }) => {
-              const image = getListingImage(item);
-              const price = item.salePrice || item.price || 0;
-              const locationCity =
-                (item as any).city ||
-                (item as any).location?.city ||
-                (item as any).vendor?.city ||
-                'Local Vendor';
+          }
+          ListEmptyComponent={
+            listingsLoading ? (
+              <View style={styles.centered}>
+                <ActivityIndicator size="large" color={YELLOW} />
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={48} color="rgba(255,255,255,0.4)" />
+                <Text style={styles.emptyTitle}>No matching results</Text>
+                <Text style={styles.emptySub}>
+                  Try adjusting your distance radius, price range, or category filter.
+                </Text>
+                <TouchableOpacity style={styles.resetFilterBtn} onPress={resetAllFilters}>
+                  <Text style={styles.resetFilterBtnText}>RESET ALL FILTERS</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          }
+          renderItem={({ item }) => {
+            const mainImg = getListingImage(item);
+            const vendorName = item.vendor?.name || 'Verified Supplier';
+            const cityText = item.city || item.location?.city || 'Local';
 
-              return (
-                <TouchableOpacity
-                  style={styles.resultCard}
-                  onPress={() => router.push(`/listing/${item._id}`)}>
-                  {image ? (
-                    <Image source={{ uri: image }} style={styles.resultImage} contentFit="cover" />
-                  ) : (
-                    <View style={styles.resultImageFallback}>
-                      <Ionicons name="basket-outline" size={28} color="rgba(255,255,255,0.4)" />
-                    </View>
-                  )}
+            return (
+              <TouchableOpacity
+                style={styles.resultCard}
+                onPress={() => router.push(`/listing/${item._id}`)}>
+                {mainImg ? (
+                  <Image source={{ uri: mainImg }} style={styles.resultImage} contentFit="cover" />
+                ) : (
+                  <View style={styles.resultImageFallback}>
+                    <Ionicons name="bag" size={24} color="rgba(255,255,255,0.4)" />
+                  </View>
+                )}
 
-                  <View style={styles.resultInfo}>
-                    <Text style={styles.resultTitle} numberOfLines={2}>
-                      {item.title}
+                <View style={styles.resultInfo}>
+                  <Text style={styles.resultTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+
+                  <View style={styles.vendorCityRow}>
+                    <Text style={styles.resultVendorName} numberOfLines={1}>
+                      {vendorName}
                     </Text>
-
-                    <View style={styles.vendorCityRow}>
-                      <Text style={styles.resultVendorName} numberOfLines={1}>
-                        {item.vendor?.name || 'Verified Vendor'}
-                      </Text>
-                      <View style={styles.cityBadge}>
-                        <Ionicons name="location-outline" size={10} color={BrandColors.primaryLight} />
-                        <Text style={styles.cityBadgeText}>{locationCity}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.resultPriceRow}>
-                      <Text style={styles.resultPrice}>₹{price}</Text>
-
-                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-                        <TouchableOpacity
-                          style={styles.chatSmallBtn}
-                          onPress={() => {
-                            const recipientId = item.vendor?._id || item.vendor?.id || item.vendor_id || item.user_id;
-                            const vendorName = item.vendor?.businessName || item.vendor?.name || 'Seller';
-                            if (!recipientId) {
-                              Alert.alert('Seller Info', 'Seller details not available for this item.');
-                              return;
-                            }
-                            router.push({
-                              pathname: '/messages/[id]' as any,
-                              params: {
-                                id: `direct_${recipientId}`,
-                                recipientId,
-                                name: vendorName,
-                                avatar: item.vendor?.avatarUrl || '',
-                              },
-                            } as any);
-                          }}>
-                          <Ionicons name="chatbubble-ellipses-outline" size={14} color={YELLOW} />
-                        </TouchableOpacity>
-
-                        {isCustomer && (
-                          <TouchableOpacity
-                            style={styles.addCartSmallBtn}
-                            onPress={() => addToCartMutation.mutate({ listing_id: item._id, quantity: 1 })}>
-                            <Ionicons name="add" size={14} color={BLACK} />
-                            <Text style={styles.addCartSmallText}>Add</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
+                    <View style={styles.cityBadge}>
+                      <Ionicons name="location" size={10} color={YELLOW} />
+                      <Text style={styles.cityBadgeText}>{cityText}</Text>
                     </View>
                   </View>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        )
+
+                  <View style={styles.resultPriceRow}>
+                    <Text style={styles.resultPrice}>₹{item.salePrice || item.price}</Text>
+
+                    <TouchableOpacity
+                      style={styles.addCartSmallBtn}
+                      onPress={() => {
+                        addToCartMutation.mutate({ listing_id: item._id, quantity: 1 });
+                        Alert.alert('Added', `"${item.title}" added to cart!`);
+                      }}>
+                      <Ionicons name="cart" size={12} color={BLACK} />
+                      <Text style={styles.addCartSmallText}>Add +</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+        />
       ) : (
-        /* Browse Categories & Popular Searches View */
+        /* Default Browse Categories View */
         <ScrollView
-          showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.browseScroll}
           refreshControl={
-            <RefreshControl
-              refreshing={catsRefetching}
-              onRefresh={handleRefresh}
-              tintColor={BrandColors.primary}
-              colors={[BrandColors.primary]}
-            />
+            <RefreshControl refreshing={catsRefetching} onRefresh={handleRefresh} tintColor={YELLOW} />
           }>
-          {/* Popular Searches */}
+          {/* Popular Search Terms */}
           <View style={styles.section}>
-            <Text style={styles.sectionHeaderTitle}>Popular Searches</Text>
+            <Text style={styles.sectionHeaderTitle}>POPULAR SEARCHES</Text>
             <View style={styles.popularRow}>
               {POPULAR_SEARCHES.map((term) => (
                 <TouchableOpacity
                   key={term}
                   style={styles.popularChip}
                   onPress={() => setSearchText(term)}>
-                  <Ionicons name="flash-outline" size={12} color={BrandColors.primary} />
+                  <Ionicons name="trending-up" size={12} color={YELLOW} />
                   <Text style={styles.popularChipText}>{term}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* Categories Grid */}
+          {/* Browse Categories Grid */}
           <View style={styles.section}>
-            <Text style={styles.sectionHeaderTitle}>Explore Categories</Text>
+            <Text style={styles.sectionHeaderTitle}>EXPLORE BY CATEGORY</Text>
             {catsLoading ? (
-              <ActivityIndicator size="large" color={BrandColors.primary} style={{ marginVertical: 30 }} />
+              <ActivityIndicator color={YELLOW} style={{ marginVertical: 20 }} />
             ) : (
               <View style={styles.categoryGrid}>
                 {parentCategories.map((cat) => (
@@ -614,7 +605,7 @@ export default function SearchScreen() {
         </ScrollView>
       )}
 
-      {/* Filter Modal */}
+      {/* WEB-STYLE COMPREHENSIVE FILTER DRAWER MODAL */}
       <Modal
         visible={filterModalVisible}
         animationType="slide"
@@ -624,155 +615,145 @@ export default function SearchScreen() {
           <Pressable style={styles.modalBackdrop} onPress={() => setFilterModalVisible(false)} />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sort & Location Filters</Text>
-              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
-                <Ionicons name="close" size={20} color="#fff" />
+              <Text style={styles.modalTitle}>FILTER & SORT SEARCH</Text>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={16} color="#fff" />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.filterSectionTitle}>Sort By</Text>
-            <TouchableOpacity
-              style={[styles.sortOption, sortBy === 'latest' && styles.sortOptionSelected]}
-              onPress={() => setSortBy('latest')}>
-              <Text style={styles.sortOptionText}>Newest Listings</Text>
-              {sortBy === 'latest' && <Ionicons name="checkmark" size={16} color={BrandColors.primary} />}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.sortOption, sortBy === 'price_low' && styles.sortOptionSelected]}
-              onPress={() => setSortBy('price_low')}>
-              <Text style={styles.sortOptionText}>Price: Low to High</Text>
-              {sortBy === 'price_low' && <Ionicons name="checkmark" size={16} color={BrandColors.primary} />}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.sortOption, sortBy === 'price_high' && styles.sortOptionSelected]}
-              onPress={() => setSortBy('price_high')}>
-              <Text style={styles.sortOptionText}>Price: High to Low</Text>
-              {sortBy === 'price_high' && <Ionicons name="checkmark" size={16} color={BrandColors.primary} />}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.applyFilterBtn}
-              onPress={() => setFilterModalVisible(false)}>
-              <Text style={styles.applyFilterBtnText}>Apply Filters</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Post Requirement Modal */}
-      <Modal
-        visible={postReqModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setPostReqModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setPostReqModalVisible(false)} />
-          <View style={styles.reqModalContent}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>POST CUSTOM REQUIREMENT</Text>
-                <Text style={styles.reqModalSub}>Get direct quotes from verified sellers & vendors</Text>
-              </View>
-              <Pressable style={styles.closeBtn} onPress={() => setPostReqModalVisible(false)}>
-                <Ionicons name="close" size={16} color="#fff" />
-              </Pressable>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.three }}>
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>TITLE / NEEDED ITEM *</Text>
-                <TextInput
-                  style={styles.reqInput}
-                  placeholder="e.g. Need 50 Custom Corporate Hampers"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={reqTitle}
-                  onChangeText={setReqTitle}
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>CATEGORY *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                  {REQ_CATEGORIES.map((cat) => {
-                    const active = reqCategory === cat;
-                    return (
-                      <TouchableOpacity
-                        key={cat}
-                        style={[styles.reqCatChip, active && styles.reqCatChipActive]}
-                        onPress={() => setReqCategory(cat)}>
-                        <Text style={[styles.reqCatText, active && styles.reqCatTextActive]}>{cat}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>DESCRIPTION & SPECIFICATIONS *</Text>
-                <TextInput
-                  style={[styles.reqInput, styles.reqTextArea]}
-                  placeholder="Describe your exact requirement, brand preferences, specifications & delivery timeline..."
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  multiline
-                  numberOfLines={3}
-                  value={reqDesc}
-                  onChangeText={setReqDesc}
-                />
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: Spacing.two }}>
-                <View style={[styles.fieldGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>BUDGET (₹)</Text>
-                  <TextInput
-                    style={styles.reqInput}
-                    placeholder="e.g. 15000"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    keyboardType="numeric"
-                    value={reqBudget}
-                    onChangeText={setReqBudget}
-                  />
+            <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: Spacing.four, paddingVertical: Spacing.two }}>
+                {/* 1. DISTANCE RADIUS OPTIONS */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>📍 DISTANCE RADIUS</Text>
+                  <View style={styles.chipsWrap}>
+                    {DISTANCE_OPTIONS.map((opt) => {
+                      const isSelected = selectedRadius === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={opt.label}
+                          style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                          onPress={() => setSelectedRadius(opt.value)}>
+                          <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
 
-                <View style={[styles.fieldGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>QUANTITY</Text>
-                  <TextInput
-                    style={styles.reqInput}
-                    placeholder="e.g. 50"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    keyboardType="numeric"
-                    value={reqQty}
-                    onChangeText={setReqQty}
-                  />
+                {/* 2. PRICE RANGE PRESETS (₹1 to ₹2 Cr) */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>💰 PRICE RANGE (₹1 TO ₹2 CR)</Text>
+                  <View style={styles.chipsWrap}>
+                    {PRICE_PRESETS.map((preset, idx) => {
+                      const isSelected = selectedPricePreset === idx;
+                      return (
+                        <TouchableOpacity
+                          key={preset.label}
+                          style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                          onPress={() => {
+                            if (isSelected) {
+                              setSelectedPricePreset(null);
+                            } else {
+                              setSelectedPricePreset(idx);
+                              setMinPriceInput('');
+                              setMaxPriceInput('');
+                            }
+                          }}>
+                          <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
+                            {preset.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Custom Price Range Input */}
+                  <Text style={[styles.filterSubLabel, { marginTop: 8 }]}>Custom Min & Max Price (₹)</Text>
+                  <View style={styles.priceInputRow}>
+                    <TextInput
+                      style={styles.priceInput}
+                      placeholder="Min ₹ (e.g. 1000)"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      keyboardType="numeric"
+                      value={minPriceInput}
+                      onChangeText={(v) => {
+                        setMinPriceInput(v);
+                        setSelectedPricePreset(null);
+                      }}
+                    />
+                    <Text style={{ color: YELLOW, fontWeight: '900' }}>—</Text>
+                    <TextInput
+                      style={styles.priceInput}
+                      placeholder="Max ₹ (e.g. 20000000)"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      keyboardType="numeric"
+                      value={maxPriceInput}
+                      onChangeText={(v) => {
+                        setMaxPriceInput(v);
+                        setSelectedPricePreset(null);
+                      }}
+                    />
+                  </View>
+                </View>
+
+                {/* 3. PRODUCT / SERVICE TYPE */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>⚡ LISTING TYPE</Text>
+                  <View style={styles.chipsWrap}>
+                    {TYPE_FILTERS.map((tab) => {
+                      const isSelected = activeTypeFilter === tab.id;
+                      return (
+                        <TouchableOpacity
+                          key={tab.id}
+                          style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                          onPress={() => setActiveTypeFilter(tab.id as any)}>
+                          <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
+                            {tab.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* 4. SORT ORDER */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>🔃 SORT RESULTS BY</Text>
+                  <View style={{ gap: 6 }}>
+                    {SORT_OPTIONS.map((opt) => {
+                      const isSelected = sortBy === opt.id;
+                      return (
+                        <TouchableOpacity
+                          key={opt.id}
+                          style={[styles.sortOption, isSelected && styles.sortOptionSelected]}
+                          onPress={() => setSortBy(opt.id as any)}>
+                          <Text style={[styles.sortOptionText, isSelected && { color: BLACK }]}>
+                            {opt.label}
+                          </Text>
+                          {isSelected && <Ionicons name="checkmark-circle" size={16} color={BLACK} />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
               </View>
+            </ScrollView>
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>CITY / LOCATION</Text>
-                <TextInput
-                  style={styles.reqInput}
-                  placeholder="e.g. Delhi, Mumbai..."
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={reqCity}
-                  onChangeText={setReqCity}
-                />
-              </View>
+            {/* Filter Action Buttons */}
+            <View style={styles.filterModalFooter}>
+              <TouchableOpacity style={styles.resetModalBtn} onPress={resetAllFilters}>
+                <Text style={styles.resetModalBtnText}>RESET ALL</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.postReqSubmitBtn}
-                onPress={handlePostRequirementSubmit}
-                disabled={createReqMutation.isPending}>
-                {createReqMutation.isPending ? (
-                  <ActivityIndicator color={BLACK} />
-                ) : (
-                  <>
-                    <Ionicons name="paper-plane-outline" size={16} color={BLACK} />
-                    <Text style={styles.postReqSubmitText}>SUBMIT REQUIREMENT</Text>
-                  </>
-                )}
+                style={styles.applyModalBtn}
+                onPress={() => setFilterModalVisible(false)}>
+                <Text style={styles.applyModalBtnText}>APPLY FILTERS</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </View>
           </View>
         </View>
       </Modal>
@@ -791,24 +772,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    paddingVertical: Spacing.two,
     gap: Spacing.two,
-  },
-  postReqBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: YELLOW,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    borderRadius: 0,
-  },
-  postReqBtnText: {
-    color: BLACK,
-    fontSize: FontSize.xs,
-    fontWeight: '900',
+    backgroundColor: BLACK,
   },
   searchBarWrapper: {
     flex: 1,
@@ -818,19 +784,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
-    gap: Spacing.two,
+    height: 42,
+    gap: 8,
   },
-  searchInput: {
-    flex: 1,
-    color: '#fff',
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
+  searchInput: { flex: 1, color: '#fff', fontSize: FontSize.xs, fontWeight: '600', height: '100%' },
+  postReqBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: YELLOW,
+    paddingHorizontal: 8,
+    height: 42,
   },
+  postReqBtnText: { color: BLACK, fontSize: 10, fontWeight: '900' },
   filterBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 0,
+    width: 42,
+    height: 42,
     backgroundColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
@@ -838,107 +807,83 @@ const styles = StyleSheet.create({
   citySelectorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
     backgroundColor: BLACK,
+    gap: Spacing.two,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    gap: Spacing.two,
-    marginTop: Spacing.one,
-    marginBottom: Spacing.one,
   },
   gpsDetectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: YELLOW,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 7,
-    borderRadius: 0,
-    gap: 4,
-  },
-  gpsDetectBtnActive: { backgroundColor: '#22C55E' },
-  gpsDetectBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
-  citiesScroll: { paddingRight: Spacing.four, gap: Spacing.two },
-  cityChip: {
     backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
     paddingHorizontal: Spacing.three,
     paddingVertical: 6,
-    borderRadius: 0,
+    gap: 4,
+  },
+  gpsDetectBtnActive: { backgroundColor: '#22C55E', borderColor: '#22C55E' },
+  gpsDetectBtnText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '900' },
+  citiesScroll: { paddingRight: Spacing.four, gap: 6 },
+  cityChip: {
+    backgroundColor: DARK_CARD,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: BORDER,
   },
   cityChipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  cityChipText: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+  cityChipText: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '600' },
   cityChipTextActive: { color: BLACK, fontWeight: '900' },
-  radiusRow: {
+  webFilterBar: {
+    backgroundColor: DARK_CARD,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    paddingVertical: 6,
+  },
+  webFilterScroll: { paddingHorizontal: Spacing.four, gap: 8, alignItems: 'center' },
+  webFilterPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    backgroundColor: DARK_CARD,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    gap: Spacing.two,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  radiusLabel: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: '900' },
-  radiusChip: {
+    gap: 4,
     backgroundColor: BLACK,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 4,
-    borderRadius: 0,
     borderWidth: 1,
     borderColor: BORDER,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  radiusChipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  radiusChipText: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs },
-  radiusChipTextActive: { color: BLACK, fontWeight: '900' },
-  filterTabsRow: {
-    paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    marginTop: Spacing.one,
-    marginBottom: Spacing.two,
-  },
-  tabsScroll: { paddingHorizontal: Spacing.four, gap: Spacing.two, alignItems: 'center' },
-  filterChip: {
-    backgroundColor: DARK_CARD,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
-    borderRadius: 0,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  filterChipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  filterChipText: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
-  filterChipTextActive: { color: BLACK, fontWeight: '900' },
+  webFilterPillActive: { backgroundColor: YELLOW, borderColor: YELLOW },
+  webFilterPillText: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '800' },
+  webFilterPillTextActive: { color: BLACK, fontWeight: '900' },
   activeCategoryTag: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: YELLOW,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 4,
-    borderRadius: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     gap: 4,
   },
-  activeCategoryTagText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  activeCategoryTagText: { color: BLACK, fontSize: 11, fontWeight: '900' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.four,
-    gap: Spacing.two,
+    paddingVertical: 60,
+    gap: 12,
   },
-  emptyTitle: { color: '#fff', fontSize: FontSize.lg, fontWeight: '900' },
-  emptySub: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.sm, textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900' },
+  emptySub: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs, textAlign: 'center', lineHeight: 18 },
+  resetFilterBtn: { backgroundColor: YELLOW, paddingHorizontal: 20, paddingVertical: 10, marginTop: 8 },
+  resetFilterBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
   resultsList: { padding: Spacing.four, gap: Spacing.three },
-  resultsCountText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900', marginBottom: Spacing.two },
+  resultsCountText: { color: YELLOW, fontSize: 11, fontWeight: '900', marginBottom: 4 },
   resultCard: {
     flexDirection: 'row',
     backgroundColor: DARK_CARD,
-    borderRadius: 0,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: BORDER,
@@ -962,7 +907,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 0,
     borderWidth: 1,
     borderColor: 'rgba(245,158,11,0.3)',
   },
@@ -975,23 +919,12 @@ const styles = StyleSheet.create({
     backgroundColor: YELLOW,
     paddingHorizontal: Spacing.two,
     paddingVertical: 4,
-    borderRadius: 0,
     gap: 2,
-  },
-  chatSmallBtn: {
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: YELLOW,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   addCartSmallText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
   browseScroll: { padding: Spacing.four, gap: Spacing.four },
   section: { gap: Spacing.three },
-  sectionHeaderTitle: { color: '#fff', fontSize: FontSize.base, fontWeight: '900' },
+  sectionHeaderTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 1 },
   popularRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   popularChip: {
     flexDirection: 'row',
@@ -999,17 +932,15 @@ const styles = StyleSheet.create({
     backgroundColor: DARK_CARD,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    borderRadius: 0,
     borderWidth: 1,
     borderColor: BORDER,
-    gap: Spacing.one,
+    gap: 6,
   },
-  popularChipText: { color: 'rgba(255,255,255,0.85)', fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
+  popularChipText: { color: 'rgba(255,255,255,0.85)', fontSize: FontSize.xs, fontWeight: '700' },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   categoryGridCard: {
-    width: '30%',
+    width: '31%',
     backgroundColor: DARK_CARD,
-    borderRadius: 0,
     padding: Spacing.three,
     alignItems: 'center',
     borderWidth: 1,
@@ -1019,16 +950,16 @@ const styles = StyleSheet.create({
   categoryIconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 0,
     backgroundColor: 'rgba(245,158,11,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  categoryEmoji: { fontSize: 22 },
-  categoryGridTitle: { color: '#fff', fontSize: FontSize.xs, fontWeight: '900', textAlign: 'center' },
-  // ── Filter Modal ──
+  categoryEmoji: { fontSize: 20 },
+  categoryGridTitle: { color: '#fff', fontSize: 11, fontWeight: '900', textAlign: 'center' },
+
+  // Modal Styles
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)' },
   modalContent: {
     backgroundColor: DARK_CARD,
     borderTopWidth: 2,
@@ -1044,94 +975,76 @@ const styles = StyleSheet.create({
     borderBottomColor: BORDER,
     paddingBottom: Spacing.two,
   },
-  modalTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900' },
-  filterSectionTitle: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900' },
+  modalTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900', letterSpacing: 1 },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterGroup: { gap: 8 },
+  filterSectionTitle: { color: YELLOW, fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
+  filterSubLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '700' },
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  presetChip: {
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  presetChipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
+  presetChipText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700' },
+  presetChipTextActive: { color: BLACK, fontWeight: '900' },
+  priceInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  priceInput: {
+    flex: 1,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    paddingHorizontal: 10,
+    height: 38,
+  },
   sortOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: BLACK,
-    padding: Spacing.three,
-    borderRadius: 0,
+    padding: 10,
     borderWidth: 1,
     borderColor: BORDER,
   },
   sortOptionSelected: { backgroundColor: YELLOW, borderColor: YELLOW },
-  sortOptionText: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900' },
-  applyFilterBtnText: { color: BLACK, fontSize: FontSize.base, fontWeight: '900' },
-
-  // ── Post Requirement Modal Styles ──
-  reqModalContent: {
-    backgroundColor: DARK_CARD,
-    borderTopWidth: 2,
-    borderTopColor: YELLOW,
-    padding: Spacing.four,
-    gap: Spacing.three,
-    maxHeight: '85%',
-  },
-  reqModalSub: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 2 },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 0,
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: BORDER,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fieldGroup: { gap: 6 },
-  fieldLabel: { color: YELLOW, fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
-  reqInput: {
-    backgroundColor: BLACK,
-    color: '#fff',
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 10,
-    borderRadius: 0,
-  },
-  reqTextArea: {
-    minHeight: 70,
-    textAlignVertical: 'top',
-  },
-  reqCatChip: {
-    backgroundColor: BLACK,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
-    borderRadius: 0,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  reqCatChipActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
-  },
-  reqCatText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-  },
-  reqCatTextActive: {
-    color: BLACK,
-    fontWeight: '900',
-  },
-  postReqSubmitBtn: {
+  sortOptionText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '900' },
+  filterModalFooter: {
     flexDirection: 'row',
+    gap: Spacing.two,
+    paddingTop: Spacing.two,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  resetModalBtn: {
+    flex: 1,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.two,
+  },
+  resetModalBtnText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '900' },
+  applyModalBtn: {
+    flex: 2,
     backgroundColor: YELLOW,
-    height: 48,
-    borderRadius: 0,
-    marginTop: Spacing.two,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  postReqSubmitText: {
-    color: BLACK,
-    fontSize: FontSize.sm,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
+  applyModalBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900', letterSpacing: 1 },
 });
