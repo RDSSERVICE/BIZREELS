@@ -129,8 +129,9 @@ class SmsService {
       });
 
       // In non-production or on carrier error, log fallback OTP to prevent developer lockout
-      if (config.env !== 'production') {
-        logger.info(`[TWILIO FALLBACK OTP] 📲 Phone: ${targetMobile} | OTP: ${otp}`);
+      if (config.env !== 'production' || process.env.OTP_DEV_MODE === 'true' || config.otpDevMode) {
+        logger.info(`[TWILIO FALLBACK MOCK OTP] 📲 Phone: ${targetMobile} | OTP: ${otp}`);
+        return { success: true, provider: 'mock_fallback', phone: targetMobile, otp };
       }
 
       throw err;
