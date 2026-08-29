@@ -5,11 +5,12 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { api } from '@/lib/api';
 
 export default function VendorAnalyticsScreen() {
   const router = useRouter();
@@ -19,15 +20,41 @@ export default function VendorAnalyticsScreen() {
 
   const isSpecificProduct = !!listingId;
 
+  const [liveData, setLiveData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    if (isSpecificProduct) {
+      api.get(`/listings/${listingId}/analytics`)
+        .then(({ data }) => setLiveData(data?.data || data))
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } else {
+      Promise.all([
+        api.get('/vendor/analytics/overview?range=30d').catch(() => ({ data: {} })),
+        api.get('/analytics/vendor').catch(() => ({ data: {} })),
+      ])
+        .then(([overviewRes, leadsRes]) => {
+          const overview = overviewRes.data?.data || overviewRes.data || {};
+          const leads = leadsRes.data?.data || leadsRes.data || {};
+          setLiveData({ ...overview, ...leads });
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [listingId]);
+
   const productTitle = title || 'Product Performance';
   const productPrice = price ? `₹${parseFloat(price).toLocaleString('en-IN')}` : '₹0';
-  const totalViews = views ? parseInt(views, 10) : 142;
-  const totalLikes = likes ? parseInt(likes, 10) : 24;
-  const totalOrders = orders ? parseInt(orders, 10) : 8;
-  const totalRevenue = orders && price ? `₹${(parseInt(orders, 10) * parseFloat(price)).toLocaleString('en-IN')}` : '₹48,200';
 
-  const viewToCartRate = totalViews > 0 ? ((totalOrders / totalViews) * 100).toFixed(1) : '5.6';
-  const likeEngagementRate = totalViews > 0 ? ((totalLikes / totalViews) * 100).toFixed(1) : '16.9';
+  const totalViews = liveData?.views ?? liveData?.totalViews ?? (views ? parseInt(views, 10) : 0);
+  const totalLikes = liveData?.likes ?? liveData?.reelsStats?.likes ?? (likes ? parseInt(likes, 10) : 0);
+  const totalOrders = liveData?.ordersCount ?? liveData?.completedOrdersCount ?? (orders ? parseInt(orders, 10) : 0);
+  const rawRevenue = liveData?.revenue ?? (orders && price ? parseInt(orders, 10) * parseFloat(price) : 0);
+  const totalRevenue = `₹${rawRevenue.toLocaleString('en-IN')}`;
+
+  const viewToCartRate = totalViews > 0 ? ((totalOrders / totalViews) * 100).toFixed(1) : '0.0';
+  const likeEngagementRate = totalViews > 0 ? ((totalLikes / totalViews) * 100).toFixed(1) : '0.0';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

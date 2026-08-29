@@ -7,8 +7,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
-import { useCallback, useDeferredValue, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useDeferredValue, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -120,12 +120,13 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const activeRole = user?.activeRole || user?.current_role || user?.role || 'customer';
-  const isCustomer = activeRole === 'customer';
+  const isVendor = activeRole === 'vendor';
 
-  // Search Text State
-  const [searchText, setSearchText] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [selectedCity, setSelectedCity] = useState<string>('All Cities');
+  useEffect(() => {
+    if (isVendor) {
+      router.replace('/(tabs)/home');
+    }
+  }, [isVendor]);
 
   useEffect(() => {
     if (params.q) {
@@ -273,10 +274,13 @@ export default function SearchScreen() {
     data: listingsData,
     isLoading: listingsLoading,
     isFetching: listingsFetching,
+    isRefetching: listingsRefetching,
     refetch: refetchListings,
   } = useListings(listingsParams, isQueryActive);
 
-  const rawListings = listingsData?.data ?? [];
+  const rawListings = Array.isArray(listingsData)
+    ? listingsData
+    : listingsData?.data || listingsData?.listings || [];
 
   // Filter & Sort results locally fallback
   const filteredListings = rawListings.filter((item: any) => {
@@ -290,9 +294,9 @@ export default function SearchScreen() {
   });
 
   if (sortBy === 'price_low') {
-    filteredListings.sort((a, b) => (a.price || 0) - (b.price || 0));
+    filteredListings.sort((a: any, b: any) => (a.price || 0) - (b.price || 0));
   } else if (sortBy === 'price_high') {
-    filteredListings.sort((a, b) => (b.price || 0) - (a.price || 0));
+    filteredListings.sort((a: any, b: any) => (b.price || 0) - (a.price || 0));
   }
 
   const resetAllFilters = () => {
@@ -314,7 +318,8 @@ export default function SearchScreen() {
     else refetchCats();
   }, [isQueryActive, refetchListings, refetchCats]);
 
-  const parentCategories = (categories || []).filter((c) => !c.parent_id);
+  const catList = Array.isArray(categories) ? categories : categories?.data || [];
+  const parentCategories = catList.filter((c: any) => !c.parent_id);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

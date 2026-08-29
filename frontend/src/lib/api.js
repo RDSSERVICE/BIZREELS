@@ -232,7 +232,7 @@ export function resolveMediaUrl(url) {
     return DEFAULT_VIDEO_FALLBACK;
   }
 
-  const host = BACKEND_URL || 'https://bizreels-backend.onrender.com';
+  const host = BACKEND_URL || 'https://api.bizreels.in';
   return `${host}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
 }
 

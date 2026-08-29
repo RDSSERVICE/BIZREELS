@@ -180,7 +180,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
   async function handleShareButton() {
     try {
-      const shareUrl = `https://bizreels-backend.onrender.com/reels/${reel._id}`;
+      const shareUrl = `https://api.bizreels.in/reels/${reel._id}`;
       const captionText = reel.caption ? `\n"${reel.caption.trim()}"` : '';
       const shareMessage = `Check out this reel by ${reel.creatorName || 'a creator'} on BIZREELS!${captionText}\n\n👉 ${shareUrl}`;
 
@@ -219,7 +219,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
     const cleanPhone = vendorPhone.replace(/\D/g, '');
     const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const msg = encodeURIComponent(`Hi! I saw your reel on BizReels: "${reel.caption || 'Reel Product'}"\nhttps://bizreels-backend.onrender.com/reels/${reel._id}`);
+    const msg = encodeURIComponent(`Hi! I saw your reel on BizReels: "${reel.caption || 'Reel Product'}"\nhttps://api.bizreels.in/reels/${reel._id}`);
     Linking.openURL(`https://wa.me/${formattedPhone}?text=${msg}`);
   }
 

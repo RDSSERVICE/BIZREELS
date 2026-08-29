@@ -228,6 +228,22 @@ class ReelController {
 
     return ApiResponse.ok(res, 'Saved reels retrieved successfully.', { reels });
   });
+
+  // ── Get Single Reel by ID ─────────────────────────────────
+  getReelById = asyncHandler(async (req, res) => {
+    const Reel = require('../models/Reel');
+    const { id } = req.params;
+
+    const reel = await Reel.findById(id)
+      .populate('user_id creator vendor', 'name businessName phone phone_number avatarUrl city category')
+      .lean();
+
+    if (!reel || reel.is_deleted || reel.isDeleted) {
+      return ApiResponse.notFound(res, 'Reel video not found or has been removed.');
+    }
+
+    return ApiResponse.ok(res, 'Single reel fetched successfully.', { reel });
+  });
 }
 
 module.exports = new ReelController();

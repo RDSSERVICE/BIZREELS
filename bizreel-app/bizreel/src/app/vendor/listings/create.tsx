@@ -1,10 +1,12 @@
 /**
  * Vendor Add/Edit Listing Screen — Mobile Application
- * Implements the full product/service form specification matching Frontend ProductFormModal.
+ * Complete parity with Web Frontend ProductFormModal.jsx & ServiceFormModal.jsx
+ * Includes Product/Service Tab, Category taxonomy, Pricing (actual/selling/discount),
+ * Stock, SKU auto-generator, Media upload, GST %, Warranty, Return Policy, and AI copy generator.
  */
 
-import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -23,6 +25,11 @@ import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useCreateVendorListing } from '@/features/vendor-listings/queries';
 import { api } from '@/lib/api';
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 export default function CreateListingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -40,6 +47,7 @@ export default function CreateListingScreen() {
   const [sku, setSku] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [description, setDescription] = useState('');
+  const [generatingAiCopy, setGeneratingAiCopy] = useState(false);
 
   // Pricing & Inventory
   const [actualPrice, setActualPrice] = useState('');
@@ -73,14 +81,16 @@ export default function CreateListingScreen() {
 
   const parentCategories = categoriesList.filter((c: any) => !c.parent_id);
   const activeParent = parentCategories.find((c: any) => c.name === category);
-  const childSubcategories = categoriesList.filter((c: any) => activeParent && c.parent_id === (activeParent.id || activeParent._id));
+  const childSubcategories = categoriesList.filter(
+    (c: any) => activeParent && c.parent_id === (activeParent.id || activeParent._id)
+  );
 
   function generateSKU() {
     const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
     const ts = Date.now().toString().slice(-4);
     const code = `SKU-${rand}-${ts}`;
     setSku(code);
-    Alert.alert('SKU Generated!', `Assigned SKU Code: ${code}`);
+    Alert.alert('SKU Code Auto-Generated', `Assigned Code: ${code}`);
   }
 
   async function pickImageFile() {
@@ -117,12 +127,40 @@ export default function CreateListingScreen() {
     }
   }
 
-  // Calculate discount percentage
+  const handleGenerateAiCopy = async () => {
+    if (!title.trim()) {
+      Alert.alert('Title Required', 'Please enter a product title first to generate AI copy.');
+      return;
+    }
+
+    setGeneratingAiCopy(true);
+    try {
+      const { data } = await api.post('/listings/ai-copy', {
+        title: title.trim(),
+        category,
+        type,
+      });
+      const res = data?.data || data;
+      if (res?.description || res?.copy || res?.shortDescription) {
+        if (res.shortDescription) setShortDescription(res.shortDescription);
+        if (res.description || res.copy) setDescription(res.description || res.copy);
+        Alert.alert('✨ AI Description Generated!', 'Product highlights synthesized successfully.');
+      } else {
+        Alert.alert('Notice', 'AI copy generator unavailable. Type description manually.');
+      }
+    } catch (err) {
+      Alert.alert('Notice', 'AI copy generator offline. Type description manually.');
+    } finally {
+      setGeneratingAiCopy(false);
+    }
+  };
+
   const actual = parseFloat(actualPrice) || 0;
   const selling = parseFloat(sellingPrice) || 0;
-  const discountPercent = actual > 0 && selling > 0 && actual > selling
-    ? Math.round(((actual - selling) / actual) * 100)
-    : 0;
+  const discountPercent =
+    actual > 0 && selling > 0 && actual > selling
+      ? Math.round(((actual - selling) / actual) * 100)
+      : 0;
 
   function handleSubmit() {
     if (!title.trim()) {
@@ -168,10 +206,11 @@ export default function CreateListingScreen() {
       },
       {
         onSuccess: () => {
-          Alert.alert('Listing Created!', `"${title}" has been published to your store catalog!`);
+          Alert.alert('🎉 Listing Created!', `"${title}" has been published to your store catalog!`);
           router.back();
         },
-        onError: (err: any) => Alert.alert('Creation Failed', err?.response?.data?.message || err?.message || 'Failed to create listing'),
+        onError: (err: any) =>
+          Alert.alert('Creation Failed', err?.response?.data?.message || err?.message || 'Failed to create listing'),
       }
     );
   }
@@ -183,21 +222,21 @@ export default function CreateListingScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Product / Service Listing</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>Add Product / Service Listing</Text>
         <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
           <Ionicons name="close" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Listing Type Toggle (Product vs Service) */}
+        {/* 1. LISTING TYPE TOGGLE */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeaderTitle}>1. LISTING TYPE</Text>
           <View style={styles.typeRow}>
             <TouchableOpacity
               style={[styles.typeChip, type === 'product' && styles.typeChipActive]}
               onPress={() => setType('product')}>
-              <Ionicons name="cube" size={18} color={type === 'product' ? '#fff' : 'rgba(255,255,255,0.7)'} />
+              <Ionicons name="cube" size={18} color={type === 'product' ? BLACK : YELLOW} />
               <Text style={[styles.typeChipText, type === 'product' && styles.typeChipTextActive]}>
                 Product Listing
               </Text>
@@ -206,7 +245,7 @@ export default function CreateListingScreen() {
             <TouchableOpacity
               style={[styles.typeChip, type === 'service' && styles.typeChipActive]}
               onPress={() => setType('service')}>
-              <Ionicons name="construct" size={18} color={type === 'service' ? '#fff' : 'rgba(255,255,255,0.7)'} />
+              <Ionicons name="construct" size={18} color={type === 'service' ? BLACK : YELLOW} />
               <Text style={[styles.typeChipText, type === 'service' && styles.typeChipTextActive]}>
                 Service Booking
               </Text>
@@ -214,13 +253,16 @@ export default function CreateListingScreen() {
           </View>
         </View>
 
-        {/* Section 2: Category & Subcategory */}
+        {/* 2. CATEGORY & SUBCATEGORY */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeaderTitle}>2. CATEGORY & SUBCATEGORY</Text>
-          
+
           <Text style={styles.fieldLabel}>CATEGORY *</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-            {(parentCategories.length > 0 ? parentCategories : [{ name: 'Electronics' }, { name: 'Fashion' }, { name: 'Real Estate' }, { name: 'Automobile' }, { name: 'Home' }]).map((catItem: any, idx: number) => (
+            {(parentCategories.length > 0
+              ? parentCategories
+              : [{ name: 'Electronics' }, { name: 'Fashion' }, { name: 'Real Estate' }, { name: 'Automobile' }, { name: 'Home' }]
+            ).map((catItem: any, idx: number) => (
               <TouchableOpacity
                 key={idx}
                 style={[styles.chip, category === catItem.name && styles.chipActive]}
@@ -234,7 +276,10 @@ export default function CreateListingScreen() {
 
           <Text style={[styles.fieldLabel, { marginTop: 10 }]}>SUB CATEGORY *</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-            {(childSubcategories.length > 0 ? childSubcategories : [{ name: 'General' }, { name: 'Headsets' }, { name: 'Smartphones' }, { name: 'Laptop' }]).map((subItem: any, idx: number) => {
+            {(childSubcategories.length > 0
+              ? childSubcategories
+              : [{ name: 'General' }, { name: 'Headsets' }, { name: 'Smartphones' }, { name: 'Laptop' }]
+            ).map((subItem: any, idx: number) => {
               const subName = subItem.name || subItem;
               return (
                 <TouchableOpacity
@@ -250,9 +295,24 @@ export default function CreateListingScreen() {
           </ScrollView>
         </View>
 
-        {/* Section 3: Basic Info */}
+        {/* 3. BASIC INFORMATION */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>3. BASIC INFORMATION</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.sectionHeaderTitle}>3. BASIC INFORMATION</Text>
+            <TouchableOpacity
+              style={styles.aiBtn}
+              onPress={handleGenerateAiCopy}
+              disabled={generatingAiCopy}>
+              {generatingAiCopy ? (
+                <ActivityIndicator size="small" color={YELLOW} />
+              ) : (
+                <>
+                  <Ionicons name="sparkles" size={14} color={YELLOW} />
+                  <Text style={styles.aiBtnText}>AI Copy</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>TITLE *</Text>
@@ -308,7 +368,7 @@ export default function CreateListingScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>FULL DESCRIPTION</Text>
             <TextInput
-              style={[styles.input, { height: 90 }]}
+              style={[styles.input, { height: 90, textAlignVertical: 'top' }]}
               placeholder="Detailed specifications, features, warranty terms..."
               placeholderTextColor="rgba(255,255,255,0.4)"
               value={description}
@@ -318,7 +378,7 @@ export default function CreateListingScreen() {
           </View>
         </View>
 
-        {/* Section 4: Pricing, Tax & Stock */}
+        {/* 4. PRICING & INVENTORY */}
         <View style={styles.sectionCard}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.sectionHeaderTitle}>4. PRICING & INVENTORY</Text>
@@ -345,7 +405,7 @@ export default function CreateListingScreen() {
             <View style={[styles.fieldGroup, { flex: 1 }]}>
               <Text style={styles.fieldLabel}>SELLING PRICE (₹) *</Text>
               <TextInput
-                style={[styles.input, { borderColor: BrandColors.primary }]}
+                style={[styles.input, { borderColor: YELLOW }]}
                 placeholder="2588"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={sellingPrice}
@@ -407,7 +467,7 @@ export default function CreateListingScreen() {
           </View>
         </View>
 
-        {/* Section 5: Media & Photos */}
+        {/* 5. MEDIA & PHOTOS */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeaderTitle}>5. PRODUCT MEDIA & IMAGES</Text>
 
@@ -416,10 +476,10 @@ export default function CreateListingScreen() {
             onPress={pickImageFile}
             disabled={uploadingImage}>
             {uploadingImage ? (
-              <ActivityIndicator color={BrandColors.primary} />
+              <ActivityIndicator color={YELLOW} />
             ) : (
               <>
-                <Ionicons name="cloud-upload-outline" size={22} color={BrandColors.primary} />
+                <Ionicons name="cloud-upload-outline" size={22} color={YELLOW} />
                 <Text style={styles.uploadBtnText}>
                   {imageUrl ? '🖼️ Change Product Image' : '📁 Pick & Upload Main Product Photo'}
                 </Text>
@@ -452,13 +512,13 @@ export default function CreateListingScreen() {
           </View>
         </View>
 
-        {/* Submit Action */}
+        {/* SUBMIT ACTION */}
         <TouchableOpacity
           style={styles.submitBtn}
           onPress={handleSubmit}
           disabled={createMutation.isPending}>
           {createMutation.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={BLACK} />
           ) : (
             <Text style={styles.submitBtnText}>🚀 PUBLISH LISTING TO STORE</Text>
           )}
@@ -470,72 +530,192 @@ export default function CreateListingScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BLACK },
   header: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.two,
-    paddingHorizontal: Spacing.four, paddingVertical: Spacing.three,
-    borderBottomWidth: 2, borderBottomColor: YELLOW,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.three,
+    backgroundColor: DARK_CARD,
+    borderBottomWidth: 2,
+    borderBottomColor: YELLOW,
   },
   backBtn: {
-    width: 34, height: 34, borderRadius: 0, backgroundColor: DARK_CARD,
-    borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center',
+    width: 36,
+    height: 36,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900', flex: 1 },
-  scrollContent: { padding: Spacing.four, gap: Spacing.four, paddingBottom: 100 },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    flex: 1,
+    textAlign: 'center',
+  },
+  scrollContent: {
+    padding: Spacing.four,
+    gap: 16,
+  },
   sectionCard: {
-    backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.four, gap: Spacing.three,
+    backgroundColor: DARK_CARD,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    gap: 10,
   },
-  sectionTitle: {
-    color: YELLOW, fontSize: 9, fontWeight: '900', letterSpacing: 1, marginBottom: 2,
-    borderLeftWidth: 3, borderLeftColor: YELLOW, paddingLeft: 8,
+  sectionHeaderTitle: {
+    color: YELLOW,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
-  label: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: '700', marginBottom: 4 },
+  typeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  typeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: BLACK,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  typeChipActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  typeChipText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  typeChipTextActive: {
+    color: BLACK,
+    fontWeight: '900',
+  },
+  fieldLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  chipScroll: {
+    gap: 6,
+  },
+  chip: {
+    backgroundColor: BLACK,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  chipActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  chipText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  chipTextActive: {
+    color: BLACK,
+    fontWeight: '900',
+  },
+  fieldGroup: {
+    gap: 4,
+  },
   input: {
-    backgroundColor: BLACK, color: '#fff', fontSize: FontSize.sm,
-    borderWidth: 1, borderColor: BORDER, paddingHorizontal: Spacing.three, paddingVertical: 10,
+    backgroundColor: BLACK,
+    color: '#fff',
+    fontSize: FontSize.xs,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  textArea: { minHeight: 80, textAlignVertical: 'top' },
-  picker: {
-    backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, color: '#fff',
+  row: {
+    flexDirection: 'row',
+    gap: 8,
   },
-  row: { flexDirection: 'row', gap: Spacing.three },
-  halfInput: { flex: 1 },
-  typeToggleRow: { flexDirection: 'row', gap: Spacing.two },
-  typeBtn: {
-    flex: 1, paddingVertical: 10, borderWidth: 1, borderColor: BORDER,
-    backgroundColor: BLACK, alignItems: 'center',
+  autoGenBtnText: {
+    color: YELLOW,
+    fontSize: 9,
+    fontWeight: '900',
   },
-  typeBtnActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  typeBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: '900' },
-  typeBtnTextActive: { color: BLACK },
-  imagePickerBox: {
-    height: 100, backgroundColor: BLACK, borderWidth: 2, borderColor: BORDER,
-    alignItems: 'center', justifyContent: 'center', gap: 6,
-  },
-  imagePickerText: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs },
-  imageThumb: { width: 80, height: 80, marginRight: Spacing.two },
-  discountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   discountBadge: {
-    backgroundColor: YELLOW, paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: YELLOW,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 3,
   },
-  discountText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
-  skuRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  skuBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: DARK_CARD, borderWidth: 1, borderColor: YELLOW,
-    paddingHorizontal: 10, paddingVertical: 8,
+  discountBadgeText: {
+    color: BLACK,
+    fontSize: 9,
+    fontWeight: '900',
   },
-  skuBtnText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
+  uploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 12,
+  },
+  uploadBtnText: {
+    color: YELLOW,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+  },
+  aiBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: YELLOW,
+  },
+  aiBtnText: {
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '900',
+  },
   submitBtn: {
-    backgroundColor: YELLOW, paddingVertical: 16,
-    alignItems: 'center', justifyContent: 'center', marginTop: Spacing.two,
+    backgroundColor: YELLOW,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  submitBtnText: { color: BLACK, fontSize: FontSize.base, fontWeight: '900', letterSpacing: 0.5 },
-  errorText: { color: '#EF4444', fontSize: FontSize.xs },
+  submitBtnText: {
+    color: BLACK,
+    fontSize: FontSize.sm,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
 });

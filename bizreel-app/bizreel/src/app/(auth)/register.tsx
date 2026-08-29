@@ -138,7 +138,7 @@ export default function RegisterScreen() {
     const valid = await trigger(['name', 'phone', 'email', 'password', 'confirmPassword']);
     if (valid) {
       sendOtp(
-        { phone: phoneValue, purpose: 'signup' },
+        { phone: phoneValue, purpose: 'register' },
         {
           onSuccess: () => {
             setOtpModalVisible(true);
@@ -175,6 +175,15 @@ export default function RegisterScreen() {
         interests: selectedInterests,
       },
       {
+        onSuccess: () => {
+          if (selectedRole === 'vendor') {
+            router.replace('/vendor/onboarding');
+          } else if (selectedRole === 'creator') {
+            router.replace('/creator/onboarding' as any);
+          } else {
+            router.replace('/(tabs)');
+          }
+        },
         onError: (error) => {
           setServerError(error.message);
         },

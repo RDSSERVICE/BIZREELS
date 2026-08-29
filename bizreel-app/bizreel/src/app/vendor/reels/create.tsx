@@ -1,11 +1,14 @@
 /**
- * Create & Publish Reel Screen for Vendors — 3-Step Creation Wizard
- * Implements the exact 3-step Reel Creation Flow matching the uploaded screenshots.
+ * Create & Publish Reel Screen for Vendors — 3-Step Interactive Wizard
+ * Parity with Web Frontend CreateReelWizardModal.jsx
+ * Step 1: Content Type, Category & Purpose
+ * Step 2: Media & Caption (Video picker, thumbnail cover, listing tag, AI caption generator)
+ * Step 3: Hashtags & Publish
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -25,6 +28,11 @@ import { useCreateReel } from '@/features/reels/queries';
 import { useVendorListings } from '@/features/vendor-listings/queries';
 import { api } from '@/lib/api';
 
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+
 export default function CreateReelScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -32,10 +40,12 @@ export default function CreateReelScreen() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1: Content Type & Category & Purpose
-  const [postType, setPostType] = useState<'service' | 'product' | 'shop'>('service');
+  const [postType, setPostType] = useState<'service' | 'product' | 'shop'>('product');
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
-  const [category, setCategory] = useState('Real Estate');
-  const [subcategory, setSubcategory] = useState('Rent');
+  const [category, setCategory] = useState('Electronics');
+  const [subcategory, setSubcategory] = useState('General');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [subcategorySearch, setSubcategorySearch] = useState('');
   const [postPurpose, setPostPurpose] = useState('General Promotion');
 
   // Step 2: Media & Caption
@@ -44,10 +54,11 @@ export default function CreateReelScreen() {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [caption, setCaption] = useState('');
-  const [hashtagsStr, setHashtagsStr] = useState('#bizreels #products');
+  const [hashtagsStr, setHashtagsStr] = useState('#bizreels #products #fashion');
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [mediaTab, setMediaTab] = useState<'upload' | 'url'>('upload');
   const [saveToGallery, setSaveToGallery] = useState(false);
+  const [generatingAiBio, setGeneratingAiBio] = useState(false);
 
   const { data: listings = [] } = useVendorListings();
   const createReelMutation = useCreateReel();
@@ -69,13 +80,15 @@ export default function CreateReelScreen() {
 
   const parentCategories = categoriesList.filter((c: any) => !c.parent_id);
   const activeParent = parentCategories.find((c: any) => c.name === category);
-  const childSubcategories = categoriesList.filter((c: any) => activeParent && c.parent_id === (activeParent.id || activeParent._id));
+  const childSubcategories = categoriesList.filter(
+    (c: any) => activeParent && c.parent_id === (activeParent.id || activeParent._id)
+  );
 
   const postPurposes = [
     { key: 'General Promotion', label: 'General Promotion', desc: 'Standard showcase & visibility', icon: 'star' },
     { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Promote a discount or coupon', icon: 'pricetag' },
     { key: 'Announcement', label: 'Announcement', desc: 'Updates or Important Info', icon: 'notifications' },
-    { key: 'New Launch', label: 'New Launch', desc: 'Introduce a brand-new service', icon: 'flash' },
+    { key: 'New Launch', label: 'New Launch', desc: 'Introduce a brand-new item', icon: 'flash' },
   ];
 
   async function uploadMediaFile(uri: string, fileName: string, mimeType: string, isVideo: boolean) {
@@ -108,7 +121,7 @@ export default function CreateReelScreen() {
       console.warn('Backend upload fallback:', uploadErr);
       if (isVideo) {
         setVideoUrl(uri || 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4');
-        Alert.alert('Video File Selected!', 'File attached and ready for reel publishing.');
+        Alert.alert('Video File Selected!', 'Video attached and ready for reel publishing.');
       } else {
         setThumbnailUrl(uri);
         Alert.alert('Cover Image Selected!', 'Thumbnail cover attached.');
@@ -158,23 +171,36 @@ export default function CreateReelScreen() {
         await uploadMediaFile(asset.uri, asset.name, asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg'), isVideo);
       }
     } catch (err: any) {
-      if (typeof document !== 'undefined') {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = isVideo ? 'video/*' : 'image/*';
-        input.onchange = async (e: any) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const url = URL.createObjectURL(file);
-            await uploadMediaFile(url, file.name, file.type, isVideo);
-          }
-        };
-        input.click();
-      } else {
-        Alert.alert('Picker Error', err?.message || 'Could not open media library.');
-      }
+      Alert.alert('Picker Error', err?.message || 'Could not open media library.');
     }
   }
+
+  const handleGenerateAiBio = async () => {
+    setGeneratingAiBio(true);
+    try {
+      const selectedItem = listings.find((i) => i._id === selectedListingId);
+      const promptText = selectedItem ? `Reel caption for ${selectedItem.title} - ${category}` : `Reel showcase for ${category} ${subcategory}`;
+      
+      const { data } = await api.post('/ai-copy', {
+        title: selectedItem?.title || category,
+        category,
+        type: postType,
+        prompt: promptText,
+      });
+      const res = data?.data || data;
+      const copy = res?.caption || res?.copy || res?.description;
+      if (copy) {
+        setCaption(copy);
+        Alert.alert('✨ AI Caption Generated!', 'Generated promotional caption successfully!');
+      } else {
+        Alert.alert('Notice', 'AI copy generator unavailable. Type caption manually.');
+      }
+    } catch (err) {
+      Alert.alert('Notice', 'AI copy generator offline. Type caption manually.');
+    } finally {
+      setGeneratingAiBio(false);
+    }
+  };
 
   function handlePublish() {
     if (!videoUrl.trim()) {
@@ -203,30 +229,33 @@ export default function CreateReelScreen() {
       },
       {
         onSuccess: () => {
-          Alert.alert('Reel Published!', 'Your video reel is now live on the public feed!');
+          Alert.alert('🚀 Reel Published!', 'Your video reel is now live on the public feed!');
           router.back();
         },
-        onError: (err: any) => Alert.alert('Publishing Failed', err?.response?.data?.message || err?.message || 'Publishing failed'),
+        onError: (err: any) =>
+          Alert.alert('Publishing Failed', err?.response?.data?.message || err?.message || 'Publishing failed'),
       }
     );
   }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header Modal Bar */}
+      {/* Header Bar */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => step > 1 ? setStep((s) => (s - 1) as any) : router.back()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => (step > 1 ? setStep((s) => (s - 1) as any) : router.back())}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          Create {postType === 'product' ? 'Product' : postType === 'shop' ? 'Shop' : 'Service'} Reel / Image Post Flow
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          Create {postType === 'product' ? 'Product' : postType === 'shop' ? 'Shop' : 'Service'} Reel
         </Text>
         <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
           <Ionicons name="close" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Progress Step Header Pills */}
+      {/* Step Header Pills */}
       <View style={styles.stepHeaderCard}>
         <View style={styles.stepIndicatorPill}>
           <Text style={styles.stepIndicatorText}>
@@ -244,10 +273,10 @@ export default function CreateReelScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.stepBtn, step === 2 && styles.stepBtnActive]}
+            style={[styles.stepBtn, step === 2 && styles.stepBtnActive, step > 2 && styles.stepBtnDone]}
             onPress={() => setStep(2)}>
-            <Text style={[styles.stepBtnText, step === 2 && styles.stepBtnTextActive]}>
-              2. Upload Video
+            <Text style={[styles.stepBtnText, (step === 2 || step > 2) && styles.stepBtnTextActive]}>
+              {step > 2 ? '✓ ' : ''}2. Media
             </Text>
           </TouchableOpacity>
 
@@ -255,7 +284,7 @@ export default function CreateReelScreen() {
             style={[styles.stepBtn, step === 3 && styles.stepBtnActive]}
             onPress={() => setStep(3)}>
             <Text style={[styles.stepBtnText, step === 3 && styles.stepBtnTextActive]}>
-              3. Targeting
+              3. Publish
             </Text>
           </TouchableOpacity>
         </View>
@@ -265,86 +294,148 @@ export default function CreateReelScreen() {
         {/* ── STEP 1: CONTENT & CATEGORY ── */}
         {step === 1 && (
           <View style={styles.wizardStepContainer}>
-            {/* 1. SELECT CONTENT TYPE */}
+            {/* CONTENT TYPE */}
             <View style={styles.fieldGroup}>
               <Text style={styles.labelTitle}>1. SELECT CONTENT TYPE *</Text>
               <View style={styles.typeGrid}>
                 <TouchableOpacity
-                  style={[styles.typeCard, postType === 'service' && styles.typeCardActive]}
-                  onPress={() => setPostType('service')}>
-                  <Ionicons name="layers" size={22} color={postType === 'service' ? '#fff' : 'rgba(255,255,255,0.7)'} />
-                  <Text style={[styles.typeText, postType === 'service' && styles.typeTextActive]}>
-                    Service Post
+                  style={[styles.typeCard, postType === 'product' && styles.typeCardActive]}
+                  onPress={() => setPostType('product')}>
+                  <Ionicons name="pricetag" size={22} color={postType === 'product' ? BLACK : YELLOW} />
+                  <Text style={[styles.typeText, postType === 'product' && styles.typeTextActive]}>
+                    Product Reel
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.typeCard, postType === 'product' && styles.typeCardActive]}
-                  onPress={() => setPostType('product')}>
-                  <Ionicons name="pricetag" size={22} color={postType === 'product' ? '#fff' : 'rgba(255,255,255,0.7)'} />
-                  <Text style={[styles.typeText, postType === 'product' && styles.typeTextActive]}>
-                    Product Post
+                  style={[styles.typeCard, postType === 'service' && styles.typeCardActive]}
+                  onPress={() => setPostType('service')}>
+                  <Ionicons name="layers" size={22} color={postType === 'service' ? BLACK : YELLOW} />
+                  <Text style={[styles.typeText, postType === 'service' && styles.typeTextActive]}>
+                    Service Reel
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.typeCard, postType === 'shop' && styles.typeCardActive]}
                   onPress={() => setPostType('shop')}>
-                  <Ionicons name="videocam" size={22} color={postType === 'shop' ? '#fff' : 'rgba(255,255,255,0.7)'} />
+                  <Ionicons name="storefront" size={22} color={postType === 'shop' ? BLACK : YELLOW} />
                   <Text style={[styles.typeText, postType === 'shop' && styles.typeTextActive]}>
-                    Shop / Business
+                    Shop Showcase
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* 2. SELECT CATEGORY */}
+            {/* CATEGORY */}
             <View style={styles.darkSectionCard}>
               <View style={styles.darkSectionHeader}>
-                <Ionicons name="cog-outline" size={16} color={BrandColors.primary} />
+                <Ionicons name="options-outline" size={16} color={YELLOW} />
                 <Text style={styles.darkSectionTitle}>
                   2. SELECT {postType === 'product' ? 'PRODUCT' : postType === 'shop' ? 'BUSINESS' : 'SERVICE'} CATEGORY
                 </Text>
               </View>
 
-              <View style={styles.dropdownRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.subLabel}>CATEGORY *</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-                    {(parentCategories.length > 0 ? parentCategories : [{ name: 'Real Estate' }, { name: 'Electronics' }, { name: 'Fashion' }, { name: 'Automobile' }]).map((catItem: any, idx: number) => (
-                      <TouchableOpacity
-                        key={idx}
-                        style={[styles.chip, category === catItem.name && styles.chipActive]}
-                        onPress={() => setCategory(catItem.name)}>
-                        <Text style={[styles.chipText, category === catItem.name && styles.chipTextActive]}>
-                          {catItem.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+              {/* Category Search Box */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.subLabel}>SEARCH CATEGORIES *</Text>
+                <View style={styles.searchBox}>
+                  <Ionicons name="search" size={14} color="rgba(255,255,255,0.4)" />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Type to filter categories (e.g. Fashion, Electronics...)"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={categorySearch}
+                    onChangeText={setCategorySearch}
+                  />
+                  {categorySearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setCategorySearch('')}>
+                      <Ionicons name="close-circle" size={14} color="rgba(255,255,255,0.4)" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
 
               <View style={styles.dropdownRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.subLabel}>SUB CATEGORY *</Text>
+                  <Text style={styles.subLabel}>CATEGORY CHIPS</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-                    {['Rent', 'Sale', 'Commercial', 'General'].map((subItem, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        style={[styles.chip, subcategory === subItem && styles.chipActive]}
-                        onPress={() => setSubcategory(subItem)}>
-                        <Text style={[styles.chipText, subcategory === subItem && styles.chipTextActive]}>
-                          {subItem}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {(parentCategories.length > 0
+                      ? parentCategories
+                      : [{ name: 'Electronics' }, { name: 'Fashion' }, { name: 'Real Estate' }, { name: 'Automobile' }, { name: 'Beauty & Wellness' }, { name: 'Food & Dining' }, { name: 'Services' }]
+                    )
+                      .filter((catItem: any) =>
+                        categorySearch
+                          ? catItem.name.toLowerCase().includes(categorySearch.toLowerCase())
+                          : true
+                      )
+                      .map((catItem: any, idx: number) => (
+                        <TouchableOpacity
+                          key={idx}
+                          style={[styles.chip, category === catItem.name && styles.chipActive]}
+                          onPress={() => setCategory(catItem.name)}>
+                          <Text style={[styles.chipText, category === catItem.name && styles.chipTextActive]}>
+                            {catItem.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+                </View>
+              </View>
+
+              {/* Subcategory Search Box */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.subLabel}>SEARCH SUB CATEGORIES *</Text>
+                <View style={styles.searchBox}>
+                  <Ionicons name="search" size={14} color="rgba(255,255,255,0.4)" />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Filter subcategories (e.g. Rent, Mobile, Shoes...)"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={subcategorySearch}
+                    onChangeText={setSubcategorySearch}
+                  />
+                  {subcategorySearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setSubcategorySearch('')}>
+                      <Ionicons name="close-circle" size={14} color="rgba(255,255,255,0.4)" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.dropdownRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.subLabel}>SUB CATEGORY CHIPS</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+                    {(childSubcategories.length > 0
+                      ? childSubcategories
+                      : [{ name: 'General' }, { name: 'Accessories' }, { name: 'Rent' }, { name: 'Sale' }, { name: 'Commercial' }]
+                    )
+                      .filter((subItem: any) => {
+                        const subName = subItem.name || subItem;
+                        return subcategorySearch
+                          ? subName.toLowerCase().includes(subcategorySearch.toLowerCase())
+                          : true;
+                      })
+                      .map((subItem: any, idx: number) => {
+                        const subName = subItem.name || subItem;
+                        return (
+                          <TouchableOpacity
+                            key={idx}
+                            style={[styles.chip, subcategory === subName && styles.chipActive]}
+                            onPress={() => setSubcategory(subName)}>
+                            <Text style={[styles.chipText, subcategory === subName && styles.chipTextActive]}>
+                              {subName}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                   </ScrollView>
                 </View>
               </View>
             </View>
 
-            {/* 3. SELECT POST PURPOSE */}
+            {/* POST PURPOSE */}
             <View style={styles.fieldGroup}>
               <Text style={styles.labelTitle}>3. SELECT POST PURPOSE *</Text>
               <View style={styles.purposeGrid}>
@@ -357,14 +448,12 @@ export default function CreateReelScreen() {
                       onPress={() => setPostPurpose(p.key)}>
                       <View style={styles.purposeHeaderRow}>
                         <View style={[styles.purposeIconCircle, isSelected && styles.purposeIconCircleActive]}>
-                          <Ionicons name={p.icon as any} size={18} color={isSelected ? '#fff' : BrandColors.primary} />
+                          <Ionicons name={p.icon as any} size={18} color={isSelected ? BLACK : YELLOW} />
                         </View>
-                        {isSelected && <Ionicons name="checkmark-circle" size={20} color={BrandColors.primary} />}
+                        {isSelected && <Ionicons name="checkmark-circle" size={20} color={YELLOW} />}
                       </View>
 
-                      <Text style={[styles.purposeLabel, isSelected && styles.purposeLabelActive]}>
-                        {p.label}
-                      </Text>
+                      <Text style={[styles.purposeLabel, isSelected && styles.purposeLabelActive]}>{p.label}</Text>
                       <Text style={styles.purposeDesc}>{p.desc}</Text>
                     </TouchableOpacity>
                   );
@@ -372,9 +461,7 @@ export default function CreateReelScreen() {
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.nextStepBtn}
-              onPress={() => setStep(2)}>
+            <TouchableOpacity style={styles.nextStepBtn} onPress={() => setStep(2)}>
               <Text style={styles.nextStepBtnText}>CONTINUE TO MEDIA & CAPTION SELECTION →</Text>
             </TouchableOpacity>
           </View>
@@ -383,23 +470,23 @@ export default function CreateReelScreen() {
         {/* ── STEP 2: MEDIA & CAPTION ── */}
         {step === 2 && (
           <View style={styles.wizardStepContainer}>
-            {/* 4. SELECT PRODUCT / SERVICE */}
+            {/* LINKED LISTING */}
             <View style={styles.darkSectionCard}>
               <View style={styles.darkSectionHeaderRow}>
                 <View style={styles.darkSectionHeader}>
-                  <Ionicons name="pricetag-outline" size={16} color={BrandColors.primary} />
-                  <Text style={styles.darkSectionTitle}>4. SELECT PRODUCT / SERVICE</Text>
+                  <Ionicons name="pricetag-outline" size={16} color={YELLOW} />
+                  <Text style={styles.darkSectionTitle}>4. LINKED STORE PRODUCT / SERVICE</Text>
                 </View>
-                <Text style={styles.availableCountText}>{listings.length} product(s) available</Text>
+                <Text style={styles.availableCountText}>{listings.length} item(s)</Text>
               </View>
 
-              <Text style={styles.subLabel}>OPTION A – SELECT EXISTING LISTED PRODUCT</Text>
+              <Text style={styles.subLabel}>TAG LISTED ITEM ON REEL</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
                 <TouchableOpacity
                   style={[styles.chip, selectedListingId === null && styles.chipActive]}
                   onPress={() => setSelectedListingId(null)}>
                   <Text style={[styles.chipText, selectedListingId === null && styles.chipTextActive]}>
-                    -- Choose from your listed products ({listings.length}) --
+                    -- None (General Reel) --
                   </Text>
                 </TouchableOpacity>
 
@@ -416,21 +503,36 @@ export default function CreateReelScreen() {
               </ScrollView>
 
               <View style={styles.optionBRow}>
-                <Text style={styles.cantFindText}>Can't find the product?</Text>
+                <Text style={styles.cantFindText}>Can't find item?</Text>
                 <TouchableOpacity
                   style={styles.optionBBtn}
                   onPress={() => router.push('/vendor/listings/create' as any)}>
-                  <Text style={styles.optionBBtnText}>+ Option B – Create New Product</Text>
+                  <Text style={styles.optionBBtnText}>+ Add New Listing First</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* POST CAPTION */}
+            {/* CAPTION & AI BIO */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.labelTitle}>POST CAPTION * (NO CONTACT INFO ALLOWED)</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.labelTitle}>REEL CAPTION *</Text>
+                <TouchableOpacity
+                  style={styles.aiBtn}
+                  onPress={handleGenerateAiBio}
+                  disabled={generatingAiBio}>
+                  {generatingAiBio ? (
+                    <ActivityIndicator size="small" color={YELLOW} />
+                  ) : (
+                    <>
+                      <Ionicons name="sparkles" size={14} color={YELLOW} />
+                      <Text style={styles.aiBtnText}>AI Caption</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
               <TextInput
                 style={styles.captionInput}
-                placeholder="Describe your product highlights..."
+                placeholder="Describe your video reel highlights..."
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 multiline
                 numberOfLines={3}
@@ -439,20 +541,19 @@ export default function CreateReelScreen() {
               />
             </View>
 
-            {/* 5. SELECT MEDIA */}
+            {/* MEDIA UPLOAD */}
             <View style={styles.darkSectionCard}>
               <View style={styles.darkSectionHeader}>
-                <Ionicons name="images-outline" size={16} color={BrandColors.primary} />
-                <Text style={styles.darkSectionTitle}>5. SELECT MEDIA</Text>
+                <Ionicons name="videocam-outline" size={16} color={YELLOW} />
+                <Text style={styles.darkSectionTitle}>5. SELECT VIDEO MEDIA</Text>
               </View>
 
-              {/* Sub-Tabs: Upload Photos / Videos vs Enter Media URL */}
               <View style={styles.mediaTabRow}>
                 <TouchableOpacity
                   style={[styles.mediaTabBtn, mediaTab === 'upload' && styles.mediaTabBtnActive]}
                   onPress={() => setMediaTab('upload')}>
                   <Text style={[styles.mediaTabText, mediaTab === 'upload' && styles.mediaTabTextActive]}>
-                    📁 Upload Photos / Videos (Max 5)
+                    📁 Upload Video File
                   </Text>
                 </TouchableOpacity>
 
@@ -460,30 +561,26 @@ export default function CreateReelScreen() {
                   style={[styles.mediaTabBtn, mediaTab === 'url' && styles.mediaTabBtnActive]}
                   onPress={() => setMediaTab('url')}>
                   <Text style={[styles.mediaTabText, mediaTab === 'url' && styles.mediaTabTextActive]}>
-                    🔗 Enter Media URL
+                    🔗 Direct Video URL
                   </Text>
                 </TouchableOpacity>
               </View>
 
               {mediaTab === 'upload' ? (
                 <View style={styles.dropzoneBox}>
-                  <View style={styles.uploadCounterRow}>
-                    <Text style={styles.uploadCounterText}>{videoUrl ? '1 / 5 Uploaded' : '0 / 5 Uploaded'}</Text>
-                  </View>
-
                   <TouchableOpacity
                     style={styles.dropzoneArea}
                     onPress={() => pickLocalFile('video')}
                     disabled={uploadingVideo}>
                     {uploadingVideo ? (
-                      <ActivityIndicator color={BrandColors.primary} size="large" />
+                      <ActivityIndicator color={YELLOW} size="large" />
                     ) : (
                       <>
-                        <Ionicons name="cloud-upload-outline" size={38} color={BrandColors.primary} />
+                        <Ionicons name="cloud-upload-outline" size={38} color={YELLOW} />
                         <Text style={styles.dropzoneTitle}>
-                          {videoUrl ? '📁 Video Selected & Uploaded' : 'Click or Drag & Drop (Select up to 5 files)'}
+                          {videoUrl ? '📁 Video File Attached & Ready' : 'Tap to Pick Video File from Gallery'}
                         </Text>
-                        <Text style={styles.dropzoneSub}>Supports JPG, PNG, WEBP, MP4, MOV (Max 50MB)</Text>
+                        <Text style={styles.dropzoneSub}>Supports MP4, MOV, WEBM (Max 50MB)</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -491,7 +588,7 @@ export default function CreateReelScreen() {
               ) : (
                 <TextInput
                   style={styles.urlInput}
-                  placeholder="Paste direct video or media URL..."
+                  placeholder="Paste direct MP4 or video URL..."
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={videoUrl}
                   onChangeText={setVideoUrl}
@@ -499,39 +596,25 @@ export default function CreateReelScreen() {
                 />
               )}
 
-              {/* Cover Image Upload */}
+              {/* Cover Image */}
               <TouchableOpacity
                 style={[styles.uploadBtn, { marginTop: 10 }]}
                 onPress={() => pickLocalFile('image')}
                 disabled={uploadingThumbnail}>
                 {uploadingThumbnail ? (
-                  <ActivityIndicator color={BrandColors.primary} />
+                  <ActivityIndicator color={YELLOW} />
                 ) : (
                   <>
-                    <Ionicons name="image-outline" size={20} color={BrandColors.primary} />
+                    <Ionicons name="image-outline" size={18} color={YELLOW} />
                     <Text style={styles.uploadBtnText}>
                       {thumbnailUrl ? '🖼️ Cover Image Attached' : '🖼️ Pick Cover Thumbnail Image (Optional)'}
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
-
-              {/* Gallery Checkbox */}
-              <TouchableOpacity
-                style={styles.checkboxRow}
-                onPress={() => setSaveToGallery((v) => !v)}>
-                <Ionicons
-                  name={saveToGallery ? 'checkbox' : 'square-outline'}
-                  size={18}
-                  color={saveToGallery ? BrandColors.primary : 'rgba(255,255,255,0.4)'}
-                />
-                <Text style={styles.checkboxText}>Save new media to service/product gallery for future use</Text>
-              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.nextStepBtn}
-              onPress={() => setStep(3)}>
+            <TouchableOpacity style={styles.nextStepBtn} onPress={() => setStep(3)}>
               <Text style={styles.nextStepBtnText}>CONTINUE TO TARGETING & PUBLISH →</Text>
             </TouchableOpacity>
           </View>
@@ -542,7 +625,7 @@ export default function CreateReelScreen() {
           <View style={styles.wizardStepContainer}>
             <View style={styles.darkSectionCard}>
               <View style={styles.darkSectionHeader}>
-                <Ionicons name="navigate-outline" size={16} color={BrandColors.primary} />
+                <Ionicons name="pricetags-outline" size={16} color={YELLOW} />
                 <Text style={styles.darkSectionTitle}>6. TARGETING & HASHTAGS</Text>
               </View>
 
@@ -561,7 +644,7 @@ export default function CreateReelScreen() {
               onPress={handlePublish}
               disabled={createReelMutation.isPending}>
               {createReelMutation.isPending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={BLACK} />
               ) : (
                 <Text style={styles.publishBtnText}>🚀 PUBLISH REEL NOW</Text>
               )}
@@ -575,76 +658,402 @@ export default function CreateReelScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BLACK },
   header: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.two,
-    paddingHorizontal: Spacing.four, paddingVertical: Spacing.three,
-    borderBottomWidth: 2, borderBottomColor: YELLOW,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.three,
+    backgroundColor: DARK_CARD,
+    borderBottomWidth: 2,
+    borderBottomColor: YELLOW,
   },
   backBtn: {
-    width: 34, height: 34, borderRadius: 0, backgroundColor: DARK_CARD,
-    borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center',
+    width: 36,
+    height: 36,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900', flex: 1 },
-  scrollContent: { padding: Spacing.four, gap: Spacing.four, paddingBottom: 120 },
-  sectionCard: {
-    backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.four, gap: Spacing.three,
+  closeBtn: {
+    width: 36,
+    height: 36,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sectionTitle: {
-    color: YELLOW, fontSize: 9, fontWeight: '900', letterSpacing: 1, marginBottom: 2,
-    borderLeftWidth: 3, borderLeftColor: YELLOW, paddingLeft: 8,
+  headerTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    flex: 1,
+    textAlign: 'center',
   },
-  label: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: '700', marginBottom: 4 },
-  input: {
-    backgroundColor: BLACK, color: '#fff', fontSize: FontSize.sm,
-    borderWidth: 1, borderColor: BORDER, paddingHorizontal: Spacing.three, paddingVertical: 10,
+  stepHeaderCard: {
+    backgroundColor: DARK_CARD,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    gap: 8,
   },
-  textArea: { minHeight: 80, textAlignVertical: 'top' },
-  videoPickerBox: {
-    height: 160, backgroundColor: BLACK, borderWidth: 2, borderColor: BORDER,
-    alignItems: 'center', justifyContent: 'center', gap: 8,
+  stepIndicatorPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: YELLOW,
   },
-  videoPickerText: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs },
-  videoThumb: { width: '100%', height: 160 },
-  playOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center',
+  stepIndicatorText: {
+    color: YELLOW,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
-  thumbnailBox: {
-    height: 100, backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER,
-    alignItems: 'center', justifyContent: 'center', gap: 4,
+  stepPillsRow: {
+    flexDirection: 'row',
+    gap: 6,
   },
-  thumbnailThumb: { width: '100%', height: 100 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  tag: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: YELLOW,
-    paddingHorizontal: 8, paddingVertical: 4,
+  stepBtn: {
+    flex: 1,
+    backgroundColor: BLACK,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BORDER,
   },
-  tagText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
-  addTagBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER,
-    paddingHorizontal: 8, paddingVertical: 4,
+  stepBtnActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
   },
-  addTagBtnText: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs },
-  submitBtn: {
-    backgroundColor: YELLOW, paddingVertical: 16,
-    alignItems: 'center', justifyContent: 'center',
+  stepBtnDone: {
+    borderColor: YELLOW,
   },
-  submitBtnText: { color: BLACK, fontSize: FontSize.base, fontWeight: '900', letterSpacing: 0.5 },
-  progressBar: { height: 3, backgroundColor: YELLOW, marginBottom: Spacing.two },
-  progressText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900', textAlign: 'center' },
+  stepBtnText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  stepBtnTextActive: {
+    color: BLACK,
+    fontWeight: '900',
+  },
+  scrollContent: {
+    padding: Spacing.four,
+    gap: 16,
+  },
+  wizardStepContainer: {
+    gap: 16,
+  },
+  fieldGroup: {
+    gap: 6,
+  },
+  labelTitle: {
+    color: YELLOW,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  typeGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  typeCard: {
+    flex: 1,
+    backgroundColor: DARK_CARD,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  typeCardActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  typeText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  typeTextActive: {
+    color: BLACK,
+    fontWeight: '900',
+  },
+  darkSectionCard: {
+    backgroundColor: DARK_CARD,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 12,
+    gap: 10,
+  },
+  darkSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  darkSectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  darkSectionTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  subLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  dropdownRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chipScroll: {
+    gap: 6,
+  },
+  chip: {
+    backgroundColor: BLACK,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  chipActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  chipText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  chipTextActive: {
+    color: BLACK,
+    fontWeight: '900',
+  },
+  purposeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  purposeCard: {
+    width: '48.5%',
+    backgroundColor: DARK_CARD,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    gap: 4,
+  },
+  purposeCardActive: {
+    borderColor: YELLOW,
+    backgroundColor: 'rgba(245,158,11,0.08)',
+  },
+  purposeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  purposeIconCircle: {
+    width: 28,
+    height: 28,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  purposeIconCircleActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  purposeLabel: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  purposeLabelActive: {
+    color: YELLOW,
+  },
+  purposeDesc: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 9,
+  },
+  nextStepBtn: {
+    backgroundColor: YELLOW,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextStepBtnText: {
+    color: BLACK,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  availableCountText: {
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  optionBRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  cantFindText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
+  },
+  optionBBtn: {
+    backgroundColor: BLACK,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  optionBBtnText: {
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  captionInput: {
+    backgroundColor: BLACK,
+    color: '#fff',
+    fontSize: FontSize.xs,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 10,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 8,
+    height: 34,
+    gap: 6,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#fff',
+    fontSize: FontSize.xs,
+  },
+  mediaTabRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  mediaTabBtn: {
+    flex: 1,
+    backgroundColor: BLACK,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  mediaTabBtnActive: {
+    borderColor: YELLOW,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+  },
+  mediaTabText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  mediaTabTextActive: {
+    color: YELLOW,
+    fontWeight: '900',
+  },
+  dropzoneBox: {
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+  },
+  dropzoneArea: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 6,
+  },
+  dropzoneTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  dropzoneSub: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  urlInput: {
+    backgroundColor: BLACK,
+    color: '#fff',
+    fontSize: FontSize.xs,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 10,
+  },
+  uploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 10,
+    justifyContent: 'center',
+  },
+  uploadBtnText: {
+    color: YELLOW,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+  },
   aiBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: YELLOW,
-    paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: YELLOW,
   },
-  aiBtnText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
+  aiBtnText: {
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  publishBtn: {
+    backgroundColor: YELLOW,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  publishBtnText: {
+    color: BLACK,
+    fontSize: FontSize.sm,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
 });

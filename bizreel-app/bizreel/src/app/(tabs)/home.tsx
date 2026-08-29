@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Pressable,
   RefreshControl,
@@ -51,6 +52,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
 
   const [listings, setListings] = useState<any[]>([]);
+  const [myReels, setMyReels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,14 +64,27 @@ export default function HomeScreen() {
   const { data: reelsData } = useReelsFeed();
   const { data: vendorListings = [] } = useVendorListings();
 
+  const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
   const reels = reelsData?.pages?.flatMap((p) => p.data || []) || [];
   const cartItemCount = cart?.total_items || 0;
+
+  const fetchMyReels = async () => {
+    if (!isVendor) return;
+    try {
+      const { data } = await api.get('/reels/my-reels');
+      const items = data.data || data.items || data.reels || data || [];
+      setMyReels(Array.isArray(items) ? items : []);
+    } catch (err) {
+      console.warn('Failed to load vendor my reels', err);
+    }
+  };
 
   const fetchHomeData = async () => {
     try {
       const { data } = await api.get('/listings', { params: { limit: 20 } });
       const items = data.data || data.items || data || [];
       setListings(Array.isArray(items) ? items : []);
+      if (isVendor) fetchMyReels();
     } catch (err) {
       console.warn('Failed to load listings', err);
     } finally {
@@ -80,14 +95,22 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchHomeData();
-  }, []);
+  }, [isVendor]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchHomeData();
   };
 
-  const filteredListings = listings.filter((item) => {
+  const currentUserId = (user as any)?._id || (user as any)?.id;
+  const sourceListings = isVendor ? vendorListings : listings;
+  const filteredListings = sourceListings.filter((item: any) => {
+    if (isVendor && currentUserId) {
+      const itemVendorId = item.vendor?._id || item.vendor?.id || item.vendor;
+      if (itemVendorId && itemVendorId.toString() !== currentUserId.toString()) {
+        return false;
+      }
+    }
     const matchesSearch = searchQuery
       ? item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.category?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -176,69 +199,75 @@ export default function HomeScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Hero Promotional Card Banner */}
-        <View style={styles.heroBanner}>
-          <View style={styles.heroContent}>
-            <View style={styles.heroTag}>
-              <Ionicons name="flame" size={14} color={BrandColors.primary} />
-              <Text style={styles.heroTagText}>TRENDING MARKETPLACE</Text>
-            </View>
-            <Text style={styles.heroTitle}>Discover & Buy Directly from Sellers</Text>
-            <Text style={styles.heroSub}>Watch short reels to preview products in action</Text>
-            <TouchableOpacity style={styles.heroBtn} onPress={() => router.push('/(tabs)')}>
-              <Ionicons name="play" size={14} color="#fff" />
-              <Text style={styles.heroBtnText}>Watch Reels Feed</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Category Horizontal Selector */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Categories</Text>
-          {selectedCategory && (
-            <TouchableOpacity onPress={() => setSelectedCategory(null)}>
-              <Text style={styles.clearFilterText}>Clear Filter</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryScroll}>
-          {CATEGORIES.map((cat) => {
-            const isSelected = selectedCategory === cat.name;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                style={[
-                  styles.categoryCard,
-                  isSelected && styles.categoryCardSelected,
-                ]}
-                onPress={() => setSelectedCategory(isSelected ? null : cat.name)}>
-                <View style={[styles.categoryIconCircle, { backgroundColor: cat.color + '20' }]}>
-                  <Ionicons name={cat.icon} size={22} color={cat.color} />
-                </View>
-                <Text style={[styles.categoryName, isSelected && styles.categoryNameSelected]}>
-                  {cat.name}
-                </Text>
+        {/* Hero Promotional Card Banner (Customer mode only) */}
+        {!isVendor && (
+          <View style={styles.heroBanner}>
+            <View style={styles.heroContent}>
+              <View style={styles.heroTag}>
+                <Ionicons name="flame" size={14} color={BrandColors.primary} />
+                <Text style={styles.heroTagText}>TRENDING MARKETPLACE</Text>
+              </View>
+              <Text style={styles.heroTitle}>Discover & Buy Directly from Sellers</Text>
+              <Text style={styles.heroSub}>Watch short reels to preview products in action</Text>
+              <TouchableOpacity style={styles.heroBtn} onPress={() => router.push('/(tabs)')}>
+                <Ionicons name="play" size={14} color="#fff" />
+                <Text style={styles.heroBtnText}>Watch Reels Feed</Text>
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+            </View>
+          </View>
+        )}
+
+        {/* Category Horizontal Selector (Customer mode only) */}
+        {!isVendor && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Categories</Text>
+              {selectedCategory && (
+                <TouchableOpacity onPress={() => setSelectedCategory(null)}>
+                  <Text style={styles.clearFilterText}>Clear Filter</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryScroll}>
+              {CATEGORIES.map((cat) => {
+                const isSelected = selectedCategory === cat.name;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[
+                      styles.categoryCard,
+                      isSelected && styles.categoryCardSelected,
+                    ]}
+                    onPress={() => setSelectedCategory(isSelected ? null : cat.name)}>
+                    <View style={[styles.categoryIconCircle, { backgroundColor: cat.color + '20' }]}>
+                      <Ionicons name={cat.icon} size={22} color={cat.color} />
+                    </View>
+                    <Text style={[styles.categoryName, isSelected && styles.categoryNameSelected]}>
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </>
+        )}
 
         {/* Redesigned Vendor Store Hub & Catalog Section */}
-        {user?.activeRole === 'vendor' ? (() => {
-          const vendorProfile: any = user?.vendorProfile;
-          return (
+        {isVendor ? (
           <View style={styles.vendorCatalogContainer}>
             {/* Vendor Store Header Card */}
             <View style={styles.vendorStoreCard}>
               <View style={styles.vendorStoreHeaderRow}>
-                <View style={{ flex: 1 }}>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  onPress={() => router.push('/vendor/profile' as any)}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={styles.vendorStoreName}>
-                      {vendorProfile?.storeName || vendorProfile?.businessName || user?.name || 'My Store'}
+                      {(user as any)?.vendorProfile?.storeName || (user as any)?.vendorProfile?.businessName || user?.name || 'My Store'}
                     </Text>
                     <View style={styles.verifiedShieldBadge}>
                       <Ionicons name="shield-checkmark" size={12} color="#fff" />
@@ -246,15 +275,15 @@ export default function HomeScreen() {
                     </View>
                   </View>
                   <Text style={styles.vendorStoreSub}>
-                    {vendorProfile?.category || 'Vendor Store Catalog & Live Inventory'}
+                    {(user as any)?.vendorProfile?.category || 'Vendor Store Catalog & Live Inventory'} • Tap to Edit Business Profile ›
                   </Text>
-                </View>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.addListingBtn}
-                  onPress={() => router.push('/vendor/listings' as any)}>
-                  <Ionicons name="add-circle" size={18} color="#fff" />
-                  <Text style={styles.addListingBtnText}>+ Add Listing</Text>
+                  onPress={() => router.push('/vendor/profile' as any)}>
+                  <Ionicons name="create-outline" size={16} color="#fff" />
+                  <Text style={styles.addListingBtnText}>Edit Profile</Text>
                 </TouchableOpacity>
               </View>
 
@@ -350,9 +379,68 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
             )}
+
+            {/* Vendor's Own Reels Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>🎥 My Video Reels ({myReels.length})</Text>
+                <TouchableOpacity onPress={() => router.push('/vendor/reels/create' as any)}>
+                  <Text style={styles.seeAllText}>+ Create Reel</Text>
+                </TouchableOpacity>
+              </View>
+
+              {myReels.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.reelsHighlightScroll}>
+                  {myReels.map((reel) => {
+                    const reelThumb = resolveImageUrl(reel.thumbnailUrl || reel.mediaUrls?.[0] || (reel as any).coverImage);
+                    return (
+                      <TouchableOpacity
+                        key={reel._id}
+                        style={styles.reelHighlightCard}
+                        onPress={() => router.push(`/reel/${reel._id}` as any)}>
+                        {reelThumb ? (
+                          <Image
+                            source={{ uri: reelThumb }}
+                            style={styles.reelThumbnail}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View style={[styles.reelThumbnail, { backgroundColor: '#2c2c2e', alignItems: 'center', justifyContent: 'center' }]}>
+                            <Ionicons name="film-outline" size={28} color="rgba(255,255,255,0.4)" />
+                          </View>
+                        )}
+                        <View style={styles.reelOverlayGradient} />
+                        <View style={styles.reelPlayBadge}>
+                          <Ionicons name="play" size={14} color="#fff" />
+                        </View>
+                        <Text style={styles.reelCaption} numberOfLines={2}>
+                          {reel.caption || reel.title || 'My Video Reel'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              ) : (
+                <View style={styles.emptyCatalogCard}>
+                  <Ionicons name="videocam-outline" size={32} color={YELLOW} />
+                  <Text style={styles.emptyCatalogTitle}>Promote Products with Short Reels</Text>
+                  <Text style={styles.emptyCatalogDesc}>
+                    Upload high-converting product videos, demos, and special offers to attract local buyers.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.emptyCatalogBtn}
+                    onPress={() => router.push('/vendor/reels/create' as any)}>
+                    <Ionicons name="add-circle" size={16} color={BLACK} />
+                    <Text style={styles.emptyCatalogBtnText}>+ CREATE FIRST VIDEO REEL</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
-          );
-        })() : (
+        ) : (
           reels.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -372,7 +460,7 @@ export default function HomeScreen() {
                     <TouchableOpacity
                       key={reel._id}
                       style={styles.reelHighlightCard}
-                      onPress={() => router.push({ pathname: '/(tabs)', params: { reelId: reel._id } })}>
+                      onPress={() => router.push(`/reel/${reel._id}` as any)}>
                       {reelThumb ? (
                         <Image
                           source={{ uri: reelThumb }}
@@ -399,12 +487,23 @@ export default function HomeScreen() {
           )
         )}
 
-        {/* Trending Listings Grid */}
+        {/* Vendor Catalog / Trending Listings Grid */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {selectedCategory ? `${selectedCategory} (${filteredListings.length})` : 'Trending Products & Services'}
+              {isVendor
+                ? selectedCategory
+                  ? `${selectedCategory} (${filteredListings.length})`
+                  : `📦 My Store Catalog Items (${filteredListings.length})`
+                : selectedCategory
+                ? `${selectedCategory} (${filteredListings.length})`
+                : 'Trending Products & Services'}
             </Text>
+            {isVendor && (
+              <TouchableOpacity onPress={() => router.push('/vendor/listings' as any)}>
+                <Text style={styles.seeAllText}>Manage Store Catalog ›</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {loading ? (

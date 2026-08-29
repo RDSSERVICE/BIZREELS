@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -45,6 +46,7 @@ const ROLES_CONFIG: Record<
 };
 
 export function RoleSwitcher() {
+  const router = useRouter();
   const { user, setUser } = useAuth();
   const queryClient = useQueryClient();
   const [modalVisible, setModalVisible] = useState(false);
@@ -66,7 +68,13 @@ export function RoleSwitcher() {
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       setModalVisible(false);
-      Alert.alert('Role Switched', `Switched to ${ROLES_CONFIG[newRole].label} mode.`);
+
+      const isVendorUnonboarded = newRole === 'vendor' && (!finalUser?.vendorProfile || !finalUser?.vendorProfile?.shopName);
+      if (isVendorUnonboarded) {
+        router.replace('/vendor/onboarding');
+      } else {
+        Alert.alert('Role Switched', `Switched to ${ROLES_CONFIG[newRole].label} mode.`);
+      }
     },
     onError: (err: any) => {
       Alert.alert('Role Switch Failed', err.message || 'Could not switch role.');

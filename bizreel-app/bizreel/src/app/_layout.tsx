@@ -13,7 +13,7 @@ import { hydrateTokenCache } from '@/lib/storage';
 SplashScreen.preventAutoHideAsync();
 
 function AuthGate() {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -22,10 +22,17 @@ function AuthGate() {
     const inAuthGroup = segments[0] === '(auth)';
     if (status === 'unauthed' && !inAuthGroup) {
       router.replace('/(auth)/register');
-    } else if (status === 'authed' && inAuthGroup) {
-      router.replace('/(tabs)');
+    } else if (status === 'authed') {
+      const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
+      const isVendorIncomplete = isVendor && (!user?.vendorProfile || !(user as any)?.vendorProfile?.shopName);
+
+      if (isVendorIncomplete) {
+        router.replace('/vendor/onboarding');
+      } else if (inAuthGroup) {
+        router.replace(isVendor ? '/(tabs)/home' : '/(tabs)');
+      }
     }
-  }, [status, segments]);
+  }, [status, segments, user]);
 
   if (status === 'loading') {
     return (

@@ -19,10 +19,10 @@ const BORDER = '#2D2D36';
 
 const TABS = [
   { name: 'home',             label: 'HOME',     icon: 'home-outline',         activeIcon: 'home',             forRole: 'all' },
-  { name: 'index',            label: 'REELS',    icon: 'play-circle-outline',  activeIcon: 'play-circle',      forRole: 'all' },
+  { name: 'index',            label: 'REELS',    icon: 'play-circle-outline',  activeIcon: 'play-circle',      forRole: 'customer' },
   { name: 'studio',           label: 'STUDIO',   icon: 'videocam-outline',     activeIcon: 'videocam',         forRole: 'vendor' },
   { name: 'post-requirement', label: 'POST REQ', icon: 'clipboard-outline',    activeIcon: 'clipboard',        forRole: 'customer' },
-  { name: 'search',           label: 'SEARCH',   icon: 'search-outline',       activeIcon: 'search',           forRole: 'all' },
+  { name: 'search',           label: 'SEARCH',   icon: 'search-outline',       activeIcon: 'search',           forRole: 'customer' },
   { name: 'profile',          label: 'ME',       icon: 'person-outline',       activeIcon: 'person',           forRole: 'all' },
 ];
 

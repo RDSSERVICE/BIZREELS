@@ -38,6 +38,7 @@ class ListingController {
   getListings = asyncHandler(async (req, res) => {
     const {
       vendor,
+      my_listings,
       type,
       category,
       subcategory,
@@ -54,9 +55,13 @@ class ListingController {
       limit = 10,
     } = req.query;
 
+    const vendorFilter = (my_listings === 'true' || my_listings === true)
+      ? (req.userId || req.user?._id)
+      : vendor;
+
     const result = await listingService.queryListings({
-      currentUserId: req.userId || null,
-      vendor,
+      currentUserId: req.userId || req.user?._id || null,
+      vendor: vendorFilter,
       type,
       category,
       subcategory,

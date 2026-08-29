@@ -3,7 +3,7 @@
  * Handles array of strings, objects ({ url, uri, path }), relative uploads (/uploads/...), and fallbacks.
  */
 
-const BACKEND_HOST = 'https://bizreels-backend.onrender.com';
+const BACKEND_HOST = 'https://api.bizreels.in';
 
 export function resolveImageUrl(urlCandidate: any): string | null {
   if (!urlCandidate) return null;

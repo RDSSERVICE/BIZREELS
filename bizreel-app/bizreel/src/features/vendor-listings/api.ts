@@ -1,10 +1,23 @@
 import { api } from '@/lib/api';
 import type { Listing } from '@/features/search/types';
 
-export async function fetchVendorListings(): Promise<Listing[]> {
-  const { data } = await api.get('/listings', { params: { my_listings: true, limit: 100 } });
+export async function fetchVendorListings(vendorId?: string): Promise<Listing[]> {
+  const params: any = { my_listings: true, limit: 100 };
+  if (vendorId) params.vendor = vendorId;
+
+  const { data } = await api.get('/listings', { params });
   const items = data.data || data.items || data.listings || data || [];
-  return Array.isArray(items) ? items : [];
+  const list = Array.isArray(items) ? items : [];
+
+  if (vendorId) {
+    return list.filter((item: any) => {
+      const itemVendorId = item.vendor?._id || item.vendor?.id || item.vendor;
+      if (!itemVendorId) return true;
+      return itemVendorId.toString() === vendorId.toString();
+    });
+  }
+
+  return list;
 }
 
 export async function createVendorListing(payload: {

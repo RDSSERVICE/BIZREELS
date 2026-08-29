@@ -37,7 +37,9 @@ const TRENDING_TAGS = ['Fashion', 'Electronics', 'LocalDeals', 'Trending', 'Offe
 export default function ReelsFeedScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ reelId?: string }>();
-  const { signOut } = useAuth();
+  const { user } = useAuth();
+
+  const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList<Reel>>(null);
 
@@ -119,7 +121,7 @@ export default function ReelsFeedScreen() {
   function handleLogout() {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: signOut },
+      { text: 'Log Out', style: 'destructive', onPress: () => signOut() },
     ]);
   }
 

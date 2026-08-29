@@ -6,7 +6,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,7 @@ import { RoleSwitcher } from '@/components/role-switcher';
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useCurrentUserProfile } from '@/features/auth/queries';
+import { api } from '@/lib/api';
 
 const YELLOW = '#F59E0B';
 const BLACK = '#0F0F12';
@@ -36,6 +37,43 @@ export default function ProfileScreen() {
   const { signOut } = useAuth();
 
   const { data: user, isLoading, isError, refetch, isRefetching } = useCurrentUserProfile();
+
+  const [vendorAnalytics, setVendorAnalytics] = useState<{
+    callsCount: number;
+    whatsappCount: number;
+    chatsCount: number;
+    inquiriesCount: number;
+    savedReelsCount: number;
+    revenue: number;
+    views: number;
+    ordersCount: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const u = user as any;
+    if (u?.activeRole === 'vendor' || u?.current_role === 'vendor' || u?.role === 'vendor') {
+      Promise.all([
+        api.get('/analytics/vendor').catch(() => ({ data: {} })),
+        api.get('/vendor/analytics/overview?range=30d').catch(() => ({ data: {} })),
+      ])
+        .then(([leadsRes, overviewRes]) => {
+          const leads = leadsRes.data?.data || leadsRes.data || {};
+          const overview = overviewRes.data?.data || overviewRes.data || {};
+
+          setVendorAnalytics({
+            callsCount: leads.callsCount || overview.phoneCalls || 0,
+            whatsappCount: leads.whatsappCount || overview.whatsappClicks || 0,
+            chatsCount: leads.chatsCount || overview.uniqueChatters || 0,
+            inquiriesCount: leads.inquiriesCount || overview.inquiriesCount || 0,
+            savedReelsCount: leads.savedReelsCount || overview.watchersCount || 0,
+            revenue: overview.revenue || 0,
+            views: overview.views || 0,
+            ordersCount: overview.ordersCount || 0,
+          });
+        })
+        .catch((err) => console.warn('Failed to load vendor analytics', err));
+    }
+  }, [user]);
 
   function handleLogout() {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
@@ -73,22 +111,6 @@ export default function ProfileScreen() {
         .join('')
     : 'U';
 
-  const [vendorAnalytics, setVendorAnalytics] = useState<{
-    callsCount: number;
-    whatsappCount: number;
-    chatsCount: number;
-    inquiriesCount: number;
-    savedReelsCount: number;
-  } | null>(null);
-
-  React.useEffect(() => {
-    if (user?.activeRole === 'vendor' || user?.current_role === 'vendor' || user?.role === 'vendor') {
-      api.get('/analytics/vendor')
-        .then(({ data }) => setVendorAnalytics(data?.data || data))
-        .catch((err) => console.warn('Failed to load vendor analytics', err));
-    }
-  }, [user]);
-
   const ratingDisplay = user.rating_count > 0 ? `${user.rating_avg.toFixed(1)} ★` : '4.9 ★';
 
   const CUSTOMER_MENU = [
@@ -99,13 +121,13 @@ export default function ProfileScreen() {
   ];
 
   const VENDOR_MENU = [
+    { label: 'Edit Vendor Business Profile', route: '/vendor/settings', icon: 'storefront-outline' },
     { label: 'Store Dashboard & Analytics', route: '/vendor/dashboard', icon: 'grid-outline' },
     { label: 'Video Reels & AI Ads', route: '/vendor/reels', icon: 'videocam-outline' },
     { label: 'Product & Service Catalog', route: '/vendor/listings', icon: 'cube-outline' },
     { label: 'Customer Orders & Requests', route: '/vendor/orders', icon: 'cart-outline' },
     { label: 'Chat & Inbox Messages', route: '/messages', icon: 'chatbubble-ellipses-outline' },
     { label: 'KYC Business Verification', route: '/vendor/verification', icon: 'shield-checkmark-outline' },
-    { label: 'Store Settings & Operations', route: '/vendor/settings', icon: 'options-outline' },
   ];
 
   const CREATOR_MENU = [
@@ -221,7 +243,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── Vendor Lead & Contact Analytics Card ── */}
-        {(user.activeRole === 'vendor' || user.current_role === 'vendor' || user.role === 'vendor') && (
+        {(((user as any).activeRole === 'vendor' || (user as any).current_role === 'vendor' || (user as any).role === 'vendor')) && (
           <View style={styles.leadAnalyticsCard}>
             <View style={styles.leadAnalyticsHeader}>
               <Ionicons name="bar-chart" size={16} color={YELLOW} />

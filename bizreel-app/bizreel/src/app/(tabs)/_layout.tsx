@@ -11,17 +11,34 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 
 import { CustomTabBar } from '@/components/custom-tab-bar';
 
-// Tab route names in order — must match file names exactly
-const TAB_ORDER = ['home', 'index', 'studio', 'search', 'profile'] as const;
-type TabName = typeof TAB_ORDER[number];
+import { useAuth } from '@/features/auth/context';
+
+const CUSTOMER_TAB_ORDER = ['home', 'index', 'post-requirement', 'search', 'profile'] as const;
+const VENDOR_TAB_ORDER = ['home', 'studio', 'profile'] as const;
 
 export default function TabLayout() {
   const router = useRouter();
   const segments = useSegments();
+  const { user } = useAuth();
+
+  const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
+  const isVendorIncomplete = isVendor && (!user?.vendorProfile || !(user as any)?.vendorProfile?.shopName);
+
+  if (isVendorIncomplete) {
+    router.replace('/vendor/onboarding');
+  }
+
+  const tabOrder = isVendor ? VENDOR_TAB_ORDER : CUSTOMER_TAB_ORDER;
 
   // Determine currently active tab index
-  const currentTab = (segments[1] as TabName) || 'index';
-  const currentIndex = TAB_ORDER.indexOf(currentTab as TabName);
+  const currentTab = (segments[1] as string) || (isVendor ? 'home' : 'index');
+
+  // Route guard: if vendor is on index (reels) or search, redirect to home
+  if (isVendor && (currentTab === 'index' || currentTab === 'search')) {
+    router.replace('/(tabs)/home');
+  }
+
+  const currentIndex = tabOrder.indexOf(currentTab as any);
 
   // Swipe left → next tab, swipe right → previous tab
   const swipeGesture = Gesture.Pan()
@@ -29,14 +46,15 @@ export default function TabLayout() {
     .minDistance(50)
     .onEnd((e) => {
       if (Math.abs(e.velocityX) < Math.abs(e.velocityY)) return; // ignore vertical swipes
+      const validIndex = currentIndex === -1 ? 0 : currentIndex;
       if (e.velocityX < -300) {
         // Swipe left → go to next tab
-        const next = TAB_ORDER[Math.min(currentIndex + 1, TAB_ORDER.length - 1)];
-        if (next !== currentTab) router.navigate(`/(tabs)/${next === 'index' ? '' : next}`);
+        const next = tabOrder[Math.min(validIndex + 1, tabOrder.length - 1)];
+        if (next !== currentTab) router.navigate(`/(tabs)/${next === 'index' ? '' : next}` as any);
       } else if (e.velocityX > 300) {
         // Swipe right → go to previous tab
-        const prev = TAB_ORDER[Math.max(currentIndex - 1, 0)];
-        if (prev !== currentTab) router.navigate(`/(tabs)/${prev === 'index' ? '' : prev}`);
+        const prev = tabOrder[Math.max(validIndex - 1, 0)];
+        if (prev !== currentTab) router.navigate(`/(tabs)/${prev === 'index' ? '' : prev}` as any);
       }
     });
 
@@ -45,7 +63,7 @@ export default function TabLayout() {
       <GestureDetector gesture={swipeGesture}>
         <View style={styles.root}>
           <Tabs
-            initialRouteName="index"
+            initialRouteName={isVendor ? 'home' : 'index'}
             tabBar={(props) => <CustomTabBar {...props} />}
             screenOptions={{ headerShown: false }}>
             <Tabs.Screen name="home" options={{ title: 'Home' }} />

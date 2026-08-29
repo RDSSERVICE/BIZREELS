@@ -1,10 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/context';
 import { createVendorListing, deleteVendorListing, fetchVendorListings } from './api';
 
 export function useVendorListings() {
+  const { user } = useAuth();
+  const vendorId = (user as any)?._id || (user as any)?.id;
+
   return useQuery({
-    queryKey: ['vendor', 'listings'],
-    queryFn: fetchVendorListings,
+    queryKey: ['vendor', 'listings', vendorId],
+    queryFn: () => fetchVendorListings(vendorId),
   });
 }
 

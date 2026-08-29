@@ -7,7 +7,7 @@ import axios from 'axios';
 
 import { tokenStore } from './storage';
 
-const DEFAULT_BACKEND_URL = 'https://bizreels-backend.onrender.com/api/v1';
+const DEFAULT_BACKEND_URL = 'https://api.bizreels.in/api/v1';
 
 export const getBaseUrl = (): string => {
   const envUrl =
@@ -78,8 +78,12 @@ api.interceptors.response.use(
     }
 
     let message = 'Network Connection Error. Please check your internet or retry.';
-    if (error?.response?.data?.message) {
-      message = error.response.data.message;
+    const data = error?.response?.data;
+    if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+      const details = data.errors.map((e: any) => e.message || e.msg || e).filter(Boolean).join(' | ');
+      message = data.message ? `${data.message}: ${details}` : details;
+    } else if (data?.message) {
+      message = data.message;
     } else if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
       message = 'Server response timeout. The backend is waking up, please try again.';
     } else if (error?.message) {
@@ -88,4 +92,6 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message));
   }
 );
+
+export { resolveImageUrl } from '../utils/image';
 
