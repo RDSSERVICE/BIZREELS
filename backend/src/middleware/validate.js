@@ -13,7 +13,8 @@ const validate = (req, res, next) => {
       message: err.msg,
     }));
 
-    throw ApiError.badRequest('Validation failed.', extractedErrors);
+    const detailMsg = extractedErrors.map((e) => e.message).join(' | ');
+    throw ApiError.badRequest(`Validation failed: ${detailMsg}`, extractedErrors);
   }
   next();
 };

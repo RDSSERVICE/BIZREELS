@@ -1,4 +1,9 @@
-const { Resend } = require('resend');
+let Resend = null;
+try {
+  Resend = require('resend').Resend;
+} catch (err) {
+  // Resend module optional
+}
 const config = require('../config');
 const logger = require('../utils/logger');
 
@@ -7,7 +12,7 @@ class EmailService {
 
   _getClient() {
     const apiKey = process.env.RESEND_API_KEY || config.resend?.apiKey;
-    if (apiKey && apiKey.startsWith('re_')) {
+    if (Resend && apiKey && apiKey.startsWith('re_')) {
       return new Resend(apiKey);
     }
     return null;

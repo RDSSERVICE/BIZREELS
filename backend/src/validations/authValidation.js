@@ -18,7 +18,7 @@ const authValidation = {
     body('password')
       .notEmpty().withMessage('Password is required.')
       .isLength({ min: 8 }).withMessage('Password must be at least 8 characters.')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]/)
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).+$/)
       .withMessage('Password must contain uppercase, lowercase, number, and special character.'),
     body('interests')
       .optional()
@@ -58,7 +58,7 @@ const authValidation = {
       .optional()
       .trim()
       .toLowerCase()
-      .isIn(['login', 'register', 'phone_verification', 'verify-phone', 'password_reset', 'forgot-password', 'change_phone', 'sensitive_action'])
+      .isIn(['login', 'register', 'signup', 'phone_verification', 'verify-phone', 'password_reset', 'forgot-password', 'change_phone', 'sensitive_action', 'auth'])
       .withMessage('Invalid OTP purpose.'),
   ],
 

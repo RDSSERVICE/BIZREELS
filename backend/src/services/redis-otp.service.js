@@ -4,14 +4,24 @@ const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 const { normalizeIndianPhone, hashOtp, secureCompareOtp } = require('../utils/otp.utils');
 
-const getOtpKey = (phone, purpose = 'login') => {
-  const clean = normalizeIndianPhone(phone);
-  return `otp:phone:${clean}:${purpose}`;
+const formatIdentifierKey = (rawIdentifier) => {
+  if (!rawIdentifier) throw ApiError.badRequest('Phone number or email is required.');
+  const str = String(rawIdentifier).trim();
+  if (str.includes('@')) {
+    return `email:${str.toLowerCase()}`;
+  }
+  const clean = normalizeIndianPhone(str);
+  return `phone:${clean}`;
 };
 
-const getCooldownKey = (phone, purpose = 'login') => {
-  const clean = normalizeIndianPhone(phone);
-  return `otp:cooldown:${clean}:${purpose}`;
+const getOtpKey = (identifier, purpose = 'login') => {
+  const formatted = formatIdentifierKey(identifier);
+  return `otp:${formatted}:${purpose}`;
+};
+
+const getCooldownKey = (identifier, purpose = 'login') => {
+  const formatted = formatIdentifierKey(identifier);
+  return `otp:cooldown:${formatted}:${purpose}`;
 };
 
 class RedisOtpService {

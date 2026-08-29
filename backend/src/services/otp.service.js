@@ -7,73 +7,88 @@ const whatsappService = require('./whatsapp.service');
 const emailService = require('./email.service');
 const { generateOtp, normalizeIndianPhone } = require('../utils/otp.utils');
 
-const VALID_CHANNELS = ['sms', 'whatsapp'];
+const VALID_CHANNELS = ['sms', 'whatsapp', 'email'];
 const VALID_PURPOSES = [
   'login',
   'register',
+  'signup',
   'phone_verification',
   'verify-phone',
   'password_reset',
   'forgot-password',
   'change_phone',
   'sensitive_action',
+  'auth',
 ];
 
 class OtpService {
   /**
-   * Send OTP via specified channel (SMS or WhatsApp) for a specific purpose.
+   * Send OTP via specified channel (SMS, WhatsApp, or Email) for a specific purpose.
    */
-  async sendOtp({ phone, channel = 'sms', purpose = 'login' }) {
-    const cleanChannel = (channel || 'sms').toLowerCase();
+  async sendOtp({ phone, email, identifier, channel = 'sms', purpose = 'login' }) {
+    const rawTarget = phone || email || identifier;
+    if (!rawTarget) {
+      throw ApiError.badRequest('Phone number or email is required.');
+    }
+
+    const isEmail = String(rawTarget).includes('@');
+    const cleanChannel = isEmail ? 'email' : (channel || 'sms').toLowerCase();
+
     if (!VALID_CHANNELS.includes(cleanChannel)) {
-      throw ApiError.badRequest(`Unsupported OTP delivery channel "${channel}". Supported channels: sms, whatsapp.`);
+      throw ApiError.badRequest(`Unsupported OTP delivery channel "${channel}". Supported channels: sms, whatsapp, email.`);
     }
 
     const normalizedPurpose = (purpose || 'login').toLowerCase();
-    const formattedPhone = normalizeIndianPhone(phone);
+    const formattedIdentifier = isEmail
+      ? String(rawTarget).trim().toLowerCase()
+      : normalizeIndianPhone(rawTarget);
 
     // 1. Check 60s cooldown
-    await redisOtpService.checkCooldown(formattedPhone, normalizedPurpose);
+    await redisOtpService.checkCooldown(formattedIdentifier, normalizedPurpose);
 
-    // 2. Invalidate any existing OTP for this phone + purpose
-    await redisOtpService.deleteOtp(formattedPhone, normalizedPurpose).catch(() => {});
+    // 2. Invalidate any existing OTP for this identifier + purpose
+    await redisOtpService.deleteOtp(formattedIdentifier, normalizedPurpose).catch(() => {});
 
     // 3. Cryptographically generate 6-digit numeric OTP
     const otp = generateOtp();
 
     // 4. Save hashed OTP to Redis with 10-minute TTL
-    await redisOtpService.saveOtp(formattedPhone, otp, cleanChannel, normalizedPurpose);
+    await redisOtpService.saveOtp(formattedIdentifier, otp, cleanChannel, normalizedPurpose);
 
     // 5. Enforce 60-second resend cooldown
-    await redisOtpService.setCooldown(formattedPhone, normalizedPurpose, config.otp.cooldownSeconds || 60);
+    await redisOtpService.setCooldown(formattedIdentifier, normalizedPurpose, config.otp.cooldownSeconds || 60);
 
     // 6. Dispatch through the chosen provider
     let dispatchResult;
     try {
       if (cleanChannel === 'sms') {
-        dispatchResult = await smsService.sendOtpSms(formattedPhone, otp);
+        dispatchResult = await smsService.sendOtpSms(formattedIdentifier, otp);
       } else if (cleanChannel === 'whatsapp') {
-        dispatchResult = await whatsappService.sendOtpWhatsApp(formattedPhone, otp);
+        dispatchResult = await whatsappService.sendOtpWhatsApp(formattedIdentifier, otp);
+      } else if (cleanChannel === 'email') {
+        dispatchResult = await emailService.sendOtpEmail({ to: formattedIdentifier, otp, purpose: normalizedPurpose });
       }
     } catch (deliveryError) {
-      logger.error(`Failed to deliver OTP via ${cleanChannel} to ${formattedPhone}: ${deliveryError.message}`, {
+      logger.error(`Failed to deliver OTP via ${cleanChannel} to ${formattedIdentifier}: ${deliveryError.message}`, {
         service: 'otp',
         channel: cleanChannel,
         error: deliveryError.message,
       });
 
       // Clear the OTP key so user is not stuck on a failed dispatch
-      await redisOtpService.deleteOtp(formattedPhone, normalizedPurpose).catch(() => {});
+      await redisOtpService.deleteOtp(formattedIdentifier, normalizedPurpose).catch(() => {});
 
       throw ApiError.internal(`Failed to send verification code via ${cleanChannel.toUpperCase()}. Please try again or use another channel.`);
     }
 
     const response = {
       success: true,
-      message: `Verification code sent to ${formattedPhone} via ${cleanChannel.toUpperCase()}.`,
+      message: `Verification code sent to ${formattedIdentifier} via ${cleanChannel.toUpperCase()}.`,
       channel: cleanChannel,
       purpose: normalizedPurpose,
-      phone: formattedPhone,
+      target: formattedIdentifier,
+      phone: isEmail ? undefined : formattedIdentifier,
+      email: isEmail ? formattedIdentifier : undefined,
       expiresInMinutes: config.otp.expiryMinutes || 10,
       cooldownSeconds: config.otp.cooldownSeconds || 60,
     };
@@ -81,7 +96,8 @@ class OtpService {
     // Include OTP in dev/mock environment for ease of testing
     const isMock = config.env === 'development' ||
       (cleanChannel === 'sms' && (config.sms?.provider || 'mock') === 'mock') ||
-      (cleanChannel === 'whatsapp' && (config.whatsapp?.provider || 'mock') === 'mock');
+      (cleanChannel === 'whatsapp' && (config.whatsapp?.provider || 'mock') === 'mock') ||
+      cleanChannel === 'email';
 
     if (isMock) {
       response.otp = otp;
@@ -97,24 +113,32 @@ class OtpService {
   /**
    * Resend OTP with cooldown enforcement
    */
-  async resendOtp({ phone, channel = 'sms', purpose = 'login' }) {
-    return this.sendOtp({ phone, channel, purpose });
+  async resendOtp(params) {
+    return this.sendOtp(params);
   }
 
   /**
    * Verify candidate OTP against stored hash
    */
-  async verifyOtp({ phone, otp, channel = null, purpose = 'login' }) {
+  async verifyOtp({ phone, email, identifier, otp, channel = null, purpose = 'login' }) {
     if (!otp) {
       throw ApiError.badRequest('OTP code is required.');
     }
 
-    const formattedPhone = normalizeIndianPhone(phone);
+    const rawTarget = phone || email || identifier;
+    if (!rawTarget) {
+      throw ApiError.badRequest('Phone number or email is required to verify OTP.');
+    }
+
+    const isEmail = String(rawTarget).includes('@');
+    const formattedIdentifier = isEmail
+      ? String(rawTarget).trim().toLowerCase()
+      : normalizeIndianPhone(rawTarget);
     const normalizedPurpose = (purpose || 'login').toLowerCase();
     const cleanChannel = channel ? channel.toLowerCase() : null;
 
     const verification = await redisOtpService.verifyOtp(
-      formattedPhone,
+      formattedIdentifier,
       otp,
       cleanChannel,
       normalizedPurpose
@@ -122,7 +146,9 @@ class OtpService {
 
     return {
       success: true,
-      phone: formattedPhone,
+      target: formattedIdentifier,
+      phone: isEmail ? undefined : formattedIdentifier,
+      email: isEmail ? formattedIdentifier : undefined,
       channel: verification.channel,
       purpose: verification.purpose,
       verifiedAt: verification.verifiedAt,
