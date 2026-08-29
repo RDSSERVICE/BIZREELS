@@ -12,9 +12,6 @@ class SmsService {
     const formattedPhone = normalizeIndianPhone(phone);
     const provider = (config.sms?.provider || process.env.SMS_PROVIDER || 'mock').toLowerCase();
 
-    if (provider === 'fast2sms') {
-      return this._sendViaFast2SMS(formattedPhone, otp);
-    }
     if (provider === 'twilio') {
       return this._sendViaTwilio(formattedPhone, otp);
     }
@@ -137,43 +134,6 @@ class SmsService {
         return { success: true, provider: 'mock_fallback', phone: targetMobile, otp };
       }
 
-      throw err;
-    }
-  }
-
-  /**
-   * Send OTP via Fast2SMS (Indian SMS Gateway)
-   */
-  async _sendViaFast2SMS(phone, otp) {
-    const apiKey = process.env.FAST2SMS_API_KEY || config.sms?.fast2smsApiKey;
-    const cleanPhone = phone.replace(/^\+91/, '').replace(/\D/g, '');
-
-    if (!apiKey) {
-      logger.warn(`[FAST2SMS CONFIG REQUIRED] FAST2SMS_API_KEY missing in backend/.env. Mocking OTP for ${cleanPhone}: ${otp}`);
-      return { success: true, provider: 'mock_fallback', phone: cleanPhone, otp };
-    }
-
-    try {
-      const axios = require('axios');
-      const response = await axios.get('https://www.fast2sms.com/dev/bulkV2', {
-        params: {
-          authorization: apiKey,
-          variables_values: otp,
-          route: 'otp',
-          numbers: cleanPhone,
-        },
-        headers: {
-          'cache-control': 'no-cache',
-        },
-      });
-
-      logger.info(`[FAST2SMS DISPATCH] Sent OTP to ${cleanPhone}:`, response.data);
-      return { success: true, provider: 'fast2sms', data: response.data };
-    } catch (err) {
-      logger.error('Fast2SMS delivery error:', err.message);
-      if (config.env !== 'production' || process.env.OTP_DEV_MODE === 'true') {
-        return { success: true, provider: 'mock_fallback', phone: cleanPhone, otp };
-      }
       throw err;
     }
   }
