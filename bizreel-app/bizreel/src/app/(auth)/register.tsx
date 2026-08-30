@@ -463,7 +463,7 @@ export default function RegisterScreen() {
                   )}
                 />
                 {errors.confirmPassword?.message && (
-                  <Text style={s.errorText}>{errors.confirmPassword.message}</Text>
+                  <Text style={s.fieldError}>{errors.confirmPassword.message}</Text>
                 )}
               </View>
 

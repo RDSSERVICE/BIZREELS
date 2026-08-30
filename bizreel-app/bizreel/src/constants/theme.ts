@@ -111,16 +111,21 @@ export const FontWeight = {
 // Spacing scale (4px grid)
 // ---------------------------------------------------------------------------
 export const Spacing = {
+  half: 2,
   one: 4,
   two: 8,
   three: 12,
   four: 16,
   five: 20,
   six: 24,
+  seven: 28,
   eight: 32,
   ten: 40,
   twelve: 48,
 } as const;
+
+export const MaxContentWidth = 1200;
+export const BottomTabInset = 80;
 
 // ---------------------------------------------------------------------------
 // Border radius

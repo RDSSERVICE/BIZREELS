@@ -979,6 +979,8 @@ export default function SearchScreen() {
 }
 
 const YELLOW = '#C8860A';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
 const BG_WARM = '#FAF6F1';
 const WHITE_CARD = '#FFFFFF';
 const BORDER = '#E3DCCB';
