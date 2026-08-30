@@ -270,6 +270,24 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
     }
   }
 
+  function handleOpenVendorProfile() {
+    const vendorId =
+      (reel as any).vendor_id ||
+      (reel as any).vendorId ||
+      (reel as any).vendor?._id ||
+      (reel as any).vendor?.id ||
+      (typeof reel.creator === 'object' ? (reel.creator as any)?._id || (reel.creator as any)?.id : reel.creator);
+
+    if (vendorId) {
+      router.push({
+        pathname: '/vendor/[id]',
+        params: { id: vendorId.toString() },
+      } as any);
+    } else {
+      Alert.alert('Vendor Profile', 'Vendor details not available for this reel.');
+    }
+  }
+
   const bottomMargin = Math.max(insets.bottom, 12) + 70;
 
   const displayPrice =
@@ -377,27 +395,32 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
           </View>
         )}
 
-        {/* Creator Info Row */}
+        {/* Creator / Vendor Info Row (Clickable to open Vendor Profile) */}
         <View style={styles.creatorRow}>
-          <View style={styles.avatarContainer}>
-            {reel.creatorAvatar ? (
-              <Image source={{ uri: reel.creatorAvatar }} style={styles.avatarImage} contentFit="cover" />
-            ) : (
-              <Text style={styles.avatarFallback}>
-                {reel.creatorName?.charAt(0)?.toUpperCase() ?? '?'}
-              </Text>
-            )}
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.creatorName} numberOfLines={1}>
-                {reel.creatorName}
-              </Text>
-              <Ionicons name="checkmark-circle" size={14} color={BrandColors.primaryLight} />
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}
+            onPress={handleOpenVendorProfile}
+            activeOpacity={0.8}>
+            <View style={styles.avatarContainer}>
+              {reel.creatorAvatar ? (
+                <Image source={{ uri: reel.creatorAvatar }} style={styles.avatarImage} contentFit="cover" />
+              ) : (
+                <Text style={styles.avatarFallback}>
+                  {reel.creatorName?.charAt(0)?.toUpperCase() ?? '?'}
+                </Text>
+              )}
             </View>
-            <Text style={styles.creatorRole}>{reel.creatorRole || 'Creator'}</Text>
-          </View>
+
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.creatorName} numberOfLines={1}>
+                  {reel.creatorName}
+                </Text>
+                <Ionicons name="checkmark-circle" size={14} color={BrandColors.primaryLight} />
+              </View>
+              <Text style={styles.creatorRole}>{reel.creatorRole || 'Store Vendor'}</Text>
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.followBtn, isFollowing && styles.followBtnActive]}
