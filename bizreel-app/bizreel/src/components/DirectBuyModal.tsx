@@ -131,9 +131,9 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
 
     setSubmitting(true);
     try {
-      if (listingId) {
+      if (listingIdStr) {
         await createOrder({
-          listingId: String(listingId),
+          listingId: listingIdStr,
           quantity,
           address: address.trim(),
           paymentMethod: paymentMethod === 'wallet' ? 'wallet' : 'cod',
