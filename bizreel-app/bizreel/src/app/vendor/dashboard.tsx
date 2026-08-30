@@ -154,7 +154,7 @@ export default function VendorDashboardScreen() {
             {(user as any)?.vendorProfile?.businessName || user?.name || 'Store Operations'} • Edit Profile ›
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.replace('/(tabs)/home')}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
       </View>

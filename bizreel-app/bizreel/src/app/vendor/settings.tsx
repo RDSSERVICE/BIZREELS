@@ -344,7 +344,7 @@ export default function VendorSettingsScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Top Header Bar */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.replace('/(tabs)/home')}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Vendor Business Profile</Text>

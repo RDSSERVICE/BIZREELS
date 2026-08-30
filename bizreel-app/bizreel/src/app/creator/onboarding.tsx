@@ -234,7 +234,7 @@ export default function CreatorOnboardingScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.headerBar}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => (currentStep > 1 ? setCurrentStep((s) => s - 1) : router.back())}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => (currentStep > 1 ? setCurrentStep((s) => s - 1) : router.replace('/(tabs)/home'))}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
