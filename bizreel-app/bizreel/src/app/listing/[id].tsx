@@ -163,8 +163,7 @@ export default function ListingDetailsScreen() {
           ]);
         },
         onError: (err: any) => {
-          Alert.alert('Cart Notice', err.message || 'Item added to cart session.');
-          router.push('/cart');
+          Alert.alert('Cart Notice', err.message || 'Unable to update online cart.');
         },
       }
     );
