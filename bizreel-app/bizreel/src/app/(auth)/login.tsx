@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   ActivityIndicator,
@@ -43,6 +43,42 @@ export default function LoginScreen() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [countdown, setCountdown] = useState(0);
+
+  // 6-digit OTP Box state
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const otpInputRefs = useRef<Array<TextInput | null>>([]);
+
+  const handleOtpBoxChange = (text: string, index: number) => {
+    setServerError(null);
+    if (text.length > 1) {
+      const pasted = text.replace(/[^0-9]/g, '').slice(0, 6).split('');
+      const newDigits = ['', '', '', '', '', ''];
+      pasted.forEach((char, i) => {
+        newDigits[i] = char;
+      });
+      setOtpDigits(newDigits);
+      setOtpCode(newDigits.join(''));
+      const nextIdx = Math.min(pasted.length - 1, 5);
+      otpInputRefs.current[nextIdx]?.focus();
+      return;
+    }
+
+    const digit = text.replace(/[^0-9]/g, '');
+    const newDigits = [...otpDigits];
+    newDigits[index] = digit;
+    setOtpDigits(newDigits);
+    setOtpCode(newDigits.join(''));
+
+    if (digit && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
 
   const { mutate: login, isPending: isEmailLoginPending } = useLogin();
   const { mutate: triggerSendOtp, isPending: isSendOtpPending } = useSendOtp();
@@ -115,6 +151,11 @@ export default function LoginScreen() {
         onSuccess: (data) => {
           setOtpSent(true);
           setCountdown(60);
+          setOtpDigits(['', '', '', '', '', '']);
+          setOtpCode('');
+          setTimeout(() => {
+            otpInputRefs.current[0]?.focus();
+          }, 300);
           Alert.alert(
             'OTP Dispatched',
             data.message || `A 6-digit verification code has been sent to ${targetVal}.`
@@ -127,10 +168,11 @@ export default function LoginScreen() {
     );
   }
 
-  function handleVerifyOtp() {
+  function handleVerifyOtp(codeOverride?: string) {
     setServerError(null);
-    if (!otpCode || otpCode.length < 6) {
-      setServerError('Please enter the 6-digit OTP code.');
+    const code = codeOverride || otpDigits.join('') || otpCode;
+    if (!code || code.length < 6) {
+      setServerError('Please enter the complete 6-digit OTP code.');
       return;
     }
 
@@ -145,7 +187,7 @@ export default function LoginScreen() {
         phone: phoneVal,
         email: emailVal,
         identifier: targetVal,
-        otp: otpCode.trim(),
+        otp: code.trim(),
         purpose: 'login',
       } as any,
       {
@@ -348,51 +390,41 @@ export default function LoginScreen() {
           {/* ── MODE 2: MOBILE PHONE OTP ── */}
           {authMode === 'phone' && (
             <>
-              {/* Email or Phone Input */}
-              <View style={s.fieldGroup}>
-                <Text style={s.label}>Email Address or Mobile Number</Text>
-                <View style={s.inputRow}>
-                  <Ionicons name="person-circle-outline" size={18} color={YELLOW} style={s.inputIcon} />
-                  <TextInput
-                    style={s.input}
-                    placeholder="Enter email or 10-digit mobile number"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    value={identifier}
-                    onChangeText={(v) => {
-                      setIdentifier(v);
-                      setServerError(null);
-                    }}
-                  />
-                </View>
-              </View>
-
-
-
-              {/* OTP Sent Section */}
               {otpSent ? (
                 <View style={s.fieldGroup}>
-                  <Text style={s.label}>Enter 6-Digit OTP Code</Text>
-                  <View style={s.inputRow}>
-                    <Ionicons name="key-outline" size={18} color={YELLOW} style={s.inputIcon} />
-                    <TextInput
-                      style={s.input}
-                      placeholder="e.g. 123456"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
-                      keyboardType="number-pad"
-                      maxLength={6}
-                      value={otpCode}
-                      onChangeText={(v) => {
-                        setOtpCode(v);
-                        setServerError(null);
-                      }}
-                    />
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={s.label}>ENTER 6-DIGIT VERIFICATION CODE</Text>
+                    <TouchableOpacity onPress={() => { setOtpSent(false); setOtpDigits(['', '', '', '', '', '']); setOtpCode(''); }}>
+                      <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '800' }}>Edit Number ›</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 12 }}>
+                    Code sent to {identifier}
+                  </Text>
+
+                  {/* 6 Digit Boxes Row */}
+                  <View style={s.otpBoxRow}>
+                    {otpDigits.map((digit, index) => (
+                      <TextInput
+                        key={index}
+                        ref={(ref) => {
+                          otpInputRefs.current[index] = ref;
+                        }}
+                        style={[s.otpBox, digit ? s.otpBoxFilled : null]}
+                        keyboardType="number-pad"
+                        maxLength={1}
+                        value={digit}
+                        onChangeText={(text) => handleOtpBoxChange(text, index)}
+                        onKeyPress={(e) => handleOtpKeyPress(e, index)}
+                        selectTextOnFocus
+                      />
+                    ))}
                   </View>
 
                   <TouchableOpacity
-                    style={[s.primaryButton, isVerifyOtpPending && s.primaryButtonDisabled, { marginTop: 12 }]}
-                    onPress={handleVerifyOtp}
+                    style={[s.primaryButton, isVerifyOtpPending && s.primaryButtonDisabled, { marginTop: 16 }]}
+                    onPress={() => handleVerifyOtp()}
                     disabled={isVerifyOtpPending}>
                     {isVerifyOtpPending ? (
                       <ActivityIndicator color={BLACK} />
@@ -407,26 +439,48 @@ export default function LoginScreen() {
                   <TouchableOpacity
                     disabled={countdown > 0 || isSendOtpPending}
                     onPress={handleSendOtp}
-                    style={{ marginTop: 10, alignItems: 'center' }}>
+                    style={{ marginTop: 12, alignItems: 'center' }}>
                     <Text style={{ color: countdown > 0 ? 'rgba(255,255,255,0.4)' : YELLOW, fontSize: FontSize.xs, fontWeight: '700' }}>
-                      {countdown > 0 ? `Resend OTP in ${countdown}s` : 'Didn\'t receive OTP? Resend Now'}
+                      {countdown > 0 ? `Resend OTP in ${countdown}s` : "Didn't receive OTP? Resend Now"}
                     </Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={[s.primaryButton, isSendOtpPending && s.primaryButtonDisabled]}
-                  onPress={handleSendOtp}
-                  disabled={isSendOtpPending}>
-                  {isSendOtpPending ? (
-                    <ActivityIndicator color={BLACK} />
-                  ) : (
-                    <>
-                      <Text style={s.primaryButtonText}>SEND OTP CODE</Text>
-                      <Ionicons name="send" size={16} color={BLACK} />
-                    </>
-                  )}
-                </TouchableOpacity>
+                <>
+                  {/* Email or Phone Input */}
+                  <View style={s.fieldGroup}>
+                    <Text style={s.label}>Email Address or Mobile Number</Text>
+                    <View style={s.inputRow}>
+                      <Ionicons name="person-circle-outline" size={18} color={YELLOW} style={s.inputIcon} />
+                      <TextInput
+                        style={s.input}
+                        placeholder="Enter email or 10-digit mobile number"
+                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        value={identifier}
+                        onChangeText={(v) => {
+                          setIdentifier(v);
+                          setServerError(null);
+                        }}
+                      />
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[s.primaryButton, isSendOtpPending && s.primaryButtonDisabled]}
+                    onPress={handleSendOtp}
+                    disabled={isSendOtpPending}>
+                    {isSendOtpPending ? (
+                      <ActivityIndicator color={BLACK} />
+                    ) : (
+                      <>
+                        <Text style={s.primaryButtonText}>SEND OTP CODE</Text>
+                        <Ionicons name="send" size={16} color={BLACK} />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </>
               )}
             </>
           )}
@@ -639,6 +693,27 @@ function makeStyles(_theme: any) {
       fontWeight: '600',
     },
     eyeButton: { padding: Spacing.one },
+    otpBoxRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 8,
+      marginVertical: 8,
+    },
+    otpBox: {
+      flex: 1,
+      height: 52,
+      backgroundColor: BLACK,
+      borderWidth: 1.5,
+      borderColor: BORDER,
+      textAlign: 'center',
+      fontSize: 20,
+      fontWeight: '900',
+      color: '#fff',
+    },
+    otpBoxFilled: {
+      borderColor: YELLOW,
+      backgroundColor: DARK_CARD,
+    },
     fieldError: {
       fontSize: FontSize.xs,
       color: '#EF4444',
