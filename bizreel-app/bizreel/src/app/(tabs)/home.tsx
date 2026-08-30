@@ -178,33 +178,35 @@ export default function HomeScreen() {
             colors={[BrandColors.primary]}
           />
         }>
-        {/* Search Bar */}
-        <TouchableOpacity
-          style={styles.searchBar}
-          activeOpacity={0.9}
-          onPress={() => router.push('/(tabs)/search' as any)}>
-          <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search 10,000+ Products, Services & Sellers..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            value={searchQuery}
-            onChangeText={(t) => {
-              setSearchQuery(t);
-            }}
-            onSubmitEditing={() => {
-              if (searchQuery.trim()) {
-                router.push(`/(tabs)/search?q=${encodeURIComponent(searchQuery.trim())}` as any);
-              }
-            }}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
-            </TouchableOpacity>
-          )}
-        </TouchableOpacity>
+        {/* Search Bar (Customer & Vendor mode only) */}
+        {!isCreator && (
+          <TouchableOpacity
+            style={styles.searchBar}
+            activeOpacity={0.9}
+            onPress={() => router.push('/(tabs)/search' as any)}>
+            <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search 10,000+ Products, Services & Sellers..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={searchQuery}
+              onChangeText={(t) => {
+                setSearchQuery(t);
+              }}
+              onSubmitEditing={() => {
+                if (searchQuery.trim()) {
+                  router.push(`/(tabs)/search?q=${encodeURIComponent(searchQuery.trim())}` as any);
+                }
+              }}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+        )}
 
 
 
