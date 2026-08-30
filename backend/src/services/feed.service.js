@@ -252,6 +252,47 @@ const buildFeed = async ({
     }
   }
 
+  // Populate tagged listing & prices for reels
+  const reelTargetListingIds = resultItems
+    .filter(r => r.postType === 'reel' && (r.targetListing || r.taggedListing))
+    .map(r => (r.targetListing?._id || r.targetListing || r.taggedListing?._id || r.taggedListing).toString())
+    .filter(id => mongoose.Types.ObjectId.isValid(id));
+
+  let targetListingMap = {};
+  if (reelTargetListingIds.length > 0) {
+    try {
+      const listings = await Listing.find({ _id: { $in: reelTargetListingIds } }).lean();
+      listings.forEach(l => {
+        targetListingMap[l._id.toString()] = l;
+      });
+    } catch (err) { }
+  }
+
+  for (const r of resultItems) {
+    if (r.postType === 'reel') {
+      const targetId = (r.targetListing?._id || r.targetListing || r.taggedListing?._id || r.taggedListing || '').toString();
+      const lObj = targetListingMap[targetId] || (typeof r.targetListing === 'object' ? r.targetListing : null);
+
+      const priceCandidates = [
+        r.price,
+        r.salePrice,
+        r.sellingPrice,
+        r.offer_price,
+        lObj?.price,
+        lObj?.salePrice,
+        lObj?.sellingPrice,
+        lObj?.offer_price,
+      ];
+      const validPrice = priceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
+      const finalPrice = validPrice || 299;
+
+      r.taggedListing = lObj || r.taggedListing || null;
+      r.price = finalPrice;
+      r.salePrice = finalPrice;
+      r.sellingPrice = finalPrice;
+    }
+  }
+
   // Populate viewer interactions
   if (finalUserId && resultItems.length > 0) {
     const interactionService = require('./interaction.service');
