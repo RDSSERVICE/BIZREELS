@@ -588,6 +588,34 @@ export default function SearchScreen() {
           const vendorName = item.vendor?.name || 'Verified Supplier';
           const cityText = item.city || item.location?.city || 'Local';
 
+          // Distance calculation
+          let distText = '';
+          if (item.distance !== undefined && item.distance !== null) {
+            distText = `${Number(item.distance).toFixed(1)} km away`;
+          } else if (item.dist !== undefined && item.dist !== null) {
+            distText = `${Number(item.dist).toFixed(1)} km away`;
+          } else if (userLocation && (item.location?.coordinates || item.vendor?.location?.coordinates)) {
+            const coords = item.location?.coordinates || item.vendor?.location?.coordinates;
+            if (Array.isArray(coords) && coords.length === 2) {
+              const lat2 = coords[1];
+              const lon2 = coords[0];
+              const R = 6371;
+              const dLat = ((lat2 - userLocation.lat) * Math.PI) / 180;
+              const dLon = ((lon2 - userLocation.lng) * Math.PI) / 180;
+              const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos((userLocation.lat * Math.PI) / 180) *
+                  Math.cos((lat2 * Math.PI) / 180) *
+                  Math.sin(dLon / 2) *
+                  Math.sin(dLon / 2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+              const dist = R * c;
+              if (dist !== null && !isNaN(dist)) {
+                distText = `${dist.toFixed(1)} km away`;
+              }
+            }
+          }
+
           return (
             <TouchableOpacity
               style={styles.resultCard}
@@ -613,6 +641,12 @@ export default function SearchScreen() {
                     <Ionicons name="location" size={10} color={YELLOW} />
                     <Text style={styles.cityBadgeText}>{cityText}</Text>
                   </View>
+                  {!!distText && (
+                    <View style={styles.distBadge}>
+                      <Ionicons name="navigate" size={9} color={BLACK} />
+                      <Text style={styles.distBadgeText}>{distText}</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.resultPriceRow}>
@@ -1094,6 +1128,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(245,158,11,0.3)',
   },
   cityBadgeText: { color: YELLOW, fontSize: 10, fontWeight: '900' },
+  distBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: YELLOW,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 4,
+  },
+  distBadgeText: { color: BLACK, fontSize: 9, fontWeight: '900' },
   resultPriceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   resultPrice: { color: YELLOW, fontSize: FontSize.base, fontWeight: '900' },
   addCartSmallBtn: {
