@@ -63,6 +63,7 @@ const userSchema = new mongoose.Schema({
   // Profiles
   customerProfile: {
     savedListings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }],
+    savedReels: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Reel' }],
     interests: [{
       category: { type: String },
       subcategory: { type: String, default: null }

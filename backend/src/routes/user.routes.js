@@ -669,9 +669,13 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
   } 
   else if (type === 'saved-reels') {
     const inters = await Interaction.find({ user_id: uid, type: 'save_reel', reel_id: { $ne: null } }).select('reel_id');
-    const reelIds = inters.map(i => i.reel_id);
+    const interReelIds = inters.map(i => i.reel_id);
 
-    const query = { _id: { $in: reelIds }, isDeleted: { $ne: true } };
+    const userDoc = await User.findById(uid).select('customerProfile.savedReels').lean();
+    const userProfileReelIds = (userDoc?.customerProfile?.savedReels || []).map(id => id.toString());
+    const combinedReelIds = [...new Set([...interReelIds, ...userProfileReelIds].filter(Boolean))];
+
+    const query = { _id: { $in: combinedReelIds }, isDeleted: { $ne: true } };
     if (search) {
       query.caption = { $regex: new RegExp(search, 'i') };
     }
@@ -680,6 +684,7 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
       Reel.countDocuments(query),
       Reel.find(query)
         .populate('creator', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+        .populate('targetListing')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
