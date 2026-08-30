@@ -164,6 +164,8 @@ export default function SearchScreen() {
   // Modal Visibility
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [postReqModalVisible, setPostReqModalVisible] = useState(false);
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
 
   // GPS Location State
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -420,6 +422,20 @@ export default function SearchScreen() {
       {/* Web-Style Quick Filter Bar (Distance, Price Range, Type, Sort) */}
       <View style={styles.webFilterBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.webFilterScroll}>
+          {/* Category Dropdown Filter Pill */}
+          <TouchableOpacity
+            style={[styles.webFilterPill, selectedCategory !== null && styles.webFilterPillActive]}
+            onPress={() => {
+              setCategorySearchQuery('');
+              setCategoryModalVisible(true);
+            }}>
+            <Ionicons name="grid" size={12} color={selectedCategory !== null ? BLACK : YELLOW} />
+            <Text style={[styles.webFilterPillText, selectedCategory !== null && styles.webFilterPillTextActive]}>
+              Category: {selectedCategory ? selectedCategory.name : 'All'}
+            </Text>
+            <Ionicons name="chevron-down" size={12} color={selectedCategory !== null ? BLACK : 'rgba(255,255,255,0.6)'} />
+          </TouchableOpacity>
+
           {/* Distance Filter Quick Pill */}
           <TouchableOpacity
             style={[styles.webFilterPill, selectedRadius !== 10 && styles.webFilterPillActive]}
@@ -603,27 +619,34 @@ export default function SearchScreen() {
             </View>
           </View>
 
-          {/* Browse Categories Grid */}
+          {/* Category Dropdown Selection Box */}
           <View style={styles.section}>
-            <Text style={styles.sectionHeaderTitle}>EXPLORE BY CATEGORY</Text>
-            {catsLoading ? (
-              <ActivityIndicator color={YELLOW} style={{ marginVertical: 20 }} />
-            ) : (
-              <View style={styles.categoryGrid}>
-                {parentCategories.map((cat: any) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={styles.categoryGridCard}
-                    onPress={() => setSelectedCategory(cat)}>
-                    <View style={styles.categoryIconCircle}>
-                      {renderCategoryIcon(cat.name, cat.icon_url)}
-                    </View>
-                    <Text style={styles.categoryGridTitle} numberOfLines={2}>
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            <Text style={styles.sectionHeaderTitle}>SELECT CATEGORY DROPDOWN</Text>
+            <TouchableOpacity
+              style={styles.categoryDropdownCard}
+              onPress={() => {
+                setCategorySearchQuery('');
+                setCategoryModalVisible(true);
+              }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                <View style={styles.categoryDropdownIconCircle}>
+                  <Ionicons name="grid" size={20} color={YELLOW} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.categoryDropdownLabel}>Category Filter</Text>
+                  <Text style={styles.categoryDropdownValue} numberOfLines={1}>
+                    {selectedCategory ? selectedCategory.name : 'All Categories (Browse All System Items)'}
+                  </Text>
+                </View>
               </View>
+              <Ionicons name="chevron-down" size={20} color={YELLOW} />
+            </TouchableOpacity>
+
+            {selectedCategory && (
+              <TouchableOpacity style={styles.clearCategoryBtn} onPress={() => setSelectedCategory(null)}>
+                <Ionicons name="close-circle" size={16} color="#EF4444" />
+                <Text style={styles.clearCategoryText}>Clear Category Filter ({selectedCategory.name})</Text>
+              </TouchableOpacity>
             )}
           </View>
         </ScrollView>
@@ -848,6 +871,90 @@ export default function SearchScreen() {
                 <Text style={styles.applyModalBtnText}>APPLY FILTERS</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* CATEGORY SELECTION DROPDOWN MODAL */}
+      <Modal
+        visible={categoryModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCategoryModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setCategoryModalVisible(false)} />
+          <View style={[styles.modalContent, { maxHeight: 520 }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="grid" size={18} color={YELLOW} />
+                <Text style={styles.modalTitle}>SELECT CATEGORY DROPDOWN</Text>
+              </View>
+              <TouchableOpacity onPress={() => setCategoryModalVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Modal Search Bar */}
+            <View style={{ paddingHorizontal: Spacing.four, paddingTop: Spacing.two }}>
+              <View style={styles.modalSearchRow}>
+                <Ionicons name="search" size={16} color={YELLOW} />
+                <TextInput
+                  style={styles.modalSearchInput}
+                  placeholder="Filter categories (e.g. Solar, IT, Beauty)..."
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={categorySearchQuery}
+                  onChangeText={setCategorySearchQuery}
+                />
+                {!!categorySearchQuery && (
+                  <TouchableOpacity onPress={() => setCategorySearchQuery('')}>
+                    <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.5)" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <ScrollView style={{ flex: 1, paddingHorizontal: Spacing.four, marginTop: 10 }}>
+              {/* Option 1: All Categories (Show All) */}
+              <TouchableOpacity
+                style={[styles.categoryDropdownItem, selectedCategory === null && styles.categoryDropdownItemActive]}
+                onPress={() => {
+                  setSelectedCategory(null);
+                  setCategoryModalVisible(false);
+                }}>
+                <Ionicons name="apps-outline" size={18} color={selectedCategory === null ? BLACK : YELLOW} />
+                <Text style={[styles.categoryDropdownItemText, selectedCategory === null && styles.categoryDropdownItemTextActive]}>
+                  All Categories (Browse All Products & Services)
+                </Text>
+                {selectedCategory === null && <Ionicons name="checkmark-circle" size={18} color={BLACK} />}
+              </TouchableOpacity>
+
+              {/* Category List */}
+              {parentCategories
+                .filter((c: any) =>
+                  !categorySearchQuery.trim() ||
+                  c.name.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                )
+                .map((cat: any) => {
+                  const isSelected = selectedCategory?.id === cat.id || selectedCategory?._id === cat._id || selectedCategory?.name === cat.name;
+                  return (
+                    <TouchableOpacity
+                      key={cat.id || cat._id || cat.name}
+                      style={[styles.categoryDropdownItem, isSelected && styles.categoryDropdownItemActive]}
+                      onPress={() => {
+                        setSelectedCategory(cat);
+                        setCategoryModalVisible(false);
+                      }}>
+                      <View style={styles.catDropdownIconWrap}>
+                        {renderCategoryIcon(cat.name, cat.icon_url)}
+                      </View>
+                      <Text style={[styles.categoryDropdownItemText, isSelected && styles.categoryDropdownItemTextActive]}>
+                        {cat.name}
+                      </Text>
+                      {isSelected && <Ionicons name="checkmark-circle" size={18} color={BLACK} />}
+                    </TouchableOpacity>
+                  );
+                })}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1140,7 +1247,99 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  applyModalBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900', letterSpacing: 1 },
+  applyModalBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+
+  categoryDropdownCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: 14,
+    marginTop: 6,
+  },
+  categoryDropdownIconCircle: {
+    width: 38,
+    height: 38,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryDropdownLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  categoryDropdownValue: {
+    color: YELLOW,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  clearCategoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  clearCategoryText: {
+    color: '#EF4444',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  modalSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 10,
+    height: 40,
+    gap: 8,
+  },
+  modalSearchInput: {
+    flex: 1,
+    color: '#fff',
+    fontSize: FontSize.xs,
+  },
+  categoryDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  categoryDropdownItemActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  catDropdownIconWrap: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryDropdownItemText: {
+    flex: 1,
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+  },
+  categoryDropdownItemTextActive: {
+    color: BLACK,
+    fontWeight: '900',
+  },
 
   // Price Slider Bar Styles
   priceSliderBox: {
