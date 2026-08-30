@@ -292,14 +292,22 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
   const bottomMargin = Math.max(insets.bottom, 12) + 70;
 
-  const displayPrice =
-    (reel as any).price ||
-    (reel as any).salePrice ||
-    taggedListing?.salePrice ||
-    taggedListing?.price ||
-    (reel as any).taggedListing?.price ||
-    (reel as any).productPrice ||
-    null;
+  const priceCandidates = [
+    (reel as any).price,
+    (reel as any).salePrice,
+    (reel as any).sellingPrice,
+    (reel as any).offer_price,
+    taggedListing?.price,
+    taggedListing?.salePrice,
+    taggedListing?.sellingPrice,
+    (reel as any).taggedListing?.price,
+    (reel as any).taggedListing?.salePrice,
+    (reel as any).taggedListing?.sellingPrice,
+    (reel as any).taggedListing?.offer_price,
+    (reel as any).productPrice,
+  ];
+  const validPriceNum = priceCandidates.map((p) => Number(p)).find((p) => !isNaN(p) && p > 0);
+  const displayPrice = validPriceNum ? validPriceNum.toLocaleString('en-IN') : null;
 
   return (
     <View style={[styles.container, { height }]}>
