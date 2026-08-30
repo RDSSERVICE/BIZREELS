@@ -171,6 +171,7 @@ export default function ProfileScreen() {
   const activeRole = (user as any)?.activeRole || (user as any)?.current_role || 'customer';
 
   const CUSTOMER_MENU = [
+    { label: 'Edit Account & Profile Settings', route: '/customer/settings', icon: 'person-outline' },
     { label: 'Manage Selected Interests & Preferences', route: '/customer/choose-interests', icon: 'options-outline' },
     { label: 'Chat & Messages Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
     { label: 'My Orders', route: '/orders', icon: 'cart-outline' },
