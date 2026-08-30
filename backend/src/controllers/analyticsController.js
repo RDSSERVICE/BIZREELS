@@ -70,6 +70,32 @@ class AnalyticsController {
       savedReelsCount,
     });
   });
+
+  // ── Get Creator Dashboard Analytics ───────────────────────
+  getCreatorAnalytics = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    const Analytics = require('../models/Analytics');
+    const Order = require('../models/Order');
+
+    const [
+      profileViews,
+      hireRequestsCount,
+      completedCampaignsCount,
+    ] = await Promise.all([
+      Analytics.countDocuments({ targetId: userId, type: 'view_creator_profile' }).catch(() => 0),
+      Order.countDocuments({ creator: userId, status: 'pending' }).catch(() => 0),
+      Order.countDocuments({ creator: userId, status: 'completed' }).catch(() => 0),
+    ]);
+
+    return ApiResponse.ok(res, 'Creator analytics loaded.', {
+      profileViews,
+      hireRequestsCount,
+      completedCampaignsCount,
+      totalEarnings: req.user.walletBalance || 0,
+      rating: req.user.rating_avg || 5.0,
+      reviewCount: req.user.rating_count || 0,
+    });
+  });
 }
 
 module.exports = new AnalyticsController();

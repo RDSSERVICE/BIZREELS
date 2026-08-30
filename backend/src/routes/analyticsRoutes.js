@@ -28,6 +28,9 @@ router.post(
 // ── Retrieve Vendor Lead Analytics ────────────────────────
 router.get('/vendor', authenticate, analyticsController.getVendorAnalytics);
 
+// ── Retrieve Creator Performance Analytics ────────────────
+router.get('/creator', authenticate, analyticsController.getCreatorAnalytics);
+
 // ── Retrieve aggregated summaries (Admin restricted) ──────
 router.get(
   '/summary',

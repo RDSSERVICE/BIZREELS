@@ -19,7 +19,7 @@ export default function CreatorAnalyticsScreen() {
 
   const fetchAnalytics = async () => {
     try {
-      const res = await api.get('/analytics/summary');
+      const res = await api.get('/analytics/creator').catch(() => api.get('/creator/analytics'));
       const data = res.data?.data || res.data || {};
       setAnalytics(data);
     } catch (err) {
