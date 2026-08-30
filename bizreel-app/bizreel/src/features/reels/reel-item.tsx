@@ -299,7 +299,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
     (reel as any).offer_price,
     taggedListing?.price,
     taggedListing?.salePrice,
-    taggedListing?.sellingPrice,
+    (taggedListing as any)?.sellingPrice,
     (reel as any).taggedListing?.price,
     (reel as any).taggedListing?.salePrice,
     (reel as any).taggedListing?.sellingPrice,
