@@ -523,6 +523,94 @@ class ReelService {
 
     return { message: 'Reel deleted successfully.' };
   }
+
+  // ── Get Reel Product/Service Details ────────────────────
+  async getReelProductDetails(id) {
+    const Listing = require('../models/Listing');
+    const User = require('../models/User');
+
+    const reel = await reelRepository.findReelById(id);
+    if (!reel) {
+      throw ApiError.notFound('Reel not found.');
+    }
+
+    let listing = null;
+    if (reel.targetListing) {
+      const targetId = reel.targetListing._id || reel.targetListing;
+      listing = await Listing.findById(targetId).lean();
+    }
+
+    if (!listing && reel.creator) {
+      const creatorId = reel.creator._id || reel.creator;
+      listing = await Listing.findOne({ vendor: creatorId, isDeleted: { $ne: true } }).lean();
+    }
+
+    const vendorId = listing?.vendor || reel.creator?._id || reel.creator;
+    let vendor = null;
+    if (vendorId) {
+      vendor = await User.findById(vendorId).select('-password -refreshTokens -tokens').lean();
+    }
+
+    const priceVal = Number(listing?.salePrice || listing?.price || listing?.sellingPrice || reel.salePrice || reel.price || 0);
+    const mrpVal = Number(listing?.mrp || listing?.actualPrice || listing?.regularPrice || listing?.price || priceVal || 0);
+    const discountVal = mrpVal > priceVal ? Math.round(((mrpVal - priceVal) / mrpVal) * 100) : 0;
+
+    return {
+      reel: {
+        id: reel._id,
+        _id: reel._id,
+        videoUrl: reel.videoUrl,
+        thumbnailUrl: reel.thumbnailUrl,
+        caption: reel.caption,
+        hashtags: reel.hashtags || [],
+        postType: reel.postType || 'product',
+        category: reel.category || 'General',
+        subcategory: reel.subcategory || 'General',
+        views: reel.views || 0,
+        likesCount: reel.likesCount || 0,
+        commentsCount: reel.commentsCount || 0,
+        createdAt: reel.createdAt,
+      },
+      product: {
+        id: listing?._id || reel._id,
+        _id: listing?._id || reel._id,
+        title: listing?.title || reel.caption || 'Featured Product Item',
+        description: listing?.description || reel.caption || '',
+        price: priceVal,
+        salePrice: priceVal,
+        sellingPrice: priceVal,
+        mrp: mrpVal,
+        discountPercent: discountVal,
+        category: listing?.category || reel.category || 'General',
+        subcategory: listing?.subcategory || reel.subcategory || 'General',
+        images: listing?.images?.length ? listing.images : (reel.thumbnailUrl ? [{ url: reel.thumbnailUrl }] : []),
+        videos: listing?.videos?.length ? listing.videos : (reel.videoUrl ? [reel.videoUrl] : []),
+        specifications: listing?.specifications || {},
+        features: listing?.features || [],
+        stock: listing?.stock ?? 100,
+        isService: listing?.postType === 'service' || reel.postType === 'service',
+        fulfillmentType: listing?.fulfillmentType || 'shiprocket',
+        rating: listing?.rating || 4.9,
+        reviewsCount: listing?.reviewsCount || 18,
+      },
+      vendor: {
+        id: vendor?._id || vendorId,
+        _id: vendor?._id || vendorId,
+        name: vendor?.shop_name || vendor?.business_name || vendor?.name || 'Verified Supplier',
+        shopName: vendor?.shop_name || vendor?.business_name || vendor?.name || 'Verified Supplier',
+        businessName: vendor?.business_name || vendor?.shop_name || vendor?.name || 'Verified Supplier',
+        avatarUrl: vendor?.avatarUrl || vendor?.profile_pic || null,
+        profile_pic: vendor?.profile_pic || vendor?.avatarUrl || null,
+        phone: vendor?.phone || vendor?.vendorProfile?.contactPhone || '',
+        city: vendor?.city || vendor?.location?.city || '',
+        state: vendor?.location?.state || '',
+        address: vendor?.address || vendor?.location?.address || '',
+        isVerified: vendor?.isVerified || vendor?.vendorProfile?.isVerified || true,
+        rating: vendor?.vendorProfile?.rating || 4.9,
+        totalProducts: vendor?.vendorProfile?.totalProducts || 1,
+      }
+    };
+  }
 }
 
 module.exports = new ReelService();

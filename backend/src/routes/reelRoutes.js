@@ -43,6 +43,7 @@ router.get('/', reelValidation.getFeed, validate, (req, res, next) => {
 });
 router.get('/public/:id', reelValidation.idParam, validate, reelController.getReelById);
 router.get('/:id/comments', reelValidation.idParam, validate, reelController.getComments);
+router.get('/:id/product-details', reelValidation.idParam, validate, reelController.getReelProductDetails);
 router.get('/:id', reelValidation.idParam, validate, reelController.getReelById);
 
 // ── Protected Actions ────────────────────────────────────

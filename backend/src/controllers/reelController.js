@@ -149,6 +149,13 @@ class ReelController {
     return ApiResponse.ok(res, result.message);
   });
 
+  // ── Get Reel Product/Service Details ────────────────────
+  getReelProductDetails = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const data = await reelService.getReelProductDetails(id);
+    return ApiResponse.ok(res, 'Reel product and service details fetched successfully.', data);
+  });
+
   // ── Save Reel ───────────────────────────────────────────
   saveReel = asyncHandler(async (req, res) => {
     const { id } = req.params;
