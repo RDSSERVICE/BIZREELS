@@ -284,12 +284,13 @@ const buildFeed = async ({
         lObj?.offer_price,
       ];
       const validPrice = priceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
-      const finalPrice = validPrice || 299;
 
       r.taggedListing = lObj || r.taggedListing || null;
-      r.price = finalPrice;
-      r.salePrice = finalPrice;
-      r.sellingPrice = finalPrice;
+      if (validPrice) {
+        r.price = validPrice;
+        r.salePrice = validPrice;
+        r.sellingPrice = validPrice;
+      }
     }
   }
 

@@ -489,14 +489,14 @@ class RecommendationService {
         r.sellingPrice,
       ];
       const validPriceNum = priceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
-      const finalPrice = validPriceNum || 299;
+      const exactPrice = validPriceNum || Number(r.price || 0);
 
       return {
         ...r,
         taggedListing: targetListingObj,
-        price: finalPrice,
-        salePrice: finalPrice,
-        sellingPrice: finalPrice,
+        price: exactPrice,
+        salePrice: exactPrice,
+        sellingPrice: exactPrice,
         creator: {
           _id: c._id || r.creator,
           name: c.name || 'BizReels Creator',
