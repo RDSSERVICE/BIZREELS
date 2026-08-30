@@ -71,19 +71,25 @@ const hydrateCart = async (cart) => {
       vendorId = li._id.toString();
     }
 
-    const priceCandidates = [
-      li.price,
+    const discountPriceCandidates = [
       li.salePrice,
       li.sellingPrice,
       li.offer_price,
+    ];
+    const validDiscountPrice = discountPriceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
+
+    const fallbackPriceCandidates = [
+      li.price,
       li.rate,
       li.cost,
       li.actualPrice,
       li.regularPrice,
       li.originalPrice,
     ];
-    const validPrice = priceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
-    const price = validPrice || Number(li.price) || Number(li.salePrice) || Number(li.sellingPrice) || 0;
+    const validFallbackPrice = fallbackPriceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
+
+    const price = validDiscountPrice || validFallbackPrice || Number(li.salePrice) || Number(li.price) || 0;
+    const originalPrice = Number(li.mrp || li.price || li.actualPrice || li.regularPrice || price);
     const quantity = parseInt(it.quantity || 1, 10);
     const line = price * quantity;
     total += line;
@@ -95,6 +101,8 @@ const hydrateCart = async (cart) => {
       title: li.title,
       slug: li.slug,
       price,
+      salePrice: price,
+      original_price: originalPrice > price ? originalPrice : price,
       line_total: line,
       image: li.images && li.images.length > 0 ? li.images[0].url : null,
     };
