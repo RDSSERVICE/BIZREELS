@@ -148,23 +148,53 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
   const activeShoots = campaigns.filter((c) => c.status === 'accepted');
 
   const content = (
-    <View style={{ flex: 1 }}>
-      {/* Verification Banner */}
-      <TouchableOpacity style={styles.kycCard} onPress={() => router.push('/creator/verification')}>
-        <Ionicons name="shield-checkmark" size={24} color={YELLOW} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.kycTitle}>Creator Verification Status</Text>
-          <Text style={styles.kycSub}>
-            {stats?.verificationStatus === 'pro_verified' || stats?.verificationStatus === 'verified_creator'
-              ? '✅ Verified Badge Active (5x more brand deals)'
-              : 'Complete KYC verification to unlock brand campaign deals'}
-          </Text>
+    <View style={embedded ? styles.embeddedContent : styles.standaloneContent}>
+      {/* Creator Studio Profile Header Card */}
+      <View style={styles.creatorHeaderCard}>
+        <View style={styles.creatorHeaderRow}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => router.push('/creator/profile')}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <Text style={styles.creatorName}>
+                {(user as any)?.creatorProfile?.displayName || user?.name || 'Content Creator'}
+              </Text>
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark-circle" size={12} color={BLACK} />
+                <Text style={styles.verifiedBadgeText}>CREATOR</Text>
+              </View>
+            </View>
+            <Text style={styles.creatorSub} numberOfLines={2}>
+              {(user as any)?.creatorProfile?.category || (user as any)?.creatorProfile?.bio || 'Short-Form Video Reel Specialist'} • Tap to edit rates & bio ›
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            onPress={() => router.push('/creator/profile')}>
+            <Ionicons name="create-outline" size={14} color={BLACK} />
+            <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+          </TouchableOpacity>
         </View>
-        <Ionicons name="chevron-forward" size={16} color={YELLOW} />
-      </TouchableOpacity>
+
+        {/* Verification Status Alert */}
+        <TouchableOpacity
+          style={styles.kycBanner}
+          onPress={() => router.push('/creator/verification')}>
+          <Ionicons name="shield-checkmark" size={16} color={YELLOW} />
+          <Text style={styles.kycBannerText} numberOfLines={1}>
+            {stats?.verificationStatus === 'pro_verified' || stats?.verificationStatus === 'verified_creator'
+              ? '✅ Verified Creator Badge Active'
+              : 'Complete KYC verification to unlock brand campaign deals ›'}
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={YELLOW} />
+        </TouchableOpacity>
+      </View>
 
       {/* Overview Stat Cards Grid */}
-      <Text style={styles.sectionHeader}>STUDIO METRICS</Text>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionHeader}>STUDIO METRICS</Text>
+      </View>
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <Ionicons name="cash-outline" size={20} color={YELLOW} />
@@ -186,14 +216,12 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
           <Text style={styles.statVal}>{(stats?.portfolioViews || 0).toLocaleString()}</Text>
           <Text style={styles.statLabel}>Portfolio Views</Text>
         </View>
-        <View style={styles.statCard}>
-          <Ionicons name="star-outline" size={20} color="#EC4899" />
-          <Text style={styles.statVal}>{stats?.rating || 5.0} ★</Text>
-          <Text style={styles.statLabel}>Client Rating</Text>
-        </View>
       </View>
 
       {/* Quick Studio Action Buttons */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionHeader}>CREATOR STUDIO TOOLS</Text>
+      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsRow}>
         <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/portfolio')}>
           <Ionicons name="film-outline" size={16} color={YELLOW} />
@@ -386,6 +414,53 @@ const BORDER = '#2D2D36';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BLACK },
+  embeddedContent: { flex: 1, paddingHorizontal: Spacing.four, paddingVertical: Spacing.three, gap: Spacing.four },
+  standaloneContent: { flex: 1, gap: Spacing.four },
+  creatorHeaderCard: {
+    backgroundColor: DARK_CARD,
+    borderWidth: 2,
+    borderColor: YELLOW,
+    padding: Spacing.four,
+    gap: Spacing.three,
+  },
+  creatorHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  creatorName: { color: '#fff', fontSize: FontSize.base, fontWeight: '900' },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: YELLOW,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    gap: 4,
+  },
+  verifiedBadgeText: { color: BLACK, fontSize: 9, fontWeight: '900' },
+  creatorSub: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs, marginTop: 4 },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: YELLOW,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 4,
+  },
+  editProfileBtnText: { color: BLACK, fontSize: 10, fontWeight: '900' },
+  kycBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    gap: 8,
+  },
+  kycBannerText: { flex: 1, color: '#fff', fontSize: 11, fontWeight: '700' },
+  sectionHeaderRow: { marginTop: 4 },
   loadingContainer: { flex: 1, backgroundColor: BLACK, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: '#fff', fontSize: FontSize.xs, marginTop: 10 },
   headerBar: {

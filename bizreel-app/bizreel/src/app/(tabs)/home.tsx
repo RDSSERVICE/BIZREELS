@@ -206,23 +206,7 @@ export default function HomeScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Hero Promotional Card Banner (Creator mode) */}
-        {isCreator && (
-          <View style={styles.heroBanner}>
-            <View style={styles.heroContent}>
-              <View style={styles.heroTag}>
-                <Ionicons name="sparkles" size={14} color={BrandColors.primary} />
-                <Text style={styles.heroTagText}>CREATOR COLLABORATION HUB</Text>
-              </View>
-              <Text style={styles.heroTitle}>Welcome back, {user?.name || 'Creator'} 👋</Text>
-              <Text style={styles.heroSub}>Manage brand invitations, collaborate on shoot campaigns, & track earnings</Text>
-              <TouchableOpacity style={styles.heroBtn} onPress={() => router.push('/creator/dashboard')}>
-                <Ionicons name="grid" size={14} color="#fff" />
-                <Text style={styles.heroBtnText}>Open Creator Studio</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+
 
         {/* Hero Promotional Card Banner (Customer mode only) */}
         {!isVendor && !isCreator && (
