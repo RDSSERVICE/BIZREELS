@@ -199,7 +199,11 @@ class ReelRepository {
           _id: '$targetListingDetails._id',
           title: '$targetListingDetails.title',
           images: '$targetListingDetails.images',
-          price: '$targetListingDetails.price',
+          price: { $ifNull: ['$targetListingDetails.price', { $ifNull: ['$targetListingDetails.sellingPrice', '$targetListingDetails.salePrice'] }] },
+          salePrice: '$targetListingDetails.salePrice',
+          sellingPrice: '$targetListingDetails.sellingPrice',
+          offer_price: '$targetListingDetails.offer_price',
+          actualPrice: '$targetListingDetails.actualPrice',
         },
       },
     });

@@ -449,6 +449,18 @@ class RecommendationService {
     const creatorMap = {};
     creators.forEach(c => { creatorMap[c._id.toString()] = c; });
 
+    const targetListingIds = [...new Set(reels.map(r => r.targetListing).filter(id => id && mongoose.Types.ObjectId.isValid(id)))];
+    let listingMap = {};
+    if (targetListingIds.length > 0) {
+      try {
+        const Listing = require('../models/Listing');
+        const listings = await Listing.find({ _id: { $in: targetListingIds } }).lean();
+        listings.forEach(l => {
+          listingMap[l._id.toString()] = l;
+        });
+      } catch (err) { }
+    }
+
     let likedReelIds = new Set();
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       try {
@@ -464,8 +476,19 @@ class RecommendationService {
 
     return reels.map(r => {
       const c = creatorMap[r.creator?.toString()] || {};
+      const targetListingObj = r.targetListing && typeof r.targetListing === 'object'
+        ? r.targetListing
+        : (listingMap[r.targetListing?.toString()] || null);
+
+      const priceVal = targetListingObj
+        ? Number(targetListingObj.price || targetListingObj.salePrice || targetListingObj.sellingPrice || 0)
+        : Number(r.price || r.salePrice || r.sellingPrice || 0);
+
       return {
         ...r,
+        taggedListing: targetListingObj,
+        price: priceVal > 0 ? priceVal : Number(r.price || 0),
+        salePrice: priceVal > 0 ? priceVal : Number(r.salePrice || 0),
         creator: {
           _id: c._id || r.creator,
           name: c.name || 'BizReels Creator',
