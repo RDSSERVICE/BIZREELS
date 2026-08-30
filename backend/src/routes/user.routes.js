@@ -410,13 +410,17 @@ router.patch('/me', requireAuth, catchAsync(async (req, res) => {
   if (location !== undefined) updateData.location = location;
   if (city !== undefined) updateData.city = city;
 
-  // Vendor profile update — block base64 images
+  // Vendor profile update — block base64 images & merge with existing profile
   if (vendorProfile !== undefined) {
     const vpStr = JSON.stringify(vendorProfile || {});
     if (/data:[^;]+;base64,/.test(vpStr)) {
       throw ApiError.badRequest('Base64 images are not allowed. Upload images via /api/v1/upload/image first.');
     }
-    updateData.vendorProfile = vendorProfile;
+    const currentVp = req.user.vendorProfile ? (req.user.vendorProfile.toObject ? req.user.vendorProfile.toObject() : req.user.vendorProfile) : {};
+    updateData.vendorProfile = {
+      ...currentVp,
+      ...vendorProfile
+    };
   }
 
   // Creator profile update — block base64 images and validate DOB (must be 18+ and not in the future)

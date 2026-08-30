@@ -600,11 +600,17 @@ class AuthService {
       throw ApiError.forbidden('Admin accounts cannot switch to non-admin roles.');
     }
 
-    if (!user.roles.includes(newRole)) {
-      throw ApiError.badRequest(`You do not have the "${newRole}" role. Please activate it first.`);
+    if (!['customer', 'vendor', 'creator', 'admin'].includes(newRole)) {
+      throw ApiError.badRequest(`Invalid target role: ${newRole}`);
     }
 
-    const updatedUser = await authRepository.updateUser(userId, { activeRole: newRole });
+    if (!user.roles.includes(newRole)) {
+      user.roles.push(newRole);
+    }
+
+    user.activeRole = newRole;
+    user.current_role = newRole;
+    await user.save();
 
     try {
       const cache = require('../utils/cache');
@@ -613,7 +619,33 @@ class AuthService {
 
     await this._logAction(userId, 'ROLE_SWITCH', 'User', userId, `Switched to ${newRole}`, req);
 
-    return this._sanitizeUser(updatedUser);
+    const sanitized = this._sanitizeUser(user);
+
+    let isOnboardingRequired = false;
+    let targetOnboardingPath = null;
+
+    if (newRole === 'vendor') {
+      const vp = user.vendorProfile || {};
+      const isComplete = Boolean(vp.shopName || vp.businessName || vp.store_name);
+      if (!isComplete) {
+        isOnboardingRequired = true;
+        targetOnboardingPath = '/vendor/onboarding';
+      }
+    } else if (newRole === 'creator') {
+      const cp = user.creatorProfile || {};
+      const isComplete = Boolean(cp.displayName || cp.name);
+      if (!isComplete) {
+        isOnboardingRequired = true;
+        targetOnboardingPath = '/creator/onboarding';
+      }
+    }
+
+    return {
+      user: sanitized,
+      activeRole: newRole,
+      isOnboardingRequired,
+      targetOnboardingPath,
+    };
   }
 
   async updateProfile(userId, { name, avatarUrl, profile_pic, phone, gender, occupation, profession, dob, language, location, vendorProfile, creatorProfile, city }, req) {
@@ -918,6 +950,9 @@ class AuthService {
 
   _sanitizeUser(user) {
     const userObj = user.toObject ? user.toObject() : { ...user };
+    const effectiveRole = userObj.activeRole || userObj.current_role || 'customer';
+    userObj.activeRole = effectiveRole;
+    userObj.current_role = effectiveRole;
     delete userObj.password;
     delete userObj.__v;
     delete userObj.followers;

@@ -23,14 +23,19 @@ const authSlice = createSlice({
       const accessToken = payload.accessToken || payload.access_token || state.accessToken;
       const refreshToken = payload.refreshToken || payload.refresh_token;
 
-      state.user = user || state.user;
+      if (user) {
+        const effectiveRole = user.activeRole || user.current_role || 'customer';
+        user.activeRole = effectiveRole;
+        user.current_role = effectiveRole;
+        state.user = user;
+        state.activeRole = effectiveRole;
+      }
       if (accessToken) state.accessToken = accessToken;
       state.isAuthenticated = !!(user || state.user || accessToken);
       state.isLoading = false;
-      state.activeRole = user?.activeRole || user?.current_role || state.activeRole || 'customer';
 
       tokenStore.set({
-        user: user || state.user,
+        user: state.user,
         accessToken,
         refreshToken,
       });
@@ -42,6 +47,7 @@ const authSlice = createSlice({
       state.activeRole = action.payload;
       if (state.user) {
         state.user.activeRole = action.payload;
+        state.user.current_role = action.payload;
         tokenStore.setUser(state.user);
       }
     },

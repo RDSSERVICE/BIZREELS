@@ -69,9 +69,13 @@ export function RoleSwitcher() {
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       setModalVisible(false);
 
-      const isVendorUnonboarded = newRole === 'vendor' && (!finalUser?.vendorProfile || !finalUser?.vendorProfile?.shopName);
+      const isVendorUnonboarded = newRole === 'vendor' && (!finalUser?.vendorProfile || (!finalUser?.vendorProfile?.shopName && !finalUser?.vendorProfile?.businessName));
+      const isCreatorUnonboarded = newRole === 'creator' && (!finalUser?.creatorProfile || (!finalUser?.creatorProfile?.displayName && !finalUser?.creatorProfile?.name));
+
       if (isVendorUnonboarded) {
         router.replace('/vendor/onboarding');
+      } else if (isCreatorUnonboarded) {
+        router.replace('/creator/onboarding');
       } else {
         Alert.alert('Role Switched', `Switched to ${ROLES_CONFIG[newRole].label} mode.`);
       }

@@ -64,11 +64,11 @@ export default function RoleSwitcherChip() {
       updateLocalUser(updatedUser);
       toast.success(`Switched to ${ROLE_META[role]?.label || role} panel`);
       
-      let targetPath = homeForRole(role);
-      if (role === 'vendor' && !updatedUser?.vendorProfile?.shopName) {
-        targetPath = '/vendor/profile';
-      } else if (role === 'creator' && !updatedUser?.creatorProfile?.displayName) {
-        targetPath = '/creator/profile';
+      let targetPath = data?.targetOnboardingPath || homeForRole(role);
+      if (role === 'vendor' && (!updatedUser?.vendorProfile?.shopName && !updatedUser?.vendorProfile?.businessName)) {
+        targetPath = '/vendor/onboarding';
+      } else if (role === 'creator' && (!updatedUser?.creatorProfile?.displayName && !updatedUser?.creatorProfile?.name)) {
+        targetPath = '/creator/onboarding';
       }
       navigate(targetPath, { replace: true });
     } catch (e) {

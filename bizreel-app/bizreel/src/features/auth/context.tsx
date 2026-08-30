@@ -75,6 +75,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus('loading');
     fetchCurrentUser()
       .then((fetchedUser) => {
+        if (fetchedUser) {
+          const effectiveRole = fetchedUser.activeRole || fetchedUser.current_role || (fetchedUser as any).role || 'customer';
+          fetchedUser.activeRole = effectiveRole as any;
+          fetchedUser.current_role = effectiveRole as any;
+        }
         setUserState(fetchedUser);
         setStatus('authed');
       })
@@ -86,6 +91,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /** Called immediately after login/register — no second network call needed */
   const setUser = useCallback((newUser: AuthUser) => {
+    if (newUser) {
+      const effectiveRole = newUser.activeRole || newUser.current_role || (newUser as any).role || 'customer';
+      newUser.activeRole = effectiveRole as any;
+      newUser.current_role = effectiveRole as any;
+    }
     setUserState(newUser);
     setStatus('authed');
   }, []);

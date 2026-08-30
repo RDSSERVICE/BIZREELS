@@ -35,7 +35,7 @@ export default function CreatorLayout() {
   const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
   const creatorProfile = profileUser.creatorProfile || {};
   const roles = profileUser.roles || ['customer'];
-  const currentRole = 'creator';
+  const currentRole = profileUser.activeRole || profileUser.current_role || 'creator';
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
@@ -120,10 +120,13 @@ export default function CreatorLayout() {
       dispatch(setActiveRole(targetRole));
       toast.success(`Switched active role to ${targetRole.toUpperCase()}`);
 
+      const isVendorIncomplete = targetRole === 'vendor' && (!updatedUser?.vendorProfile?.shopName && !updatedUser?.vendorProfile?.businessName);
+      const isCreatorIncomplete = targetRole === 'creator' && (!updatedUser?.creatorProfile?.displayName && !updatedUser?.creatorProfile?.name);
+
       if (targetRole === 'vendor') {
-        navigate('/vendor/dashboard');
+        navigate(isVendorIncomplete ? '/vendor/onboarding' : '/vendor/dashboard');
       } else if (targetRole === 'creator') {
-        navigate('/creator/dashboard');
+        navigate(isCreatorIncomplete ? '/creator/onboarding' : '/creator/dashboard');
       } else if (targetRole === 'admin') {
         navigate('/admin/dashboard');
       } else {

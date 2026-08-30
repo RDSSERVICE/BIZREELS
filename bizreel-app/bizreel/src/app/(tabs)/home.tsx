@@ -64,7 +64,8 @@ export default function HomeScreen() {
   const { data: reelsData } = useReelsFeed();
   const { data: vendorListings = [] } = useVendorListings();
 
-  const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
+  const activeRole = user?.activeRole || user?.current_role || 'customer';
+  const isVendor = activeRole === 'vendor';
   const reels = reelsData?.pages?.flatMap((p) => p.data || []) || [];
   const cartItemCount = cart?.total_items || 0;
 
