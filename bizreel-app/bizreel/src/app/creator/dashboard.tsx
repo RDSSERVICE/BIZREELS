@@ -46,12 +46,17 @@ interface Campaign {
     name?: string;
     profile_pic?: string;
   };
+  vendorName?: string;
+  packageName?: string;
+  totalAmount?: number;
+  notes?: string;
+  requirements?: string;
   deliverables?: Array<{ title: string; status: string }>;
   submissionUrls?: Array<{ url: string; type: string }>;
   createdAt?: string;
 }
 
-export default function CreatorDashboardScreen() {
+export default function CreatorDashboardScreen({ embedded }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,17 +73,17 @@ export default function CreatorDashboardScreen() {
   const fetchData = useCallback(async () => {
     try {
       const [dashRes, hiresRes] = await Promise.all([
-        api.get('/creator/dashboard').catch(() => ({ data: {} })),
-        api.get('/hires?role=creator').catch(() => ({ data: { data: { hireRequests: [] } } })),
+        api.get('/creator/me/dashboard').catch(() => ({ data: {} })),
+        api.get('/hires?role=creator').catch(() => ({ data: { items: [] } })),
       ]);
 
-      const dashData = dashRes.data?.data || dashRes.data || {};
-      setStats(dashData);
+      const dData = dashRes.data?.data || dashRes.data || {};
+      setStats(dData);
 
-      const list = hiresRes.data?.data?.hireRequests || hiresRes.data?.hireRequests || hiresRes.data || [];
-      setCampaigns(Array.isArray(list) ? list : []);
+      const hItems = hiresRes.data?.data?.items || hiresRes.data?.items || hiresRes.data || [];
+      setCampaigns(Array.isArray(hItems) ? hItems : []);
     } catch (err) {
-      console.warn('Failed to load creator dashboard data:', err);
+      console.warn('Failed to load creator dashboard:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -94,39 +99,19 @@ export default function CreatorDashboardScreen() {
     fetchData();
   };
 
-  const handleAcceptInvite = async (id: string) => {
+  const handleAcceptDecline = async (campaignId: string, action: 'accept' | 'decline') => {
     try {
-      await api.patch(`/hires/${id}`, { status: 'accepted' });
-      Alert.alert('Success', 'Campaign proposal accepted!');
+      await api.post(`/hires/campaign/${campaignId}/${action}`);
+      Alert.alert('Success', `Campaign ${action === 'accept' ? 'accepted' : 'declined'} successfully!`);
       fetchData();
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to accept invitation');
+      Alert.alert('Error', err.response?.data?.message || `Failed to ${action} campaign`);
     }
   };
 
-  const handleRejectInvite = async (id: string) => {
-    Alert.alert('Reject Invitation', 'Are you sure you want to reject this offer?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reject',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await api.patch(`/hires/${id}`, { status: 'rejected' });
-            Alert.alert('Success', 'Invitation rejected');
-            fetchData();
-          } catch (err: any) {
-            Alert.alert('Error', err.response?.data?.message || 'Failed to reject');
-          }
-        },
-      },
-    ]);
-  };
-
   const handleSubmitDeliverable = async () => {
-    if (!submittingCampaign) return;
-    if (!deliverableUrl.trim()) {
-      Alert.alert('Required', 'Please enter a video reel URL or drive link');
+    if (!submittingCampaign || !deliverableUrl.trim()) {
+      Alert.alert('Required', 'Please enter a valid video deliverable URL');
       return;
     }
 
@@ -139,7 +124,7 @@ export default function CreatorDashboardScreen() {
         caption: deliverableCaption.trim(),
       });
 
-      Alert.alert('Submitted!', 'Deliverable submitted successfully to vendor');
+      Alert.alert('Success', 'Deliverable video submitted to brand successfully!');
       setSubmittingCampaign(null);
       setDeliverableUrl('');
       setDeliverableCaption('');
@@ -155,13 +140,218 @@ export default function CreatorDashboardScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={YELLOW} />
-        <Text style={styles.loadingText}>Loading Creator Studio...</Text>
       </View>
     );
   }
 
   const pendingInvites = campaigns.filter((c) => c.status === 'pending');
   const activeShoots = campaigns.filter((c) => c.status === 'accepted');
+
+  const content = (
+    <View style={{ flex: 1 }}>
+      {/* Verification Banner */}
+      <TouchableOpacity style={styles.kycCard} onPress={() => router.push('/creator/verification')}>
+        <Ionicons name="shield-checkmark" size={24} color={YELLOW} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.kycTitle}>Creator Verification Status</Text>
+          <Text style={styles.kycSub}>
+            {stats?.verificationStatus === 'pro_verified' || stats?.verificationStatus === 'verified_creator'
+              ? '✅ Verified Badge Active (5x more brand deals)'
+              : 'Complete KYC verification to unlock brand campaign deals'}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={YELLOW} />
+      </TouchableOpacity>
+
+      {/* Overview Stat Cards Grid */}
+      <Text style={styles.sectionHeader}>STUDIO METRICS</Text>
+      <View style={styles.statsGrid}>
+        <View style={styles.statCard}>
+          <Ionicons name="cash-outline" size={20} color={YELLOW} />
+          <Text style={styles.statVal}>₹{(stats?.totalEarnings || 0).toLocaleString('en-IN')}</Text>
+          <Text style={styles.statLabel}>Total Earnings</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Ionicons name="videocam-outline" size={20} color="#3B82F6" />
+          <Text style={styles.statVal}>{activeShoots.length}</Text>
+          <Text style={styles.statLabel}>Active Shoots</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Ionicons name="time-outline" size={20} color="#F59E0B" />
+          <Text style={styles.statVal}>{pendingInvites.length}</Text>
+          <Text style={styles.statLabel}>Pending Invites</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Ionicons name="eye-outline" size={20} color="#10B981" />
+          <Text style={styles.statVal}>{(stats?.portfolioViews || 0).toLocaleString()}</Text>
+          <Text style={styles.statLabel}>Portfolio Views</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Ionicons name="star-outline" size={20} color="#EC4899" />
+          <Text style={styles.statVal}>{stats?.rating || 5.0} ★</Text>
+          <Text style={styles.statLabel}>Client Rating</Text>
+        </View>
+      </View>
+
+      {/* Quick Studio Action Buttons */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsRow}>
+        <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/portfolio')}>
+          <Ionicons name="film-outline" size={16} color={YELLOW} />
+          <Text style={styles.actionChipText}>Portfolio</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/pricing')}>
+          <Ionicons name="pricetag-outline" size={16} color={YELLOW} />
+          <Text style={styles.actionChipText}>Rates</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/availability')}>
+          <Ionicons name="calendar-outline" size={16} color={YELLOW} />
+          <Text style={styles.actionChipText}>Availability</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/orders')}>
+          <Ionicons name="briefcase-outline" size={16} color={YELLOW} />
+          <Text style={styles.actionChipText}>Orders</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/wallet')}>
+          <Ionicons name="wallet-outline" size={16} color={YELLOW} />
+          <Text style={styles.actionChipText}>Wallet</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/subscription')}>
+          <Ionicons name="card-outline" size={16} color={YELLOW} />
+          <Text style={styles.actionChipText}>Subscription</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Campaign Collaborations Tabs */}
+      <View style={styles.tabHeaderRow}>
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === 'invitations' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('invitations')}>
+          <Text style={[styles.tabBtnText, activeTab === 'invitations' && styles.tabBtnTextActive]}>
+            Invitations ({pendingInvites.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === 'campaigns' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('campaigns')}>
+          <Text style={[styles.tabBtnText, activeTab === 'campaigns' && styles.tabBtnTextActive]}>
+            Active Campaigns ({activeShoots.length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* List Items */}
+      {(activeTab === 'invitations' ? pendingInvites : activeShoots).length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Ionicons name="folder-open-outline" size={32} color="rgba(255,255,255,0.4)" />
+          <Text style={styles.emptyTitle}>
+            No {activeTab === 'invitations' ? 'pending invitations' : 'active campaign shoots'} right now
+          </Text>
+          <Text style={styles.emptySub}>
+            Complete your creator profile & rates package to get noticed by top local vendors!
+          </Text>
+        </View>
+      ) : (
+        (activeTab === 'invitations' ? pendingInvites : activeShoots).map((item) => (
+          <View key={item._id || item.id} style={styles.campaignCard}>
+            <View style={styles.campaignHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.campaignVendor}>
+                  {item.vendor?.name || item.vendorName || 'Brand Partner'}
+                </Text>
+                <Text style={styles.campaignTitle}>{item.title || item.packageName || 'Product Video Reel Shoot'}</Text>
+              </View>
+              <View style={styles.priceTag}>
+                <Text style={styles.priceTagText}>₹{(item.totalAmount || item.budget || 0).toLocaleString('en-IN')}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.campaignDesc} numberOfLines={3}>
+              {item.notes || item.requirements || 'Product demonstration video shoot requirement.'}
+            </Text>
+
+            <View style={styles.campaignFooterRow}>
+              <Text style={styles.statusText}>Status: {item.status.toUpperCase()}</Text>
+
+              {activeTab === 'invitations' ? (
+                <View style={styles.btnGroup}>
+                  <TouchableOpacity
+                    style={[styles.smallBtn, styles.declineBtn]}
+                    onPress={() => handleAcceptDecline(item._id || item.id!, 'decline')}>
+                    <Text style={styles.declineBtnText}>Decline</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.smallBtn, styles.acceptBtn]}
+                    onPress={() => handleAcceptDecline(item._id || item.id!, 'accept')}>
+                    <Text style={styles.acceptBtnText}>Accept Deal</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.smallBtn, styles.deliverBtn]}
+                  onPress={() => setSubmittingCampaign(item)}>
+                  <Ionicons name="cloud-upload-outline" size={14} color={BLACK} />
+                  <Text style={styles.deliverBtnText}>Submit Reel</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        ))
+      )}
+
+      {/* Submit Deliverable Modal */}
+      <Modal visible={!!submittingCampaign} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Submit Campaign Reel Deliverable</Text>
+              <TouchableOpacity onPress={() => setSubmittingCampaign(null)}>
+                <Ionicons name="close" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.label}>Final Video Reel URL (Google Drive / Cloudinary / Dropbox)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="https://drive.google.com/file/d/..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={deliverableUrl}
+              onChangeText={setDeliverableUrl}
+            />
+
+            <Text style={styles.label}>Caption / Note for Brand (Optional)</Text>
+            <TextInput
+              style={[styles.input, { height: 70 }]}
+              placeholder="Added background music and brand color text overlay..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={deliverableCaption}
+              onChangeText={setDeliverableCaption}
+              multiline
+            />
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setSubmittingCampaign(null)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.submitBtn}
+                onPress={handleSubmitDeliverable}
+                disabled={submitting}>
+                {submitting ? (
+                  <ActivityIndicator color={BLACK} />
+                ) : (
+                  <Text style={styles.submitBtnText}>Submit to Vendor</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+
+  if (embedded) {
+    return content;
+  }
 
   return (
     <View style={styles.container}>
@@ -183,11 +373,6 @@ export default function CreatorDashboardScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={YELLOW} />}>
-        
-        {/* Verification Banner */}
-        <TouchableOpacity style={styles.kycCard} onPress={() => router.push('/creator/verification')}>
-          <Ionicons name="shield-checkmark" size={24} color={YELLOW} />
-          <View style={{ flex: 1 }}>
             <Text style={styles.kycTitle}>Creator Verification Status</Text>
             <Text style={styles.kycSub}>
               {stats?.verificationStatus === 'pro_verified' || stats?.verificationStatus === 'verified_creator'

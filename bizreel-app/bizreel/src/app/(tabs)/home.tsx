@@ -68,10 +68,6 @@ export default function HomeScreen() {
   const activeRole = user?.activeRole || user?.current_role || 'customer';
   const isVendor = activeRole === 'vendor';
   const isCreator = activeRole === 'creator';
-
-  if (isCreator) {
-    return <CreatorDashboardScreen />;
-  }
   const reels = reelsData?.pages?.flatMap((p) => p.data || []) || [];
   const cartItemCount = cart?.total_items || 0;
 
@@ -285,8 +281,10 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* Redesigned Vendor Store Hub & Catalog Section */}
-        {isVendor ? (
+        {/* Creator Studio Hub / Vendor Catalog / Customer Marketplace */}
+        {isCreator ? (
+          <CreatorDashboardScreen embedded />
+        ) : isVendor ? (
           <View style={styles.vendorCatalogContainer}>
             {/* Vendor Store Header Card */}
             <View style={styles.vendorStoreCard}>
