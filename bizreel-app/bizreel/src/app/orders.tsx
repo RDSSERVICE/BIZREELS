@@ -312,4 +312,10 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     textAlign: 'center',
   },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

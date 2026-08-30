@@ -86,12 +86,27 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
     opacity: heartOpacity.value,
   }));
 
-  const isVideo = reel.mediaType === 'video';
-  const resolvedVideoUrl = resolveImageUrl(reel.videoUrl) || 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
-  const imageUrl = resolveImageUrl(reel.mediaUrls?.[0] || reel.thumbnailUrl || reel.videoUrl);
+  const rawVideoCandidate = reel.videoUrl || (reel as any).video_url || (reel as any).video;
+  const isVideo =
+    reel.mediaType === 'video' ||
+    (Boolean(rawVideoCandidate) && reel.mediaType !== 'image');
+
+  const resolvedVideoUrl = isVideo
+    ? resolveImageUrl(rawVideoCandidate) ||
+      'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'
+    : '';
+
+  const imageUrl =
+    resolveImageUrl(
+      reel.mediaUrls?.[0] ||
+        (reel as any).images?.[0] ||
+        (reel as any).imageUrl ||
+        reel.thumbnailUrl ||
+        rawVideoCandidate
+    ) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
 
   const player = useVideoPlayer(
-    isVideo && resolvedVideoUrl ? { uri: resolvedVideoUrl } : null,
+    resolvedVideoUrl ? { uri: resolvedVideoUrl } : null,
     (p) => {
       p.loop = true;
       p.muted = isMuted;

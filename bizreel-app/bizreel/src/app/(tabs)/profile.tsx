@@ -25,6 +25,7 @@ import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useCurrentUserProfile } from '@/features/auth/queries';
 import { api } from '@/lib/api';
+import { resolveImageUrl } from '@/utils/image';
 
 const YELLOW = '#F59E0B';
 const BLACK = '#0F0F12';
@@ -78,7 +79,7 @@ export default function ProfileScreen() {
   function handleLogout() {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: signOut },
+      { text: 'Log Out', style: 'destructive', onPress: () => signOut() },
     ]);
   }
 
@@ -102,7 +103,12 @@ export default function ProfileScreen() {
     );
   }
 
-  const avatarUrl = user.profile_pic ?? user.avatarUrl;
+  const rawAvatar =
+    (user as any).avatarUrl ||
+    user.profile_pic ||
+    (user as any).vendorProfile?.avatarUrl ||
+    (user as any).vendorProfile?.logo;
+  const avatarUrl = resolveImageUrl(rawAvatar);
   const initials = user.name
     ? user.name
         .split(' ')
@@ -209,12 +215,29 @@ export default function ProfileScreen() {
             <Text style={styles.userEmail} numberOfLines={1}>{user.email}</Text>
 
             <View style={styles.badgePillsRow}>
-              <View style={styles.kycBadge}>
-                <View style={styles.kycDot} />
-                <Text style={styles.kycText}>
-                  KYC {user.kyc_status?.toUpperCase() || 'VERIFIED'}
-                </Text>
-              </View>
+              {(() => {
+                const uData = (user as any) || {};
+                const isKycApproved =
+                  uData.kyc_status === 'approved' ||
+                  uData.kyc_status === 'verified' ||
+                  uData.vendorProfile?.verificationStatus === 'approved' ||
+                  uData.isVerified;
+                const statusLabel = isKycApproved
+                  ? 'KYC VERIFIED'
+                  : uData.kyc_status === 'pending'
+                  ? 'KYC PENDING'
+                  : 'UNVERIFIED';
+                const statusColor = isKycApproved ? '#10B981' : '#F59E0B';
+
+                return (
+                  <View style={[styles.kycBadge, { borderColor: statusColor }]}>
+                    <View style={[styles.kycDot, { backgroundColor: statusColor }]} />
+                    <Text style={[styles.kycText, { color: statusColor }]}>
+                      {statusLabel}
+                    </Text>
+                  </View>
+                );
+              })()}
               <View style={styles.planBadge}>
                 <Text style={styles.planText}>
                   {user.subscription?.plan?.toUpperCase() || 'STARTER PLAN'}

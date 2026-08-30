@@ -37,7 +37,7 @@ const TRENDING_TAGS = ['Fashion', 'Electronics', 'LocalDeals', 'Trending', 'Offe
 export default function ReelsFeedScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ reelId?: string }>();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
   const insets = useSafeAreaInsets();

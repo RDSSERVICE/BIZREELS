@@ -20,11 +20,12 @@ export default function CreatorOnboardingScreen() {
   const { user, setUser } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  const [displayName, setDisplayName] = useState(user?.creatorProfile?.displayName || user?.name || '');
-  const [category, setCategory] = useState(user?.creatorProfile?.category || 'Fashion & Lifestyle');
-  const [city, setCity] = useState(user?.city || user?.creatorProfile?.city || '');
-  const [bio, setBio] = useState(user?.creatorProfile?.bio || '');
-  const [perReelRate, setPerReelRate] = useState(String(user?.creatorProfile?.pricing?.reel1 || '1500'));
+  const u = (user as any) || {};
+  const [displayName, setDisplayName] = useState(u.creatorProfile?.displayName || u.name || '');
+  const [category, setCategory] = useState(u.creatorProfile?.category || 'Fashion & Lifestyle');
+  const [city, setCity] = useState(u.city || u.creatorProfile?.city || '');
+  const [bio, setBio] = useState(u.creatorProfile?.bio || '');
+  const [perReelRate, setPerReelRate] = useState(String(u.creatorProfile?.pricing?.reel1 || '1500'));
 
   const handleCompleteSetup = async () => {
     if (!displayName.trim() || !city.trim()) {

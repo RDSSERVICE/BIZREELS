@@ -400,7 +400,12 @@ export default function HomeScreen() {
                       <TouchableOpacity
                         key={reel._id}
                         style={styles.reelHighlightCard}
-                        onPress={() => router.push(`/reel/${reel._id}` as any)}>
+                        onPress={() =>
+                          router.push({
+                            pathname: '/reel/[id]',
+                            params: { id: reel._id, videoUrl: reel.videoUrl || reel.mediaUrls?.[0] || '' },
+                          } as any)
+                        }>
                         {reelThumb ? (
                           <Image
                             source={{ uri: reelThumb }}
@@ -460,7 +465,12 @@ export default function HomeScreen() {
                     <TouchableOpacity
                       key={reel._id}
                       style={styles.reelHighlightCard}
-                      onPress={() => router.push(`/reel/${reel._id}` as any)}>
+                      onPress={() =>
+                        router.push({
+                          pathname: '/reel/[id]',
+                          params: { id: reel._id, videoUrl: reel.videoUrl || reel.mediaUrls?.[0] || '' },
+                        } as any)
+                      }>
                       {reelThumb ? (
                         <Image
                           source={{ uri: reelThumb }}

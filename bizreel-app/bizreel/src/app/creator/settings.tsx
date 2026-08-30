@@ -23,7 +23,7 @@ export default function CreatorSettingsScreen() {
 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [bio, setBio] = useState(user?.creatorProfile?.bio || '');
+  const [bio, setBio] = useState((user as any)?.creatorProfile?.bio || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 

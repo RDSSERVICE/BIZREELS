@@ -5,7 +5,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
+import { api } from '@/lib/api';
 
 const YELLOW = '#F59E0B';
 const BLACK = '#0F0F12';
@@ -35,8 +36,27 @@ export default function VendorSubscriptionScreen() {
     (user as any)?.vendorProfile?.verificationStatus === 'approved';
 
   const [selectedCycle, setSelectedCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [dbPlans, setDbPlans] = useState<any[]>([]);
 
-  const plans = [
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  const fetchPlans = async () => {
+    try {
+      const res = await api
+        .get('/subscription/plans?role=vendor')
+        .catch(() => api.get('/wallet/plans?role=vendor'));
+      const items = res.data?.data?.items || res.data?.items || res.data?.data || res.data || [];
+      if (Array.isArray(items) && items.length > 0) {
+        setDbPlans(items);
+      }
+    } catch (err) {
+      console.warn('Fallback loading subscription plans:', err);
+    }
+  };
+
+  const defaultPlans = [
     {
       id: 'free',
       name: 'FREE PLAN',
@@ -44,7 +64,7 @@ export default function VendorSubscriptionScreen() {
       price: '₹0',
       period: 'Forever Free',
       description: 'Standard product & service listings for local business setup.',
-      isCurrent: true,
+      isCurrent: (user as any)?.subscription?.plan === 'free' || !(user as any)?.subscription?.plan,
       features: [
         'List up to 5 Products & Services',
         'Standard Search Visibility',
@@ -61,7 +81,7 @@ export default function VendorSubscriptionScreen() {
       price: selectedCycle === 'monthly' ? '₹999' : '₹8,999',
       period: selectedCycle === 'monthly' ? '/ month' : '/ year (Save 25%)',
       description: 'Maximum sales velocity, unlimited store listings & 5x buyer leads.',
-      isCurrent: false,
+      isCurrent: (user as any)?.subscription?.plan === 'pro',
       features: [
         'Unlimited Product & Service Listings',
         '5x Higher Search Placement',
@@ -80,7 +100,7 @@ export default function VendorSubscriptionScreen() {
       price: selectedCycle === 'monthly' ? '₹2,499' : '₹22,499',
       period: selectedCycle === 'monthly' ? '/ month' : '/ year',
       description: 'Dedicated account manager, custom AI ad copy, & featured homepage banners.',
-      isCurrent: false,
+      isCurrent: (user as any)?.subscription?.plan === 'enterprise',
       features: [
         'Everything in Pro Plan',
         'Featured Store Badge on Homepage',
@@ -92,6 +112,26 @@ export default function VendorSubscriptionScreen() {
       isPopular: false,
     },
   ];
+
+  const plans =
+    dbPlans.length > 0
+      ? dbPlans.map((p) => {
+          const rawPrice = selectedCycle === 'yearly' ? p.price_inr_year || p.price_inr * 10 : p.price_inr || p.price;
+          const isCurr = (user as any)?.subscription?.plan === p.code || (user as any)?.subscription?.plan === p.id;
+          return {
+            id: p.id || p._id || p.code,
+            name: (p.name || p.code || 'PLAN').toUpperCase(),
+            badge: p.badge || (p.is_popular ? 'RECOMMENDED' : isCurr ? 'CURRENT ACTIVE PLAN' : ''),
+            price: `₹${(rawPrice || 0).toLocaleString('en-IN')}`,
+            period: selectedCycle === 'yearly' ? '/ year' : '/ month',
+            description: p.description || 'Full platform access with premium support.',
+            isCurrent: isCurr,
+            features: p.features || ['Unlimited Listings', 'Instant Customer Leads', 'Verified Badge'],
+            buttonText: isCurr ? 'Current Active Plan' : `UPGRADE TO ${p.name?.toUpperCase() || 'PRO'}`,
+            isPopular: !!p.is_popular,
+          };
+        })
+      : defaultPlans;
 
   const handleSubscribe = (plan: typeof plans[0]) => {
     if (plan.isCurrent) return;
@@ -223,7 +263,7 @@ export default function VendorSubscriptionScreen() {
             <View style={styles.divider} />
 
             <View style={styles.featureList}>
-              {plan.features.map((feat, idx) => (
+              {plan.features.map((feat: string, idx: number) => (
                 <View key={idx} style={styles.featureRow}>
                   <Ionicons name="checkmark-circle" size={16} color={YELLOW} />
                   <Text style={styles.featureText}>{feat}</Text>

@@ -76,6 +76,18 @@ const PRICE_PRESETS = [
   { label: '₹50 Lakh - ₹2 Cr', min: 5000000, max: 20000000 },
 ];
 
+const PRICE_SLIDER_STEPS = [
+  { label: '₹0', val: 0 },
+  { label: '₹500', val: 500 },
+  { label: '₹2K', val: 2000 },
+  { label: '₹10K', val: 10000 },
+  { label: '₹50K', val: 50000 },
+  { label: '₹1L', val: 100000 },
+  { label: '₹10L', val: 1000000 },
+  { label: '₹50L', val: 5000000 },
+  { label: '₹2Cr+', val: 20000000 },
+];
+
 const TYPE_FILTERS = [
   { id: 'all', label: 'All Types' },
   { id: 'product', label: 'Products Only' },
@@ -119,8 +131,15 @@ export default function SearchScreen() {
   const params = useLocalSearchParams<{ q?: string; category?: string }>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const activeRole = user?.activeRole || user?.current_role || user?.role || 'customer';
+  const u = (user as any) || {};
+  const activeRole = u.activeRole || u.current_role || u.role || 'customer';
   const isVendor = activeRole === 'vendor';
+  const isCustomer = activeRole === 'customer';
+
+  // Core Search States
+  const [searchText, setSearchText] = useState(params.q || '');
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [selectedCity, setSelectedCity] = useState('All Cities');
 
   useEffect(() => {
     if (isVendor) {
@@ -158,7 +177,7 @@ export default function SearchScreen() {
   const createReqMutation = useCreateRequirement();
 
   // Defer search input for smooth typing
-  const deferredSearch = useDeferredValue(searchText.trim());
+  const deferredSearch = useDeferredValue((searchText || '').trim());
   const isQueryActive =
     deferredSearch.length > 0 ||
     selectedCategory !== null ||
@@ -280,7 +299,7 @@ export default function SearchScreen() {
 
   const rawListings = Array.isArray(listingsData)
     ? listingsData
-    : listingsData?.data || listingsData?.listings || [];
+    : (listingsData as any)?.data || (listingsData as any)?.listings || [];
 
   // Filter & Sort results locally fallback
   const filteredListings = rawListings.filter((item: any) => {
@@ -318,7 +337,7 @@ export default function SearchScreen() {
     else refetchCats();
   }, [isQueryActive, refetchListings, refetchCats]);
 
-  const catList = Array.isArray(categories) ? categories : categories?.data || [];
+  const catList = Array.isArray(categories) ? categories : (categories as any)?.data || [];
   const parentCategories = catList.filter((c: any) => !c.parent_id);
 
   return (
@@ -591,7 +610,7 @@ export default function SearchScreen() {
               <ActivityIndicator color={YELLOW} style={{ marginVertical: 20 }} />
             ) : (
               <View style={styles.categoryGrid}>
-                {parentCategories.map((cat) => (
+                {parentCategories.map((cat: any) => (
                   <TouchableOpacity
                     key={cat.id}
                     style={styles.categoryGridCard}
@@ -701,6 +720,76 @@ export default function SearchScreen() {
                         setSelectedPricePreset(null);
                       }}
                     />
+                  </View>
+
+                  {/* ── Interactive Price Range Sliding Bar ── */}
+                  <View style={styles.priceSliderBox}>
+                    <View style={styles.sliderHeaderRow}>
+                      <Text style={styles.sliderTitle}>MAX BUDGET SLIDE BAR</Text>
+                      <Text style={styles.sliderValueText}>
+                        {!maxPriceInput || Number(maxPriceInput) === 0
+                          ? 'Any Budget'
+                          : `Max ₹${Number(maxPriceInput).toLocaleString('en-IN')}`}
+                      </Text>
+                    </View>
+
+                    <View style={styles.trackBackground}>
+                      <View
+                        style={[
+                          styles.trackFill,
+                          {
+                            width: `${
+                              (PRICE_SLIDER_STEPS.findIndex(
+                                (s) => s.val >= Number(maxPriceInput || 0)
+                              ) === -1
+                                ? PRICE_SLIDER_STEPS.length - 1
+                                : Math.max(
+                                    0,
+                                    PRICE_SLIDER_STEPS.findIndex(
+                                      (s) => s.val >= Number(maxPriceInput || 0)
+                                    )
+                                  )) /
+                              (PRICE_SLIDER_STEPS.length - 1) *
+                              100
+                            }%`,
+                          },
+                        ]}
+                      />
+                    </View>
+
+                    <View style={styles.stepButtonsRow}>
+                      {PRICE_SLIDER_STEPS.map((step) => {
+                        const currentVal = Number(maxPriceInput || 0);
+                        const isSelected = step.val === currentVal;
+                        const isPassed = currentVal >= step.val && step.val > 0;
+                        return (
+                          <TouchableOpacity
+                            key={step.val}
+                            style={[
+                              styles.stepDotBtn,
+                              isSelected && styles.stepDotBtnActive,
+                            ]}
+                            onPress={() => {
+                              setMaxPriceInput(step.val === 0 ? '' : String(step.val));
+                              setSelectedPricePreset(null);
+                            }}>
+                            <View
+                              style={[
+                                styles.stepDotInner,
+                                isPassed && { backgroundColor: YELLOW },
+                                isSelected && { backgroundColor: '#fff' },
+                              ]}
+                            />
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    <View style={styles.stepLabelsRow}>
+                      <Text style={styles.stepLabelText}>₹0</Text>
+                      <Text style={styles.stepLabelText}>₹50K</Text>
+                      <Text style={styles.stepLabelText}>₹2Cr+</Text>
+                    </View>
                   </View>
                 </View>
 
@@ -1052,4 +1141,76 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   applyModalBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900', letterSpacing: 1 },
+
+  // Price Slider Bar Styles
+  priceSliderBox: {
+    backgroundColor: BLACK,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 12,
+    marginTop: 10,
+    gap: 10,
+  },
+  sliderHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sliderTitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  sliderValueText: {
+    color: YELLOW,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+  },
+  trackBackground: {
+    height: 6,
+    backgroundColor: '#1c1c1e',
+    borderRadius: 3,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  trackFill: {
+    height: '100%',
+    backgroundColor: YELLOW,
+    borderRadius: 3,
+  },
+  stepButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    marginTop: -13,
+  },
+  stepDotBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDotBtnActive: {
+    backgroundColor: YELLOW,
+  },
+  stepDotInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#3A3A3C',
+  },
+  stepLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  stepLabelText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 9,
+    fontWeight: '700',
+  },
 });

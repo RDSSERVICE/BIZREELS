@@ -145,7 +145,6 @@ export default function VendorLayout() {
     { label: bi('Chat / Inbox', 'चैट इनबॉक्स'), path: '/vendor/chat', icon: FiMessageSquare },
 
     // Portals
-    { label: bi('Customer Feed', 'ग्राहक फीड'), path: '/customer/home', icon: FiTv },
     {
       label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName)
         ? bi('Creator Portal', 'क्रिएटर पोर्टल')
@@ -179,15 +178,15 @@ export default function VendorLayout() {
     },
     {
       title: bi('Portals', 'पोर्टल'),
-      items: menuItems.slice(6, 8),
+      items: menuItems.slice(6, 7),
     },
     {
       title: bi('Business & Growth', 'व्यवसाय और विकास'),
-      items: menuItems.slice(8, 16),
+      items: menuItems.slice(7, 15),
     },
     {
       title: bi('Finance & Account', 'वित्त और खाता'),
-      items: menuItems.slice(16),
+      items: menuItems.slice(15),
     },
   ];
 

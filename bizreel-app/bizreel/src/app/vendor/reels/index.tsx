@@ -96,41 +96,67 @@ export default function VendorReelsScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <Image
-                source={{ uri: item.thumbnailUrl || item.mediaUrls?.[0] || item.videoUrl }}
-                style={styles.cardThumbnail}
-                contentFit="cover"
-              />
-
-              <View style={styles.cardInfo}>
-                <Text style={styles.cardCaption} numberOfLines={2}>
-                  {item.caption || 'Product Highlight Reel'}
-                </Text>
-
-                <View style={styles.metricsRow}>
-                  <View style={styles.metricBadge}>
-                    <Ionicons name="heart" size={12} color="#FF2D55" />
-                    <Text style={styles.metricText}>{item.likesCount || 0}</Text>
-                  </View>
-                  <View style={styles.metricBadge}>
-                    <Ionicons name="chatbubble" size={12} color={BrandColors.primaryLight} />
-                    <Text style={styles.metricText}>{item.commentsCount || 0}</Text>
-                  </View>
-                  <View style={styles.metricBadge}>
-                    <Ionicons name="eye" size={12} color="rgba(255,255,255,0.7)" />
-                    <Text style={styles.metricText}>{item.viewsCount || 0}</Text>
+              <TouchableOpacity
+                style={styles.cardMainTouch}
+                onPress={() =>
+                  router.push({
+                    pathname: '/reel/[id]',
+                    params: { id: item._id, videoUrl: item.videoUrl || item.mediaUrls?.[0] || '' },
+                  } as any)
+                }>
+                <View style={styles.thumbnailContainer}>
+                  <Image
+                    source={{ uri: item.thumbnailUrl || item.mediaUrls?.[0] || item.videoUrl }}
+                    style={styles.cardThumbnail}
+                    contentFit="cover"
+                  />
+                  <View style={styles.playOverlayIcon}>
+                    <Ionicons name="play" size={16} color="#fff" />
                   </View>
                 </View>
 
-                {item.isBoosted && (
-                  <View style={styles.boostedTag}>
-                    <Ionicons name="flame" size={10} color="#fff" />
-                    <Text style={styles.boostedText}>Sponsored Boosted</Text>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardCaption} numberOfLines={2}>
+                    {item.caption || 'Product Highlight Reel'}
+                  </Text>
+
+                  <View style={styles.metricsRow}>
+                    <View style={styles.metricBadge}>
+                      <Ionicons name="heart" size={12} color="#FF2D55" />
+                      <Text style={styles.metricText}>{item.likesCount || 0}</Text>
+                    </View>
+                    <View style={styles.metricBadge}>
+                      <Ionicons name="chatbubble" size={12} color={BrandColors.primaryLight} />
+                      <Text style={styles.metricText}>{item.commentsCount || 0}</Text>
+                    </View>
+                    <View style={styles.metricBadge}>
+                      <Ionicons name="eye" size={12} color="rgba(255,255,255,0.7)" />
+                      <Text style={styles.metricText}>{item.viewsCount || 0}</Text>
+                    </View>
                   </View>
-                )}
-              </View>
+
+                  {item.isBoosted && (
+                    <View style={styles.boostedTag}>
+                      <Ionicons name="flame" size={10} color="#fff" />
+                      <Text style={styles.boostedText}>Sponsored Boosted</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
 
               <View style={styles.cardActions}>
+                <TouchableOpacity
+                  style={styles.playActionBtn}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/reel/[id]',
+                      params: { id: item._id, videoUrl: item.videoUrl || item.mediaUrls?.[0] || '' },
+                    } as any)
+                  }>
+                  <Ionicons name="play-circle" size={16} color="#F59E0B" />
+                  <Text style={styles.playActionBtnText}>Play</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.boostBtn}
                   onPress={() => handleBoost(item._id)}
@@ -242,11 +268,35 @@ const styles = StyleSheet.create({
     borderColor: '#2c2c2e',
     gap: Spacing.three,
   },
+  cardMainTouch: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  thumbnailContainer: {
+    position: 'relative',
+    width: 60,
+    height: 90,
+  },
   cardThumbnail: {
     width: 60,
     height: 90,
     borderRadius: 8,
     backgroundColor: '#2c2c2e',
+  },
+  playOverlayIcon: {
+    position: 'absolute',
+    top: 33,
+    left: 18,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
   cardInfo: {
     flex: 1,
@@ -292,6 +342,23 @@ const styles = StyleSheet.create({
   },
   cardActions: {
     gap: Spacing.two,
+    alignItems: 'center',
+  },
+  playActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  playActionBtnText: {
+    color: '#F59E0B',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
   },
   boostBtn: {
     padding: Spacing.one,
