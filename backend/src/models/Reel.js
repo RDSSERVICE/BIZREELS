@@ -70,6 +70,21 @@ const reelSchema = new Schema(
       ref: 'Listing',
       default: null,
     },
+    price: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    salePrice: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    sellingPrice: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     promotionArea: {
       type: String,
       default: 'City Wide',
