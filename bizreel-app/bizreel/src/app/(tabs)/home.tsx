@@ -510,111 +510,113 @@ export default function HomeScreen() {
           )
         )}
 
-        {/* Vendor Catalog / Trending Listings Grid */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {isVendor
-                ? selectedCategory
+        {/* Vendor Catalog / Trending Listings Grid (Customer & Vendor mode only) */}
+        {!isCreator && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {isVendor
+                  ? selectedCategory
+                    ? `${selectedCategory} (${filteredListings.length})`
+                    : `📦 My Store Catalog Items (${filteredListings.length})`
+                  : selectedCategory
                   ? `${selectedCategory} (${filteredListings.length})`
-                  : `📦 My Store Catalog Items (${filteredListings.length})`
-                : selectedCategory
-                ? `${selectedCategory} (${filteredListings.length})`
-                : 'Trending Products & Services'}
-            </Text>
-            {isVendor && (
-              <TouchableOpacity onPress={() => router.push('/vendor/listings' as any)}>
-                <Text style={styles.seeAllText}>Manage Store Catalog ›</Text>
-              </TouchableOpacity>
+                  : 'Trending Products & Services'}
+              </Text>
+              {isVendor && (
+                <TouchableOpacity onPress={() => router.push('/vendor/listings' as any)}>
+                  <Text style={styles.seeAllText}>Manage Store Catalog ›</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {loading ? (
+              <ActivityIndicator size="large" color={BrandColors.primary} style={{ marginVertical: 40 }} />
+            ) : filteredListings.length === 0 ? (
+              <View style={styles.emptyListings}>
+                <Ionicons name="basket-outline" size={40} color="rgba(255,255,255,0.3)" />
+                <Text style={styles.emptyListingsText}>No products found matching your search</Text>
+              </View>
+            ) : (
+              <View style={styles.gridContainer}>
+                {filteredListings.map((item) => {
+                  const imageUrl = getListingImage(item);
+                  const price = item.salePrice || item.sellingPrice || item.price || 0;
+                  const originalPrice = item.actualPrice || item.price;
+
+                  return (
+                    <TouchableOpacity
+                      key={item._id || item.id}
+                      style={styles.productCard}
+                      onPress={() => router.push(`/listing/${item._id || item.id}`)}>
+                      {/* Card Thumbnail */}
+                      {imageUrl ? (
+                        <Image source={{ uri: imageUrl }} style={styles.productImage} contentFit="cover" />
+                      ) : (
+                        <View style={styles.productImageFallback}>
+                          <Ionicons name="image-outline" size={32} color="rgba(255,255,255,0.4)" />
+                        </View>
+                      )}
+
+                      {/* Content Details */}
+                      <View style={styles.productInfo}>
+                        <Text style={styles.productTitle} numberOfLines={2}>
+                          {item.title}
+                        </Text>
+
+                        <Text style={styles.vendorName} numberOfLines={1}>
+                          {item.vendor?.businessName || item.vendor?.name || 'Verified Vendor'}
+                        </Text>
+
+                        <View style={styles.priceRow}>
+                          <View>
+                            <Text style={styles.productPrice}>₹{price}</Text>
+                            {originalPrice > price && (
+                              <Text style={styles.originalPrice}>₹{originalPrice}</Text>
+                            )}
+                          </View>
+
+                          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                            <TouchableOpacity
+                              style={styles.chatSmallBtn}
+                              onPress={() => {
+                                const recipientId = item.vendor?._id || item.vendor?.id || item.vendor_id || item.user_id;
+                                const vendorName = item.vendor?.businessName || item.vendor?.name || 'Seller';
+                                if (!recipientId) {
+                                  Alert.alert('Seller Info', 'Seller details not available for this item.');
+                                  return;
+                                }
+                                router.push({
+                                  pathname: '/messages/[id]' as any,
+                                  params: {
+                                    id: `direct_${recipientId}`,
+                                    recipientId,
+                                    name: vendorName,
+                                    avatar: item.vendor?.avatarUrl || '',
+                                  },
+                                } as any);
+                              }}>
+                              <Ionicons name="chatbubble-ellipses-outline" size={14} color={YELLOW} />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={styles.addCartBtn}
+                              onPress={() =>
+                                addToCartMutation.mutate({ listing_id: item._id || item.id, quantity: 1 })
+                              }
+                              disabled={addToCartMutation.isPending}>
+                              <Ionicons name="add" size={18} color={BLACK} />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             )}
           </View>
-
-          {loading ? (
-            <ActivityIndicator size="large" color={BrandColors.primary} style={{ marginVertical: 40 }} />
-          ) : filteredListings.length === 0 ? (
-            <View style={styles.emptyListings}>
-              <Ionicons name="basket-outline" size={40} color="rgba(255,255,255,0.3)" />
-              <Text style={styles.emptyListingsText}>No products found matching your search</Text>
-            </View>
-          ) : (
-            <View style={styles.gridContainer}>
-              {filteredListings.map((item) => {
-                const imageUrl = getListingImage(item);
-                const price = item.salePrice || item.sellingPrice || item.price || 0;
-                const originalPrice = item.actualPrice || item.price;
-
-                return (
-                  <TouchableOpacity
-                    key={item._id || item.id}
-                    style={styles.productCard}
-                    onPress={() => router.push(`/listing/${item._id || item.id}`)}>
-                    {/* Card Thumbnail */}
-                    {imageUrl ? (
-                      <Image source={{ uri: imageUrl }} style={styles.productImage} contentFit="cover" />
-                    ) : (
-                      <View style={styles.productImageFallback}>
-                        <Ionicons name="image-outline" size={32} color="rgba(255,255,255,0.4)" />
-                      </View>
-                    )}
-
-                    {/* Content Details */}
-                    <View style={styles.productInfo}>
-                      <Text style={styles.productTitle} numberOfLines={2}>
-                        {item.title}
-                      </Text>
-
-                      <Text style={styles.vendorName} numberOfLines={1}>
-                        {item.vendor?.businessName || item.vendor?.name || 'Verified Vendor'}
-                      </Text>
-
-                      <View style={styles.priceRow}>
-                        <View>
-                          <Text style={styles.productPrice}>₹{price}</Text>
-                          {originalPrice > price && (
-                            <Text style={styles.originalPrice}>₹{originalPrice}</Text>
-                          )}
-                        </View>
-
-                        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-                          <TouchableOpacity
-                            style={styles.chatSmallBtn}
-                            onPress={() => {
-                              const recipientId = item.vendor?._id || item.vendor?.id || item.vendor_id || item.user_id;
-                              const vendorName = item.vendor?.businessName || item.vendor?.name || 'Seller';
-                              if (!recipientId) {
-                                Alert.alert('Seller Info', 'Seller details not available for this item.');
-                                return;
-                              }
-                              router.push({
-                                pathname: '/messages/[id]' as any,
-                                params: {
-                                  id: `direct_${recipientId}`,
-                                  recipientId,
-                                  name: vendorName,
-                                  avatar: item.vendor?.avatarUrl || '',
-                                },
-                              } as any);
-                            }}>
-                            <Ionicons name="chatbubble-ellipses-outline" size={14} color={YELLOW} />
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={styles.addCartBtn}
-                            onPress={() =>
-                              addToCartMutation.mutate({ listing_id: item._id || item.id, quantity: 1 })
-                            }
-                            disabled={addToCartMutation.isPending}>
-                            <Ionicons name="add" size={18} color={BLACK} />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        </View>
+        )}
       </ScrollView>
     </View>
     </>
