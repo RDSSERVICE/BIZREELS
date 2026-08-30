@@ -98,7 +98,7 @@ export default function LoginScreen() {
           setCountdown(60);
           Alert.alert(
             'OTP Dispatched',
-            data.message || `A 6-digit verification code has been sent via ${channel.toUpperCase()} to ${fullPhone}.`
+            data.message || `A 6-digit verification code has been sent to ${fullPhone}.`
           );
         },
         onError: (err: any) => {
@@ -339,25 +339,7 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              {/* Channel Selector: SMS vs WhatsApp */}
-              <View style={s.fieldGroup}>
-                <Text style={s.label}>Send OTP Via</Text>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <TouchableOpacity
-                    style={[s.channelBtn, channel === 'sms' && s.channelBtnActive]}
-                    onPress={() => setChannel('sms')}>
-                    <Ionicons name="chatbox-outline" size={16} color={channel === 'sms' ? BLACK : YELLOW} />
-                    <Text style={[s.channelBtnText, channel === 'sms' && s.channelBtnTextActive]}>SMS</Text>
-                  </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[s.channelBtn, channel === 'whatsapp' && s.channelBtnActive]}
-                    onPress={() => setChannel('whatsapp')}>
-                    <Ionicons name="logo-whatsapp" size={16} color={channel === 'whatsapp' ? BLACK : '#22C55E'} />
-                    <Text style={[s.channelBtnText, channel === 'whatsapp' && s.channelBtnTextActive]}>WhatsApp</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
 
               {/* OTP Sent Section */}
               {otpSent ? (
