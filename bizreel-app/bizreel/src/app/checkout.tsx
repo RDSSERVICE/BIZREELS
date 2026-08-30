@@ -71,7 +71,7 @@ export default function CheckoutScreen() {
   const directPrice = parseFloat(rawPriceParam || '0');
   const hasDirectItem = !!(params.title || params.listingId);
 
-  const displayGroups = hasDirectItem && directPrice > 0
+  const displayGroups = hasDirectItem
     ? [
         {
           vendor_id: 'direct_vendor',

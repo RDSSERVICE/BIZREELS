@@ -488,30 +488,40 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
               style={styles.reelBuyBtn}
               onPress={() => {
                 const targetListingId = (reel as any).taggedListing?._id || (reel as any).taggedListing || reel._id;
-                const price = (reel as any).taggedListing?.price || (reel as any).taggedListing?.salePrice || 0;
+                const itemPrice =
+                  displayPrice ||
+                  (reel as any).taggedListing?.price ||
+                  (reel as any).taggedListing?.salePrice ||
+                  (reel as any).price ||
+                  0;
+                const itemImage =
+                  reel.thumbnailUrl ||
+                  (reel.mediaUrls && reel.mediaUrls[0]) ||
+                  (reel as any).taggedListing?.images?.[0]?.url ||
+                  '';
+                const vendorName = reel.creatorName || 'Verified Supplier';
+
+                const navParams = {
+                  listingId: String(targetListingId),
+                  title: reel.caption || 'Featured Reel Product',
+                  price: String(itemPrice),
+                  image: itemImage,
+                  vendorName,
+                };
+
                 addToCartMutation.mutate(
-                  { listing_id: targetListingId, quantity: 1 },
+                  { listing_id: String(targetListingId), quantity: 1 },
                   {
                     onSuccess: () => {
                       router.push({
                         pathname: '/checkout',
-                        params: {
-                          listingId: targetListingId,
-                          title: reel.caption || 'Featured Reel Product',
-                          price: price.toString(),
-                          vendorName: reel.creatorName || 'Verified Business',
-                        },
+                        params: navParams,
                       });
                     },
                     onError: () => {
                       router.push({
                         pathname: '/checkout',
-                        params: {
-                          listingId: targetListingId,
-                          title: reel.caption || 'Featured Reel Product',
-                          price: price.toString(),
-                          vendorName: reel.creatorName || 'Verified Business',
-                        },
+                        params: navParams,
                       });
                     },
                   }
