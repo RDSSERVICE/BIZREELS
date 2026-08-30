@@ -20,6 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import DirectBuyModal from '@/components/DirectBuyModal';
 import { useAddToCart } from '@/features/cart/queries';
 import { useCreateInquiry } from '@/features/inquiries/queries';
 import { useCreateReview, useListingReviews } from '@/features/reviews/queries';
@@ -48,8 +49,9 @@ export default function ListingDetailsScreen() {
 
   // Review modal state
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
-  const [selectedRating, setSelectedRating] = useState(5);
+  const [rating, setRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [directBuyModalOpen, setDirectBuyModalOpen] = useState(false);
 
   const addToCartMutation = useAddToCart();
   const createInquiryMutation = useCreateInquiry();
@@ -170,38 +172,7 @@ export default function ListingDetailsScreen() {
   };
 
   const handleBuyNow = () => {
-    const itemPrice = price || listing.price || 0;
-    const itemImage = mainImage || '';
-
-    addToCartMutation.mutate(
-      { listing_id: listing._id, quantity: 1 },
-      {
-        onSuccess: () => {
-          router.push({
-            pathname: '/checkout',
-            params: {
-              listingId: listing._id,
-              title: listing.title,
-              price: itemPrice.toString(),
-              image: itemImage,
-              vendorName,
-            },
-          });
-        },
-        onError: () => {
-          router.push({
-            pathname: '/checkout',
-            params: {
-              listingId: listing._id,
-              title: listing.title,
-              price: itemPrice.toString(),
-              image: itemImage,
-              vendorName,
-            },
-          });
-        },
-      }
-    );
+    setDirectBuyModalOpen(true);
   };
 
   const handleWhatsApp = () => {
@@ -635,6 +606,13 @@ export default function ListingDetailsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Direct Buy Modal */}
+      <DirectBuyModal
+        visible={directBuyModalOpen}
+        onClose={() => setDirectBuyModalOpen(false)}
+        item={listing}
+      />
     </View>
   );
 }

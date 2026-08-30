@@ -32,6 +32,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import DirectBuyModal from '@/components/DirectBuyModal';
 import { useAddToCart } from '@/features/cart/queries';
 import { api } from '@/lib/api';
 import {
@@ -74,6 +75,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isFollowing, setIsFollowing] = useState(false);
+  const [directBuyModalOpen, setDirectBuyModalOpen] = useState(false);
 
   const toggleLikeMutation = useToggleReelLike();
   const toggleSaveMutation = useToggleReelSave();
@@ -486,47 +488,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
             <TouchableOpacity
               style={styles.reelBuyBtn}
-              onPress={() => {
-                const targetListingId = (reel as any).taggedListing?._id || (reel as any).taggedListing || reel._id;
-                const itemPrice =
-                  displayPrice ||
-                  (reel as any).taggedListing?.price ||
-                  (reel as any).taggedListing?.salePrice ||
-                  (reel as any).price ||
-                  0;
-                const itemImage =
-                  reel.thumbnailUrl ||
-                  (reel.mediaUrls && reel.mediaUrls[0]) ||
-                  (reel as any).taggedListing?.images?.[0]?.url ||
-                  '';
-                const vendorName = reel.creatorName || 'Verified Supplier';
-
-                const navParams = {
-                  listingId: String(targetListingId),
-                  title: reel.caption || 'Featured Reel Product',
-                  price: String(itemPrice),
-                  image: itemImage,
-                  vendorName,
-                };
-
-                addToCartMutation.mutate(
-                  { listing_id: String(targetListingId), quantity: 1 },
-                  {
-                    onSuccess: () => {
-                      router.push({
-                        pathname: '/checkout',
-                        params: navParams,
-                      });
-                    },
-                    onError: () => {
-                      router.push({
-                        pathname: '/checkout',
-                        params: navParams,
-                      });
-                    },
-                  }
-                );
-              }}>
+              onPress={() => setDirectBuyModalOpen(true)}>
               <Ionicons name="flash" size={15} color="#000" />
               <Text style={styles.reelBuyText}>Buy Now</Text>
             </TouchableOpacity>
@@ -699,6 +661,13 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
           </View>
         </View>
       </Modal>
+
+      {/* Direct Buy / Instant Checkout Modal */}
+      <DirectBuyModal
+        visible={directBuyModalOpen}
+        onClose={() => setDirectBuyModalOpen(false)}
+        item={reel}
+      />
     </View>
   );
 });
