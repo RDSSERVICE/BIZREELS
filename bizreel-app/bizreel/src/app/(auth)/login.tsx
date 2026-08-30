@@ -38,9 +38,8 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Phone OTP state
-  const [phone, setPhone] = useState('');
-  const [channel, setChannel] = useState<'sms' | 'whatsapp'>('sms');
+  // Phone / Email OTP state
+  const [identifier, setIdentifier] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [countdown, setCountdown] = useState(0);
@@ -82,27 +81,47 @@ export default function LoginScreen() {
 
   function handleSendOtp() {
     setServerError(null);
-    const cleanedPhone = phone.trim();
-    if (!cleanedPhone || cleanedPhone.length < 10) {
-      setServerError('Please enter a valid 10-digit mobile number.');
+    const cleaned = identifier.trim();
+    if (!cleaned) {
+      setServerError('Please enter a valid email address or 10-digit mobile number.');
       return;
     }
 
-    const fullPhone = cleanedPhone.startsWith('+') ? cleanedPhone : `+91${cleanedPhone}`;
+    const isEmail = cleaned.includes('@');
+    let phoneVal = '';
+    let emailVal = '';
+
+    if (isEmail) {
+      emailVal = cleaned.toLowerCase();
+    } else {
+      const barePhone = cleaned.replace(/\D/g, '');
+      if (barePhone.length < 10) {
+        setServerError('Please enter a valid 10-digit mobile number or email address.');
+        return;
+      }
+      phoneVal = cleaned.startsWith('+') ? cleaned : `+91${barePhone}`;
+    }
+
+    const targetVal = isEmail ? emailVal : phoneVal;
 
     triggerSendOtp(
-      { phone: fullPhone, channel, purpose: 'login' },
+      {
+        phone: phoneVal,
+        email: emailVal,
+        identifier: targetVal,
+        purpose: 'login',
+      } as any,
       {
         onSuccess: (data) => {
           setOtpSent(true);
           setCountdown(60);
           Alert.alert(
             'OTP Dispatched',
-            data.message || `A 6-digit verification code has been sent to ${fullPhone}.`
+            data.message || `A 6-digit verification code has been sent to ${targetVal}.`
           );
         },
         onError: (err: any) => {
-          setServerError(err?.response?.data?.message || err.message || 'Failed to send OTP. Please check your phone number.');
+          setServerError(err?.response?.data?.message || err.message || 'Failed to send OTP. Please check your credentials.');
         },
       }
     );
@@ -115,10 +134,20 @@ export default function LoginScreen() {
       return;
     }
 
-    const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+    const cleaned = identifier.trim();
+    const isEmail = cleaned.includes('@');
+    const phoneVal = isEmail ? '' : (cleaned.startsWith('+') ? cleaned : `+91${cleaned.replace(/\D/g, '')}`);
+    const emailVal = isEmail ? cleaned.toLowerCase() : '';
+    const targetVal = isEmail ? emailVal : phoneVal;
 
     triggerVerifyOtp(
-      { phone: fullPhone, otp: otpCode.trim(), purpose: 'login' },
+      {
+        phone: phoneVal,
+        email: emailVal,
+        identifier: targetVal,
+        otp: otpCode.trim(),
+        purpose: 'login',
+      } as any,
       {
         onError: (err: any) => {
           setServerError(err?.response?.data?.message || err.message || 'Invalid or expired OTP code.');
@@ -319,20 +348,20 @@ export default function LoginScreen() {
           {/* ── MODE 2: MOBILE PHONE OTP ── */}
           {authMode === 'phone' && (
             <>
-              {/* Phone Input */}
+              {/* Email or Phone Input */}
               <View style={s.fieldGroup}>
-                <Text style={s.label}>Mobile Phone Number (+91)</Text>
+                <Text style={s.label}>Email Address or Mobile Number</Text>
                 <View style={s.inputRow}>
-                  <Text style={{ color: YELLOW, fontWeight: '900', fontSize: FontSize.sm, paddingRight: 6 }}>+91</Text>
+                  <Ionicons name="person-circle-outline" size={18} color={YELLOW} style={s.inputIcon} />
                   <TextInput
                     style={s.input}
-                    placeholder="Enter 10-digit mobile number"
+                    placeholder="Enter email or 10-digit mobile number"
                     placeholderTextColor="rgba(255,255,255,0.4)"
-                    keyboardType="phone-pad"
-                    maxLength={10}
-                    value={phone}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={identifier}
                     onChangeText={(v) => {
-                      setPhone(v);
+                      setIdentifier(v);
                       setServerError(null);
                     }}
                   />
