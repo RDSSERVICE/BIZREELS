@@ -6,7 +6,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -39,7 +39,7 @@ export default function ProfileScreen() {
 
   const { data: user, isLoading, isError, refetch, isRefetching } = useCurrentUserProfile();
 
-  const [userInterests, setUserInterests] = useState<string[]>([]);
+  const [userInterests, setUserInterests] = useState<Array<{ category: string; subcategory?: string | null }>>([]);
 
   const [vendorAnalytics, setVendorAnalytics] = useState<{
     callsCount: number;
@@ -61,20 +61,26 @@ export default function ProfileScreen() {
         u.customer_interests ||
         [];
       
-      const parsedNames: string[] = Array.isArray(rawInterests)
-        ? rawInterests.map((i: any) => (typeof i === 'string' ? i : i.category || i.name)).filter(Boolean)
+      const parsed: Array<{ category: string; subcategory?: string | null }> = Array.isArray(rawInterests)
+        ? rawInterests.map((i: any) => {
+            if (typeof i === 'string') return { category: i, subcategory: null };
+            return { category: i.category || i.name || 'General', subcategory: i.subcategory || null };
+          }).filter((i) => Boolean(i.category))
         : [];
 
-      if (parsedNames.length > 0) {
-        setUserInterests(parsedNames);
+      if (parsed.length > 0) {
+        setUserInterests(parsed);
       }
 
       api.get('/v1/users/me/interests')
         .then((res) => {
           const items = res.data?.interests || res.data?.data?.interests || [];
           if (Array.isArray(items) && items.length > 0) {
-            const names = items.map((i: any) => (typeof i === 'string' ? i : i.category || i.name)).filter(Boolean);
-            setUserInterests(names);
+            const list = items.map((i: any) => {
+              if (typeof i === 'string') return { category: i, subcategory: null };
+              return { category: i.category || i.name || 'General', subcategory: i.subcategory || null };
+            }).filter((i) => Boolean(i.category));
+            setUserInterests(list);
           }
         })
         .catch(() => null);
@@ -103,6 +109,22 @@ export default function ProfileScreen() {
       }
     }
   }, [user]);
+
+  const groupedInterests = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const item of userInterests) {
+      if (!map.has(item.category)) {
+        map.set(item.category, []);
+      }
+      if (item.subcategory) {
+        const existing = map.get(item.category)!;
+        if (!existing.includes(item.subcategory)) {
+          existing.push(item.subcategory);
+        }
+      }
+    }
+    return Array.from(map.entries()).map(([category, subs]) => ({ category, subs }));
+  }, [userInterests]);
 
   function handleLogout() {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
@@ -337,28 +359,44 @@ export default function ProfileScreen() {
             <View style={styles.sectionLabelRow}>
               <View style={styles.sectionBar} />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }}>
-                <Text style={styles.menuSectionHeader}>MY SELECTED INTERESTS ({userInterests.length})</Text>
+                <Text style={styles.menuSectionHeader}>
+                  MY FEED INTERESTS & PREFERENCES ({groupedInterests.length})
+                </Text>
                 <TouchableOpacity onPress={() => router.push('/customer/choose-interests' as any)}>
                   <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '900' }}>Edit / Manage ›</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {userInterests.length > 0 ? (
-              <View style={styles.interestsWrap}>
-                {userInterests.map((interest, idx) => (
-                  <View key={idx} style={styles.interestPill}>
-                    <Ionicons name="sparkles" size={12} color={YELLOW} />
-                    <Text style={styles.interestPillText}>{interest}</Text>
+            {groupedInterests.length > 0 ? (
+              <View style={styles.interestsGroupWrap}>
+                {groupedInterests.map((item, idx) => (
+                  <View key={idx} style={styles.interestGroupCard}>
+                    <View style={styles.interestCategoryHeader}>
+                      <Ionicons name="sparkles" size={13} color={YELLOW} />
+                      <Text style={styles.interestCategoryName}>{item.category}</Text>
+                    </View>
+
+                    {item.subs.length > 0 ? (
+                      <View style={styles.subPillsWrap}>
+                        {item.subs.map((sub, sIdx) => (
+                          <View key={sIdx} style={styles.subPillChip}>
+                            <Text style={styles.subPillText}>• {sub}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={styles.allSubLabel}>All Subcategories & Related Feed Items</Text>
+                    )}
                   </View>
                 ))}
               </View>
             ) : (
               <View style={styles.emptyInterestsBox}>
                 <Ionicons name="heart-dislike-outline" size={28} color={YELLOW} />
-                <Text style={styles.emptyInterestsTitle}>No Interests Selected Yet</Text>
+                <Text style={styles.emptyInterestsTitle}>No Preferences Configured Yet</Text>
                 <Text style={styles.emptyInterestsSub}>
-                  Select your top categories to personalize your video reels feed and local product deals.
+                  Select your top categories to receive personalized video reels, local seller offers, and custom deals.
                 </Text>
                 <TouchableOpacity
                   style={styles.chooseInterestsBtn}
@@ -596,6 +634,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     borderWidth: 1,
     borderColor: BORDER,
+  },
+  interestsGroupWrap: {
+    gap: 8,
+    marginTop: 6,
+    paddingTop: 4,
+  },
+  interestGroupCard: {
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 10,
+    gap: 4,
+  },
+  interestCategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  interestCategoryName: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+  },
+  subPillsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
+  subPillChip: {
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  subPillText: {
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  allSubLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   interestsWrap: {
     flexDirection: 'row',
