@@ -76,7 +76,14 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
   const [fetchedListing, setFetchedListing] = useState<any>(null);
 
   // Extract base information
-  const listingId = item?._id || item?.id || item?.listing_id || item?.taggedListing?._id || item?.taggedListing;
+  const rawListingId =
+    (typeof item?.taggedListing === 'object' ? item?.taggedListing?._id || item?.taggedListing?.id : item?.taggedListing) ||
+    (typeof item?.targetListing === 'object' ? item?.targetListing?._id || item?.targetListing?.id : item?.targetListing) ||
+    item?._id ||
+    item?.id ||
+    item?.listing_id;
+  const listingIdStr = typeof rawListingId === 'string' ? rawListingId : rawListingId?.toString();
+
   const initialPrice = extractModalPrice(item);
 
   // If price is 0 from initial item, fetch listing details from API
@@ -88,8 +95,8 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
       const p = extractModalPrice(item);
       setFetchedPrice(p);
 
-      if (p === 0 && listingId && typeof listingId === 'string' && listingId.length === 24) {
-        api.get(`/listings/${listingId}`)
+      if (p === 0 && listingIdStr && listingIdStr.length === 24) {
+        api.get(`/listings/${listingIdStr}`)
           .then(({ data }) => {
             const lData = data.data || data;
             setFetchedListing(lData);
@@ -101,7 +108,7 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
           .catch(() => null);
       }
     }
-  }, [visible, item, listingId]);
+  }, [visible, item, listingIdStr]);
 
   const targetItem = fetchedListing || item?.taggedListing || item || {};
   const activePrice = fetchedPrice > 0 ? fetchedPrice : extractModalPrice(targetItem);
