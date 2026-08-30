@@ -179,8 +179,8 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
       setOrderPlaced(true);
       if (onSuccess) onSuccess();
     } catch (err: any) {
-      Alert.alert('Order Notice', err.message || 'Direct order created successfully.');
-      setOrderPlaced(true);
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to place order.';
+      Alert.alert('Order Placement Restricted', errMsg);
     } finally {
       setSubmitting(false);
     }

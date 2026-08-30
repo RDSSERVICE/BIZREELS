@@ -182,16 +182,8 @@ export default function CheckoutScreen() {
         ]
       );
     } catch (err: any) {
-      Alert.alert(
-        'Order Confirmed',
-        'Your order request has been submitted. Check My Orders for status updates.',
-        [
-          {
-            text: 'View My Orders',
-            onPress: () => router.replace('/orders'),
-          },
-        ]
-      );
+      const errMsg = err?.response?.data?.message || err?.message || 'Could not place order. Please check supplier verification status.';
+      Alert.alert('Checkout Restricted', errMsg);
     } finally {
       setSubmitting(false);
     }
