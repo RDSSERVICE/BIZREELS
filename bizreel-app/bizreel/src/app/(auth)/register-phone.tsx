@@ -334,10 +334,10 @@ export default function RegisterPhoneScreen() {
                     style={s.eyeButton}
                     accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                     accessibilityRole="button">
-                    <SymbolView
-                      name={showPassword ? 'eye.slash' : 'eye'}
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                       size={18}
-                      tintColor={theme.textSecondary}
+                      color={BrandColors.primary}
                     />
                   </Pressable>
                 </View>
@@ -395,10 +395,10 @@ export default function RegisterPhoneScreen() {
                     style={s.eyeButton}
                     accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                     accessibilityRole="button">
-                    <SymbolView
-                      name={showConfirmPassword ? 'eye.slash' : 'eye'}
+                    <Ionicons
+                      name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                       size={18}
-                      tintColor={theme.textSecondary}
+                      color={BrandColors.primary}
                     />
                   </Pressable>
                 </View>

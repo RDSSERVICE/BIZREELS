@@ -85,6 +85,9 @@ export default function CustomerSettingsScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
   // Dropdown Modals
@@ -534,10 +537,13 @@ export default function CustomerSettingsScreen() {
                     style={styles.input}
                     placeholder="Enter current password..."
                     placeholderTextColor="rgba(255,255,255,0.4)"
-                    secureTextEntry
+                    secureTextEntry={!showCurrentPw}
                     value={currentPassword}
                     onChangeText={setCurrentPassword}
                   />
+                  <TouchableOpacity onPress={() => setShowCurrentPw(!showCurrentPw)} style={{ padding: 4 }}>
+                    <Ionicons name={showCurrentPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={YELLOW} />
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -549,10 +555,13 @@ export default function CustomerSettingsScreen() {
                     style={styles.input}
                     placeholder="Enter new password (min 6 chars)..."
                     placeholderTextColor="rgba(255,255,255,0.4)"
-                    secureTextEntry
+                    secureTextEntry={!showNewPw}
                     value={newPassword}
                     onChangeText={setNewPassword}
                   />
+                  <TouchableOpacity onPress={() => setShowNewPw(!showNewPw)} style={{ padding: 4 }}>
+                    <Ionicons name={showNewPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={YELLOW} />
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -564,10 +573,13 @@ export default function CustomerSettingsScreen() {
                     style={styles.input}
                     placeholder="Re-enter new password..."
                     placeholderTextColor="rgba(255,255,255,0.4)"
-                    secureTextEntry
+                    secureTextEntry={!showConfirmPw}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                   />
+                  <TouchableOpacity onPress={() => setShowConfirmPw(!showConfirmPw)} style={{ padding: 4 }}>
+                    <Ionicons name={showConfirmPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={YELLOW} />
+                  </TouchableOpacity>
                 </View>
               </View>
 

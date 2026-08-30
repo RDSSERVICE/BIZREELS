@@ -317,7 +317,7 @@ export default function LoginScreen() {
                         <Ionicons
                           name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                           size={18}
-                          color="rgba(255,255,255,0.6)"
+                          color={YELLOW}
                         />
                       </Pressable>
                     </View>

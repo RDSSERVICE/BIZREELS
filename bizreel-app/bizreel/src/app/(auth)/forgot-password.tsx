@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SymbolView } from 'expo-symbols';
 import { Link, useRouter } from 'expo-router';
@@ -287,10 +288,10 @@ export default function ForgotPasswordScreen() {
                       <TouchableOpacity
                         onPress={() => setShowPassword(!showPassword)}
                         style={s.eyeBtn}>
-                        <SymbolView
-                          name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                           size={18}
-                          tintColor="rgba(255,255,255,0.6)"
+                          color={BrandColors.primary}
                         />
                       </TouchableOpacity>
                     </View>
@@ -331,10 +332,10 @@ export default function ForgotPasswordScreen() {
                       <TouchableOpacity
                         onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                         style={s.eyeBtn}>
-                        <SymbolView
-                          name={showConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
+                        <Ionicons
+                          name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                           size={18}
-                          tintColor="rgba(255,255,255,0.6)"
+                          color={BrandColors.primary}
                         />
                       </TouchableOpacity>
                     </View>
