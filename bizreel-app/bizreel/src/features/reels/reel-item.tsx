@@ -252,23 +252,74 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
     });
   }
 
-  const taggedListing = reel.taggedListing;
-  const hasTaggedListing = !!taggedListing?._id;
+  const taggedListingObj =
+    typeof reel.taggedListing === 'object' && reel.taggedListing !== null
+      ? reel.taggedListing
+      : (reel as any).targetListing && typeof (reel as any).targetListing === 'object'
+      ? (reel as any).targetListing
+      : (reel as any).listing && typeof (reel as any).listing === 'object'
+      ? (reel as any).listing
+      : null;
+
+  const taggedListingId =
+    taggedListingObj?._id ||
+    taggedListingObj?.id ||
+    (typeof reel.taggedListing === 'string' ? reel.taggedListing : null) ||
+    (typeof (reel as any).targetListing === 'string' ? (reel as any).targetListing : null);
+
+  const hasTaggedListing = !!(taggedListingId || taggedListingObj);
+
+  const priceCandidates = [
+    (reel as any).price,
+    (reel as any).salePrice,
+    (reel as any).sellingPrice,
+    (reel as any).offer_price,
+    taggedListingObj?.price,
+    taggedListingObj?.salePrice,
+    (taggedListingObj as any)?.sellingPrice,
+    (reel as any).taggedListing?.price,
+    (reel as any).taggedListing?.salePrice,
+    (reel as any).taggedListing?.sellingPrice,
+    (reel as any).taggedListing?.offer_price,
+    (reel as any).productPrice,
+  ];
+  const validPriceNum = priceCandidates.map((p) => Number(p)).find((p) => !isNaN(p) && p > 0);
+
+  const [fetchedPrice, setFetchedPrice] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!validPriceNum && taggedListingId && typeof taggedListingId === 'string' && taggedListingId.length === 24) {
+      api.get(`/listings/${taggedListingId}`)
+        .then(({ data }) => {
+          const lData = data.data || data;
+          const p = Number(lData.price || lData.salePrice || lData.sellingPrice || lData.offer_price || 0);
+          if (p > 0) {
+            setFetchedPrice(p);
+          }
+        })
+        .catch(() => null);
+    }
+  }, [taggedListingId, validPriceNum]);
+
+  const activePriceNum = validPriceNum || fetchedPrice;
+  const displayPrice = activePriceNum ? activePriceNum.toLocaleString('en-IN') : null;
 
   function handleAddToCart() {
-    if (taggedListing?._id) {
+    const targetId = taggedListingId || reel._id;
+    if (targetId) {
       addToCartMutation.mutate(
-        { listing_id: taggedListing._id, quantity: 1 },
+        { listing_id: String(targetId), quantity: 1 },
         {
-          onSuccess: () => Alert.alert('Cart Updated', `${taggedListing.title} added to cart!`),
+          onSuccess: () => Alert.alert('Cart Updated', `${taggedListingObj?.title || 'Reel item'} added to cart!`),
         }
       );
     }
   }
 
   function handleViewListing() {
-    if (taggedListing?._id) {
-      router.push(`/listing/${taggedListing._id}`);
+    const targetId = taggedListingId || reel._id;
+    if (targetId) {
+      router.push(`/listing/${targetId}`);
     }
   }
 
@@ -291,23 +342,6 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
   }
 
   const bottomMargin = Math.max(insets.bottom, 12) + 70;
-
-  const priceCandidates = [
-    (reel as any).price,
-    (reel as any).salePrice,
-    (reel as any).sellingPrice,
-    (reel as any).offer_price,
-    taggedListing?.price,
-    taggedListing?.salePrice,
-    (taggedListing as any)?.sellingPrice,
-    (reel as any).taggedListing?.price,
-    (reel as any).taggedListing?.salePrice,
-    (reel as any).taggedListing?.sellingPrice,
-    (reel as any).taggedListing?.offer_price,
-    (reel as any).productPrice,
-  ];
-  const validPriceNum = priceCandidates.map((p) => Number(p)).find((p) => !isNaN(p) && p > 0);
-  const displayPrice = validPriceNum ? validPriceNum.toLocaleString('en-IN') : null;
 
   return (
     <View style={[styles.container, { height }]}>
@@ -337,7 +371,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
         {/* PROMINENT REEL PRODUCT PRICE BADGE */}
         {displayPrice ? (
-          <View style={[styles.topPriceBadge, { top: insets.top + 16 }]}>
+          <View style={[styles.topPriceBadge, { top: insets.top + 16, zIndex: 999 }]}>
             <Ionicons name="pricetag" size={14} color="#0F0F12" />
             <Text style={styles.topPriceText}>₹{displayPrice}</Text>
           </View>
