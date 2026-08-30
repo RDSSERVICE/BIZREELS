@@ -404,8 +404,8 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
         {hasTaggedListing && (
           <View style={styles.taggedBanner}>
             <TouchableOpacity style={styles.taggedContent} onPress={handleViewListing}>
-              {taggedListing.image ? (
-                <Image source={{ uri: taggedListing.image }} style={styles.taggedImage} contentFit="cover" />
+              {taggedListingObj?.images?.[0]?.url || taggedListingObj?.image ? (
+                <Image source={{ uri: taggedListingObj.images?.[0]?.url || taggedListingObj.image }} style={styles.taggedImage} contentFit="cover" />
               ) : (
                 <View style={styles.taggedImageFallback}>
                   <Ionicons name="bag" size={16} color="#fff" />
@@ -413,10 +413,10 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
               )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.taggedTitle} numberOfLines={1}>
-                  {taggedListing.title}
+                  {taggedListingObj?.title || 'Tagged Product'}
                 </Text>
                 <Text style={styles.taggedPrice}>
-                  ₹{taggedListing.salePrice || taggedListing.price}
+                  ₹{displayPrice || taggedListingObj?.salePrice || taggedListingObj?.price || '0'}
                 </Text>
               </View>
             </TouchableOpacity>
