@@ -49,7 +49,7 @@ export default function ListingDetailsScreen() {
 
   // Review modal state
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
-  const [rating, setRating] = useState(5);
+  const [selectedRating, setSelectedRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [directBuyModalOpen, setDirectBuyModalOpen] = useState(false);
 
