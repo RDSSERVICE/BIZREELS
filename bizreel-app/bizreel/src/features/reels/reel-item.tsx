@@ -400,44 +400,6 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
 
       {/* Bottom Information Overlay */}
       <View style={[styles.bottomOverlay, { bottom: bottomMargin }]} pointerEvents="box-none">
-        {/* Tagged E-Commerce Product Banner */}
-        {hasTaggedListing && (
-          <View style={styles.taggedBanner}>
-            <TouchableOpacity style={styles.taggedContent} onPress={handleViewListing}>
-              {taggedListingObj?.images?.[0]?.url || taggedListingObj?.image ? (
-                <Image source={{ uri: taggedListingObj.images?.[0]?.url || taggedListingObj.image }} style={styles.taggedImage} contentFit="cover" />
-              ) : (
-                <View style={styles.taggedImageFallback}>
-                  <Ionicons name="bag" size={16} color="#fff" />
-                </View>
-              )}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.taggedTitle} numberOfLines={1}>
-                  {taggedListingObj?.title || 'Tagged Product'}
-                </Text>
-                <Text style={styles.taggedPrice}>
-                  ₹{displayPrice || taggedListingObj?.salePrice || taggedListingObj?.price || '0'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {!isCreator && !isVendor && (
-              <TouchableOpacity
-                style={styles.addToCartBtn}
-                onPress={handleAddToCart}
-                disabled={addToCartMutation.isPending}>
-                {addToCartMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="cart" size={12} color="#fff" />
-                    <Text style={styles.addToCartBtnText}>Add +</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
 
         {/* Creator / Vendor Info Row (Clickable to open Vendor Profile) */}
         <View style={styles.creatorRow}>
