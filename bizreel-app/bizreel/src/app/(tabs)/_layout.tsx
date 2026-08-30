@@ -13,28 +13,36 @@ import { CustomTabBar } from '@/components/custom-tab-bar';
 
 import { useAuth } from '@/features/auth/context';
 
-const CUSTOMER_TAB_ORDER = ['home', 'index', 'post-requirement', 'search', 'profile'] as const;
+const CUSTOMER_TAB_ORDER = ['home', 'index', 'search', 'profile'] as const;
 const VENDOR_TAB_ORDER = ['home', 'studio', 'profile'] as const;
+const CREATOR_TAB_ORDER = ['home', 'studio', 'profile'] as const;
 
 export default function TabLayout() {
   const router = useRouter();
   const segments = useSegments();
   const { user } = useAuth();
 
-  const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
-  const isVendorIncomplete = isVendor && (!user?.vendorProfile || !(user as any)?.vendorProfile?.shopName);
+  const activeRole = user?.activeRole || user?.current_role || 'customer';
+  const isVendor = activeRole === 'vendor';
+  const isCreator = activeRole === 'creator';
 
+  const isVendorIncomplete = isVendor && (!user?.vendorProfile || (!(user as any)?.vendorProfile?.shopName && !(user as any)?.vendorProfile?.businessName));
   if (isVendorIncomplete) {
     router.replace('/vendor/onboarding');
   }
 
-  const tabOrder = isVendor ? VENDOR_TAB_ORDER : CUSTOMER_TAB_ORDER;
+  const isCreatorIncomplete = isCreator && (!user?.creatorProfile || (!(user as any)?.creatorProfile?.displayName && !(user as any)?.creatorProfile?.name));
+  if (isCreatorIncomplete) {
+    router.replace('/creator/onboarding');
+  }
+
+  const tabOrder = isVendor ? VENDOR_TAB_ORDER : isCreator ? CREATOR_TAB_ORDER : CUSTOMER_TAB_ORDER;
 
   // Determine currently active tab index
-  const currentTab = (segments[1] as string) || (isVendor ? 'home' : 'index');
+  const currentTab = (segments[1] as string) || (isVendor || isCreator ? 'home' : 'index');
 
-  // Route guard: if vendor is on index (reels) or search, redirect to home
-  if (isVendor && (currentTab === 'index' || currentTab === 'search')) {
+  // Route guard: if vendor or creator is on index (reels) or search, redirect to home
+  if ((isVendor || isCreator) && (currentTab === 'index' || currentTab === 'search')) {
     router.replace('/(tabs)/home');
   }
 
@@ -69,7 +77,7 @@ export default function TabLayout() {
             <Tabs.Screen name="home" options={{ title: 'Home' }} />
             <Tabs.Screen name="index" options={{ title: 'Reels' }} />
             <Tabs.Screen name="studio" options={{ title: 'Studio' }} />
-            <Tabs.Screen name="post-requirement" options={{ title: 'Requirement' }} />
+            <Tabs.Screen name="post-requirement" options={{ href: null }} />
             <Tabs.Screen name="search" options={{ title: 'Search' }} />
             <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
             {/* Hide explore from tab bar but keep it routable */}

@@ -21,7 +21,6 @@ const TABS = [
   { name: 'home',             label: 'HOME',     icon: 'home-outline',         activeIcon: 'home',             forRole: 'all' },
   { name: 'index',            label: 'REELS',    icon: 'play-circle-outline',  activeIcon: 'play-circle',      forRole: 'customer' },
   { name: 'studio',           label: 'STUDIO',   icon: 'videocam-outline',     activeIcon: 'videocam',         forRole: 'vendor' },
-  { name: 'post-requirement', label: 'POST REQ', icon: 'clipboard-outline',    activeIcon: 'clipboard',        forRole: 'customer' },
   { name: 'search',           label: 'SEARCH',   icon: 'search-outline',       activeIcon: 'search',           forRole: 'customer' },
   { name: 'profile',          label: 'ME',       icon: 'person-outline',       activeIcon: 'person',           forRole: 'all' },
 ];
@@ -32,10 +31,13 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const { data: cart } = useCart();
   const cartTotalItems = cart?.total_items || 0;
 
-  const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
+  const activeRole = user?.activeRole || user?.current_role || 'customer';
+  const isVendor = activeRole === 'vendor';
+  const isCreator = activeRole === 'creator';
+
   const visibleTabs = TABS.filter((tab) => {
-    if (tab.forRole === 'vendor') return isVendor;
-    if (tab.forRole === 'customer') return !isVendor;
+    if (tab.forRole === 'vendor') return isVendor || isCreator;
+    if (tab.forRole === 'customer') return !isVendor && !isCreator;
     return true;
   });
 

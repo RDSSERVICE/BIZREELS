@@ -13,12 +13,20 @@ const BLACK = '#0F0F12';
 const DARK_CARD = '#18181C';
 const BORDER = '#2D2D36';
 
+import CreatorDashboardScreen from '../creator/dashboard';
+
 export default function StudioTabScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
+  const activeRole = user?.activeRole || user?.current_role || 'customer';
+  const isVendor = activeRole === 'vendor';
+  const isCreator = activeRole === 'creator';
+
+  if (isCreator) {
+    return <CreatorDashboardScreen />;
+  }
 
   if (!isVendor) {
     return (
@@ -30,10 +38,10 @@ export default function StudioTabScreen() {
           </View>
         </View>
 
-        <Text style={styles.title}>REEL STUDIO</Text>
+        <Text style={styles.title}>CREATOR & REEL STUDIO</Text>
         <View style={styles.divider} />
         <Text style={styles.subtitle}>
-          Exclusive to Vendor mode. Switch to Vendor to create, upload, and manage your video reels & catalog.
+          Exclusive to Creator & Vendor modes. Switch mode to access Creator Studio or Vendor Reels Manager.
         </Text>
 
         <View style={styles.switcherWrapper}>
