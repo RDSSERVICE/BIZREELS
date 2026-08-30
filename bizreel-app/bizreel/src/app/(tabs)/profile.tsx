@@ -39,6 +39,8 @@ export default function ProfileScreen() {
 
   const { data: user, isLoading, isError, refetch, isRefetching } = useCurrentUserProfile();
 
+  const [userInterests, setUserInterests] = useState<string[]>([]);
+
   const [vendorAnalytics, setVendorAnalytics] = useState<{
     callsCount: number;
     whatsappCount: number;
@@ -52,27 +54,53 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     const u = user as any;
-    if (u?.activeRole === 'vendor' || u?.current_role === 'vendor' || u?.role === 'vendor') {
-      Promise.all([
-        api.get('/analytics/vendor').catch(() => ({ data: {} })),
-        api.get('/vendor/analytics/overview?range=30d').catch(() => ({ data: {} })),
-      ])
-        .then(([leadsRes, overviewRes]) => {
-          const leads = leadsRes.data?.data || leadsRes.data || {};
-          const overview = overviewRes.data?.data || overviewRes.data || {};
+    if (u) {
+      const rawInterests =
+        u.customerProfile?.interests ||
+        u.interests ||
+        u.customer_interests ||
+        [];
+      
+      const parsedNames: string[] = Array.isArray(rawInterests)
+        ? rawInterests.map((i: any) => (typeof i === 'string' ? i : i.category || i.name)).filter(Boolean)
+        : [];
 
-          setVendorAnalytics({
-            callsCount: leads.callsCount || overview.phoneCalls || 0,
-            whatsappCount: leads.whatsappCount || overview.whatsappClicks || 0,
-            chatsCount: leads.chatsCount || overview.uniqueChatters || 0,
-            inquiriesCount: leads.inquiriesCount || overview.inquiriesCount || 0,
-            savedReelsCount: leads.savedReelsCount || overview.watchersCount || 0,
-            revenue: overview.revenue || 0,
-            views: overview.views || 0,
-            ordersCount: overview.ordersCount || 0,
-          });
+      if (parsedNames.length > 0) {
+        setUserInterests(parsedNames);
+      }
+
+      api.get('/v1/users/me/interests')
+        .then((res) => {
+          const items = res.data?.interests || res.data?.data?.interests || [];
+          if (Array.isArray(items) && items.length > 0) {
+            const names = items.map((i: any) => (typeof i === 'string' ? i : i.category || i.name)).filter(Boolean);
+            setUserInterests(names);
+          }
         })
-        .catch((err) => console.warn('Failed to load vendor analytics', err));
+        .catch(() => null);
+
+      if (u?.activeRole === 'vendor' || u?.current_role === 'vendor' || u?.role === 'vendor') {
+        Promise.all([
+          api.get('/analytics/vendor').catch(() => ({ data: {} })),
+          api.get('/vendor/analytics/overview?range=30d').catch(() => ({ data: {} })),
+        ])
+          .then(([leadsRes, overviewRes]) => {
+            const leads = leadsRes.data?.data || leadsRes.data || {};
+            const overview = overviewRes.data?.data || overviewRes.data || {};
+
+            setVendorAnalytics({
+              callsCount: leads.callsCount || overview.phoneCalls || 0,
+              whatsappCount: leads.whatsappCount || overview.whatsappClicks || 0,
+              chatsCount: leads.chatsCount || overview.uniqueChatters || 0,
+              inquiriesCount: leads.inquiriesCount || overview.inquiriesCount || 0,
+              savedReelsCount: leads.savedReelsCount || overview.watchersCount || 0,
+              revenue: overview.revenue || 0,
+              views: overview.views || 0,
+              ordersCount: overview.ordersCount || 0,
+            });
+          })
+          .catch((err) => console.warn('Failed to load vendor analytics', err));
+      }
     }
   }, [user]);
 
@@ -121,6 +149,7 @@ export default function ProfileScreen() {
   const activeRole = (user as any)?.activeRole || (user as any)?.current_role || 'customer';
 
   const CUSTOMER_MENU = [
+    { label: 'Manage Selected Interests & Preferences', route: '/customer/choose-interests', icon: 'options-outline' },
     { label: 'Chat & Messages Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
     { label: 'My Orders', route: '/orders', icon: 'cart-outline' },
     { label: 'Saved Reels & Bookmarks', route: '/saved-reels', icon: 'bookmark-outline' },
@@ -299,6 +328,46 @@ export default function ProfileScreen() {
                 <Text style={styles.leadLbl}>Inquiries</Text>
               </View>
             </View>
+          </View>
+        )}
+
+        {/* ── Selected Interests & Feed Preferences (Customer Mode Only) ── */}
+        {activeRole === 'customer' && (
+          <View style={styles.menuSectionCard}>
+            <View style={styles.sectionLabelRow}>
+              <View style={styles.sectionBar} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }}>
+                <Text style={styles.menuSectionHeader}>MY SELECTED INTERESTS ({userInterests.length})</Text>
+                <TouchableOpacity onPress={() => router.push('/customer/choose-interests' as any)}>
+                  <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '900' }}>Edit / Manage ›</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {userInterests.length > 0 ? (
+              <View style={styles.interestsWrap}>
+                {userInterests.map((interest, idx) => (
+                  <View key={idx} style={styles.interestPill}>
+                    <Ionicons name="sparkles" size={12} color={YELLOW} />
+                    <Text style={styles.interestPillText}>{interest}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyInterestsBox}>
+                <Ionicons name="heart-dislike-outline" size={28} color={YELLOW} />
+                <Text style={styles.emptyInterestsTitle}>No Interests Selected Yet</Text>
+                <Text style={styles.emptyInterestsSub}>
+                  Select your top categories to personalize your video reels feed and local product deals.
+                </Text>
+                <TouchableOpacity
+                  style={styles.chooseInterestsBtn}
+                  onPress={() => router.push('/customer/choose-interests' as any)}>
+                  <Ionicons name="options-outline" size={14} color={BLACK} />
+                  <Text style={styles.chooseInterestsBtnText}>+ Select Your Interests</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
 
@@ -527,6 +596,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     borderWidth: 1,
     borderColor: BORDER,
+  },
+  interestsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 6,
+    paddingTop: 4,
+  },
+  interestPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  interestPillText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  emptyInterestsBox: {
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: Spacing.four,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  emptyInterestsTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+  },
+  emptyInterestsSub: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  chooseInterestsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: YELLOW,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 6,
+  },
+  chooseInterestsBtnText: {
+    color: BLACK,
+    fontSize: 11,
+    fontWeight: '900',
   },
   sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   sectionBar: { width: 3, height: 10, borderRadius: 0, backgroundColor: YELLOW },
