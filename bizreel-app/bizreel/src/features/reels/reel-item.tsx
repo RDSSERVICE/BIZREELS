@@ -553,11 +553,17 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={() => {
-            const recipientId = (reel as any).creatorId || (reel as any).creator || (reel as any).vendor_id?._id || (reel as any).vendor_id || (reel as any).user_id;
-            const recipientName = reel.creatorName || 'Seller';
-            const recipientAvatar = reel.creatorAvatar || '';
+            const rawCreator = (reel as any).creator || (reel as any).vendor || (reel as any).vendor_id || (reel as any).user;
+            const recipientIdStr = (
+              typeof rawCreator === 'object'
+                ? (rawCreator?._id || rawCreator?.id)?.toString()
+                : rawCreator?.toString() || (reel as any).creatorId?.toString() || (reel as any).user_id?.toString()
+            );
 
-            if (!recipientId) {
+            const recipientName = (typeof rawCreator === 'object' ? rawCreator.name || rawCreator.shopName : null) || reel.creatorName || 'Seller';
+            const recipientAvatar = (typeof rawCreator === 'object' ? rawCreator.avatarUrl || rawCreator.profile_pic : null) || reel.creatorAvatar || '';
+
+            if (!recipientIdStr) {
               Alert.alert('Seller Info', 'Could not open chat for this seller.');
               return;
             }
@@ -565,8 +571,8 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
             router.push({
               pathname: '/messages/[id]' as any,
               params: {
-                id: `direct_${recipientId}`,
-                recipientId,
+                id: `direct_${recipientIdStr}`,
+                recipientId: recipientIdStr,
                 name: recipientName,
                 avatar: recipientAvatar,
               },

@@ -1213,6 +1213,15 @@ export default function CustomerHomePage() {
         onClose={() => setDirectBuyOpen(false)}
         onOpenChat={handleOpenChat}
       />
+
+      {/* In-Context Reel-to-Chat Drawer */}
+      <ChatDrawer
+        isOpen={chatDrawerOpen}
+        onClose={() => setChatDrawerOpen(false)}
+        recipientId={chatDrawerRecipientId}
+        recipientName={chatDrawerRecipientName}
+        recipientAvatar={chatDrawerRecipientAvatar}
+      />
     </div>
   );
 }

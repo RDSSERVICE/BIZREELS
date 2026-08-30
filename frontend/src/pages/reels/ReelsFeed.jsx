@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiHeart, FiMessageCircle, FiShare2, FiMapPin, FiTrendingUp } from 'react-icons/fi';
+import { FiHeart, FiMessageCircle, FiShare2, FiMapPin, FiTrendingUp, FiMessageSquare } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import {
@@ -10,6 +10,7 @@ import {
 import api from '../../lib/api';
 import VideoPlayer from '../../components/ui/VideoPlayer';
 import CommentsDrawer from '../../components/ui/CommentsDrawer';
+import ChatDrawer from '../../components/ui/ChatDrawer';
 import Loader from '../../components/common/Loader';
 
 /**
@@ -21,6 +22,19 @@ const ReelsFeed = () => {
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [selectedReelId, setSelectedReelId] = useState(null);
+
+  // In-context Chat drawer state
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [chatDrawerRecipientId, setChatDrawerRecipientId] = useState(null);
+  const [chatDrawerRecipientName, setChatDrawerRecipientName] = useState('Vendor Partner');
+  const [chatDrawerRecipientAvatar, setChatDrawerRecipientAvatar] = useState(null);
+
+  const handleOpenChat = (recipientId, recipientName, recipientAvatar) => {
+    setChatDrawerRecipientId(recipientId);
+    setChatDrawerRecipientName(recipientName || 'Vendor Partner');
+    setChatDrawerRecipientAvatar(recipientAvatar);
+    setChatDrawerOpen(true);
+  };
 
   const containerRef = useRef(null);
 
@@ -380,17 +394,25 @@ const ReelsFeed = () => {
                     <span className="text-[9px] font-bold">Inquiry</span>
                   </button>
 
-                  {/* I. Chat (With AI Contact Restriction Guard) */}
+                  {/* I. Direct Chat with Vendor */}
                   <button
                     onClick={() => {
-                      setSelectedReelId(reel._id);
-                      setIsCommentsOpen(true);
-                      toast('💬 Secure Chat Active: Phone numbers & emails are filtered by AI safety guard.', { icon: '🛡️' });
+                      const vendorObj = reel.creator || reel.vendor || reel.user || {};
+                      const vendorId = vendorObj?._id || vendorObj?.id || (typeof vendorObj === 'string' ? vendorObj : null);
+                      if (!vendorId) {
+                        toast.error('Vendor details unavailable for this reel');
+                        return;
+                      }
+                      handleOpenChat(
+                        vendorId,
+                        vendorObj.name || vendorObj.shopName || 'Vendor Partner',
+                        vendorObj.avatarUrl || vendorObj.profile_pic || null
+                      );
                     }}
-                    className="p-2.5 rounded-full bg-black/40 text-white hover:bg-black/60 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
-                    title="I. Chat (AI Restricted)"
+                    className="p-2.5 rounded-full bg-[#d99a3d]/20 text-[#d99a3d] hover:bg-[#d99a3d]/30 backdrop-blur-md border border-[#d99a3d]/30 text-[10px] flex flex-col items-center gap-0.5 cursor-pointer"
+                    title="Direct Chat with Vendor"
                   >
-                    <FiMessageCircle className="w-4 h-4" />
+                    <FiMessageSquare className="w-4 h-4" />
                     <span className="text-[9px] font-bold">Chat</span>
                   </button>
 
@@ -421,6 +443,15 @@ const ReelsFeed = () => {
         isOpen={isCommentsOpen}
         onClose={() => setIsCommentsOpen(false)}
         reelId={selectedReelId}
+      />
+
+      {/* In-Context Reel-to-Chat Drawer */}
+      <ChatDrawer
+        isOpen={chatDrawerOpen}
+        onClose={() => setChatDrawerOpen(false)}
+        recipientId={chatDrawerRecipientId}
+        recipientName={chatDrawerRecipientName}
+        recipientAvatar={chatDrawerRecipientAvatar}
       />
     </div>
   );

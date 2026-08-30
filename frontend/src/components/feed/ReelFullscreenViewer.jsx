@@ -27,6 +27,7 @@ export default function ReelFullscreenViewer({
   onSave,
   onFollow,
   onOpenDirectBuy,
+  onOpenChat,
   likedMap = {},
   savedMap = {},
   followingMap = {}
@@ -170,7 +171,7 @@ export default function ReelFullscreenViewer({
 
   const handleChat = (reel) => {
     handleTrackInteraction('chat_direct', reel);
-    const vendorObj = reel.creator;
+    const vendorObj = reel.creator || reel.vendor || reel.user || {};
     const vendorId = vendorObj?._id || vendorObj?.id || (typeof vendorObj === 'string' ? vendorObj : null);
 
     if (!vendorId) {
@@ -178,10 +179,17 @@ export default function ReelFullscreenViewer({
       return;
     }
 
-    setChatDrawerRecipientId(vendorId);
-    setChatDrawerRecipientName(vendorObj?.vendorProfile?.shopName || vendorObj?.name || 'Vendor Partner');
-    setChatDrawerRecipientAvatar(vendorObj?.profile_pic || vendorObj?.avatarUrl || null);
-    setChatDrawerOpen(true);
+    const name = vendorObj?.vendorProfile?.shopName || vendorObj?.name || 'Vendor Partner';
+    const avatar = vendorObj?.profile_pic || vendorObj?.avatarUrl || null;
+
+    if (onOpenChat) {
+      onOpenChat(vendorId, name, avatar);
+    } else {
+      setChatDrawerRecipientId(vendorId);
+      setChatDrawerRecipientName(name);
+      setChatDrawerRecipientAvatar(avatar);
+      setChatDrawerOpen(true);
+    }
   };
 
   const handleInquiry = async (reel) => {
