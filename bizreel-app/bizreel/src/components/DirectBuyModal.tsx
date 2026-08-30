@@ -158,11 +158,21 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
         <TouchableOpacity style={styles.backdropTouch} activeOpacity={1} onPress={onClose} />
 
         <View style={[styles.modalSheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          {/* Header */}
+          {/* Header Bar matching Web Flipkart Flow */}
           <View style={styles.sheetHeader}>
             <View style={styles.headerLeft}>
-              <Ionicons name="flash" size={18} color={YELLOW} />
-              <Text style={styles.sheetTitle}>Instant Buy & Order</Text>
+              <View style={styles.headerIconBox}>
+                <Ionicons name="cube" size={18} color={YELLOW} />
+              </View>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.sheetTitle}>Order Checkout & Payment</Text>
+                  <View style={styles.flipkartTag}>
+                    <Text style={styles.flipkartTagText}>FLIPKART FLOW</Text>
+                  </View>
+                </View>
+                <Text style={styles.sheetSubtitle}>Direct Verified Transaction with {vendorName}</Text>
+              </View>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
               <Ionicons name="close" size={20} color="#fff" />
@@ -243,7 +253,7 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
               <View style={styles.cardSection}>
                 <View style={styles.labelHeader}>
                   <Ionicons name="location-outline" size={16} color={YELLOW} />
-                  <Text style={styles.sectionLabel}>Delivery Address</Text>
+                  <Text style={styles.sectionLabel}>1. DELIVERY ADDRESS</Text>
                 </View>
                 <TextInput
                   style={styles.addressInput}
@@ -277,19 +287,32 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
                 </TouchableOpacity>
               </View>
 
-              {/* Price Breakdown */}
+              {/* Price Details Breakdown matching Web */}
               <View style={styles.summaryCard}>
+                <Text style={styles.priceDetailsHeading}>PRICE DETAILS</Text>
+
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Item Price (₹{activePrice} × {quantity})</Text>
+                  <Text style={styles.summaryLabel}>Price ({quantity} {quantity === 1 ? 'item' : 'items'})</Text>
                   <Text style={styles.summaryVal}>₹{totalPrice.toLocaleString('en-IN')}</Text>
                 </View>
+
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Delivery Charge</Text>
-                  <Text style={[styles.summaryVal, { color: '#22C55E' }]}>FREE</Text>
+                  <Text style={styles.summaryLabel}>Delivery Charges</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textDecorationLine: 'line-through' }}>₹40</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#22C55E' }}>FREE</Text>
+                  </View>
                 </View>
+
                 <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 8, marginTop: 4 }]}>
-                  <Text style={styles.totalLabel}>Total Payable</Text>
+                  <Text style={styles.totalLabel}>TOTAL AMOUNT</Text>
                   <Text style={styles.totalVal}>₹{totalPrice.toLocaleString('en-IN')}</Text>
+                </View>
+
+                {/* Green Savings Pill Badge */}
+                <View style={styles.savingsPill}>
+                  <Ionicons name="sparkles" size={12} color="#15803D" />
+                  <Text style={styles.savingsPillText}>You will save ₹40 on this order</Text>
                 </View>
               </View>
 
@@ -299,11 +322,11 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
                 onPress={handlePlaceOrder}
                 disabled={submitting}>
                 {submitting ? (
-                  <ActivityIndicator color={BLACK} />
+                  <ActivityIndicator color={YELLOW} />
                 ) : (
                   <>
-                    <Text style={styles.confirmBtnText}>CONFIRM ORDER (₹{totalPrice.toLocaleString('en-IN')})</Text>
-                    <Ionicons name="arrow-forward" size={18} color={BLACK} />
+                    <Ionicons name="flash" size={16} color={YELLOW} />
+                    <Text style={styles.confirmBtnText}>Place Order (₹{totalPrice.toLocaleString('en-IN')})</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -344,12 +367,39 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+  },
+  headerIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: '#241b15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.3)',
   },
   sheetTitle: {
     color: '#fff',
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontWeight: '900',
+  },
+  flipkartTag: {
+    backgroundColor: YELLOW,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 3,
+  },
+  flipkartTagText: {
+    color: BLACK,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  sheetSubtitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    marginTop: 1,
   },
   closeBtn: {
     padding: 4,
@@ -501,7 +551,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     padding: Spacing.three,
-    gap: 6,
+    gap: 8,
+  },
+  priceDetailsHeading: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    paddingBottom: 6,
+    marginBottom: 2,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -526,6 +586,21 @@ const styles = StyleSheet.create({
     color: YELLOW,
     fontSize: FontSize.base,
     fontWeight: '900',
+  },
+  savingsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  savingsPillText: {
+    color: '#15803D',
+    fontSize: 11,
+    fontWeight: '800',
   },
 
   confirmBtn: {
