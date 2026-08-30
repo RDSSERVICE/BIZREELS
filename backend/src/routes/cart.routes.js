@@ -60,22 +60,30 @@ const hydrateCart = async (cart) => {
     const li = lookup[it.listing_id];
     if (!li) continue;
 
-    const vendorId = (li.vendor_id || li.vendor).toString();
+    let vendorId = 'default_vendor';
+    if (li.vendor) {
+      vendorId = (li.vendor._id || li.vendor).toString();
+    } else if (li.vendor_id) {
+      vendorId = (li.vendor_id._id || li.vendor_id).toString();
+    } else if (li.user) {
+      vendorId = (li.user._id || li.user).toString();
+    } else if (li._id) {
+      vendorId = li._id.toString();
+    }
+
     const priceCandidates = [
-      li.sellingPrice,
-      li.salePrice,
-      li.offer_price,
       li.price,
+      li.salePrice,
+      li.sellingPrice,
+      li.offer_price,
       li.rate,
       li.cost,
       li.actualPrice,
       li.regularPrice,
       li.originalPrice,
-      li.pricing?.amount,
-      li.pricing?.price,
     ];
     const validPrice = priceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
-    const price = validPrice || 0;
+    const price = validPrice || Number(li.price) || Number(li.salePrice) || Number(li.sellingPrice) || 0;
     const quantity = parseInt(it.quantity || 1, 10);
     const line = price * quantity;
     total += line;
