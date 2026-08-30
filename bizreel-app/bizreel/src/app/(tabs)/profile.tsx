@@ -129,6 +129,7 @@ export default function ProfileScreen() {
   const VENDOR_MENU = [
     { label: 'Edit Vendor Business Profile', route: '/vendor/settings', icon: 'storefront-outline' },
     { label: 'Store Dashboard & Analytics', route: '/vendor/dashboard', icon: 'grid-outline' },
+    { label: 'Hire Content Creators', route: '/vendor/hire-creator', icon: 'people-outline' },
     { label: 'Video Reels & AI Ads', route: '/vendor/reels', icon: 'videocam-outline' },
     { label: 'Product & Service Catalog', route: '/vendor/listings', icon: 'cube-outline' },
     { label: 'Customer Orders & Requests', route: '/vendor/orders', icon: 'cart-outline' },

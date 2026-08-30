@@ -122,6 +122,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
         { title: 'Onboarding Details', route: '/vendor/onboarding', icon: 'document-text-outline' },
         { title: 'Verification Center', route: '/vendor/verification', icon: 'shield-checkmark-outline', badge: 'VERIFIED' },
         { title: 'Analytics', route: '/vendor/analytics', icon: 'stats-chart-outline' },
+        { title: 'Hire Creator', route: '/vendor/hire-creator', icon: 'people-outline' },
         { title: 'Refer & Earn', route: '/vendor/referrals', icon: 'person-add-outline' },
         { title: 'Reviews', route: '/vendor/reviews', icon: 'star-outline' },
         { title: 'Followers', route: '/vendor/followers', icon: 'heart-outline' },
