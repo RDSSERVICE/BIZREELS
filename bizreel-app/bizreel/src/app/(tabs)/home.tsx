@@ -25,6 +25,7 @@ import { useAddToCart, useCart } from '@/features/cart/queries';
 import { useReelsFeed } from '@/features/reels/queries';
 import { useVendorListings } from '@/features/vendor-listings/queries';
 import { api } from '@/lib/api';
+import CreatorDashboardScreen from '../creator/dashboard';
 import { getListingImage, resolveImageUrl } from '@/utils/image';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -67,6 +68,10 @@ export default function HomeScreen() {
   const activeRole = user?.activeRole || user?.current_role || 'customer';
   const isVendor = activeRole === 'vendor';
   const isCreator = activeRole === 'creator';
+
+  if (isCreator) {
+    return <CreatorDashboardScreen />;
+  }
   const reels = reelsData?.pages?.flatMap((p) => p.data || []) || [];
   const cartItemCount = cart?.total_items || 0;
 
@@ -141,24 +146,28 @@ export default function HomeScreen() {
           <View style={styles.headerRightGroup}>
             <RoleSwitcher />
 
-            <TouchableOpacity
-              style={styles.chatIconBtn}
-              onPress={() => router.push('/messages' as any)}
-              accessibilityLabel="Messages Inbox">
-              <Ionicons name="chatbubble-ellipses-outline" size={20} color={YELLOW} />
-            </TouchableOpacity>
+            {!isCreator && (
+              <TouchableOpacity
+                style={styles.chatIconBtn}
+                onPress={() => router.push('/messages' as any)}
+                accessibilityLabel="Messages Inbox">
+                <Ionicons name="chatbubble-ellipses-outline" size={20} color={YELLOW} />
+              </TouchableOpacity>
+            )}
 
-            <TouchableOpacity
-              style={styles.cartIconBtn}
-              onPress={() => router.push('/cart')}
-              accessibilityLabel="Cart">
-              <Ionicons name="cart" size={20} color="#fff" />
-              {cartItemCount > 0 && (
-                <View style={styles.cartBadge}>
-                  <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            {!isVendor && !isCreator && (
+              <TouchableOpacity
+                style={styles.cartIconBtn}
+                onPress={() => router.push('/cart')}
+                accessibilityLabel="Cart">
+                <Ionicons name="cart" size={20} color="#fff" />
+                {cartItemCount > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -238,7 +247,7 @@ export default function HomeScreen() {
         )}
 
         {/* Category Horizontal Selector (Customer mode only) */}
-        {!isVendor && (
+        {!isVendor && !isCreator && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Categories</Text>
