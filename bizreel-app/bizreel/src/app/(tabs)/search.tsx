@@ -297,7 +297,7 @@ export default function SearchScreen() {
     isFetching: listingsFetching,
     isRefetching: listingsRefetching,
     refetch: refetchListings,
-  } = useListings(listingsParams, isQueryActive);
+  } = useListings(listingsParams, true);
 
   const rawListings = Array.isArray(listingsData)
     ? listingsData
@@ -512,101 +512,18 @@ export default function SearchScreen() {
         </ScrollView>
       </View>
 
-      {/* Main Content Area */}
-      {isQueryActive ? (
-        /* Results View */
-        <FlatList
-          data={filteredListings}
-          keyExtractor={(item) => item._id}
-          contentContainerStyle={styles.resultsList}
-          refreshControl={
-            <RefreshControl refreshing={listingsRefetching} onRefresh={handleRefresh} tintColor={YELLOW} />
-          }
-          ListHeaderComponent={
-            <Text style={styles.resultsCountText}>
-              FOUND {filteredListings.length} RESULTS{' '}
-              {selectedRadius > 0 && isGpsActive ? `WITHIN ${selectedRadius}KM` : 'NATIONWIDE'}
-            </Text>
-          }
-          ListEmptyComponent={
-            listingsLoading ? (
-              <View style={styles.centered}>
-                <ActivityIndicator size="large" color={YELLOW} />
-              </View>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={48} color="rgba(255,255,255,0.4)" />
-                <Text style={styles.emptyTitle}>No matching results</Text>
-                <Text style={styles.emptySub}>
-                  Try adjusting your distance radius, price range, or category filter.
-                </Text>
-                <TouchableOpacity style={styles.resetFilterBtn} onPress={resetAllFilters}>
-                  <Text style={styles.resetFilterBtnText}>RESET ALL FILTERS</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          }
-          renderItem={({ item }) => {
-            const mainImg = getListingImage(item);
-            const vendorName = item.vendor?.name || 'Verified Supplier';
-            const cityText = item.city || item.location?.city || 'Local';
-
-            return (
-              <TouchableOpacity
-                style={styles.resultCard}
-                onPress={() => router.push(`/listing/${item._id}`)}>
-                {mainImg ? (
-                  <Image source={{ uri: mainImg }} style={styles.resultImage} contentFit="cover" />
-                ) : (
-                  <View style={styles.resultImageFallback}>
-                    <Ionicons name="bag" size={24} color="rgba(255,255,255,0.4)" />
-                  </View>
-                )}
-
-                <View style={styles.resultInfo}>
-                  <Text style={styles.resultTitle} numberOfLines={1}>
-                    {item.title}
-                  </Text>
-
-                  <View style={styles.vendorCityRow}>
-                    <Text style={styles.resultVendorName} numberOfLines={1}>
-                      {vendorName}
-                    </Text>
-                    <View style={styles.cityBadge}>
-                      <Ionicons name="location" size={10} color={YELLOW} />
-                      <Text style={styles.cityBadgeText}>{cityText}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.resultPriceRow}>
-                    <Text style={styles.resultPrice}>₹{item.salePrice || item.price}</Text>
-
-                    <TouchableOpacity
-                      style={styles.addCartSmallBtn}
-                      onPress={() => {
-                        addToCartMutation.mutate({ listing_id: item._id, quantity: 1 });
-                        Alert.alert('Added', `"${item.title}" added to cart!`);
-                      }}>
-                      <Ionicons name="cart" size={12} color={BLACK} />
-                      <Text style={styles.addCartSmallText}>Add +</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-        />
-      ) : (
-        /* Default Browse Categories View */
-        <ScrollView
-          contentContainerStyle={styles.browseScroll}
-          refreshControl={
-            <RefreshControl refreshing={catsRefetching} onRefresh={handleRefresh} tintColor={YELLOW} />
-          }>
-          {/* Popular Search Terms */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeaderTitle}>POPULAR SEARCHES</Text>
-            <View style={styles.popularRow}>
+      {/* Search Results & Dropdown Filter View */}
+      <FlatList
+        data={filteredListings}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={styles.resultsList}
+        refreshControl={
+          <RefreshControl refreshing={listingsRefetching} onRefresh={handleRefresh} tintColor={YELLOW} />
+        }
+        ListHeaderComponent={
+          <View style={{ gap: Spacing.two, paddingBottom: 8 }}>
+            {/* Popular Search Pills */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularRow}>
               {POPULAR_SEARCHES.map((term) => (
                 <TouchableOpacity
                   key={term}
@@ -616,41 +533,106 @@ export default function SearchScreen() {
                   <Text style={styles.popularChipText}>{term}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
-          </View>
+            </ScrollView>
 
-          {/* Category Dropdown Selection Box */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeaderTitle}>SELECT CATEGORY DROPDOWN</Text>
+            {/* Expandable Category Selector Card */}
             <TouchableOpacity
               style={styles.categoryDropdownCard}
               onPress={() => {
                 setCategorySearchQuery('');
                 setCategoryModalVisible(true);
               }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                <View style={styles.categoryDropdownIconCircle}>
-                  <Ionicons name="grid" size={20} color={YELLOW} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.categoryDropdownLabel}>Category Filter</Text>
-                  <Text style={styles.categoryDropdownValue} numberOfLines={1}>
-                    {selectedCategory ? selectedCategory.name : 'All Categories (Browse All System Items)'}
-                  </Text>
-                </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <Ionicons name="grid" size={16} color={YELLOW} />
+                <Text style={styles.categoryDropdownLabelInline}>Category Filter:</Text>
+                <Text style={styles.categoryDropdownValueInline} numberOfLines={1}>
+                  {selectedCategory ? selectedCategory.name : 'All Categories (Tap to Change ▾)'}
+                </Text>
               </View>
-              <Ionicons name="chevron-down" size={20} color={YELLOW} />
+              <Ionicons name="chevron-down" size={16} color={YELLOW} />
             </TouchableOpacity>
 
             {selectedCategory && (
               <TouchableOpacity style={styles.clearCategoryBtn} onPress={() => setSelectedCategory(null)}>
-                <Ionicons name="close-circle" size={16} color="#EF4444" />
+                <Ionicons name="close-circle" size={14} color="#EF4444" />
                 <Text style={styles.clearCategoryText}>Clear Category Filter ({selectedCategory.name})</Text>
               </TouchableOpacity>
             )}
+
+            <Text style={styles.resultsCountText}>
+              FOUND {filteredListings.length} RESULTS{' '}
+              {selectedRadius > 0 && isGpsActive ? `WITHIN ${selectedRadius}KM` : 'NATIONWIDE'}
+            </Text>
           </View>
-        </ScrollView>
-      )}
+        }
+        ListEmptyComponent={
+          listingsLoading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color={YELLOW} />
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="search-outline" size={48} color="rgba(255,255,255,0.4)" />
+              <Text style={styles.emptyTitle}>No matching results</Text>
+              <Text style={styles.emptySub}>
+                Try adjusting your distance radius, price range, or category filter.
+              </Text>
+              <TouchableOpacity style={styles.resetFilterBtn} onPress={resetAllFilters}>
+                <Text style={styles.resetFilterBtnText}>RESET ALL FILTERS</Text>
+              </TouchableOpacity>
+            </View>
+          )
+        }
+        renderItem={({ item }) => {
+          const mainImg = getListingImage(item);
+          const vendorName = item.vendor?.name || 'Verified Supplier';
+          const cityText = item.city || item.location?.city || 'Local';
+
+          return (
+            <TouchableOpacity
+              style={styles.resultCard}
+              onPress={() => router.push(`/listing/${item._id}`)}>
+              {mainImg ? (
+                <Image source={{ uri: mainImg }} style={styles.resultImage} contentFit="cover" />
+              ) : (
+                <View style={styles.resultImageFallback}>
+                  <Ionicons name="bag" size={24} color="rgba(255,255,255,0.4)" />
+                </View>
+              )}
+
+              <View style={styles.resultInfo}>
+                <Text style={styles.resultTitle} numberOfLines={1}>
+                  {item.title}
+                </Text>
+
+                <View style={styles.vendorCityRow}>
+                  <Text style={styles.resultVendorName} numberOfLines={1}>
+                    {vendorName}
+                  </Text>
+                  <View style={styles.cityBadge}>
+                    <Ionicons name="location" size={10} color={YELLOW} />
+                    <Text style={styles.cityBadgeText}>{cityText}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.resultPriceRow}>
+                  <Text style={styles.resultPrice}>₹{item.salePrice || item.price}</Text>
+
+                  <TouchableOpacity
+                    style={styles.addCartSmallBtn}
+                    onPress={() => {
+                      addToCartMutation.mutate({ listing_id: item._id, quantity: 1 });
+                      Alert.alert('Added', `"${item.title}" added to cart!`);
+                    }}>
+                    <Ionicons name="cart" size={12} color={BLACK} />
+                    <Text style={styles.addCartSmallText}>Add +</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+      />
 
       {/* WEB-STYLE COMPREHENSIVE FILTER DRAWER MODAL */}
       <Modal
@@ -1268,6 +1250,17 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  categoryDropdownLabelInline: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  categoryDropdownValueInline: {
+    color: YELLOW,
+    fontSize: 11,
+    fontWeight: '900',
   },
   categoryDropdownLabel: {
     color: 'rgba(255,255,255,0.5)',
