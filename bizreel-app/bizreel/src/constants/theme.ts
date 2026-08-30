@@ -1,6 +1,5 @@
 /**
  * THEME — single source of truth for all design tokens.
- * Aligned with BizReels Web Bento Light Theme (#FAF6F1 background, #FFFFFF cards, #E3DCCB borders, #C8860A gold accents).
  */
 
 import '@/global.css';
@@ -8,27 +7,27 @@ import '@/global.css';
 import { Platform } from 'react-native';
 
 // ---------------------------------------------------------------------------
-// Brand colors — Aligned 100% with Web Theme
+// Brand colors — Dark Contrast Theme
 // ---------------------------------------------------------------------------
 export const BrandColors = {
   /** Primary gold — buttons, highlights, links */
-  primary: '#C8860A',
+  primary: '#F59E0B',
   /** Lighter gold — hover / pressed state */
-  primaryLight: '#E0A030',
+  primaryLight: '#FBBF24',
   /** Darker gold — active / focus state */
-  primaryDark: '#9E6A08',
+  primaryDark: '#D97706',
   /** Primary text on gold background */
-  onPrimary: '#FFFFFF',
-  /** App background warm cream tint (Light Bento Theme) */
-  warmBackground: '#FAF6F1',
-  /** Card element background */
-  cardBackground: '#FFFFFF',
-  /** Soft border color */
-  border: '#E3DCCB',
+  onPrimary: '#0F0F12',
+  /** App background warm tint */
+  warmBackground: '#0F0F12',
+  /** Card background */
+  cardBackground: '#18181C',
+  /** Divider / border color */
+  border: '#2D2D36',
   /** Input field background */
-  inputBackground: '#FFFFFF',
-  /** Placeholder text color */
-  placeholder: '#888888',
+  inputBackground: '#18181C',
+  /** Placeholder text */
+  placeholder: 'rgba(255,255,255,0.4)',
   /** Success green */
   success: '#22C55E',
   /** Error red */
@@ -38,28 +37,28 @@ export const BrandColors = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Adaptive palette — Web-Aligned Light UI Theme
+// Adaptive palette
 // ---------------------------------------------------------------------------
 export const Colors = {
   light: {
-    text: '#1A1A1A',
-    textSecondary: '#6B7280',
-    background: '#FAF6F1',
-    backgroundElement: '#FFFFFF',
-    backgroundSelected: '#F0E8DE',
-    border: '#E3DCCB',
-    inputBackground: '#FFFFFF',
-    placeholder: '#888888',
+    text: '#F5F5F5',
+    textSecondary: '#A0A0A0',
+    background: '#121212',
+    backgroundElement: '#1E1E1E',
+    backgroundSelected: '#2A2A2A',
+    border: '#2E2E2E',
+    inputBackground: '#1E1E1E',
+    placeholder: '#555555',
   },
   dark: {
-    text: '#1A1A1A',
-    textSecondary: '#6B7280',
-    background: '#FAF6F1',
-    backgroundElement: '#FFFFFF',
-    backgroundSelected: '#F0E8DE',
-    border: '#E3DCCB',
-    inputBackground: '#FFFFFF',
-    placeholder: '#888888',
+    text: '#F5F5F5',
+    textSecondary: '#A0A0A0',
+    background: '#121212',
+    backgroundElement: '#1E1E1E',
+    backgroundSelected: '#2A2A2A',
+    border: '#2E2E2E',
+    inputBackground: '#1E1E1E',
+    placeholder: '#555555',
   },
 } as const;
 

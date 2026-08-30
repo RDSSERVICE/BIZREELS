@@ -27,10 +27,10 @@ import { useCurrentUserProfile } from '@/features/auth/queries';
 import { api } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/image';
 
-const YELLOW = '#C8860A';
-const BLACK = '#FAF6F1';
-const DARK_CARD = '#FFFFFF';
-const BORDER = '#E3DCCB';
+const YELLOW = '#F59E0B';
+const BLACK = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -374,7 +374,7 @@ export default function ProfileScreen() {
                 {groupedInterests.map((item, idx) => (
                   <View key={idx} style={styles.interestGroupCard}>
                     <View style={styles.interestCategoryHeader}>
-                      <Ionicons name="sparkles" size={13} color={YELLOW} />
+                      <Ionicons name="folder-outline" size={13} color={YELLOW} />
                       <Text style={styles.interestCategoryName}>{item.category}</Text>
                     </View>
 

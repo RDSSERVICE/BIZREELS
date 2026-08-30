@@ -978,26 +978,20 @@ export default function SearchScreen() {
   );
 }
 
-const YELLOW = '#C8860A';
+const YELLOW = '#F59E0B';
 const BLACK = '#0F0F12';
 const DARK_CARD = '#18181C';
-const BG_WARM = '#FAF6F1';
-const WHITE_CARD = '#FFFFFF';
-const BORDER = '#E3DCCB';
-const TEXT_DARK = '#1A1A1A';
-const TEXT_MUTED = '#6B7280';
+const BORDER = '#2D2D36';
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG_WARM },
+  container: { flex: 1, backgroundColor: BLACK },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
     gap: Spacing.two,
-    backgroundColor: WHITE_CARD,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    backgroundColor: BLACK,
   },
   searchBarWrapper: {
     flex: 1,
