@@ -398,7 +398,7 @@ export default function PublicVendorProfileScreen() {
                           <TouchableOpacity
                             style={styles.addCartSmallBtn}
                             onPress={() =>
-                              addToCartMutation.mutate({ listing_id: item._id || item.id, quantity: 1 })
+                              addToCartMutation.mutate({ listing_id: (item._id || item.id || ''), quantity: 1 })
                             }>
                             <Ionicons name="cart" size={14} color={BLACK} />
                           </TouchableOpacity>
