@@ -53,11 +53,16 @@ interface ReelItemProps {
 }
 
 import { memo } from 'react';
+import { useAuth } from '@/features/auth/context';
 import { resolveImageUrl } from '@/utils/image';
 
 export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelItemProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const activeRole = user?.activeRole || user?.current_role || 'customer';
+  const isCreator = activeRole === 'creator';
+  const isVendor = activeRole === 'vendor';
 
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
@@ -354,19 +359,21 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.addToCartBtn}
-              onPress={handleAddToCart}
-              disabled={addToCartMutation.isPending}>
-              {addToCartMutation.isPending ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="cart" size={12} color="#fff" />
-                  <Text style={styles.addToCartBtnText}>Add +</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {!isCreator && !isVendor && (
+              <TouchableOpacity
+                style={styles.addToCartBtn}
+                onPress={handleAddToCart}
+                disabled={addToCartMutation.isPending}>
+                {addToCartMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="cart" size={12} color="#fff" />
+                    <Text style={styles.addToCartBtnText}>Add +</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -425,71 +432,73 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
           </Text>
         )}
 
-        {/* Quick Add to Cart & Buy Now Action Row */}
-        <View style={styles.reelBuyRow}>
-          {displayPrice ? (
-            <View style={styles.pricePillTag}>
-              <Text style={styles.pricePillText}>₹{displayPrice}</Text>
-            </View>
-          ) : null}
+        {/* Quick Add to Cart & Buy Now Action Row (Customer mode only) */}
+        {!isCreator && !isVendor && (
+          <View style={styles.reelBuyRow}>
+            {displayPrice ? (
+              <View style={styles.pricePillTag}>
+                <Text style={styles.pricePillText}>₹{displayPrice}</Text>
+              </View>
+            ) : null}
 
-          <TouchableOpacity
-            style={styles.reelCartBtn}
-            onPress={() => {
-              const targetListingId = (reel as any).taggedListing?._id || (reel as any).taggedListing || reel._id;
-              addToCartMutation.mutate(
-                { listing_id: targetListingId, quantity: 1 },
-                {
-                  onSuccess: () => {
-                    Alert.alert('🎉 Added to Cart', `Added "${reel.caption || 'Featured Reel Product'}" to your cart!`, [
-                      { text: 'View Cart', onPress: () => router.push('/cart') },
-                      { text: 'Continue' },
-                    ]);
-                  },
-                }
-              );
-            }}>
-            <Ionicons name="cart" size={15} color="#fff" />
-            <Text style={styles.reelCartText}>Add to Cart</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.reelCartBtn}
+              onPress={() => {
+                const targetListingId = (reel as any).taggedListing?._id || (reel as any).taggedListing || reel._id;
+                addToCartMutation.mutate(
+                  { listing_id: targetListingId, quantity: 1 },
+                  {
+                    onSuccess: () => {
+                      Alert.alert('🎉 Added to Cart', `Added "${reel.caption || 'Featured Reel Product'}" to your cart!`, [
+                        { text: 'View Cart', onPress: () => router.push('/cart') },
+                        { text: 'Continue' },
+                      ]);
+                    },
+                  }
+                );
+              }}>
+              <Ionicons name="cart" size={15} color="#fff" />
+              <Text style={styles.reelCartText}>Add to Cart</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.reelBuyBtn}
-            onPress={() => {
-              const targetListingId = (reel as any).taggedListing?._id || (reel as any).taggedListing || reel._id;
-              const price = (reel as any).taggedListing?.price || (reel as any).taggedListing?.salePrice || 0;
-              addToCartMutation.mutate(
-                { listing_id: targetListingId, quantity: 1 },
-                {
-                  onSuccess: () => {
-                    router.push({
-                      pathname: '/checkout',
-                      params: {
-                        listingId: targetListingId,
-                        title: reel.caption || 'Featured Reel Product',
-                        price: price.toString(),
-                        vendorName: reel.creatorName || 'Verified Business',
-                      },
-                    });
-                  },
-                  onError: () => {
-                    router.push({
-                      pathname: '/checkout',
-                      params: {
-                        listingId: targetListingId,
-                        title: reel.caption || 'Featured Reel Product',
-                        price: price.toString(),
-                        vendorName: reel.creatorName || 'Verified Business',
-                      },
-                    });
-                  },
-                }
-              );
-            }}>
-            <Ionicons name="flash" size={15} color="#000" />
-            <Text style={styles.reelBuyText}>Buy Now</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.reelBuyBtn}
+              onPress={() => {
+                const targetListingId = (reel as any).taggedListing?._id || (reel as any).taggedListing || reel._id;
+                const price = (reel as any).taggedListing?.price || (reel as any).taggedListing?.salePrice || 0;
+                addToCartMutation.mutate(
+                  { listing_id: targetListingId, quantity: 1 },
+                  {
+                    onSuccess: () => {
+                      router.push({
+                        pathname: '/checkout',
+                        params: {
+                          listingId: targetListingId,
+                          title: reel.caption || 'Featured Reel Product',
+                          price: price.toString(),
+                          vendorName: reel.creatorName || 'Verified Business',
+                        },
+                      });
+                    },
+                    onError: () => {
+                      router.push({
+                        pathname: '/checkout',
+                        params: {
+                          listingId: targetListingId,
+                          title: reel.caption || 'Featured Reel Product',
+                          price: price.toString(),
+                          vendorName: reel.creatorName || 'Verified Business',
+                        },
+                      });
+                    },
+                  }
+                );
+              }}>
+              <Ionicons name="flash" size={15} color="#000" />
+              <Text style={styles.reelBuyText}>Buy Now</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Right-Side Floating Action Column */}
