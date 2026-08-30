@@ -56,12 +56,27 @@ interface Campaign {
   createdAt?: string;
 }
 
+interface ReelItemData {
+  _id: string;
+  id?: string;
+  caption?: string;
+  video_url?: string;
+  videoUrl?: string;
+  thumbnail_url?: string;
+  likes_count?: number;
+  views_count?: number;
+  creator_name?: string;
+  creator?: { name?: string; profile_pic?: string };
+  vendor?: { storeName?: string; name?: string };
+}
+
 export default function CreatorDashboardScreen({ embedded }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [trendingReels, setTrendingReels] = useState<ReelItemData[]>([]);
   const [activeTab, setActiveTab] = useState<'invitations' | 'campaigns'>('invitations');
 
   // Submit Deliverable Modal State
@@ -72,9 +87,10 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
 
   const fetchData = useCallback(async () => {
     try {
-      const [dashRes, hiresRes] = await Promise.all([
+      const [dashRes, hiresRes, reelsRes] = await Promise.all([
         api.get('/creator/me/dashboard').catch(() => ({ data: {} })),
         api.get('/hires?role=creator').catch(() => ({ data: { items: [] } })),
+        api.get('/reels', { params: { limit: 10 } }).catch(() => ({ data: { items: [] } })),
       ]);
 
       const dData = dashRes.data?.data || dashRes.data || {};
@@ -82,6 +98,9 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
 
       const hItems = hiresRes.data?.data?.items || hiresRes.data?.items || hiresRes.data || [];
       setCampaigns(Array.isArray(hItems) ? hItems : []);
+
+      const rItems = reelsRes.data?.data?.reels || reelsRes.data?.reels || reelsRes.data?.items || reelsRes.data || [];
+      setTrendingReels(Array.isArray(rItems) ? rItems.slice(0, 10) : []);
     } catch (err) {
       console.warn('Failed to load creator dashboard:', err);
     } finally {
@@ -248,8 +267,64 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
           <Text style={styles.actionChipText}>Subscription</Text>
         </TouchableOpacity>
       </ScrollView>
+      {/* Trending Reels & Creator Inspiration Section */}
+      <View style={styles.sectionHeaderRow}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={styles.sectionHeader}>🔥 TRENDING REELS & CREATOR INSPIRATION</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)' as any)}>
+            <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '900' }}>Watch Feed ›</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-      {/* Campaign Collaborations Tabs */}
+      {trendingReels.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reelsScrollRow}>
+          {trendingReels.map((reel) => (
+            <TouchableOpacity
+              key={reel._id || reel.id}
+              style={styles.reelCard}
+              onPress={() => router.push(`/reel/${reel._id || reel.id}` as any)}>
+              <View style={styles.reelThumbnailBox}>
+                <Ionicons name="play-circle" size={32} color={YELLOW} style={{ zIndex: 2 }} />
+                <View style={styles.reelBadgeOverlay}>
+                  <Ionicons name="eye" size={10} color="#fff" />
+                  <Text style={styles.reelBadgeText}>{(reel.views_count || 1400).toLocaleString()}</Text>
+                </View>
+              </View>
+              <View style={styles.reelMetaBox}>
+                <Text style={styles.reelCreatorName} numberOfLines={1}>
+                  @{reel.creator?.name || reel.vendor?.storeName || 'featured_creator'}
+                </Text>
+                <Text style={styles.reelCaption} numberOfLines={2}>
+                  {reel.caption || 'Trending Short Product Video Reel Demonstration'}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  <Ionicons name="heart" size={12} color="#EF4444" />
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '700' }}>
+                    {reel.likes_count || 320} likes
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={styles.emptyReelsCard}>
+          <Ionicons name="videocam-outline" size={28} color={YELLOW} />
+          <Text style={{ color: '#fff', fontSize: FontSize.xs, fontWeight: '900', marginTop: 4 }}>
+            Explore High-Performing Video Reels
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, textAlign: 'center', marginTop: 2 }}>
+            Watch trending video reels to gather creative content ideas for your brand shoots.
+          </Text>
+          <TouchableOpacity
+            style={styles.watchFeedBtn}
+            onPress={() => router.push('/(tabs)' as any)}>
+            <Ionicons name="play" size={14} color={BLACK} />
+            <Text style={styles.watchFeedBtnText}>Open Reels Feed</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <View style={styles.tabHeaderRow}>
         <TouchableOpacity
           style={[styles.tabBtn, activeTab === 'invitations' && styles.tabBtnActive]}
@@ -532,6 +607,57 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   actionChipText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700' },
+  reelsScrollRow: { flexDirection: 'row', gap: 12, marginVertical: 4 },
+  reelCard: {
+    width: 150,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginRight: 10,
+    overflow: 'hidden',
+  },
+  reelThumbnailBox: {
+    width: '100%',
+    height: 160,
+    backgroundColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  reelBadgeOverlay: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  reelBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  reelMetaBox: { padding: 8, gap: 2 },
+  reelCreatorName: { color: YELLOW, fontSize: 10, fontWeight: '900' },
+  reelCaption: { color: '#fff', fontSize: 11, lineHeight: 14, fontWeight: '600' },
+  emptyReelsCard: {
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: Spacing.four,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  watchFeedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: YELLOW,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+    marginTop: 6,
+  },
+  watchFeedBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
   tabHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: BORDER },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabBtnActive: { borderBottomColor: YELLOW },
