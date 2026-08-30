@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
-    justify: 'center',
+    justifyContent: 'center',
     borderRadius: 8,
   },
   headerTitle: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 1 },
