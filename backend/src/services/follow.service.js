@@ -126,24 +126,50 @@ const unfollow = async (followerId, followingId) => {
 };
 
 const isFollowing = async (followerId, followingId) => {
-  const doc = await Follow.findOne({ follower_id: followerId, following_id: followingId });
+  if (!followerId || !followingId) return false;
+  const fStr = followerId.toString();
+  const tStr = followingId.toString();
+  const fObj = mongoose.Types.ObjectId.isValid(fStr) ? new mongoose.Types.ObjectId(fStr) : fStr;
+  const tObj = mongoose.Types.ObjectId.isValid(tStr) ? new mongoose.Types.ObjectId(tStr) : tStr;
+
+  const doc = await Follow.findOne({
+    $or: [{ follower_id: fStr }, { follower_id: fObj }],
+    $or: [{ following_id: tStr }, { following_id: tObj }],
+  });
   return !!doc;
 };
 
 const followingIds = async (followerId) => {
-  const docs = await Follow.find({ follower_id: followerId }).select('following_id');
-  return docs.map(f => f.following_id);
+  if (!followerId) return [];
+  const fStr = followerId.toString();
+  const fObj = mongoose.Types.ObjectId.isValid(fStr) ? new mongoose.Types.ObjectId(fStr) : fStr;
+
+  const docs = await Follow.find({
+    $or: [{ follower_id: fStr }, { follower_id: fObj }]
+  }).select('following_id');
+  return docs.map(f => f.following_id.toString());
 };
 
 const followersCount = async (userId) => {
-  return await Follow.countDocuments({ following_id: userId });
+  if (!userId) return 0;
+  const uStr = userId.toString();
+  const uObj = mongoose.Types.ObjectId.isValid(uStr) ? new mongoose.Types.ObjectId(uStr) : uStr;
+  return await Follow.countDocuments({
+    $or: [{ following_id: uStr }, { following_id: uObj }]
+  });
 };
 
 const myFollowing = async (followerId, queryOptions = {}) => {
-  const { search, role, page = 1, limit = 10, sortBy } = queryOptions;
+  const { search, role, page = 1, limit = 500, sortBy } = queryOptions;
+  const fStr = followerId.toString();
+  const fObj = mongoose.Types.ObjectId.isValid(fStr) ? new mongoose.Types.ObjectId(fStr) : fStr;
 
   const pipeline = [
-    { $match: { follower_id: followerId } },
+    {
+      $match: {
+        $or: [{ follower_id: fStr }, { follower_id: fObj }]
+      }
+    },
     {
       $addFields: {
         followingObjId: {

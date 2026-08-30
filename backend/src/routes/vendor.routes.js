@@ -425,7 +425,7 @@ router.get('/:user_id', optionalAuth, catchAsync(async (req, res) => {
   }
 
   const followersCount = await followService.followersCount(user_id);
-  const viewerId = req.userId || null;
+  const viewerId = req.user?._id?.toString() || req.userId || null;
   let following = false;
   if (viewerId && viewerId !== user_id) {
     following = await followService.isFollowing(viewerId, user_id);
@@ -516,7 +516,7 @@ router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
   const reviewsCount = await Review.countDocuments({ targetUser: user_id, isDeleted: { $ne: true } });
 
   // Get current viewer following status
-  const viewerId = req.userId || null;
+  const viewerId = req.user?._id?.toString() || req.userId || null;
   let isFollowingViewer = false;
   if (viewerId && viewerId !== user_id) {
     isFollowingViewer = await followService.isFollowing(viewerId, user_id);
