@@ -265,7 +265,7 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
               </View>
             </View>
 
-            <Text style={styles.campaignDesc} numberOfLines={3}>
+            <Text style={styles.campDesc} numberOfLines={3}>
               {item.notes || item.requirements || 'Product demonstration video shoot requirement.'}
             </Text>
 

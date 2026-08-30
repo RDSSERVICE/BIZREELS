@@ -82,7 +82,7 @@ export default function LoginScreen() {
           {serverError && (
             <View style={s.errorBanner}>
               <SymbolView
-                name={{ ios: 'exclamationmark.circle.fill', android: 'error', web: 'error' }}
+                name="exclamationmark.circle.fill"
                 size={16}
                 tintColor={BrandColors.error}
               />
@@ -99,7 +99,7 @@ export default function LoginScreen() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <View style={[s.inputRow, (errors.email || !!serverError) && s.inputError]}>
                   <SymbolView
-                    name={{ ios: 'envelope', android: 'email', web: 'email' }}
+                    name="envelope"
                     size={18}
                     tintColor={BrandColors.primary}
                     style={s.inputIcon}
@@ -140,7 +140,7 @@ export default function LoginScreen() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <View style={[s.inputRow, (errors.password || !!serverError) && s.inputError]}>
                   <SymbolView
-                    name={{ ios: 'lock', android: 'lock', web: 'lock' }}
+                    name="lock"
                     size={18}
                     tintColor={BrandColors.primary}
                     style={s.inputIcon}
@@ -165,11 +165,7 @@ export default function LoginScreen() {
                     accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                     accessibilityRole="button">
                     <SymbolView
-                      name={
-                        showPassword
-                          ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
-                          : { ios: 'eye', android: 'visibility', web: 'visibility' }
-                      }
+                      name={showPassword ? 'eye.slash' : 'eye'}
                       size={18}
                       tintColor={theme.textSecondary}
                     />
@@ -197,7 +193,7 @@ export default function LoginScreen() {
               <>
                 <Text style={s.primaryButtonText}>Sign In</Text>
                 <SymbolView
-                  name={{ ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }}
+                  name="arrow.right"
                   size={16}
                   tintColor={BrandColors.onPrimary}
                 />
@@ -219,7 +215,7 @@ export default function LoginScreen() {
         {/* Security note */}
         <View style={s.securityNote}>
           <SymbolView
-            name={{ ios: 'shield', android: 'security', web: 'security' }}
+            name="shield"
             size={20}
             tintColor={theme.textSecondary}
           />

@@ -34,9 +34,179 @@ interface CategoryItem {
   id?: string;
   name: string;
   icon_url?: string | null;
+  category_type?: string;
+  parent_id?: string | null;
+  children?: any[];
   subcategories?: SubCategoryItem[];
   items?: SubCategoryItem[];
 }
+
+const DEFAULT_PRODUCT_CATEGORIES: CategoryItem[] = [
+  {
+    _id: 'cat_prod_1',
+    name: 'Electronics',
+    category_type: 'product',
+    subcategories: [
+      { _id: 'sub_1_1', name: 'Mobile' },
+      { _id: 'sub_1_2', name: 'Laptop & Computers' },
+      { _id: 'sub_1_3', name: 'TV & Audio' },
+      { _id: 'sub_1_4', name: 'Home Appliances' },
+      { _id: 'sub_1_5', name: 'Cameras & Accessories' },
+    ],
+  },
+  {
+    _id: 'cat_prod_2',
+    name: 'Fashion & Apparel',
+    category_type: 'product',
+    subcategories: [
+      { _id: 'sub_2_1', name: 'Men Clothing' },
+      { _id: 'sub_2_2', name: 'Women Clothing' },
+      { _id: 'sub_2_3', name: 'Kids Wear' },
+      { _id: 'sub_2_4', name: 'Footwear' },
+      { _id: 'sub_2_5', name: 'Jewelry & Watches' },
+    ],
+  },
+  {
+    _id: 'cat_prod_3',
+    name: 'Home & Furniture',
+    category_type: 'product',
+    subcategories: [
+      { _id: 'sub_3_1', name: 'Living Room Furniture' },
+      { _id: 'sub_3_2', name: 'Bedroom Furniture' },
+      { _id: 'sub_3_3', name: 'Kitchen & Dining' },
+      { _id: 'sub_3_4', name: 'Home Decor' },
+      { _id: 'sub_3_5', name: 'Bedding & Furnishings' },
+    ],
+  },
+  {
+    _id: 'cat_prod_4',
+    name: 'Vehicles & Automotive',
+    category_type: 'product',
+    subcategories: [
+      { _id: 'sub_4_1', name: 'Cars' },
+      { _id: 'sub_4_2', name: 'Bikes & Scooters' },
+      { _id: 'sub_4_3', name: 'Commercial Vehicles' },
+      { _id: 'sub_4_4', name: 'Auto Parts & Accessories' },
+    ],
+  },
+  {
+    _id: 'cat_prod_5',
+    name: 'Food & Grocery',
+    category_type: 'product',
+    subcategories: [
+      { _id: 'sub_5_1', name: 'Fresh Fruits & Vegetables' },
+      { _id: 'sub_5_2', name: 'Staples & Spices' },
+      { _id: 'sub_5_3', name: 'Dairy & Bakery' },
+      { _id: 'sub_5_4', name: 'Beverages & Snacks' },
+      { _id: 'sub_5_5', name: 'Packaged Foods' },
+    ],
+  },
+  {
+    _id: 'cat_prod_6',
+    name: 'Industrial & Machinery',
+    category_type: 'product',
+    subcategories: [
+      { _id: 'sub_6_1', name: 'Industrial Tools' },
+      { _id: 'sub_6_2', name: 'Heavy Machinery' },
+      { _id: 'sub_6_3', name: 'Electrical & Automation' },
+      { _id: 'sub_6_4', name: 'Safety Equipment' },
+      { _id: 'sub_6_5', name: 'Packaging Materials' },
+    ],
+  },
+  {
+    _id: 'cat_prod_7',
+    name: 'Health & Personal Care',
+    category_type: 'product',
+    subcategories: [
+      { _id: 'sub_7_1', name: 'Medicines & Wellness' },
+      { _id: 'sub_7_2', name: 'Medical Devices' },
+      { _id: 'sub_7_3', name: 'Fitness Supplements' },
+      { _id: 'sub_7_4', name: 'Personal Hygiene' },
+    ],
+  },
+];
+
+const DEFAULT_SERVICE_CATEGORIES: CategoryItem[] = [
+  {
+    _id: 'cat_serv_1',
+    name: 'Repair & Maintenance',
+    category_type: 'service',
+    subcategories: [
+      { _id: 'sub_s1_1', name: 'AC & Appliance Repair' },
+      { _id: 'sub_s1_2', name: 'Plumbing Services' },
+      { _id: 'sub_s1_3', name: 'Electrical Repair' },
+      { _id: 'sub_s1_4', name: 'Carpentry & Woodwork' },
+      { _id: 'sub_s1_5', name: 'Painting & Waterproofing' },
+      { _id: 'sub_s1_6', name: 'House Cleaning & Pest Control' },
+    ],
+  },
+  {
+    _id: 'cat_serv_2',
+    name: 'Real Estate & Housing',
+    category_type: 'service',
+    subcategories: [
+      { _id: 'sub_s2_1', name: 'Property for Rent' },
+      { _id: 'sub_s2_2', name: 'Property for Sale' },
+      { _id: 'sub_s2_3', name: 'PG & Shared Hostels' },
+      { _id: 'sub_s2_4', name: 'Commercial Spaces' },
+    ],
+  },
+  {
+    _id: 'cat_serv_3',
+    name: 'Beauty & Salon Services',
+    category_type: 'service',
+    subcategories: [
+      { _id: 'sub_s3_1', name: 'Men Salon & Grooming' },
+      { _id: 'sub_s3_2', name: 'Women Beauty & Makeup' },
+      { _id: 'sub_s3_3', name: 'Bridal Packages' },
+      { _id: 'sub_s3_4', name: 'Spa & Wellness' },
+    ],
+  },
+  {
+    _id: 'cat_serv_4',
+    name: 'Event & Wedding Services',
+    category_type: 'service',
+    subcategories: [
+      { _id: 'sub_s4_1', name: 'Catering & Food Counter' },
+      { _id: 'sub_s4_2', name: 'Event Photography & Videography' },
+      { _id: 'sub_s4_3', name: 'Decoration & Stage Setup' },
+      { _id: 'sub_s4_4', name: 'DJ & Sound System' },
+    ],
+  },
+  {
+    _id: 'cat_serv_5',
+    name: 'IT, Design & Marketing',
+    category_type: 'service',
+    subcategories: [
+      { _id: 'sub_s5_1', name: 'Website & App Development' },
+      { _id: 'sub_s5_2', name: 'Graphic & Logo Design' },
+      { _id: 'sub_s5_3', name: 'Social Media & Digital Marketing' },
+      { _id: 'sub_s5_4', name: 'Reels & Video Content Shoot' },
+    ],
+  },
+  {
+    _id: 'cat_serv_6',
+    name: 'Education & Tutors',
+    category_type: 'service',
+    subcategories: [
+      { _id: 'sub_s6_1', name: 'School & College Tuitions' },
+      { _id: 'sub_s6_2', name: 'Competitive Exam Coaching' },
+      { _id: 'sub_s6_3', name: 'Language & Communication' },
+      { _id: 'sub_s6_4', name: 'Music, Dance & Arts' },
+    ],
+  },
+  {
+    _id: 'cat_serv_7',
+    name: 'Logistics & Transport',
+    category_type: 'service',
+    subcategories: [
+      { _id: 'sub_s7_1', name: 'Packers & Movers' },
+      { _id: 'sub_s7_2', name: 'Local Goods Transport' },
+      { _id: 'sub_s7_3', name: 'Courier & Freight' },
+      { _id: 'sub_s7_4', name: 'Taxi & Vehicle Rental' },
+    ],
+  },
+];
 
 interface RequirementItem {
   _id: string;
@@ -168,10 +338,15 @@ export default function CustomerPostRequirementScreen() {
     setLoadingCategories(true);
     try {
       const { data } = await api.get('/categories', { params: { tree: 'true' } });
-      const cats = data?.data?.categories || data?.categories || data?.data || [];
-      setCategories(cats);
+      const cats = data?.items || data?.data?.categories || data?.categories || data?.data || [];
+      if (Array.isArray(cats) && cats.length > 0) {
+        setCategories(cats);
+      } else {
+        setCategories([...DEFAULT_PRODUCT_CATEGORIES, ...DEFAULT_SERVICE_CATEGORIES]);
+      }
     } catch (err) {
-      console.warn('Failed to load categories', err);
+      console.warn('Failed to load categories, using default pool', err);
+      setCategories([...DEFAULT_PRODUCT_CATEGORIES, ...DEFAULT_SERVICE_CATEGORIES]);
     } finally {
       setLoadingCategories(false);
     }
@@ -327,10 +502,31 @@ export default function CustomerPostRequirementScreen() {
     }
   };
 
-  const subcategoriesList = selectedCategory?.subcategories || selectedCategory?.items || [];
-  const filteredCategories = categories.filter((c) =>
-    c.name.toLowerCase().includes(catSearch.toLowerCase())
+  const categoryPool = categories.length > 0 ? categories : (reqType === 'service' ? DEFAULT_SERVICE_CATEGORIES : DEFAULT_PRODUCT_CATEGORIES);
+
+  const availableCategories = categoryPool.filter((c) => {
+    if (c.category_type && c.category_type !== reqType && c.category_type !== 'both') {
+      return false;
+    }
+    if (c.parent_id) {
+      return false;
+    }
+    return true;
+  });
+
+  const filteredCategories = availableCategories.filter((c) =>
+    (c.name || '').toLowerCase().includes(catSearch.toLowerCase())
   );
+
+  const subcategoriesList =
+    selectedCategory?.subcategories ||
+    selectedCategory?.children ||
+    selectedCategory?.items ||
+    categoryPool.filter(
+      (c) =>
+        !!c.parent_id &&
+        (c.parent_id === selectedCategory?.id || c.parent_id === selectedCategory?._id)
+    );
 
   return (
     <KeyboardAvoidingView
@@ -414,7 +610,13 @@ export default function CustomerPostRequirementScreen() {
             <View style={styles.typeSwitchRow}>
               <TouchableOpacity
                 style={[styles.typeBtn, reqType === 'product' && styles.typeBtnActive]}
-                onPress={() => setReqType('product')}>
+                onPress={() => {
+                  setReqType('product');
+                  setSelectedCategory(null);
+                  setSelectedSubcategory(null);
+                  setCustomCategory('');
+                  setCustomSubcategory('');
+                }}>
                 <Ionicons
                   name="cube-outline"
                   size={18}
@@ -427,7 +629,13 @@ export default function CustomerPostRequirementScreen() {
 
               <TouchableOpacity
                 style={[styles.typeBtn, reqType === 'service' && styles.typeBtnActive]}
-                onPress={() => setReqType('service')}>
+                onPress={() => {
+                  setReqType('service');
+                  setSelectedCategory(null);
+                  setSelectedSubcategory(null);
+                  setCustomCategory('');
+                  setCustomSubcategory('');
+                }}>
                 <Ionicons
                   name="construct-outline"
                   size={18}

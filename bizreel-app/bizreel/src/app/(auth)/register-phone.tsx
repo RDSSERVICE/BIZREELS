@@ -95,7 +95,7 @@ export default function RegisterPhoneScreen() {
     register(
       { ...values, phone, role: selectedRole },
       {
-        onError: (error) => {
+        onError: (error: Error) => {
           Alert.alert('Registration Failed', error.message);
         },
       }
@@ -147,7 +147,7 @@ export default function RegisterPhoneScreen() {
                     style={[s.roleCard, isSelected && s.roleCardSelected]}
                     onPress={() => setSelectedRole(r.id as any)}>
                     <SymbolView
-                      name={{ ios: 'video', android: 'videocam', web: 'videocam' }}
+                      name="video"
                       size={16}
                       tintColor={isSelected ? BrandColors.onPrimary : BrandColors.primary}
                     />
@@ -169,7 +169,7 @@ export default function RegisterPhoneScreen() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <View style={[s.inputRow, errors.name && s.inputError]}>
                   <SymbolView
-                    name={{ ios: 'person', android: 'person', web: 'person' }}
+                    name="person"
                     size={18}
                     tintColor={BrandColors.primary}
                     style={s.inputIcon}
@@ -209,11 +209,7 @@ export default function RegisterPhoneScreen() {
                     <Text style={s.countryFlag}>{selectedCountry.flag}</Text>
                     <Text style={s.countryDial}>{selectedCountry.dial}</Text>
                     <SymbolView
-                      name={{
-                        ios: 'chevron.down',
-                        android: 'keyboard_arrow_down',
-                        web: 'keyboard_arrow_down',
-                      }}
+                      name="chevron.down"
                       size={12}
                       tintColor={theme.textSecondary}
                     />
@@ -281,7 +277,7 @@ export default function RegisterPhoneScreen() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <View style={[s.inputRow, errors.email && s.inputError]}>
                   <SymbolView
-                    name={{ ios: 'envelope', android: 'email', web: 'email' }}
+                    name="envelope"
                     size={18}
                     tintColor={BrandColors.primary}
                     style={s.inputIcon}
@@ -314,7 +310,7 @@ export default function RegisterPhoneScreen() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <View style={[s.inputRow, errors.password && s.inputError]}>
                   <SymbolView
-                    name={{ ios: 'lock', android: 'lock', web: 'lock' }}
+                    name="lock"
                     size={18}
                     tintColor={BrandColors.primary}
                     style={s.inputIcon}
@@ -339,11 +335,7 @@ export default function RegisterPhoneScreen() {
                     accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                     accessibilityRole="button">
                     <SymbolView
-                      name={
-                        showPassword
-                          ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
-                          : { ios: 'eye', android: 'visibility', web: 'visibility' }
-                      }
+                      name={showPassword ? 'eye.slash' : 'eye'}
                       size={18}
                       tintColor={theme.textSecondary}
                     />
@@ -359,19 +351,7 @@ export default function RegisterPhoneScreen() {
                 return (
                   <View key={rule.label} style={s.ruleRow}>
                     <SymbolView
-                      name={
-                        passed
-                          ? {
-                              ios: 'checkmark.circle.fill',
-                              android: 'check_circle',
-                              web: 'check_circle',
-                            }
-                          : {
-                              ios: 'circle',
-                              android: 'radio_button_unchecked',
-                              web: 'radio_button_unchecked',
-                            }
-                      }
+                      name={passed ? 'checkmark.circle.fill' : 'circle'}
                       size={14}
                       tintColor={passed ? BrandColors.success : theme.textSecondary}
                     />
@@ -391,7 +371,7 @@ export default function RegisterPhoneScreen() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <View style={[s.inputRow, errors.confirmPassword && s.inputError]}>
                   <SymbolView
-                    name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+                    name="lock.fill"
                     size={18}
                     tintColor={BrandColors.primary}
                     style={s.inputIcon}
@@ -416,11 +396,7 @@ export default function RegisterPhoneScreen() {
                     accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                     accessibilityRole="button">
                     <SymbolView
-                      name={
-                        showConfirmPassword
-                          ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
-                          : { ios: 'eye', android: 'visibility', web: 'visibility' }
-                      }
+                      name={showConfirmPassword ? 'eye.slash' : 'eye'}
                       size={18}
                       tintColor={theme.textSecondary}
                     />
@@ -450,7 +426,7 @@ export default function RegisterPhoneScreen() {
               <>
                 <Text style={s.primaryButtonText}>Create Account</Text>
                 <SymbolView
-                  name={{ ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }}
+                  name="arrow.right"
                   size={16}
                   tintColor={BrandColors.onPrimary}
                 />
@@ -472,13 +448,13 @@ export default function RegisterPhoneScreen() {
             accessibilityLabel="Register with Email"
             accessibilityRole="button">
             <SymbolView
-              name={{ ios: 'envelope', android: 'email', web: 'email' }}
+              name="envelope"
               size={18}
               tintColor={BrandColors.primary}
             />
             <Text style={s.secondaryButtonText}>Register with Email</Text>
             <SymbolView
-              name={{ ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }}
+              name="arrow.right"
               size={16}
               tintColor={theme.textSecondary}
             />
@@ -498,7 +474,7 @@ export default function RegisterPhoneScreen() {
         {/* Security note */}
         <View style={s.securityNote}>
           <SymbolView
-            name={{ ios: 'shield', android: 'security', web: 'security' }}
+            name="shield"
             size={20}
             tintColor={theme.textSecondary}
           />
@@ -517,7 +493,7 @@ export default function RegisterPhoneScreen() {
 // ---------------------------------------------------------------------------
 type Theme = typeof Colors.light;
 
-function makeStyles(theme: Theme) {
+function makeStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
     flex: { flex: 1, backgroundColor: theme.background },
     scroll: { flex: 1, backgroundColor: theme.background },

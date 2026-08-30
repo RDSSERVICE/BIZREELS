@@ -28,6 +28,8 @@ export function useRegister() {
   });
 }
 
+export const useRegisterWithPhone = useRegister;
+
 export function useLogin() {
   const { setUser } = useAuth();
   return useMutation({

@@ -225,7 +225,7 @@ export default function RegisterScreen() {
           {serverError && (
             <View style={s.errorBanner}>
               <SymbolView
-                name={{ ios: 'exclamationmark.circle.fill', android: 'error', web: 'error' }}
+                name="exclamationmark.circle.fill"
                 size={16}
                 tintColor={BrandColors.error}
               />
@@ -274,7 +274,7 @@ export default function RegisterScreen() {
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.name && s.inputError]}>
                       <SymbolView
-                        name={{ ios: 'person', android: 'person', web: 'person' }}
+                        name="person"
                         size={18}
                         tintColor={BrandColors.primary}
                         style={s.inputIcon}
@@ -335,7 +335,7 @@ export default function RegisterScreen() {
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, (errors.email || !!serverError) && s.inputError]}>
                       <SymbolView
-                        name={{ ios: 'envelope', android: 'email', web: 'email' }}
+                        name="envelope"
                         size={18}
                         tintColor={BrandColors.primary}
                         style={s.inputIcon}
@@ -368,7 +368,7 @@ export default function RegisterScreen() {
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.password && s.inputError]}>
                       <SymbolView
-                        name={{ ios: 'lock', android: 'lock', web: 'lock' }}
+                        name="lock"
                         size={18}
                         tintColor={BrandColors.primary}
                         style={s.inputIcon}
@@ -393,11 +393,7 @@ export default function RegisterScreen() {
                         accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                         accessibilityRole="button">
                         <SymbolView
-                          name={
-                            showPassword
-                              ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
-                              : { ios: 'eye', android: 'visibility', web: 'visibility' }
-                          }
+                          name={showPassword ? 'eye.slash' : 'eye'}
                           size={18}
                           tintColor={theme.textSecondary}
                         />
@@ -413,11 +409,7 @@ export default function RegisterScreen() {
                     return (
                       <View key={rule.label} style={s.ruleRow}>
                         <SymbolView
-                          name={
-                            passed
-                              ? { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' }
-                              : { ios: 'circle', android: 'radio_button_unchecked', web: 'radio_button_unchecked' }
-                          }
+                          name={passed ? 'checkmark.circle.fill' : 'circle'}
                           size={14}
                           tintColor={passed ? BrandColors.success : theme.textSecondary}
                         />
@@ -437,7 +429,7 @@ export default function RegisterScreen() {
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.confirmPassword && s.inputError]}>
                       <SymbolView
-                        name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+                        name="lock.fill"
                         size={18}
                         tintColor={BrandColors.primary}
                         style={s.inputIcon}
@@ -462,11 +454,7 @@ export default function RegisterScreen() {
                         accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                         accessibilityRole="button">
                         <SymbolView
-                          name={
-                            showConfirmPassword
-                              ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
-                              : { ios: 'eye', android: 'visibility', web: 'visibility' }
-                          }
+                          name={showConfirmPassword ? 'eye.slash' : 'eye'}
                           size={18}
                           tintColor={theme.textSecondary}
                         />
@@ -497,7 +485,7 @@ export default function RegisterScreen() {
                       <>
                         <Text style={s.primaryButtonText}>VERIFY OTP & CONTINUE</Text>
                         <SymbolView
-                          name={{ ios: 'shield.checkmark', android: 'security', web: 'security' }}
+                          name="shield"
                           size={18}
                           tintColor={BLACK}
                         />
@@ -665,7 +653,7 @@ export default function RegisterScreen() {
                       Create Account ({selectedInterests.length} Selected)
                     </Text>
                     <SymbolView
-                      name={{ ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }}
+                      name="arrow.right"
                       size={16}
                       tintColor={BLACK}
                     />

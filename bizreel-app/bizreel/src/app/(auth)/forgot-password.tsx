@@ -160,7 +160,7 @@ export default function ForgotPasswordScreen() {
         {!!serverError && (
           <View style={s.errorBanner}>
             <SymbolView
-              name={{ ios: 'exclamationmark.octagon.fill', android: 'error', web: 'error' }}
+              name="exclamationmark.octagon.fill"
               size={18}
               tintColor="#EF4444"
             />
@@ -172,7 +172,7 @@ export default function ForgotPasswordScreen() {
         {!!successMsg && (
           <View style={s.successBanner}>
             <SymbolView
-              name={{ ios: 'checkmark.seal.fill', android: 'check_circle', web: 'check_circle' }}
+              name="checkmark.seal.fill"
               size={18}
               tintColor="#10B981"
             />
@@ -193,7 +193,7 @@ export default function ForgotPasswordScreen() {
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.identifier && s.inputError]}>
                       <SymbolView
-                        name={{ ios: 'phone.fill', android: 'phone', web: 'phone' }}
+                        name="phone.fill"
                         size={18}
                         tintColor={BrandColors.primary}
                         style={s.inputIcon}
@@ -235,7 +235,7 @@ export default function ForgotPasswordScreen() {
                     <>
                       <Text style={s.primaryButtonText}>SEND VERIFICATION OTP</Text>
                       <SymbolView
-                        name={{ ios: 'key.fill', android: 'vpn_key', web: 'vpn_key' }}
+                        name="key.fill"
                         size={18}
                         tintColor={BLACK}
                       />
@@ -250,7 +250,7 @@ export default function ForgotPasswordScreen() {
               {/* Verified Indicator */}
               <View style={s.verifiedChip}>
                 <SymbolView
-                  name={{ ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' }}
+                  name="checkmark.circle.fill"
                   size={16}
                   tintColor="#10B981"
                 />
@@ -266,7 +266,7 @@ export default function ForgotPasswordScreen() {
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.newPassword && s.inputError]}>
                       <SymbolView
-                        name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+                        name="lock.fill"
                         size={18}
                         tintColor={BrandColors.primary}
                         style={s.inputIcon}
@@ -288,11 +288,7 @@ export default function ForgotPasswordScreen() {
                         onPress={() => setShowPassword(!showPassword)}
                         style={s.eyeBtn}>
                         <SymbolView
-                          name={{
-                            ios: showPassword ? 'eye.slash.fill' : 'eye.fill',
-                            android: showPassword ? 'visibility_off' : 'visibility',
-                            web: showPassword ? 'visibility_off' : 'visibility',
-                          }}
+                          name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
                           size={18}
                           tintColor="rgba(255,255,255,0.6)"
                         />
@@ -314,7 +310,7 @@ export default function ForgotPasswordScreen() {
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.confirmPassword && s.inputError]}>
                       <SymbolView
-                        name={{ ios: 'lock.shield.fill', android: 'verified_user', web: 'verified_user' }}
+                        name="lock.shield.fill"
                         size={18}
                         tintColor={BrandColors.primary}
                         style={s.inputIcon}
@@ -336,11 +332,7 @@ export default function ForgotPasswordScreen() {
                         onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                         style={s.eyeBtn}>
                         <SymbolView
-                          name={{
-                            ios: showConfirmPassword ? 'eye.slash.fill' : 'eye.fill',
-                            android: showConfirmPassword ? 'visibility_off' : 'visibility',
-                            web: showConfirmPassword ? 'visibility_off' : 'visibility',
-                          }}
+                          name={showConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
                           size={18}
                           tintColor="rgba(255,255,255,0.6)"
                         />
@@ -368,7 +360,7 @@ export default function ForgotPasswordScreen() {
                     <>
                       <Text style={s.primaryButtonText}>UPDATE PASSWORD & LOGIN</Text>
                       <SymbolView
-                        name={{ ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }}
+                        name="arrow.right"
                         size={18}
                         tintColor={BLACK}
                       />

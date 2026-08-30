@@ -6,7 +6,7 @@ import { BrandColors, Colors } from '@/constants/theme';
 
 export default function AppTabs() {
   const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme ?? 'light'];
+  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
   return (
     <Tabs
@@ -25,7 +25,7 @@ export default function AppTabs() {
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
             <SymbolView
-              name={{ ios: 'house.fill', android: 'home', web: 'home' }}
+              name="house.fill"
               tintColor={color}
               size={size}
             />
@@ -38,7 +38,7 @@ export default function AppTabs() {
           title: 'Explore',
           tabBarIcon: ({ color, size }) => (
             <SymbolView
-              name={{ ios: 'safari.fill', android: 'explore', web: 'explore' }}
+              name="safari.fill"
               tintColor={color}
               size={size}
             />
