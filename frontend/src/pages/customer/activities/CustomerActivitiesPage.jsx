@@ -310,11 +310,22 @@ export default function CustomerActivitiesPage() {
     }
   };
 
-  // Orders list extracted
-  const ordersList = ordersData?.data?.orders || ordersData?.orders || ordersData?.data || [];
-  const inquiriesList = inquiriesData?.data?.inquiries || inquiriesData?.inquiries || inquiriesData?.data || [];
-  const quotesList = quotesData?.data?.quotes || quotesData?.quotes || quotesData?.data || [];
-  const followingList = followingData?.data?.following || followingData?.following || followingData?.data || [];
+  // Orders, Inquiries, Quotes, Following lists robustly extracted
+  const ordersList = Array.isArray(ordersData?.data?.orders || ordersData?.orders || ordersData?.data) 
+    ? (ordersData?.data?.orders || ordersData?.orders || ordersData?.data)
+    : (ordersData?.data?.items || ordersData?.items || []);
+
+  const inquiriesList = Array.isArray(inquiriesData?.data?.inquiries || inquiriesData?.inquiries || inquiriesData?.data)
+    ? (inquiriesData?.data?.inquiries || inquiriesData?.inquiries || inquiriesData?.data)
+    : (inquiriesData?.data?.items || inquiriesData?.items || []);
+
+  const quotesList = Array.isArray(quotesData?.data?.quotes || quotesData?.quotes || quotesData?.data)
+    ? (quotesData?.data?.quotes || quotesData?.quotes || quotesData?.data)
+    : (quotesData?.data?.items || quotesData?.items || []);
+
+  const followingList = Array.isArray(followingData?.data?.following || followingData?.following || followingData?.data)
+    ? (followingData?.data?.following || followingData?.following || followingData?.data)
+    : (followingData?.data?.items || followingData?.items || []);
 
   return (
     <div className="min-h-screen bg-[#f8f4ec] py-4 px-3 sm:px-6 font-sans">

@@ -54,17 +54,19 @@ export default function ActiveSubscriptionCard({
             </div>
           )}
 
-          <div className="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 flex items-center gap-2">
-            <FiCreditCard className="text-emerald-400" size={15} />
-            <div className="text-left">
-              <span className="text-[9.5px] uppercase font-bold text-slate-400 block">
-                {roleParam === 'creator' ? 'Creator Wallet' : 'Vendor Wallet'}
-              </span>
-              <span className="text-xs font-black text-emerald-400 font-mono">
-                ₹{Number(walletBalance || 0).toLocaleString('en-IN')}
-              </span>
+          {roleParam !== 'customer' && roleParam !== 'user' && (
+            <div className="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 flex items-center gap-2">
+              <FiCreditCard className="text-emerald-400" size={15} />
+              <div className="text-left">
+                <span className="text-[9.5px] uppercase font-bold text-slate-400 block">
+                  {roleParam === 'creator' ? 'Creator Wallet' : 'Vendor Wallet'}
+                </span>
+                <span className="text-xs font-black text-emerald-400 font-mono">
+                  ₹{Number(walletBalance || 0).toLocaleString('en-IN')}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
