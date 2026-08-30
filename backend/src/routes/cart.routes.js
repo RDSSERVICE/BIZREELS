@@ -61,7 +61,21 @@ const hydrateCart = async (cart) => {
     if (!li) continue;
 
     const vendorId = (li.vendor_id || li.vendor).toString();
-    const price = parseFloat(li.salePrice || li.sellingPrice || li.offer_price || li.price || li.actualPrice || 0);
+    const priceCandidates = [
+      li.sellingPrice,
+      li.salePrice,
+      li.offer_price,
+      li.price,
+      li.rate,
+      li.cost,
+      li.actualPrice,
+      li.regularPrice,
+      li.originalPrice,
+      li.pricing?.amount,
+      li.pricing?.price,
+    ];
+    const validPrice = priceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
+    const price = validPrice || 0;
     const quantity = parseInt(it.quantity || 1, 10);
     const line = price * quantity;
     total += line;

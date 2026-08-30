@@ -21,6 +21,35 @@ import { createOrder } from '@/features/orders/api';
 import type { PaymentMethod } from '@/features/orders/types';
 import { getListingImage, resolveImageUrl } from '@/utils/image';
 
+function extractItemPrice(item: any): number {
+  if (!item) return 0;
+  const candidates = [
+    item.price,
+    item.line_total,
+    item.salePrice,
+    item.sellingPrice,
+    item.offer_price,
+    item.actualPrice,
+    item.regularPrice,
+    item.originalPrice,
+    item.rate,
+    item.cost,
+    item.amount,
+    item.pricing?.amount,
+    item.pricing?.price,
+    item.listing?.salePrice,
+    item.listing?.sellingPrice,
+    item.listing?.price,
+  ];
+  for (const c of candidates) {
+    const num = Number(c);
+    if (!isNaN(num) && num > 0) {
+      return num;
+    }
+  }
+  return 0;
+}
+
 export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -38,11 +67,46 @@ export default function CheckoutScreen() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [submitting, setSubmitting] = useState(false);
 
-  const directPrice = parseFloat(params.price || '0');
+  const rawPriceParam = params.price;
+  const directPrice = parseFloat(rawPriceParam || '0');
   const hasDirectItem = !!(params.title || params.listingId);
 
-  const displayGroups = (cart?.groups && cart.groups.length > 0)
-    ? cart.groups
+  const displayGroups = hasDirectItem && directPrice > 0
+    ? [
+        {
+          vendor_id: 'direct_vendor',
+          vendor: { name: params.vendorName || 'Verified Vendor' },
+          items: [
+            {
+              listing_id: params.listingId || 'direct_item',
+              title: params.title || 'Product Item',
+              quantity: 1,
+              price: directPrice,
+              line_total: directPrice,
+              image: params.image || '',
+            },
+          ],
+          subtotal: directPrice,
+        },
+      ]
+    : cart?.groups && cart.groups.length > 0
+    ? cart.groups.map((group: any) => ({
+        ...group,
+        items: (group.items || []).map((it: any) => {
+          const p = extractItemPrice(it);
+          const q = Number(it.quantity || 1);
+          return {
+            ...it,
+            price: p,
+            line_total: p * q,
+          };
+        }),
+        subtotal: (group.items || []).reduce((sum: number, it: any) => {
+          const p = extractItemPrice(it);
+          const q = Number(it.quantity || 1);
+          return sum + p * q;
+        }, 0),
+      }))
     : hasDirectItem
     ? [
         {
@@ -63,17 +127,11 @@ export default function CheckoutScreen() {
       ]
     : [];
 
-  const displayTotal = cart?.total_amount && cart.total_amount > 0
-    ? cart.total_amount
-    : hasDirectItem
-    ? directPrice
-    : 0;
-
-  const totalItemsCount = cart?.total_items && cart.total_items > 0
-    ? cart.total_items
-    : hasDirectItem
-    ? 1
-    : 0;
+  const displayTotal = displayGroups.reduce((acc, g) => acc + (g.subtotal || 0), 0);
+  const totalItemsCount = displayGroups.reduce(
+    (acc, g) => acc + (g.items || []).reduce((iAcc: number, it: any) => iAcc + (it.quantity || 1), 0),
+    0
+  );
 
   const handlePlaceOrder = async () => {
     if (!address.trim()) {
@@ -200,9 +258,9 @@ export default function CheckoutScreen() {
           {displayGroups.map((group) => (
             <View key={group.vendor_id} style={styles.vendorBlock}>
               <Text style={styles.vendorName}>{group.vendor?.name || 'Vendor Partner'}</Text>
-              {group.items.map((item) => {
+              {group.items.map((item: any) => {
                 const itemImg = resolveImageUrl(item.image) || getListingImage(item);
-                const itemPrice = item.price || item.line_total || 0;
+                const itemPrice = extractItemPrice(item);
                 return (
                   <View key={item.listing_id} style={styles.summaryItemRow}>
                     {itemImg ? (
