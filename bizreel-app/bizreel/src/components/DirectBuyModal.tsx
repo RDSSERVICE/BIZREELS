@@ -68,23 +68,41 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
   const insets = useSafeAreaInsets();
 
   const [quantity, setQuantity] = useState(1);
-  const [address, setAddress] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [streetAddress, setStreetAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [stateVal, setStateVal] = useState('');
+  const [pincode, setPincode] = useState('');
+
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet' | 'upi'>('cod');
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [fetchedPrice, setFetchedPrice] = useState<number>(0);
   const [fetchedListing, setFetchedListing] = useState<any>(null);
 
-  // Extract base information
+  // Extract specific selected product & metadata
+  const targetProduct =
+    item?.selectedProduct ||
+    (typeof item?.taggedListing === 'object' ? item?.taggedListing : null) ||
+    (typeof item?.targetListing === 'object' ? item?.targetListing : null) ||
+    item?.listing ||
+    fetchedListing ||
+    item ||
+    {};
+
   const rawListingId =
-    (typeof item?.taggedListing === 'object' ? item?.taggedListing?._id || item?.taggedListing?.id : item?.taggedListing) ||
-    (typeof item?.targetListing === 'object' ? item?.targetListing?._id || item?.targetListing?.id : item?.targetListing) ||
+    targetProduct?._id ||
+    targetProduct?.id ||
+    (typeof item?.taggedListing === 'string' ? item?.taggedListing : null) ||
+    (typeof item?.targetListing === 'string' ? item?.targetListing : null) ||
     item?._id ||
     item?.id ||
     item?.listing_id;
+
   const listingIdStr = typeof rawListingId === 'string' ? rawListingId : rawListingId?.toString();
 
-  const initialPrice = extractModalPrice(item);
+  const initialPrice = extractModalPrice(targetProduct);
 
   // If price is 0 from initial item, fetch listing details from API
   useEffect(() => {
@@ -92,7 +110,7 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
       setOrderPlaced(false);
       setQuantity(1);
 
-      const p = extractModalPrice(item);
+      const p = extractModalPrice(targetProduct);
       setFetchedPrice(p);
 
       if (p === 0 && listingIdStr && listingIdStr.length === 24) {
@@ -107,10 +125,25 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
           })
           .catch(() => null);
       }
+
+      // Prefill user profile address details
+      api.get('/users/me')
+        .then(({ data }) => {
+          const u = data.data?.user || data.user || data;
+          if (u) {
+            setCustomerName(u.name || '');
+            setCustomerPhone(u.phone || u.mobile || u.mobileNumber || '');
+            setStreetAddress(u.location?.address || u.customerProfile?.address || u.address || '');
+            setCity(u.location?.city || u.city || '');
+            setStateVal(u.location?.state || u.state || '');
+            setPincode(u.location?.pincode || u.pincode || '');
+          }
+        })
+        .catch(() => null);
     }
   }, [visible, item, listingIdStr]);
 
-  const targetItem = fetchedListing || item?.taggedListing || item || {};
+  const targetItem = fetchedListing || targetProduct;
   const activePrice = fetchedPrice > 0 ? fetchedPrice : extractModalPrice(targetItem);
   const originalPrice = Number(targetItem.actualPrice || targetItem.regularPrice || targetItem.mrp || (activePrice > 0 ? Math.round(activePrice * 1.25) : 0));
   const hasDiscount = originalPrice > activePrice && activePrice > 0;
@@ -124,10 +157,12 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
   const totalPrice = activePrice * quantity;
 
   const handlePlaceOrder = async () => {
-    if (!address.trim()) {
-      Alert.alert('Delivery Address Required', 'Please enter your delivery address to confirm the order.');
+    if (!customerName.trim() || !customerPhone.trim() || !streetAddress.trim() || !city.trim() || !stateVal.trim() || !pincode.trim()) {
+      Alert.alert('Delivery Address Incomplete', 'Please fill in all standard address details: Name, Mobile, Street Address, City, State, and Pincode.');
       return;
     }
+
+    const fullAddressString = `${customerName.trim()} | Ph: ${customerPhone.trim()}\n${streetAddress.trim()}, ${city.trim()}, ${stateVal.trim()} - ${pincode.trim()}`;
 
     setSubmitting(true);
     try {
@@ -135,7 +170,8 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
         await createOrder({
           listingId: listingIdStr,
           quantity,
-          address: address.trim(),
+          address: fullAddressString,
+          pincode: pincode.trim(),
           paymentMethod: paymentMethod === 'wallet' ? 'wallet' : 'cod',
         });
       }
@@ -249,21 +285,71 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
                 </View>
               </View>
 
-              {/* Delivery Address */}
+              {/* Standard E-Commerce Delivery Address */}
               <View style={styles.cardSection}>
                 <View style={styles.labelHeader}>
                   <Ionicons name="location-outline" size={16} color={YELLOW} />
-                  <Text style={styles.sectionLabel}>1. DELIVERY ADDRESS</Text>
+                  <Text style={styles.sectionLabel}>1. DELIVERY ADDRESS DETAILS</Text>
                 </View>
-                <TextInput
-                  style={styles.addressInput}
-                  placeholder="Enter house no., street name, city, landmark & pincode"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  multiline
-                  numberOfLines={3}
-                  value={address}
-                  onChangeText={setAddress}
-                />
+
+                <View style={{ gap: 8 }}>
+                  {/* Name & Mobile Number */}
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput
+                      style={[styles.smallInput, { flex: 1 }]}
+                      placeholder="Full Name *"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      value={customerName}
+                      onChangeText={setCustomerName}
+                    />
+                    <TextInput
+                      style={[styles.smallInput, { flex: 1 }]}
+                      placeholder="Mobile Number *"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      keyboardType="phone-pad"
+                      value={customerPhone}
+                      onChangeText={setCustomerPhone}
+                    />
+                  </View>
+
+                  {/* House No., Building, Street */}
+                  <TextInput
+                    style={styles.addressInput}
+                    placeholder="House No., Building, Street, Area *"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    multiline
+                    numberOfLines={2}
+                    value={streetAddress}
+                    onChangeText={setStreetAddress}
+                  />
+
+                  {/* City, State, Pincode */}
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <TextInput
+                      style={[styles.smallInput, { flex: 1 }]}
+                      placeholder="Town / City *"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      value={city}
+                      onChangeText={setCity}
+                    />
+                    <TextInput
+                      style={[styles.smallInput, { flex: 1 }]}
+                      placeholder="State *"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      value={stateVal}
+                      onChangeText={setStateVal}
+                    />
+                    <TextInput
+                      style={[styles.smallInput, { width: 85 }]}
+                      placeholder="Pincode *"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      value={pincode}
+                      onChangeText={setPincode}
+                    />
+                  </View>
+                </View>
               </View>
 
               {/* Payment Method */}
@@ -514,6 +600,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  smallInput: {
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 10,
+    height: 42,
+  },
   addressInput: {
     backgroundColor: BLACK,
     borderWidth: 1,
@@ -522,7 +619,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: '600',
     padding: Spacing.three,
-    minHeight: 70,
+    minHeight: 60,
     textAlignVertical: 'top',
   },
 

@@ -4,6 +4,7 @@ export interface CreateOrderPayload {
   listingId: string;
   quantity: number;
   address: string;
+  pincode?: string;
   paymentMethod?: PaymentMethod;
   bookingDate?: string;
   bookingTime?: string;
