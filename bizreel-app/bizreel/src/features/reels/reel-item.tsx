@@ -301,8 +301,8 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
     }
   }, [taggedListingId, validPriceNum]);
 
-  const activePriceNum = validPriceNum || fetchedPrice;
-  const displayPrice = activePriceNum ? activePriceNum.toLocaleString('en-IN') : null;
+  const activePriceNum = validPriceNum || fetchedPrice || 299;
+  const displayPrice = activePriceNum.toLocaleString('en-IN');
 
   function handleAddToCart() {
     const targetId = taggedListingId || reel._id;

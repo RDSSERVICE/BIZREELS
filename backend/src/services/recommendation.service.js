@@ -182,7 +182,7 @@ class RecommendationService {
           location: 1, views: 1, likesCount: 1, commentsCount: 1,
           isBoosted: 1, createdAt: 1, creator: 1, category: 1,
           subcategory: 1, postType: 1, mediaUrls: 1, mediaType: 1,
-          targetListing: 1, tier: { $literal: 1 },
+          targetListing: 1, price: 1, salePrice: 1, sellingPrice: 1, tier: { $literal: 1 },
           distance_meters: 1,
           distance: '$distance_meters',
           distanceKm: { $cond: [{ $ifNull: ['$distance_meters', false] }, { $divide: ['$distance_meters', 1000] }, null] },
@@ -480,15 +480,23 @@ class RecommendationService {
         ? r.targetListing
         : (listingMap[r.targetListing?.toString()] || null);
 
-      const priceVal = targetListingObj
-        ? Number(targetListingObj.price || targetListingObj.salePrice || targetListingObj.sellingPrice || 0)
-        : Number(r.price || r.salePrice || r.sellingPrice || 0);
+      const priceCandidates = [
+        targetListingObj?.price,
+        targetListingObj?.salePrice,
+        targetListingObj?.sellingPrice,
+        r.price,
+        r.salePrice,
+        r.sellingPrice,
+      ];
+      const validPriceNum = priceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
+      const finalPrice = validPriceNum || 299;
 
       return {
         ...r,
         taggedListing: targetListingObj,
-        price: priceVal > 0 ? priceVal : Number(r.price || 0),
-        salePrice: priceVal > 0 ? priceVal : Number(r.salePrice || 0),
+        price: finalPrice,
+        salePrice: finalPrice,
+        sellingPrice: finalPrice,
         creator: {
           _id: c._id || r.creator,
           name: c.name || 'BizReels Creator',
