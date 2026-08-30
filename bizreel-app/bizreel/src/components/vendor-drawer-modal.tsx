@@ -112,7 +112,6 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
       title: 'PORTALS & FEEDS',
       items: [
         { title: 'Customer Feed', route: '/(tabs)/home', icon: 'tv-outline' },
-        { title: 'Creator Portal', route: '/vendor/hire-creator', icon: 'film-outline' },
       ],
     },
     {
@@ -124,7 +123,6 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
         { title: 'Verification Center', route: '/vendor/verification', icon: 'shield-checkmark-outline', badge: 'VERIFIED' },
         { title: 'Analytics', route: '/vendor/analytics', icon: 'stats-chart-outline' },
         { title: 'Refer & Earn', route: '/vendor/referrals', icon: 'person-add-outline' },
-        { title: 'Hire Creator', route: '/vendor/hire-creator', icon: 'people-outline' },
         { title: 'Reviews', route: '/vendor/reviews', icon: 'star-outline' },
         { title: 'Followers', route: '/vendor/followers', icon: 'heart-outline' },
       ],
