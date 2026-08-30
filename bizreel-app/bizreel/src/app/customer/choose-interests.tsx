@@ -22,10 +22,10 @@ import { FontSize, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const YELLOW = '#C8860A';
+const BLACK = '#FAF6F1';
+const DARK_CARD = '#FFFFFF';
+const BORDER = '#E3DCCB';
 
 interface SubCategoryItem {
   id?: string;

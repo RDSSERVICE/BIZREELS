@@ -409,6 +409,36 @@ export default function RegisterPhoneScreen() {
             )}
           </View>
 
+          {/* Referral Code (Optional) */}
+          <View style={s.fieldGroup}>
+            <Text style={s.label}>Referral Code (Optional)</Text>
+            <Controller
+              control={control}
+              name="referralCode"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={s.inputRow}>
+                  <SymbolView
+                    name="gift"
+                    size={18}
+                    tintColor={BrandColors.primary}
+                    style={s.inputIcon}
+                  />
+                  <TextInput
+                    style={s.input}
+                    placeholder="Enter referral / promo code (e.g. BIZ100)"
+                    placeholderTextColor={theme.placeholder}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    value={value}
+                    onChangeText={(v) => onChange(v.toUpperCase())}
+                    onBlur={onBlur}
+                    accessibilityLabel="Referral Code"
+                  />
+                </View>
+              )}
+            />
+          </View>
+
           {/* Create Account button */}
           <Pressable
             style={({ pressed }) => [

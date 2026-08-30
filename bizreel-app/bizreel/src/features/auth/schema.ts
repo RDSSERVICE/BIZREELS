@@ -24,6 +24,7 @@ export const registerSchema = z
     password: passwordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     role: z.enum(['customer', 'vendor', 'creator']).optional().default('customer'),
+    referralCode: z.string().optional(),
     interests: z
       .array(z.object({ category: z.string(), subcategory: z.string().nullable().optional() }))
       .optional(),
@@ -49,6 +50,7 @@ export const registerWithPhoneSchema = z
     password: passwordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     role: z.enum(['customer', 'vendor', 'creator']).optional().default('customer'),
+    referralCode: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',

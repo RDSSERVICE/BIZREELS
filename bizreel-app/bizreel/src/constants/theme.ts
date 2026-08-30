@@ -1,8 +1,6 @@
 /**
  * THEME — single source of truth for all design tokens.
- *
- * To restyle the whole app, change values here.
- * Components read from this file via useTheme() or direct import.
+ * Aligned with BizReels Web Bento Light Theme (#FAF6F1 background, #FFFFFF cards, #E3DCCB borders, #C8860A gold accents).
  */
 
 import '@/global.css';
@@ -10,7 +8,7 @@ import '@/global.css';
 import { Platform } from 'react-native';
 
 // ---------------------------------------------------------------------------
-// Brand colors — never change with light/dark mode
+// Brand colors — Aligned 100% with Web Theme
 // ---------------------------------------------------------------------------
 export const BrandColors = {
   /** Primary gold — buttons, highlights, links */
@@ -21,14 +19,16 @@ export const BrandColors = {
   primaryDark: '#9E6A08',
   /** Primary text on gold background */
   onPrimary: '#FFFFFF',
-  /** App background warm tint (light mode) */
+  /** App background warm cream tint (Light Bento Theme) */
   warmBackground: '#FAF6F1',
-  /** Divider / border color */
-  border: '#E8E0D5',
+  /** Card element background */
+  cardBackground: '#FFFFFF',
+  /** Soft border color */
+  border: '#E3DCCB',
   /** Input field background */
   inputBackground: '#FFFFFF',
-  /** Placeholder text */
-  placeholder: '#BBBBBB',
+  /** Placeholder text color */
+  placeholder: '#888888',
   /** Success green */
   success: '#22C55E',
   /** Error red */
@@ -38,28 +38,28 @@ export const BrandColors = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Adaptive palette — changes with light/dark scheme
+// Adaptive palette — Web-Aligned Light UI Theme
 // ---------------------------------------------------------------------------
 export const Colors = {
   light: {
     text: '#1A1A1A',
-    textSecondary: '#6B6B6B',
-    background: BrandColors.warmBackground,
+    textSecondary: '#6B7280',
+    background: '#FAF6F1',
     backgroundElement: '#FFFFFF',
     backgroundSelected: '#F0E8DE',
-    border: BrandColors.border,
-    inputBackground: BrandColors.inputBackground,
-    placeholder: BrandColors.placeholder,
+    border: '#E3DCCB',
+    inputBackground: '#FFFFFF',
+    placeholder: '#888888',
   },
   dark: {
-    text: '#F5F5F5',
-    textSecondary: '#A0A0A0',
-    background: '#121212',
-    backgroundElement: '#1E1E1E',
-    backgroundSelected: '#2A2A2A',
-    border: '#2E2E2E',
-    inputBackground: '#1E1E1E',
-    placeholder: '#555555',
+    text: '#1A1A1A',
+    textSecondary: '#6B7280',
+    background: '#FAF6F1',
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: '#F0E8DE',
+    border: '#E3DCCB',
+    inputBackground: '#FFFFFF',
+    placeholder: '#888888',
   },
 } as const;
 
@@ -98,46 +98,38 @@ export const FontSize = {
   xl: 24,
   '2xl': 28,
   '3xl': 34,
-  '4xl': 40,
 } as const;
 
 export const FontWeight = {
-  regular: '400' as const,
-  medium: '500' as const,
-  semibold: '600' as const,
-  bold: '700' as const,
-};
+  regular: '400',
+  medium: '500',
+  semibold: '600',
+  bold: '700',
+} as const;
 
 // ---------------------------------------------------------------------------
-// Spacing scale
+// Spacing scale (4px grid)
 // ---------------------------------------------------------------------------
 export const Spacing = {
-  half: 2,
   one: 4,
   two: 8,
   three: 12,
   four: 16,
-  five: 24,
-  six: 32,
-  seven: 48,
-  eight: 64,
+  five: 20,
+  six: 24,
+  eight: 32,
+  ten: 40,
+  twelve: 48,
 } as const;
 
 // ---------------------------------------------------------------------------
-// Border radius scale
+// Border radius
 // ---------------------------------------------------------------------------
 export const Radius = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 20,
+  none: 0,
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
   full: 9999,
 } as const;
-
-// ---------------------------------------------------------------------------
-// Layout constants
-// ---------------------------------------------------------------------------
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-/** Fixed content height of the custom tab bar (icon + label + padding), excluding safe area bottom inset */
-export const TAB_BAR_HEIGHT = 56;
-export const MaxContentWidth = 800;
