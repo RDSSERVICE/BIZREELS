@@ -118,10 +118,10 @@ export default function ProfileScreen() {
     : 'U';
 
   const ratingDisplay = user.rating_count > 0 ? `${user.rating_avg.toFixed(1)} ★` : '4.9 ★';
+  const activeRole = (user as any)?.activeRole || (user as any)?.current_role || 'customer';
 
   const CUSTOMER_MENU = [
     { label: 'Chat & Messages Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
-    { label: 'My Requirements & Quotes', route: '/post-requirement', icon: 'mail-outline' },
     { label: 'My Orders', route: '/orders', icon: 'cart-outline' },
     { label: 'Saved Reels & Bookmarks', route: '/saved-reels', icon: 'bookmark-outline' },
   ];
@@ -301,29 +301,31 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── Customer Hub Section ── */}
-        <View style={styles.menuSectionCard}>
-          <View style={styles.sectionLabelRow}>
-            <View style={styles.sectionBar} />
-            <Text style={styles.menuSectionHeader}>CUSTOMER HUB</Text>
+        {/* ── Customer Hub Section (Customer Mode Only) ── */}
+        {activeRole === 'customer' && (
+          <View style={styles.menuSectionCard}>
+            <View style={styles.sectionLabelRow}>
+              <View style={styles.sectionBar} />
+              <Text style={styles.menuSectionHeader}>CUSTOMER HUB</Text>
+            </View>
+
+            {CUSTOMER_MENU.map((menu, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.menuRow, idx === CUSTOMER_MENU.length - 1 && styles.menuRowLast]}
+                onPress={() => router.push(menu.route as any)}>
+                <View style={styles.menuIconBox}>
+                  <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
+                </View>
+                <Text style={styles.menuLabel}>{menu.label}</Text>
+                <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
+              </TouchableOpacity>
+            ))}
           </View>
+        )}
 
-          {CUSTOMER_MENU.map((menu, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[styles.menuRow, idx === CUSTOMER_MENU.length - 1 && styles.menuRowLast]}
-              onPress={() => router.push(menu.route as any)}>
-              <View style={styles.menuIconBox}>
-                <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
-              </View>
-              <Text style={styles.menuLabel}>{menu.label}</Text>
-              <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* ── Vendor Management Section ── */}
-        {user.activeRole === 'vendor' && (
+        {/* ── Vendor Management Section (Vendor Mode Only) ── */}
+        {activeRole === 'vendor' && (
           <View style={styles.menuSectionCard}>
             <View style={styles.sectionLabelRow}>
               <View style={styles.sectionBar} />
@@ -345,8 +347,8 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── Creator Studio Section ── */}
-        {user.activeRole === 'creator' && (
+        {/* ── Creator Studio Section (Creator Mode Only) ── */}
+        {activeRole === 'creator' && (
           <View style={styles.menuSectionCard}>
             <View style={styles.sectionLabelRow}>
               <View style={styles.sectionBar} />
@@ -368,26 +370,28 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── Finance & Account Section ── */}
-        <View style={styles.menuSectionCard}>
-          <View style={styles.sectionLabelRow}>
-            <View style={styles.sectionBar} />
-            <Text style={styles.menuSectionHeader}>FINANCE & ACCOUNT</Text>
-          </View>
+        {/* ── Finance & Account Section (Vendor & Creator Modes Only) ── */}
+        {(activeRole === 'vendor' || activeRole === 'creator') && (
+          <View style={styles.menuSectionCard}>
+            <View style={styles.sectionLabelRow}>
+              <View style={styles.sectionBar} />
+              <Text style={styles.menuSectionHeader}>FINANCE & ACCOUNT</Text>
+            </View>
 
-          {(user.activeRole === 'creator' ? CREATOR_FINANCE_MENU : FINANCE_MENU).map((menu, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[styles.menuRow, idx === (user.activeRole === 'creator' ? CREATOR_FINANCE_MENU : FINANCE_MENU).length - 1 && styles.menuRowLast]}
-              onPress={() => router.push(menu.route as any)}>
-              <View style={styles.menuIconBox}>
-                <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
-              </View>
-              <Text style={styles.menuLabel}>{menu.label}</Text>
-              <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
-            </TouchableOpacity>
-          ))}
-        </View>
+            {(activeRole === 'creator' ? CREATOR_FINANCE_MENU : FINANCE_MENU).map((menu, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.menuRow, idx === (activeRole === 'creator' ? CREATOR_FINANCE_MENU : FINANCE_MENU).length - 1 && styles.menuRowLast]}
+                onPress={() => router.push(menu.route as any)}>
+                <View style={styles.menuIconBox}>
+                  <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
+                </View>
+                <Text style={styles.menuLabel}>{menu.label}</Text>
+                <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* ── Log Out Button ── */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
