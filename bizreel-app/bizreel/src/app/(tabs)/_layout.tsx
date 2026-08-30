@@ -71,7 +71,7 @@ export default function TabLayout() {
       <GestureDetector gesture={swipeGesture}>
         <View style={styles.root}>
           <Tabs
-            initialRouteName={isVendor ? 'home' : 'index'}
+            initialRouteName={isVendor || isCreator ? 'home' : 'index'}
             tabBar={(props) => <CustomTabBar {...props} />}
             screenOptions={{ headerShown: false }}>
             <Tabs.Screen name="home" options={{ title: 'Home' }} />

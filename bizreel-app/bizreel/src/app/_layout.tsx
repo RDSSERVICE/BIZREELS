@@ -23,13 +23,19 @@ function AuthGate() {
     if (status === 'unauthed' && !inAuthGroup) {
       router.replace('/(auth)/register');
     } else if (status === 'authed') {
-      const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
-      const isVendorIncomplete = isVendor && (!user?.vendorProfile || !(user as any)?.vendorProfile?.shopName);
+      const activeRole = user?.activeRole || user?.current_role || 'customer';
+      const isVendor = activeRole === 'vendor';
+      const isCreator = activeRole === 'creator';
+
+      const isVendorIncomplete = isVendor && (!user?.vendorProfile || (!(user as any)?.vendorProfile?.shopName && !(user as any)?.vendorProfile?.businessName));
+      const isCreatorIncomplete = isCreator && (!user?.creatorProfile || (!(user as any)?.creatorProfile?.displayName && !(user as any)?.creatorProfile?.name));
 
       if (isVendorIncomplete) {
         router.replace('/vendor/onboarding');
+      } else if (isCreatorIncomplete) {
+        router.replace('/creator/onboarding');
       } else if (inAuthGroup) {
-        router.replace(isVendor ? '/(tabs)/home' : '/(tabs)');
+        router.replace(isVendor || isCreator ? '/(tabs)/home' : '/(tabs)');
       }
     }
   }, [status, segments, user]);
