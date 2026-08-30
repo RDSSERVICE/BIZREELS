@@ -3,32 +3,51 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-import { BrandColors, Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
-import { useLogin } from '@/features/auth/mutations';
+import { BrandColors, FontSize, Spacing } from '@/constants/theme';
+import { useLogin, useSendOtp, useVerifyOtp } from '@/features/auth/mutations';
 import { loginSchema, type LoginFormValues } from '@/features/auth/schema';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function LoginScreen() {
   const theme = useTheme();
   const s = makeStyles(theme);
+
+  // Auth Mode: 'email' or 'phone'
+  const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
+
+  // Selected Role
+  const [selectedRole, setSelectedRole] = useState<'customer' | 'vendor' | 'creator'>('customer');
+
+  // Email form state
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const { mutate: login, isPending } = useLogin();
+
+  // Phone OTP state
+  const [phone, setPhone] = useState('');
+  const [channel, setChannel] = useState<'sms' | 'whatsapp'>('sms');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [countdown, setCountdown] = useState(0);
+
+  const { mutate: login, isPending: isEmailLoginPending } = useLogin();
+  const { mutate: triggerSendOtp, isPending: isSendOtpPending } = useSendOtp();
+  const { mutate: triggerVerifyOtp, isPending: isVerifyOtpPending } = useVerifyOtp(true);
 
   const {
     control,
@@ -40,13 +59,72 @@ export default function LoginScreen() {
     mode: 'onTouched',
   });
 
-  function onSubmit(values: LoginFormValues) {
+  // Countdown timer effect
+  useEffect(() => {
+    let timer: any;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  function onSubmitEmail(values: LoginFormValues) {
     setServerError(null);
-    login(values, {
-      onError: (error) => {
-        setServerError(error.message);
-      },
-    });
+    login(
+      { ...values, role: selectedRole } as any,
+      {
+        onError: (error) => {
+          setServerError(error.message || 'Invalid email or password.');
+        },
+      }
+    );
+  }
+
+  function handleSendOtp() {
+    setServerError(null);
+    const cleanedPhone = phone.trim();
+    if (!cleanedPhone || cleanedPhone.length < 10) {
+      setServerError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    const fullPhone = cleanedPhone.startsWith('+') ? cleanedPhone : `+91${cleanedPhone}`;
+
+    triggerSendOtp(
+      { phone: fullPhone, channel, purpose: 'login' },
+      {
+        onSuccess: (data) => {
+          setOtpSent(true);
+          setCountdown(60);
+          Alert.alert(
+            'OTP Dispatched',
+            data.message || `A 6-digit verification code has been sent via ${channel.toUpperCase()} to ${fullPhone}.`
+          );
+        },
+        onError: (err: any) => {
+          setServerError(err?.response?.data?.message || err.message || 'Failed to send OTP. Please check your phone number.');
+        },
+      }
+    );
+  }
+
+  function handleVerifyOtp() {
+    setServerError(null);
+    if (!otpCode || otpCode.length < 6) {
+      setServerError('Please enter the 6-digit OTP code.');
+      return;
+    }
+
+    const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+
+    triggerVerifyOtp(
+      { phone: fullPhone, otp: otpCode.trim(), purpose: 'login' },
+      {
+        onError: (err: any) => {
+          setServerError(err?.response?.data?.message || err.message || 'Invalid or expired OTP code.');
+        },
+      }
+    );
   }
 
   return (
@@ -70,9 +148,63 @@ export default function LoginScreen() {
             <Text style={s.heading}>Welcome Back</Text>
           </View>
           <Text style={s.subheading}>
-            Sign in to your BizReels account to continue showcasing your products and growing your
-            business.
+            Sign in to your BizReels account to access local products, video reels & seller tools.
           </Text>
+        </View>
+
+        {/* Auth Mode Switcher Tabs */}
+        <View style={s.modeTabContainer}>
+          <TouchableOpacity
+            style={[s.modeTabBtn, authMode === 'email' && s.modeTabBtnActive]}
+            onPress={() => {
+              setAuthMode('email');
+              setServerError(null);
+            }}>
+            <Ionicons
+              name="mail-outline"
+              size={16}
+              color={authMode === 'email' ? BLACK : YELLOW}
+            />
+            <Text style={[s.modeTabText, authMode === 'email' && s.modeTabTextActive]}>
+              EMAIL SIGN IN
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[s.modeTabBtn, authMode === 'phone' && s.modeTabBtnActive]}
+            onPress={() => {
+              setAuthMode('phone');
+              setServerError(null);
+            }}>
+            <Ionicons
+              name="call-outline"
+              size={16}
+              color={authMode === 'phone' ? BLACK : YELLOW}
+            />
+            <Text style={[s.modeTabText, authMode === 'phone' && s.modeTabTextActive]}>
+              MOBILE OTP
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Role Selection Selector */}
+        <View style={s.roleSelectorBox}>
+          <Text style={s.roleSelectorLabel}>SELECT TARGET ROLE</Text>
+          <View style={s.rolePillsRow}>
+            {(['customer', 'vendor', 'creator'] as const).map((role) => {
+              const isSel = selectedRole === role;
+              return (
+                <TouchableOpacity
+                  key={role}
+                  style={[s.rolePill, isSel && s.rolePillActive]}
+                  onPress={() => setSelectedRole(role)}>
+                  <Text style={[s.rolePillText, isSel && s.rolePillTextActive]}>
+                    {role.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Form card */}
@@ -81,125 +213,212 @@ export default function LoginScreen() {
           {/* Server error banner */}
           {serverError && (
             <View style={s.errorBanner}>
-              <SymbolView
-                name="exclamationmark.circle.fill"
-                size={16}
-                tintColor={BrandColors.error}
-              />
+              <Ionicons name="alert-circle" size={18} color="#EF4444" />
               <Text style={s.errorBannerText}>{serverError}</Text>
             </View>
           )}
 
-          {/* Email */}
-          <View style={s.fieldGroup}>
-            <Text style={s.label}>Email Address</Text>
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View style={[s.inputRow, (errors.email || !!serverError) && s.inputError]}>
-                  <SymbolView
-                    name="envelope"
-                    size={18}
-                    tintColor={BrandColors.primary}
-                    style={s.inputIcon}
-                  />
-                  <TextInput
-                    style={s.input}
-                    placeholder="Enter your email address"
-                    placeholderTextColor={theme.placeholder}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                    returnKeyType="next"
-                    value={value}
-                    onChangeText={(v) => { onChange(v); setServerError(null); }}
-                    onBlur={onBlur}
-                    accessibilityLabel="Email Address"
-                  />
-                </View>
-              )}
-            />
-            {errors.email && <Text style={s.fieldError}>{errors.email.message}</Text>}
-          </View>
+          {/* ── MODE 1: EMAIL & PASSWORD ── */}
+          {authMode === 'email' && (
+            <>
+              {/* Email */}
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Email Address</Text>
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View style={[s.inputRow, (errors.email || !!serverError) && s.inputError]}>
+                      <Ionicons name="mail-outline" size={18} color={YELLOW} style={s.inputIcon} />
+                      <TextInput
+                        style={s.input}
+                        placeholder="Enter your email address"
+                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="email-address"
+                        returnKeyType="next"
+                        value={value}
+                        onChangeText={(v) => { onChange(v); setServerError(null); }}
+                        onBlur={onBlur}
+                        accessibilityLabel="Email Address"
+                      />
+                    </View>
+                  )}
+                />
+                {errors.email && <Text style={s.fieldError}>{errors.email.message}</Text>}
+              </View>
 
-          {/* Password */}
-          <View style={s.fieldGroup}>
-            <View style={s.labelRow}>
-              <Text style={s.label}>Password</Text>
-              <Pressable
-                onPress={() => router.push('/(auth)/forgot-password')}
-                accessibilityRole="link"
-                accessibilityLabel="Forgot password">
-                <Text style={s.forgotLink}>Forgot Password?</Text>
-              </Pressable>
-            </View>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View style={[s.inputRow, (errors.password || !!serverError) && s.inputError]}>
-                  <SymbolView
-                    name="lock"
-                    size={18}
-                    tintColor={BrandColors.primary}
-                    style={s.inputIcon}
-                  />
-                  <TextInput
-                    style={s.input}
-                    placeholder="Enter your password"
-                    placeholderTextColor={theme.placeholder}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    secureTextEntry={!showPassword}
-                    returnKeyType="done"
-                    value={value}
-                    onChangeText={(v) => { onChange(v); setServerError(null); }}
-                    onBlur={onBlur}
-                    onSubmitEditing={handleSubmit(onSubmit)}
-                    accessibilityLabel="Password"
-                  />
+              {/* Password */}
+              <View style={s.fieldGroup}>
+                <View style={s.labelRow}>
+                  <Text style={s.label}>Password</Text>
                   <Pressable
-                    onPress={() => setShowPassword((v) => !v)}
-                    style={s.eyeButton}
-                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                    accessibilityRole="button">
-                    <SymbolView
-                      name={showPassword ? 'eye.slash' : 'eye'}
-                      size={18}
-                      tintColor={theme.textSecondary}
-                    />
+                    onPress={() => router.push('/(auth)/forgot-password')}
+                    accessibilityRole="link"
+                    accessibilityLabel="Forgot password">
+                    <Text style={s.forgotLink}>Forgot Password?</Text>
                   </Pressable>
                 </View>
-              )}
-            />
-            {errors.password && <Text style={s.fieldError}>{errors.password.message}</Text>}
-          </View>
-
-          {/* Sign In button */}
-          <Pressable
-            style={({ pressed }) => [
-              s.primaryButton,
-              pressed && s.primaryButtonPressed,
-              isPending && s.primaryButtonDisabled,
-            ]}
-            onPress={handleSubmit(onSubmit)}
-            disabled={isPending}
-            accessibilityLabel="Sign In"
-            accessibilityRole="button">
-            {isPending ? (
-              <ActivityIndicator color={BrandColors.onPrimary} />
-            ) : (
-              <>
-                <Text style={s.primaryButtonText}>Sign In</Text>
-                <SymbolView
-                  name="arrow.right"
-                  size={16}
-                  tintColor={BrandColors.onPrimary}
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View style={[s.inputRow, (errors.password || !!serverError) && s.inputError]}>
+                      <Ionicons name="lock-closed-outline" size={18} color={YELLOW} style={s.inputIcon} />
+                      <TextInput
+                        style={s.input}
+                        placeholder="Enter your password"
+                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        secureTextEntry={!showPassword}
+                        returnKeyType="done"
+                        value={value}
+                        onChangeText={(v) => { onChange(v); setServerError(null); }}
+                        onBlur={onBlur}
+                        onSubmitEditing={handleSubmit(onSubmitEmail)}
+                        accessibilityLabel="Password"
+                      />
+                      <Pressable
+                        onPress={() => setShowPassword((v) => !v)}
+                        style={s.eyeButton}
+                        accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                        accessibilityRole="button">
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={18}
+                          color="rgba(255,255,255,0.6)"
+                        />
+                      </Pressable>
+                    </View>
+                  )}
                 />
-              </>
-            )}
-          </Pressable>
+                {errors.password && <Text style={s.fieldError}>{errors.password.message}</Text>}
+              </View>
+
+              {/* Sign In button */}
+              <TouchableOpacity
+                style={[s.primaryButton, isEmailLoginPending && s.primaryButtonDisabled]}
+                onPress={handleSubmit(onSubmitEmail)}
+                disabled={isEmailLoginPending}
+                accessibilityLabel="Sign In"
+                accessibilityRole="button">
+                {isEmailLoginPending ? (
+                  <ActivityIndicator color={BLACK} />
+                ) : (
+                  <>
+                    <Text style={s.primaryButtonText}>SIGN IN NOW</Text>
+                    <Ionicons name="arrow-forward" size={18} color={BLACK} />
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ── MODE 2: MOBILE PHONE OTP ── */}
+          {authMode === 'phone' && (
+            <>
+              {/* Phone Input */}
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Mobile Phone Number (+91)</Text>
+                <View style={s.inputRow}>
+                  <Text style={{ color: YELLOW, fontWeight: '900', fontSize: FontSize.sm, paddingRight: 6 }}>+91</Text>
+                  <TextInput
+                    style={s.input}
+                    placeholder="Enter 10-digit mobile number"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                    value={phone}
+                    onChangeText={(v) => {
+                      setPhone(v);
+                      setServerError(null);
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Channel Selector: SMS vs WhatsApp */}
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Send OTP Via</Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    style={[s.channelBtn, channel === 'sms' && s.channelBtnActive]}
+                    onPress={() => setChannel('sms')}>
+                    <Ionicons name="chatbox-outline" size={16} color={channel === 'sms' ? BLACK : YELLOW} />
+                    <Text style={[s.channelBtnText, channel === 'sms' && s.channelBtnTextActive]}>SMS</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[s.channelBtn, channel === 'whatsapp' && s.channelBtnActive]}
+                    onPress={() => setChannel('whatsapp')}>
+                    <Ionicons name="logo-whatsapp" size={16} color={channel === 'whatsapp' ? BLACK : '#22C55E'} />
+                    <Text style={[s.channelBtnText, channel === 'whatsapp' && s.channelBtnTextActive]}>WhatsApp</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* OTP Sent Section */}
+              {otpSent ? (
+                <View style={s.fieldGroup}>
+                  <Text style={s.label}>Enter 6-Digit OTP Code</Text>
+                  <View style={s.inputRow}>
+                    <Ionicons name="key-outline" size={18} color={YELLOW} style={s.inputIcon} />
+                    <TextInput
+                      style={s.input}
+                      placeholder="e.g. 123456"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      value={otpCode}
+                      onChangeText={(v) => {
+                        setOtpCode(v);
+                        setServerError(null);
+                      }}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    style={[s.primaryButton, isVerifyOtpPending && s.primaryButtonDisabled, { marginTop: 12 }]}
+                    onPress={handleVerifyOtp}
+                    disabled={isVerifyOtpPending}>
+                    {isVerifyOtpPending ? (
+                      <ActivityIndicator color={BLACK} />
+                    ) : (
+                      <>
+                        <Text style={s.primaryButtonText}>VERIFY & SIGN IN</Text>
+                        <Ionicons name="checkmark-circle" size={18} color={BLACK} />
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    disabled={countdown > 0 || isSendOtpPending}
+                    onPress={handleSendOtp}
+                    style={{ marginTop: 10, alignItems: 'center' }}>
+                    <Text style={{ color: countdown > 0 ? 'rgba(255,255,255,0.4)' : YELLOW, fontSize: FontSize.xs, fontWeight: '700' }}>
+                      {countdown > 0 ? `Resend OTP in ${countdown}s` : 'Didn\'t receive OTP? Resend Now'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[s.primaryButton, isSendOtpPending && s.primaryButtonDisabled]}
+                  onPress={handleSendOtp}
+                  disabled={isSendOtpPending}>
+                  {isSendOtpPending ? (
+                    <ActivityIndicator color={BLACK} />
+                  ) : (
+                    <>
+                      <Text style={s.primaryButtonText}>SEND OTP CODE</Text>
+                      <Ionicons name="send" size={16} color={BLACK} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
 
         {/* Register link */}
@@ -214,14 +433,10 @@ export default function LoginScreen() {
 
         {/* Security note */}
         <View style={s.securityNote}>
-          <SymbolView
-            name="shield"
-            size={20}
-            tintColor={theme.textSecondary}
-          />
+          <Ionicons name="shield-checkmark" size={20} color={YELLOW} />
           <View>
             <Text style={s.securityTitle}>Your information is secure with us.</Text>
-            <Text style={s.securitySub}>We never share your data.</Text>
+            <Text style={s.securitySub}>We use encrypted token authentication.</Text>
           </View>
         </View>
       </ScrollView>
@@ -259,6 +474,95 @@ function makeStyles(_theme: any) {
       fontSize: FontSize.sm,
       color: 'rgba(255,255,255,0.6)',
       lineHeight: 20,
+    },
+    modeTabContainer: {
+      flexDirection: 'row',
+      backgroundColor: DARK_CARD,
+      borderWidth: 1,
+      borderColor: BORDER,
+      padding: 4,
+    },
+    modeTabBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: 'transparent',
+    },
+    modeTabBtnActive: {
+      backgroundColor: YELLOW,
+    },
+    modeTabText: {
+      color: YELLOW,
+      fontSize: FontSize.xs,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    modeTabTextActive: {
+      color: BLACK,
+    },
+    roleSelectorBox: {
+      backgroundColor: DARK_CARD,
+      borderWidth: 1,
+      borderColor: BORDER,
+      padding: Spacing.three,
+      gap: 8,
+    },
+    roleSelectorLabel: {
+      color: YELLOW,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 1,
+    },
+    rolePillsRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    rolePill: {
+      flex: 1,
+      height: 36,
+      backgroundColor: BLACK,
+      borderWidth: 1,
+      borderColor: BORDER,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rolePillActive: {
+      backgroundColor: YELLOW,
+      borderColor: YELLOW,
+    },
+    rolePillText: {
+      color: 'rgba(255,255,255,0.6)',
+      fontSize: 10,
+      fontWeight: '900',
+    },
+    rolePillTextActive: {
+      color: BLACK,
+    },
+    channelBtn: {
+      flex: 1,
+      height: 40,
+      backgroundColor: BLACK,
+      borderWidth: 1,
+      borderColor: BORDER,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    channelBtnActive: {
+      backgroundColor: YELLOW,
+      borderColor: YELLOW,
+    },
+    channelBtnText: {
+      color: '#fff',
+      fontSize: FontSize.xs,
+      fontWeight: '900',
+    },
+    channelBtnTextActive: {
+      color: BLACK,
     },
     card: {
       backgroundColor: DARK_CARD,
@@ -321,7 +625,7 @@ function makeStyles(_theme: any) {
       fontSize: FontSize.sm,
       color: '#fff',
       height: '100%',
-      fontWeight: FontWeight.semibold,
+      fontWeight: '600',
     },
     eyeButton: { padding: Spacing.one },
     fieldError: {

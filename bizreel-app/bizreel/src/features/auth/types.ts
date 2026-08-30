@@ -12,11 +12,13 @@ export interface RegisterPayload {
 export interface LoginPayload {
   email: string;
   password: string;
+  role?: 'customer' | 'vendor' | 'creator';
 }
 
 export interface SendOtpPayload {
   phone: string;
   purpose?: string;
+  channel?: 'sms' | 'whatsapp';
 }
 
 export interface VerifyOtpPayload {
@@ -25,6 +27,8 @@ export interface VerifyOtpPayload {
   name?: string;
   email?: string;
   role?: 'customer' | 'vendor' | 'creator';
+  purpose?: string;
+  channel?: 'sms' | 'whatsapp';
   referral_code?: string;
 }
 
