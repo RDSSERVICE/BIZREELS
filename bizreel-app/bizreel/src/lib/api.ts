@@ -46,24 +46,79 @@ api.interceptors.request.use((config) => {
 
 type UnauthorizedCallback = () => void;
 let unauthorizedHandler: UnauthorizedCallback | null = null;
+let isRefreshing = false;
+let refreshSubscribers: Array<(token: string) => void> = [];
+
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token: string) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
 
 export function setUnauthorizedHandler(handler: UnauthorizedCallback | null) {
   unauthorizedHandler = handler;
 }
 
-// Normalize error responses, handle 401 token expiry & retry network timeouts
+// Normalize error responses, handle 401 token expiry with automatic token refresh & retry network timeouts
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const config = error.config;
-    const isAuthEndpoint = config?.url?.includes('/auth/login') || config?.url?.includes('/auth/register');
+    const isAuthEndpoint =
+      config?.url?.includes('/auth/login') ||
+      config?.url?.includes('/auth/register') ||
+      config?.url?.includes('/auth/refresh');
 
     // Automatically handle 401 Unauthorized (Expired or Invalid Token)
-    if (error?.response?.status === 401 && !isAuthEndpoint) {
-      tokenStore.removeItem('accessToken');
-      tokenStore.removeItem('refreshToken');
-      if (unauthorizedHandler) {
-        unauthorizedHandler();
+    if (error?.response?.status === 401 && !isAuthEndpoint && config && !config._authRetry) {
+      config._authRetry = true;
+      const refreshToken = tokenStore.getItem('refreshToken');
+
+      if (refreshToken) {
+        if (!isRefreshing) {
+          isRefreshing = true;
+          try {
+            const refreshUrl = `${getBaseUrl()}/auth/refresh-token`;
+            const refreshRes = await axios.post(refreshUrl, { refreshToken }, { timeout: 15000 });
+            const data = refreshRes.data?.data || refreshRes.data || {};
+            const newAccessToken = data.accessToken || data.token;
+            const newRefreshToken = data.refreshToken || refreshToken;
+
+            if (newAccessToken) {
+              tokenStore.setItem('accessToken', newAccessToken);
+              tokenStore.setItem('refreshToken', newRefreshToken);
+              isRefreshing = false;
+              onRefreshed(newAccessToken);
+              config.headers.Authorization = `Bearer ${newAccessToken}`;
+              return api(config);
+            }
+          } catch (refreshErr) {
+            isRefreshing = false;
+            refreshSubscribers = [];
+            tokenStore.clearAll();
+            if (unauthorizedHandler) {
+              unauthorizedHandler();
+            }
+            return Promise.reject(new Error('Session expired. Please log in again.'));
+          }
+        } else {
+          // Wait for ongoing refresh to complete
+          return new Promise((resolve) => {
+            subscribeTokenRefresh((newToken) => {
+              config.headers.Authorization = `Bearer ${newToken}`;
+              resolve(api(config));
+            });
+          });
+        }
+      } else {
+        // No refresh token available
+        tokenStore.clearAll();
+        if (unauthorizedHandler) {
+          unauthorizedHandler();
+        }
       }
     }
 
@@ -94,4 +149,3 @@ api.interceptors.response.use(
 );
 
 export { resolveImageUrl } from '../utils/image';
-
