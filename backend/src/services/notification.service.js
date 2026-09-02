@@ -1,6 +1,7 @@
 const notificationRepository = require('../repositories/notificationRepository');
 const ApiError = require('../utils/ApiError');
 const { emitToUser } = require('../sockets');
+const cache = require('../utils/cache');
 
 /**
  * NotificationService
@@ -8,15 +9,40 @@ const { emitToUser } = require('../sockets');
  * Now supports explicit `recipientRole` for proper role-scoped notifications.
  */
 class NotificationService {
+  async _invalidateUserNotifCache(userId) {
+    const uid = userId.toString();
+    await Promise.all([
+      cache.deleteCache(`notifs:list:${uid}:all`),
+      cache.deleteCache(`notifs:list:${uid}:vendor`),
+      cache.deleteCache(`notifs:list:${uid}:creator`),
+      cache.deleteCache(`notifs:list:${uid}:customer`),
+      cache.deleteCache(`notifs:list:${uid}:admin`),
+      cache.deleteCache(`notifs:unread:${uid}:all`),
+      cache.deleteCache(`notifs:unread:${uid}:vendor`),
+      cache.deleteCache(`notifs:unread:${uid}:creator`),
+      cache.deleteCache(`notifs:unread:${uid}:customer`),
+      cache.deleteCache(`notifs:unread:${uid}:admin`),
+    ]).catch(() => {});
+  }
+
   async getNotifications(userId, role = null) {
-    return notificationRepository.getNotificationsForUser(userId, { role });
+    const uid = userId.toString();
+    const cacheKey = `notifs:list:${uid}:${role || 'all'}`;
+    const cached = await cache.getCache(cacheKey);
+    if (cached) return cached;
+
+    const data = await notificationRepository.getNotificationsForUser(uid, { role });
+    await cache.setCache(cacheKey, data, 10);
+    return data;
   }
 
   async markAllAsRead(userId, role = null) {
+    await this._invalidateUserNotifCache(userId);
     return notificationRepository.markAllAsRead(userId, role);
   }
 
   async markAsRead(notificationId, userId) {
+    await this._invalidateUserNotifCache(userId);
     const updated = await notificationRepository.markAsRead(notificationId, userId);
     if (!updated) {
       throw ApiError.notFound('Notification alert not found.');
@@ -25,6 +51,7 @@ class NotificationService {
   }
 
   async deleteNotification(notificationId, userId) {
+    await this._invalidateUserNotifCache(userId);
     const deleted = await notificationRepository.deleteNotification(notificationId, userId);
     if (!deleted) {
       throw ApiError.notFound('Notification alert not found.');
@@ -122,6 +149,9 @@ class NotificationService {
       created_at: new Date().toISOString(),
     };
 
+    // Invalidate recipient's notification caches
+    await this._invalidateUserNotifCache(userId);
+
     // Dual emit for complete frontend subscriber compatibility
     emitToUser(userId.toString(), 'notification:new', payload);
     emitToUser(userId.toString(), 'notification', payload);
@@ -158,7 +188,14 @@ class NotificationService {
   }
 
   async unreadCount(userId, role = null) {
-    return notificationRepository.unreadCount(userId, role);
+    const uid = userId.toString();
+    const cacheKey = `notifs:unread:${uid}:${role || 'all'}`;
+    const cached = await cache.getCache(cacheKey);
+    if (cached !== null && cached !== undefined) return cached;
+
+    const count = await notificationRepository.unreadCount(uid, role);
+    await cache.setCache(cacheKey, count, 10);
+    return count;
   }
 
   async markRead(nid, userId) {

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const User = require('../models/User');
+const cache = require('../utils/cache');
 
 /**
  * Authenticate incoming requests via JWT Bearer token or cookie.
@@ -33,16 +34,23 @@ const authenticate = async (req, res, next) => {
     }
 
     const userId = decoded.userId || decoded.sub || decoded.id || decoded._id;
-    let user = await User.findById(userId)
-      .select('-password -__v -creatorProfile -vendorProfile -customerProfile -followers -following')
-      .lean();
+    const cacheKey = `user:auth:${userId}`;
+    let user = await cache.getCache(cacheKey);
 
     if (!user) {
-      throw ApiError.unauthorized('User associated with this token no longer exists.');
-    }
+      user = await User.findById(userId)
+        .select('-password -__v -creatorProfile -vendorProfile -customerProfile -followers -following')
+        .lean();
 
-    if (user.is_active === false || user.is_deleted === true || user.isActive === false || user.isDeleted === true) {
-      throw ApiError.unauthorized('This account has been deactivated.');
+      if (!user) {
+        throw ApiError.unauthorized('User associated with this token no longer exists.');
+      }
+
+      if (user.is_active === false || user.is_deleted === true || user.isActive === false || user.isDeleted === true) {
+        throw ApiError.unauthorized('This account has been deactivated.');
+      }
+
+      await cache.setCache(cacheKey, user, 30); // cache for 30 seconds
     }
 
     req.user = user;
@@ -115,9 +123,17 @@ const optionalAuthenticate = async (req, res, next) => {
     }
 
     const userId = decoded.userId || decoded.sub;
-    const user = await User.findById(userId)
-      .select('-password -__v -creatorProfile -vendorProfile -customerProfile -followers -following')
-      .lean();
+    const cacheKey = `user:auth:${userId}`;
+    let user = await cache.getCache(cacheKey);
+
+    if (!user) {
+      user = await User.findById(userId)
+        .select('-password -__v -creatorProfile -vendorProfile -customerProfile -followers -following')
+        .lean();
+      if (user && user.is_active !== false && user.is_deleted !== true && user.isActive !== false && user.isDeleted !== true) {
+        await cache.setCache(cacheKey, user, 30);
+      }
+    }
 
     req.user = user;
     next();

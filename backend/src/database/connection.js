@@ -124,6 +124,7 @@ const connectDB = async () => {
     dbName: process.env.DB_NAME || 'bizreels',
     maxPoolSize: 100,
     minPoolSize: 10,
+    family: 4, // Force IPv4 to prevent Windows / ISP IPv6 resolution delays
     socketTimeoutMS: 45000,
     connectTimeoutMS: 10000,
     serverSelectionTimeoutMS: 10000,

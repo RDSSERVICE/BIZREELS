@@ -4,6 +4,7 @@ const WalletTransactionV2 = require('../models/WalletTransactionV2.model');
 const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+const cache = require('../utils/cache');
 
 /**
  * WalletService — Production-Grade
@@ -954,13 +955,20 @@ class WalletService {
    * Get role-isolated wallet balance.
    */
   async getRoleBalance(userId, role) {
-    const wallet = await this.getRoleWallet(userId, role);
-    return {
+    const uid = userId.toString();
+    const cacheKey = `wallet:role:${uid}:${role}`;
+    const cached = await cache.getCache(cacheKey);
+    if (cached) return cached;
+
+    const wallet = await this.getRoleWallet(uid, role);
+    const result = {
       balance: wallet.balance || 0,
       is_frozen: wallet.is_frozen || false,
       status: wallet.status,
       role,
     };
+    await cache.setCache(cacheKey, result, 15);
+    return result;
   }
 
   /**
@@ -1018,6 +1026,7 @@ class WalletService {
         txn = txnArr[0];
       });
 
+      await cache.deleteCache(`wallet:role:${uid}:${role}`);
       this._emitWalletUpdate(uid, updatedBalance, 'credit', parseFloat(amount), description);
       logger.info(`Role credit: +${amount} to ${uid}/${role} (${type})`, { service: 'wallet' });
       return { transaction: txn, wallet: { balance: updatedBalance, role } };
@@ -1084,6 +1093,7 @@ class WalletService {
         txn = txnArr[0];
       });
 
+      await cache.deleteCache(`wallet:role:${uid}:${role}`);
       this._emitWalletUpdate(uid, updatedBalance, 'debit', parseFloat(amount), description);
       logger.info(`Role debit: -${amount} from ${uid}/${role} (${type})`, { service: 'wallet' });
       return { transaction: txn, wallet: { balance: updatedBalance, role } };
