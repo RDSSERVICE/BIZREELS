@@ -19,19 +19,22 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (state, action) => {
       const payload = action.payload || {};
-      const user = payload.user || payload;
+      const rawUser = payload.user !== undefined ? payload.user : payload;
       const accessToken = payload.accessToken || payload.access_token || state.accessToken;
       const refreshToken = payload.refreshToken || payload.refresh_token;
 
-      if (user) {
-        const effectiveRole = user.activeRole || user.current_role || 'customer';
-        user.activeRole = effectiveRole;
-        user.current_role = effectiveRole;
+      if (rawUser && typeof rawUser === 'object') {
+        const effectiveRole = rawUser.activeRole || rawUser.current_role || 'customer';
+        const user = {
+          ...rawUser,
+          activeRole: effectiveRole,
+          current_role: effectiveRole,
+        };
         state.user = user;
         state.activeRole = effectiveRole;
       }
       if (accessToken) state.accessToken = accessToken;
-      state.isAuthenticated = !!(user || state.user || accessToken);
+      state.isAuthenticated = !!(state.user || accessToken);
       state.isLoading = false;
 
       tokenStore.set({
@@ -44,16 +47,26 @@ const authSlice = createSlice({
       state.accessToken = action.payload;
     },
     setActiveRole: (state, action) => {
-      state.activeRole = action.payload;
+      const newRole = action.payload;
+      state.activeRole = newRole;
       if (state.user) {
-        state.user.activeRole = action.payload;
-        state.user.current_role = action.payload;
+        state.user = {
+          ...state.user,
+          activeRole: newRole,
+          current_role: newRole,
+        };
         tokenStore.setUser(state.user);
       }
     },
     updateUser: (state, action) => {
-      state.user = { ...state.user, ...action.payload };
-      tokenStore.setUser(state.user);
+      if (state.user) {
+        state.user = { ...state.user, ...(action.payload || {}) };
+      } else {
+        state.user = action.payload ? { ...action.payload } : null;
+      }
+      if (state.user) {
+        tokenStore.setUser(state.user);
+      }
     },
     logout: (state) => {
       state.user = null;
