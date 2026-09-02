@@ -2,6 +2,7 @@ const Interaction = require('../models/Interaction');
 const Listing = require('../models/Listing');
 const ApiError = require('../utils/ApiError');
 const { serializeListing } = require('./listing.service');
+const cache = require('../utils/cache');
 
 const COUNT_FIELD = { like: 'likes_count', save: 'saves_count' };
 
@@ -40,6 +41,9 @@ const toggle = async (userId, listingId, type) => {
     }
     active = true;
   }
+
+  // Invalidate activity counts cache for user
+  cache.deleteCache(`user:activity-counts:${userId}`).catch(() => {});
 
   const updated = await Listing.findById(listingId);
   const count = type === 'like' ? (updated.likes ?? updated.likes_count ?? 0) : (updated[field] || 0);

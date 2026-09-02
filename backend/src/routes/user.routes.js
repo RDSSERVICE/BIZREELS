@@ -12,6 +12,7 @@ const User = require('../models/User');
 const { catchAsync } = require('../utils/helpers');
 const ApiError = require('../utils/ApiError');
 const mongoose = require('mongoose');
+const cache = require('../utils/cache');
 
 const router = express.Router();
 
@@ -513,17 +514,14 @@ router.patch('/me/interests', requireAuth, catchAsync(async (req, res) => {
   });
 }));
 
-// In-memory short-lived cache for fast user activity counts (3 second TTL)
-const activityCountsCache = new Map();
-
 // ── Activity Counts (Analytics for Activities Dashboard) ───────────────
 router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
   const uid = req.user._id.toString();
-  const now = Date.now();
+  const cacheKey = `user:activity-counts:${uid}`;
 
-  const cached = activityCountsCache.get(uid);
-  if (cached && (now - cached.timestamp < 3000)) {
-    return res.json(cached.data);
+  const cached = await cache.getCache(cacheKey);
+  if (cached) {
+    return res.json(cached);
   }
 
   const Interaction = require('../models/Interaction');
@@ -602,20 +600,8 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
     unreadChat,
   };
 
-  // Cache response for 3 seconds
-  activityCountsCache.set(uid, {
-    timestamp: now,
-    data: responsePayload
-  });
-
-  // Clean cache periodically
-  if (activityCountsCache.size > 1000) {
-    for (const [k, v] of activityCountsCache.entries()) {
-      if (now - v.timestamp > 10000) {
-        activityCountsCache.delete(k);
-      }
-    }
-  }
+  // Cache response for 30 seconds
+  await cache.setCache(cacheKey, responsePayload, 30);
 
   res.json(responsePayload);
 }));
