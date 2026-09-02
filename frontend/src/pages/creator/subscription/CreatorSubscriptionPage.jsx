@@ -13,7 +13,7 @@ export default function CreatorSubscriptionPage() {
   const { refetch: refetchUser } = useGetMeQuery(undefined, { skip: !user });
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6 sm:gap-8 animate-fade-in text-xs font-sans pb-16 pt-2">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto pb-24 font-sans w-full min-w-0 animate-fade-in text-xs">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#e3dccb] pb-5">
         <div className="space-y-1.5">
