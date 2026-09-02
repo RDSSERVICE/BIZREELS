@@ -15,19 +15,26 @@ export default function VendorOrdersPage() {
 
   const TABS = [
     { key: 'pending', label: bi('New Orders', 'नए ऑर्डर (New Orders)'), icon: FiClock },
-    { key: 'accepted', label: bi('Accepted', 'स्वीकृत (Accepted)') },
+    { key: 'accepted', label: bi('Accepted / In Progress', 'स्वीकृत / प्रगति पर (In Progress)') },
     { key: 'completed', label: bi('Completed', 'पूरे किए गए (Completed)'), icon: FiCheckCircle },
     { key: 'cancelled', label: bi('Cancelled', 'रद्द (Cancelled)'), icon: FiX },
   ];
 
   const orders = Array.isArray(data?.data) ? data.data : Array.isArray(data?.orders) ? data.orders : Array.isArray(data) ? data : [];
 
-  const filtered = orders.filter((o) => (o.status || 'pending') === activeTab);
+  const filtered = orders.filter((o) => {
+    const s = o.status || 'pending';
+    if (activeTab === 'pending') return s === 'pending';
+    if (activeTab === 'accepted') return ['accepted', 'processing', 'shipped', 'out_for_delivery'].includes(s);
+    if (activeTab === 'completed') return ['completed', 'delivered'].includes(s);
+    if (activeTab === 'cancelled') return ['cancelled', 'rejected', 'refunded'].includes(s);
+    return s === activeTab;
+  });
 
   const handleStatusChange = async (id, newStatus) => {
     try {
       await updateOrderStatus({ id, status: newStatus }).unwrap();
-      toast.success(`Order ${id} marked as ${newStatus.toUpperCase()}`);
+      toast.success(`Order marked as ${newStatus.toUpperCase()}`);
     } catch (err) {
       toast.error(err?.data?.message || err?.message || `Failed to mark order as ${newStatus.toUpperCase()}`);
     }
@@ -55,22 +62,38 @@ export default function VendorOrdersPage() {
         <div className="space-y-4">
           {filtered.map((o) => (
             <div key={o._id || o.id} className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:shadow-sm transition-all">
-              <div>
+              <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-xs text-[#d99a3d]">{o._id || o.id}</span>
+                  <span className="font-extrabold text-xs text-[#d99a3d]">#{String(o._id || o.id).slice(-8).toUpperCase()}</span>
                   <span className="text-[10px] text-slate-400">• {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : o.date || 'Today'}</span>
                 </div>
-                <h4 className="font-extrabold text-sm text-[#1a1a1a] mt-1">{bi('Order from:', 'ग्राहक से ऑर्डर:')} {o.customer?.name || 'Customer'}</h4>
-                <p className="text-xs text-slate-600 mt-0.5 font-medium">
-                  {bi('Listing:', 'लिस्टिंग:')} {o.listing?.title || 'Standard Order Details'} (x{o.quantity || 1})
+                <h4 className="font-extrabold text-sm text-[#1a1a1a]">
+                  {bi('Customer:', 'ग्राहक:')} {o.customer?.name || 'Customer'}
+                  {o.customer?.phone && <span className="ml-2 font-normal text-xs text-slate-500">📞 {o.customer.phone}</span>}
+                </h4>
+                <p className="text-xs text-slate-600 font-medium">
+                  {bi('Item:', 'सामग्री:')} <span className="font-bold text-slate-800">{o.listing?.title || 'Standard Order Details'}</span> (x{o.quantity || 1})
                 </p>
+                {o.address && (
+                  <p className="text-[11px] text-slate-500">
+                    📍 {bi('Delivery Address:', 'डिलीवरी पता:')} {o.address} {o.pincode ? `(${o.pincode})` : ''}
+                  </p>
+                )}
                 {o.bookingDate && (
-                  <p className="text-[11px] font-bold text-[#d99a3d] mt-0.5">
+                  <p className="text-[11px] font-bold text-[#d99a3d]">
                     🗓️ {bi('Scheduled Visit:', 'अनुसूचित यात्रा:')} {o.bookingDate} {o.bookingTime ? `${bi('at', 'बजे')} ${o.bookingTime}` : ''}
                   </p>
                 )}
-                <div className="flex items-center gap-3 mt-1">
+                {o.trackingNumber && (
+                  <p className="text-[11px] font-mono font-bold text-indigo-600">
+                    📦 {bi('Tracking #:', 'ट्रैकिंग सं:')} {o.trackingNumber}
+                  </p>
+                )}
+                <div className="flex items-center gap-3 pt-1">
                   <span className="text-xs font-black text-emerald-600">{bi('Total:', 'कुल:')} ₹{(o.price || 0).toLocaleString()}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 font-semibold text-slate-600 uppercase">
+                    {o.paymentMethod || 'Vendor UPI'} • {o.paymentStatus || 'unpaid'}
+                  </span>
                   {o.status === 'cancelled' && (
                     <span className="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200">
                       {bi('Refunded:', 'रिफंड किया गया:')} ₹{(o.refundAmount ?? o.price).toLocaleString()} ({o.refundPercentage ?? 100}%)
@@ -85,7 +108,7 @@ export default function VendorOrdersPage() {
                   <>
                     <button
                       onClick={() => handleStatusChange(o._id || o.id, 'accepted')}
-                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white font-extrabold text-xs hover:bg-emerald-700 transition flex items-center gap-1 cursor-pointer border-none"
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white font-extrabold text-xs hover:bg-emerald-700 transition flex items-center gap-1 cursor-pointer border-none shadow-xs"
                     >
                       <FiCheck size={14} /> {bi('Accept Order', 'ऑर्डर स्वीकार करें')}
                     </button>
@@ -100,7 +123,7 @@ export default function VendorOrdersPage() {
                 {activeTab === 'accepted' && (
                   <button
                     onClick={() => handleStatusChange(o._id || o.id, 'completed')}
-                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 text-white font-extrabold text-xs hover:bg-blue-700 transition flex items-center gap-1 cursor-pointer border-none"
+                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 text-white font-extrabold text-xs hover:bg-blue-700 transition flex items-center gap-1 cursor-pointer border-none shadow-xs"
                   >
                     <FiCheckCircle size={14} /> {bi('Mark Completed', 'पूरा चिह्नित करें')}
                   </button>

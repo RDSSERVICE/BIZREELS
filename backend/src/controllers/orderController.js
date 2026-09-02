@@ -443,6 +443,203 @@ class OrderController {
       policyExplanation,
     });
   });
+
+  getVendorOrders = asyncHandler(async (req, res) => {
+    const { status, page = 1, limit = 50 } = req.query;
+    const query = { vendor: req.user._id };
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    const parsedPage = parseInt(page, 10) || 1;
+    const parsedLimit = parseInt(limit, 10) || 50;
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const [total, orders] = await Promise.all([
+      Order.countDocuments(query),
+      Order.find(query)
+        .populate('customer', 'name email phone avatarUrl')
+        .populate('listing', 'title images type category actualPrice sellingPrice price discount stock status')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parsedLimit)
+        .lean()
+    ]);
+
+    return ApiResponse.paginated(res, 'Vendor orders retrieved successfully.', orders, {
+      page: parsedPage,
+      limit: parsedLimit,
+      total,
+    });
+  });
+
+  getOrderById = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const order = await Order.findById(id)
+      .populate('customer', 'name email phone avatarUrl')
+      .populate('vendor', 'name email phone avatarUrl vendorProfile businessName')
+      .populate('listing', 'title images type category actualPrice sellingPrice price discount stock status')
+      .lean();
+
+    if (!order) {
+      throw ApiError.notFound('Order not found.');
+    }
+
+    const isCustomer = order.customer && order.customer._id.toString() === req.user._id.toString();
+    const isVendor = order.vendor && order.vendor._id.toString() === req.user._id.toString();
+    const isAdmin = (req.user.roles && req.user.roles.includes('admin')) || req.user.role === 'admin';
+
+    if (!isCustomer && !isVendor && !isAdmin) {
+      throw ApiError.forbidden('You are not authorized to view this order.');
+    }
+
+    return ApiResponse.ok(res, 'Order details retrieved successfully.', { order });
+  });
+
+  updateStatus = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const {
+      status,
+      deliveryStatus,
+      trackingNumber,
+      expectedDeliveryDate,
+      notes,
+      rejectionReason,
+      cancellationReason,
+      paymentStatus,
+    } = req.body || {};
+
+    if (!status && !deliveryStatus && !trackingNumber && !paymentStatus) {
+      throw ApiError.badRequest('Status, deliveryStatus, trackingNumber, or paymentStatus is required.');
+    }
+
+    const order = await Order.findById(id)
+      .populate('listing')
+      .populate('customer', 'name email phone avatarUrl')
+      .populate('vendor', 'name email phone avatarUrl vendorProfile');
+
+    if (!order) {
+      throw ApiError.notFound('Order not found.');
+    }
+
+    const isVendor = order.vendor && order.vendor._id.toString() === req.user._id.toString();
+    const isCustomer = order.customer && order.customer._id.toString() === req.user._id.toString();
+    const isAdmin = (req.user.roles && req.user.roles.includes('admin')) || req.user.role === 'admin';
+
+    if (!isVendor && !isCustomer && !isAdmin) {
+      throw ApiError.forbidden('You are not authorized to update this order.');
+    }
+
+    // Customer can only cancel pending/accepted order
+    if (isCustomer && !isVendor && !isAdmin) {
+      if (status === 'cancelled') {
+        req.params.id = id;
+        return this.cancel(req, res);
+      }
+      throw ApiError.forbidden('Customers can only cancel pending orders.');
+    }
+
+    const validStatuses = [
+      'pending',
+      'accepted',
+      'processing',
+      'shipped',
+      'out_for_delivery',
+      'delivered',
+      'completed',
+      'cancelled',
+      'rejected',
+      'refunded',
+    ];
+
+    if (status && !validStatuses.includes(status.toLowerCase())) {
+      throw ApiError.badRequest(`Invalid status: "${status}". Valid statuses: ${validStatuses.join(', ')}`);
+    }
+
+    const previousStatus = order.status;
+    const newStatus = status ? status.toLowerCase() : order.status;
+
+    // Handle cancellation / rejection reasons
+    if ((newStatus === 'cancelled' || newStatus === 'rejected') && previousStatus !== newStatus) {
+      if (rejectionReason || cancellationReason || notes) {
+        order.cancellationReason = rejectionReason || cancellationReason || notes;
+      }
+      order.cancelledAt = new Date();
+    }
+
+    order.status = newStatus;
+
+    // Synchronize delivery status if not explicitly given
+    if (deliveryStatus) {
+      order.deliveryStatus = deliveryStatus;
+    } else if (['shipped', 'out_for_delivery', 'delivered', 'cancelled'].includes(newStatus)) {
+      order.deliveryStatus = newStatus;
+    } else if (newStatus === 'completed') {
+      order.deliveryStatus = 'delivered';
+    }
+
+    // Update tracking info
+    if (trackingNumber !== undefined) {
+      order.trackingNumber = trackingNumber;
+      if (!order.shippingDetails) order.shippingDetails = {};
+      if (typeof order.shippingDetails === 'object') {
+        order.shippingDetails.trackingNumber = trackingNumber;
+      }
+    }
+
+    if (expectedDeliveryDate) {
+      order.expectedDeliveryDate = new Date(expectedDeliveryDate);
+    }
+
+    if (paymentStatus) {
+      order.paymentStatus = paymentStatus;
+    } else if (newStatus === 'completed' || newStatus === 'delivered') {
+      if (order.paymentMethod === 'cod' || order.paymentMethod === 'cash') {
+        order.paymentStatus = 'paid';
+      }
+    }
+
+    await order.save();
+
+    // Notify customer on status progression
+    const statusLabels = {
+      accepted: 'accepted and is being prepared',
+      processing: 'now being processed',
+      shipped: 'shipped and on its way',
+      out_for_delivery: 'out for delivery',
+      delivered: 'delivered successfully',
+      completed: 'marked as completed',
+      cancelled: 'cancelled',
+      rejected: 'rejected by vendor',
+    };
+
+    const actionText = statusLabels[newStatus] || `updated to ${newStatus}`;
+
+    try {
+      if (order.customer && order.customer._id) {
+        const notifyCustomer = await Notification.create({
+          recipient: order.customer._id,
+          sender: req.user._id,
+          type: 'order',
+          title: `Order Status: ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
+          message: `Your order for "${order.listing?.title || 'Item'}" has been ${actionText}.${trackingNumber ? ` (Tracking #: ${trackingNumber})` : ''}`,
+          data: { orderId: order._id, status: newStatus, trackingNumber },
+        });
+        emitToUser(order.customer._id.toString(), 'notification', notifyCustomer);
+        emitToUser(order.customer._id.toString(), 'order:updated', order);
+      }
+
+      if (order.vendor && order.vendor._id) {
+        emitToUser(order.vendor._id.toString(), 'order:updated', order);
+      }
+
+      const { emitToAdmin } = require('../sockets');
+      emitToAdmin('admin:update', { tags: ['AdminOrders', 'AdminOverview'] });
+    } catch (notifyErr) {
+      console.warn('Non-blocking notification error in updateStatus:', notifyErr?.message);
+    }
+
+    return ApiResponse.ok(res, `Order status updated to ${newStatus}.`, { order });
+  });
 }
 
 module.exports = new OrderController();

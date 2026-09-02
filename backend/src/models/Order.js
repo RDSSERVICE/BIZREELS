@@ -63,9 +63,14 @@ const orderSchema = new Schema(
       default: '',
       trim: true,
     },
+    trackingNumber: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     status: {
       type: String,
-      enum: ['pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'rejected', 'refunded'],
+      enum: ['pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'completed', 'cancelled', 'rejected', 'refunded'],
       default: 'pending',
       index: true,
     },
@@ -86,7 +91,7 @@ const orderSchema = new Schema(
     },
     deliveryStatus: {
       type: String,
-      enum: ['pending', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'],
+      enum: ['pending', 'shipped', 'out_for_delivery', 'delivered', 'completed', 'cancelled'],
       default: 'pending',
     },
     expectedDeliveryDate: {
