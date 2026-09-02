@@ -21,6 +21,10 @@ const addRole = async (userId, role) => {
   user.current_role = role;
   user.activeRole = role;
   await user.save();
+  try {
+    const cache = require('../utils/cache');
+    await cache.deleteCache(`user:auth:${userId}`);
+  } catch (err) {}
   return user;
 };
 
@@ -34,6 +38,10 @@ const switchRole = async (userId, role) => {
   user.current_role = role;
   user.activeRole = role;
   await user.save();
+  try {
+    const cache = require('../utils/cache');
+    await cache.deleteCache(`user:auth:${userId}`);
+  } catch (err) {}
   return user;
 };
 

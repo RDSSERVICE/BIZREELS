@@ -242,13 +242,10 @@ export default function VendorLayout() {
       dispatch(setActiveRole(targetRole));
       toast.success(`Switched active role to ${targetRole.toUpperCase()}`);
 
-      const isVendorIncomplete = targetRole === 'vendor' && (!updatedUser?.vendorProfile?.shopName && !updatedUser?.vendorProfile?.businessName);
-      const isCreatorIncomplete = targetRole === 'creator' && (!updatedUser?.creatorProfile?.displayName && !updatedUser?.creatorProfile?.name);
-
       if (targetRole === 'vendor') {
-        navigate(isVendorIncomplete ? '/vendor/onboarding' : '/vendor/dashboard');
+        navigate('/vendor/dashboard');
       } else if (targetRole === 'creator') {
-        navigate(isCreatorIncomplete ? '/creator/onboarding' : '/creator/dashboard');
+        navigate('/creator/dashboard');
       } else if (targetRole === 'admin') {
         navigate('/admin/dashboard');
       } else {
