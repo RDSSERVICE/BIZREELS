@@ -8,9 +8,9 @@ const activitiesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // ── Orders ───────────────────────────────────────────
     getOrders: builder.query({
-      query: (params) => ({
+      query: (params = {}) => ({
         url: '/orders',
-        params,
+        params: { role: 'customer', ...params },
       }),
       providesTags: ['Orders'],
     }),

@@ -116,7 +116,7 @@ class ReelController {
   // ── Add Comment ─────────────────────────────────────────
   addComment = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { content } = req.body;
+    const content = (req.body?.content || req.body?.text || req.body?.comment || '').trim();
 
     const comment = await reelService.addComment(id, req.user._id, content, req);
     return ApiResponse.created(res, 'Comment posted.', { comment });

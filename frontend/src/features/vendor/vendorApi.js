@@ -146,7 +146,7 @@ const vendorApi = apiSlice.injectEndpoints({
 
     // ── Orders ──────────────────────────────────────────────
     getVendorOrders: builder.query({
-      query: (params = {}) => ({ url: '/orders', params }),
+      query: (params = {}) => ({ url: '/orders', params: { ...params, role: 'vendor' } }),
       providesTags: ['Orders'],
     }),
     updateOrderStatus: builder.mutation({

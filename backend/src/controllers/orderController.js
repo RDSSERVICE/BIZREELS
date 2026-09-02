@@ -229,13 +229,32 @@ class OrderController {
     return ApiResponse.created(res, 'Order placed successfully.', { order });
   });
 
+  getVendorOrders = asyncHandler(async (req, res) => {
+    req.query.role = 'vendor';
+    return this.getOrders(req, res);
+  });
+
   getOrders = asyncHandler(async (req, res) => {
     const mongoose = require('mongoose');
-    const { search, status, paymentStatus, sortBy, page = 1, limit = 10 } = req.query;
+    const { search, status, paymentStatus, sortBy, role, page = 1, limit = 10 } = req.query;
 
-    const baseQuery = {
-      $or: [{ customer: req.user._id }, { vendor: req.user._id }]
-    };
+    const activeRole = role || req.user.activeRole || req.user.current_role;
+    const baseQuery = {};
+
+    if (activeRole === 'vendor') {
+      const Listing = require('../models/Listing');
+      const myListings = await Listing.find({ vendor: req.user._id }).select('_id').lean();
+      const listingIds = myListings.map(l => l._id);
+      baseQuery.$or = [{ vendor: req.user._id }, { listing: { $in: listingIds } }];
+    } else if (activeRole === 'customer') {
+      baseQuery.customer = req.user._id;
+    } else if (activeRole === 'creator') {
+      baseQuery.vendor = req.user._id;
+    } else if (req.user.roles?.includes('admin') || req.user.role === 'admin' || req.user.activeRole === 'admin') {
+      // Admin sees all
+    } else {
+      baseQuery.$or = [{ customer: req.user._id }, { vendor: req.user._id }];
+    }
 
     // Filters
     if (status) {
@@ -317,7 +336,15 @@ class OrderController {
       throw ApiError.notFound('Order not found');
     }
 
-    if (order.customer._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    const customerId = (order.customer?._id || order.customer || '').toString();
+    const vendorId = (order.vendor?._id || order.vendor || '').toString();
+    const userId = (req.user?._id || '').toString();
+
+    const isCustomer = customerId === userId;
+    const isVendor = vendorId === userId;
+    const isAdmin = (req.user.roles && req.user.roles.includes('admin')) || req.user.role === 'admin' || req.user.activeRole === 'admin';
+
+    if (!isCustomer && !isVendor && !isAdmin) {
       throw ApiError.forbidden('Unauthorized to cancel this order.');
     }
 
@@ -327,9 +354,9 @@ class OrderController {
 
     const isService = order.listing?.type === 'service' || !!order.scheduledVisitTime || !!order.bookingDate;
     let refundPercent = 100;
-    let policyExplanation = 'Standard 100% full refund';
+    let policyExplanation = isVendor ? 'Order cancelled/rejected by vendor' : 'Standard 100% full cancellation';
 
-    if (isService) {
+    if (isCustomer && !isVendor && !isAdmin && isService) {
       const policy = order.cancellationPolicySnapshot || order.listing?.serviceDetails?.policies || {
         freeCancellationHours: 24,
         withinWindowHours: 24,
@@ -355,15 +382,12 @@ class OrderController {
         const diffHours = diffMs / (1000 * 60 * 60);
 
         if (diffHours >= freeHours) {
-          // Free cancellation (>= freeHours before visit)
           refundPercent = 100;
           policyExplanation = `Free cancellation (${diffHours.toFixed(1)}h before visit >= ${freeHours}h free limit)`;
         } else if (diffHours > 0) {
-          // Within X hours before visit
           refundPercent = Math.max(0, Math.min(100, windowPercent));
           policyExplanation = `Cancellation within ${windowHours}h before visit (${diffHours.toFixed(1)}h remaining): ${refundPercent}% refund`;
         } else {
-          // After scheduled visit time
           refundPercent = Math.max(0, Math.min(100, afterPercent));
           policyExplanation = `Cancellation after scheduled visit time: ${refundPercent}% refund`;
         }
@@ -373,74 +397,97 @@ class OrderController {
       }
     }
 
-    const refundAmount = Math.round((order.price * refundPercent) / 100);
+    // Wallet refund is ONLY applicable if money was actually paid upfront (paymentStatus === 'paid')
+    const isPaid = order.paymentStatus === 'paid';
+    const refundAmount = isPaid ? Math.round((order.price * refundPercent) / 100) : 0;
 
-    // Refund customer wallet if applicable
-    if (refundAmount > 0) {
-      await walletRepository.updateWalletBalance(
-        order.customer._id,
-        refundAmount,
-        'refund',
-        order._id,
-        `Refund (${refundPercent}%) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
-      );
+    if (isPaid && refundAmount > 0) {
+      try {
+        await walletRepository.updateWalletBalance(
+          customerId,
+          refundAmount,
+          'refund',
+          order._id,
+          `Refund (${refundPercent}%) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
+        );
+      } catch (err) {
+        console.warn('Customer wallet refund error (non-fatal):', err?.message);
+      }
+
+      try {
+        await walletRepository.updateWalletBalance(
+          vendorId,
+          -refundAmount,
+          'payment',
+          order._id,
+          `Debit (${refundPercent}% refund) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
+        );
+      } catch (err) {
+        console.warn('Vendor wallet debit error (non-fatal):', err?.message);
+      }
     }
 
-    // Debit vendor wallet for refunded amount (vendor retains non-refunded portion)
-    if (refundAmount > 0) {
-      await walletRepository.updateWalletBalance(
-        order.vendor._id,
-        -refundAmount,
-        'payment',
-        order._id,
-        `Debit (${refundPercent}% refund) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
-      );
-    }
-
-    order.status = 'cancelled';
+    order.status = isVendor ? 'rejected' : 'cancelled';
     order.deliveryStatus = 'cancelled';
     order.refundAmount = refundAmount;
-    order.refundPercentage = refundPercent;
+    order.refundPercentage = isPaid ? refundPercent : 0;
     order.cancelledAt = new Date();
     if (reason) order.cancellationReason = reason;
     await order.save();
 
     // Notify vendor
-    const notifyVendor = await Notification.create({
-      recipient: order.vendor._id,
-      sender: req.user._id,
-      type: 'payment',
-      title: `${isService ? 'Service Booking' : 'Order'} Cancelled`,
-      message: `${req.user.name} has cancelled "${order.listing?.title || 'Item'}". ${policyExplanation}. Wallet refund: ₹${refundAmount} (${refundPercent}%).`,
-      data: { orderId: order._id, refundAmount, refundPercent },
-    });
-    emitToUser(order.vendor._id.toString(), 'notification', notifyVendor);
+    if (vendorId) {
+      try {
+        const notifyVendor = await Notification.create({
+          recipient: vendorId,
+          sender: req.user._id,
+          recipientRole: 'vendor',
+          type: 'order',
+          title: `${isService ? 'Service Booking' : 'Order'} ${isVendor ? 'Rejected' : 'Cancelled'}`,
+          message: `${isVendor ? 'You' : req.user.name || 'Customer'} cancelled "${order.listing?.title || 'Item'}". ${policyExplanation}.${refundAmount > 0 ? ` Wallet refund: ₹${refundAmount} (${refundPercent}%).` : ''}`,
+          body: `${isVendor ? 'You' : req.user.name || 'Customer'} cancelled "${order.listing?.title || 'Item'}". ${policyExplanation}.${refundAmount > 0 ? ` Wallet refund: ₹${refundAmount} (${refundPercent}%).` : ''}`,
+          actionUrl: '/vendor/orders',
+          data: { orderId: order._id, refundAmount, refundPercent },
+        });
+        emitToUser(vendorId, 'notification:new', notifyVendor);
+        emitToUser(vendorId, 'notification', notifyVendor);
+        emitToUser(vendorId, 'order:updated', order);
+      } catch (notifyErr) {
+        console.warn('Vendor notification error in cancel:', notifyErr?.message);
+      }
+    }
 
     // Notify customer
-    const notifyCustomer = await Notification.create({
-      recipient: order.customer._id,
-      sender: req.user._id,
-      type: 'payment',
-      title: `${isService ? 'Booking' : 'Order'} Cancelled & Refunded`,
-      message: `Your cancellation for "${order.listing?.title || 'Item'}" is processed. ${policyExplanation}. ₹${refundAmount} (${refundPercent}%) credited to wallet.`,
-      data: { orderId: order._id, refundAmount, refundPercent },
-    });
-    emitToUser(order.customer._id.toString(), 'notification', notifyCustomer);
-
-    // Socket updates
-    emitToUser(order.vendor._id.toString(), 'order:updated', order);
-    emitToUser(order.customer._id.toString(), 'order:updated', order);
+    if (customerId) {
+      try {
+        const notifyCustomer = await Notification.create({
+          recipient: customerId,
+          sender: req.user._id,
+          recipientRole: 'customer',
+          type: 'order',
+          title: isVendor ? 'Order Rejected by Vendor' : `${isService ? 'Booking' : 'Order'} Cancelled`,
+          message: `Your order for "${order.listing?.title || 'Item'}" has been ${isVendor ? 'rejected by the vendor' : 'cancelled'}.${refundAmount > 0 ? ` ₹${refundAmount} (${refundPercent}%) credited to your wallet.` : ''}`,
+          body: `Your order for "${order.listing?.title || 'Item'}" has been ${isVendor ? 'rejected by the vendor' : 'cancelled'}.${refundAmount > 0 ? ` ₹${refundAmount} (${refundPercent}%) credited to your wallet.` : ''}`,
+          actionUrl: '/customer/activities?tab=orders',
+          data: { orderId: order._id, refundAmount, refundPercent },
+        });
+        emitToUser(customerId, 'notification:new', notifyCustomer);
+        emitToUser(customerId, 'notification', notifyCustomer);
+        emitToUser(customerId, 'order:updated', order);
+      } catch (notifyErr) {
+        console.warn('Customer notification error in cancel:', notifyErr?.message);
+      }
+    }
 
     try {
       const { emitToAdmin } = require('../sockets');
-      emitToAdmin('admin:update', { tags: ['AdminOrders', 'AdminOverview'] });
+      if (typeof emitToAdmin === 'function') {
+        emitToAdmin('admin:update', { tags: ['AdminOrders', 'AdminOverview'] });
+      }
     } catch (err) {}
 
-    return ApiResponse.ok(res, `Cancellation processed successfully. ${policyExplanation} (₹${refundAmount} refunded).`, {
+    return ApiResponse.ok(res, `Cancellation processed successfully. ${policyExplanation}${refundAmount > 0 ? ` (₹${refundAmount} refunded)` : ''}.`, {
       order,
-      refundAmount,
-      refundPercentage: refundPercent,
-      policyExplanation,
     });
   });
 
@@ -521,16 +568,24 @@ class OrderController {
       throw ApiError.notFound('Order not found.');
     }
 
-    const isVendor = order.vendor && order.vendor._id.toString() === req.user._id.toString();
-    const isCustomer = order.customer && order.customer._id.toString() === req.user._id.toString();
-    const isAdmin = (req.user.roles && req.user.roles.includes('admin')) || req.user.role === 'admin';
+    const customerId = (order.customer?._id || order.customer || '').toString();
+    const vendorId = (order.vendor?._id || order.vendor || '').toString();
+    const listingVendorId = (order.listing?.vendor?._id || order.listing?.vendor || '').toString();
+    const userId = (req.user?._id || '').toString();
+
+    const isDirectVendor = vendorId === userId || (listingVendorId && listingVendorId === userId);
+    const isDirectCustomer = customerId === userId;
+    const isAdmin = (req.user.roles && req.user.roles.includes('admin')) || req.user.role === 'admin' || req.user.activeRole === 'admin';
+    const isVendor = isDirectVendor || isAdmin;
+    const isCustomer = isDirectCustomer;
 
     if (!isVendor && !isCustomer && !isAdmin) {
       throw ApiError.forbidden('You are not authorized to update this order.');
     }
 
-    // Customer can only cancel pending/accepted order
-    if (isCustomer && !isVendor && !isAdmin) {
+    // A pure customer (who is NOT the vendor/owner of this order and NOT an admin) can only cancel
+    const isPureCustomer = isCustomer && !isVendor && !isAdmin;
+    if (isPureCustomer) {
       if (status === 'cancelled') {
         req.params.id = id;
         return this.cancel(req, res);
@@ -615,25 +670,31 @@ class OrderController {
     const actionText = statusLabels[newStatus] || `updated to ${newStatus}`;
 
     try {
-      if (order.customer && order.customer._id) {
+      if (customerId) {
         const notifyCustomer = await Notification.create({
-          recipient: order.customer._id,
+          recipient: customerId,
           sender: req.user._id,
+          recipientRole: 'customer',
           type: 'order',
-          title: `Order Status: ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
+          title: newStatus === 'accepted' ? 'Order Accepted! 🎉' : `Order Status: ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
           message: `Your order for "${order.listing?.title || 'Item'}" has been ${actionText}.${trackingNumber ? ` (Tracking #: ${trackingNumber})` : ''}`,
+          body: `Your order for "${order.listing?.title || 'Item'}" has been ${actionText}.${trackingNumber ? ` (Tracking #: ${trackingNumber})` : ''}`,
+          actionUrl: '/customer/activities?tab=orders',
           data: { orderId: order._id, status: newStatus, trackingNumber },
         });
-        emitToUser(order.customer._id.toString(), 'notification', notifyCustomer);
-        emitToUser(order.customer._id.toString(), 'order:updated', order);
+        emitToUser(customerId, 'notification:new', notifyCustomer);
+        emitToUser(customerId, 'notification', notifyCustomer);
+        emitToUser(customerId, 'order:updated', order);
       }
 
-      if (order.vendor && order.vendor._id) {
-        emitToUser(order.vendor._id.toString(), 'order:updated', order);
+      if (vendorId) {
+        emitToUser(vendorId, 'order:updated', order);
       }
 
       const { emitToAdmin } = require('../sockets');
-      emitToAdmin('admin:update', { tags: ['AdminOrders', 'AdminOverview'] });
+      if (typeof emitToAdmin === 'function') {
+        emitToAdmin('admin:update', { tags: ['AdminOrders', 'AdminOverview'] });
+      }
     } catch (notifyErr) {
       console.warn('Non-blocking notification error in updateStatus:', notifyErr?.message);
     }

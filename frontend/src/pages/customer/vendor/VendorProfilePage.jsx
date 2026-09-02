@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   FiMapPin, FiGlobe, FiPhone, FiClock, FiHeart, FiMessageCircle,
   FiBookmark, FiShare2, FiStar, FiInfo, FiCheck, FiUserPlus,
   FiSend, FiPackage, FiTool, FiAlertTriangle, FiInstagram, FiFacebook,
-  FiGrid
+  FiGrid, FiTrash2, FiTag, FiX
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { api, resolveMediaUrl } from '../../../lib/api';
 import { getSocket } from '../../../lib/socket';
 import SEO from '../../../components/common/SEO';
+import { selectCurrentUser } from '../../../features/auth/authSlice';
 
 export default function VendorProfilePage() {
   const { vendorId } = useParams();
   const navigate = useNavigate();
+  const currentUser = useSelector(selectCurrentUser);
 
   // Profile data & loading
   const [profile, setProfile] = useState(null);
@@ -159,8 +162,8 @@ export default function VendorProfilePage() {
       toast.success('Message delivered successfully!');
       setIsMessageModalOpen(false);
       setMessageText('');
-      const name = encodeURIComponent(vendorData?.shopName || vendorData?.name || 'Vendor');
-      const avatar = encodeURIComponent(vendorData?.logo || vendorData?.profile_pic || '');
+      const name = encodeURIComponent(profile?.business_name || profile?.shop_name || profile?.name || 'Vendor');
+      const avatar = encodeURIComponent(profile?.profile_pic || profile?.avatar || profile?.logo || '');
       navigate(`/customer/chat?vendorId=${vendorId}&name=${name}&avatar=${avatar}`);
     } catch (err) {
       toast.error('Failed to deliver message');
@@ -172,9 +175,10 @@ export default function VendorProfilePage() {
   // ── Share Profile Handling ─────────────────────────────────
   const handleShareProfile = async () => {
     const url = window.location.href;
+    const name = profile?.business_name || profile?.shop_name || profile?.name || 'Vendor Profile';
     const shareData = {
-      title: vendorData?.shopName || vendorData?.name || 'Vendor Profile',
-      text: `Check out ${vendorData?.shopName || vendorData?.name || 'this vendor'} on BizReels!`,
+      title: name,
+      text: `Check out ${name} on BizReels!`,
       url: url,
     };
 
@@ -203,11 +207,12 @@ export default function VendorProfilePage() {
   // ── Post Details Modal (Comments & Likes) ──────────────────
   const handleOpenPostDetails = async (post) => {
     setSelectedPost(post);
+    setPostComments([]);
     setLoadingComments(true);
     try {
       const res = await api.get(`/v1/reels/${post._id}/comments`);
-      const list = res.data?.data?.comments || res.data?.comments || res.data?.data || [];
-      setPostComments(list);
+      const list = res.data?.data?.comments || res.data?.comments || res.data?.data || res.data?.items || [];
+      setPostComments(Array.isArray(list) ? list : []);
     } catch (e) {
       setPostComments([]);
     } finally {
@@ -217,18 +222,39 @@ export default function VendorProfilePage() {
 
   const handlePostLike = async (postId) => {
     try {
-      await api.post(`/v1/reels/${postId}/like`);
-      // Update local liked list
-      if (selectedPost && selectedPost._id === postId) {
-        setSelectedPost(prev => ({
+      const res = await api.post(`/v1/reels/${postId}/like`);
+      const data = res.data?.data || res.data || {};
+      const nextLiked = data.hasLiked !== undefined ? data.hasLiked : !selectedPost?.hasLiked;
+
+      // Update selectedPost
+      setSelectedPost(prev => {
+        if (!prev || prev._id !== postId) return prev;
+        const wasLiked = !!prev.hasLiked;
+        const delta = nextLiked ? (wasLiked ? 0 : 1) : (wasLiked ? -1 : 0);
+        return {
           ...prev,
-          likesCount: prev.likesCount + 1
-        }));
-      }
-      setPosts(prev => prev.map(p => p._id === postId ? { ...p, likesCount: p.likesCount + 1 } : p));
-      toast.success('Liked post!');
+          hasLiked: nextLiked,
+          likesCount: Math.max(0, (prev.likesCount || 0) + delta),
+        };
+      });
+
+      // Update in posts list
+      setPosts(prev => prev.map(p => {
+        if (p._id === postId) {
+          const wasLiked = !!p.hasLiked;
+          const delta = nextLiked ? (wasLiked ? 0 : 1) : (wasLiked ? -1 : 0);
+          return {
+            ...p,
+            hasLiked: nextLiked,
+            likesCount: Math.max(0, (p.likesCount || 0) + delta),
+          };
+        }
+        return p;
+      }));
+
+      toast.success(nextLiked ? 'Liked reel!' : 'Unliked reel');
     } catch (e) {
-      toast.error('Failed to like post');
+      toast.error(e?.response?.data?.message || 'Failed to update like status');
     }
   };
 
@@ -236,16 +262,39 @@ export default function VendorProfilePage() {
     e.preventDefault();
     if (!postCommentText.trim() || !selectedPost) return;
 
-    const text = postCommentText.trim();
+    const content = postCommentText.trim();
     setPostCommentText('');
     try {
-      const res = await api.post(`/v1/reels/${selectedPost._id}/comments`, { text });
-      const commentObj = res.data?.data?.comment || res.data?.comment || { text, createdAt: new Date() };
-      setPostComments(prev => [...prev, commentObj]);
+      const res = await api.post(`/v1/reels/${selectedPost._id}/comments`, { content, text: content });
+      const commentObj = res.data?.data?.comment || res.data?.comment || {
+        _id: `temp_${Date.now()}`,
+        content,
+        userId: {
+          _id: currentUser?._id,
+          name: currentUser?.name || 'You',
+          avatarUrl: currentUser?.avatarUrl || currentUser?.profile_pic,
+          activeRole: currentUser?.activeRole,
+        },
+        createdAt: new Date().toISOString(),
+      };
+      setPostComments(prev => [commentObj, ...prev]);
+      setSelectedPost(prev => prev ? { ...prev, commentsCount: (prev.commentsCount || 0) + 1 } : prev);
       setPosts(prev => prev.map(p => p._id === selectedPost._id ? { ...p, commentsCount: (p.commentsCount || 0) + 1 } : p));
       toast.success('Comment posted!');
     } catch (err) {
-      toast.error('Failed to submit comment');
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to submit comment');
+    }
+  };
+
+  const handleDeletePostComment = async (commentId) => {
+    try {
+      await api.delete(`/v1/reels/comments/${commentId}`);
+      setPostComments(prev => prev.filter(c => (c._id || c.id) !== commentId));
+      setSelectedPost(prev => prev ? { ...prev, commentsCount: Math.max(0, (prev.commentsCount || 1) - 1) } : prev);
+      setPosts(prev => prev.map(p => p._id === selectedPost?._id ? { ...p, commentsCount: Math.max(0, (p.commentsCount || 1) - 1) } : p));
+      toast.success('Comment deleted');
+    } catch (err) {
+      toast.error('Failed to delete comment');
     }
   };
 
@@ -895,116 +944,207 @@ export default function VendorProfilePage() {
 
       {/* ── MODAL 2: INSTAGRAM-STYLE POST DETAIL OVERLAY ── */}
       {selectedPost && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-border rounded-3xl max-w-4xl w-full h-[80vh] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-scale-in">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-4xl w-full h-[88vh] sm:h-[80vh] flex flex-col md:flex-row overflow-hidden shadow-2xl border border-[#e3dccb] animate-scale-in">
             
-            {/* Media Block */}
-            <div className="flex-1 bg-black flex items-center justify-center relative min-h-[40vh] md:min-h-0">
+            {/* Media Block (Left Side) */}
+            <div className="flex-1 bg-black flex items-center justify-center relative min-h-[45vh] md:min-h-0 overflow-hidden">
               {selectedPost.mediaType === 'video' || selectedPost.videoUrl?.endsWith('.mp4') ? (
-                <video src={resolveMediaUrl(selectedPost.videoUrl)} className="w-full h-full object-contain" controls autoPlay loop />
+                <video
+                  src={resolveMediaUrl(selectedPost.videoUrl)}
+                  className="w-full h-full object-contain max-h-[45vh] md:max-h-full"
+                  controls
+                  autoPlay
+                  loop
+                  playsInline
+                />
               ) : (
-                <img src={resolveMediaUrl(Array.isArray(selectedPost.mediaUrls) ? selectedPost.mediaUrls[0] : (selectedPost.thumbnailUrl || selectedPost.videoUrl))} alt="" className="w-full h-full object-contain" />
+                <img
+                  src={resolveMediaUrl(Array.isArray(selectedPost.mediaUrls) && selectedPost.mediaUrls[0] ? selectedPost.mediaUrls[0] : (selectedPost.thumbnailUrl || selectedPost.videoUrl))}
+                  alt=""
+                  className="w-full h-full object-contain max-h-[45vh] md:max-h-full"
+                />
               )}
             </div>
 
-            {/* Actions & Comments Block */}
-            <div className="w-full md:w-80 lg:w-96 flex flex-col justify-between border-l border-border h-full max-h-[40vh] md:max-h-none">
+            {/* Actions & Comments Block (Right Side) */}
+            <div className="w-full md:w-[360px] lg:w-[400px] flex flex-col justify-between bg-white h-full border-t md:border-t-0 md:border-l border-[#e3dccb] flex-shrink-0">
               
               {/* Header */}
-              <div className="p-4 border-b border-border flex items-center justify-between bg-surface-tertiary/20">
+              <div className="p-3.5 sm:p-4 border-b border-[#e3dccb] flex items-center justify-between bg-[#fdfcf9]">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-surface overflow-hidden border border-border">
-                    {profile.profile_pic ? (
-                      <img src={resolveMediaUrl(profile.profile_pic)} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-surface-tertiary flex items-center justify-center font-bold text-brand-purple text-xs">
-                        {profile.business_name?.charAt(0)}
-                      </div>
-                    )}
+                  <div className="w-9 h-9 rounded-full p-[1.5px] bg-gradient-to-tr from-[#d99a3d] to-purple-500 shadow-xs flex-shrink-0">
+                    <div className="w-full h-full rounded-full bg-white overflow-hidden flex items-center justify-center">
+                      {profile.profile_pic ? (
+                        <img src={resolveMediaUrl(profile.profile_pic)} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-purple-50 flex items-center justify-center font-black text-purple-700 text-xs">
+                          {(profile.business_name || profile.name || 'V').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h5 className="font-bold text-xs text-text-primary">{profile.business_name}</h5>
+                  <div className="min-w-0">
+                    <h5 className="font-extrabold text-xs sm:text-sm text-[#1a1a1a] truncate flex items-center gap-1.5">
+                      {profile.business_name || profile.name}
+                      {profile.verified_badge && (
+                        <span className="text-[10px] text-blue-500">✓</span>
+                      )}
+                    </h5>
                     {selectedPost.location?.address && (
-                      <span className="text-[9px] text-text-tertiary flex items-center gap-0.5"><FiMapPin className="text-brand-orange" /> {selectedPost.location.address}</span>
+                      <span className="text-[10px] text-slate-400 flex items-center gap-0.5 truncate">
+                        <FiMapPin className="text-[#d99a3d] flex-shrink-0" size={10} /> {selectedPost.location.address}
+                      </span>
                     )}
                   </div>
                 </div>
                 <button
                   onClick={() => setSelectedPost(null)}
-                  className="w-7 h-7 rounded-full bg-surface hover:bg-surface-tertiary text-text-tertiary hover:text-text-primary flex items-center justify-center font-bold text-xs"
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center font-bold text-sm transition cursor-pointer"
+                  title="Close"
                 >
-                  ✕
+                  <FiX size={16} />
                 </button>
               </div>
 
               {/* Caption & Comments Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                <div className="flex gap-3 items-start">
-                  <div className="w-6 h-6 rounded-full bg-surface overflow-hidden border border-border flex-shrink-0 flex items-center justify-center font-bold text-brand-purple text-[10px]">
-                    {profile.business_name?.charAt(0)}
+              <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3.5 custom-scrollbar">
+                {/* Author caption block */}
+                <div className="flex gap-3 items-start pb-3 border-b border-[#f0ece1]">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 border border-purple-200 overflow-hidden flex-shrink-0 flex items-center justify-center font-black text-purple-700 text-xs">
+                    {(profile.business_name || profile.name || 'V').charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <p className="text-xs text-text-secondary leading-relaxed">
-                      <strong className="text-text-primary mr-1.5">{profile.business_name}</strong>
-                      {selectedPost.caption}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-700 leading-relaxed break-words">
+                      <strong className="text-slate-900 font-extrabold mr-1.5">{profile.business_name || profile.name}</strong>
+                      {selectedPost.caption || 'Explore this post!'}
                     </p>
-                    <span className="text-[9px] text-text-tertiary mt-1 block">{new Date(selectedPost.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-4 space-y-3">
-                  <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wide">Comments</span>
-                  {loadingComments ? (
-                    <div className="text-center py-4 text-xs text-text-tertiary">Loading comments...</div>
-                  ) : postComments.length === 0 ? (
-                    <div className="text-center py-4 text-xs text-text-tertiary">No comments yet.</div>
-                  ) : (
-                    postComments.map((comment, idx) => (
-                      <div key={idx} className="flex gap-2.5 items-start text-xs">
-                        <div className="w-6 h-6 rounded-full bg-surface-tertiary overflow-hidden border border-border flex-shrink-0 flex items-center justify-center font-bold text-brand-purple text-[9px]">
-                          {comment.author?.avatarUrl ? <img src={resolveMediaUrl(comment.author.avatarUrl)} alt="" className="w-full h-full object-cover" /> : comment.author?.name?.charAt(0) || 'C'}
-                        </div>
-                        <div>
-                          <p className="text-text-secondary">
-                            <strong className="text-text-primary mr-1.5">{comment.author?.name || 'Customer'}</strong>
-                            {comment.text}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Likes and Comment Form */}
-              <div className="p-4 border-t border-border space-y-3 bg-surface-tertiary/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => handlePostLike(selectedPost._id)}
-                      className="text-text-secondary hover:text-brand-pink flex items-center gap-1 text-xs font-bold transition"
-                    >
-                      <FiHeart size={18} />
-                      <span>{selectedPost.likesCount || 0}</span>
-                    </button>
-                    <span className="text-text-tertiary text-xs flex items-center gap-1">
-                      <FiMessageCircle size={18} />
-                      <span>{postComments.length}</span>
+                    <span className="text-[10px] text-slate-400 font-medium mt-1 block">
+                      {selectedPost.createdAt ? new Date(selectedPost.createdAt).toLocaleDateString() : 'Recently'}
                     </span>
                   </div>
                 </div>
 
-                <form onSubmit={handlePostCommentSubmit} className="flex gap-2">
+                {/* Section header */}
+                <div className="pt-1">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                    COMMENTS
+                  </span>
+                </div>
+
+                {/* Comments list */}
+                {loadingComments ? (
+                  <div className="text-center py-10 space-y-2">
+                    <div className="w-6 h-6 border-2 border-[#d99a3d] border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-[11px] font-bold text-slate-400">Loading comments...</p>
+                  </div>
+                ) : postComments.length === 0 ? (
+                  <div className="text-center py-12 space-y-1">
+                    <p className="text-xs font-bold text-slate-400">No comments yet.</p>
+                    <p className="text-[11px] text-slate-400">Be the first to share your thoughts!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {postComments.map((comment, idx) => {
+                      const commentAuthor = comment.userId || comment.author || comment.user || {};
+                      const isAuthor = commentAuthor._id === currentUser?._id || commentAuthor === currentUser?._id;
+                      const authorAvatar = commentAuthor.avatarUrl || commentAuthor.profile_pic;
+                      const authorName = commentAuthor.name || 'Customer';
+                      const commentBody = comment.content || comment.text || '';
+
+                      return (
+                        <div key={comment._id || idx} className="flex gap-2.5 items-start text-xs group relative">
+                          <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center font-bold text-[#d99a3d] text-[10px]">
+                            {authorAvatar ? (
+                              <img src={resolveMediaUrl(authorAvatar)} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              authorName.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0 bg-[#faf8f5] px-3 py-2 rounded-2xl border border-[#ede7dc]">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-extrabold text-[11px] text-slate-900">{authorName}</span>
+                                {commentAuthor.activeRole && commentAuthor.activeRole !== 'customer' && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 uppercase">
+                                    {commentAuthor.activeRole}
+                                  </span>
+                                )}
+                              </div>
+                              {isAuthor && (
+                                <button
+                                  onClick={() => handleDeletePostComment(comment._id)}
+                                  className="text-slate-400 hover:text-rose-600 transition opacity-0 group-hover:opacity-100 p-0.5"
+                                  title="Delete comment"
+                                >
+                                  <FiTrash2 size={12} />
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-slate-700 text-xs mt-0.5 whitespace-pre-wrap leading-relaxed break-words">
+                              {commentBody}
+                            </p>
+                            <span className="text-[9px] text-slate-400 mt-1 block">
+                              {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : 'Just now'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Likes and Comment Form (Bottom Dock) */}
+              <div className="p-3.5 sm:p-4 border-t border-[#e3dccb] space-y-3 bg-[#fdfcf9]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => handlePostLike(selectedPost._id)}
+                      className="flex items-center gap-1.5 text-xs font-extrabold transition-all group cursor-pointer"
+                    >
+                      <FiHeart
+                        size={20}
+                        className={
+                          selectedPost.hasLiked
+                            ? "fill-rose-500 text-rose-500 scale-110 transition-transform"
+                            : "text-slate-600 group-hover:text-rose-500 transition-colors"
+                        }
+                      />
+                      <span className={selectedPost.hasLiked ? "text-rose-600 font-black" : "text-slate-700"}>
+                        {selectedPost.likesCount || 0}
+                      </span>
+                    </button>
+                    <span className="text-slate-500 text-xs font-bold flex items-center gap-1.5">
+                      <FiMessageCircle size={20} />
+                      <span>{postComments.length}</span>
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleShareProfile}
+                    className="text-slate-400 hover:text-slate-700 transition"
+                    title="Share"
+                  >
+                    <FiShare2 size={16} />
+                  </button>
+                </div>
+
+                <form onSubmit={handlePostCommentSubmit} className="flex items-center gap-2">
                   <input
                     type="text"
                     required
                     value={postCommentText}
                     onChange={(e) => setPostCommentText(e.target.value)}
                     placeholder="Add a comment..."
-                    className="flex-1 px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple transition font-medium"
+                    className="flex-1 px-4 py-2.5 bg-white border border-[#d5ccb8] focus:border-[#d99a3d] focus:ring-2 focus:ring-[#d99a3d]/20 rounded-full text-xs text-slate-800 placeholder-slate-400 font-medium transition outline-none"
                   />
-                  <button type="submit" className="p-2 gradient-brand text-white rounded-xl shadow-premium hover:opacity-95 cursor-pointer">
-                    <FiSend size={14} />
+                  <button
+                    type="submit"
+                    disabled={!postCommentText.trim()}
+                    className="w-9 h-9 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition flex-shrink-0"
+                    title="Post Comment"
+                  >
+                    <FiSend size={13} className="translate-x-[1px]" />
                   </button>
                 </form>
               </div>

@@ -44,9 +44,24 @@ const reelValidation = {
     param('id')
       .isMongoId().withMessage('Invalid Reel ID.'),
     body('content')
-      .trim()
-      .notEmpty().withMessage('Comment content is required.')
-      .isLength({ max: 1000 }).withMessage('Comment cannot exceed 1000 characters.'),
+      .optional()
+      .trim(),
+    body('text')
+      .optional()
+      .trim(),
+    body('comment')
+      .optional()
+      .trim(),
+    body().custom((val, { req }) => {
+      const text = (req.body?.content || req.body?.text || req.body?.comment || '').trim();
+      if (!text) {
+        throw new Error('Comment content is required.');
+      }
+      if (text.length > 1000) {
+        throw new Error('Comment cannot exceed 1000 characters.');
+      }
+      return true;
+    }),
   ],
 
   idParam: [

@@ -265,65 +265,56 @@ class ReelRepository {
 
   // ── Like / Toggle Like ──────────────────────────────────
   async likeReel(reelId, userId) {
-    const session = await mongoose.startSession();
-    try {
-      let message = 'Liked';
-      let hasLiked = true;
+    const uId = new mongoose.Types.ObjectId(userId);
+    const rId = new mongoose.Types.ObjectId(reelId);
 
-      await session.withTransaction(async () => {
-        // Attempt to create like
-        const existingLike = await ReelLike.findOne({ userId, reelId }).session(session);
+    // Attempt to find existing like
+    const existingLike = await ReelLike.findOne({ userId: uId, reelId: rId });
 
-        if (existingLike) {
-          // Unlike
-          await ReelLike.deleteOne({ _id: existingLike._id }).session(session);
-          await Reel.findByIdAndUpdate(reelId, { $inc: { likesCount: -1 } }).session(session);
-          message = 'Unliked';
-          hasLiked = false;
-        } else {
-          // Like
-          await ReelLike.create([{ userId, reelId }], { session });
-          await Reel.findByIdAndUpdate(reelId, { $inc: { likesCount: 1 } }).session(session);
-        }
-      });
+    let message = 'Liked';
+    let hasLiked = true;
 
-      return { success: true, message, hasLiked };
-    } finally {
-      await session.endSession();
+    if (existingLike) {
+      // Unlike
+      await ReelLike.deleteOne({ _id: existingLike._id });
+      await Reel.findByIdAndUpdate(rId, { $inc: { likesCount: -1 } });
+      await Reel.updateOne({ _id: rId, likesCount: { $lt: 0 } }, { $set: { likesCount: 0 } });
+      message = 'Unliked';
+      hasLiked = false;
+    } else {
+      // Like
+      await ReelLike.create({ userId: uId, reelId: rId });
+      await Reel.findByIdAndUpdate(rId, { $inc: { likesCount: 1 } });
     }
+
+    return { success: true, message, hasLiked };
   }
 
   // ── Comments thread ─────────────────────────────────────
   async addComment(reelId, userId, content) {
-    const session = await mongoose.startSession();
-    try {
-      let comment;
+    const rId = new mongoose.Types.ObjectId(reelId);
+    const uId = new mongoose.Types.ObjectId(userId);
 
-      await session.withTransaction(async () => {
-        // Create comment entry
-        const created = await Comment.create([{ reelId, userId, content }], { session });
-        comment = created[0];
-        // Increment counter
-        await Reel.findByIdAndUpdate(reelId, { $inc: { commentsCount: 1 } }).session(session);
-      });
+    // Create comment entry
+    const created = await Comment.create({ reelId: rId, userId: uId, content });
+    // Increment counter on Reel
+    await Reel.findByIdAndUpdate(rId, { $inc: { commentsCount: 1 } });
 
-      // Populate user info for immediate response update
-      return Comment.findById(comment._id).populate('userId', 'name avatarUrl activeRole');
-    } finally {
-      await session.endSession();
-    }
+    // Populate user info for immediate response update
+    return Comment.findById(created._id).populate('userId', 'name avatarUrl activeRole');
   }
 
-  async getComments(reelId, { page = 1, limit = 10 }) {
+  async getComments(reelId, { page = 1, limit = 50 }) {
     const skip = (page - 1) * limit;
-    const comments = await Comment.find({ reelId })
+    const rId = new mongoose.Types.ObjectId(reelId);
+    const comments = await Comment.find({ reelId: rId, isDeleted: { $ne: true } })
       .populate('userId', 'name avatarUrl activeRole')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10))
       .lean();
 
-    const total = await Comment.countDocuments({ reelId });
+    const total = await Comment.countDocuments({ reelId: rId, isDeleted: { $ne: true } });
     return { comments, total };
   }
 
@@ -331,17 +322,11 @@ class ReelRepository {
     const comment = await Comment.findOne({ _id: commentId, userId });
     if (!comment) return null;
 
-    const session = await mongoose.startSession();
-    try {
-      await session.withTransaction(async () => {
-        comment.isDeleted = true;
-        await comment.save({ session });
-        await Reel.findByIdAndUpdate(comment.reelId, { $inc: { commentsCount: -1 } }).session(session);
-      });
-      return comment;
-    } finally {
-      await session.endSession();
-    }
+    comment.isDeleted = true;
+    await comment.save();
+    await Reel.findByIdAndUpdate(comment.reelId, { $inc: { commentsCount: -1 } });
+    await Reel.updateOne({ _id: comment.reelId, commentsCount: { $lt: 0 } }, { $set: { commentsCount: 0 } });
+    return comment;
   }
 
   // ── Soft Delete ─────────────────────────────────────────

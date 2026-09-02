@@ -34,7 +34,15 @@ export default function VendorOrdersPage() {
   const handleStatusChange = async (id, newStatus) => {
     try {
       await updateOrderStatus({ id, status: newStatus }).unwrap();
-      toast.success(`Order marked as ${newStatus.toUpperCase()}`);
+      if (newStatus === 'accepted') {
+        toast.success(bi('Order accepted! Customer notified.', 'ऑर्डर स्वीकार कर लिया गया! ग्राहक को सूचित कर दिया गया।'));
+      } else if (newStatus === 'cancelled' || newStatus === 'rejected') {
+        toast.success(bi('Order rejected.', 'ऑर्डर अस्वीकार कर दिया गया।'));
+      } else if (newStatus === 'completed') {
+        toast.success(bi('Order marked as completed.', 'ऑर्डर पूरा चिह्नित किया गया।'));
+      } else {
+        toast.success(bi(`Order marked as ${newStatus.toUpperCase()}`, `ऑर्डर ${newStatus.toUpperCase()} चिह्नित किया गया`));
+      }
     } catch (err) {
       toast.error(err?.data?.message || err?.message || `Failed to mark order as ${newStatus.toUpperCase()}`);
     }
