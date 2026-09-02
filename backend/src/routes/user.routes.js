@@ -105,7 +105,8 @@ router.get('/', optionalAuth, catchAsync(async (req, res) => {
 }));
 
 router.get('/me', requireAuth, catchAsync(async (req, res) => {
-  let user = req.user;
+  const fullUser = await User.findById(req.user._id).select('-password -resetPasswordOtpHash -resetPasswordExpires').lean();
+  let user = fullUser || req.user;
   try {
     const reconciledUser = await subscriptionService.reconcileUserSubscription(user._id.toString());
     if (reconciledUser) {

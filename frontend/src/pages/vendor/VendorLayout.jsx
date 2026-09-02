@@ -299,12 +299,12 @@ export default function VendorLayout() {
 
     // Portals
     {
-      label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName)
+      label: roles.includes('creator')
         ? bi('Creator Portal', 'क्रिएटर पोर्टल')
         : bi('Become a Creator', 'क्रिएटर बनें'),
-      path: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? '/creator/dashboard' : '/creator/onboarding',
+      path: roles.includes('creator') ? '/creator/dashboard' : '/creator/onboarding',
       icon: FiFilm,
-      highlight: !(roles.includes('creator') && profileUser?.creatorProfile?.displayName)
+      highlight: !roles.includes('creator')
     },
 
     // Business & Growth

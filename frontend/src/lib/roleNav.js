@@ -80,11 +80,23 @@ export function getRoleOnboarding(role) {
  */
 export function isOnboardingComplete(user, role) {
   if (!user) return false;
+  const userRoles = user.roles || [];
+
   switch (role) {
-    case 'vendor':
-      return !!(user.vendorProfile?.shopName);
-    case 'creator':
-      return !!(user.creatorProfile?.displayName);
+    case 'vendor': {
+      if (userRoles.includes('vendor')) {
+        return true;
+      }
+      const vp = user.vendorProfile;
+      return !!(vp && (vp.shopName || vp.businessName || (vp.categories && vp.categories.length > 0)));
+    }
+    case 'creator': {
+      if (userRoles.includes('creator')) {
+        return true;
+      }
+      const cp = user.creatorProfile;
+      return !!(cp && (cp.displayName || cp.name || cp.handle || (cp.categories && cp.categories.length > 0)));
+    }
     case 'customer':
       return true; // customers don't have a separate onboarding gate
     default:

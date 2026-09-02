@@ -54,23 +54,21 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  const currentActiveRole = activeRole || user?.current_role || userRoles[0] || 'customer';
-  const hasAllowedRole = allowedRoles.includes(currentActiveRole);
+  // Check if user has permission for the required role
+  const hasAllowedRole = allowedRoles.some(role => userRoles.includes(role) || activeRole === role);
 
   if (!hasAllowedRole) {
-    if (currentActiveRole === 'vendor' && userRoles.includes('vendor')) {
-      return <Navigate to="/vendor/dashboard" replace />;
-    }
-    if (currentActiveRole === 'creator' && userRoles.includes('creator')) {
-      return <Navigate to="/creator/dashboard" replace />;
-    }
+    // If user does not have the role yet, navigate to onboarding to become one
+    const targetRole = allowedRoles[0];
+    if (targetRole === 'vendor') return <Navigate to="/vendor/onboarding" replace />;
+    if (targetRole === 'creator') return <Navigate to="/creator/onboarding" replace />;
     return <Navigate to="/customer/home" replace />;
   }
 
-  // User has the right role — check if onboarding is complete
-  if (!isOnboardingComplete(user, currentActiveRole)) {
-    const onboardingPath = getRoleOnboarding(currentActiveRole);
-    // Avoid redirect loop: don't redirect if already on onboarding page
+  // User has the role — check if onboarding is complete
+  const matchedRole = allowedRoles.find(role => userRoles.includes(role)) || activeRole || 'customer';
+  if (!isOnboardingComplete(user, matchedRole)) {
+    const onboardingPath = getRoleOnboarding(matchedRole);
     if (!location.pathname.startsWith(onboardingPath)) {
       return <Navigate to={onboardingPath} replace />;
     }
@@ -98,9 +96,9 @@ export const OnboardingRoute = ({ children, targetRole }) => {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  // If user already has the role AND completed onboarding, send to dashboard
+  // If user already has the role OR completed onboarding, send directly to dashboard
   const userRoles = user?.roles || [];
-  if (userRoles.includes(targetRole) && isOnboardingComplete(user, targetRole)) {
+  if (userRoles.includes(targetRole) || isOnboardingComplete(user, targetRole)) {
     return <Navigate to={getRoleDashboard(targetRole)} replace />;
   }
 

@@ -412,16 +412,16 @@ export default function CustomerLayout() {
     { label: t('post_requirement', 'Post Requirement', 'आवश्यकता पोस्ट करें (Post Requirement)'), path: '/customer/post-requirement', icon: FiZap },
     { label: t('search_placeholder', 'Search Listings', 'उत्पाद खोजें (Search Listings)'), path: '/customer/search', icon: FiCompass },
     {
-      label: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? (lang === 'hi' ? 'विक्रेता पोर्टल (Vendor Portal)' : 'Vendor Portal') : (lang === 'hi' ? 'विक्रेता बनें (Become a Vendor)' : 'Become a Vendor'),
-      path: (roles.includes('vendor') && profileUser?.vendorProfile?.shopName) ? '/vendor/dashboard' : '/vendor/onboarding',
+      label: roles.includes('vendor') ? (lang === 'hi' ? 'विक्रेता पोर्टल (Vendor Portal)' : 'Vendor Portal') : (lang === 'hi' ? 'विक्रेता बनें (Become a Vendor)' : 'Become a Vendor'),
+      path: roles.includes('vendor') ? '/vendor/dashboard' : '/vendor/onboarding',
       icon: FiShoppingBag,
-      highlight: !(roles.includes('vendor') && profileUser?.vendorProfile?.shopName)
+      highlight: !roles.includes('vendor')
     },
     {
-      label: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? (lang === 'hi' ? 'क्रिएटर पोर्टल (Creator Portal)' : 'Creator Portal') : (lang === 'hi' ? 'क्रिएटर बनें (Become a Creator)' : 'Become a Creator'),
-      path: (roles.includes('creator') && profileUser?.creatorProfile?.displayName) ? '/creator/dashboard' : '/creator/onboarding',
+      label: roles.includes('creator') ? (lang === 'hi' ? 'क्रिएटर पोर्टल (Creator Portal)' : 'Creator Portal') : (lang === 'hi' ? 'क्रिएटर बनें (Become a Creator)' : 'Become a Creator'),
+      path: roles.includes('creator') ? '/creator/dashboard' : '/creator/onboarding',
       icon: FiFilm,
-      highlight: !(roles.includes('creator') && profileUser?.creatorProfile?.displayName)
+      highlight: !roles.includes('creator')
     },
     { label: lang === 'hi' ? 'गतिविधियां (Activities)' : 'Activities', path: '/customer/activities', icon: FiTrendingUp, badge: activityCounts.total || 0 },
     { label: t('my_requirements', 'My Requirements', 'मेरी आवश्यकताएं (My Requirements)'), path: '/customer/my-requirements', icon: FiCheckSquare },
