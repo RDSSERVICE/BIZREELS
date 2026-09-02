@@ -52,6 +52,7 @@ router.post(
 
 // ── Parameterized routes ──────────────────────────────────
 router.get('/:id', listingValidation.idParam, validate, listingController.getListingDetails);
+router.post('/:id/like', authenticate, listingValidation.idParam, validate, listingController.toggleLike);
 router.post('/:id/save', authenticate, listingController.save);
 router.post('/:id/unsave', authenticate, listingController.unsave);
 router.post('/:id/save-image', authenticate, listingController.saveImage);

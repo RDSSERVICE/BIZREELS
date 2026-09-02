@@ -149,12 +149,12 @@ export default function ListingTable({
                     <td className="px-3 py-3">
                       <div>
                         <span className="font-black text-xs text-emerald-700">₹{(row.sellingPrice || row.price || 0).toLocaleString('en-IN')}</span>
-                        {row.actualPrice && row.actualPrice > (row.sellingPrice || row.price || 0) && (
-                          <span className="text-[9px] text-slate-400 line-through block">₹{row.actualPrice.toLocaleString('en-IN')}</span>
-                        )}
-                        {row.discount > 0 && (
-                          <span className="text-[9px] text-[#d99a3d] font-black">{row.discount}% off</span>
-                        )}
+                        {Boolean(row.actualPrice && Number(row.actualPrice) > Number(row.sellingPrice || row.price || 0)) ? (
+                          <span className="text-[9px] text-slate-400 line-through block">₹{Number(row.actualPrice).toLocaleString('en-IN')}</span>
+                        ) : null}
+                        {Boolean(row.discount && Number(row.discount) > 0) ? (
+                          <span className="text-[9px] text-[#d99a3d] font-black block">{row.discount}% off</span>
+                        ) : null}
                       </div>
                     </td>
                     <td className="px-3 py-3">
@@ -175,7 +175,7 @@ export default function ListingTable({
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-3 text-[9px] text-slate-500 font-bold">
                         <span className="flex items-center gap-0.5" title="Views"><FiEye className="w-3 h-3 text-slate-400" /> {row.views || 0}</span>
-                        <span className="flex items-center gap-0.5" title="Likes"><FiHeart className="w-3 h-3 text-slate-400" /> {row.likes || 0}</span>
+                        <span className="flex items-center gap-0.5" title="Likes"><FiHeart className="w-3 h-3 text-slate-400" /> {row.likes ?? row.likes_count ?? 0}</span>
                         <span className="flex items-center gap-0.5" title="Orders"><FiShoppingCart className="w-3 h-3 text-slate-400" /> {row.orders_count || 0}</span>
                         {row.rating > 0 && <span className="flex items-center gap-0.5 text-amber-500" title="Rating"><FiStar className="w-3 h-3" /> {row.rating.toFixed(1)}</span>}
                       </div>
@@ -257,6 +257,12 @@ export default function ListingTable({
                     <span className="text-[9px] text-slate-500 font-bold uppercase block">{row.category}</span>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="font-black text-xs text-emerald-700">₹{(row.sellingPrice || row.price || 0).toLocaleString('en-IN')}</span>
+                      {Boolean(row.actualPrice && Number(row.actualPrice) > Number(row.sellingPrice || row.price || 0)) ? (
+                        <span className="text-[9px] text-slate-400 line-through">₹{Number(row.actualPrice).toLocaleString('en-IN')}</span>
+                      ) : null}
+                      {Boolean(row.discount && Number(row.discount) > 0) ? (
+                        <span className="text-[9px] text-[#d99a3d] font-black">{row.discount}% off</span>
+                      ) : null}
                       <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
                         row.type === 'service' ? 'bg-[#f8f4ec] text-[#241b15] border border-[#e3dccb]' : 'bg-[#241b15] text-[#d99a3d]'
                       }`}>{row.type}</span>
@@ -268,7 +274,7 @@ export default function ListingTable({
                 {/* Stats Row */}
                 <div className="flex items-center gap-4 text-[9px] text-slate-500 font-bold px-7">
                   <span className="flex items-center gap-0.5"><FiEye className="w-3 h-3 text-slate-400" /> {row.views || 0}</span>
-                  <span className="flex items-center gap-0.5"><FiHeart className="w-3 h-3 text-slate-400" /> {row.likes || 0}</span>
+                  <span className="flex items-center gap-0.5"><FiHeart className="w-3 h-3 text-slate-400" /> {row.likes ?? row.likes_count ?? 0}</span>
                   <span className="flex items-center gap-0.5"><FiShoppingCart className="w-3 h-3 text-slate-400" /> {row.orders_count || 0}</span>
                   {row.type === 'product' && renderStockBadge(row)}
                 </div>

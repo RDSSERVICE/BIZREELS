@@ -21,7 +21,11 @@ const toggle = async (userId, listingId, type) => {
 
   if (existing) {
     await Interaction.deleteOne({ _id: existing._id });
-    await Listing.updateOne({ _id: listingId }, { $inc: { [field]: -1 } });
+    if (type === 'like') {
+      await Listing.updateOne({ _id: listingId }, { $inc: { likes: -1, likes_count: -1 } });
+    } else {
+      await Listing.updateOne({ _id: listingId }, { $inc: { [field]: -1 } });
+    }
     active = false;
   } else {
     await Interaction.create({
@@ -29,12 +33,17 @@ const toggle = async (userId, listingId, type) => {
       listing_id: listingId,
       type,
     });
-    await Listing.updateOne({ _id: listingId }, { $inc: { [field]: 1 } });
+    if (type === 'like') {
+      await Listing.updateOne({ _id: listingId }, { $inc: { likes: 1, likes_count: 1 } });
+    } else {
+      await Listing.updateOne({ _id: listingId }, { $inc: { [field]: 1 } });
+    }
     active = true;
   }
 
   const updated = await Listing.findById(listingId);
-  return { active, count: updated[field] || 0, type };
+  const count = type === 'like' ? (updated.likes ?? updated.likes_count ?? 0) : (updated[field] || 0);
+  return { active, count, type };
 };
 
 const myListingsByType = async (userId, type, limit = 50) => {

@@ -28,8 +28,8 @@ export default function ListingDetailDrawer({
   const image = listing.images?.[0];
   const sellingPrice = listing.sellingPrice || listing.price || 0;
   const views = listing.views || 0;
-  const likes = listing.likes || 0;
-  const saves = listing.saves_count || 0;
+  const likes = listing.likes ?? listing.likes_count ?? 0;
+  const saves = listing.saves_count ?? listing.saves ?? 0;
   const shares = listing.shares || 0;
   const orders = listing.orders_count || 0;
   const revenue = listing.revenue || 0;

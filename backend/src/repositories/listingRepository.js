@@ -369,6 +369,10 @@ class ListingRepository {
         gst: 1,
         tags: 1,
         views: { $ifNull: ['$views', 0] },
+        likes: { $ifNull: ['$likes', '$likes_count', 0] },
+        likes_count: { $ifNull: ['$likes_count', '$likes', 0] },
+        saves_count: { $ifNull: ['$saves_count', 0] },
+        orders_count: { $ifNull: ['$orders_count', 0] },
         vendor: {
           _id: '$vendorDetails._id',
           name: '$vendorDetails.name',

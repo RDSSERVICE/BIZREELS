@@ -275,6 +275,14 @@ class ListingController {
       count: updatedListing ? (updatedListing.saves_count || 0) : 0
     });
   });
+
+  // ── Toggle Like Listing ──────────────────────────────────
+  toggleLike = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const interactionService = require('../services/interaction.service');
+    const result = await interactionService.toggle(req.user._id.toString(), id, 'like');
+    return ApiResponse.ok(res, result.active ? 'Listing liked.' : 'Listing unliked.', result);
+  });
 }
 
 module.exports = new ListingController();
