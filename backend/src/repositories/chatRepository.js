@@ -29,7 +29,7 @@ class ChatRepository {
   }
 
   async findConversationById(id) {
-    return Conversation.findById(id).populate('participants', 'name avatarUrl activeRole');
+    return Conversation.findById(id).select('participants unreadCount').lean();
   }
 
   /**
@@ -131,22 +131,26 @@ class ChatRepository {
    * Fetch chat history messages.
    */
   async getMessages(conversationId, userId, { page = 1, limit = 30 }) {
-    const skip = (page - 1) * limit;
-    const messages = await Message.find({
-      conversation: conversationId,
-      deletedFor: { $ne: userId }
-    })
-      .setOptions({ includeSoftDeleted: true })
-      .populate('sender', 'name avatarUrl activeRole')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit, 10))
-      .lean();
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 30));
+    const skip = (Math.max(1, parseInt(page, 10) || 1) - 1) * limitNum;
 
-    const total = await Message.countDocuments({
-      conversation: conversationId,
-      deletedFor: { $ne: userId }
-    });
+    const [messages, total] = await Promise.all([
+      Message.find({
+        conversation: conversationId,
+        deletedFor: { $ne: userId },
+      })
+        .setOptions({ includeSoftDeleted: true })
+        .select('conversation sender text media isSeen isDeleted createdAt')
+        .populate('sender', 'name avatarUrl activeRole')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Message.countDocuments({
+        conversation: conversationId,
+        deletedFor: { $ne: userId },
+      }),
+    ]);
 
     return { messages: messages.reverse(), total };
   }
@@ -155,27 +159,19 @@ class ChatRepository {
    * Mark all unread messages as seen in a conversation for a reader.
    */
   async markMessagesAsSeen(conversationId, userId) {
-    const session = await mongoose.startSession();
-    try {
-      await session.withTransaction(async () => {
-        // Mark reader's incoming messages as seen
-        await Message.updateMany(
-          { conversation: conversationId, sender: { $ne: userId }, isSeen: false },
-          { $set: { isSeen: true } }
-        ).session(session);
-
-        // Reset unread count for reader
-        const path = `unreadCount.${userId}`;
-        await Conversation.findByIdAndUpdate(
-          conversationId,
-          { $set: { [path]: 0 } }
-        ).session(session);
-      });
-
-      return true;
-    } finally {
-      await session.endSession();
-    }
+    const uid = userId.toString();
+    const path = `unreadCount.${uid}`;
+    await Promise.all([
+      Message.updateMany(
+        { conversation: conversationId, sender: { $ne: uid }, isSeen: false },
+        { $set: { isSeen: true } }
+      ),
+      Conversation.findByIdAndUpdate(
+        conversationId,
+        { $set: { [path]: 0 } }
+      ),
+    ]).catch(() => {});
+    return true;
   }
 
   async clearChatMessages(conversationId) {

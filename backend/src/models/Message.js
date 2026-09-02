@@ -55,7 +55,9 @@ const messageSchema = new Schema(
 );
 
 // Indexes
-messageSchema.index({ conversation: 1, createdAt: 1 });
+messageSchema.index({ conversation: 1, createdAt: -1 });
+messageSchema.index({ conversation: 1, deletedFor: 1, createdAt: -1 });
+messageSchema.index({ conversation: 1, isSeen: 1, sender: 1 });
 
 // Query middleware to exclude soft deleted entries
 messageSchema.pre(/^find/, function () {

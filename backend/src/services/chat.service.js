@@ -15,27 +15,36 @@ class ChatService {
   }
 
   async getMessages(conversationId, userId, { page = 1, limit = 30 }) {
+    const uid = userId.toString();
     const conversation = await chatRepository.findConversationById(conversationId);
     if (!conversation) {
       throw ApiError.notFound('Conversation thread not found.');
     }
 
-    const isParticipant = conversation.participants.some(
-      (p) => (p._id || p).toString() === userId.toString()
+    const isParticipant = (conversation.participants || []).some(
+      (p) => (p._id || p).toString() === uid
     );
     if (!isParticipant) {
       throw ApiError.forbidden('You are not a participant in this conversation.');
     }
 
-    const result = await chatRepository.getMessages(conversationId, userId, { page, limit });
-    await chatRepository.markMessagesAsSeen(conversationId, userId);
+    const result = await chatRepository.getMessages(conversationId, uid, { page, limit });
 
-    const recipient = conversation.participants.find(p => (p._id || p).toString() !== userId.toString());
-    if (recipient) {
-      emitToConversation(conversationId, 'messages_seen', {
-        conversationId,
-        seenBy: userId,
-      });
+    // Mark seen in background only if reader actually has unread messages
+    const rawUnread = conversation.unreadCount instanceof Map
+      ? conversation.unreadCount.get(uid)
+      : conversation.unreadCount?.[uid];
+    const unread = Number(rawUnread || 0);
+
+    if (unread > 0) {
+      chatRepository.markMessagesAsSeen(conversationId, uid).catch(() => {});
+      const recipient = (conversation.participants || []).find(p => (p._id || p).toString() !== uid);
+      if (recipient) {
+        emitToConversation(conversationId, 'messages_seen', {
+          conversationId,
+          seenBy: uid,
+        });
+      }
     }
 
     return result;
