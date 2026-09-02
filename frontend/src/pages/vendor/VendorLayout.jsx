@@ -183,7 +183,7 @@ export default function VendorLayout() {
   const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
   const vendorProfile = profileUser.vendorProfile || {};
   const roles = profileUser.roles || ['customer'];
-  const currentRole = profileUser.activeRole || profileUser.current_role || 'vendor';
+  const currentRole = 'vendor';
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
@@ -208,10 +208,10 @@ export default function VendorLayout() {
   }, [isRoleDropdownOpen]);
 
   useEffect(() => {
-    if (roles.includes('vendor') && currentRole !== 'vendor') {
+    if (user && user.activeRole !== 'vendor') {
       dispatch(setActiveRole('vendor'));
     }
-  }, [roles, currentRole, dispatch]);
+  }, [user, dispatch]);
 
   const [isShopClosed, setIsShopClosed] = useState(vendorProfile.isClosed || false);
 
@@ -221,7 +221,10 @@ export default function VendorLayout() {
 
   const handleRoleSwitch = async (targetRole) => {
     setIsRoleDropdownOpen(false);
-    if (targetRole === currentRole) return;
+    if (targetRole === 'vendor') {
+      navigate('/vendor/dashboard');
+      return;
+    }
 
     const userRoles = profileUser.roles || roles || ['vendor'];
     const hasTargetRole = userRoles.includes(targetRole);
@@ -485,6 +488,7 @@ export default function VendorLayout() {
                         <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">{bi('Join', 'जुड़ें')}</span>
                       )}
                     </div>
+                    <FiCheck className="text-emerald-600 w-4 h-4" />
                   </button>
 
                   <button

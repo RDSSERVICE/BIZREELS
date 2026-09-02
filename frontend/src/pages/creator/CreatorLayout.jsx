@@ -154,13 +154,19 @@ export default function CreatorLayout() {
   const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
   const creatorProfile = profileUser.creatorProfile || {};
   const roles = profileUser.roles || ['customer'];
-  const currentRole = profileUser.activeRole || profileUser.current_role || 'creator';
+  const currentRole = 'creator';
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   const roleDropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (user && user.activeRole !== 'creator') {
+      dispatch(setActiveRole('creator'));
+    }
+  }, [user, dispatch]);
 
   const NAV_SECTIONS = [
     {
@@ -199,7 +205,10 @@ export default function CreatorLayout() {
 
   const handleRoleSwitch = async (targetRole) => {
     setIsRoleDropdownOpen(false);
-    if (targetRole === currentRole) return;
+    if (targetRole === 'creator') {
+      navigate('/creator/dashboard');
+      return;
+    }
 
     const userRoles = profileUser.roles || roles || ['creator'];
     const hasTargetRole = userRoles.includes(targetRole);
@@ -390,6 +399,7 @@ export default function CreatorLayout() {
                         <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">{bi('Join', 'जुड़ें')}</span>
                       )}
                     </div>
+                    <FiCheck className="text-emerald-600 w-4 h-4" />
                   </button>
                 </div>
               )}

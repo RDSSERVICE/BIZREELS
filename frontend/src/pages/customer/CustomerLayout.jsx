@@ -16,6 +16,154 @@ import NotificationBellDropdown from '../../components/notifications/Notificatio
 import { useLanguage } from '../../context/LanguageContext';
 import CartDrawer, { openCartDrawer, subscribeCartCount, getCartItemCount } from '../../components/app/CartDrawer';
 
+function CustomerSidebarContent({
+  onItemClick,
+  NAV_SECTIONS,
+  collapsedSections,
+  toggleSection,
+  pathname,
+  handleRoleSwitch,
+  handleLogout,
+  profileUser,
+}) {
+  return (
+    <div className="flex flex-col h-full bg-white font-sans border-r border-[#e3dccb]">
+      {/* Brand Header */}
+      <div className="px-4 py-4 border-b border-[#e3dccb] flex items-center justify-between">
+        <Link to="/customer/home" className="flex items-center gap-2.5 group">
+          <img src="/logo.png" alt="BizReels Logo" className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" />
+          <div>
+            <span className="text-sm font-black text-[#1a1a1a] block leading-tight font-heading">
+              Biz<span className="gradient-text font-black">Reels</span>
+            </span>
+            <span className="text-[9px] font-extrabold text-[#d99a3d] uppercase tracking-widest block">Customer Portal</span>
+          </div>
+        </Link>
+      </div>
+
+      {/* Nav Sections */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+        {NAV_SECTIONS.map((section) => {
+          const isCollapsed = collapsedSections[section.title];
+
+          return (
+            <div key={section.title}>
+              <button
+                type="button"
+                onClick={() => toggleSection(section.title)}
+                className="w-full flex items-center justify-between px-2 py-1.5 text-[9.5px] font-extrabold text-slate-400 uppercase tracking-widest hover:text-[#1a1a1a] transition-all cursor-pointer border-none bg-transparent"
+              >
+                <span>{section.title}</span>
+                {isCollapsed ? (
+                  <FiChevronRight className="w-3 h-3" />
+                ) : (
+                  <FiChevronDown className="w-3 h-3" />
+                )}
+              </button>
+
+              <AnimatePresence initial={false}>
+                {!isCollapsed && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="overflow-hidden space-y-1 mt-1"
+                  >
+                    {section.items.map((item) => {
+                      const isActive = item.path && pathname.startsWith(item.path);
+                      const Icon = item.icon;
+
+                      const handleClick = () => {
+                        onItemClick?.();
+                        if (item.path.startsWith('/vendor/')) {
+                          handleRoleSwitch('vendor');
+                        } else if (item.path.startsWith('/creator/')) {
+                          handleRoleSwitch('creator');
+                        }
+                      };
+
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={handleClick}
+                          className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-bold transition-all duration-150 ${
+                            isActive
+                              ? 'bg-[#241b15] text-[#d99a3d] border border-[#241b15] shadow-xs'
+                              : 'text-slate-700 hover:bg-[#f8f4ec] hover:text-[#1a1a1a]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            {/* Framed Icon Box */}
+                            <div className={`w-6 h-6 rounded flex items-center justify-center border ${
+                              isActive
+                                ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#d99a3d]'
+                                : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb]'
+                            }`}>
+                              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                            </div>
+                            <span className="truncate">{item.label}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {item.highlight && (
+                              <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] font-black px-1.5 py-0.2 rounded uppercase">
+                                NEW
+                              </span>
+                            )}
+                            {item.badge > 0 && (
+                              <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full min-w-[18px] text-center ${
+                                isActive
+                                  ? 'bg-[#d99a3d] text-[#1a1a1a]'
+                                  : 'bg-[#241b15] text-[#d99a3d]'
+                              }`}>
+                                {item.badge > 99 ? '99+' : item.badge}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* User Info + Logout */}
+      <div className="border-t border-[#e3dccb] px-4 py-3 bg-[#f8f4ec]">
+        <div className="flex items-center gap-2.5 mb-3">
+          {profileUser.profile_pic ? (
+            <img
+              src={profileUser.profile_pic}
+              alt={profileUser.name || 'User'}
+              className="w-8 h-8 rounded-full object-cover border-2 border-[#d99a3d] bg-white"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full border-2 border-[#d99a3d] bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-bold text-xs">
+              {profileUser.name ? profileUser.name.charAt(0).toUpperCase() : <FiUser />}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-extrabold text-[#1a1a1a] truncate">{profileUser?.name || 'Customer'}</p>
+            <p className="text-[10px] text-slate-500 truncate">{profileUser?.email || profileUser?.phone || 'customer'}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition border border-rose-200 cursor-pointer"
+        >
+          <FiLogOut className="w-3.5 h-3.5" /> Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /**
  * CustomerLayout — Warm Editorial Bento-Brutalism layout for Customer Portal
  */
@@ -33,15 +181,21 @@ export default function CustomerLayout() {
 
   const profileUser = profileData?.data?.user || profileData?.user || user || {};
   const roles = profileUser.roles || ['customer'];
-  const currentRole = profileUser.activeRole || profileUser.current_role || 'customer';
+  const currentRole = 'customer';
 
   const roleDropdownRef = useRef(null);
 
   useEffect(() => {
-    if (roles.includes('admin') || currentRole === 'admin') {
+    if (roles.includes('admin') && location.pathname.startsWith('/admin')) {
       navigate('/admin/dashboard', { replace: true });
     }
-  }, [roles, currentRole, navigate]);
+  }, [roles, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (user && user.activeRole !== 'customer') {
+      dispatch(setActiveRole('customer'));
+    }
+  }, [user, dispatch]);
 
   useEffect(() => {
     if (
@@ -196,7 +350,10 @@ export default function CustomerLayout() {
 
   const handleRoleSwitch = async (targetRole) => {
     setIsRoleDropdownOpen(false);
-    if (targetRole === currentRole) return;
+    if (targetRole === 'customer') {
+      navigate('/customer/home');
+      return;
+    }
 
     const userRoles = profileUser.roles || roles || ['customer'];
     const hasTargetRole = userRoles.includes(targetRole);
@@ -288,146 +445,20 @@ export default function CustomerLayout() {
     },
   ];
 
-  const SidebarContent = ({ onItemClick }) => (
-    <div className="flex flex-col h-full bg-white font-sans border-r border-[#e3dccb]">
-      {/* Brand Header */}
-      <div className="px-4 py-4 border-b border-[#e3dccb] flex items-center justify-between">
-        <Link to="/customer/home" className="flex items-center gap-2.5 group">
-          <img src="/logo.png" alt="BizReels Logo" className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" />
-          <div>
-            <span className="text-sm font-black text-[#1a1a1a] block leading-tight font-heading">
-              Biz<span className="gradient-text font-black">Reels</span>
-            </span>
-            <span className="text-[9px] font-extrabold text-[#d99a3d] uppercase tracking-widest block">Customer Portal</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Nav Sections */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-        {NAV_SECTIONS.map((section) => {
-          const isCollapsed = collapsedSections[section.title];
-
-          return (
-            <div key={section.title}>
-              <button
-                onClick={() => toggleSection(section.title)}
-                className="w-full flex items-center justify-between px-2 py-1.5 text-[9.5px] font-extrabold text-slate-400 uppercase tracking-widest hover:text-[#1a1a1a] transition-all cursor-pointer border-none bg-transparent"
-              >
-                {section.title}
-                {isCollapsed ? (
-                  <FiChevronRight className="w-3 h-3" />
-                ) : (
-                  <FiChevronDown className="w-3 h-3" />
-                )}
-              </button>
-
-              <AnimatePresence initial={false}>
-                {!isCollapsed && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="overflow-hidden space-y-1 mt-1"
-                  >
-                    {section.items.map((item) => {
-                      const isActive = item.path && location.pathname.startsWith(item.path);
-                      const Icon = item.icon;
-
-                      const handleClick = (e) => {
-                        onItemClick?.();
-                        if (item.path.startsWith('/vendor/')) {
-                          handleRoleSwitch('vendor');
-                        } else if (item.path.startsWith('/creator/')) {
-                          handleRoleSwitch('creator');
-                        }
-                      };
-
-                      return (
-                        <Link
-                          key={item.path}
-                          to={item.path}
-                          onClick={handleClick}
-                          className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-bold transition-all duration-150 ${
-                            isActive
-                              ? 'bg-[#241b15] text-[#d99a3d] border border-[#241b15] shadow-xs'
-                              : 'text-slate-700 hover:bg-[#f8f4ec] hover:text-[#1a1a1a]'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            {/* Framed Icon Box */}
-                            <div className={`w-6 h-6 rounded flex items-center justify-center border ${
-                              isActive
-                                ? 'bg-[#d99a3d] text-[#1a1a1a] border-[#d99a3d]'
-                                : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb]'
-                            }`}>
-                              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                            </div>
-                            <span className="truncate">{item.label}</span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5">
-                            {item.highlight && (
-                              <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] font-black px-1.5 py-0.2 rounded uppercase">
-                                NEW
-                              </span>
-                            )}
-                            {item.badge > 0 && (
-                              <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full min-w-[18px] text-center ${
-                                isActive
-                                  ? 'bg-[#d99a3d] text-[#1a1a1a]'
-                                  : 'bg-[#241b15] text-[#d99a3d]'
-                              }`}>
-                                {item.badge > 99 ? '99+' : item.badge}
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* User Info + Logout */}
-      <div className="border-t border-[#e3dccb] px-4 py-3 bg-[#f8f4ec]">
-        <div className="flex items-center gap-2.5 mb-3">
-          {profileUser.profile_pic ? (
-            <img
-              src={profileUser.profile_pic}
-              alt={profileUser.name || 'User'}
-              className="w-8 h-8 rounded-full object-cover border-2 border-[#d99a3d] bg-white"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full border-2 border-[#d99a3d] bg-[#241b15] text-[#d99a3d] flex items-center justify-center font-bold text-xs">
-              {profileUser.name ? profileUser.name.charAt(0).toUpperCase() : <FiUser />}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-extrabold text-[#1a1a1a] truncate">{profileUser?.name || 'Customer'}</p>
-            <p className="text-[10px] text-slate-500 truncate">{profileUser?.email || profileUser?.phone || 'customer'}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition border border-rose-200 cursor-pointer"
-        >
-          <FiLogOut className="w-3.5 h-3.5" /> Sign Out
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="h-screen max-h-screen bg-[#f2ede4] flex font-sans w-full max-w-full overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-white border-r border-[#e3dccb] fixed top-0 bottom-0 left-0 z-30">
-        <SidebarContent onItemClick={() => { }} />
+        <CustomerSidebarContent
+          onItemClick={() => { }}
+          NAV_SECTIONS={NAV_SECTIONS}
+          collapsedSections={collapsedSections}
+          toggleSection={toggleSection}
+          pathname={location.pathname}
+          handleRoleSwitch={handleRoleSwitch}
+          handleLogout={handleLogout}
+          profileUser={profileUser}
+        />
       </aside>
 
       {/* Mobile Sidebar */}
@@ -442,7 +473,16 @@ export default function CustomerLayout() {
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed top-0 bottom-0 left-0 w-[280px] z-50 bg-white border-r border-[#e3dccb] shadow-2xl lg:hidden"
             >
-              <SidebarContent onItemClick={() => setIsSidebarOpen(false)} />
+              <CustomerSidebarContent
+                onItemClick={() => setIsSidebarOpen(false)}
+                NAV_SECTIONS={NAV_SECTIONS}
+                collapsedSections={collapsedSections}
+                toggleSection={toggleSection}
+                pathname={location.pathname}
+                handleRoleSwitch={handleRoleSwitch}
+                handleLogout={handleLogout}
+                profileUser={profileUser}
+              />
             </motion.aside>
           </>
         )}
@@ -525,6 +565,7 @@ export default function CustomerLayout() {
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
                     <span>Customer</span>
+                    <FiCheck className="text-emerald-600 w-4 h-4" />
                   </button>
 
                   <button
