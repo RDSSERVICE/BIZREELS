@@ -594,7 +594,7 @@ export default function VendorSettingsPage() {
 
               {devOtpHint && (
                 <p className="text-[10px] text-emerald-700 font-bold text-center">
-                  💡 Dev Code Hint: {devOtpHint} (or 123456)
+                  💡 Dev Code Hint: {devOtpHint}
                 </p>
               )}
             </div>

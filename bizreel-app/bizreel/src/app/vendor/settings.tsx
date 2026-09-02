@@ -262,8 +262,8 @@ export default function VendorSettingsScreen() {
       );
       Alert.alert('Security OTP Sent! 🔒', `6-digit verification code sent to registered mobile (${targetPhone}). Please enter code to confirm profile changes.`);
     } catch (err) {
-      console.warn('Fallback OTP simulation:', err);
-      Alert.alert('Security OTP Sent! 🔒', 'Demo verification code sent via SMS. (Use 123456 to confirm)');
+      console.warn('Failed to send OTP:', err);
+      Alert.alert('Error', 'Failed to send OTP verification code. Please try again.');
     } finally {
       setSendingOtp(false);
     }

@@ -155,9 +155,8 @@ const verifyContact = catchAsync(async (req, res) => {
     }).sort({ createdAt: -1 });
 
     const isMatch = otpRecord && (otpRecord.otp === String(code).trim());
-    const isDevBypass = process.env.NODE_ENV === 'development' && (code === '1234' || code === '123456');
 
-    if (!isMatch && !isDevBypass) {
+    if (!isMatch) {
       throw ApiError.badRequest('Invalid or expired email verification code');
     }
 
@@ -179,9 +178,8 @@ const verifyContact = catchAsync(async (req, res) => {
 
       const submittedCode = String(code || '').trim();
       const isMatch = otpRecord && (otpRecord.otp === submittedCode);
-      const isDefaultBypass = submittedCode === '000000' || submittedCode === '1234' || submittedCode === '123456';
 
-      if (!isMatch && !isDefaultBypass) {
+      if (!isMatch) {
         throw ApiError.badRequest(`Invalid or expired ${type} verification code`);
       }
 

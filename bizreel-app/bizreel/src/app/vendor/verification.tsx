@@ -97,8 +97,8 @@ export default function VendorVerificationCenterScreen() {
       );
       Alert.alert('OTP Sent!', `6-digit verification code sent via ${channel.toUpperCase()}.`);
     } catch (err: any) {
-      console.warn('Fallback OTP simulation:', err);
-      Alert.alert('OTP Sent!', `Demo verification code sent via ${channel.toUpperCase()}. (Use 123456)`);
+      console.warn('Failed to send OTP:', err);
+      Alert.alert('Error', `Failed to send verification code via ${channel.toUpperCase()}. Please try again.`);
     } finally {
       setSendingOtp(false);
     }

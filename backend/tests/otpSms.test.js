@@ -87,8 +87,7 @@ describe('Production OTP & Dual-Channel (SMS & WhatsApp) Test Suite', () => {
 
     beforeEach(async () => {
       await redisOtpService.deleteOtp(testPhone, 'login');
-      const store = require('../src/config/redis').getStore();
-      await store.del(`otp:cooldown:+91${testPhone}:login`);
+      await redisOtpService.deleteCooldown(testPhone, 'login');
     });
 
     it('should send SMS OTP successfully and record in store', async () => {
@@ -172,8 +171,7 @@ describe('Production OTP & Dual-Channel (SMS & WhatsApp) Test Suite', () => {
 
     beforeEach(async () => {
       await redisOtpService.deleteOtp(testPhone, 'login');
-      const store = require('../src/config/redis').getStore();
-      await store.del(`otp:cooldown:+91${testPhone}:login`);
+      await redisOtpService.deleteCooldown(testPhone, 'login');
     });
 
     it('should send WhatsApp OTP and verify correctly', async () => {
@@ -214,9 +212,8 @@ describe('Production OTP & Dual-Channel (SMS & WhatsApp) Test Suite', () => {
     beforeEach(async () => {
       await redisOtpService.deleteOtp(testPhone, 'register');
       await redisOtpService.deleteOtp(testPhone, 'login');
-      const store = require('../src/config/redis').getStore();
-      await store.del(`otp:cooldown:+91${testPhone}:register`);
-      await store.del(`otp:cooldown:+91${testPhone}:login`);
+      await redisOtpService.deleteCooldown(testPhone, 'register');
+      await redisOtpService.deleteCooldown(testPhone, 'login');
     });
 
     it('should not allow an OTP generated for registration to verify a login purpose', async () => {

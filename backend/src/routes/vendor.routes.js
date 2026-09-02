@@ -170,9 +170,8 @@ router.post('/me/settings', requireAuth, catchAsync(async (req, res) => {
 
   const submittedOtp = String(otp || '').trim();
   const isMatch = otpRecord && (otpRecord.otp === submittedOtp);
-  const isDefaultBypass = submittedOtp === '000000' || submittedOtp === '1234' || submittedOtp === '123456';
 
-  if (!isMatch && !isDefaultBypass) {
+  if (!isMatch) {
     throw ApiError.badRequest('Invalid or expired Mobile OTP. Please verify and try again.');
   }
 

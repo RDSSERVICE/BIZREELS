@@ -393,8 +393,7 @@ export default function ForgotPasswordScreen() {
         onClose={() => setOtpModalVisible(false)}
         onSuccess={(data) => {
           setOtpModalVisible(false);
-          const code = data?.otp || '123456';
-          setVerifiedOtpCode(code);
+          setVerifiedOtpCode(data?.otp || '');
           setStep(2);
         }}
       />

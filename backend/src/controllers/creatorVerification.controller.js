@@ -201,9 +201,8 @@ const verifyContact = catchAsync(async (req, res) => {
 
   const submittedCode = String(code || '').trim();
   const isMatch = otpRecord && otpRecord.otp === submittedCode;
-  const isDefaultBypass = submittedCode === '000000' || submittedCode === '1234' || submittedCode === '123456';
 
-  if (!isMatch && !isDefaultBypass) {
+  if (!isMatch) {
     throw ApiError.badRequest(`Invalid or expired ${isEmail ? 'email' : 'phone'} verification code`);
   }
 

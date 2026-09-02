@@ -98,24 +98,6 @@ class RedisOtpService {
     const key = getOtpKey(phone, purpose);
     const otpData = await this.getOtpData(phone, purpose);
 
-    const cleanInputOtp = String(inputOtp || '').trim();
-
-    // Default / Fallback OTP check: 000000 is always accepted
-    if (cleanInputOtp === '000000') {
-      logger.warn(`[OTP DEFAULT USED] 🔓 Default OTP '000000' accepted for ${phone} (${purpose})`, { service: 'otp' });
-      if (otpData) {
-        await store.del(key).catch(() => {});
-        const cooldownKey = getCooldownKey(phone, purpose);
-        await store.del(cooldownKey).catch(() => {});
-      }
-      return {
-        success: true,
-        channel: otpData?.channel || 'sms',
-        purpose: otpData?.purpose || purpose,
-        verifiedAt: new Date(),
-      };
-    }
-
     if (!otpData) {
       throw ApiError.badRequest('OTP expired or not found. Please request a new OTP.');
     }
@@ -176,6 +158,15 @@ class RedisOtpService {
     const store = getStore();
     const key = getOtpKey(phone, purpose);
     await store.del(key);
+  }
+
+  /**
+   * Remove active cooldown from Redis
+   */
+  async deleteCooldown(phone, purpose = 'login') {
+    const store = getStore();
+    const cooldownKey = getCooldownKey(phone, purpose);
+    await store.del(cooldownKey).catch(() => {});
   }
 }
 
