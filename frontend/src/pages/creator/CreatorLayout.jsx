@@ -16,143 +16,18 @@ import NotificationBellDropdown from '../../components/notifications/Notificatio
 import { useLanguage } from '../../context/LanguageContext';
 import SEO from '../../components/common/SEO';
 
-/**
- * CreatorLayout — Warm Editorial Bento Sidebar Layout for Creator Studio
- */
-export default function CreatorLayout() {
-  const { lang, toggleLang, bi, t } = useLanguage();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const dispatch = useDispatch();
-  const user = useSelector(selectCurrentUser);
-  const { data: profileRes } = useGetMeQuery(undefined, {
-    pollingInterval: 300000,
-    skip: !user && !tokenStore.getUser(),
-  });
-  const [switchRoleApi] = useSwitchRoleMutation();
-  const [logoutApi] = useLogoutMutation();
-
-  const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
-  const creatorProfile = profileUser.creatorProfile || {};
-  const roles = profileUser.roles || ['customer'];
-  const currentRole = profileUser.activeRole || profileUser.current_role || 'creator';
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState({});
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
-
-  const roleDropdownRef = useRef(null);
-
-  const NAV_SECTIONS = [
-    {
-      title: bi('Overview', 'अवलोकन'),
-      items: [
-        { name: bi('Dashboard', 'डैशबोर्ड'), path: '/creator/dashboard', icon: FiGrid },
-        { name: bi('Settings', 'सेटिंग्स'), path: '/creator/settings', icon: FiSettings },
-      ],
-    },
-    {
-      title: bi('Profile & Work', 'प्रोफ़ाइल और कार्य'),
-      items: [
-        { name: bi('Profile', 'प्रोफ़ाइल'), path: '/creator/profile', icon: FiUser },
-        { name: bi('Onboarding Details', 'ऑनबोर्डिंग विवरण'), path: '/creator/onboarding-details', icon: FiFileText },
-        { name: bi('Verification Center', 'सत्यापन केंद्र'), path: '/creator/verification', icon: FiShield },
-        { name: bi('Portfolio', 'पोर्टफोलियो'), path: '/creator/portfolio', icon: FiFilm },
-        { name: bi('Pricing Rates', 'मूल्य निर्धारण दरें'), path: '/creator/pricing', icon: TbCurrencyRupee },
-        { name: bi('Availability', 'उपलब्धता'), path: '/creator/availability', icon: FiClock },
-      ],
-    },
-    {
-      title: bi('Projects & Earnings', 'परियोजनाएं और कमाई'),
-      items: [
-        { name: bi('My Orders', 'मेरे ऑर्डर'), path: '/creator/orders', icon: FiBriefcase },
-        { name: bi('Chats', 'चैट इनबॉक्स'), path: '/creator/chat', icon: FiMessageSquare },
-        { name: bi('Reviews', 'समीक्षाएं'), path: '/creator/reviews', icon: FiStar },
-        { name: bi('Analytics', 'एनालिटिक्स'), path: '/creator/analytics', icon: FiBarChart2 },
-      ],
-    },
-    {
-      title: bi('Finance & Account', 'वित्त और खाता'),
-      items: [
-        { name: bi('Subscription', 'सब्सक्रिप्शन'), path: '/creator/subscription', icon: FiCreditCard },
-        { name: bi('Wallet & Earnings', 'वॉलेट और कमाई'), path: '/creator/wallet', icon: TbCurrencyRupee },
-      ],
-    },
-  ];
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target)) {
-        setIsRoleDropdownOpen(false);
-      }
-    };
-    if (isRoleDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [isRoleDropdownOpen]);
-
-  const toggleSection = (title) => {
-    setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));
-  };
-
-  const handleRoleSwitch = async (targetRole) => {
-    setIsRoleDropdownOpen(false);
-    if (targetRole === currentRole) return;
-
-    const userRoles = profileUser.roles || roles || ['creator'];
-    const hasTargetRole = userRoles.includes(targetRole);
-
-    if (!hasTargetRole) {
-      if (targetRole === 'vendor') navigate('/vendor/onboarding');
-      else if (targetRole === 'creator') navigate('/creator/onboarding');
-      return;
-    }
-
-    try {
-      const res = await switchRoleApi({ role: targetRole }).unwrap();
-      const updatedUser = res.user || res.data?.user || res.data || profileUser;
-      dispatch(setCredentials({ user: updatedUser }));
-      dispatch(setActiveRole(targetRole));
-      toast.success(`Switched active role to ${targetRole.toUpperCase()}`);
-
-      const isVendorIncomplete = targetRole === 'vendor' && (!updatedUser?.vendorProfile?.shopName && !updatedUser?.vendorProfile?.businessName);
-      const isCreatorIncomplete = targetRole === 'creator' && (!updatedUser?.creatorProfile?.displayName && !updatedUser?.creatorProfile?.name);
-
-      if (targetRole === 'vendor') {
-        navigate(isVendorIncomplete ? '/vendor/onboarding' : '/vendor/dashboard');
-      } else if (targetRole === 'creator') {
-        navigate(isCreatorIncomplete ? '/creator/onboarding' : '/creator/dashboard');
-      } else if (targetRole === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/customer/home');
-      }
-    } catch (err) {
-      dispatch(setActiveRole(targetRole));
-      if (targetRole === 'vendor') navigate('/vendor/dashboard');
-      else if (targetRole === 'creator') navigate('/creator/dashboard');
-      else navigate('/customer/home');
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logoutApi().unwrap();
-      dispatch(logout());
-      toast.success('Logged out successfully');
-      navigate('/auth/login');
-    } catch {
-      dispatch(logout());
-      navigate('/auth/login');
-    }
-  };
-
-  const SidebarContent = ({ onItemClick }) => (
+function CreatorSidebarContent({
+  onItemClick,
+  NAV_SECTIONS,
+  collapsedSections,
+  toggleSection,
+  pathname,
+  handleLogout,
+  profileUser,
+  creatorProfile,
+  bi,
+}) {
+  return (
     <div className="flex flex-col h-full font-sans bg-[#f8f4ec] border-r border-[#e3dccb]">
       {/* Brand Header */}
       <div className="px-4 py-4 bg-white border-b border-[#e3dccb] flex items-center justify-between">
@@ -197,7 +72,7 @@ export default function CreatorLayout() {
                     className="overflow-hidden space-y-0.5"
                   >
                     {section.items.map((item) => {
-                      const isActive = location.pathname === item.path;
+                      const isActive = pathname === item.path;
                       const Icon = item.icon;
                       return (
                         <Link
@@ -258,6 +133,122 @@ export default function CreatorLayout() {
       </div>
     </div>
   );
+}
+
+/**
+ * CreatorLayout — Warm Editorial Bento Sidebar Layout for Creator Studio
+ */
+export default function CreatorLayout() {
+  const { lang, toggleLang, bi, t } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
+  const user = useSelector(selectCurrentUser);
+  const { data: profileRes } = useGetMeQuery(undefined, {
+    pollingInterval: 300000,
+    skip: !user && !tokenStore.getUser(),
+  });
+  const [switchRoleApi] = useSwitchRoleMutation();
+  const [logoutApi] = useLogoutMutation();
+
+  const profileUser = profileRes?.data?.user || profileRes?.user || user || {};
+  const creatorProfile = profileUser.creatorProfile || {};
+  const roles = profileUser.roles || ['customer'];
+  const currentRole = profileUser.activeRole || profileUser.current_role || 'creator';
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState({});
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+
+  const roleDropdownRef = useRef(null);
+
+  const NAV_SECTIONS = [
+    {
+      title: bi('Overview', 'अवलोकन'),
+      items: [
+        { name: bi('Dashboard', 'डैशबोर्ड'), path: '/creator/dashboard', icon: FiGrid },
+        { name: bi('Settings', 'सेटिंग्स'), path: '/creator/settings', icon: FiSettings },
+      ],
+    },
+    {
+      title: bi('Profile & Work', 'प्रोफ़ाइल और कार्य'),
+      items: [
+        { name: bi('Profile', 'प्रोफ़ाइल'), path: '/creator/profile', icon: FiUser },
+        { name: bi('Onboarding Details', 'ऑनबोर्डिंग विवरण'), path: '/creator/onboarding-details', icon: FiFileText },
+        { name: bi('Verification Center', 'सत्यापन केंद्र'), path: '/creator/verification', icon: FiShield },
+        { name: bi('Portfolio', 'पोर्टफोलियो'), path: '/creator/portfolio', icon: FiFilm },
+        { name: bi('Pricing Rates', 'मूल्य निर्धारण दरें'), path: '/creator/pricing', icon: TbCurrencyRupee },
+        { name: bi('Availability', 'उपलब्धता'), path: '/creator/availability', icon: FiClock },
+      ],
+    },
+    {
+      title: bi('Projects & Earnings', 'परियोजनाएं और कमाई'),
+      items: [
+        { name: bi('My Orders', 'मेरे ऑर्डर'), path: '/creator/orders', icon: FiBriefcase },
+        { name: bi('Chats', 'चैट इनबॉक्स'), path: '/creator/chat', icon: FiMessageSquare },
+        { name: bi('Reviews', 'समीक्षाएं'), path: '/creator/reviews', icon: FiStar },
+        { name: bi('Analytics', 'एनालिटिक्स'), path: '/creator/analytics', icon: FiBarChart2 },
+        { name: bi('Wallet', 'वॉलेट'), path: '/creator/wallet', icon: FiCreditCard },
+      ],
+    },
+  ];
+
+  const toggleSection = (title) => {
+    setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  const handleRoleSwitch = async (targetRole) => {
+    setIsRoleDropdownOpen(false);
+    if (targetRole === currentRole) return;
+
+    const userRoles = profileUser.roles || roles || ['creator'];
+    const hasTargetRole = userRoles.includes(targetRole);
+
+    if (!hasTargetRole) {
+      if (targetRole === 'vendor') navigate('/vendor/onboarding');
+      else if (targetRole === 'creator') navigate('/creator/onboarding');
+      return;
+    }
+
+    try {
+      const res = await switchRoleApi({ role: targetRole }).unwrap();
+      const updatedUser = res.user || res.data?.user || res.data || profileUser;
+      dispatch(setCredentials({ user: updatedUser }));
+      dispatch(setActiveRole(targetRole));
+      toast.success(`Switched active role to ${targetRole.toUpperCase()}`);
+
+      const isVendorIncomplete = targetRole === 'vendor' && (!updatedUser?.vendorProfile?.shopName && !updatedUser?.vendorProfile?.businessName);
+      const isCreatorIncomplete = targetRole === 'creator' && (!updatedUser?.creatorProfile?.displayName && !updatedUser?.creatorProfile?.name);
+
+      if (targetRole === 'vendor') {
+        navigate(isVendorIncomplete ? '/vendor/onboarding' : '/vendor/dashboard');
+      } else if (targetRole === 'creator') {
+        navigate(isCreatorIncomplete ? '/creator/onboarding' : '/creator/dashboard');
+      } else if (targetRole === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/customer/home');
+      }
+    } catch (err) {
+      // Fallback navigation
+      dispatch(setActiveRole(targetRole));
+      if (targetRole === 'vendor') navigate('/vendor/dashboard');
+      else if (targetRole === 'creator') navigate('/creator/dashboard');
+      else navigate('/customer/home');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutApi().unwrap();
+      dispatch(logout());
+      toast.success('Logged out successfully');
+      navigate('/auth/login');
+    } catch {
+      dispatch(logout());
+      navigate('/auth/login');
+    }
+  };
 
   const currentTier = creatorProfile.verificationStatus || 'unverified';
   const isSubscribed = !!profileUser.is_subscribed_verified;
@@ -278,11 +269,21 @@ export default function CreatorLayout() {
   const badgeInfo = getTierBadge();
 
   return (
-    <div className="min-h-screen bg-surface-secondary flex font-sans">
+    <div className="min-h-screen bg-surface-secondary flex font-sans w-full max-w-full overflow-x-hidden relative">
       <SEO title="Creator Studio" robots="noindex, nofollow" />
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-surface border-r border-border fixed top-0 bottom-0 left-0 z-30">
-        <SidebarContent onItemClick={() => {}} />
+        <CreatorSidebarContent
+          onItemClick={() => {}}
+          NAV_SECTIONS={NAV_SECTIONS}
+          collapsedSections={collapsedSections}
+          toggleSection={toggleSection}
+          pathname={location.pathname}
+          handleLogout={handleLogout}
+          profileUser={profileUser}
+          creatorProfile={creatorProfile}
+          bi={bi}
+        />
       </aside>
 
       {/* Mobile Sidebar */}
@@ -297,14 +298,24 @@ export default function CreatorLayout() {
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed top-0 bottom-0 left-0 w-[280px] z-50 bg-surface border-r border-border shadow-modal lg:hidden"
             >
-              <SidebarContent onItemClick={() => setIsSidebarOpen(false)} />
+              <CreatorSidebarContent
+                onItemClick={() => setIsSidebarOpen(false)}
+                NAV_SECTIONS={NAV_SECTIONS}
+                collapsedSections={collapsedSections}
+                toggleSection={toggleSection}
+                pathname={location.pathname}
+                handleLogout={handleLogout}
+                profileUser={profileUser}
+                creatorProfile={creatorProfile}
+                bi={bi}
+              />
             </motion.aside>
           </>
         )}
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen min-w-0 w-full max-w-full overflow-x-hidden">
         {/* Top Bar */}
         <header className="sticky top-0 z-40 bg-white border-b border-[#e3dccb] shadow-2xs px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3 relative font-sans">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">

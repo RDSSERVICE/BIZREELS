@@ -98,73 +98,17 @@ const NAV_SECTIONS = [
   },
 ];
 
-/**
- * AdminLayout — Dedicated admin layout with full sidebar navigation
- */
-const AdminLayout = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const dispatch = useDispatch();
-  const user = useSelector(selectCurrentUser);
-  const [logoutApi] = useLogoutMutation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState({});
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  // Fetch overview stats for live notification badges
-  const { data: ov } = useGetAdminOverviewQuery(undefined, { pollingInterval: 30000 });
-
-  const toggleSection = (title) => {
-    setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));
-  };
-
-  // Listen for custom open-admin-search event from keyboard shortcut
-  useEffect(() => {
-    const handleOpenSearch = () => setIsSearchOpen(true);
-    document.addEventListener('open-admin-search', handleOpenSearch);
-    return () => document.removeEventListener('open-admin-search', handleOpenSearch);
-  }, []);
-
-  // Realtime Socket event listener for admin tag invalidations
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const handleAdminUpdate = ({ tags }) => {
-      console.log('Realtime Admin Update event received. Invalidating tags:', tags);
-      if (Array.isArray(tags)) {
-        dispatch(adminApi.util.invalidateTags(tags));
-      }
-    };
-
-    socket.on('admin:update', handleAdminUpdate);
-
-    return () => {
-      socket.off('admin:update', handleAdminUpdate);
-    };
-  }, [dispatch]);
-
-  const handleLogout = async () => {
-    try {
-      await logoutApi().unwrap();
-      disconnectSocket();
-      dispatch(logout());
-      toast.success('Logged out successfully');
-      navigate('/auth/login');
-    } catch {
-      disconnectSocket();
-      dispatch(logout());
-      navigate('/auth/login');
-    }
-  };
-
-  const getBadgeCount = (itemPath) => {
-    if (itemPath === '/admin/kyc' && ov?.pending_kyc_count > 0) return ov.pending_kyc_count;
-    if ((itemPath === '/admin/reports' || itemPath === '/admin/moderation') && ov?.open_reports_count > 0) return ov.open_reports_count;
-    return null;
-  };
-
-  const SidebarContent = ({ onItemClick }) => (
+function AdminSidebarContent({
+  onItemClick,
+  NAV_SECTIONS,
+  collapsedSections,
+  toggleSection,
+  pathname,
+  getBadgeCount,
+  handleLogout,
+  user,
+}) {
+  return (
     <div className="flex flex-col h-full font-sans bg-[#f8f4ec] border-r border-[#e3dccb]">
       {/* Brand Header */}
       <div className="px-4 py-4 bg-white border-b border-[#e3dccb] flex items-center justify-between">
@@ -209,7 +153,7 @@ const AdminLayout = () => {
                     className="overflow-hidden space-y-0.5"
                   >
                     {section.items.map((item) => {
-                      const isActive = location.pathname === item.path;
+                      const isActive = pathname === item.path;
                       const Icon = item.icon;
                       const badgeCount = getBadgeCount(item.path);
 
@@ -284,16 +228,85 @@ const AdminLayout = () => {
       </div>
     </div>
   );
+}
+
+/**
+ * AdminLayout — Dedicated admin layout with full sidebar navigation
+ */
+const AdminLayout = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
+  const user = useSelector(selectCurrentUser);
+  const [logoutApi] = useLogoutMutation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState({});
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Fetch overview stats for live notification badges
+  const { data: ov } = useGetAdminOverviewQuery(undefined, { pollingInterval: 30000 });
+
+  const toggleSection = (title) => {
+    setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  // Real-time Dashboard/Admin invalidation listener
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleAdminUpdate = ({ tags }) => {
+      console.log('Realtime Admin Update event received. Invalidating tags:', tags);
+      if (Array.isArray(tags)) {
+        dispatch(adminApi.util.invalidateTags(tags));
+      }
+    };
+
+    socket.on('admin:update', handleAdminUpdate);
+
+    return () => {
+      socket.off('admin:update', handleAdminUpdate);
+    };
+  }, [dispatch]);
+
+  const handleLogout = async () => {
+    try {
+      await logoutApi().unwrap();
+      disconnectSocket();
+      dispatch(logout());
+      toast.success('Logged out successfully');
+      navigate('/auth/login');
+    } catch {
+      disconnectSocket();
+      dispatch(logout());
+      navigate('/auth/login');
+    }
+  };
+
+  const getBadgeCount = (itemPath) => {
+    if (itemPath === '/admin/kyc' && ov?.pending_kyc_count > 0) return ov.pending_kyc_count;
+    if ((itemPath === '/admin/reports' || itemPath === '/admin/moderation') && ov?.open_reports_count > 0) return ov.open_reports_count;
+    return null;
+  };
 
   return (
-    <div className="min-h-screen bg-surface-secondary flex">
+    <div className="min-h-screen bg-surface-secondary flex w-full max-w-full overflow-x-hidden relative">
       <SEO title="Admin Portal" robots="noindex, nofollow" />
       {/* Quick Search Command Palette Modal */}
       <AdminQuickSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-surface border-r border-border fixed top-0 bottom-0 left-0 z-30">
-        <SidebarContent onItemClick={() => {}} />
+        <AdminSidebarContent
+          onItemClick={() => {}}
+          NAV_SECTIONS={NAV_SECTIONS}
+          collapsedSections={collapsedSections}
+          toggleSection={toggleSection}
+          pathname={location.pathname}
+          getBadgeCount={getBadgeCount}
+          handleLogout={handleLogout}
+          user={user}
+        />
       </aside>
 
       {/* Mobile Sidebar */}
@@ -308,14 +321,23 @@ const AdminLayout = () => {
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed top-0 bottom-0 left-0 w-[280px] z-50 bg-surface border-r border-border shadow-modal lg:hidden"
             >
-              <SidebarContent onItemClick={() => setIsSidebarOpen(false)} />
+              <AdminSidebarContent
+                onItemClick={() => setIsSidebarOpen(false)}
+                NAV_SECTIONS={NAV_SECTIONS}
+                collapsedSections={collapsedSections}
+                toggleSection={toggleSection}
+                pathname={location.pathname}
+                getBadgeCount={getBadgeCount}
+                handleLogout={handleLogout}
+                user={user}
+              />
             </motion.aside>
           </>
         )}
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen min-w-0 w-full max-w-full overflow-x-hidden">
         {/* Top Bar */}
         <header className="sticky top-0 z-20 glass border-b border-border px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">

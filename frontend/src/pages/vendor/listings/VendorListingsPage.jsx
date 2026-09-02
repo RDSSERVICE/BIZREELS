@@ -506,7 +506,7 @@ export default function VendorListingsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto pb-24 font-sans">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto pb-24 font-sans w-full min-w-0">
       {/* Header & Sub Banner */}
       <ListingHeader
         registeredCat={registeredCat}
