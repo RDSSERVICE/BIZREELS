@@ -1,5 +1,8 @@
 import React from 'react';
-import { FiCheckCircle, FiCalendar, FiCreditCard, FiZap, FiShield, FiStar } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { FiCheckCircle, FiCalendar, FiCreditCard, FiZap, FiShield, FiStar, FiArrowUpRight } from 'react-icons/fi';
+import { TbCurrencyRupee } from 'react-icons/tb';
+import { useLanguage } from '../../../context/LanguageContext';
 
 /**
  * ActiveSubscriptionCard — Displays current active subscription details and benefits
@@ -11,80 +14,99 @@ export default function ActiveSubscriptionCard({
   walletBalance,
   activeSubscription,
 }) {
+  const { bi } = useLanguage();
   const isPaidPlan = currentPlan && !currentPlan.toLowerCase().includes('free');
   const selectedAddons = activeSubscription?.selected_addons || [];
+  const walletLink = roleParam === 'creator' ? '/creator/wallet' : '/vendor/wallet';
 
   return (
-    <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#241b15] via-[#2f231b] to-[#1a1410] text-white border border-[#e3dccb]/20 shadow-xl space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
+    <div className="rounded-2xl bg-gradient-to-r from-[#1c1510] via-[#241b15] to-[#2d221b] text-white border border-[#3e3025] shadow-xl p-6 sm:p-7 relative overflow-hidden">
+      {/* Subtle Background Glow Accent */}
+      <div className="absolute top-0 right-0 w-72 h-72 bg-[#d99a3d]/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        {/* Left: Active Membership Info */}
+        <div className="space-y-3 max-w-xl">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-[10.5px] font-black uppercase tracking-wider text-[#d99a3d]">
-              Active Membership
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {bi('Active Membership', 'सक्रिय सदस्यता')}
             </span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
-            <span>{currentPlan}</span>
+
             {isPaidPlan && (
-              <span className="p-1 rounded-full bg-[#d99a3d] text-[#1a1a1a]" title="Verified Membership">
-                <FiStar size={14} />
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#d99a3d]/20 text-[#d99a3d] border border-[#d99a3d]/30 text-[10px] font-black uppercase tracking-wider">
+                <FiStar size={11} />
+                {bi('Verified Merchant', 'सत्यापित विक्रेता')}
               </span>
             )}
-          </h2>
-          <p className="text-xs text-slate-300">
-            {roleParam === 'creator' ? 'Creator Creator Pro Tier' : 'Verified Business Merchant Tier'}
-          </p>
+          </div>
+
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5 font-heading">
+              <span>{currentPlan || (roleParam === 'creator' ? 'Free Creator' : 'Free Member')}</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 font-medium mt-1">
+              {roleParam === 'creator'
+                ? bi('Creator Studio Standard Tier · Public Portfolio & Reels Listing Active', 'क्रिएटर स्टूडियो मानक श्रेणी · सार्वजनिक पोर्टफोलियो और रील्स सक्रिय')
+                : bi('Verified Merchant Tier · Catalog Listings & Direct Buyer Enquiries Active', 'सत्यापित मर्चेंट श्रेणी · कैटलॉग लिस्टिंग्स और प्रत्यक्ष खरीदार पूछताछ सक्रिय')}
+            </p>
+          </div>
+
+          {/* Expiry Pill */}
+          {planExpires && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 text-xs font-semibold">
+              <FiCalendar className="text-[#d99a3d]" size={13} />
+              <span>{bi('Renews / Expires on:', 'नवीनीकरण / समाप्ति:')}</span>
+              <strong className="text-white font-mono font-bold">
+                {new Date(planExpires).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </strong>
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {planExpires && (
-            <div className="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 flex items-center gap-2">
-              <FiCalendar className="text-[#d99a3d]" size={15} />
-              <div className="text-left">
-                <span className="text-[9.5px] uppercase font-bold text-slate-400 block">Renews / Expires</span>
-                <span className="text-xs font-black text-white font-mono">
-                  {new Date(planExpires).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </span>
+        {/* Right: Wallet Balance & Quick Recharge Widget */}
+        <div className="flex flex-col sm:flex-row lg:flex-col sm:items-center lg:items-end gap-3 shrink-0">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 w-full sm:w-auto min-w-[240px] flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                {roleParam === 'creator' ? bi('Creator Wallet Balance', 'क्रिएटर वॉलेट शेष') : bi('Vendor Wallet Balance', 'विक्रेता वॉलेट शेष')}
+              </span>
+              <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono flex items-center">
+                <TbCurrencyRupee size={22} className="-mr-1 text-emerald-400" />
+                <span>{Number(walletBalance || 0).toLocaleString('en-IN')}</span>
               </div>
             </div>
-          )}
 
-          {roleParam !== 'customer' && roleParam !== 'user' && (
-            <div className="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 flex items-center gap-2">
-              <FiCreditCard className="text-emerald-400" size={15} />
-              <div className="text-left">
-                <span className="text-[9.5px] uppercase font-bold text-slate-400 block">
-                  {roleParam === 'creator' ? 'Creator Wallet' : 'Vendor Wallet'}
-                </span>
-                <span className="text-xs font-black text-emerald-400 font-mono">
-                  ₹{Number(walletBalance || 0).toLocaleString('en-IN')}
-                </span>
-              </div>
-            </div>
-          )}
+            <Link
+              to={walletLink}
+              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-[#d99a3d] hover:bg-[#c4882e] text-[#1a1a1a] text-xs font-black transition shadow-sm shrink-0"
+            >
+              <span>{bi('Recharge', 'रिचार्ज')}</span>
+              <FiArrowUpRight size={13} />
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* Active Add-Ons Chips */}
+      {/* Active Add-Ons Chips (if any) */}
       {selectedAddons.length > 0 && (
-        <div className="pt-3 border-t border-white/10 space-y-1.5">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[#d99a3d] block">
-            Active Subscription Add-Ons ({selectedAddons.length}):
+        <div className="mt-5 pt-4 border-t border-white/10 space-y-2">
+          <span className="text-[10.5px] font-black uppercase tracking-wider text-[#d99a3d] block">
+            {bi('Active Subscription Add-Ons', 'सक्रिय ऐड-ऑन सुविधाएं')} ({selectedAddons.length}):
           </span>
           <div className="flex flex-wrap gap-2">
             {selectedAddons.map((addon, idx) => (
               <span
                 key={addon.id || idx}
-                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-500/30 flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 text-xs font-bold border border-emerald-500/30 flex items-center gap-1.5"
               >
-                <FiZap size={11} className="text-[#d99a3d]" />
+                <FiZap size={12} className="text-[#d99a3d]" />
                 <span>{addon.title}</span>
-                <span className="text-white/70 font-mono text-[9.5px]">(+₹{addon.price_inr})</span>
+                <span className="text-white/70 font-mono text-[10px]">(+₹{addon.price_inr})</span>
               </span>
             ))}
           </div>

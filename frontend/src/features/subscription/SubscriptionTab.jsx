@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { FiLayers, FiShield } from 'react-icons/fi';
+import { FiLayers, FiShield, FiTrendingUp, FiZap, FiCheck, FiHeadphones, FiVideo } from 'react-icons/fi';
 import { useGetSubscriptionPlansQuery, useChangeSubscriptionMutation, usePurchaseSubscriptionRazorpayMutation } from '../vendor/vendorApi';
 import { useGetCreatorWalletQuery, useGetVendorWalletQuery } from '../wallet/walletApi';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { getSocket } from '../../lib/socket';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Modular Components
 import ActiveSubscriptionCard from './components/ActiveSubscriptionCard';
@@ -27,6 +28,7 @@ const loadRazorpayScript = () => {
  * SubscriptionTab — Modular orchestrator for Vendor and Creator subscription management
  */
 export default function SubscriptionTab({ user, refetchUser, role }) {
+  const { bi } = useLanguage();
   const { refreshMe } = useAuth();
   const currentRole = role || user?.current_role || (typeof window !== 'undefined' && window.location.pathname.startsWith('/creator') ? 'creator' : 'vendor');
   const roleParam = currentRole === 'creator' ? 'creator' : 'vendor';
@@ -208,8 +210,8 @@ export default function SubscriptionTab({ user, refetchUser, role }) {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in text-xs">
-      {/* Active Subscription Overview Card */}
+    <div className="space-y-8 animate-fade-in text-xs font-sans">
+      {/* 1. Active Subscription Overview Card */}
       <ActiveSubscriptionCard
         currentPlan={currentPlan}
         planExpires={planExpires}
@@ -218,36 +220,50 @@ export default function SubscriptionTab({ user, refetchUser, role }) {
         activeSubscription={activeSubscription}
       />
 
-      {/* Available Plans Section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
+      {/* 2. Available Plans Section */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
-            <h3 className="text-base sm:text-lg font-black text-[#1a1a1a] tracking-tight">
-              Choose Your Membership Tier
+            <h3 className="text-lg sm:text-xl font-black text-[#1a1a1a] tracking-tight font-heading">
+              {bi('Choose Your Growth Tier', 'अपनी विकास श्रेणी चुनें (Choose Your Growth Tier)')}
             </h3>
             <p className="text-xs text-slate-500 font-medium">
-              Select a base tier and customize with flexible Add-Ons anytime
+              {bi(
+                'Select a base membership tier and customize with flexible Add-Ons anytime.',
+                'अपनी आवश्यकतानुसार बेस प्लान चुनें और लचीले ऐड-ऑन जोड़ें।'
+              )}
             </p>
           </div>
-          <span className="text-[11px] font-bold text-slate-500">
-            {activePlans.length} plans available
+          <span className="text-[11px] font-bold text-slate-500 bg-white border border-[#e3dccb] px-3 py-1 rounded-full shadow-2xs self-start sm:self-auto">
+            {activePlans.length} {bi('plans available', 'प्लान उपलब्ध')}
           </span>
         </div>
 
         {loadingPlans && activePlans.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-72 rounded-2xl bg-slate-100 animate-pulse border border-[#e3dccb]" />
+              <div key={i} className="h-80 rounded-2xl bg-white/70 animate-pulse border border-[#e3dccb]" />
             ))}
           </div>
         ) : activePlans.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-2xl border border-[#e3dccb] space-y-2">
-            <FiLayers size={28} className="mx-auto text-slate-300" />
-            <p className="text-slate-500 font-bold text-xs">No active subscription tiers published yet.</p>
-            <p className="text-slate-400 text-[11px]">Please check back shortly.</p>
+          <div className="p-8 sm:p-10 text-center bg-white rounded-2xl border border-[#e3dccb] space-y-4 shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-[#faf7f2] border border-[#e3dccb] flex items-center justify-center mx-auto text-[#d99a3d]">
+              <FiLayers size={26} />
+            </div>
+            <div className="space-y-1 max-w-md mx-auto">
+              <h4 className="text-sm sm:text-base font-black text-[#1a1a1a]">
+                {bi('Custom Tiers Coming Soon', 'कस्टम प्लान्स जल्द ही उपलब्ध होंगे')}
+              </h4>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                {bi(
+                  'Our flexible tiered plans with AI content booster, direct phone inquiries, and verified badges are launching shortly.',
+                  'AI कंटेंट बूस्टर, सीधी कॉल पूछताछ और सत्यापित बैज वाले हमारे फ्लेक्सिबल प्लान्स जल्द प्रकाशित किए जा रहे हैं।'
+                )}
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
             {activePlans.map((plan) => {
               const isCurrent = Boolean(
                 currentPlan &&
@@ -268,6 +284,59 @@ export default function SubscriptionTab({ user, refetchUser, role }) {
         )}
       </div>
 
+      {/* 3. Value-Add Bento Highlights Row */}
+      <div className="pt-2">
+        <h4 className="text-sm font-black text-[#1a1a1a] uppercase tracking-wider mb-4 font-heading">
+          {bi('Why Upgrade Your Plan?', 'प्लान अपग्रेड क्यों करें? (Key Benefits)')}
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-5 rounded-2xl bg-white border border-[#e3dccb] shadow-2xs space-y-2 hover:border-[#d99a3d] transition">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-[#d99a3d] border border-amber-500/20 flex items-center justify-center font-bold">
+              <FiShield size={18} />
+            </div>
+            <h5 className="text-xs font-black text-[#1a1a1a] tracking-tight">
+              {bi('5x Buyer Trust with Verified Badge', 'सत्यापित बैज के साथ 5 गुना अधिक ग्राहक विश्वास')}
+            </h5>
+            <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+              {bi(
+                'Subscribers get an official gold verification checkmark on all listings and storefront profiles.',
+                'सभी लिस्टिंग्स और प्रोफाइल पर आधिकारिक गोल्ड वेरिफिकेशन बैज मिलता है।'
+              )}
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white border border-[#e3dccb] shadow-2xs space-y-2 hover:border-[#d99a3d] transition">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center justify-center font-bold">
+              <FiTrendingUp size={18} />
+            </div>
+            <h5 className="text-xs font-black text-[#1a1a1a] tracking-tight">
+              {bi('Zero-Commission Direct Inquiries', '0% कमीशन सीधी ग्राहक पूछताछ व कॉल्स')}
+            </h5>
+            <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+              {bi(
+                'Receive customer WhatsApp orders and direct telephone leads without any platform deduction.',
+                'बिना किसी प्लेटफॉर्म कटौती के ग्राहकों से सीधे व्हाट्सएप और फोन पर ऑर्डर प्राप्त करें।'
+              )}
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white border border-[#e3dccb] shadow-2xs space-y-2 hover:border-[#d99a3d] transition">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 border border-blue-500/20 flex items-center justify-center font-bold">
+              <FiVideo size={18} />
+            </div>
+            <h5 className="text-xs font-black text-[#1a1a1a] tracking-tight">
+              {bi('High-Impact Reel Boost & AI Ads', 'रील बूस्ट और AI विज्ञापन उपकरण')}
+            </h5>
+            <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+              {bi(
+                'Showcase your products to thousands of local customers through boosted reels and smart AI tags.',
+                'बूस्टेड रील्स और स्मार्ट AI टूल्स के जरिए अपने उत्पादों को हजारों स्थानीय ग्राहकों तक पहुँचाएं।'
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Subscription & Add-ons Checkout Modal */}
       <SubscriptionCheckoutModal
         isOpen={Boolean(selectedPlanForCheckout)}
@@ -277,6 +346,7 @@ export default function SubscriptionTab({ user, refetchUser, role }) {
         isSubscribing={isSubscribing}
         onPayRazorpay={handleRazorpayPurchase}
         onPayWallet={handleWalletPurchase}
+        roleParam={roleParam}
       />
     </div>
   );
