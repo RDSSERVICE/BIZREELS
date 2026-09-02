@@ -81,24 +81,24 @@ export function getRoleOnboarding(role) {
 export function isOnboardingComplete(user, role) {
   if (!user) return false;
   const userRoles = user.roles || [];
+  const vp = user.vendorProfile;
+  const cp = user.creatorProfile;
 
   switch (role) {
     case 'vendor': {
-      if (userRoles.includes('vendor')) {
+      if (userRoles.includes('vendor') || user.activeRole === 'vendor' || user.current_role === 'vendor') {
         return true;
       }
-      const vp = user.vendorProfile;
-      return !!(vp && (vp.shopName || vp.businessName || (vp.categories && vp.categories.length > 0)));
+      return !!(vp && (vp.shopName || vp.businessName || vp.businessType || (vp.categories && vp.categories.length > 0) || Object.keys(vp).length > 0));
     }
     case 'creator': {
-      if (userRoles.includes('creator')) {
+      if (userRoles.includes('creator') || user.activeRole === 'creator' || user.current_role === 'creator') {
         return true;
       }
-      const cp = user.creatorProfile;
-      return !!(cp && (cp.displayName || cp.name || cp.handle || (cp.categories && cp.categories.length > 0)));
+      return !!(cp && (cp.displayName || cp.name || cp.handle || (cp.categories && cp.categories.length > 0) || Object.keys(cp).length > 0));
     }
     case 'customer':
-      return true; // customers don't have a separate onboarding gate
+      return true;
     default:
       return true;
   }

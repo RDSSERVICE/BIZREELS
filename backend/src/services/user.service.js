@@ -34,7 +34,16 @@ const switchRole = async (userId, role) => {
   if (user.roles.includes('admin') && role !== 'admin') {
     throw ApiError.forbidden('Admin accounts cannot switch to non-admin roles');
   }
-  if (!user.roles.includes(role)) throw ApiError.badRequest(`You don't have the ${role} role`);
+  if (!user.roles.includes(role)) {
+    const hasVendorProfile = role === 'vendor' && user.vendorProfile && (user.vendorProfile.shopName || user.vendorProfile.businessName || user.vendorProfile.businessType || (user.vendorProfile.categories && user.vendorProfile.categories.length > 0));
+    const hasCreatorProfile = role === 'creator' && user.creatorProfile && (user.creatorProfile.displayName || user.creatorProfile.name || user.creatorProfile.handle || (user.creatorProfile.categories && user.creatorProfile.categories.length > 0));
+
+    if (hasVendorProfile || hasCreatorProfile) {
+      user.roles.push(role);
+    } else {
+      throw ApiError.badRequest(`You don't have the ${role} role`);
+    }
+  }
   user.current_role = role;
   user.activeRole = role;
   await user.save();
@@ -51,9 +60,12 @@ const updateProfile = async (userId, updates) => {
     'profile_pic', 'avatarUrl', 'city', 'location', 'customerProfile',
     'vendorProfile', 'creatorProfile'
   ];
+
   const clean = {};
-  for (const k of allowed) {
-    if (updates[k] !== undefined) clean[k] = updates[k];
+  for (const key of allowed) {
+    if (updates[key] !== undefined) {
+      clean[key] = updates[key];
+    }
   }
   if (clean.phone) {
     const digits = String(clean.phone).replace(/\D/g, '');
@@ -76,9 +88,23 @@ const updateProfile = async (userId, updates) => {
 
 const serialize = (user) => {
   if (!user) return null;
-  const obj = user.toObject ? user.toObject() : user;
+  const obj = user.toObject ? user.toObject() : { ...user };
   delete obj.password;
   delete obj.resetPasswordOtpHash;
+  delete obj.resetPasswordExpires;
+
+  if (!Array.isArray(obj.roles)) {
+    obj.roles = ['customer'];
+  }
+  const vp = obj.vendorProfile;
+  if (vp && (vp.shopName || vp.businessName || vp.businessType || (vp.categories && vp.categories.length > 0)) && !obj.roles.includes('vendor')) {
+    obj.roles.push('vendor');
+  }
+  const cp = obj.creatorProfile;
+  if (cp && (cp.displayName || cp.name || cp.handle || (cp.categories && cp.categories.length > 0)) && !obj.roles.includes('creator')) {
+    obj.roles.push('creator');
+  }
+
   return obj;
 };
 
