@@ -359,12 +359,12 @@ class ReelService {
   async viewReel(id, userId, watchDuration) {
     const viewerId = userId ? userId.toString() : 'anonymous';
 
-    // YouTube/Instagram style: view must watch for at least 3 seconds
+    // Reel view threshold: must be watched for at least 3 seconds to count
     const MIN_WATCH_TIME_SECONDS = 3;
     const isWatchTimeValid = (watchDuration || 0) >= MIN_WATCH_TIME_SECONDS;
 
-    // View cooldown/deduplication window: 15 minutes
-    const RECENT_VIEW_WINDOW_MS = 15 * 60 * 1000;
+    // View cooldown/deduplication window: 5 seconds
+    const RECENT_VIEW_WINDOW_MS = 5 * 1000;
 
     const ReelView = require('../models/ReelView');
     const existingView = await ReelView.findOne({ user_id: viewerId, reel_id: id });
