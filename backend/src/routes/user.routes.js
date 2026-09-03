@@ -132,7 +132,18 @@ router.get('/me/onboarding-checklist', requireAuth, catchAsync(async (req, res) 
 
 router.get('/me/saved', requireAuth, catchAsync(async (req, res) => {
   const Listing = require('../models/Listing');
-  const savedIds = req.user.customerProfile?.savedListings || [];
+  const Interaction = require('../models/Interaction');
+  const profileSavedIds = (req.user.customerProfile?.savedListings || []).map(id => id.toString());
+  
+  const interactionDocs = await Interaction.find({
+    $or: [
+      { user_id: req.user._id.toString(), type: 'save' },
+      { user_id: req.user._id, type: 'save' },
+    ],
+  }).select('listing_id item_id');
+
+  const interactionListingIds = interactionDocs.map(i => (i.listing_id || i.item_id)?.toString()).filter(Boolean);
+  const savedIds = Array.from(new Set([...profileSavedIds, ...interactionListingIds]));
 
   const { search, type, category, status, minPrice, maxPrice, sortBy, page = 1, limit = 10 } = req.query;
 

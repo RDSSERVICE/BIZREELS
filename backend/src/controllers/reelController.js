@@ -223,16 +223,24 @@ class ReelController {
   getSavedReels = asyncHandler(async (req, res) => {
     const Interaction = require('../models/Interaction');
     const Reel = require('../models/Reel');
+    const User = require('../models/User');
+
+    const userDoc = await User.findById(req.user._id).select('customerProfile.savedReels').lean();
+    const profileSavedIds = (userDoc?.customerProfile?.savedReels || []).map((id) => id.toString());
 
     const interactions = await Interaction.find({
-      user_id: req.user._id.toString(),
-      type: 'save_reel',
+      $or: [
+        { user_id: req.user._id.toString(), type: 'save_reel' },
+        { user_id: req.user._id, type: 'save_reel' },
+      ],
     }).select('reel_id');
 
-    const reelIds = interactions.map((i) => i.reel_id).filter(Boolean);
+    const interactionReelIds = interactions.map((i) => i.reel_id?.toString()).filter(Boolean);
+
+    const allSavedReelIds = Array.from(new Set([...profileSavedIds, ...interactionReelIds]));
 
     const reels = await Reel.find({
-      _id: { $in: reelIds },
+      _id: { $in: allSavedReelIds },
       is_deleted: { $ne: true },
       isDeleted: { $ne: true },
     })
