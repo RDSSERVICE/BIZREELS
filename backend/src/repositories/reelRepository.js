@@ -355,18 +355,41 @@ class ReelRepository {
     await Reel.findByIdAndUpdate(rId, { $inc: { commentsCount: 1 } });
 
     // Populate user info for immediate response update
-    return Comment.findById(created._id).populate('userId', 'name avatarUrl activeRole');
+    const doc = await Comment.findById(created._id).populate('userId', 'name avatarUrl activeRole businessName email').lean();
+    if (!doc) return null;
+    const userObj = typeof doc.userId === 'object' ? doc.userId : { _id: doc.userId, name: 'User' };
+    return {
+      ...doc,
+      user: userObj,
+      userId: userObj,
+      content: doc.content || content,
+      text: doc.content || content,
+      comment: doc.content || content,
+    };
   }
 
   async getComments(reelId, { page = 1, limit = 50 }) {
     const skip = (page - 1) * limit;
     const rId = new mongoose.Types.ObjectId(reelId);
-    const comments = await Comment.find({ reelId: rId, isDeleted: { $ne: true } })
-      .populate('userId', 'name avatarUrl activeRole')
+    const rawComments = await Comment.find({ reelId: rId, isDeleted: { $ne: true } })
+      .populate('userId', 'name avatarUrl activeRole businessName email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10))
       .lean();
+
+    const comments = rawComments.map((c) => {
+      const userObj = typeof c.userId === 'object' && c.userId ? c.userId : { _id: c.userId, name: 'User' };
+      const commentText = c.content || c.text || c.comment || '';
+      return {
+        ...c,
+        user: userObj,
+        userId: userObj,
+        content: commentText,
+        text: commentText,
+        comment: commentText,
+      };
+    });
 
     const total = await Comment.countDocuments({ reelId: rId, isDeleted: { $ne: true } });
     return { comments, total };
