@@ -570,6 +570,36 @@ class RequirementService {
     return quotes.filter(q => q.vendor._id.toString() === userId.toString());
   }
 
+  async deleteQuote(quoteId, userId) {
+    const Quote = require('../models/Quote');
+    const Requirement = require('../models/Requirement');
+
+    const quote = await Quote.findById(quoteId).populate('requirement');
+    if (!quote) {
+      throw ApiError.notFound('Proposal bid not found.');
+    }
+
+    const requirement = quote.requirement;
+    const isCustomerOwner =
+      requirement?.customer?.toString() === userId.toString() ||
+      requirement?.customer_id?.toString() === userId.toString();
+    const isVendorOwner = quote.vendor?.toString() === userId.toString();
+
+    if (!isCustomerOwner && !isVendorOwner) {
+      throw ApiError.forbidden('You are not authorized to delete this bid.');
+    }
+
+    await Quote.findByIdAndDelete(quoteId);
+
+    if (requirement?._id) {
+      await Requirement.findByIdAndUpdate(requirement._id, {
+        $inc: { proposals_count: -1, quotesCount: -1 },
+      }).catch(() => null);
+    }
+
+    return { success: true, message: 'Proposal bid deleted successfully.' };
+  }
+
   async updateQuoteStatus(quoteId, status, customerId, req) {
     if (!['accepted', 'rejected'].includes(status)) {
       throw ApiError.badRequest('Invalid status selection.');

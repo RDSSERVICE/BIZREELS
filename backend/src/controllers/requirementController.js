@@ -151,6 +151,13 @@ class RequirementController {
     const result = await requirementService.updateQuoteStatus(quoteId, status, req.user._id, req);
     return ApiResponse.ok(res, result.message || `Quote ${status} successfully.`, { quote: result.quote });
   });
+
+  // ── Delete Quote ──────────────────────────────────────────
+  deleteQuote = asyncHandler(async (req, res) => {
+    const { quoteId } = req.params;
+    const result = await requirementService.deleteQuote(quoteId, req.user._id);
+    return ApiResponse.ok(res, result.message || 'Bid deleted successfully.');
+  });
 }
 
 module.exports = new RequirementController();

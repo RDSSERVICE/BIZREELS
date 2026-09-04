@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -21,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
+import { resolveImageUrl } from '@/utils/image';
 
 type SubTab = 'create' | 'my-requirements' | 'quotes';
 
@@ -224,39 +226,67 @@ const DEFAULT_SERVICE_CATEGORIES: CategoryItem[] = [
 
 interface RequirementItem {
   _id: string;
+  id?: string;
   title: string;
   description?: string;
+  detailedSpecifications?: string;
   category?: string;
   subcategory?: string;
   type?: string;
   requirementType?: string;
   productCondition?: string;
+  customProductCondition?: string;
   serviceModel?: string;
+  customServiceModel?: string;
   budget?: number;
   budget_min?: number;
   budget_max?: number;
   quantity?: number;
   urgency?: string;
   status?: string;
+  approvalStatus?: string;
+  adminRejectionReason?: string;
   created_at?: string;
   createdAt?: string;
   quotesCount?: number;
   proposals_count?: number;
   views_count?: number;
+  totalVendorsMatched?: number;
+  totalVendorsNotified?: number;
+  address?: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  otherConditions?: string;
+  photos?: string[];
+  video?: string;
   location?: { city?: string; area?: string; pincode?: string; state?: string };
 }
 
 interface QuoteItem {
   _id: string;
-  requirement?: { _id: string; title: string };
-  vendor?: { _id: string; name: string; avatarUrl?: string; businessName?: string };
+  id?: string;
+  requirement?: { _id?: string; id?: string; title?: string };
+  vendor?: {
+    _id?: string;
+    id?: string;
+    name?: string;
+    avatarUrl?: string;
+    profile_pic?: string;
+    businessName?: string;
+    shopName?: string;
+    rating_avg?: number;
+    phone?: string;
+    vendorProfile?: { shopName?: string; businessName?: string; rating?: number };
+  };
   amount?: number;
   price?: number;
   message?: string;
   notes?: string;
   status?: string;
+  estimatedDelivery?: string;
   created_at?: string;
   createdAt?: string;
+  attachments?: any[];
 }
 
 const PRODUCT_CONDITIONS = [
@@ -392,6 +422,192 @@ export default function CustomerPostRequirementScreen() {
   const [vendorQuotes, setVendorQuotes] = useState<QuoteItem[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Requirement Detail Modal & Quote Management states
+  const [selectedReqForDetail, setSelectedReqForDetail] = useState<RequirementItem | null>(null);
+  const [selectedReqQuotes, setSelectedReqQuotes] = useState<QuoteItem[]>([]);
+  const [loadingReqQuotes, setLoadingReqQuotes] = useState<boolean>(false);
+  const [compareQuoteIds, setCompareQuoteIds] = useState<string[]>([]);
+  const [compareModalOpen, setCompareModalOpen] = useState<boolean>(false);
+
+  // Edit requirement modal state
+  const [editReqModalOpen, setEditReqModalOpen] = useState<boolean>(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editBudget, setEditBudget] = useState('');
+  const [editQty, setEditQty] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+
+  const fetchQuotesForRequirement = async (reqId: string) => {
+    setLoadingReqQuotes(true);
+    try {
+      const { data } = await api.get(`/requirements/${reqId}/quotes`);
+      const list = data?.data?.quotes || data?.quotes || (Array.isArray(data?.data) ? data.data : []);
+      setSelectedReqQuotes(list);
+    } catch (err) {
+      console.warn('Failed to load quotes for requirement', err);
+    } finally {
+      setLoadingReqQuotes(false);
+    }
+  };
+
+  const handleSelectRequirement = async (req: RequirementItem) => {
+    setSelectedReqForDetail(req);
+    const targetId = req._id || req.id;
+    if (targetId) {
+      fetchQuotesForRequirement(targetId);
+      api.get(`/requirements/${targetId}`).then(({ data }) => {
+        const item = data?.data?.requirement || data?.requirement || data?.data;
+        if (item) setSelectedReqForDetail(item);
+      }).catch(() => null);
+    }
+  };
+
+  const handleAcceptQuote = (quoteId: string) => {
+    Alert.alert('Accept Proposal', 'Are you sure you want to accept this vendor quotation?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Accept Bid',
+        onPress: async () => {
+          try {
+            await api.patch(`/requirements/quotes/${quoteId}`, { status: 'accepted' });
+            Alert.alert('Proposal Accepted', 'Vendor quotation accepted successfully!');
+            fetchMyRequirements();
+            fetchVendorQuotes();
+            if (selectedReqForDetail) {
+              const targetId = selectedReqForDetail._id || selectedReqForDetail.id;
+              if (targetId) fetchQuotesForRequirement(targetId);
+            }
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message || 'Failed to accept proposal.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleRejectQuote = (quoteId: string) => {
+    Alert.alert('Reject Proposal', 'Are you sure you want to reject this vendor proposal?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reject Bid',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.patch(`/requirements/quotes/${quoteId}`, { status: 'rejected' });
+            Alert.alert('Proposal Rejected', 'Vendor proposal rejected.');
+            fetchMyRequirements();
+            fetchVendorQuotes();
+            if (selectedReqForDetail) {
+              const targetId = selectedReqForDetail._id || selectedReqForDetail.id;
+              if (targetId) fetchQuotesForRequirement(targetId);
+            }
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message || 'Failed to reject proposal.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteQuote = (quoteId: string) => {
+    Alert.alert('Remove Proposal', 'Are you sure you want to delete this proposal bid?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/requirements/quotes/${quoteId}`);
+            Alert.alert('Bid Removed', 'Proposal deleted successfully.');
+            fetchMyRequirements();
+            fetchVendorQuotes();
+            if (selectedReqForDetail) {
+              const targetId = selectedReqForDetail._id || selectedReqForDetail.id;
+              if (targetId) fetchQuotesForRequirement(targetId);
+            }
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message || 'Failed to delete bid.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleCloseRequirement = (reqId: string) => {
+    Alert.alert('Close Brief', 'Are you sure you want to close this requirement? Vendors will no longer be able to submit proposals.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Close Brief',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.put(`/requirements/${reqId}`, { status: 'Closed' });
+            Alert.alert('Brief Closed', 'Requirement closed successfully.');
+            fetchMyRequirements();
+            if (selectedReqForDetail) {
+              setSelectedReqForDetail((prev) => (prev ? { ...prev, status: 'Closed' } : null));
+            }
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message || 'Failed to close requirement.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleRepostRequirement = (reqId: string) => {
+    Alert.alert('Repost Brief', 'Extend expiry by 30 days and re-alert local vendors?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Repost',
+        onPress: async () => {
+          try {
+            const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+            await api.put(`/requirements/${reqId}`, { status: 'Pending', expires_at: newExpiry });
+            Alert.alert('Requirement Reposted', 'Matching vendors have been alerted!');
+            fetchMyRequirements();
+            if (selectedReqForDetail) {
+              setSelectedReqForDetail((prev) => (prev ? { ...prev, status: 'Pending' } : null));
+            }
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message || 'Failed to repost requirement.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteRequirement = (reqId: string) => {
+    Alert.alert('Delete Post', 'Are you sure you want to delete this requirement post completely?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/requirements/${reqId}`);
+            Alert.alert('Deleted', 'Requirement post deleted.');
+            setSelectedReqForDetail(null);
+            fetchMyRequirements();
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message || 'Failed to delete requirement.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const toggleCompareQuote = (quoteId: string) => {
+    if (compareQuoteIds.includes(quoteId)) {
+      setCompareQuoteIds((prev) => prev.filter((id) => id !== quoteId));
+    } else {
+      if (compareQuoteIds.length >= 3) {
+        Alert.alert('Comparison Limit', 'You can compare at most 3 proposals at a time.');
+        return;
+      }
+      setCompareQuoteIds((prev) => [...prev, quoteId]);
+    }
+  };
 
   // Fetch categories on mount
   useEffect(() => {
@@ -1194,7 +1410,11 @@ export default function CustomerPostRequirementScreen() {
             ) : (
               <View style={{ gap: Spacing.three, paddingBottom: Spacing.seven }}>
                 {myRequirements.map((req) => (
-                  <View key={req._id} style={styles.reqCard}>
+                  <TouchableOpacity
+                    key={req._id || req.id}
+                    style={styles.reqCard}
+                    activeOpacity={0.85}
+                    onPress={() => handleSelectRequirement(req)}>
                     <View style={styles.reqCardHeader}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.reqTitle} numberOfLines={2}>
@@ -1205,8 +1425,21 @@ export default function CustomerPostRequirementScreen() {
                         </Text>
                       </View>
 
-                      <View style={styles.statusChip}>
-                        <Text style={styles.statusChipText}>{req.status || 'Active'}</Text>
+                      <View
+                        style={[
+                          styles.statusChip,
+                          req.status === 'Closed' && {
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderColor: BORDER,
+                          },
+                        ]}>
+                        <Text
+                          style={[
+                            styles.statusChipText,
+                            req.status === 'Closed' && { color: 'rgba(255,255,255,0.5)' },
+                          ]}>
+                          {req.status || 'Active'}
+                        </Text>
                       </View>
                     </View>
 
@@ -1232,13 +1465,32 @@ export default function CustomerPostRequirementScreen() {
                       )}
 
                       <View style={styles.reqDetailPill}>
-                        <Text style={styles.reqDetailLabel}>Quotes Received:</Text>
+                        <Text style={styles.reqDetailLabel}>Bids Received:</Text>
                         <Text style={[styles.reqDetailVal, { color: YELLOW }]}>
-                          {req.quotesCount || req.proposals_count || 0} Quotes
+                          {req.quotesCount || req.proposals_count || 0} Bids
                         </Text>
                       </View>
                     </View>
-                  </View>
+
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 6,
+                        paddingTop: 8,
+                        borderTopWidth: 1,
+                        borderTopColor: BORDER,
+                      }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Ionicons name="eye-outline" size={14} color={YELLOW} />
+                        <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '900' }}>
+                          View Bids & Full Details
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+                    </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
@@ -1262,17 +1514,60 @@ export default function CustomerPostRequirementScreen() {
             ) : (
               <View style={{ gap: Spacing.three, paddingBottom: Spacing.seven }}>
                 {vendorQuotes.map((q) => {
-                  const vendorName = q.vendor?.businessName || q.vendor?.name || 'Verified Vendor';
+                  const vendorObj = q.vendor || {};
+                  const vendorName = vendorObj.name || 'Vendor Partner';
+                  const shopName =
+                    vendorObj.shopName ||
+                    vendorObj.businessName ||
+                    vendorObj.vendorProfile?.shopName ||
+                    vendorObj.vendorProfile?.businessName ||
+                    'Verified Store';
+                  const ratingVal = vendorObj.rating_avg || vendorObj.vendorProfile?.rating || 4.5;
                   const quotePrice = q.amount || q.price || 0;
+                  const reqTitle = q.requirement?.title || 'Requirement Post';
+                  const isAccepted = q.status === 'accepted';
+                  const isRejected = q.status === 'rejected';
 
                   return (
-                    <View key={q._id} style={styles.reqCard}>
+                    <View key={q._id || q.id} style={styles.reqCard}>
                       <View style={styles.reqCardHeader}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.reqTitle}>{vendorName}</Text>
-                          <Text style={styles.reqMeta}>
-                            FOR: {q.requirement?.title || 'Requirement'}
-                          </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                          <View
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 19,
+                              backgroundColor: YELLOW,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              overflow: 'hidden',
+                            }}>
+                            {vendorObj.avatarUrl || vendorObj.profile_pic ? (
+                              <Image
+                                source={{ uri: resolveImageUrl(vendorObj.avatarUrl || vendorObj.profile_pic) || '' }}
+                                style={{ width: '100%', height: '100%' }}
+                                contentFit="cover"
+                              />
+                            ) : (
+                              <Text style={{ color: BLACK, fontWeight: '900', fontSize: 14 }}>
+                                {vendorName.charAt(0).toUpperCase()}
+                              </Text>
+                            )}
+                          </View>
+
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.reqTitle} numberOfLines={1}>
+                              {vendorName}
+                            </Text>
+                            <Text
+                              style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '600' }}
+                              numberOfLines={1}>
+                              {shopName} • ⭐ {Number(ratingVal).toFixed(1)}
+                            </Text>
+                            <Text style={styles.reqMeta} numberOfLines={1}>
+                              FOR: {reqTitle}
+                            </Text>
+                          </View>
                         </View>
 
                         <View style={styles.quotePriceChip}>
@@ -1281,20 +1576,75 @@ export default function CustomerPostRequirementScreen() {
                       </View>
 
                       {!!(q.message || q.notes) && (
-                        <Text style={styles.reqDesc}>{q.message || q.notes}</Text>
+                        <View style={{ backgroundColor: BLACK, padding: 8, marginTop: 4, borderWidth: 1, borderColor: BORDER }}>
+                          <Text style={styles.reqDesc}>{q.message || q.notes}</Text>
+                        </View>
                       )}
 
-                      <View style={styles.quoteActionRow}>
+                      {/* Status Indicator */}
+                      {isAccepted && (
+                        <View style={{ backgroundColor: 'rgba(16,185,129,0.15)', padding: 6, alignItems: 'center' }}>
+                          <Text style={{ color: '#10B981', fontSize: 10, fontWeight: '900' }}>✓ PROPOSAL ACCEPTED & SETTLED</Text>
+                        </View>
+                      )}
+                      {isRejected && (
+                        <View style={{ backgroundColor: 'rgba(239,68,68,0.15)', padding: 6, alignItems: 'center' }}>
+                          <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: '900' }}>✕ PROPOSAL REJECTED</Text>
+                        </View>
+                      )}
+
+                      {/* Action Row */}
+                      <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                        {!isAccepted && !isRejected && (
+                          <>
+                            <TouchableOpacity
+                              style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                              onPress={() => handleAcceptQuote(q._id || q.id || '')}>
+                              <Ionicons name="checkmark-circle" size={14} color="#fff" />
+                              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>Accept</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={{ backgroundColor: 'rgba(239,68,68,0.2)', borderWidth: 1, borderColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' }}
+                              onPress={() => handleRejectQuote(q._id || q.id || '')}>
+                              <Ionicons name="close" size={14} color="#EF4444" />
+                            </TouchableOpacity>
+                          </>
+                        )}
+
                         <TouchableOpacity
-                          style={styles.chatVendorBtn}
-                          onPress={() =>
-                            router.push({
-                              pathname: '/(tabs)/search',
-                              params: { vendorId: q.vendor?._id },
-                            } as any)
-                          }>
+                          style={{ backgroundColor: YELLOW, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                          onPress={() => {
+                            if (vendorObj._id || vendorObj.id) {
+                              router.push({
+                                pathname: '/messages/[id]' as any,
+                                params: {
+                                  id: `direct_${vendorObj._id || vendorObj.id}`,
+                                  recipientId: vendorObj._id || vendorObj.id,
+                                  name: shopName || vendorName,
+                                  avatar: vendorObj.avatarUrl || vendorObj.profile_pic || '',
+                                },
+                              } as any);
+                            }
+                          }}>
                           <Ionicons name="chatbubble-ellipses" size={14} color={BLACK} />
-                          <Text style={styles.chatVendorBtnText}>Chat with Vendor</Text>
+                          <Text style={{ color: BLACK, fontSize: 11, fontWeight: '900' }}>Chat</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={{ backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                          onPress={() => {
+                            const vId = vendorObj._id || vendorObj.id;
+                            if (vId) router.push({ pathname: '/vendor/[id]', params: { id: vId } } as any);
+                          }}>
+                          <Ionicons name="storefront-outline" size={14} color="#fff" />
+                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>Store</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: BORDER, paddingHorizontal: 8, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' }}
+                          onPress={() => handleDeleteQuote(q._id || q.id || '')}>
+                          <Ionicons name="trash-outline" size={14} color="#EF4444" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1454,6 +1804,279 @@ export default function CustomerPostRequirementScreen() {
                     </TouchableOpacity>
                   );
                 })}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ── MODAL 4: SELECTED REQUIREMENT DETAIL & BIDS MODAL ── */}
+        <Modal visible={!!selectedReqForDetail} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <Pressable style={styles.modalBackdrop} onPress={() => setSelectedReqForDetail(null)} />
+            <View style={[styles.modalContent, { maxHeight: '90%' }]}>
+              {selectedReqForDetail && (
+                <>
+                  <View style={styles.modalHeader}>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={styles.modalTitle} numberOfLines={1}>
+                        {selectedReqForDetail.title}
+                      </Text>
+                      <Text style={{ color: YELLOW, fontSize: 10, fontWeight: '800' }}>
+                        {selectedReqForDetail.category} • STATUS: {selectedReqForDetail.status || 'Active'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setSelectedReqForDetail(null)} style={styles.closeBtn}>
+                      <Ionicons name="close" size={16} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 12, paddingBottom: 20 }}>
+                    {/* Distribution Metrics Row */}
+                    <View style={{ flexDirection: 'row', backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, paddingVertical: 10 }}>
+                      <View style={{ flex: 1, alignItems: 'center' }}>
+                        <Text style={{ color: YELLOW, fontSize: 14, fontWeight: '900' }}>
+                          {selectedReqForDetail.totalVendorsMatched || 0}
+                        </Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700' }}>MATCHED</Text>
+                      </View>
+                      <View style={{ width: 1, backgroundColor: BORDER }} />
+                      <View style={{ flex: 1, alignItems: 'center' }}>
+                        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '900' }}>
+                          {selectedReqForDetail.totalVendorsNotified || 0}
+                        </Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700' }}>NOTIFIED</Text>
+                      </View>
+                      <View style={{ width: 1, backgroundColor: BORDER }} />
+                      <View style={{ flex: 1, alignItems: 'center' }}>
+                        <Text style={{ color: '#F59E0B', fontSize: 14, fontWeight: '900' }}>
+                          {selectedReqForDetail.views_count || 0}
+                        </Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700' }}>VIEWED</Text>
+                      </View>
+                      <View style={{ width: 1, backgroundColor: BORDER }} />
+                      <View style={{ flex: 1, alignItems: 'center' }}>
+                        <Text style={{ color: '#10B981', fontSize: 14, fontWeight: '900' }}>
+                          {selectedReqQuotes.length}
+                        </Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700' }}>BIDS</Text>
+                      </View>
+                    </View>
+
+                    {/* Brief Description & Specs */}
+                    <View style={{ backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, padding: 10, gap: 6 }}>
+                      <Text style={{ color: YELLOW, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>BRIEF DESCRIPTION</Text>
+                      <Text style={{ color: '#fff', fontSize: 12, lineHeight: 18 }}>{selectedReqForDetail.description}</Text>
+
+                      {!!selectedReqForDetail.detailedSpecifications && (
+                        <View style={{ marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: BORDER }}>
+                          <Text style={{ color: YELLOW, fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 4 }}>DETAILED SPECIFICATIONS</Text>
+                          <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, lineHeight: 16 }}>{selectedReqForDetail.detailedSpecifications}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Requirement Controls */}
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                      {selectedReqForDetail.status !== 'Closed' ? (
+                        <TouchableOpacity
+                          style={{ backgroundColor: 'rgba(239,68,68,0.2)', borderWidth: 1, borderColor: '#EF4444', paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                          onPress={() => handleCloseRequirement(selectedReqForDetail._id || selectedReqForDetail.id || '')}>
+                          <Ionicons name="lock-closed" size={14} color="#EF4444" />
+                          <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '900' }}>Close Brief</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          style={{ backgroundColor: YELLOW, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                          onPress={() => handleRepostRequirement(selectedReqForDetail._id || selectedReqForDetail.id || '')}>
+                          <Ionicons name="refresh" size={14} color={BLACK} />
+                          <Text style={{ color: BLACK, fontSize: 11, fontWeight: '900' }}>Repost / Reopen Brief</Text>
+                        </TouchableOpacity>
+                      )}
+
+                      <TouchableOpacity
+                        style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: BORDER, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                        onPress={() => handleDeleteRequirement(selectedReqForDetail._id || selectedReqForDetail.id || '')}>
+                        <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                        <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '900' }}>Delete Post</Text>
+                      </TouchableOpacity>
+
+                      {compareQuoteIds.length > 0 && (
+                        <TouchableOpacity
+                          style={{ backgroundColor: YELLOW, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                          onPress={() => setCompareModalOpen(true)}>
+                          <Ionicons name="git-compare-outline" size={14} color={BLACK} />
+                          <Text style={{ color: BLACK, fontSize: 11, fontWeight: '900' }}>Compare ({compareQuoteIds.length})</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {/* Vendor Proposals Header */}
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1, marginTop: 6 }}>
+                      SUBMITTED QUOTATIONS ({selectedReqQuotes.length})
+                    </Text>
+
+                    {loadingReqQuotes ? (
+                      <ActivityIndicator size="small" color={YELLOW} style={{ marginVertical: 10 }} />
+                    ) : selectedReqQuotes.length === 0 ? (
+                      <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, textAlign: 'center', marginVertical: 10 }}>
+                        No vendor quotes submitted for this brief yet.
+                      </Text>
+                    ) : (
+                      selectedReqQuotes.map((q) => {
+                        const vendorObj = q.vendor || {};
+                        const vendorName = vendorObj.name || 'Vendor Partner';
+                        const shopName = vendorObj.shopName || vendorObj.businessName || vendorObj.vendorProfile?.shopName || vendorObj.vendorProfile?.businessName || 'Verified Store';
+                        const ratingVal = vendorObj.rating_avg || vendorObj.vendorProfile?.rating || 4.5;
+                        const quotePrice = q.amount || q.price || 0;
+                        const isAccepted = q.status === 'accepted';
+                        const isRejected = q.status === 'rejected';
+                        const isSelectedForCompare = compareQuoteIds.includes(q._id || q.id || '');
+
+                        return (
+                          <View key={q._id || q.id} style={{ backgroundColor: BLACK, borderWidth: 1, borderColor: isAccepted ? '#10B981' : isRejected ? 'rgba(239,68,68,0.4)' : BORDER, padding: 10, gap: 8 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <TouchableOpacity
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                                onPress={() => toggleCompareQuote(q._id || q.id || '')}>
+                                <Ionicons
+                                  name={isSelectedForCompare ? 'checkbox' : 'square-outline'}
+                                  size={18}
+                                  color={YELLOW}
+                                />
+                                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: '700' }}>Compare</Text>
+                              </TouchableOpacity>
+
+                              <View style={{ backgroundColor: YELLOW, paddingHorizontal: 8, paddingVertical: 2 }}>
+                                <Text style={{ color: BLACK, fontSize: 12, fontWeight: '900' }}>₹{quotePrice}</Text>
+                              </View>
+                            </View>
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: YELLOW, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+                                {vendorObj.avatarUrl || vendorObj.profile_pic ? (
+                                  <Image source={{ uri: resolveImageUrl(vendorObj.avatarUrl || vendorObj.profile_pic) || '' }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                                ) : (
+                                  <Text style={{ color: BLACK, fontWeight: '900', fontSize: 12 }}>{vendorName.charAt(0).toUpperCase()}</Text>
+                                )}
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>{vendorName}</Text>
+                                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>{shopName} • ⭐ {Number(ratingVal).toFixed(1)}</Text>
+                              </View>
+                            </View>
+
+                            {!!(q.message || q.notes) && (
+                              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, backgroundColor: DARK_CARD, padding: 6 }}>{q.message || q.notes}</Text>
+                            )}
+
+                            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                              {!isAccepted && !isRejected && (
+                                <>
+                                  <TouchableOpacity
+                                    style={{ backgroundColor: '#10B981', paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                                    onPress={() => handleAcceptQuote(q._id || q.id || '')}>
+                                    <Ionicons name="checkmark-circle" size={14} color="#fff" />
+                                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>Accept</Text>
+                                  </TouchableOpacity>
+
+                                  <TouchableOpacity
+                                    style={{ backgroundColor: 'rgba(239,68,68,0.2)', borderWidth: 1, borderColor: '#EF4444', paddingHorizontal: 8, paddingVertical: 6 }}
+                                    onPress={() => handleRejectQuote(q._id || q.id || '')}>
+                                    <Ionicons name="close" size={14} color="#EF4444" />
+                                  </TouchableOpacity>
+                                </>
+                              )}
+
+                              <TouchableOpacity
+                                style={{ backgroundColor: YELLOW, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                                onPress={() => {
+                                  const vId = vendorObj._id || vendorObj.id;
+                                  if (vId) {
+                                    router.push({
+                                      pathname: '/messages/[id]' as any,
+                                      params: {
+                                        id: `direct_${vId}`,
+                                        recipientId: vId,
+                                        name: shopName || vendorName,
+                                        avatar: vendorObj.avatarUrl || vendorObj.profile_pic || '',
+                                      },
+                                    } as any);
+                                  }
+                                }}>
+                                <Ionicons name="chatbubble-ellipses" size={14} color={BLACK} />
+                                <Text style={{ color: BLACK, fontSize: 10, fontWeight: '900' }}>Chat</Text>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                style={{ backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 8, paddingVertical: 6 }}
+                                onPress={() => {
+                                  const vId = vendorObj._id || vendorObj.id;
+                                  if (vId) router.push({ pathname: '/vendor/[id]', params: { id: vId } } as any);
+                                }}>
+                                <Ionicons name="storefront-outline" size={14} color="#fff" />
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: BORDER, paddingHorizontal: 8, paddingVertical: 6 }}
+                                onPress={() => handleDeleteQuote(q._id || q.id || '')}>
+                                <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        );
+                      })
+                    )}
+                  </ScrollView>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* ── MODAL 5: COMPARE PROPOSALS MODAL ── */}
+        <Modal visible={compareModalOpen} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <Pressable style={styles.modalBackdrop} onPress={() => setCompareModalOpen(false)} />
+            <View style={[styles.modalContent, { maxHeight: '85%' }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>COMPARE BIDS ({compareQuoteIds.length})</Text>
+                <TouchableOpacity onPress={() => setCompareModalOpen(false)} style={styles.closeBtn}>
+                  <Ionicons name="close" size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView horizontal style={{ flex: 1 }} contentContainerStyle={{ gap: 10, paddingVertical: 10 }}>
+                {selectedReqQuotes
+                  .filter((q) => compareQuoteIds.includes(q._id || q.id || ''))
+                  .map((q) => {
+                    const vendorObj = q.vendor || {};
+                    const vendorName = vendorObj.name || 'Vendor Partner';
+                    const shopName = vendorObj.shopName || vendorObj.businessName || 'Verified Store';
+                    const ratingVal = vendorObj.rating_avg || 4.5;
+                    const quotePrice = q.amount || q.price || 0;
+
+                    return (
+                      <View key={q._id || q.id} style={{ width: 220, backgroundColor: BLACK, borderWidth: 1, borderColor: YELLOW, padding: 12, gap: 10 }}>
+                        <Text style={{ color: YELLOW, fontSize: 16, fontWeight: '900' }}>₹{quotePrice}</Text>
+                        <View style={{ borderBottomWidth: 1, borderBottomColor: BORDER, paddingBottom: 6 }}>
+                          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>{vendorName}</Text>
+                          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>{shopName}</Text>
+                          <Text style={{ color: YELLOW, fontSize: 10, fontWeight: '800', marginTop: 2 }}>⭐ {Number(ratingVal).toFixed(1)} Rating</Text>
+                        </View>
+                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, flex: 1 }} numberOfLines={5}>
+                          {q.message || q.notes || 'No message provided.'}
+                        </Text>
+                        <TouchableOpacity
+                          style={{ backgroundColor: '#10B981', paddingVertical: 8, alignItems: 'center' }}
+                          onPress={() => {
+                            setCompareModalOpen(false);
+                            handleAcceptQuote(q._id || q.id || '');
+                          }}>
+                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>ACCEPT THIS BID</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
               </ScrollView>
             </View>
           </View>

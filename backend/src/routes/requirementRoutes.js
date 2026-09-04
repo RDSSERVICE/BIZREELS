@@ -189,4 +189,10 @@ router.patch(
   requirementController.updateQuoteStatus
 );
 
+router.delete(
+  '/quotes/:quoteId',
+  authenticate,
+  requirementController.deleteQuote
+);
+
 module.exports = router;
