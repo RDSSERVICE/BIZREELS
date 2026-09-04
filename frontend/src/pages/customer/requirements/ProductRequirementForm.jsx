@@ -51,6 +51,7 @@ export default function ProductRequirementForm({
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       {/* Title */}
+      <div>
         <div className="flex justify-between items-center mb-1">
           <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">{bi('Product Title *', 'उत्पाद का नाम *')}</label>
           <span className={`text-[10px] font-semibold ${title?.length >= 120 ? 'text-red-500' : 'text-slate-400'}`}>
