@@ -65,7 +65,7 @@ class ReelController {
 
   // ── Get Feed ────────────────────────────────────────────
   getFeed = asyncHandler(async (req, res) => {
-    const { creatorId, hashtags, search, q, category, subcategory, lat, lng, distance, page = 1, limit = 10 } = req.query;
+    const { creatorId, hashtags, search, q, category, subcategory, lat, lng, distance, page = 1, limit = 10, seed } = req.query;
     
     // Parse comma-separated hashtags if present
     const hashtagsList = hashtags ? hashtags.split(',').map(h => h.trim()) : undefined;
@@ -86,12 +86,14 @@ class ReelController {
       distance: distance ? parseFloat(distance) : undefined,
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
+      seed: seed ? parseInt(seed, 10) : undefined,
     });
 
     return ApiResponse.paginated(res, 'Feed fetched successfully.', result.reels, {
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
       total: result.total,
+      seed: result.seed,
     });
   });
 

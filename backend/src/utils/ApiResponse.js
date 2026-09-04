@@ -51,7 +51,7 @@ class ApiResponse {
    * @param {Array} data
    * @param {{ page: number, limit: number, total: number }} pagination
    */
-  static paginated(res, message, data, { page, limit, total }) {
+  static paginated(res, message, data, { page, limit, total, ...extraMeta }) {
     const totalPages = Math.ceil(total / limit);
     return new ApiResponse(200, message, data, {
       page,
@@ -60,6 +60,7 @@ class ApiResponse {
       totalPages,
       hasNextPage: page < totalPages,
       hasPrevPage: page > 1,
+      ...extraMeta,
     }).send(res);
   }
 }

@@ -18,20 +18,48 @@ const logger = require('../utils/logger');
  * Stacking Strategy: Interleaves items from preferences in weighted feed slots while enforcing
  * creator diversity and deduplication across pagination pages.
  */
+/**
+ * Pseudo-random seeded shuffle (Mulberry32 PRNG + Fisher-Yates)
+ * Guarantees deterministic order for a given seed (enabling smooth pagination),
+ * while randomizing pool selection across different seeds.
+ */
+function seededShuffle(array, seedNum) {
+  if (!Array.isArray(array) || array.length <= 1) return array;
+  const arr = [...array];
+  let s = (seedNum >>> 0) || 123456789;
+  const random = () => {
+    let t = (s += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 class RecommendationService {
 
   /**
-   * Get personalized recommended feed for a user using 5-tier stacked preference algorithm.
+   * Get personalized recommended feed for a user using 5-tier stacked preference algorithm with dynamic randomizer.
    */
-  async getRecommendedFeed(userId, page = 1, limit = 10, userCoords = null) {
+  async getRecommendedFeed(userId, page = 1, limit = 10, userCoords = null, seed = null) {
     const uid = userId ? userId.toString() : 'guest';
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
 
-    // Cache key per user and page
-    const cacheKey = `feed:5tier:${uid}:${pageNum}:${limitNum}:${userCoords ? userCoords.join(',') : 'nocoords'}`;
+    // Parse provided seed or generate a fresh random seed for new feed requests
+    const effectiveSeed = (seed !== undefined && seed !== null && !isNaN(seed))
+      ? parseInt(seed, 10)
+      : Math.floor(Math.random() * 1000000) + 1;
+
+    // Cache key per user, seed, page, and coords
+    const cacheKey = `feed:5tier:${uid}:${effectiveSeed}:${pageNum}:${limitNum}:${userCoords ? userCoords.join(',') : 'nocoords'}`;
     const cached = await cache.getCache(cacheKey);
-    if (cached) return cached;
+    if (cached) return { ...cached, seed: effectiveSeed };
 
     // 1. Get user profile context (interests & registered location)
     let userInterests = [];
@@ -72,8 +100,8 @@ class RecommendationService {
       } catch (err) { }
     }
 
-    // 3. Fetch candidate pools for all 5 Tiers
-    const poolFetchLimit = Math.max(limitNum * 4, 30);
+    // 3. Fetch candidate pools for all 5 Tiers (expanded pool for randomizer shuffle)
+    const poolFetchLimit = Math.max(limitNum * 10, 100);
 
     const [tier1BoostedNear, tier2ExactMatch, tier3NearMatch, tier4Popular, tier5Rest] = await Promise.all([
       this._getTier1BoostedNear({ viewedIds, userCategories, coords, limit: poolFetchLimit }),
@@ -83,13 +111,20 @@ class RecommendationService {
       this._getTier5Rest({ viewedIds, limit: poolFetchLimit }),
     ]);
 
+    // Apply seeded randomizer shuffle per tier pool
+    const sTier1 = seededShuffle(tier1BoostedNear, effectiveSeed + 101);
+    const sTier2 = seededShuffle(tier2ExactMatch, effectiveSeed + 202);
+    const sTier3 = seededShuffle(tier3NearMatch, effectiveSeed + 303);
+    const sTier4 = seededShuffle(tier4Popular, effectiveSeed + 404);
+    const sTier5 = seededShuffle(tier5Rest, effectiveSeed + 505);
+
     // 4. Interleave & stack candidates into page slots
     let stackedCandidates = this._stackTiers({
-      tier1: tier1BoostedNear,
-      tier2: tier2ExactMatch,
-      tier3: tier3NearMatch,
-      tier4: tier4Popular,
-      tier5: tier5Rest,
+      tier1: sTier1,
+      tier2: sTier2,
+      tier3: sTier3,
+      tier4: sTier4,
+      tier5: sTier5,
       pageNum,
       limitNum,
     });
@@ -104,7 +139,11 @@ class RecommendationService {
         this._getTier5Rest({ viewedIds: [], limit: poolFetchLimit }),
       ]);
       stackedCandidates = this._stackTiers({
-        tier1: t1, tier2: t2, tier3: t3, tier4: t4, tier5: t5,
+        tier1: seededShuffle(t1, effectiveSeed + 101),
+        tier2: seededShuffle(t2, effectiveSeed + 202),
+        tier3: seededShuffle(t3, effectiveSeed + 303),
+        tier4: seededShuffle(t4, effectiveSeed + 404),
+        tier5: seededShuffle(t5, effectiveSeed + 505),
         pageNum, limitNum,
       });
     }
@@ -126,7 +165,7 @@ class RecommendationService {
       await cache.setCache('reels:total_published_count', total, 60);
     }
 
-    const response = { reels: enrichedReels, total };
+    const response = { reels: enrichedReels, total, seed: effectiveSeed };
 
     // Cache results (60 seconds for guests, 30 seconds for logged-in users)
     const ttl = userId ? 30 : 60;

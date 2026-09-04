@@ -325,22 +325,23 @@ class ReelService {
   }
 
   // ── Fetch Feed (Recommendation Engine) ──────────────────
-  async getFeed({ currentUserId, viewerId, creatorId, hashtags, query, category, subcategory, lat, lng, distance, page, limit }) {
-    const userCoords = (lat && lng) ? [parseFloat(lng), parseFloat(lat)] : null;
+  async getFeed(options) {
+    const { currentUserId, viewerId, creatorId, hashtags, query, category, subcategory, lat, lng, distance, page = 1, limit = 10, seed = null } = options;
+    const userCoords = lat && lng ? [parseFloat(lng), parseFloat(lat)] : null;
     const uid = currentUserId || viewerId;
 
     // Use 5-tier recommendation engine for feed when no search/creator/hashtag filters are applied
     if (!creatorId && (!hashtags || hashtags.length === 0) && !query && !category) {
       try {
         const recommendationService = require('./recommendation.service');
-        return await recommendationService.getRecommendedFeed(uid, page, limit, userCoords);
+        return await recommendationService.getRecommendedFeed(uid, page, limit, userCoords, seed);
       } catch (err) {
         logger.warn('Recommendation engine fallback to basic feed', { error: err.message });
       }
     }
 
     // Fallback: basic repository feed (for filtered queries)
-    const coordinates = lat && lng ? [parseFloat(lng), parseFloat(lat)] : null;
+    const coordinates = userCoords;
     return reelRepository.getReelsFeed({
       currentUserId,
       creatorId,
@@ -352,6 +353,7 @@ class ReelService {
       distanceKm: distance || 10,
       page,
       limit,
+      seed,
     });
   }
 

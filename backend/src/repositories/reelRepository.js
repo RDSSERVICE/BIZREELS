@@ -6,6 +6,24 @@ const AuditLog = require('../models/AuditLog');
 
 let reelsSeededChecked = false;
 
+function seededShuffleRepo(array, seedNum) {
+  if (!Array.isArray(array) || array.length <= 1) return array;
+  const arr = [...array];
+  let s = (seedNum >>> 0) || 123456789;
+  const random = () => {
+    let t = (s += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 /**
  * ReelRepository
  * Encapsulates database aggregation pipelines and query operations for the Reels module.
@@ -26,9 +44,12 @@ class ReelRepository {
    * Retrieves paginated reels.
    * Dynamically checks if the current user has liked each reel using an lookup stage.
    */
-  async getReelsFeed({ currentUserId, creatorId, hashtags, query, category, subcategory, coordinates, distanceKm = 10, page = 1, limit = 10 }) {
+  async getReelsFeed({ currentUserId, creatorId, hashtags, query, category, subcategory, coordinates, distanceKm = 10, page = 1, limit = 10, seed = null }) {
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
+    const effectiveSeed = (seed !== undefined && seed !== null && !isNaN(seed))
+      ? parseInt(seed, 10)
+      : Math.floor(Math.random() * 1000000) + 1;
     const skip = (pageNum - 1) * limitNum;
     const match = { isDeleted: false, isDraft: false, status: 'published' };
 
@@ -287,7 +308,8 @@ class ReelRepository {
       }
     }
 
-    return { reels, total };
+    const finalReels = (!creatorId && reels.length > 1) ? seededShuffleRepo(reels, effectiveSeed) : reels;
+    return { reels: finalReels, total, seed: effectiveSeed };
   }
 
   // ── Increment Views Count ───────────────────────────────
