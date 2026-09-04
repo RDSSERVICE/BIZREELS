@@ -392,7 +392,7 @@ export default function ListingDetailsScreen() {
                   <Ionicons name="checkmark-circle" size={14} color={YELLOW} />
                 </View>
                 <Text style={styles.vendorRole}>
-                  Verified Supplier • {listing.city || vendorObj.city || 'Local Store'}
+                  Verified Supplier • {listing.city || listing.location?.city || vendorObj.city || vendorObj.location?.city || vendorObj.address?.city || (typeof (listing.location?.address || vendorObj.location?.address || vendorObj.address) === 'string' ? (listing.location?.address || vendorObj.location?.address || vendorObj.address).split(',')[0].trim() : '') || listing.category || 'India'}
                 </Text>
               </View>
 

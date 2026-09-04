@@ -124,7 +124,7 @@ export default function MyActivitiesScreen() {
   const renderItem = ({ item }: { item: any }) => {
     if (activeTab === 'click-to-called' || activeTab === 'whatsapp-contacted') {
       const vendor = item.target_user || item.vendor || item.user || {};
-      const vendorName = vendor.shopName || vendor.businessName || vendor.name || 'Local Verified Partner';
+      const vendorName = vendor.shopName || vendor.businessName || vendor.name || 'Verified Business Partner';
       const avatar = resolveImageUrl(vendor.avatarUrl || vendor.profile_pic);
       const phone = vendor.phone || vendor.mobile || item.phone;
       const isCall = activeTab === 'click-to-called';

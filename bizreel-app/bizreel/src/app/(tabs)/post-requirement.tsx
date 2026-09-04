@@ -755,7 +755,7 @@ export default function CustomerPostRequirementScreen() {
         urgency,
         expectedDeliveryDate: expectedDeliveryDate ? expectedDeliveryDate.trim() : undefined,
         location: {
-          city: city.trim() || 'Local',
+          city: city.trim() || 'All Cities',
           area: area.trim() || 'City Wide',
           state: state.trim() || undefined,
           pincode: pincode.trim() || undefined,

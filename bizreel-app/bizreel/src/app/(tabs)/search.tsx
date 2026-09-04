@@ -651,8 +651,47 @@ export default function SearchScreen() {
         }
         renderItem={({ item }) => {
           const mainImg = getListingImage(item);
-          const vendorName = item.vendor?.name || 'Verified Supplier';
-          const cityText = item.city || item.location?.city || 'Local';
+          const vendorObj = item.vendor || (item as any).vendorId || {};
+          const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || item.vendorName || 'Verified Supplier';
+
+          // Robust Location Extraction
+          let cityText =
+            item.city ||
+            item.location?.city ||
+            vendorObj.city ||
+            vendorObj.location?.city ||
+            vendorObj.address?.city ||
+            item.address?.city ||
+            '';
+
+          if (!cityText || cityText.toLowerCase() === 'local') {
+            const rawAddr = item.location?.address || item.address || vendorObj.location?.address || vendorObj.address;
+            if (typeof rawAddr === 'string' && rawAddr.trim()) {
+              const parts = rawAddr.split(',');
+              const shortAddr = parts[0].trim();
+              if (shortAddr && shortAddr.toLowerCase() !== 'local') {
+                cityText = shortAddr;
+              } else if (parts[1]?.trim()) {
+                cityText = parts[1].trim();
+              }
+            }
+          }
+
+          if (!cityText || cityText.toLowerCase() === 'local') {
+            cityText = item.location?.state || vendorObj.location?.state || vendorObj.state || item.state || '';
+          }
+
+          if (!cityText || cityText.toLowerCase() === 'local') {
+            if (isGpsActive && userLocation?.city) {
+              cityText = userLocation.city;
+            } else if (selectedCity && selectedCity !== 'All Cities' && selectedCity !== 'Near Me (GPS)') {
+              cityText = selectedCity;
+            } else if ((user as any)?.location?.city || (user as any)?.city) {
+              cityText = (user as any)?.location?.city || (user as any)?.city;
+            } else {
+              cityText = item.category || 'India';
+            }
+          }
 
           // Distance calculation
           let distText = '';
