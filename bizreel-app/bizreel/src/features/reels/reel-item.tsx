@@ -428,40 +428,93 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
 
   const hasTaggedListing = !!(taggedListingId || taggedListingObj);
 
-  const priceCandidates = [
-    (reel as any).price,
+  // ── Sale / Discounted Price Extraction ─────────────────────
+  const salePriceCandidates = [
     (reel as any).salePrice,
     (reel as any).sellingPrice,
     (reel as any).offer_price,
-    taggedListingObj?.price,
+    (reel as any).price,
     taggedListingObj?.salePrice,
     (taggedListingObj as any)?.sellingPrice,
-    (reel as any).taggedListing?.price,
+    taggedListingObj?.price,
     (reel as any).taggedListing?.salePrice,
     (reel as any).taggedListing?.sellingPrice,
+    (reel as any).taggedListing?.price,
     (reel as any).taggedListing?.offer_price,
     (reel as any).productPrice,
   ];
-  const validPriceNum = priceCandidates.map((p) => Number(p)).find((p) => !isNaN(p) && p > 0);
+  const validSalePriceNum = salePriceCandidates.map((p) => Number(p)).find((p) => !isNaN(p) && p > 0);
+
+  // ── Original / Regular Price Extraction (MRP) ──────────────
+  const originalPriceCandidates = [
+    (reel as any).originalPrice,
+    (reel as any).actualPrice,
+    (reel as any).regularPrice,
+    (reel as any).mrp,
+    taggedListingObj?.actualPrice,
+    taggedListingObj?.regularPrice,
+    (taggedListingObj as any)?.mrp,
+    (taggedListingObj as any)?.originalPrice,
+    (reel as any).taggedListing?.actualPrice,
+    (reel as any).taggedListing?.regularPrice,
+    (reel as any).taggedListing?.mrp,
+    (reel as any).taggedListing?.originalPrice,
+  ];
+  const validOriginalPriceNum = originalPriceCandidates.map((p) => Number(p)).find((p) => !isNaN(p) && p > 0);
 
   const [fetchedPrice, setFetchedPrice] = useState<number | null>(null);
+  const [fetchedOriginalPrice, setFetchedOriginalPrice] = useState<number | null>(null);
+  const [fetchedOfferTitle, setFetchedOfferTitle] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!validPriceNum && taggedListingId && typeof taggedListingId === 'string' && taggedListingId.length === 24) {
+    if (taggedListingId && typeof taggedListingId === 'string' && taggedListingId.length === 24) {
       api.get(`/listings/${taggedListingId}`)
         .then(({ data }) => {
           const lData = data.data || data;
-          const p = Number(lData.price || lData.salePrice || lData.sellingPrice || lData.offer_price || 0);
-          if (p > 0) {
-            setFetchedPrice(p);
-          }
+          const p = Number(lData.salePrice || lData.price || lData.sellingPrice || lData.offer_price || 0);
+          const orig = Number(lData.actualPrice || lData.regularPrice || lData.mrp || lData.originalPrice || 0);
+          const offerT = lData.activeOffer?.title || lData.offerTitle || lData.offerInfo || null;
+
+          if (p > 0 && !validSalePriceNum) setFetchedPrice(p);
+          if (orig > 0 && !validOriginalPriceNum) setFetchedOriginalPrice(orig);
+          if (offerT) setFetchedOfferTitle(offerT);
         })
         .catch(() => null);
     }
-  }, [taggedListingId, validPriceNum]);
+  }, [taggedListingId, validSalePriceNum, validOriginalPriceNum]);
 
-  const activePriceNum = validPriceNum || fetchedPrice;
-  const displayPrice = activePriceNum && activePriceNum > 0 ? activePriceNum.toLocaleString('en-IN') : null;
+  const activeSalePriceNum = validSalePriceNum || fetchedPrice;
+  const activeOriginalPriceNum = validOriginalPriceNum || fetchedOriginalPrice;
+
+  const displayPrice = activeSalePriceNum && activeSalePriceNum > 0 ? activeSalePriceNum.toLocaleString('en-IN') : null;
+  const displayOriginalPrice =
+    activeOriginalPriceNum && activeSalePriceNum && activeOriginalPriceNum > activeSalePriceNum
+      ? activeOriginalPriceNum.toLocaleString('en-IN')
+      : null;
+
+  // Calculate discount percentage
+  let discountPercent = 0;
+  if (activeOriginalPriceNum && activeSalePriceNum && activeOriginalPriceNum > activeSalePriceNum) {
+    discountPercent = Math.round(((activeOriginalPriceNum - activeSalePriceNum) / activeOriginalPriceNum) * 100);
+  } else {
+    const rawDisc =
+      (reel as any).discount ||
+      (reel as any).discountPercent ||
+      (reel as any).discount_percent ||
+      taggedListingObj?.discountPercent ||
+      (reel as any).taggedListing?.discountPercent ||
+      0;
+    discountPercent = Number(rawDisc) || 0;
+  }
+
+  // Active Offer Information
+  const activeOfferText =
+    (reel as any).offerTitle ||
+    (reel as any).activeOffer?.title ||
+    taggedListingObj?.activeOffer?.title ||
+    (reel as any).taggedListing?.activeOffer?.title ||
+    fetchedOfferTitle ||
+    '';
 
   function handleAddToCart() {
     ensureAuth('add items to cart', () => {
@@ -530,17 +583,25 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
           </>
         )}
 
-        {/* PROMINENT REEL PRODUCT PRICE BADGE */}
+        {/* PROMINENT REEL PRODUCT PRICE & DISCOUNT BADGE */}
         {displayPrice ? (
           <View style={[styles.topPriceBadge, { top: insets.top + 16, zIndex: 999 }]}>
-            <Ionicons name="pricetag" size={14} color="#0F0F12" />
+            <Ionicons name="pricetag" size={13} color="#0F0F12" />
             <Text style={styles.topPriceText}>₹{displayPrice}</Text>
+            {displayOriginalPrice ? (
+              <Text style={styles.topOriginalPriceText}>₹{displayOriginalPrice}</Text>
+            ) : null}
+            {discountPercent > 0 ? (
+              <View style={styles.topDiscountBadge}>
+                <Text style={styles.topDiscountText}>{discountPercent}% OFF</Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
 
         {/* PROMINENT LOCATION & DISTANCE BADGE */}
         {locDistInfo ? (
-          <View style={[styles.topLocationBadge, { top: insets.top + (displayPrice ? 52 : 16), zIndex: 999 }]}>
+          <View style={[styles.topLocationBadge, { top: insets.top + (displayPrice ? 54 : 16), zIndex: 999 }]}>
             <Ionicons name="location" size={12} color="#fff" />
             <Text style={styles.topLocationText}>
               {[locDistInfo.locationText, locDistInfo.distanceText].filter(Boolean).join(' • ')}
@@ -650,12 +711,32 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
           </Text>
         )}
 
+        {/* Active Offer Banner */}
+        {activeOfferText || (discountPercent > 0 && !displayPrice) ? (
+          <View style={styles.offerBannerRow}>
+            <Ionicons name="sparkles" size={12} color="#F59E0B" />
+            <Text style={styles.offerBannerText} numberOfLines={1}>
+              {activeOfferText || `Special Offer • ${discountPercent}% Discount Applied`}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Quick Add to Cart & Buy Now Action Row (Customer mode only) */}
         {!isCreator && !isVendor && (
           <View style={styles.reelBuyRow}>
             {displayPrice ? (
               <View style={styles.pricePillTag}>
-                <Text style={styles.pricePillText}>₹{displayPrice}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                  <Text style={styles.pricePillText}>₹{displayPrice}</Text>
+                  {displayOriginalPrice ? (
+                    <Text style={styles.originalPricePillText}>₹{displayOriginalPrice}</Text>
+                  ) : null}
+                </View>
+                {discountPercent > 0 ? (
+                  <View style={styles.discountPillTag}>
+                    <Text style={styles.discountPillText}>{discountPercent}% OFF</Text>
+                  </View>
+                ) : null}
               </View>
             ) : null}
 
@@ -1367,5 +1448,57 @@ const styles = StyleSheet.create({
     color: '#E2E8F0',
     fontSize: 10,
     fontWeight: '700',
+  },
+  topOriginalPriceText: {
+    color: 'rgba(15,15,18,0.6)',
+    fontSize: 10,
+    fontWeight: '700',
+    textDecorationLine: 'line-through',
+  },
+  topDiscountBadge: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 2,
+    marginLeft: 2,
+  },
+  topDiscountText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  originalPricePillText: {
+    color: 'rgba(15,15,18,0.6)',
+    fontSize: 10,
+    fontWeight: '700',
+    textDecorationLine: 'line-through',
+  },
+  discountPillTag: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 2,
+    marginTop: 2,
+  },
+  discountPillText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  offerBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 6,
+  },
+  offerBannerText: {
+    color: YELLOW,
+    fontSize: 11,
+    fontWeight: '800',
   },
 });
