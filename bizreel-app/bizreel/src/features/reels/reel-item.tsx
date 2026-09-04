@@ -166,7 +166,9 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
 
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
-  const [isSaved, setIsSaved] = useState(reel.isSaved || false);
+  const [isSaved, setIsSaved] = useState(
+    Boolean(reel.isSaved || (reel as any).is_saved || (reel as any).hasSaved || (reel as any).viewer_state?.saved)
+  );
   const [likeCount, setLikeCount] = useState(reel.likesCount);
   const [isPaused, setIsPaused] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
@@ -179,7 +181,9 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
 
   useEffect(() => {
     setIsLiked(reel.isLiked);
-    setIsSaved(reel.isSaved || false);
+    setIsSaved(
+      Boolean(reel.isSaved || (reel as any).is_saved || (reel as any).hasSaved || (reel as any).viewer_state?.saved)
+    );
     setLikeCount(reel.likesCount);
     setIsFollowing(
       Boolean(reel.isFollowing || (reel as any).is_following || (reel as any).viewer_following)
@@ -187,6 +191,9 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
   }, [
     reel.isLiked,
     reel.isSaved,
+    (reel as any).is_saved,
+    (reel as any).hasSaved,
+    (reel as any).viewer_state?.saved,
     reel.likesCount,
     reel.isFollowing,
     (reel as any).is_following,
