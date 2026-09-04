@@ -773,11 +773,11 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
       {/* Right-Side Floating Action Column */}
       <View style={[styles.actionsColumn, { bottom: bottomMargin }]} pointerEvents="box-none">
         {/* Like Button */}
-        <TouchableOpacity style={styles.actionBtn} onPress={handleLikeButton} accessibilityLabel="Like">
-          <View style={[styles.actionIconCircle, isLiked && styles.actionIconCircleActive]}>
+        <TouchableOpacity style={styles.actionBtn} onPress={handleLikeButton} accessibilityLabel="Like" activeOpacity={0.8}>
+          <View style={[styles.actionIconCircle, isLiked && styles.actionIconCircleLiked]}>
             <Ionicons
               name={isLiked ? 'heart' : 'heart-outline'}
-              size={26}
+              size={24}
               color={isLiked ? '#FF2D55' : '#FFFFFF'}
             />
           </View>
@@ -788,33 +788,34 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={() => setCommentsVisible(true)}
-          accessibilityLabel="Comments">
+          accessibilityLabel="Comments"
+          activeOpacity={0.8}>
           <View style={styles.actionIconCircle}>
-            <Ionicons name="chatbubble-outline" size={24} color="#FFFFFF" />
+            <Ionicons name="chatbubble-outline" size={22} color="#FFFFFF" />
           </View>
           <Text style={styles.actionCount}>{formatCount(reel.commentsCount)}</Text>
         </TouchableOpacity>
 
         {/* Share Button */}
-        <TouchableOpacity style={styles.actionBtn} onPress={handleShareButton} accessibilityLabel="Share">
+        <TouchableOpacity style={styles.actionBtn} onPress={handleShareButton} accessibilityLabel="Share" activeOpacity={0.8}>
           <View style={styles.actionIconCircle}>
-            <Ionicons name="share-social-outline" size={24} color="#FFFFFF" />
+            <Ionicons name="paper-plane-outline" size={21} color="#FFFFFF" />
           </View>
           <Text style={styles.actionCount}>Share</Text>
         </TouchableOpacity>
 
         {/* Call Vendor Button */}
-        <TouchableOpacity style={styles.actionBtn} onPress={handleCallVendor} accessibilityLabel="Call Vendor">
-          <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
-            <Ionicons name="call-outline" size={22} color="#3B82F6" />
+        <TouchableOpacity style={styles.actionBtn} onPress={handleCallVendor} accessibilityLabel="Call Vendor" activeOpacity={0.8}>
+          <View style={[styles.actionIconCircle, styles.actionIconCircleCall]}>
+            <Ionicons name="call-outline" size={21} color="#3B82F6" />
           </View>
           <Text style={styles.actionCount}>Call</Text>
         </TouchableOpacity>
 
         {/* WhatsApp Vendor Button */}
-        <TouchableOpacity style={styles.actionBtn} onPress={handleWhatsAppVendor} accessibilityLabel="WhatsApp Vendor">
-          <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(34,197,94,0.2)' }]}>
-            <Ionicons name="logo-whatsapp" size={22} color="#22C55E" />
+        <TouchableOpacity style={styles.actionBtn} onPress={handleWhatsAppVendor} accessibilityLabel="WhatsApp Vendor" activeOpacity={0.8}>
+          <View style={[styles.actionIconCircle, styles.actionIconCircleWhatsApp]}>
+            <Ionicons name="logo-whatsapp" size={21} color="#22C55E" />
           </View>
           <Text style={styles.actionCount}>WhatsApp</Text>
         </TouchableOpacity>
@@ -848,20 +849,21 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
               },
             } as any);
           }}
-          accessibilityLabel="Chat with Seller">
-          <View style={styles.actionIconCircle}>
-            <Ionicons name="chatbubble-ellipses-outline" size={24} color="#F59E0B" />
+          accessibilityLabel="Chat with Seller"
+          activeOpacity={0.8}>
+          <View style={[styles.actionIconCircle, styles.actionIconCircleChat]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={21} color="#F59E0B" />
           </View>
           <Text style={styles.actionCount}>Chat</Text>
         </TouchableOpacity>
 
         {/* Save / Bookmark Button */}
-        <TouchableOpacity style={styles.actionBtn} onPress={handleSaveButton} accessibilityLabel="Bookmark">
-          <View style={styles.actionIconCircle}>
+        <TouchableOpacity style={styles.actionBtn} onPress={handleSaveButton} accessibilityLabel="Bookmark" activeOpacity={0.8}>
+          <View style={[styles.actionIconCircle, isSaved && styles.actionIconCircleSaved]}>
             <Ionicons
               name={isSaved ? 'bookmark' : 'bookmark-outline'}
-              size={24}
-              color={isSaved ? BrandColors.primaryLight : '#FFFFFF'}
+              size={22}
+              color={isSaved ? '#F59E0B' : '#FFFFFF'}
             />
           </View>
           <Text style={styles.actionCount}>{isSaved ? 'Saved' : 'Save'}</Text>
@@ -872,11 +874,12 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
           <TouchableOpacity
             style={styles.actionBtn}
             onPress={() => setIsMuted((v) => !v)}
-            accessibilityLabel={isMuted ? 'Unmute' : 'Mute'}>
+            accessibilityLabel={isMuted ? 'Unmute' : 'Mute'}
+            activeOpacity={0.8}>
             <View style={styles.actionIconCircle}>
               <Ionicons
                 name={isMuted ? 'volume-mute-outline' : 'volume-high-outline'}
-                size={22}
+                size={20}
                 color="#FFFFFF"
               />
             </View>
@@ -1148,34 +1151,58 @@ const styles = StyleSheet.create({
   },
   actionsColumn: {
     position: 'absolute',
-    right: 14,
+    right: 12,
     alignItems: 'center',
-    gap: Spacing.four,
+    gap: 13,
   },
   actionBtn: {
     alignItems: 'center',
-    gap: 3,
+    justifyContent: 'center',
   },
   actionIconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    borderRadius: 22,
+    backgroundColor: 'rgba(15, 17, 23, 0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 5,
   },
-  actionIconCircleActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+  actionIconCircleLiked: {
+    backgroundColor: 'rgba(255, 45, 85, 0.22)',
+    borderColor: '#FF2D55',
+  },
+  actionIconCircleSaved: {
+    backgroundColor: 'rgba(245, 158, 11, 0.22)',
+    borderColor: '#F59E0B',
+  },
+  actionIconCircleCall: {
+    backgroundColor: 'rgba(59, 130, 246, 0.22)',
+    borderColor: 'rgba(59, 130, 246, 0.45)',
+  },
+  actionIconCircleWhatsApp: {
+    backgroundColor: 'rgba(34, 197, 94, 0.22)',
+    borderColor: 'rgba(34, 197, 94, 0.45)',
+  },
+  actionIconCircleChat: {
+    backgroundColor: 'rgba(245, 158, 11, 0.22)',
+    borderColor: 'rgba(245, 158, 11, 0.45)',
   },
   actionCount: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '900',
-    textShadowColor: 'rgba(0,0,0,0.9)',
-    textShadowRadius: 3,
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 3,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 1.5 },
+    textShadowRadius: 4,
   },
   reelBuyRow: {
     flexDirection: 'row',

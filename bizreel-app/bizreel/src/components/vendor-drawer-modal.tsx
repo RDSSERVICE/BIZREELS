@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
+import { useNotifications } from '@/features/notifications/queries';
 
 interface DrawerItem {
   title: string;
@@ -85,10 +86,11 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
       items: [
         { title: 'Home Marketplace', route: '/(tabs)/home', icon: 'home-outline' },
         { title: 'Explore & Search', route: '/(tabs)/search', icon: 'search-outline' },
+        { title: 'Notifications', route: '/notifications', icon: 'notifications-outline' },
         { title: 'Chat & Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
         { title: 'My Inquiries & Quotes', route: '/inquiries', icon: 'mail-outline' },
         { title: 'My Orders', route: '/orders', icon: 'cart-outline' },
-        { title: 'Saved Items', route: '/saved', icon: 'bookmark-outline' },
+        { title: 'Saved Items & Reels', route: '/saved-reels', icon: 'bookmark-outline' },
         { title: 'My Profile', route: '/(tabs)/profile', icon: 'person-outline' },
       ],
     },
@@ -100,6 +102,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
       title: 'MAIN NAVIGATION',
       items: [
         { title: 'Dashboard', route: '/vendor/dashboard', icon: 'grid-outline' },
+        { title: 'Notifications', route: '/notifications', icon: 'notifications-outline' },
         { title: 'My Listings', route: '/vendor/listings', icon: 'cube-outline' },
         { title: 'Reels & AI Ads', route: '/vendor/reels', icon: 'videocam-outline' },
         { title: 'Leads / Enquiries', route: '/inquiries', icon: 'mail-outline' },
@@ -146,6 +149,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
       title: 'OVERVIEW',
       items: [
         { title: 'Dashboard', route: '/creator/dashboard', icon: 'grid-outline' },
+        { title: 'Notifications', route: '/notifications', icon: 'notifications-outline' },
         { title: 'Settings', route: '/creator/settings', icon: 'settings-outline' },
       ],
     },
@@ -183,6 +187,9 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
 
   const activeRole = user?.activeRole || user?.current_role || (isVendor ? 'vendor' : 'customer');
   const NAV_SECTIONS = activeRole === 'creator' ? CREATOR_SECTIONS : activeRole === 'vendor' ? VENDOR_SECTIONS : CUSTOMER_SECTIONS;
+
+  const { data: notificationsList = [] } = useNotifications(activeRole);
+  const unreadNotificationsCount = notificationsList.filter((n) => !n.isRead).length;
 
   return (
     <Modal
