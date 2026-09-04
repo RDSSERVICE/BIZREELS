@@ -337,8 +337,9 @@ export default function CustomerHomePage() {
       const res = await api.get(endpoint, { params });
       const data = res.data;
 
+      let fetchedItems = [];
       if (activeTab === 'reels') {
-        const items = Array.isArray(data.data?.reels)
+        fetchedItems = Array.isArray(data.data?.reels)
           ? data.data.reels
           : Array.isArray(data.data)
             ? data.data
@@ -347,9 +348,9 @@ export default function CustomerHomePage() {
               : Array.isArray(data)
                 ? data
                 : [];
-        setReels(items);
+        setReels(fetchedItems);
       } else if (activeTab === 'images') {
-        const items = Array.isArray(data.data?.listings)
+        fetchedItems = Array.isArray(data.data?.listings)
           ? data.data.listings
           : Array.isArray(data.data)
             ? data.data
@@ -358,9 +359,9 @@ export default function CustomerHomePage() {
               : Array.isArray(data)
                 ? data
                 : [];
-        setImages(items);
+        setImages(fetchedItems);
       } else {
-        const items = Array.isArray(data.items)
+        fetchedItems = Array.isArray(data.items)
           ? data.items
           : Array.isArray(data.data?.items)
             ? data.data.items
@@ -369,8 +370,23 @@ export default function CustomerHomePage() {
               : Array.isArray(data)
                 ? data
                 : [];
-        setCombinedFeed(items);
+        setCombinedFeed(fetchedItems);
       }
+
+      // Initialize likedMap and savedMap from server interaction state
+      const initialLikes = {};
+      const initialSaves = {};
+      fetchedItems.forEach((item) => {
+        const itemId = (item._id || item.id)?.toString();
+        if (itemId) {
+          const isLiked = Boolean(item.isLiked || item.is_liked || item.hasLiked || item.viewer_state?.liked);
+          const isSaved = Boolean(item.isSaved || item.is_saved || item.hasSaved || item.viewer_state?.saved);
+          initialLikes[itemId] = isLiked;
+          initialSaves[itemId] = isSaved;
+        }
+      });
+      setLikedMap((prev) => ({ ...initialLikes, ...prev }));
+      setSavedMap((prev) => ({ ...initialSaves, ...prev }));
     } catch (err) {
       toast.error('Failed to load feed data');
     } finally {
@@ -379,49 +395,59 @@ export default function CustomerHomePage() {
   };
 
   const handleLike = async (id, customPostType = null) => {
-    const isLiked = !!likedMap[id];
-    setLikedMap((prev) => ({ ...prev, [id]: !isLiked }));
+    const stringId = id?.toString();
+    const item = combinedFeed.find(x => (x._id || x.id)?.toString() === stringId) ||
+      reels.find(x => (x._id || x.id)?.toString() === stringId) ||
+      images.find(x => (x._id || x.id)?.toString() === stringId);
+
+    const initialLiked = Boolean(item?.isLiked || item?.is_liked || item?.hasLiked || item?.viewer_state?.liked);
+    const currentlyLiked = likedMap[stringId] !== undefined ? likedMap[stringId] : initialLiked;
+    const newLiked = !currentlyLiked;
+
+    setLikedMap((prev) => ({ ...prev, [stringId]: newLiked }));
     try {
-      const item = combinedFeed.find(x => x._id === id || x.id === id) ||
-        reels.find(x => x._id === id || x.id === id) ||
-        images.find(x => x._id === id || x.id === id);
       const isReel = customPostType === 'reel' || (item?.postType === 'reel') || (activeTab === 'reels');
       if (isReel) {
-        await api.post(`/v1/reels/${id}/like`);
+        await api.post(`/v1/reels/${stringId}/like`);
       } else {
-        await api.post(`/v1/listings/${id}/like`);
+        await api.post(`/v1/listings/${stringId}/like`);
       }
-      toast.success(!isLiked ? 'Liked post ❤️' : 'Unliked post');
+      toast.success(newLiked ? 'Liked post ❤️' : 'Unliked post');
     } catch (err) {
-      setLikedMap((prev) => ({ ...prev, [id]: isLiked }));
+      setLikedMap((prev) => ({ ...prev, [stringId]: currentlyLiked }));
       toast.error('Failed to update like status');
     }
   };
 
   const handleSave = async (id, customPostType = null) => {
-    const isSaved = !!savedMap[id];
-    setSavedMap((prev) => ({ ...prev, [id]: !isSaved }));
+    const stringId = id?.toString();
+    const item = combinedFeed.find(x => (x._id || x.id)?.toString() === stringId) ||
+      reels.find(x => (x._id || x.id)?.toString() === stringId) ||
+      images.find(x => (x._id || x.id)?.toString() === stringId);
+
+    const initialSaved = Boolean(item?.isSaved || item?.is_saved || item?.hasSaved || item?.viewer_state?.saved);
+    const currentlySaved = savedMap[stringId] !== undefined ? savedMap[stringId] : initialSaved;
+    const newSaved = !currentlySaved;
+
+    setSavedMap((prev) => ({ ...prev, [stringId]: newSaved }));
     try {
-      const item = combinedFeed.find(x => x._id === id || x.id === id) ||
-        reels.find(x => x._id === id || x.id === id) ||
-        images.find(x => x._id === id || x.id === id);
       const isReel = customPostType === 'reel' || (item?.postType === 'reel') || (activeTab === 'reels');
       if (isReel) {
-        if (isSaved) {
-          await api.post(`/v1/reels/${id}/unsave`);
+        if (!newSaved) {
+          await api.post(`/v1/reels/${stringId}/unsave`);
         } else {
-          await api.post(`/v1/reels/${id}/save`);
+          await api.post(`/v1/reels/${stringId}/save`);
         }
       } else {
-        if (isSaved) {
-          await api.post(`/v1/listings/${id}/unsave-image`);
+        if (!newSaved) {
+          await api.post(`/v1/listings/${stringId}/unsave-image`);
         } else {
-          await api.post(`/v1/listings/${id}/save-image`);
+          await api.post(`/v1/listings/${stringId}/save-image`);
         }
       }
-      toast.success(!isSaved ? 'Saved post' : 'Removed from saved');
+      toast.success(newSaved ? 'Saved post' : 'Removed from saved');
     } catch (err) {
-      setSavedMap((prev) => ({ ...prev, [id]: isSaved }));
+      setSavedMap((prev) => ({ ...prev, [stringId]: currentlySaved }));
       toast.error('Failed to update saved status');
     }
   };
@@ -723,10 +749,16 @@ export default function CustomerHomePage() {
         ) : (
           <div className="w-full max-w-xl mx-auto px-1 sm:px-0 space-y-6 pb-24 lg:pb-12 font-sans pt-1">
             {processedCombinedFeed.map((item) => {
-              const itemId = item._id || item.id;
-              const isLiked = likedMap[itemId];
-              const isSaved = savedMap[itemId];
+              const itemId = (item._id || item.id)?.toString();
+              const initialLiked = Boolean(item.isLiked || item.is_liked || item.hasLiked || item.viewer_state?.liked);
+              const initialSaved = Boolean(item.isSaved || item.is_saved || item.hasSaved || item.viewer_state?.saved);
+              const isLiked = likedMap[itemId] !== undefined ? likedMap[itemId] : initialLiked;
+              const isSaved = savedMap[itemId] !== undefined ? savedMap[itemId] : initialSaved;
               const isExpanded = expandedCaptions[itemId];
+
+              const baseLikesCount = Number(item.likesCount ?? item.likes ?? item.likes_count ?? 0);
+              const likesDiff = (isLiked ? 1 : 0) - (initialLiked ? 1 : 0);
+              const displayLikesCount = Math.max(0, baseLikesCount + likesDiff);
 
               if (item.postType === 'reel') {
                 const vendorId = item.creator?._id || item.creator?.id || item.creator;
@@ -786,7 +818,7 @@ export default function CustomerHomePage() {
                     {/* Reel Media Section (Auto-Play + Double Tap Heart) */}
                     <div
                       onClick={() => {
-                        const idx = processedReels.findIndex(r => r._id === itemId || r.id === itemId);
+                        const idx = processedReels.findIndex(r => (r._id || r.id)?.toString() === itemId);
                         setReelViewerStartIndex(idx >= 0 ? idx : 0);
                         setReelViewerOpen(true);
                       }}
@@ -817,7 +849,7 @@ export default function CustomerHomePage() {
                             title="Like"
                           >
                             <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
-                            <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                            <span>{displayLikesCount}</span>
                           </button>
 
                           <button
@@ -995,7 +1027,7 @@ export default function CustomerHomePage() {
                     {/* Listing Media Section */}
                     <div
                       onClick={() => {
-                        const idx = processedImages.findIndex(i => i._id === itemId || i.id === itemId);
+                        const idx = processedImages.findIndex(i => (i._id || i.id)?.toString() === itemId);
                         setImageViewerStartIndex(idx >= 0 ? idx : 0);
                         setImageViewerOpen(true);
                       }}
@@ -1035,7 +1067,7 @@ export default function CustomerHomePage() {
                             title="Like"
                           >
                             <FiHeart size={20} className={isLiked ? 'fill-[#d99a3d]' : ''} />
-                            <span>{(item.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                            <span>{displayLikesCount}</span>
                           </button>
 
                           <button

@@ -253,9 +253,15 @@ export default function ReelFullscreenViewer({
         className="w-full h-full max-w-[500px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-none scroll-smooth bg-black relative"
       >
         {reels.map((reel, idx) => {
-          const isLiked = likedMap[reel._id || reel.id];
-          const isSaved = savedMap[reel._id || reel.id];
+          const reelId = (reel._id || reel.id)?.toString();
+          const initialLiked = Boolean(reel.isLiked || reel.is_liked || reel.hasLiked || reel.viewer_state?.liked);
+          const isLiked = (reelId && likedMap[reelId] !== undefined) ? likedMap[reelId] : initialLiked;
+          const initialSaved = Boolean(reel.isSaved || reel.is_saved || reel.hasSaved || reel.viewer_state?.saved);
+          const isSaved = (reelId && savedMap[reelId] !== undefined) ? savedMap[reelId] : initialSaved;
           const isFollowing = followingMap[reel.creator?._id || reel.creator?.id || reel.creator];
+          const baseLikes = Number(reel.likesCount ?? reel.likes ?? reel.likes_count ?? 0);
+          const likesDiff = (isLiked ? 1 : 0) - (initialLiked ? 1 : 0);
+          const displayLikesCount = Math.max(0, baseLikes + likesDiff);
 
           return (
             <div
@@ -276,7 +282,7 @@ export default function ReelFullscreenViewer({
               <div className="absolute right-2.5 bottom-48 sm:bottom-52 z-30 flex flex-col items-center gap-4 select-none">
                 {/* Like */}
                 <button
-                  onClick={() => onLike?.(reel._id || reel.id)}
+                  onClick={() => onLike?.(reelId)}
                   className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
                 >
                   <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md ${
@@ -284,7 +290,7 @@ export default function ReelFullscreenViewer({
                   }`}>
                     <FiHeart size={20} fill={isLiked ? 'currentColor' : 'none'} />
                   </div>
-                  <span className="text-white text-[10px] font-black drop-shadow-md">{reel.likesCount || 0}</span>
+                  <span className="text-white text-[10px] font-black drop-shadow-md">{displayLikesCount}</span>
                 </button>
 
                 {/* Comments */}
@@ -297,7 +303,7 @@ export default function ReelFullscreenViewer({
 
                 {/* Save */}
                 <button
-                  onClick={() => onSave?.(reel._id || reel.id)}
+                  onClick={() => onSave?.(reelId)}
                   className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
                 >
                   <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md ${

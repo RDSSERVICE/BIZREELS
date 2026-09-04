@@ -1,5 +1,8 @@
+const mongoose = require('mongoose');
 const Interaction = require('../models/Interaction');
 const Listing = require('../models/Listing');
+const ReelLike = require('../models/ReelLike');
+const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
 const { serializeListing } = require('./listing.service');
 const cache = require('../utils/cache');
@@ -75,23 +78,98 @@ const myListingsByType = async (userId, type, limit = 50) => {
   return listings.map(serializeListing);
 };
 
-const userInteractionState = async (userId, listingIds) => {
-  if (!userId || !listingIds || listingIds.length === 0) {
+const userInteractionState = async (userId, rawIds) => {
+  if (!userId || !rawIds || rawIds.length === 0) {
     return {};
   }
-  const inters = await Interaction.find({
-    user_id: userId,
-    listing_id: { $in: listingIds },
-  });
+
+  const stringIds = rawIds
+    .map(id => (id ? (id.toString ? id.toString() : String(id)) : null))
+    .filter(Boolean);
+
+  if (stringIds.length === 0) return {};
+
+  const objectIds = stringIds
+    .filter(id => mongoose.Types.ObjectId.isValid(id))
+    .map(id => new mongoose.Types.ObjectId(id));
+
+  const uidStr = userId.toString ? userId.toString() : String(userId);
+  const uidObj = mongoose.Types.ObjectId.isValid(uidStr) ? new mongoose.Types.ObjectId(uidStr) : null;
+
   const state = {};
-  for (const lid of listingIds) {
-    state[lid] = { liked: false, saved: false };
+  for (const id of stringIds) {
+    state[id] = { liked: false, saved: false };
   }
-  for (const i of inters) {
-    if (state[i.listing_id]) {
-      state[i.listing_id][`${i.type}d`] = true;
+
+  try {
+    // 1. Fetch from Interaction collection (covers listings & reels)
+    const interactionQuery = {
+      $or: [
+        { user_id: uidStr },
+        ...(uidObj ? [{ user_id: uidObj }] : []),
+      ],
+      $and: [
+        {
+          $or: [
+            { listing_id: { $in: stringIds } },
+            { reel_id: { $in: stringIds } },
+            ...(objectIds.length > 0 ? [{ listing_id: { $in: objectIds } }, { reel_id: { $in: objectIds } }] : []),
+          ],
+        },
+      ],
+    };
+
+    // 2. Fetch ReelLikes
+    const reelLikePromise = uidObj && objectIds.length > 0
+      ? ReelLike.find({ userId: uidObj, reelId: { $in: objectIds } }).lean().catch(() => [])
+      : Promise.resolve([]);
+
+    // 3. Fetch User profile saved arrays
+    const userProfilePromise = uidObj
+      ? User.findById(uidObj).select('customerProfile.savedListings customerProfile.savedReels').lean().catch(() => null)
+      : Promise.resolve(null);
+
+    const [inters, reelLikes, userProfile] = await Promise.all([
+      Interaction.find(interactionQuery).lean().catch(() => []),
+      reelLikePromise,
+      userProfilePromise,
+    ]);
+
+    // Mark from interactions
+    for (const i of inters) {
+      const targetId = (i.listing_id || i.reel_id)?.toString();
+      if (targetId && state[targetId]) {
+        if (i.type === 'like') {
+          state[targetId].liked = true;
+        } else if (i.type === 'save' || i.type === 'save_image' || i.type === 'save_reel') {
+          state[targetId].saved = true;
+        }
+      }
     }
+
+    // Mark from ReelLikes
+    for (const rl of reelLikes) {
+      const targetId = rl.reelId?.toString();
+      if (targetId && state[targetId]) {
+        state[targetId].liked = true;
+      }
+    }
+
+    // Mark from User profile saved arrays
+    if (userProfile?.customerProfile) {
+      const savedListings = (userProfile.customerProfile.savedListings || []).map(id => id?.toString());
+      const savedReels = (userProfile.customerProfile.savedReels || []).map(id => id?.toString());
+      for (const lid of savedListings) {
+        if (lid && state[lid]) state[lid].saved = true;
+      }
+      for (const rid of savedReels) {
+        if (rid && state[rid]) state[rid].saved = true;
+      }
+    }
+  } catch (err) {
+    console.error('Error computing userInteractionState:', err);
   }
+
   return state;
 };
 

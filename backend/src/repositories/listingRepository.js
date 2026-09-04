@@ -434,6 +434,38 @@ class ListingRepository {
       }
     }
 
+    // Populate user interaction state (likes, saves)
+    if (currentUserId && listings.length > 0) {
+      try {
+        const interactionService = require('../services/interaction.service');
+        const listingIds = listings.map(l => l._id?.toString() || l.id).filter(Boolean);
+        const state = await interactionService.userInteractionState(currentUserId, listingIds);
+        for (const l of listings) {
+          const lid = l._id?.toString() || l.id;
+          const s = state[lid] || { liked: false, saved: false };
+          l.viewer_state = s;
+          l.isLiked = Boolean(s.liked);
+          l.is_liked = Boolean(s.liked);
+          l.hasLiked = Boolean(s.liked);
+          l.isSaved = Boolean(s.saved);
+          l.is_saved = Boolean(s.saved);
+          l.hasSaved = Boolean(s.saved);
+        }
+      } catch (err) {
+        console.error('Error populating user interaction state for listings:', err);
+      }
+    } else {
+      for (const l of listings) {
+        l.viewer_state = { liked: false, saved: false };
+        l.isLiked = false;
+        l.is_liked = false;
+        l.hasLiked = false;
+        l.isSaved = false;
+        l.is_saved = false;
+        l.hasSaved = false;
+      }
+    }
+
     return { listings, total };
   }
 

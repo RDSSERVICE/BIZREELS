@@ -255,6 +255,38 @@ class ReelRepository {
       total = await Reel.countDocuments(match);
     }
 
+    // Populate user interaction state (likes, saves)
+    if (currentUserId && reels.length > 0) {
+      try {
+        const interactionService = require('../services/interaction.service');
+        const reelIds = reels.map(r => r._id?.toString() || r.id).filter(Boolean);
+        const state = await interactionService.userInteractionState(currentUserId, reelIds);
+        for (const r of reels) {
+          const rid = r._id?.toString() || r.id;
+          const s = state[rid] || { liked: r.hasLiked || false, saved: false };
+          r.viewer_state = s;
+          r.isLiked = Boolean(s.liked || r.hasLiked);
+          r.is_liked = Boolean(s.liked || r.hasLiked);
+          r.hasLiked = Boolean(s.liked || r.hasLiked);
+          r.isSaved = Boolean(s.saved);
+          r.is_saved = Boolean(s.saved);
+          r.hasSaved = Boolean(s.saved);
+        }
+      } catch (err) {
+        console.error('Error populating user interaction state for reels:', err);
+      }
+    } else {
+      for (const r of reels) {
+        r.viewer_state = { liked: false, saved: false };
+        r.isLiked = false;
+        r.is_liked = false;
+        r.hasLiked = false;
+        r.isSaved = false;
+        r.is_saved = false;
+        r.hasSaved = false;
+      }
+    }
+
     return { reels, total };
   }
 

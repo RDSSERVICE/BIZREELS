@@ -298,9 +298,28 @@ const buildFeed = async ({
   // Populate viewer interactions
   if (finalUserId && resultItems.length > 0) {
     const interactionService = require('./interaction.service');
-    const state = await interactionService.userInteractionState(finalUserId, resultItems.map(r => r.id));
+    const targetIds = resultItems.map(r => r.id || r._id?.toString()).filter(Boolean);
+    const state = await interactionService.userInteractionState(finalUserId, targetIds);
     for (const r of resultItems) {
-      r.viewer_state = state[r.id] || { liked: false, saved: false };
+      const rid = r.id || r._id?.toString();
+      const s = state[rid] || { liked: false, saved: false };
+      r.viewer_state = s;
+      r.isLiked = Boolean(s.liked);
+      r.is_liked = Boolean(s.liked);
+      r.hasLiked = Boolean(s.liked);
+      r.isSaved = Boolean(s.saved);
+      r.is_saved = Boolean(s.saved);
+      r.hasSaved = Boolean(s.saved);
+    }
+  } else {
+    for (const r of resultItems) {
+      r.viewer_state = { liked: false, saved: false };
+      r.isLiked = false;
+      r.is_liked = false;
+      r.hasLiked = false;
+      r.isSaved = false;
+      r.is_saved = false;
+      r.hasSaved = false;
     }
   }
 

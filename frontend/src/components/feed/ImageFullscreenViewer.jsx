@@ -45,6 +45,14 @@ export default function ImageFullscreenViewer({
   const [chatDrawerRecipientAvatar, setChatDrawerRecipientAvatar] = useState(null);
 
   const currentPost = images[currentIndex];
+  const postId = (currentPost?._id || currentPost?.id)?.toString();
+  const initialLiked = Boolean(currentPost?.isLiked || currentPost?.is_liked || currentPost?.hasLiked || currentPost?.viewer_state?.liked);
+  const isLiked = (postId && likedMap[postId] !== undefined) ? likedMap[postId] : initialLiked;
+  const initialSaved = Boolean(currentPost?.isSaved || currentPost?.is_saved || currentPost?.hasSaved || currentPost?.viewer_state?.saved);
+  const isSaved = (postId && savedMap[postId] !== undefined) ? savedMap[postId] : initialSaved;
+  const baseLikes = Number(currentPost?.likesCount ?? currentPost?.likes ?? currentPost?.likes_count ?? 0);
+  const likesDiff = (isLiked ? 1 : 0) - (initialLiked ? 1 : 0);
+  const displayLikesCount = Math.max(0, baseLikes + likesDiff);
 
   const goUp = () => {
     if (currentIndex > 0) {
@@ -322,26 +330,26 @@ export default function ImageFullscreenViewer({
         <div className="absolute right-2.5 bottom-48 sm:bottom-52 z-30 flex flex-col items-center gap-4 select-none">
           {/* Like */}
           <button
-            onClick={() => onLike?.(currentPost._id || currentPost.id)}
+            onClick={() => onLike?.(postId)}
             className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
           >
             <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md ${
-              likedMap[currentPost._id || currentPost.id] ? 'bg-red-500 text-white animate-scale-pop' : 'bg-black/50 hover:bg-black/70 text-white border border-white/10'
+              isLiked ? 'bg-red-500 text-white animate-scale-pop' : 'bg-black/50 hover:bg-black/70 text-white border border-white/10'
             }`}>
-              <FiHeart size={20} fill={likedMap[currentPost._id || currentPost.id] ? 'currentColor' : 'none'} />
+              <FiHeart size={20} fill={isLiked ? 'currentColor' : 'none'} />
             </div>
-            <span className="text-white text-[10px] font-black drop-shadow-md">{currentPost.likesCount || currentPost.likes || 0}</span>
+            <span className="text-white text-[10px] font-black drop-shadow-md">{displayLikesCount}</span>
           </button>
 
           {/* Save */}
           <button
-            onClick={() => onSave?.(currentPost._id || currentPost.id)}
+            onClick={() => onSave?.(postId)}
             className="flex flex-col items-center gap-1 cursor-pointer border-none bg-transparent"
           >
             <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md ${
-              savedMap[currentPost._id || currentPost.id] ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-black/50 hover:bg-black/70 text-white border border-white/10'
+              isSaved ? 'bg-[#d99a3d] text-[#1a1a1a]' : 'bg-black/50 hover:bg-black/70 text-white border border-white/10'
             }`}>
-              <FiBookmark size={20} fill={savedMap[currentPost._id || currentPost.id] ? 'currentColor' : 'none'} />
+              <FiBookmark size={20} fill={isSaved ? 'currentColor' : 'none'} />
             </div>
             <span className="text-white text-[10px] font-black drop-shadow-md">Save</span>
           </button>
