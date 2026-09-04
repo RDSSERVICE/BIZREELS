@@ -26,7 +26,7 @@ import { useConversations } from '@/features/chat/queries';
 export default function ChatInboxScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, status: authStatus } = useAuth();
   const currentUserId = user?._id || (user as any)?.id;
 
   const [activeTab, setActiveTab] = useState<'customers' | 'creators'>('customers');
@@ -64,6 +64,33 @@ export default function ChatInboxScreen() {
     const matchesSearch = !searchTerm || t.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  if (authStatus === 'unauthed' || !user) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Chats & Messages Inbox</Text>
+          <View style={{ width: 38 }} />
+        </View>
+
+        <View style={styles.centered}>
+          <Ionicons name="chatbubbles-outline" size={64} color={BrandColors.primary} />
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 16 }}>Sign In to View Messages</Text>
+          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 20 }}>
+            Please sign in to your BizReels account to send and receive messages with sellers and creators.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: BrandColors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+            onPress={() => router.push('/(auth)/login')}>
+            <Text style={{ color: '#000', fontWeight: '700', fontSize: 15 }}>Log In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

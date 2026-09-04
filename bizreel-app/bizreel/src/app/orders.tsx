@@ -15,10 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useCancelOrder, useMyOrders } from '@/features/orders/queries';
 import type { Order } from '@/features/orders/types';
+import { useAuth } from '@/features/auth/context';
 
 export default function CustomerOrdersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, status: authStatus } = useAuth();
 
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
   const { data, isLoading, refetch } = useMyOrders(activeFilter === 'all' ? undefined : activeFilter);
@@ -68,6 +70,33 @@ export default function CustomerOrdersScreen() {
         return BrandColors.primary;
     }
   };
+
+  if (authStatus === 'unauthed' || !user) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+            <SymbolView name="chevron.left" size={22} tintColor="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Orders</Text>
+          <View style={{ width: 36 }} />
+        </View>
+
+        <View style={styles.center}>
+          <SymbolView name="bag.badge.questionmark" size={64} tintColor={BrandColors.primary} />
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 16 }}>Sign In to View Orders</Text>
+          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 20 }}>
+            Please sign in to your BizReels account to view your past orders, active shipments, and track deliveries.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: BrandColors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+            onPress={() => router.push('/(auth)/login')}>
+            <Text style={{ color: '#000', fontWeight: '700', fontSize: 15 }}>Log In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

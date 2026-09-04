@@ -109,7 +109,7 @@ export default function SavedReelsScreen() {
               <View style={styles.overlayInfo}>
                 <View style={styles.iconRow}>
                   <Ionicons name="play" size={10} color="#fff" />
-                  <Text style={styles.overlayText}>{item.viewsCount || 0}</Text>
+                  <Text style={styles.overlayText}>{(item as any).views ?? item.viewsCount ?? (item as any).views_count ?? 0}</Text>
                 </View>
               </View>
             </TouchableOpacity>

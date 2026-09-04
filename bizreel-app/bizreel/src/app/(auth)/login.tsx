@@ -20,6 +20,8 @@ import {
 } from 'react-native';
 
 import { BrandColors, FontSize, Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
+import { performGoogleAuth } from '@/features/auth/google-auth';
 import { useLogin, useSendOtp, useVerifyOtp } from '@/features/auth/mutations';
 import { loginSchema, type LoginFormValues } from '@/features/auth/schema';
 import { useTheme } from '@/hooks/use-theme';
@@ -27,6 +29,8 @@ import { useTheme } from '@/hooks/use-theme';
 export default function LoginScreen() {
   const theme = useTheme();
   const s = makeStyles(theme);
+  const { setUser } = useAuth();
+  const [isGooglePending, setIsGooglePending] = useState(false);
 
   // Auth Mode: 'email' or 'phone'
   const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
@@ -37,6 +41,18 @@ export default function LoginScreen() {
   // Email form state
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  async function handleGoogleAuth() {
+    setServerError(null);
+    setIsGooglePending(true);
+    const res = await performGoogleAuth(setUser);
+    setIsGooglePending(false);
+    if (res.success) {
+      router.replace('/(tabs)/home');
+    } else if (res.message && !res.message.includes('cancelled')) {
+      setServerError(res.message);
+    }
+  }
 
   // Phone / Email OTP state
   const [identifier, setIdentifier] = useState('');
@@ -413,6 +429,9 @@ export default function LoginScreen() {
                         }}
                         style={[s.otpBox, digit ? s.otpBoxFilled : null]}
                         keyboardType="number-pad"
+                        inputMode="numeric"
+                        textContentType="oneTimeCode"
+                        autoComplete="sms-otp"
                         maxLength={1}
                         value={digit}
                         onChangeText={(text) => handleOtpBoxChange(text, index)}
@@ -484,6 +503,30 @@ export default function LoginScreen() {
               )}
             </>
           )}
+
+          {/* OR Divider */}
+          <View style={s.dividerRow}>
+            <View style={s.dividerLine} />
+            <Text style={s.dividerText}>OR CONTINUE WITH</Text>
+            <View style={s.dividerLine} />
+          </View>
+
+          {/* Google Auth Button */}
+          <TouchableOpacity
+            style={[s.googleButton, isGooglePending && s.googleButtonDisabled]}
+            onPress={handleGoogleAuth}
+            disabled={isGooglePending}
+            accessibilityLabel="Continue with Google"
+            accessibilityRole="button">
+            {isGooglePending ? (
+              <ActivityIndicator color={YELLOW} />
+            ) : (
+              <>
+                <Ionicons name="logo-google" size={18} color="#EA4335" />
+                <Text style={s.googleButtonText}>CONTINUE WITH GOOGLE</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Register link */}
@@ -763,6 +806,40 @@ function makeStyles(_theme: any) {
     securitySub: {
       fontSize: FontSize.xs,
       color: 'rgba(255,255,255,0.4)',
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginVertical: 4,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: BORDER,
+    },
+    dividerText: {
+      color: 'rgba(255,255,255,0.4)',
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 1,
+    },
+    googleButton: {
+      backgroundColor: BLACK,
+      borderWidth: 1.5,
+      borderColor: BORDER,
+      height: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    googleButtonDisabled: { opacity: 0.7 },
+    googleButtonText: {
+      color: '#fff',
+      fontSize: FontSize.sm,
+      fontWeight: '900',
+      letterSpacing: 0.5,
     },
   });
 }

@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   uploadOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -862,7 +862,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarUploadOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.6)',
     borderRadius: 30,
     alignItems: 'center',

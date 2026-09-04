@@ -140,29 +140,46 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.headerRightGroup}>
-            <RoleSwitcher />
+            {!user ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity
+                  style={styles.headerLoginBtn}
+                  onPress={() => router.push('/(auth)/login')}>
+                  <Text style={styles.headerLoginText}>Login</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.headerRegisterBtn}
+                  onPress={() => router.push('/(auth)/register')}>
+                  <Text style={styles.headerRegisterText}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <RoleSwitcher />
 
-            {!isCreator && (
-              <TouchableOpacity
-                style={styles.chatIconBtn}
-                onPress={() => router.push('/messages' as any)}
-                accessibilityLabel="Messages Inbox">
-                <Ionicons name="chatbubble-ellipses-outline" size={20} color={YELLOW} />
-              </TouchableOpacity>
-            )}
-
-            {!isVendor && !isCreator && (
-              <TouchableOpacity
-                style={styles.cartIconBtn}
-                onPress={() => router.push('/cart')}
-                accessibilityLabel="Cart">
-                <Ionicons name="cart" size={20} color="#fff" />
-                {cartItemCount > 0 && (
-                  <View style={styles.cartBadge}>
-                    <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
-                  </View>
+                {!isCreator && (
+                  <TouchableOpacity
+                    style={styles.chatIconBtn}
+                    onPress={() => router.push('/messages' as any)}
+                    accessibilityLabel="Messages Inbox">
+                    <Ionicons name="chatbubble-ellipses-outline" size={20} color={YELLOW} />
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
+
+                {!isVendor && !isCreator && (
+                  <TouchableOpacity
+                    style={styles.cartIconBtn}
+                    onPress={() => router.push('/cart')}
+                    accessibilityLabel="Cart">
+                    <Ionicons name="cart" size={20} color="#fff" />
+                    {cartItemCount > 0 && (
+                      <View style={styles.cartBadge}>
+                        <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
         </View>
@@ -334,11 +351,11 @@ export default function HomeScreen() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.catalogScrollContent}>
-                {vendorListings.map((item) => {
+                {vendorListings.map((item, idx) => {
                   const imgUri = getListingImage(item) || 'https://via.placeholder.com/300';
                   return (
                     <TouchableOpacity
-                      key={item._id}
+                      key={item._id ? `${item._id}_v_${idx}` : `vcat_${idx}`}
                       style={styles.catalogCard}
                       onPress={() => router.push('/vendor/listings' as any)}>
                       <Image source={{ uri: imgUri }} style={styles.catalogCardImage} contentFit="cover" />
@@ -407,11 +424,11 @@ export default function HomeScreen() {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.reelsHighlightScroll}>
-                  {myReels.map((reel) => {
+                  {myReels.map((reel, idx) => {
                     const reelThumb = resolveImageUrl(reel.thumbnailUrl || reel.mediaUrls?.[0] || (reel as any).coverImage);
                     return (
                       <TouchableOpacity
-                        key={reel._id}
+                        key={reel._id ? `${reel._id}_my_${idx}` : `myreel_${idx}`}
                         style={styles.reelHighlightCard}
                         onPress={() =>
                           router.push({
@@ -472,11 +489,11 @@ export default function HomeScreen() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.reelsHighlightScroll}>
-                {reels.slice(0, 6).map((reel) => {
+                {reels.slice(0, 6).map((reel, idx) => {
                   const reelThumb = resolveImageUrl(reel.thumbnailUrl || reel.mediaUrls?.[0] || (reel as any).coverImage);
                   return (
                     <TouchableOpacity
-                      key={reel._id}
+                      key={reel._id ? `${reel._id}_feat_${idx}` : `feat_reel_${idx}`}
                       style={styles.reelHighlightCard}
                       onPress={() =>
                         router.push({
@@ -539,14 +556,14 @@ export default function HomeScreen() {
               </View>
             ) : (
               <View style={styles.gridContainer}>
-                {filteredListings.map((item) => {
+                {filteredListings.map((item, idx) => {
                   const imageUrl = getListingImage(item);
                   const price = item.salePrice || item.sellingPrice || item.price || 0;
                   const originalPrice = item.actualPrice || item.price;
 
                   return (
                     <TouchableOpacity
-                      key={item._id || item.id}
+                      key={(item._id || item.id) ? `${item._id || item.id}_grid_${idx}` : `list_${idx}`}
                       style={styles.productCard}
                       onPress={() => router.push(`/listing/${item._id || item.id}`)}>
                       {/* Card Thumbnail */}
@@ -617,6 +634,80 @@ export default function HomeScreen() {
             )}
           </View>
         )}
+
+        {/* ── About BizReels Public Platform Overview ── */}
+        <View style={styles.aboutSection}>
+          <View style={styles.aboutHeaderRow}>
+            <View style={styles.aboutBadge}>
+              <Text style={styles.aboutBadgeText}>ABOUT BIZREELS.IN</Text>
+            </View>
+            <Text style={styles.aboutTitle}>Empowering Local Businesses & Buyers</Text>
+            <Text style={styles.aboutSubtitle}>
+              BizReels is India's first short-video marketplace connecting local sellers, content creators, and buyers directly with zero commission markups.
+            </Text>
+          </View>
+
+          <View style={styles.aboutGrid}>
+            <View style={styles.aboutCard}>
+              <View style={styles.aboutIconBox}>
+                <Ionicons name="videocam-outline" size={22} color={YELLOW} />
+              </View>
+              <Text style={styles.aboutCardTitle}>Short Video Reels</Text>
+              <Text style={styles.aboutCardDesc}>
+                Watch 15-second product & service reels created by local sellers before making buying decisions.
+              </Text>
+            </View>
+
+            <View style={styles.aboutCard}>
+              <View style={styles.aboutIconBox}>
+                <Ionicons name="chatbubbles-outline" size={22} color={YELLOW} />
+              </View>
+              <Text style={styles.aboutCardTitle}>Direct Connect</Text>
+              <Text style={styles.aboutCardDesc}>
+                Chat directly on WhatsApp or call vendors directly without middlemen or hidden fees.
+              </Text>
+            </View>
+
+            <View style={styles.aboutCard}>
+              <View style={styles.aboutIconBox}>
+                <Ionicons name="shield-checkmark-outline" size={22} color={YELLOW} />
+              </View>
+              <Text style={styles.aboutCardTitle}>Verified Suppliers</Text>
+              <Text style={styles.aboutCardDesc}>
+                Discover 10,000+ KYC verified businesses across Electronics, Fashion, Services & Local Deals.
+              </Text>
+            </View>
+
+            <View style={styles.aboutCard}>
+              <View style={styles.aboutIconBox}>
+                <Ionicons name="flash-outline" size={22} color={YELLOW} />
+              </View>
+              <Text style={styles.aboutCardTitle}>Zero Commission</Text>
+              <Text style={styles.aboutCardDesc}>
+                Sellers keep 100% of profits, ensuring buyers get authentic wholesale and factory prices.
+              </Text>
+            </View>
+          </View>
+
+          {!user && (
+            <View style={styles.aboutCtaBox}>
+              <Text style={styles.aboutCtaTitle}>Join Thousands of Local Buyers & Sellers</Text>
+              <Text style={styles.aboutCtaSub}>Create your free account today to message sellers & post reels.</Text>
+              <View style={styles.aboutCtaBtnRow}>
+                <TouchableOpacity
+                  style={styles.aboutCtaPrimaryBtn}
+                  onPress={() => router.push('/(auth)/register')}>
+                  <Text style={styles.aboutCtaPrimaryText}>Create Free Account</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.aboutCtaSecondaryBtn}
+                  onPress={() => router.push('/(auth)/login')}>
+                  <Text style={styles.aboutCtaSecondaryText}>Log In</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
     </>
@@ -857,10 +948,10 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
   },
   reelThumbnail: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   reelOverlayGradient: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   reelPlayBadge: {
@@ -1174,5 +1265,151 @@ const styles = StyleSheet.create({
     color: BLACK,
     fontSize: FontSize.xs,
     fontWeight: '900',
+  },
+  headerLoginBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: YELLOW,
+  },
+  headerLoginText: {
+    color: YELLOW,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  headerRegisterBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: YELLOW,
+  },
+  headerRegisterText: {
+    color: BLACK,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  aboutSection: {
+    marginTop: 24,
+    marginBottom: 32,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: 20,
+    backgroundColor: '#141418',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  aboutHeaderRow: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  aboutBadge: {
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    marginBottom: 8,
+  },
+  aboutBadgeText: {
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  aboutTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  aboutSubtitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 8,
+  },
+  aboutGrid: {
+    gap: 12,
+  },
+  aboutCard: {
+    backgroundColor: DARK_CARD,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  aboutIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  aboutCardTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  aboutCardDesc: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  aboutCtaBox: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: 'rgba(245,158,11,0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.3)',
+    alignItems: 'center',
+  },
+  aboutCtaTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  aboutCtaSub: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 11,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  aboutCtaBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  aboutCtaPrimaryBtn: {
+    backgroundColor: YELLOW,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  aboutCtaPrimaryText: {
+    color: BLACK,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  aboutCtaSecondaryBtn: {
+    borderWidth: 1,
+    borderColor: YELLOW,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  aboutCtaSecondaryText: {
+    color: YELLOW,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

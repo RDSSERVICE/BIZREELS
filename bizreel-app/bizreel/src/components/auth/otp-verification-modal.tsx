@@ -68,33 +68,27 @@ export function OtpVerificationModal({
       setErrorMsg(null);
       setTimeout(() => {
         inputRefs.current[0]?.focus();
-      }, 300);
+      }, 100);
     }
   }, [visible]);
 
   const handleOtpChange = (text: string, index: number) => {
-    setErrorMsg(null);
-
-    // Handle pasting complete 6-digit code
-    if (text.length > 1) {
-      const pasted = text.replace(/[^0-9]/g, '').slice(0, 6).split('');
-      const newDigits = ['', '', '', '', '', ''];
-      pasted.forEach((char, i) => {
-        newDigits[i] = char;
-      });
+    // If user pastes full 6-digit OTP code at once
+    const cleanText = text.replace(/[^0-9]/g, '');
+    if (cleanText.length >= 6) {
+      const newDigits = cleanText.slice(0, 6).split('');
       setOtpDigits(newDigits);
-      const nextIdx = Math.min(pasted.length, 5);
-      inputRefs.current[nextIdx]?.focus();
+      inputRefs.current[5]?.focus();
       return;
     }
 
-    const digit = text.replace(/[^0-9]/g, '');
     const newDigits = [...otpDigits];
-    newDigits[index] = digit;
+    newDigits[index] = cleanText.slice(-1);
     setOtpDigits(newDigits);
+    setErrorMsg(null);
 
-    // Auto focus next box
-    if (digit && index < 5) {
+    // Auto-advance to next box if digit entered
+    if (cleanText && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -114,18 +108,15 @@ export function OtpVerificationModal({
 
     setErrorMsg(null);
     verifyOtp(
+      { phone, otp },
       {
-        phone,
-        otp,
-        name,
-        email,
-        role,
-      },
-      {
-        onSuccess: () => {
-          onSuccess({ otp });
+        onSuccess: (res) => {
+          if (onSuccess) {
+            onSuccess({ otp, data: res });
+          }
+          onClose();
         },
-        onError: (err) => {
+        onError: (err: any) => {
           setErrorMsg(err.message || 'OTP verification failed. Please try again.');
         },
       }
@@ -134,7 +125,6 @@ export function OtpVerificationModal({
 
   const handleResend = () => {
     if (timer > 0 || isSending) return;
-
     setErrorMsg(null);
     sendOtp(
       { phone },
@@ -144,7 +134,7 @@ export function OtpVerificationModal({
           setOtpDigits(['', '', '', '', '', '']);
           inputRefs.current[0]?.focus();
         },
-        onError: (err) => {
+        onError: (err: any) => {
           setErrorMsg(err.message || 'Failed to resend OTP.');
         },
       }
@@ -154,8 +144,8 @@ export function OtpVerificationModal({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
       transparent
+      animationType="slide"
       onRequestClose={onClose}>
       <View style={s.overlay}>
         <View style={s.container}>
@@ -165,14 +155,13 @@ export function OtpVerificationModal({
               <Ionicons name="shield-checkmark" size={24} color={YELLOW} />
               <Text style={s.title}>VERIFY OTP</Text>
             </View>
-            <TouchableOpacity style={s.closeBtn} onPress={onClose}>
+            <TouchableOpacity onPress={onClose} style={s.closeBtn}>
               <Ionicons name="close" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
 
           <Text style={s.subheading}>
             We sent a 6-digit OTP code to <Text style={s.highlight}>{phone}</Text>
-            {email ? ` & ${email}` : ''}. Enter it below to complete registration.
           </Text>
 
           {/* Error Banner */}
@@ -200,6 +189,9 @@ export function OtpVerificationModal({
                 onChangeText={(text) => handleOtpChange(text, index)}
                 onKeyPress={(e) => handleKeyPress(e, index)}
                 keyboardType="number-pad"
+                inputMode="numeric"
+                textContentType="oneTimeCode"
+                autoComplete="sms-otp"
                 maxLength={index === 0 ? 6 : 1}
                 selectTextOnFocus
                 textAlign="center"

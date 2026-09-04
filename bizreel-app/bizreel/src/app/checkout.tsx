@@ -20,6 +20,7 @@ import { checkoutCart } from '@/features/cart/api';
 import { createOrder } from '@/features/orders/api';
 import type { PaymentMethod } from '@/features/orders/types';
 import { getListingImage, resolveImageUrl } from '@/utils/image';
+import { useAuth } from '@/features/auth/context';
 
 function extractItemPrice(item: any): number {
   if (!item) return 0;
@@ -53,6 +54,7 @@ function extractItemPrice(item: any): number {
 export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, status: authStatus } = useAuth();
   const params = useLocalSearchParams<{
     listingId?: string;
     title?: string;
@@ -194,6 +196,19 @@ export default function CheckoutScreen() {
       <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={BrandColors.primary} />
         <Text style={styles.loadingText}>Loading checkout details...</Text>
+      </View>
+    );
+  }
+
+  if (authStatus === 'unauthed' || !user) {
+    return (
+      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
+        <Ionicons name="lock-closed-outline" size={64} color={BrandColors.primary} />
+        <Text style={styles.emptyTitle}>Sign In to Complete Checkout</Text>
+        <Text style={styles.emptySub}>Please sign in to your BizReels account to place your order and set delivery details.</Text>
+        <TouchableOpacity style={styles.browseBtn} onPress={() => router.push('/(auth)/login')}>
+          <Text style={styles.browseBtnText}>Log In / Register</Text>
+        </TouchableOpacity>
       </View>
     );
   }

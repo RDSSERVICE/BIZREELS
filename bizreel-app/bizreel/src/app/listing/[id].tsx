@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import DirectBuyModal from '@/components/DirectBuyModal';
+import { useAuth } from '@/features/auth/context';
 import { useAddToCart } from '@/features/cart/queries';
 import { useCreateInquiry } from '@/features/inquiries/queries';
 import { useCreateReview, useListingReviews } from '@/features/reviews/queries';
@@ -154,25 +155,46 @@ export default function ListingDetailsScreen() {
   const hasDiscount = originalPrice > price && price > 0;
   const discountPercent = hasDiscount ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
 
+  const { user, status: authStatus } = useAuth();
+
+  function ensureAuth(actionDesc: string, callback: () => void) {
+    if (authStatus !== 'authed' || !user) {
+      Alert.alert(
+        'Login Required',
+        `Please sign in to your BizReels account to ${actionDesc}.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log In / Register', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
+    callback();
+  }
+
   const handleAddToCart = () => {
-    addToCartMutation.mutate(
-      { listing_id: listing._id, quantity: 1 },
-      {
-        onSuccess: () => {
-          Alert.alert('🎉 Added to Cart!', `"${listing.title}" has been added to your cart.`, [
-            { text: 'View Cart', onPress: () => router.push('/cart') },
-            { text: 'Continue Shopping' },
-          ]);
-        },
-        onError: (err: any) => {
-          Alert.alert('Cart Notice', err.message || 'Unable to update online cart.');
-        },
-      }
-    );
+    ensureAuth('add items to your cart', () => {
+      addToCartMutation.mutate(
+        { listing_id: listing._id, quantity: 1 },
+        {
+          onSuccess: () => {
+            Alert.alert('🎉 Added to Cart!', `"${listing.title}" has been added to your cart.`, [
+              { text: 'View Cart', onPress: () => router.push('/cart') },
+              { text: 'Continue Shopping' },
+            ]);
+          },
+          onError: (err: any) => {
+            Alert.alert('Cart Notice', err.message || 'Unable to update online cart.');
+          },
+        }
+      );
+    });
   };
 
   const handleBuyNow = () => {
-    setDirectBuyModalOpen(true);
+    ensureAuth('buy this product', () => {
+      setDirectBuyModalOpen(true);
+    });
   };
 
   const handleWhatsApp = () => {
@@ -701,7 +723,7 @@ const styles = StyleSheet.create({
   buyBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)' },
+  modalBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.8)' },
   modalContent: { backgroundColor: DARK_CARD, borderTopWidth: 2, borderTopColor: YELLOW, padding: Spacing.four, gap: 10 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: BORDER, paddingBottom: 8 },
   modalTitle: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },

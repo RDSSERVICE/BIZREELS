@@ -21,6 +21,7 @@ import { api } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/image';
 import { useAddToCart } from '@/features/cart/queries';
 import { useFollowUser, useUnfollowUser } from '@/features/reels/queries';
+import { useAuth } from '@/features/auth/context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_WIDTH = (SCREEN_WIDTH - Spacing.four * 3) / 2;
@@ -105,14 +106,23 @@ export default function PublicVendorProfileScreen() {
 
     try {
       const [vendorRes, listingsRes, reelsRes] = await Promise.all([
-        api.get(`/vendors/${vendorId}`).catch(() =>
-          api.get(`/users/${vendorId}`).catch(() => ({ data: {} }))
+        // 1. Fetch Vendor Profile Details
+        api.get(`/vendors/${vendorId}/profile`).catch(() =>
+          api.get(`/vendors/${vendorId}`).catch(() =>
+            api.get(`/users/${vendorId}`).catch(() => ({ data: {} }))
+          )
         ),
-        api.get(`/listings`, { params: { vendor_id: vendorId } }).catch(() =>
-          api.get(`/v1/listings`, { params: { vendor: vendorId } }).catch(() => ({ data: { items: [] } }))
+        // 2. Fetch Vendor Products/Services Listings
+        api.get(`/vendors/${vendorId}/listings`).catch(() =>
+          api.get(`/listings`, { params: { vendor: vendorId } }).catch(() =>
+            api.get(`/listings`, { params: { vendor_id: vendorId } }).catch(() => ({ data: { items: [] } }))
+          )
         ),
-        api.get(`/reels`, { params: { vendor_id: vendorId } }).catch(() =>
-          api.get(`/reels`, { params: { creator_id: vendorId } }).catch(() => ({ data: { items: [] } }))
+        // 3. Fetch Vendor Reels
+        api.get(`/reels`, { params: { creatorId: vendorId } }).catch(() =>
+          api.get(`/reels`, { params: { creator_id: vendorId } }).catch(() =>
+            api.get(`/reels`, { params: { vendor_id: vendorId } }).catch(() => ({ data: { items: [] } }))
+          )
         ),
       ]);
 
@@ -120,11 +130,27 @@ export default function PublicVendorProfileScreen() {
       setVendor(vData);
       setIsFollowing(Boolean(vData.viewer_following));
 
-      const pItems = listingsRes.data?.data?.items || listingsRes.data?.items || listingsRes.data || [];
-      setProducts(Array.isArray(pItems) ? pItems : []);
+      // Extract listings/products array
+      const pRaw =
+        listingsRes.data?.items ||
+        listingsRes.data?.data?.items ||
+        listingsRes.data?.data ||
+        listingsRes.data ||
+        [];
+      const pItems = Array.isArray(pRaw) ? pRaw : [];
+      setProducts(pItems);
 
-      const rItems = reelsRes.data?.data?.reels || reelsRes.data?.reels || reelsRes.data?.items || reelsRes.data || [];
-      setReels(Array.isArray(rItems) ? rItems : []);
+      // Extract reels array
+      const rRaw =
+        reelsRes.data?.data?.reels ||
+        reelsRes.data?.reels ||
+        reelsRes.data?.data?.items ||
+        reelsRes.data?.items ||
+        reelsRes.data?.data ||
+        reelsRes.data ||
+        [];
+      const rItems = Array.isArray(rRaw) ? rRaw : [];
+      setReels(rItems);
     } catch (err) {
       console.warn('Failed to load vendor profile details:', err);
     } finally {
@@ -142,29 +168,50 @@ export default function PublicVendorProfileScreen() {
     fetchVendorData();
   };
 
+  const { user, status: authStatus } = useAuth();
+
+  const ensureAuth = (actionDesc: string, callback: () => void) => {
+    if (authStatus === 'unauthed' || !user) {
+      Alert.alert(
+        'Account Required',
+        `Please sign in to your BizReels account to ${actionDesc}.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log In / Register', onPress: () => router.push('/(auth)/login' as any) },
+        ]
+      );
+      return;
+    }
+    callback();
+  };
+
   const handleToggleFollow = () => {
     if (!vendorId) return;
-    const next = !isFollowing;
-    setIsFollowing(next);
-    if (next) {
-      followMutation.mutate(vendorId);
-    } else {
-      unfollowMutation.mutate(vendorId);
-    }
+    ensureAuth('follow stores', () => {
+      const next = !isFollowing;
+      setIsFollowing(next);
+      if (next) {
+        followMutation.mutate(vendorId);
+      } else {
+        unfollowMutation.mutate(vendorId);
+      }
+    });
   };
 
   const handleChat = () => {
     if (!vendorId) return;
-    const name = vendor?.business_name || vendor?.name || 'Store Seller';
-    router.push({
-      pathname: '/messages/[id]' as any,
-      params: {
-        id: `direct_${vendorId}`,
-        recipientId: vendorId,
-        name,
-        avatar: vendor?.profile_pic || '',
-      },
-    } as any);
+    ensureAuth('chat with vendors', () => {
+      const name = vendor?.business_name || vendor?.name || 'Store Seller';
+      router.push({
+        pathname: '/messages/[id]' as any,
+        params: {
+          id: `direct_${vendorId}`,
+          recipientId: vendorId,
+          name,
+          avatar: vendor?.profile_pic || '',
+        },
+      } as any);
+    });
   };
 
   const handleCall = () => {

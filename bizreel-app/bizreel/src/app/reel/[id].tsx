@@ -89,7 +89,7 @@ export default function DedicatedSingleReelVideoScreen() {
       <VideoView
         player={player}
         style={styles.videoPlayer}
-        contentFit="cover"
+        contentFit="contain"
         nativeControls={false}
         startsPictureInPictureAutomatically={false}
       />

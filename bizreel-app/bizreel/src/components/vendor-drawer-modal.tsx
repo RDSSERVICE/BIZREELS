@@ -215,29 +215,31 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
           {/* User Profile Header Card */}
           <View style={styles.profileCard}>
             <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
+              <Ionicons name={user ? "person-circle" : "person-outline"} size={32} color="#F59E0B" />
             </View>
             <View style={{ flex: 1 }}>
               <View style={styles.nameRow}>
-                <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {!user ? 'Welcome to BizReels' : displayName}
+                </Text>
                 {isVendor && (
                   <View style={styles.verifiedBadge}>
                     <Ionicons name="checkmark-circle" size={12} color="#F59E0B" />
                   </View>
                 )}
               </View>
-              <Text style={styles.profileEmail} numberOfLines={1}>{displayEmail}</Text>
+              <Text style={styles.profileEmail} numberOfLines={1}>
+                {!user ? 'Sign in to access all features' : displayEmail}
+              </Text>
             </View>
           </View>
 
-          {/* Menu Sections Accordion */}
           <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {NAV_SECTIONS.map((sec) => {
               const isCollapsed = collapsedSections[sec.key];
 
               return (
                 <View key={sec.key} style={styles.sectionBlock}>
-                  {/* Section Title Toggle Header */}
                   <TouchableOpacity
                     style={styles.sectionHeaderRow}
                     onPress={() => toggleSection(sec.key)}>
@@ -252,7 +254,6 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
                     />
                   </TouchableOpacity>
 
-                  {/* Section Items */}
                   {!isCollapsed && (
                     <View style={styles.itemsList}>
                       {sec.items.map((item, idx) => {
@@ -294,21 +295,31 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
             <View style={{ height: 30 }} />
           </ScrollView>
 
-          {/* Footer Action Buttons */}
           <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-            <TouchableOpacity style={styles.switchFeedBtn} onPress={() => handleNavigate('/(tabs)/home')}>
-              <Ionicons name="swap-horizontal" size={16} color="#F59E0B" />
-              <Text style={styles.switchFeedText}>Switch to Buyer Feed</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={16} color="#EF4444" />
-              <Text style={styles.logoutText}>Log Out</Text>
-            </TouchableOpacity>
+            {!user ? (
+              <View style={{ gap: 8 }}>
+                <TouchableOpacity
+                  style={[styles.logoutBtn, { backgroundColor: '#F59E0B', borderColor: '#F59E0B' }]}
+                  onPress={() => handleNavigate('/(auth)/login')}>
+                  <Ionicons name="log-in-outline" size={16} color="#0F0F12" />
+                  <Text style={[styles.logoutText, { color: '#0F0F12' }]}>Log In</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.logoutBtn, { backgroundColor: 'transparent', borderColor: '#F59E0B' }]}
+                  onPress={() => handleNavigate('/(auth)/register')}>
+                  <Ionicons name="person-add-outline" size={16} color="#F59E0B" />
+                  <Text style={[styles.logoutText, { color: '#F59E0B' }]}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+                <Ionicons name="log-out-outline" size={16} color="#EF4444" />
+                <Text style={styles.logoutText}>Log Out</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {/* Overlay Backdrop Touch */}
         <TouchableOpacity style={styles.backdropTouch} onPress={onClose} />
       </View>
     </Modal>

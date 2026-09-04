@@ -7,7 +7,7 @@ import axios from 'axios';
 
 import { tokenStore } from './storage';
 
-const DEFAULT_BACKEND_URL = 'https://api.bizreels.in/api/v1';
+const DEFAULT_BACKEND_URL = 'https://bizreels-backend.onrender.com/api/v1';
 
 export const getBaseUrl = (): string => {
   const envUrl =

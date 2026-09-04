@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
 import { createOrder } from '@/features/orders/api';
 import { api } from '@/lib/api';
 import { getListingImage, resolveImageUrl } from '@/utils/image';
@@ -156,7 +157,22 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
 
   const totalPrice = activePrice * quantity;
 
+  const { user } = useAuth();
+
   const handlePlaceOrder = async () => {
+    if (!user) {
+      onClose();
+      Alert.alert(
+        'Login Required',
+        'Please log in or create an account to complete your order checkout.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log In', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
+
     if (!customerName.trim() || !customerPhone.trim() || !streetAddress.trim() || !city.trim() || !stateVal.trim() || !pincode.trim()) {
       Alert.alert('Delivery Address Incomplete', 'Please fill in all standard address details: Name, Mobile, Street Address, City, State, and Pincode.');
       return;
@@ -229,7 +245,7 @@ export default function DirectBuyModal({ visible, onClose, item, onSuccess }: Di
                 style={styles.viewOrdersBtn}
                 onPress={() => {
                   onClose();
-                  router.push('/customer/orders' as any);
+                  router.replace('/orders');
                 }}>
                 <Text style={styles.viewOrdersText}>View My Orders</Text>
               </TouchableOpacity>

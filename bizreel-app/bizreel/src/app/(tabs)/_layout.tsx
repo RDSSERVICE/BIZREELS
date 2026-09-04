@@ -72,7 +72,7 @@ export default function TabLayout() {
         <View style={styles.root}>
           <Tabs
             initialRouteName={isVendor || isCreator ? 'home' : 'index'}
-            tabBar={(props) => <CustomTabBar {...props} />}
+            tabBar={(props) => <CustomTabBar {...(props as any)} />}
             screenOptions={{ headerShown: false }}>
             <Tabs.Screen name="home" options={{ title: 'Home' }} />
             <Tabs.Screen name="index" options={{ title: 'Reels' }} />

@@ -20,8 +20,20 @@ function AuthGate() {
   useEffect(() => {
     if (status === 'loading') return;
     const inAuthGroup = segments[0] === '(auth)';
-    if (status === 'unauthed' && !inAuthGroup) {
-      router.replace('/(auth)/register');
+    const firstSegment = (segments[0] as string) || '';
+
+    // Protected routes requiring authentication
+    const isProtectedRoute = [
+      'checkout',
+      'vendor',
+      'creator',
+      'wallet',
+      'orders',
+      'customer',
+    ].includes(firstSegment);
+
+    if (status === 'unauthed' && isProtectedRoute) {
+      router.replace('/(auth)/login');
     } else if (status === 'authed') {
       const activeRole = user?.activeRole || user?.current_role || 'customer';
       const isVendor = activeRole === 'vendor';
@@ -35,7 +47,7 @@ function AuthGate() {
       } else if (isCreatorIncomplete) {
         router.replace('/creator/onboarding');
       } else if (inAuthGroup) {
-        router.replace(isVendor || isCreator ? '/(tabs)/home' : '/(tabs)');
+        router.replace('/(tabs)/home');
       }
     }
   }, [status, segments, user]);

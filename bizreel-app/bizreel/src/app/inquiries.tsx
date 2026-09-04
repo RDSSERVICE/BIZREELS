@@ -23,10 +23,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useInquiries, useReplyInquiry } from '@/features/inquiries/queries';
 import type { Inquiry } from '@/features/inquiries/types';
+import { useAuth } from '@/features/auth/context';
 
 export default function InquiriesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, status: authStatus } = useAuth();
 
   const { data: inquiries, isLoading, refetch, isRefetching } = useInquiries();
   const replyMutation = useReplyInquiry();
@@ -46,6 +48,33 @@ export default function InquiriesScreen() {
       }
     );
   };
+
+  if (authStatus === 'unauthed' || !user) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Inquiries & Quotes</Text>
+          <View style={{ width: 36 }} />
+        </View>
+
+        <View style={styles.centered}>
+          <Ionicons name="help-circle-outline" size={64} color={BrandColors.primary} />
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 16 }}>Sign In to View Inquiries</Text>
+          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 20 }}>
+            Please sign in to your BizReels account to track inquiries, request custom quotes, and converse with suppliers.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: BrandColors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+            onPress={() => router.push('/(auth)/login')}>
+            <Text style={{ color: '#000', fontWeight: '700', fontSize: 15 }}>Log In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -369,7 +398,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.7)',
   },
   modalContent: {

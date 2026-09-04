@@ -131,7 +131,7 @@ export default function VendorReelsScreen() {
                     </View>
                     <View style={styles.metricBadge}>
                       <Ionicons name="eye" size={12} color="rgba(255,255,255,0.7)" />
-                      <Text style={styles.metricText}>{item.viewsCount || 0}</Text>
+                      <Text style={styles.metricText}>{(item as any).views ?? item.viewsCount ?? (item as any).views_count ?? 0}</Text>
                     </View>
                   </View>
 

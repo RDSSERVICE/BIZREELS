@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useCart, useRemoveFromCart, useUpdateCartQuantity } from '@/features/cart/queries';
 import { getListingImage, resolveImageUrl } from '@/utils/image';
+import { useAuth } from '@/features/auth/context';
 
 const YELLOW = '#F59E0B';
 const BLACK = '#0F0F12';
@@ -24,6 +25,7 @@ const BORDER = '#2D2D36';
 export default function CartScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, status: authStatus } = useAuth();
 
   const { data: cart, isLoading } = useCart();
   const updateQuantityMutation = useUpdateCartQuantity();
@@ -56,6 +58,31 @@ export default function CartScreen() {
       ]
     );
   };
+
+  if (authStatus === 'unauthed' || !user) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Shopping Cart</Text>
+          <View style={{ width: 36 }} />
+        </View>
+
+        <View style={styles.emptyContainer}>
+          <Ionicons name="cart-outline" size={64} color={YELLOW} />
+          <Text style={styles.emptyTitle}>Sign In to Access Your Cart</Text>
+          <Text style={styles.emptySub}>
+            Please sign in to your BizReels account to view your cart items, save listings, and place orders.
+          </Text>
+          <TouchableOpacity style={styles.exploreBtn} onPress={() => router.push('/(auth)/login')}>
+            <Text style={styles.exploreBtnText}>Log In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (isLoading) {
     return (

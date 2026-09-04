@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 
 import { BrandColors, Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
+import { performGoogleAuth } from '@/features/auth/google-auth';
 import { useRegister, useSendOtp } from '@/features/auth/mutations';
 import { registerSchema, type RegisterFormValues } from '@/features/auth/schema';
 import { OtpVerificationModal } from '@/components/auth/otp-verification-modal';
@@ -49,12 +51,26 @@ interface DBCategory {
 export default function RegisterScreen() {
   const theme = useTheme();
   const s = makeStyles(theme);
+  const { setUser } = useAuth();
+  const [isGooglePending, setIsGooglePending] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [otpModalVisible, setOtpModalVisible] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+
+  async function handleGoogleAuth() {
+    setServerError(null);
+    setIsGooglePending(true);
+    const res = await performGoogleAuth(setUser);
+    setIsGooglePending(false);
+    if (res.success) {
+      router.replace('/(tabs)/home');
+    } else if (res.message && !res.message.includes('cancelled')) {
+      setServerError(res.message);
+    }
+  }
 
   // Interest categories from DB
   const [dbCategories, setDbCategories] = useState<DBCategory[]>([]);
@@ -530,6 +546,30 @@ export default function RegisterScreen() {
                   </TouchableOpacity>
                 )}
               </View>
+
+              {/* OR Divider */}
+              <View style={s.dividerRow}>
+                <View style={s.dividerLine} />
+                <Text style={s.dividerText}>OR SIGN UP WITH</Text>
+                <View style={s.dividerLine} />
+              </View>
+
+              {/* Google Auth Button */}
+              <TouchableOpacity
+                style={[s.googleButton, isGooglePending && s.googleButtonDisabled]}
+                onPress={handleGoogleAuth}
+                disabled={isGooglePending}
+                accessibilityLabel="Sign up with Google"
+                accessibilityRole="button">
+                {isGooglePending ? (
+                  <ActivityIndicator color={YELLOW} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={18} color="#EA4335" />
+                    <Text style={s.googleButtonText}>SIGN UP WITH GOOGLE</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </>
           ) : (
             /* STEP 2: Category & Subcategory Interest Selection (Unlocked ONLY after OTP Verification) */
@@ -1020,6 +1060,40 @@ function makeStyles(_theme: any) {
     },
     clearSearchBtn: {
       padding: Spacing.one,
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginVertical: 4,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: BORDER,
+    },
+    dividerText: {
+      color: 'rgba(255,255,255,0.4)',
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 1,
+    },
+    googleButton: {
+      backgroundColor: BLACK,
+      borderWidth: 1.5,
+      borderColor: BORDER,
+      height: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    googleButtonDisabled: { opacity: 0.7 },
+    googleButtonText: {
+      color: '#fff',
+      fontSize: FontSize.sm,
+      fontWeight: '900',
+      letterSpacing: 0.5,
     },
   });
 }

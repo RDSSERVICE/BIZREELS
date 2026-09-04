@@ -43,6 +43,7 @@ import {
   useToggleReelSave,
   useUnfollowUser,
 } from './queries';
+import { recordReelView } from './api';
 import type { Reel } from './types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -60,10 +61,28 @@ import { resolveImageUrl } from '@/utils/image';
 export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelItemProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, status: authStatus } = useAuth();
   const activeRole = user?.activeRole || user?.current_role || 'customer';
   const isCreator = activeRole === 'creator';
   const isVendor = activeRole === 'vendor';
+
+  const lastTapRef = useRef<number>(0);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function ensureAuth(actionDesc: string, callback: () => void) {
+    if (authStatus === 'unauthed' || !user) {
+      Alert.alert(
+        'Account Required',
+        `Please sign in to your BizReels account to ${actionDesc}.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log In / Register', onPress: () => router.push('/(auth)/login' as any) },
+        ]
+      );
+      return;
+    }
+    callback();
+  }
 
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
@@ -74,7 +93,25 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
   const [showPauseIcon, setShowPauseIcon] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(
+    Boolean(reel.isFollowing || (reel as any).is_following || (reel as any).viewer_following)
+  );
+
+  useEffect(() => {
+    setIsLiked(reel.isLiked);
+    setIsSaved(reel.isSaved || false);
+    setLikeCount(reel.likesCount);
+    setIsFollowing(
+      Boolean(reel.isFollowing || (reel as any).is_following || (reel as any).viewer_following)
+    );
+  }, [
+    reel.isLiked,
+    reel.isSaved,
+    reel.likesCount,
+    reel.isFollowing,
+    (reel as any).is_following,
+    (reel as any).viewer_following,
+  ]);
   const [directBuyModalOpen, setDirectBuyModalOpen] = useState(false);
 
   const toggleLikeMutation = useToggleReelLike();
@@ -131,6 +168,33 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
     }
   }, [isActive, isPaused, player, isVideo]);
 
+  // 3-Second View Count Tracker: reel viewed for 3+ seconds counts as a view
+  const hasViewedRef = useRef<boolean>(false);
+  const viewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isActive && !isPaused && !hasViewedRef.current) {
+      viewTimerRef.current = setTimeout(() => {
+        if (!hasViewedRef.current) {
+          hasViewedRef.current = true;
+          recordReelView(reel._id, 3);
+        }
+      }, 3000);
+    } else {
+      if (viewTimerRef.current) {
+        clearTimeout(viewTimerRef.current);
+        viewTimerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (viewTimerRef.current) {
+        clearTimeout(viewTimerRef.current);
+        viewTimerRef.current = null;
+      }
+    };
+  }, [isActive, isPaused, reel._id]);
+
   // Sync mute
   useEffect(() => {
     if (player) player.muted = isMuted;
@@ -147,13 +211,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
     });
   }
 
-  // Double tap → like
-  function handleDoubleTap() {
-    if (!isLiked) {
-      setIsLiked(true);
-      setLikeCount((v) => v + 1);
-      toggleLikeMutation.mutate(reel._id);
-    }
+  function triggerHeartAnimation() {
     heartScale.value = 0;
     heartOpacity.value = 1;
     heartScale.value = withSequence(
@@ -163,13 +221,21 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
     );
     heartOpacity.value = withSequence(
       withTiming(1, { duration: 100 }),
-      withTiming(1, { duration: 400 }),
-      withTiming(0, { duration: 200 })
+      withTiming(0, { duration: 500 })
     );
   }
 
-  const lastTapRef = useRef<number>(0);
-  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Double tap → like
+  function handleDoubleTap() {
+    ensureAuth('like reels', () => {
+      triggerHeartAnimation();
+      if (!isLiked) {
+        setIsLiked(true);
+        setLikeCount((v) => v + 1);
+        toggleLikeMutation.mutate(reel._id);
+      }
+    });
+  }
 
   function handleTap() {
     const now = Date.now();
@@ -188,16 +254,20 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
   }
 
   function handleLikeButton() {
-    const nextLiked = !isLiked;
-    setIsLiked(nextLiked);
-    setLikeCount((v) => (nextLiked ? v + 1 : v - 1));
-    toggleLikeMutation.mutate(reel._id);
+    ensureAuth('like reels', () => {
+      const nextLiked = !isLiked;
+      setIsLiked(nextLiked);
+      setLikeCount((v) => (nextLiked ? v + 1 : v - 1));
+      toggleLikeMutation.mutate(reel._id);
+    });
   }
 
   function handleSaveButton() {
-    const nextSaved = !isSaved;
-    setIsSaved(nextSaved);
-    toggleSaveMutation.mutate({ reelId: reel._id, isSaved: !nextSaved });
+    ensureAuth('save reels', () => {
+      const prevSaved = isSaved;
+      setIsSaved(!prevSaved);
+      toggleSaveMutation.mutate({ reelId: reel._id, isSaved: prevSaved });
+    });
   }
 
   async function handleShareButton() {
@@ -246,9 +316,11 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
   }
 
   function handleSendComment() {
-    if (!commentText.trim()) return;
-    addCommentMutation.mutate(commentText.trim(), {
-      onSuccess: () => setCommentText(''),
+    ensureAuth('comment on reels', () => {
+      if (!commentText.trim()) return;
+      addCommentMutation.mutate(commentText.trim(), {
+        onSuccess: () => setCommentText(''),
+      });
     });
   }
 
@@ -305,15 +377,17 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
   const displayPrice = activePriceNum && activePriceNum > 0 ? activePriceNum.toLocaleString('en-IN') : null;
 
   function handleAddToCart() {
-    const targetId = taggedListingId || reel._id;
-    if (targetId) {
-      addToCartMutation.mutate(
-        { listing_id: String(targetId), quantity: 1 },
-        {
-          onSuccess: () => Alert.alert('Cart Updated', `${taggedListingObj?.title || 'Reel item'} added to cart!`),
-        }
-      );
-    }
+    ensureAuth('add items to cart', () => {
+      const targetId = taggedListingId || reel._id;
+      if (targetId) {
+        addToCartMutation.mutate(
+          { listing_id: String(targetId), quantity: 1 },
+          {
+            onSuccess: () => Alert.alert('Cart Updated', `${taggedListingObj?.title || 'Reel item'} added to cart!`),
+          }
+        );
+      }
+    });
   }
 
   function handleViewListing() {
@@ -352,16 +426,16 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
             <VideoView
               player={player}
               style={styles.video}
-              contentFit="cover"
+              contentFit="contain"
               nativeControls={false}
             />
             {reel.thumbnailUrl && !isActive && (
-              <Image source={{ uri: reel.thumbnailUrl }} style={styles.media} contentFit="cover" />
+              <Image source={{ uri: reel.thumbnailUrl }} style={styles.media} contentFit="contain" />
             )}
           </>
         ) : (
           <>
-            <Image source={{ uri: imageUrl || undefined }} style={styles.media} contentFit="cover" />
+            <Image source={{ uri: imageUrl || undefined }} style={styles.media} contentFit="contain" />
             <View style={[styles.imageTypeBadge, { top: insets.top + 16 }]}>
               <Ionicons name="image-outline" size={14} color="#fff" />
               <Text style={styles.imageTypeText}>Photo Reel</Text>
@@ -431,13 +505,15 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
           <TouchableOpacity
             style={[styles.followBtn, isFollowing && styles.followBtnActive]}
             onPress={() => {
-              const next = !isFollowing;
-              setIsFollowing(next);
-              const targetUserId = (reel as any).creatorId || (reel as any).creator;
-              if (targetUserId) {
-                if (next) followUserMutation.mutate(targetUserId);
-                else unfollowUserMutation.mutate(targetUserId);
-              }
+              ensureAuth('follow creators', () => {
+                const next = !isFollowing;
+                setIsFollowing(next);
+                const targetUserId = (reel as any).creatorId || (reel as any).creator;
+                if (targetUserId) {
+                  if (next) followUserMutation.mutate(targetUserId);
+                  else unfollowUserMutation.mutate(targetUserId);
+                }
+              });
             }}>
             <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
               {isFollowing ? 'Following' : 'Follow'}
@@ -637,12 +713,56 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
                 data={comments}
                 keyExtractor={(item) => item._id}
                 contentContainerStyle={{ gap: Spacing.two }}
-                renderItem={({ item }) => (
-                  <View style={styles.commentItem}>
-                    <Text style={styles.commentUser}>{item.user?.name || 'User'}</Text>
-                    <Text style={styles.commentText}>{item.text}</Text>
-                  </View>
-                )}
+                renderItem={({ item }) => {
+                  const userObj =
+                    (typeof item.user === 'object' && item.user) ||
+                    (typeof item.userId === 'object' && item.userId) ||
+                    {};
+                  const commenterName =
+                    userObj.name ||
+                    userObj.businessName ||
+                    item.userName ||
+                    'User';
+                  const commentBody = item.text || item.content || item.comment || '';
+                  const avatarUri = resolveImageUrl(userObj.avatarUrl || (userObj as any).profile_pic) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100';
+                  
+                  const formatDateTime = (dateStr?: string) => {
+                    if (!dateStr) return '';
+                    const d = new Date(dateStr);
+                    if (isNaN(d.getTime())) return '';
+                    const now = new Date();
+                    const diffMs = now.getTime() - d.getTime();
+                    const diffSec = Math.floor(diffMs / 1000);
+                    const diffMin = Math.floor(diffSec / 60);
+                    const diffHr = Math.floor(diffMin / 60);
+
+                    if (diffSec < 60) return 'Just now';
+                    if (diffMin < 60) return `${diffMin}m ago`;
+                    if (diffHr < 24 && now.getDate() === d.getDate()) {
+                      return `Today, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                    }
+
+                    const day = d.getDate().toString().padStart(2, '0');
+                    const month = d.toLocaleString('en-US', { month: 'short' });
+                    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    return `${day} ${month}, ${time}`;
+                  };
+
+                  const timeDisplay = formatDateTime(item.createdAt);
+
+                  return (
+                    <View style={styles.commentItem}>
+                      <Image source={{ uri: avatarUri }} style={styles.commentAvatar} contentFit="cover" />
+                      <View style={styles.commentContentBox}>
+                        <View style={styles.commentHeaderRow}>
+                          <Text style={styles.commentUser}>{commenterName}</Text>
+                          {timeDisplay ? <Text style={styles.commentTime}>{timeDisplay}</Text> : null}
+                        </View>
+                        <Text style={styles.commentText}>{commentBody}</Text>
+                      </View>
+                    </View>
+                  );
+                }}
                 ListEmptyComponent={
                   <Text style={styles.emptyComments}>No comments yet. Be the first to comment!</Text>
                 }
@@ -700,20 +820,20 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   mediaTouchable: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   media: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   video: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   gradientOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
   playPauseOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -728,7 +848,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heartOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -958,7 +1078,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.7)',
   },
   commentsDrawer: {
@@ -983,21 +1103,44 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   commentItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     backgroundColor: BLACK,
     padding: Spacing.two,
-    borderRadius: 0,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: BORDER,
+    gap: 10,
+  },
+  commentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  commentContentBox: {
+    flex: 1,
+  },
+  commentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   commentUser: {
     color: YELLOW,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
+  commentTime: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
+  },
   commentText: {
     color: '#fff',
     fontSize: FontSize.sm,
-    marginTop: 2,
+    marginTop: 3,
+    lineHeight: 18,
   },
   emptyComments: {
     color: 'rgba(255,255,255,0.5)',

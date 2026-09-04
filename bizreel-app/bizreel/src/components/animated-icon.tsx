@@ -1,129 +1,149 @@
 import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
-import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
-import Animated, { Easing, Keyframe, runOnJS } from 'react-native-reanimated';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
-const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
-const DURATION = 600;
+const WARM_BG = '#F2EDE4';
+const BLACK_TEXT = '#1A1A1A';
+const GOLD_BRAND = '#D99A3D';
+const DARK_ARC = '#241B15';
 
 export function AnimatedSplashOverlay() {
-  const [animate, setAnimate] = useState(false);
   const [visible, setVisible] = useState(true);
 
-  if (!visible) return null;
+  // Shared Values for animations
+  const spinnerRotation = useSharedValue(0);
+  const textOpacity = useSharedValue(0);
+  const textTranslateY = useSharedValue(16);
+  const overlayOpacity = useSharedValue(1);
 
-  const splashKeyframe = new Keyframe({
-    0: {
-      transform: [{ scale: 1 }],
-      opacity: 1,
-    },
-    20: {
-      opacity: 1,
-    },
-    70: {
-      opacity: 0,
-      easing: Easing.elastic(0.7),
-    },
-    100: {
-      opacity: 0,
-      transform: [{ scale: 1 }],
-      easing: Easing.elastic(0.7),
-    },
-  });
+  useEffect(() => {
+    // Hide static native splash screen
+    SplashScreen.hideAsync().catch(() => {});
 
-  const image = <Image style={styles.image} source={require('@/assets/android/playstore-icon.png')} />;
+    // Continuous 360-degree rotation for the circular loader ring
+    spinnerRotation.value = withRepeat(
+      withTiming(360, { duration: 1000, easing: Easing.linear }),
+      -1,
+      false
+    );
 
-  return animate ? (
-    <Animated.View
-      entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
-        'worklet';
+    // Fade in text
+    textOpacity.value = withDelay(150, withTiming(1, { duration: 400 }));
+    textTranslateY.value = withDelay(150, withSpring(0, { damping: 15 }));
+
+    // Fade out splash overlay after ~1.5 seconds to reveal app
+    overlayOpacity.value = withDelay(
+      1500,
+      withTiming(0, { duration: 400, easing: Easing.out(Easing.quad) }, (finished) => {
         if (finished) {
           runOnJS(setVisible)(false);
         }
-      })}
-      style={styles.splashOverlay}>
-      {image}
+      })
+    );
+  }, []);
+
+  const spinnerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spinnerRotation.value}deg` }],
+  }));
+
+  const textAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: textOpacity.value,
+    transform: [{ translateY: textTranslateY.value }],
+  }));
+
+  const overlayAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View style={[styles.splashOverlay, overlayAnimatedStyle]} pointerEvents="none">
+      <View style={styles.centerContainer}>
+        {/* Clean Circular Loader Ring (Logo removed from inside) */}
+        <View style={styles.loaderRingWrapper}>
+          <Animated.View style={[styles.spinnerArc, spinnerAnimatedStyle]} />
+        </View>
+
+        {/* Clean Brand Text: bizreels */}
+        <Animated.View style={[styles.textContainer, textAnimatedStyle]}>
+          <Text style={styles.brandTitleText}>
+            biz<Text style={styles.brandTitleGold}>reels</Text>
+          </Text>
+        </Animated.View>
+      </View>
     </Animated.View>
-  ) : (
-    <View
-      onLayout={() => {
-        SplashScreen.hideAsync().finally(() => {
-          setAnimate(true);
-        });
-      }}
-      style={styles.splashOverlay}>
-      {image}
-    </View>
   );
 }
-
-const keyframe = new Keyframe({
-  0: {
-    transform: [{ scale: INITIAL_SCALE_FACTOR }],
-  },
-  100: {
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
-
-const logoKeyframe = new Keyframe({
-  0: {
-    transform: [{ scale: 1.3 }],
-    opacity: 0,
-  },
-  40: {
-    transform: [{ scale: 1.3 }],
-    opacity: 0,
-    easing: Easing.elastic(0.7),
-  },
-  100: {
-    opacity: 1,
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
 
 export function AnimatedIcon() {
   return (
     <View style={styles.iconContainer}>
-      <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
-      <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/android/playstore-icon.png')} />
-      </Animated.View>
+      <Image source={require('@/assets/icon.png')} style={styles.logoImageSmall} contentFit="contain" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  imageContainer: {
-    justifyContent: 'center',
+  splashOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: WARM_BG,
     alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 99999,
+  },
+  centerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  loaderRingWrapper: {
+    width: 64,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spinnerArc: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 3,
+    borderColor: 'rgba(217, 154, 61, 0.2)',
+    borderTopColor: GOLD_BRAND,
+    borderRightColor: DARK_ARC,
+  },
+  textContainer: {
+    alignItems: 'center',
+  },
+  brandTitleText: {
+    color: BLACK_TEXT,
+    fontSize: 26,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    textTransform: 'lowercase',
+  },
+  brandTitleGold: {
+    color: GOLD_BRAND,
   },
   iconContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    width: 128,
-    height: 128,
-    zIndex: 100,
+    width: 64,
+    height: 64,
   },
-  image: {
-    width: 76,
-    height: 71,
-  },
-  background: {
-    borderRadius: 40,
-    experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
-    width: 128,
-    height: 128,
-    position: 'absolute',
-  },
-  splashOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#208AEF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
+  logoImageSmall: {
+    width: 48,
+    height: 48,
   },
 });

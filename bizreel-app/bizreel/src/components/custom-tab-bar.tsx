@@ -4,8 +4,14 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+export interface BottomTabBarProps {
+  state: any;
+  navigation: any;
+  descriptors?: any;
+  insets?: any;
+}
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FontSize, FontWeight, Spacing } from '@/constants/theme';
@@ -42,7 +48,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   });
 
   function getRouteIndex(name: string) {
-    return state.routes.findIndex((r) => r.name === name);
+    return state.routes.findIndex((r: { name: string }) => r.name === name);
   }
 
   function handlePress(routeName: string) {

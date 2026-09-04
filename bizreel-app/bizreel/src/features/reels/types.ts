@@ -35,18 +35,29 @@ export interface Reel {
   creatorRole: string;
   isLiked: boolean;
   isSaved?: boolean;
+  isFollowing?: boolean;
   taggedListing?: TaggedListing;
 }
 
 export interface Comment {
   _id: string;
-  user: {
-    _id: string;
-    name: string;
+  user?: {
+    _id?: string;
+    name?: string;
     avatarUrl?: string;
+    businessName?: string;
   };
-  text: string;
-  createdAt: string;
+  userId?: {
+    _id?: string;
+    name?: string;
+    avatarUrl?: string;
+    businessName?: string;
+  } | string;
+  userName?: string;
+  text?: string;
+  content?: string;
+  comment?: string;
+  createdAt?: string;
 }
 
 export interface ReelsMeta {

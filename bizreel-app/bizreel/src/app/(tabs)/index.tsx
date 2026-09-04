@@ -136,7 +136,7 @@ export default function ReelsFeedScreen() {
     [activeIndex, isScreenFocused, reelHeight]
   );
 
-  const keyExtractor = useCallback((item: Reel) => item._id, []);
+  const keyExtractor = useCallback((item: Reel, index: number) => (item?._id ? `${item._id}_${index}` : `reel_${index}`), []);
 
   const ListFooter = () => {
     if (!isFetchingNextPage) return null;

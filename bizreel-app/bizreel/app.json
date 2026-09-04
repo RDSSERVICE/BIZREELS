@@ -3,6 +3,7 @@
     "name": "BizReels",
     "slug": "bizreel",
     "version": "1.0.0",
+    "sdkVersion": "57.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "bizreel",
@@ -31,13 +32,17 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#F2EDE4",
           "image": "./assets/splash-icon.png",
           "imageWidth": 76
         }
       ],
       "expo-secure-store",
-      "expo-video"
+      "expo-video",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

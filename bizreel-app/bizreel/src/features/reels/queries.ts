@@ -32,12 +32,19 @@ export function useReelsFeed(searchParams?: { q?: string; hashtags?: string; cat
   });
 }
 
-/** Flattens all pages into a single ordered array of reels */
+/** Flattens all pages into a single ordered array of unique reels */
 export function flattenReels(
   pages: { data: Reel[] }[] | undefined
 ): Reel[] {
   if (!pages) return [];
-  return pages.flatMap((p) => p.data || []);
+  const allReels = pages.flatMap((p) => p.data || []);
+  const seen = new Set<string>();
+  return allReels.filter((reel) => {
+    const id = reel?._id || (reel as any)?.id;
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
 }
 
 /** Hook: prefetches the next page when called */
@@ -57,15 +64,25 @@ export function usePrefetchNextReelsPage() {
 }
 
 export function useToggleReelLike() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (reelId: string) => toggleReelLike(reelId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reels'] });
+      queryClient.invalidateQueries({ queryKey: ['saved'] });
+    },
   });
 }
 
 export function useToggleReelSave() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ reelId, isSaved }: { reelId: string; isSaved: boolean }) =>
       toggleReelSave(reelId, isSaved),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reels'] });
+      queryClient.invalidateQueries({ queryKey: ['saved'] });
+    },
   });
 }
 
@@ -92,8 +109,11 @@ export function useFollowUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) => followUser(userId),
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['vendors'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor', userId] });
+      queryClient.invalidateQueries({ queryKey: ['reels'] });
     },
   });
 }
@@ -102,8 +122,11 @@ export function useUnfollowUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) => unfollowUser(userId),
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['vendors'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor', userId] });
+      queryClient.invalidateQueries({ queryKey: ['reels'] });
     },
   });
 }

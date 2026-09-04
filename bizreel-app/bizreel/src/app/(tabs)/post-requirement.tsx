@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
 
 type SubTab = 'create' | 'my-requirements' | 'quotes';
@@ -283,6 +284,7 @@ const RADIUS_OPTIONS = [
 export default function CustomerPostRequirementScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, status: authStatus } = useAuth();
   const [activeTab, setActiveTab] = useState<SubTab>('create');
 
   // Categories list
@@ -463,6 +465,18 @@ export default function CustomerPostRequirementScreen() {
 
   const handleSubmitRequirement = async () => {
     setFormError(null);
+
+    if (authStatus !== 'authed' || !user) {
+      Alert.alert(
+        'Login Required',
+        'Please sign in to your BizReels account to post requirements for local vendors.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log In / Register', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
 
     if (!title.trim()) {
       setFormError('Please enter a requirement title (e.g. Need 50 Custom T-Shirts)');
@@ -1842,7 +1856,7 @@ const styles = StyleSheet.create({
 
   // Modal Styles
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)' },
+  modalBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.8)' },
   modalContent: {
     backgroundColor: DARK_CARD,
     borderTopWidth: 2,

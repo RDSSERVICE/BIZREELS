@@ -20,16 +20,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { api } from '@/lib/api';
 import { getListingImage } from '@/utils/image';
+import { useAuth } from '@/features/auth/context';
 
 export default function SavedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, status: authStatus } = useAuth();
 
   const [savedItems, setSavedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchSaved = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     try {
       const { data } = await api.get('/users/me/saved');
       const items = data.data || data.savedListings || data.saved_items || data || [];
@@ -44,12 +50,37 @@ export default function SavedScreen() {
 
   useEffect(() => {
     fetchSaved();
-  }, []);
+  }, [user]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchSaved();
   };
+
+  if (authStatus === 'unauthed' || !user) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Saved Items & Bookmarks</Text>
+          <View style={{ width: 36 }} />
+        </View>
+
+        <View style={styles.emptyContainer}>
+          <Ionicons name="bookmark-outline" size={56} color={BrandColors.primary} />
+          <Text style={styles.emptyTitle}>Sign In to View Saved Items</Text>
+          <Text style={styles.emptySub}>
+            Please sign in to your BizReels account to view your bookmarked products and saved video reels.
+          </Text>
+          <TouchableOpacity style={styles.exploreBtn} onPress={() => router.push('/(auth)/login')}>
+            <Text style={styles.exploreBtnText}>Log In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

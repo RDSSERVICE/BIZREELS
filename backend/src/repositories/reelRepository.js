@@ -276,35 +276,51 @@ class ReelRepository {
       total = await Reel.countDocuments(match);
     }
 
-    // Populate user interaction state (likes, saves)
+    // Populate user interaction state (likes, saves, following)
     if (currentUserId && reels.length > 0) {
       try {
         const interactionService = require('../services/interaction.service');
+        const followService = require('../services/follow.service');
         const reelIds = reels.map(r => r._id?.toString() || r.id).filter(Boolean);
-        const state = await interactionService.userInteractionState(currentUserId, reelIds);
+        
+        const [state, followedIdsList] = await Promise.all([
+          interactionService.userInteractionState(currentUserId, reelIds).catch(() => ({})),
+          followService.followingIds(currentUserId).catch(() => []),
+        ]);
+        const followedSet = new Set((followedIdsList || []).map(id => id?.toString()).filter(Boolean));
+
         for (const r of reels) {
           const rid = r._id?.toString() || r.id;
+          const creatorIdStr = (r.creator?._id || r.creator || r.user_id?._id || r.user_id || r.vendor_id?._id || r.vendor_id)?.toString();
           const s = state[rid] || { liked: r.hasLiked || false, saved: false };
-          r.viewer_state = s;
+          const isFollowingCreator = creatorIdStr ? followedSet.has(creatorIdStr) : false;
+
+          r.viewer_state = { ...s, following: isFollowingCreator };
           r.isLiked = Boolean(s.liked || r.hasLiked);
           r.is_liked = Boolean(s.liked || r.hasLiked);
           r.hasLiked = Boolean(s.liked || r.hasLiked);
           r.isSaved = Boolean(s.saved);
           r.is_saved = Boolean(s.saved);
           r.hasSaved = Boolean(s.saved);
+          r.isFollowing = isFollowingCreator;
+          r.is_following = isFollowingCreator;
+          r.viewer_following = isFollowingCreator;
         }
       } catch (err) {
         console.error('Error populating user interaction state for reels:', err);
       }
     } else {
       for (const r of reels) {
-        r.viewer_state = { liked: false, saved: false };
+        r.viewer_state = { liked: false, saved: false, following: false };
         r.isLiked = false;
         r.is_liked = false;
         r.hasLiked = false;
         r.isSaved = false;
         r.is_saved = false;
         r.hasSaved = false;
+        r.isFollowing = false;
+        r.is_following = false;
+        r.viewer_following = false;
       }
     }
 

@@ -35,7 +35,7 @@ const BORDER = '#2D2D36';
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { signOut } = useAuth();
+  const { signOut, status: authStatus } = useAuth();
 
   const { data: user, isLoading, isError, refetch, isRefetching } = useCurrentUserProfile();
 
@@ -141,7 +141,24 @@ export default function ProfileScreen() {
     );
   }
 
-  if (isError || !user) {
+  if (authStatus === 'unauthed' || !user) {
+    return (
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <Ionicons name="person-circle-outline" size={80} color={YELLOW} />
+        <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 16 }}>Welcome to BizReels</Text>
+        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 24, lineHeight: 18 }}>
+          Sign in to access your profile, track your orders, view saved reels, and manage your account preferences.
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: YELLOW, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 10 }}
+          onPress={() => router.push('/(auth)/login')}>
+          <Text style={{ color: BLACK, fontWeight: '700', fontSize: 16 }}>Log In / Register</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (isError) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <Ionicons name="alert-circle-outline" size={48} color={YELLOW} />
@@ -171,11 +188,11 @@ export default function ProfileScreen() {
   const activeRole = (user as any)?.activeRole || (user as any)?.current_role || 'customer';
 
   const CUSTOMER_MENU = [
+    { label: 'My Orders', route: '/orders', icon: 'cart-outline' },
     { label: 'My Activities & History', route: '/activities', icon: 'pulse-outline' },
     { label: 'Edit Account & Profile Settings', route: '/customer/settings', icon: 'person-outline' },
     { label: 'Manage Selected Interests & Preferences', route: '/customer/choose-interests', icon: 'options-outline' },
     { label: 'Chat & Messages Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
-    { label: 'My Orders', route: '/orders', icon: 'cart-outline' },
     { label: 'Saved Reels & Bookmarks', route: '/saved-reels', icon: 'bookmark-outline' },
   ];
 
@@ -214,6 +231,69 @@ export default function ProfileScreen() {
     { label: 'Creator Subscription Plan', route: '/creator/subscription', icon: 'card-outline' },
     { label: 'Wallet & Payout Earnings', route: '/creator/wallet', icon: 'wallet-outline' },
   ];
+
+  if (!user) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>My Profile</Text>
+          <TouchableOpacity
+            style={styles.logoutIconBtn}
+            onPress={() => router.push('/(auth)/login')}>
+            <Ionicons name="log-in-outline" size={18} color={YELLOW} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.guestCard}>
+            <View style={styles.guestAvatarCircle}>
+              <Ionicons name="person-outline" size={36} color={YELLOW} />
+            </View>
+            <Text style={styles.guestTitle}>Welcome to BizReels</Text>
+            <Text style={styles.guestSub}>
+              Log in to message sellers directly, place orders, save favorite reels & manage your store profile.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.guestPrimaryBtn}
+              onPress={() => router.push('/(auth)/login')}>
+              <Ionicons name="log-in-outline" size={18} color={BLACK} />
+              <Text style={styles.guestPrimaryText}>Log In to Your Account</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.guestSecondaryBtn}
+              onPress={() => router.push('/(auth)/register')}>
+              <Ionicons name="person-add-outline" size={18} color={YELLOW} />
+              <Text style={styles.guestSecondaryText}>Create Free Account</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Public Information Links */}
+          <View style={styles.menuSection}>
+            <Text style={styles.menuSectionTitle}>EXPLORE BIZREELS</Text>
+            <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)/home')}>
+              <Ionicons name="home-outline" size={20} color={YELLOW} />
+              <Text style={styles.menuItemLabel}>Home Marketplace</Text>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)')}>
+              <Ionicons name="videocam-outline" size={20} color={YELLOW} />
+              <Text style={styles.menuItemLabel}>Watch Video Reels</Text>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)/search' as any)}>
+              <Ionicons name="search-outline" size={20} color={YELLOW} />
+              <Text style={styles.menuItemLabel}>Search Products & Sellers</Text>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -831,5 +911,100 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     fontSize: 10,
     fontWeight: '700',
+  },
+  guestCard: {
+    backgroundColor: DARK_CARD,
+    borderRadius: 16,
+    padding: Spacing.five,
+    alignItems: 'center',
+    marginBottom: Spacing.four,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  guestAvatarCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.3)',
+  },
+  guestTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  guestSub: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 18,
+  },
+  guestPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: YELLOW,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    width: '100%',
+    gap: 8,
+    marginBottom: 10,
+  },
+  guestPrimaryText: {
+    color: BLACK,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  guestSecondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: YELLOW,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    width: '100%',
+    gap: 8,
+  },
+  guestSecondaryText: {
+    color: YELLOW,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  menuSection: {
+    backgroundColor: DARK_CARD,
+    borderRadius: 16,
+    padding: Spacing.four,
+    borderWidth: 1,
+    borderColor: BORDER,
+    gap: 8,
+  },
+  menuSectionTitle: {
+    color: YELLOW,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 12,
+  },
+  menuItemLabel: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
