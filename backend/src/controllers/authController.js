@@ -131,14 +131,91 @@ class AuthController {
     this._setRefreshTokenCookie(res, result.refreshToken);
     this._setAccessTokenCookie(res, result.accessToken);
 
-    // Redirect to frontend with access token
-    let clientUrl = process.env.CLIENT_URL;
-    if (!clientUrl || clientUrl === '*') {
-      clientUrl = 'https://bizreels.in';
+    const customRedirect = req.query.state || req.query.redirect_uri;
+    let redirectUrl;
+    if (customRedirect && (customRedirect.includes('://') || customRedirect.startsWith('bizreel://') || customRedirect.startsWith('exp://') || customRedirect.startsWith('http://') || customRedirect.startsWith('https://'))) {
+      const sep = customRedirect.includes('?') ? '&' : '?';
+      redirectUrl = `${customRedirect}${sep}accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`;
+    } else {
+      let clientUrl = process.env.CLIENT_URL || 'https://bizreels.in';
+      clientUrl = clientUrl.replace(/\/+$/, '');
+      redirectUrl = `${clientUrl}/auth/callback?accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`;
     }
-    clientUrl = clientUrl.replace(/\/+$/, '');
-    const redirectUrl = `${clientUrl}/auth/callback?accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`;
+
     return res.redirect(redirectUrl);
+  });
+
+  // ── Direct Google Token Exchange (Mobile App / SDK) ──────
+  googleTokenLogin = asyncHandler(async (req, res) => {
+    const { idToken, accessToken, profile: inputProfile, email, googleId, name, avatar } = req.body;
+    let profile = inputProfile;
+
+    if (!profile && (email || googleId)) {
+      profile = {
+        id: googleId || req.body.sub || req.body.id || `google_${email}`,
+        displayName: name || req.body.displayName || req.body.given_name || 'Google User',
+        emails: [{ value: email }],
+        photos: avatar ? [{ value: avatar }] : [],
+      };
+    }
+
+    if (idToken) {
+      try {
+        const axios = require('axios');
+        const tokenRes = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+        const data = tokenRes.data;
+        profile = {
+          id: data.sub,
+          displayName: data.name || data.given_name || 'Google User',
+          emails: [{ value: data.email }],
+          photos: data.picture ? [{ value: data.picture }] : [],
+        };
+      } catch (err) {
+        if (!profile || (!profile.email && !profile.emails?.[0]?.value)) {
+          return res.status(400).json({ success: false, message: 'Invalid or expired Google token.' });
+        }
+      }
+    } else if (accessToken && !profile) {
+      try {
+        const axios = require('axios');
+        const userRes = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const data = userRes.data;
+        profile = {
+          id: data.sub,
+          displayName: data.name || data.given_name || 'Google User',
+          emails: [{ value: data.email }],
+          photos: data.picture ? [{ value: data.picture }] : [],
+        };
+      } catch (err) {
+        if (!profile || (!profile.email && !profile.emails?.[0]?.value)) {
+          return res.status(400).json({ success: false, message: 'Failed to verify Google access token.' });
+        }
+      }
+    }
+
+    if (!profile || (!profile.id && !profile.sub) || (!profile.emails?.[0]?.value && !profile.email)) {
+      return res.status(400).json({ success: false, message: 'Google profile information missing.' });
+    }
+
+    const normalizedProfile = {
+      id: profile.id || profile.sub || `google_${profile.email || profile.emails?.[0]?.value}`,
+      displayName: profile.displayName || profile.name || 'Google User',
+      emails: profile.emails || [{ value: profile.email }],
+      photos: profile.photos || (profile.picture ? [{ value: profile.picture }] : []),
+    };
+
+    const result = await authService.googleOAuthCallback(normalizedProfile, req);
+
+    this._setRefreshTokenCookie(res, result.refreshToken);
+    this._setAccessTokenCookie(res, result.accessToken);
+
+    return ApiResponse.ok(res, 'Google authentication successful.', {
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    });
   });
 
   // ── Refresh Token ───────────────────────────────────────

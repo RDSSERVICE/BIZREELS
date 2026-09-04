@@ -77,18 +77,20 @@ router.post('/reset-password', authLimiter, authValidation.resetPassword, valida
 router.post('/refresh-token', authController.refreshToken);
 router.post('/refresh', authController.refreshToken);
 
-// Google OAuth
+// Google OAuth (General / Web)
 router.get(
   '/google',
   (req, res, next) => {
     const config = require('../config');
-    // Use the full callback URL from env config directly to avoid
-    // redirect_uri_mismatch behind reverse proxies (Render, Vercel, etc.)
-    const callbackURL = config.google.callbackUrl || `${req.protocol}://${req.get('host')}/api/v1/auth/google/callback`;
+    const redirectUri = req.query.redirect_uri || req.query.redirect || req.query.state || '';
+    const host = req.get('host');
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const callbackURL = config.google.callbackUrl || `${protocol}://${host}/api/v1/auth/google/callback`;
     passport.authenticate('google', {
       scope: ['profile', 'email'],
       session: false,
-      callbackURL
+      callbackURL,
+      state: redirectUri,
     })(req, res, next);
   }
 );
@@ -97,17 +99,71 @@ router.get(
   '/google/callback',
   (req, res, next) => {
     const config = require('../config');
-    // Use the full callback URL from env config directly to avoid
-    // redirect_uri_mismatch behind reverse proxies (Render, Vercel, etc.)
-    const callbackURL = config.google.callbackUrl || `${req.protocol}://${req.get('host')}/api/v1/auth/google/callback`;
-    passport.authenticate('google', {
-      failureRedirect: '/login',
-      session: false,
-      callbackURL
+    const host = req.get('host');
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const callbackURL = config.google.callbackUrl || `${protocol}://${host}/api/v1/auth/google/callback`;
+    const targetState = req.query.state || req.query.redirect_uri || '';
+
+    passport.authenticate('google', { session: false, callbackURL }, (err, user, info) => {
+      if (err || !user) {
+        const errorMsg = err?.message || info?.message || 'Google authentication failed';
+        if (targetState && (targetState.includes('://') || targetState.startsWith('bizreel://') || targetState.startsWith('exp://'))) {
+          const sep = targetState.includes('?') ? '&' : '?';
+          return res.redirect(`${targetState}${sep}error=${encodeURIComponent(errorMsg)}`);
+        }
+        let clientUrl = process.env.CLIENT_URL || 'https://bizreels.in';
+        clientUrl = clientUrl.replace(/\/+$/, '');
+        return res.redirect(`${clientUrl}/login?error=${encodeURIComponent(errorMsg)}`);
+      }
+      req.user = user;
+      next();
     })(req, res, next);
   },
   authController.googleCallback
 );
+
+// ── App-Specific Google OAuth & Direct Token Exchange ─────────
+router.get(
+  '/app/google',
+  (req, res, next) => {
+    const redirectUri = req.query.redirect_uri || req.query.redirect || req.query.state || 'bizreel://auth/callback';
+    const host = req.get('host');
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const callbackURL = `${protocol}://${host}/api/v1/auth/app/google/callback`;
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      session: false,
+      callbackURL,
+      state: redirectUri,
+    })(req, res, next);
+  }
+);
+
+router.get(
+  '/app/google/callback',
+  (req, res, next) => {
+    const host = req.get('host');
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const callbackURL = `${protocol}://${host}/api/v1/auth/app/google/callback`;
+    const targetState = req.query.state || 'bizreel://auth/callback';
+
+    passport.authenticate('google', { session: false, callbackURL }, (err, user, info) => {
+      if (err || !user) {
+        const errorMsg = err?.message || info?.message || 'Google authentication failed';
+        const sep = targetState.includes('?') ? '&' : '?';
+        return res.redirect(`${targetState}${sep}error=${encodeURIComponent(errorMsg)}`);
+      }
+      req.user = user;
+      next();
+    })(req, res, next);
+  },
+  authController.googleCallback
+);
+
+// Direct Google ID Token / Profile Token Exchange (Mobile App & SDK)
+router.post('/google/token', authLimiter, authController.googleTokenLogin);
+router.post('/google/mobile', authLimiter, authController.googleTokenLogin);
+router.post('/app/google', authLimiter, authController.googleTokenLogin);
 
 // ── Protected Routes ──────────────────────────────────────
 router.get('/me', authenticate, authController.getMe);
