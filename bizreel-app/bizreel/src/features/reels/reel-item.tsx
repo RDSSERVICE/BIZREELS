@@ -824,30 +824,32 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={() => {
-            const rawCreator = (reel as any).creator || (reel as any).vendor || (reel as any).vendor_id || (reel as any).user;
-            const recipientIdStr = (
-              typeof rawCreator === 'object'
-                ? (rawCreator?._id || rawCreator?.id)?.toString()
-                : rawCreator?.toString() || (reel as any).creatorId?.toString() || (reel as any).user_id?.toString()
-            );
+            ensureAuth('chat with this seller', () => {
+              const rawCreator = (reel as any).creator || (reel as any).vendor || (reel as any).vendor_id || (reel as any).user || (reel as any).uploadedBy || (reel as any).vendorId || (reel as any).creatorId;
+              const recipientIdStr = (
+                typeof rawCreator === 'object'
+                  ? (rawCreator?._id || rawCreator?.id)?.toString()
+                  : rawCreator?.toString() || (reel as any).creatorId?.toString() || (reel as any).vendorId?.toString() || (reel as any).user_id?.toString() || (reel as any).taggedListing?.vendor?._id?.toString()
+              );
 
-            const recipientName = (typeof rawCreator === 'object' ? rawCreator.name || rawCreator.shopName : null) || reel.creatorName || 'Seller';
-            const recipientAvatar = (typeof rawCreator === 'object' ? rawCreator.avatarUrl || rawCreator.profile_pic : null) || reel.creatorAvatar || '';
+              const recipientName = (typeof rawCreator === 'object' ? rawCreator.name || rawCreator.shopName || rawCreator.businessName : null) || reel.creatorName || (reel as any).taggedListing?.vendor?.name || 'Seller';
+              const recipientAvatar = (typeof rawCreator === 'object' ? rawCreator.avatarUrl || rawCreator.profile_pic : null) || reel.creatorAvatar || '';
 
-            if (!recipientIdStr) {
-              Alert.alert('Seller Info', 'Could not open chat for this seller.');
-              return;
-            }
+              if (!recipientIdStr) {
+                Alert.alert('Seller Info', 'Could not open chat for this seller.');
+                return;
+              }
 
-            router.push({
-              pathname: '/messages/[id]' as any,
-              params: {
-                id: `direct_${recipientIdStr}`,
-                recipientId: recipientIdStr,
-                name: recipientName,
-                avatar: recipientAvatar,
-              },
-            } as any);
+              router.push({
+                pathname: '/messages/[id]' as any,
+                params: {
+                  id: recipientIdStr,
+                  recipientId: recipientIdStr,
+                  name: recipientName,
+                  avatar: recipientAvatar,
+                },
+              } as any);
+            });
           }}
           accessibilityLabel="Chat with Seller"
           activeOpacity={0.8}>

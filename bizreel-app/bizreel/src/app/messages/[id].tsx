@@ -24,26 +24,95 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
-import { useChatMessages, useSendMessage } from '@/features/chat/queries';
+import { useChatMessages, useConversations, useSendMessage } from '@/features/chat/queries';
 import { api } from '@/lib/api';
 
 export default function DirectChatThreadScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const currentUserId = user?._id || (user as any)?.id;
+  const currentUserId = (user?._id || (user as any)?.id)?.toString();
 
   const { id: conversationIdParam, recipientId: recipientIdParam, name, avatar } = useLocalSearchParams<any>();
+  const { data: conversations = [] } = useConversations();
 
-  const conversationId = conversationIdParam || null;
-  const participantName = name || 'User Chat';
-  const participantAvatar = avatar || null;
+  // Extract raw params
+  const rawId = (conversationIdParam || '').toString().trim();
+  const rawRecipientId = (recipientIdParam || '').toString().trim();
+
+  // Clean recipient ID (strip prefixes like direct_)
+  let cleanRecipientId = rawRecipientId.startsWith('direct_')
+    ? rawRecipientId.replace('direct_', '')
+    : rawRecipientId;
+
+  if (!cleanRecipientId && rawId.startsWith('direct_')) {
+    cleanRecipientId = rawId.replace('direct_', '');
+  }
+
+  // Active conversation ID for fetching thread messages
+  const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    // 1. If rawId is a valid 24-character hex string (and not direct_), check if it matches a conversation ID directly
+    if (rawId && !rawId.startsWith('direct_') && rawId.length === 24) {
+      const foundByConvId = conversations.find(
+        (c) => (c._id || c.id)?.toString() === rawId
+      );
+      if (foundByConvId) {
+        setActiveConversationId((foundByConvId._id || foundByConvId.id)?.toString() || rawId);
+        return;
+      }
+    }
+
+    // 2. Search existing conversations matching cleanRecipientId or rawId
+    const targetIdToSearch = cleanRecipientId || (rawId.length === 24 ? rawId : '');
+    if (targetIdToSearch) {
+      const foundByParticipant = conversations.find((c) =>
+        c.participants?.some(
+          (p) => (p._id || p.id || (typeof p === 'string' ? p : ''))?.toString() === targetIdToSearch
+        )
+      );
+      if (foundByParticipant) {
+        setActiveConversationId((foundByParticipant._id || foundByParticipant.id)?.toString() || null);
+        return;
+      }
+    }
+
+    // 3. Fallback: If rawId looks like a conversation ID (24 hex chars) and cleanRecipientId was separate, set rawId
+    if (rawId && !rawId.startsWith('direct_') && rawId.length === 24 && rawId !== cleanRecipientId) {
+      setActiveConversationId(rawId);
+    }
+  }, [rawId, cleanRecipientId, conversations]);
+
+  // Extract final recipient ID for sending
+  const targetRecipientId = cleanRecipientId || (rawId !== activeConversationId && rawId.length === 24 ? rawId : '');
+
+  // Extract participant name & avatar fallbacks
+  let participantName = name || 'User Chat';
+  let participantAvatar = avatar || null;
+
+  if (activeConversationId) {
+    const activeConv = conversations.find((c) => (c._id || c.id)?.toString() === activeConversationId);
+    if (activeConv && activeConv.participants) {
+      const otherParticipant = activeConv.participants.find(
+        (p) => (p._id || p.id || (typeof p === 'string' ? p : ''))?.toString() !== currentUserId
+      );
+      if (otherParticipant && typeof otherParticipant === 'object') {
+        if (otherParticipant.name || (otherParticipant as any).shopName || (otherParticipant as any).businessName) {
+          participantName = (otherParticipant.name || (otherParticipant as any).shopName || (otherParticipant as any).businessName) as string;
+        }
+        if (otherParticipant.avatarUrl || (otherParticipant as any).profile_pic) {
+          participantAvatar = (otherParticipant.avatarUrl || (otherParticipant as any).profile_pic) as string;
+        }
+      }
+    }
+  }
 
   const [textInput, setTextInput] = useState('');
   const [attachedMedia, setAttachedMedia] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const { data: messages = [], isLoading, refetch } = useChatMessages(conversationId);
+  const { data: messages = [], isLoading, refetch } = useChatMessages(activeConversationId);
   const sendMessageMutation = useSendMessage();
   const listRef = useRef<FlatList>(null);
 
@@ -84,13 +153,13 @@ export default function DirectChatThreadScreen() {
   function handleSend() {
     if (!textInput.trim() && !attachedMedia) return;
 
-    if (!recipientIdParam && !conversationId) {
+    if (!targetRecipientId && !activeConversationId) {
       Alert.alert('Error', 'No recipient specified for message.');
       return;
     }
 
     const payload = {
-      recipientId: recipientIdParam || '',
+      recipientId: targetRecipientId || '',
       text: textInput.trim() || undefined,
       media: attachedMedia || undefined,
     };
@@ -99,7 +168,11 @@ export default function DirectChatThreadScreen() {
     setAttachedMedia(null);
 
     sendMessageMutation.mutate(payload, {
-      onSuccess: () => {
+      onSuccess: (res: any) => {
+        const createdConvId = res?.conversation || res?.conversationId || res?.conversation_id;
+        if (createdConvId && typeof createdConvId === 'string') {
+          setActiveConversationId(createdConvId);
+        }
         refetch();
         listRef.current?.scrollToEnd({ animated: true });
       },
