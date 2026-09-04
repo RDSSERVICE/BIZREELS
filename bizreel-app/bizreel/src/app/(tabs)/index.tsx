@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, FontWeight } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { flattenReels, usePrefetchNextReelsPage, useReelsFeed } from '@/features/reels/queries';
+import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { ReelItem } from '@/features/reels/reel-item';
 import type { Reel } from '@/features/reels/types';
 
@@ -41,8 +42,11 @@ export default function ReelsFeedScreen() {
   const { user, signOut } = useAuth();
 
   const isVendor = user?.activeRole === 'vendor' || user?.current_role === 'vendor';
+  const activeRole = user?.activeRole || user?.current_role || 'customer';
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList<Reel>>(null);
+
+  const { data: unreadNotifsCount = 0 } = useUnreadNotificationCount(activeRole);
 
   // Full screen height so reel fills 100% of the screen
   const reelHeight = SCREEN_HEIGHT;
@@ -193,6 +197,18 @@ export default function ReelsFeedScreen() {
               size={18}
               color={reelTypeFilter !== 'all' || durationFilter !== 'all' || sortFilter !== 'trending' ? YELLOW : '#fff'}
             />
+          </Pressable>
+
+          <Pressable
+            style={styles.headerBtn}
+            onPress={() => router.push('/notifications')}
+            accessibilityLabel="Notifications">
+            <Ionicons name="notifications-outline" size={18} color="#fff" />
+            {unreadNotifsCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{unreadNotifsCount > 99 ? '99+' : unreadNotifsCount}</Text>
+              </View>
+            )}
           </Pressable>
 
           <Pressable
@@ -652,4 +668,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   applyModalBtnText: { color: BLACK, fontSize: 11, fontWeight: '900' },
+  notifBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 4,
+    height: 14,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifBadgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
 });

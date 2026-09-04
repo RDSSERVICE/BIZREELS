@@ -188,6 +188,7 @@ export default function ProfileScreen() {
   const activeRole = (user as any)?.activeRole || (user as any)?.current_role || 'customer';
 
   const CUSTOMER_MENU = [
+    { label: 'Notifications & Platform Alerts', route: '/notifications', icon: 'notifications-outline' },
     { label: 'My Orders', route: '/orders', icon: 'cart-outline' },
     { label: 'My Activities & History', route: '/activities', icon: 'pulse-outline' },
     { label: 'Edit Account & Profile Settings', route: '/customer/settings', icon: 'person-outline' },
@@ -197,6 +198,7 @@ export default function ProfileScreen() {
   ];
 
   const VENDOR_MENU = [
+    { label: 'Notifications & Alerts', route: '/notifications', icon: 'notifications-outline' },
     { label: 'Edit Vendor Business Profile', route: '/vendor/settings', icon: 'storefront-outline' },
     { label: 'Store Dashboard & Analytics', route: '/vendor/dashboard', icon: 'grid-outline' },
     { label: 'Hire Content Creators', route: '/vendor/hire-creator', icon: 'people-outline' },
@@ -208,6 +210,7 @@ export default function ProfileScreen() {
   ];
 
   const CREATOR_MENU = [
+    { label: 'Notifications & Alerts', route: '/notifications', icon: 'notifications-outline' },
     { label: 'Creator Studio Dashboard', route: '/creator/dashboard', icon: 'grid-outline' },
     { label: 'Portfolio Gallery & Reels', route: '/creator/portfolio', icon: 'film-outline' },
     { label: 'Package Rates & Pricing', route: '/creator/pricing', icon: 'pricetag-outline' },
