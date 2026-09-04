@@ -32,9 +32,19 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const defaultAuthContextValue: AuthContextValue = {
+  status: 'unauthed',
+  user: null,
+  setUser: () => {},
+  signOut: () => {},
+};
+
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  if (!ctx) {
+    console.warn('useAuth was called outside of <AuthProvider>. Returning default unauthenticated context.');
+    return defaultAuthContextValue;
+  }
   return ctx;
 }
 
