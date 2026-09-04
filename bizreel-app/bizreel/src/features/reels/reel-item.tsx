@@ -110,6 +110,30 @@ function getDistanceDisplay(reel: any, userLat?: number, userLng?: number): { lo
   return { locationText: city, distanceText: distStr };
 }
 
+function formatTimeAgo(dateString?: string): string {
+  if (!dateString) return 'Just now';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Just now';
+
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: sameYear ? undefined : 'numeric',
+  });
+}
+
 export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat, userLng }: ReelItemProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -118,6 +142,9 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
   const isCreator = activeRole === 'creator';
   const isVendor = activeRole === 'vendor';
   const locDistInfo = getDistanceDisplay(reel, userLat, userLng);
+  const rawCreatedAt = reel.createdAt || (reel as any).created_at || (reel as any).postedAt || (reel as any).date;
+  const postedTimeAgo = formatTimeAgo(rawCreatedAt);
+  const postedTimeDisplay = postedTimeAgo ? (postedTimeAgo === 'Just now' ? 'Posted just now' : `Posted ${postedTimeAgo}`) : '';
 
   const lastTapRef = useRef<number>(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -563,6 +590,12 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1, flexWrap: 'wrap' }}>
                 <Text style={styles.creatorRole}>{reel.creatorRole || 'Store Vendor'}</Text>
+                {postedTimeDisplay ? (
+                  <View style={styles.postedTimePill}>
+                    <Ionicons name="time-outline" size={10} color="#E2E8F0" />
+                    <Text style={styles.postedTimePillText}>{postedTimeDisplay}</Text>
+                  </View>
+                ) : null}
                 {locDistInfo && (
                   <View style={styles.locationPill}>
                     <Ionicons name="location" size={10} color={YELLOW} />
@@ -1312,5 +1345,20 @@ const styles = StyleSheet.create({
     color: YELLOW,
     fontSize: 10,
     fontWeight: '800',
+  },
+  postedTimePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  postedTimePillText: {
+    color: '#E2E8F0',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });
