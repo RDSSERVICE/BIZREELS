@@ -248,11 +248,14 @@ router.delete(['/items/:listing_id', '/me/items/:listing_id'], requireAuth, catc
   res.json(result);
 }));
 
+const Order = require('../models/Order');
+const Notification = require('../models/Notification');
+
 router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, res) => {
   const { couponCode, couponDiscount = 0, shippingCharges = 0, address, pincode } = req.body || {};
   const cart = await getCart(req.user._id.toString());
   const hydrated = await hydrateCart(cart);
-  if (hydrated.groups.length === 0) {
+  if (!hydrated || !hydrated.groups || hydrated.groups.length === 0) {
     throw ApiError.badRequest('Cart is empty');
   }
 
@@ -286,7 +289,7 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
   for (let idx = 0; idx < hydrated.groups.length; idx++) {
     const group = hydrated.groups[idx];
     const vendorId = group.vendor_id;
-    const subtotal = group.subtotal;
+    const subtotal = group.subtotal || 0;
     const groupRatio = totalSubtotal > 0 ? subtotal / totalSubtotal : 1 / numGroups;
     const allocatedDiscount = Math.round((Number(couponDiscount) || 0) * groupRatio);
     const allocatedShipping = Math.round((Number(shippingCharges) || 0) * groupRatio);
@@ -300,32 +303,89 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
       line_total: i.line_total,
     }));
 
+    // 1. Get or create thread with vendor first
+    let threadId = 'cart_' + req.user._id.toString() + '_' + vendorId;
+    try {
+      const thread = await chatService.getOrCreateThread(
+        req.user._id.toString(),
+        vendorId,
+        itemsSnapshot[0]?.listing_id
+      );
+      if (thread && (thread._id || thread.id)) {
+        threadId = (thread._id || thread.id).toString();
+      }
+    } catch (err) {
+      console.warn('Failed to get/create chat thread during cart checkout:', err);
+    }
+
+    // 2. Create Deal with complete attributes
     const deal = await Deal.create({
+      thread_id: threadId,
+      listing_id: itemsSnapshot[0]?.listing_id || null,
       buyer_id: req.user._id.toString(),
-      vendor_id: vendorId,
       seller_id: vendorId,
+      vendor_id: vendorId,
+      initial_offer: groupFinalAmount,
+      current_offer: groupFinalAmount,
       items: itemsSnapshot,
       amount_paise: Math.round(groupFinalAmount * 100),
       item_total: subtotal,
       coupon_code: couponCode || null,
       coupon_discount: allocatedDiscount,
       shipping_charges: allocatedShipping,
-      delivery_address: address || null,
-      pincode: pincode || null,
+      delivery_address: address || req.user.location?.address || req.user.address || 'Customer Address',
+      pincode: pincode || req.user.location?.pincode || null,
       status: 'negotiating',
       source: 'cart_checkout',
+      offers_history: [{
+        by: req.user._id.toString(),
+        amount: groupFinalAmount,
+        note: `Order Request for ${itemsSnapshot.length} item(s)`,
+        at: now,
+      }],
       created_at: now,
       updated_at: now,
       is_deleted: false,
     });
 
-    // Send summary chat message
+    // 3. Create Orders for vendor order dashboard & customer activities
+    for (const item of itemsSnapshot) {
+      try {
+        const itemShare = itemsSnapshot.length > 0 ? 1 / itemsSnapshot.length : 1;
+        const orderPrice = Math.max(0, (item.line_total || (item.price * item.quantity)) - Math.round(allocatedDiscount * itemShare) + Math.round(allocatedShipping * itemShare));
+        const order = await Order.create({
+          customer: req.user._id,
+          listing: item.listing_id,
+          vendor: vendorId,
+          quantity: item.quantity || 1,
+          itemTotal: item.line_total || (item.price * item.quantity),
+          price: Math.round(orderPrice),
+          couponCode: couponCode || null,
+          couponDiscount: Math.round(allocatedDiscount * itemShare),
+          shippingCharges: Math.round(allocatedShipping * itemShare),
+          pincode: pincode || '',
+          status: 'pending',
+          paymentStatus: 'unpaid',
+          paymentMethod: 'vendor_upi',
+          address: address || req.user.location?.address || req.user.address || 'Customer Address',
+        });
+
+        // Notify vendor
+        await Notification.create({
+          recipient: vendorId,
+          sender: req.user._id,
+          type: 'payment',
+          title: 'New Product Order Received',
+          message: `${req.user.name || 'Customer'} placed order for ${item.quantity}x "${item.title}" (Total: ₹${Math.round(orderPrice)}).`,
+          data: { orderId: order._id },
+        });
+      } catch (orderErr) {
+        console.warn('Non-blocking order creation error during cart checkout:', orderErr);
+      }
+    }
+
+    // 4. Send summary chat message
     try {
-      const thread = await chatService.getOrCreateThread(
-        req.user._id.toString(),
-        vendorId,
-        itemsSnapshot[0].listing_id
-      );
       const summaryLines = [`🛒 Order request — ${itemsSnapshot.length} item(s)`];
       for (const i of itemsSnapshot) {
         summaryLines.push(`  • ${i.title} x ${i.quantity} = ₹${Math.round(i.line_total)}`);
@@ -345,7 +405,7 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
       }
 
       await chatService.sendMessage(
-        thread._id.toString(),
+        threadId,
         req.user._id.toString(),
         summaryLines.join('\n')
       );
