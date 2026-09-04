@@ -52,19 +52,72 @@ interface ReelItemProps {
   reel: Reel;
   isActive: boolean;
   height: number;
+  userLat?: number;
+  userLng?: number;
 }
 
 import { memo } from 'react';
 import { useAuth } from '@/features/auth/context';
 import { resolveImageUrl } from '@/utils/image';
 
-export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelItemProps) {
+function getDistanceDisplay(reel: any, userLat?: number, userLng?: number): { locationText: string; distanceText: string } | null {
+  const creatorObj = typeof reel.creator === 'object' && reel.creator ? reel.creator : {};
+  const city =
+    reel.city ||
+    reel.location?.city ||
+    creatorObj.city ||
+    creatorObj.location?.city ||
+    reel.address ||
+    creatorObj.address ||
+    '';
+
+  let distStr = '';
+  const rawDistMeters = reel.distance_meters ?? reel.distance;
+  const rawDistKm = reel.distanceKm ?? reel.distance_km;
+
+  if (rawDistMeters !== undefined && rawDistMeters !== null && !isNaN(Number(rawDistMeters))) {
+    const km = Number(rawDistMeters) / 1000;
+    if (km < 6000) {
+      distStr = km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
+    }
+  } else if (rawDistKm !== undefined && rawDistKm !== null && !isNaN(Number(rawDistKm))) {
+    const km = Number(rawDistKm);
+    if (km < 6000) {
+      distStr = km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
+    }
+  } else if (userLat && userLng) {
+    const coords = reel.location?.coordinates || creatorObj.location?.coordinates || reel.coordinates;
+    if (Array.isArray(coords) && coords.length === 2 && (coords[0] !== 0 || coords[1] !== 0)) {
+      const [targetLng, targetLat] = coords;
+      const R = 6371; // Earth radius in km
+      const dLat = (targetLat - userLat) * (Math.PI / 180);
+      const dLng = (targetLng - userLng) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(userLat * (Math.PI / 180)) *
+          Math.cos(targetLat * (Math.PI / 180)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const calculatedKm = R * c;
+      if (calculatedKm < 6000) {
+        distStr = calculatedKm < 1 ? `${Math.round(calculatedKm * 1000)} m away` : `${calculatedKm.toFixed(1)} km away`;
+      }
+    }
+  }
+
+  if (!city && !distStr) return null;
+  return { locationText: city, distanceText: distStr };
+}
+
+export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat, userLng }: ReelItemProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, status: authStatus } = useAuth();
   const activeRole = user?.activeRole || user?.current_role || 'customer';
   const isCreator = activeRole === 'creator';
   const isVendor = activeRole === 'vendor';
+  const locDistInfo = getDistanceDisplay(reel, userLat, userLng);
 
   const lastTapRef = useRef<number>(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -451,6 +504,16 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
           </View>
         ) : null}
 
+        {/* PROMINENT LOCATION & DISTANCE BADGE */}
+        {locDistInfo ? (
+          <View style={[styles.topLocationBadge, { top: insets.top + (displayPrice ? 52 : 16), zIndex: 999 }]}>
+            <Ionicons name="location" size={12} color="#fff" />
+            <Text style={styles.topLocationText}>
+              {[locDistInfo.locationText, locDistInfo.distanceText].filter(Boolean).join(' • ')}
+            </Text>
+          </View>
+        ) : null}
+
         <View style={styles.gradientOverlay} pointerEvents="none" />
 
         {/* Play / Pause Toggle Icon */}
@@ -498,7 +561,17 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height }: ReelI
                 </Text>
                 <Ionicons name="checkmark-circle" size={14} color={BrandColors.primaryLight} />
               </View>
-              <Text style={styles.creatorRole}>{reel.creatorRole || 'Store Vendor'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1, flexWrap: 'wrap' }}>
+                <Text style={styles.creatorRole}>{reel.creatorRole || 'Store Vendor'}</Text>
+                {locDistInfo && (
+                  <View style={styles.locationPill}>
+                    <Ionicons name="location" size={10} color={YELLOW} />
+                    <Text style={styles.locationPillText}>
+                      {[locDistInfo.locationText, locDistInfo.distanceText].filter(Boolean).join(' • ')}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
           </TouchableOpacity>
 
@@ -1206,5 +1279,38 @@ const styles = StyleSheet.create({
     color: BLACK,
     fontSize: 13,
     fontWeight: '900',
+  },
+  topLocationBadge: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(15,15,18,0.85)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  topLocationText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  locationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  locationPillText: {
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '800',
   },
 });

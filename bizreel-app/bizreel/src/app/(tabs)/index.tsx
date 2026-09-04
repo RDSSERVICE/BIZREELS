@@ -5,6 +5,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -62,6 +63,21 @@ export default function ReelsFeedScreen() {
   const [reelTypeFilter, setReelTypeFilter] = useState('all');
   const [durationFilter, setDurationFilter] = useState('all');
   const [sortFilter, setSortFilter] = useState('trending');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          setUserCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+        }
+      } catch (err) {
+        // Location detection fallback
+      }
+    })();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -84,8 +100,12 @@ export default function ReelsFeedScreen() {
     if (reelTypeFilter !== 'all') pObj.type = reelTypeFilter;
     if (durationFilter !== 'all') pObj.duration = durationFilter;
     if (sortFilter !== 'trending') pObj.sort = sortFilter;
+    if (userCoords) {
+      pObj.lat = userCoords.lat;
+      pObj.lng = userCoords.lng;
+    }
     return Object.keys(pObj).length > 0 ? pObj : undefined;
-  }, [activeQuery, reelTypeFilter, durationFilter, sortFilter]);
+  }, [activeQuery, reelTypeFilter, durationFilter, sortFilter, userCoords]);
 
   const {
     data,
@@ -149,9 +169,11 @@ export default function ReelsFeedScreen() {
         reel={item}
         isActive={index === activeIndex && isScreenFocused}
         height={reelHeight}
+        userLat={userCoords?.lat}
+        userLng={userCoords?.lng}
       />
     ),
-    [activeIndex, isScreenFocused, reelHeight]
+    [activeIndex, isScreenFocused, reelHeight, userCoords]
   );
 
   const keyExtractor = useCallback((item: Reel, index: number) => (item?._id ? `${item._id}_${index}` : `reel_${index}`), []);

@@ -20,7 +20,18 @@ import type { Reel } from './types';
 
 export const REELS_QUERY_KEY = ['reels', 'feed'] as const;
 
-export function useReelsFeed(searchParams?: { q?: string; hashtags?: string; category?: string; type?: string; duration?: string; sort?: string; uploadDate?: string }) {
+export function useReelsFeed(searchParams?: {
+  q?: string;
+  hashtags?: string;
+  category?: string;
+  type?: string;
+  duration?: string;
+  sort?: string;
+  uploadDate?: string;
+  lat?: number;
+  lng?: number;
+  distance?: number;
+}) {
   return useInfiniteQuery({
     queryKey: [
       'reels',
@@ -32,6 +43,9 @@ export function useReelsFeed(searchParams?: { q?: string; hashtags?: string; cat
       searchParams?.duration || '',
       searchParams?.sort || '',
       searchParams?.uploadDate || '',
+      searchParams?.lat || '',
+      searchParams?.lng || '',
+      searchParams?.distance || '',
     ],
     queryFn: ({ pageParam }) => fetchReelsFeed(pageParam as number, searchParams),
     initialPageParam: 1,
