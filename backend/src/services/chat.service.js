@@ -10,6 +10,10 @@ const logger = require('../utils/logger');
  * Orchestrates conversation groups, real-time message routing, and unread badges.
  */
 class ChatService {
+  async findOrCreateConversation(participantA, participantB) {
+    return chatRepository.findOrCreateConversation(participantA, participantB);
+  }
+
   async getConversations(userId) {
     return chatRepository.getConversationsForUser(userId);
   }

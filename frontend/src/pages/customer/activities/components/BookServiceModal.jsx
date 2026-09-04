@@ -113,6 +113,9 @@ export default function BookServiceModal({
         listingId: serviceId,
         quantity: 1,
         address: `${bookingAddress.trim()} [Date: ${bookingDate}, Slot: ${bookingTime}] ${bookingNotes ? `| Notes: ${bookingNotes.trim()}` : ''}`,
+        bookingDate,
+        bookingTime,
+        bookingNotes: bookingNotes ? bookingNotes.trim() : '',
         paymentMethod,
         paymentDetails: {
           method: paymentMethod,

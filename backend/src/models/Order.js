@@ -68,6 +68,13 @@ const orderSchema = new Schema(
       default: '',
       trim: true,
     },
+    idempotencyKey: {
+      type: String,
+      default: null,
+      sparse: true,
+      index: true,
+      trim: true,
+    },
     status: {
       type: String,
       enum: ['pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'completed', 'cancelled', 'rejected', 'refunded'],
@@ -140,6 +147,36 @@ const orderSchema = new Schema(
       type: String,
       default: '',
     },
+    itemSnapshot: {
+      title: { type: String, default: '' },
+      sku: { type: String, default: '' },
+      unitPrice: { type: Number, default: 0 },
+      images: { type: [String], default: [] },
+      variantDetails: { type: Schema.Types.Mixed, default: null },
+      vendorShopName: { type: String, default: '' },
+      vendorId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+      category: { type: String, default: '' },
+      listingType: { type: String, default: 'product' },
+    },
+    shiprocketDetails: {
+      orderId: { type: String, default: null },
+      shipmentId: { type: String, default: null },
+      awbCode: { type: String, default: null },
+      courierCompanyId: { type: Number, default: null },
+      courierName: { type: String, default: null },
+      labelUrl: { type: String, default: null },
+      invoiceUrl: { type: String, default: null },
+      pickupScheduledDate: { type: Date, default: null },
+      pickupTokenNumber: { type: String, default: null },
+      syncStatus: {
+        type: String,
+        enum: ['not_applicable', 'pending', 'synced', 'shipping_sync_failed'],
+        default: 'pending',
+      },
+      lastSyncError: { type: String, default: null },
+      syncAttempts: { type: Number, default: 0 },
+      trackingStatus: { type: String, default: null },
+    },
   },
   {
     timestamps: true,
@@ -147,5 +184,6 @@ const orderSchema = new Schema(
 );
 
 orderSchema.index({ createdAt: -1 });
+orderSchema.index({ listing: 1, scheduledVisitTime: 1 });
 
 module.exports = mongoose.models.Order || mongoose.model('Order', orderSchema);

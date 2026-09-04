@@ -12,183 +12,191 @@ const logger = require('../utils/logger');
 class WalletRepository {
 
   // ─── Update Balance (Transaction-Safe) ───────────────────
-  async updateWalletBalance(userId, amount, type, referenceId, description) {
+  async updateWalletBalance(userId, amount, type, referenceId, description, externalSession = null) {
     const uid = userId.toString();
-    const session = await mongoose.startSession();
+    const session = externalSession || await mongoose.startSession();
+    const isLocalSession = !externalSession;
 
-    try {
-      let transaction, updatedUser;
-
-      await session.withTransaction(async () => {
-        // Idempotency check
-        if (referenceId) {
-          const existing = await WalletTransactionV2.findOne(
-            { reference_id: referenceId, user_id: uid, status: 'completed' }
-          ).session(session);
-          if (existing) {
-            transaction = existing;
-            updatedUser = await User.findById(userId).session(session).lean();
-            return;
-          }
+    const performUpdate = async () => {
+      // Idempotency check
+      if (referenceId) {
+        const existing = await WalletTransactionV2.findOne(
+          { reference_id: referenceId, user_id: uid, status: 'completed' }
+        ).session(session);
+        if (existing) {
+          const userDoc = await User.findById(userId).session(session).lean();
+          return { transaction: existing, user: userDoc };
         }
-
-        const user = await User.findById(userId).session(session);
-        if (!user) throw new Error('User not found.');
-
-        // Get or create wallet
-        let wallet = await Wallet.findOne({ user_id: uid }).session(session);
-        if (!wallet) {
-          const created = await Wallet.create([{
-            user_id: uid, credits: 0, balance_inr_paise: 0,
-            lifetime_earned_credits: 0, lifetime_spent_credits: 0,
-            lifetime_deposited_paise: 0, lifetime_spent_paise: 0, is_frozen: false,
-          }], { session });
-          wallet = created[0];
-        }
-
-        if (wallet.is_frozen) throw new Error('Wallet is frozen.');
-
-        const previousBalance = wallet.credits || 0;
-        const newBalance = previousBalance + amount;
-        if (newBalance < 0) {
-          throw new Error('Insufficient wallet balance.');
-        }
-
-        // Update Wallet model
-        const incFields = amount > 0
-          ? { credits: amount, lifetime_earned_credits: amount }
-          : { credits: amount, lifetime_spent_credits: Math.abs(amount) };
-
-        await Wallet.updateOne(
-          { user_id: uid },
-          { $inc: incFields, $set: { updated_at: new Date().toISOString() } },
-          { session }
-        );
-
-        // Update User.walletBalance
-        updatedUser = await User.findByIdAndUpdate(
-          userId,
-          { $inc: { walletBalance: amount } },
-          { returnDocument: 'after', session }
-        );
-
-        // ─── Sync Isolated Wallet (New Architecture) ─────────────────
-        try {
-          const IsolatedWallet = require('../models/IsolatedWallet.model');
-          const IsolatedTransaction = require('../models/IsolatedTransaction.model');
-
-          let targetRole = null;
-          if (amount < 0) {
-            targetRole = 'vendor';
-          } else {
-            const desc = (description || '').toLowerCase();
-            if (desc.includes('campaign') || desc.includes('creator') || desc.includes('shoot')) {
-              targetRole = 'creator';
-            } else {
-              targetRole = 'vendor';
-            }
-          }
-
-          // Get or create isolated wallet
-          let isoWallet = await IsolatedWallet.findOne({ userId: uid, role: targetRole }).session(session);
-          if (!isoWallet) {
-            let initialBalance = 0;
-            if (targetRole === 'vendor') {
-              initialBalance = previousBalance;
-            }
-            const createdIso = await IsolatedWallet.create([{
-              userId: uid,
-              role: targetRole,
-              balance: initialBalance,
-              currency: 'INR',
-              lifetime_earned: targetRole === 'vendor' ? initialBalance : 0,
-              lifetime_spent: 0,
-              is_frozen: false,
-              status: 'active',
-            }], { session });
-            isoWallet = createdIso[0];
-          }
-
-          if (!isoWallet.is_frozen) {
-            const prevIsoBalance = isoWallet.balance || 0;
-            const updatedIsoBalance = prevIsoBalance + amount;
-
-            if (updatedIsoBalance >= 0) {
-              const isoIncFields = amount > 0
-                ? { balance: amount, lifetime_earned: amount }
-                : { balance: amount, lifetime_spent: Math.abs(amount) };
-
-              await IsolatedWallet.updateOne(
-                { userId: uid, role: targetRole },
-                { $inc: isoIncFields },
-                { session }
-              );
-
-              let isoTxType = 'credit';
-              if (amount < 0) {
-                isoTxType = type === 'withdrawal' ? 'payout' : type === 'payment' ? 'subscription_purchase' : 'debit';
-              } else {
-                isoTxType = type === 'deposit' ? 'recharge' : type === 'refund' ? 'refund' : 'credit';
-              }
-
-              await IsolatedTransaction.create([{
-                userId: uid,
-                role: targetRole,
-                walletId: isoWallet._id,
-                type: isoTxType,
-                amount: Math.abs(amount),
-                previous_balance: prevIsoBalance,
-                updated_balance: updatedIsoBalance,
-                paymentId: referenceId || null,
-                gateway: 'internal',
-                description: description || null,
-                reference_id: referenceId ? `iso_${referenceId}` : `txn_iso_${Date.now()}`,
-                status: 'success',
-              }], { session });
-            }
-          }
-        } catch (err) {
-          logger.error('Failed to sync isolated wallet during updateWalletBalance', { error: err.message });
-        }
-
-        // Create V2 transaction record
-        const creditDebit = amount >= 0 ? 'credit' : 'debit';
-        const txnType = type === 'deposit' ? 'recharge' : type === 'payment' ? 'subscription_purchase' : type === 'withdrawal' ? 'withdrawal' : 'manual_credit';
-
-        const txnArr = await WalletTransactionV2.create([{
-          user_id: uid,
-          user_name: user.name || 'Unknown',
-          user_role: user.current_role || user.roles?.[0] || 'customer',
-          transaction_type: txnType,
-          credit_debit: creditDebit,
-          amount: Math.abs(amount),
-          previous_balance: previousBalance,
-          updated_balance: newBalance,
-          payment_method: 'internal',
-          source: 'system',
-          status: 'completed',
-          reference_id: referenceId || `txn_${Date.now()}`,
-          admin_remarks: description || null,
-        }], { session });
-        transaction = txnArr[0];
-      });
-
-      // Emit socket events after commit
-      try {
-        const { emitToUser, emitToAdmin } = require('../sockets');
-        emitToUser(uid, 'wallet:updated', {
-          action: amount >= 0 ? 'credit' : 'debit',
-          amount: Math.abs(amount),
-          new_balance: updatedUser?.walletBalance || 0,
-        });
-        emitToAdmin('admin:update', { tags: ['AdminWallet', 'AdminWalletTransactions'] });
-      } catch (err) {
-        logger.warn('Socket emit failed in walletRepository', { error: err.message });
       }
 
-      return { transaction, user: updatedUser };
-    } finally {
-      await session.endSession();
+      const user = await User.findById(userId).session(session);
+      if (!user) throw new Error('User not found.');
+
+      // Get or create wallet
+      let wallet = await Wallet.findOne({ user_id: uid }).session(session);
+      if (!wallet) {
+        const created = await Wallet.create([{
+          user_id: uid, credits: 0, balance_inr_paise: 0,
+          lifetime_earned_credits: 0, lifetime_spent_credits: 0,
+          lifetime_deposited_paise: 0, lifetime_spent_paise: 0, is_frozen: false,
+        }], { session });
+        wallet = created[0];
+      }
+
+      if (wallet.is_frozen) throw new Error('Wallet is frozen.');
+
+      const previousBalance = wallet.credits || 0;
+      const newBalance = previousBalance + amount;
+      if (newBalance < 0) {
+        throw new Error('Insufficient wallet balance.');
+      }
+
+      // Update Wallet model
+      const incFields = amount > 0
+        ? { credits: amount, lifetime_earned_credits: amount }
+        : { credits: amount, lifetime_spent_credits: Math.abs(amount) };
+
+      await Wallet.updateOne(
+        { user_id: uid },
+        { $inc: incFields, $set: { updated_at: new Date().toISOString() } },
+        { session }
+      );
+
+      // Update User.walletBalance
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $inc: { walletBalance: amount } },
+        { returnDocument: 'after', session }
+      );
+
+      // ─── Sync Isolated Wallet (New Architecture) ─────────────────
+      try {
+        const IsolatedWallet = require('../models/IsolatedWallet.model');
+        const IsolatedTransaction = require('../models/IsolatedTransaction.model');
+
+        let targetRole = null;
+        if (amount < 0) {
+          targetRole = 'vendor';
+        } else {
+          const desc = (description || '').toLowerCase();
+          if (desc.includes('campaign') || desc.includes('creator') || desc.includes('shoot')) {
+            targetRole = 'creator';
+          } else {
+            targetRole = 'vendor';
+          }
+        }
+
+        // Get or create isolated wallet
+        let isoWallet = await IsolatedWallet.findOne({ userId: uid, role: targetRole }).session(session);
+        if (!isoWallet) {
+          let initialBalance = 0;
+          if (targetRole === 'vendor') {
+            initialBalance = previousBalance;
+          }
+          const createdIso = await IsolatedWallet.create([{
+            userId: uid,
+            role: targetRole,
+            balance: initialBalance,
+            currency: 'INR',
+            lifetime_earned: targetRole === 'vendor' ? initialBalance : 0,
+            lifetime_spent: 0,
+            is_frozen: false,
+            status: 'active',
+          }], { session });
+          isoWallet = createdIso[0];
+        }
+
+        if (!isoWallet.is_frozen) {
+          const prevIsoBalance = isoWallet.balance || 0;
+          const updatedIsoBalance = prevIsoBalance + amount;
+
+          if (updatedIsoBalance >= 0) {
+            const isoIncFields = amount > 0
+              ? { balance: amount, lifetime_earned: amount }
+              : { balance: amount, lifetime_spent: Math.abs(amount) };
+
+            await IsolatedWallet.updateOne(
+              { userId: uid, role: targetRole },
+              { $inc: isoIncFields },
+              { session }
+            );
+
+            let isoTxType = 'credit';
+            if (amount < 0) {
+              isoTxType = type === 'withdrawal' ? 'payout' : type === 'payment' ? 'subscription_purchase' : 'debit';
+            } else {
+              isoTxType = type === 'deposit' ? 'recharge' : type === 'refund' ? 'refund' : 'credit';
+            }
+
+            await IsolatedTransaction.create([{
+              userId: uid,
+              role: targetRole,
+              walletId: isoWallet._id,
+              type: isoTxType,
+              amount: Math.abs(amount),
+              previous_balance: prevIsoBalance,
+              updated_balance: updatedIsoBalance,
+              paymentId: referenceId || null,
+              gateway: 'internal',
+              description: description || null,
+              reference_id: referenceId ? `iso_${referenceId}` : `txn_iso_${Date.now()}`,
+              status: 'success',
+            }], { session });
+          }
+        }
+      } catch (err) {
+        logger.error('Failed to sync isolated wallet during updateWalletBalance', { error: err.message });
+      }
+
+      // Create V2 transaction record
+      const creditDebit = amount >= 0 ? 'credit' : 'debit';
+      const txnType = type === 'deposit' ? 'recharge' : type === 'payment' ? 'subscription_purchase' : type === 'withdrawal' ? 'withdrawal' : 'manual_credit';
+
+      const txnArr = await WalletTransactionV2.create([{
+        user_id: uid,
+        user_name: user.name || 'Unknown',
+        user_role: user.current_role || user.roles?.[0] || 'customer',
+        transaction_type: txnType,
+        credit_debit: creditDebit,
+        amount: Math.abs(amount),
+        previous_balance: previousBalance,
+        updated_balance: newBalance,
+        payment_method: 'internal',
+        source: 'system',
+        status: 'completed',
+        reference_id: referenceId || `txn_${Date.now()}`,
+        admin_remarks: description || null,
+      }], { session });
+
+      return { transaction: txnArr[0], user: updatedUser };
+    };
+
+    if (isLocalSession) {
+      try {
+        let result;
+        await session.withTransaction(async () => {
+          result = await performUpdate();
+        });
+
+        // Emit socket events after commit
+        try {
+          const { emitToUser, emitToAdmin } = require('../sockets');
+          emitToUser(uid, 'wallet:updated', {
+            action: amount >= 0 ? 'credit' : 'debit',
+            amount: Math.abs(amount),
+            new_balance: result?.user?.walletBalance || 0,
+          });
+          emitToAdmin('admin:update', { tags: ['AdminWallet', 'AdminWalletTransactions'] });
+        } catch (err) {
+          logger.warn('Socket emit failed in walletRepository', { error: err.message });
+        }
+
+        return result;
+      } finally {
+        await session.endSession();
+      }
+    } else {
+      return await performUpdate();
     }
   }
 

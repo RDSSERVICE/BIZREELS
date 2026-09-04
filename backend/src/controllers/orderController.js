@@ -6,6 +6,51 @@ const { emitToUser } = require('../sockets');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
+const logger = require('../utils/logger');
+const notificationService = require('../services/notification.service');
+
+const ALLOWED_ORDER_TRANSITIONS = {
+  pending: ['accepted', 'cancelled', 'rejected'],
+  accepted: ['processing', 'shipped', 'completed', 'cancelled', 'rejected'],
+  processing: ['shipped', 'completed', 'cancelled'],
+  shipped: ['out_for_delivery', 'delivered'],
+  out_for_delivery: ['delivered', 'cancelled'],
+  delivered: ['completed', 'refunded'],
+  completed: ['refunded'],
+  cancelled: [],
+  rejected: [],
+  refunded: [],
+};
+
+const ALLOWED_BOOKING_TRANSITIONS = {
+  pending: ['accepted', 'cancelled', 'rejected'],
+  accepted: ['processing', 'completed', 'cancelled', 'rejected'],
+  processing: ['completed', 'cancelled'],
+  completed: ['refunded'],
+  cancelled: [],
+  rejected: [],
+  refunded: [],
+};
+
+function attachSnapshotFallback(order) {
+  if (!order) return order;
+  if (!order.listing || typeof order.listing !== 'object' || !order.listing.title) {
+    if (order.itemSnapshot && order.itemSnapshot.title) {
+      order.listing = {
+        _id: order.listing || order.itemSnapshot.vendorId || null,
+        title: order.itemSnapshot.title,
+        images: order.itemSnapshot.images || [],
+        type: order.itemSnapshot.listingType || 'product',
+        category: order.itemSnapshot.category || '',
+        price: order.itemSnapshot.unitPrice || 0,
+        sellingPrice: order.itemSnapshot.unitPrice || 0,
+        sku: order.itemSnapshot.sku || '',
+        isSnapshotFallback: true,
+      };
+    }
+  }
+  return order;
+}
 
 class OrderController {
   create = asyncHandler(async (req, res) => {
@@ -25,6 +70,24 @@ class OrderController {
       shippingDetails = null,
       pincode = '',
     } = req.body;
+
+    const idempotencyKey = (req.headers['idempotency-key'] || req.body.idempotencyKey || '').trim() || null;
+    if (idempotencyKey) {
+      const existingOrder = await Order.findOne({ customer: req.user._id, idempotencyKey })
+        .populate('listing')
+        .populate('vendor');
+      if (existingOrder) {
+        logger.info('[Order Lifecycle] Idempotent order replay detected', {
+          orderId: existingOrder._id,
+          idempotencyKey,
+          customerId: req.user._id,
+        });
+        return ApiResponse.ok(res, 'Order already placed (idempotent replay).', {
+          order: attachSnapshotFallback(existingOrder),
+          isReplay: true,
+        });
+      }
+    }
 
     let listing = await Listing.findById(listingId).populate('vendor');
     if (!listing) {
@@ -132,47 +195,25 @@ class OrderController {
 
     const validShipping = Math.max(0, parseFloat(shippingCharges) || 0);
     const finalPayable = Math.max(0, itemTotal - validatedCouponDiscount + (isService ? 0 : validShipping));
-    let finalPaymentStatus = 'unpaid';
-
-    // If wallet payment is explicitly chosen, check and debit wallet
-    if (paymentMethod === 'wallet') {
-      if (req.user.walletBalance < finalPayable) {
-        throw ApiError.badRequest('Insufficient wallet balance to place this order with Wallet. You can choose Vendor UPI/QR/Cash payment.');
-      }
-
-      await walletRepository.updateWalletBalance(
-        req.user._id,
-        -finalPayable,
-        'payment',
-        null,
-        `Ordered: "${listing.title}"`
-      );
-
-      await walletRepository.updateWalletBalance(
-        listing.vendor._id,
-        finalPayable,
-        'deposit',
-        null,
-        `Received payment for order: "${listing.title}"`
-      );
-
-      finalPaymentStatus = 'paid';
-    }
-
     // Compute scheduled visit time if bookingDate/time provided
+    const effectiveBookingDate = bookingDate || req.body.paymentDetails?.bookingDate || '';
+    const effectiveBookingTime = bookingTime || req.body.paymentDetails?.bookingTime || '';
     let computedVisitTime = null;
     if (scheduledVisitTime) {
       computedVisitTime = new Date(scheduledVisitTime);
-    } else if (bookingDate) {
+    } else if (effectiveBookingDate) {
       try {
-        if (bookingTime) {
-          computedVisitTime = new Date(`${bookingDate} ${bookingTime}`);
-          if (isNaN(computedVisitTime.getTime())) computedVisitTime = new Date(bookingDate);
+        if (effectiveBookingTime) {
+          const startTime = effectiveBookingTime.includes('-')
+            ? effectiveBookingTime.split('-')[0].trim()
+            : effectiveBookingTime.trim();
+          computedVisitTime = new Date(`${effectiveBookingDate} ${startTime}`);
+          if (isNaN(computedVisitTime.getTime())) computedVisitTime = new Date(effectiveBookingDate);
         } else {
-          computedVisitTime = new Date(bookingDate);
+          computedVisitTime = new Date(effectiveBookingDate);
         }
       } catch (e) {
-        computedVisitTime = new Date(bookingDate);
+        computedVisitTime = new Date(effectiveBookingDate);
       }
     }
 
@@ -185,46 +226,164 @@ class OrderController {
       cancellationPolicy: policies.cancellationPolicy || 'Free cancellation up to 24 hours before visit.',
     };
 
-    const order = await Order.create({
-      customer: req.user._id,
-      listing: listingId,
-      vendor: listing.vendor._id,
-      quantity: effectiveQty,
-      itemTotal,
-      couponCode: validatedCouponCode,
-      couponDiscount: validatedCouponDiscount,
-      shippingCharges: isService ? 0 : validShipping,
-      shippingDetails,
-      pincode: pincode || '',
-      price: finalPayable,
-      status: 'pending',
-      paymentStatus: finalPaymentStatus,
-      paymentMethod,
-      paymentDetails,
-      address: address || 'Customer Address',
-      bookingDate: bookingDate || '',
-      bookingTime: bookingTime || '',
-      scheduledVisitTime: computedVisitTime && !isNaN(computedVisitTime.getTime()) ? computedVisitTime : null,
-      cancellationPolicySnapshot,
-    });
-
-    // Notify vendor
     const isServiceBooking = isService || !!computedVisitTime;
+    let finalPaymentStatus = 'unpaid';
+    let order = null;
+
+    // Wrap slot locking / stock decrement, wallet operations, and Order.create in a single MongoDB transaction
+    const mongoose = require('mongoose');
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        // 1. Service Slot Locking: Prevent double-booking on same service listing and slot
+        if (isServiceBooking && computedVisitTime && !isNaN(computedVisitTime.getTime())) {
+          const existingBooking = await Order.findOne({
+            listing: listingId,
+            scheduledVisitTime: computedVisitTime,
+            status: { $nin: ['cancelled', 'rejected'] },
+          }).session(session);
+
+          if (existingBooking) {
+            throw ApiError.badRequest(
+              `This time slot (${computedVisitTime.toLocaleString('en-IN')}) is already booked for this service. Please select another slot.`
+            );
+          }
+        }
+
+        // 2. Inventory Concurrency: Atomic conditional stock decrement for product listings
+        if (!isServiceBooking) {
+          const updatedListing = await Listing.findOneAndUpdate(
+            { _id: listingId, stock: { $gte: effectiveQty } },
+            { $inc: { stock: -effectiveQty } },
+            { session, new: true }
+          );
+
+          if (!updatedListing) {
+            throw ApiError.badRequest(
+              `Insufficient stock available for "${listing.title}". Please reduce your quantity or choose another item.`
+            );
+          }
+        }
+
+        // 3. If wallet payment is explicitly chosen, check and debit wallet
+        if (paymentMethod === 'wallet') {
+          const User = require('../models/User');
+          const freshUser = await User.findById(req.user._id).session(session);
+          if (!freshUser || (freshUser.walletBalance || 0) < finalPayable) {
+            throw ApiError.badRequest('Insufficient wallet balance to place this order with Wallet. You can choose Vendor UPI/QR/Cash payment.');
+          }
+
+          await walletRepository.updateWalletBalance(
+            req.user._id,
+            -finalPayable,
+            'payment',
+            null,
+            `Ordered: "${listing.title}"`,
+            session
+          );
+
+          await walletRepository.updateWalletBalance(
+            listing.vendor._id,
+            finalPayable,
+            'deposit',
+            null,
+            `Received payment for order: "${listing.title}"`,
+            session
+          );
+
+          finalPaymentStatus = 'paid';
+        }
+
+        const itemSnapshot = {
+          title: listing.title || 'Product/Service',
+          sku: listing.sku || '',
+          unitPrice: unitPrice,
+          images: Array.isArray(listing.images) && listing.images.length > 0
+            ? listing.images
+            : (listing.media?.url ? [listing.media.url] : (listing.thumbnail ? [listing.thumbnail] : [])),
+          variantDetails: req.body.variantDetails || req.body.selectedVariant || null,
+          vendorShopName: listing.vendor?.vendorProfile?.shopName || listing.vendor?.shopName || listing.vendor?.businessName || listing.vendor?.name || 'Vendor',
+          vendorId: listing.vendor?._id || listing.vendor,
+          category: listing.category || '',
+          listingType: isServiceBooking ? 'service' : 'product',
+        };
+
+        const [createdOrder] = await Order.create([{
+          customer: req.user._id,
+          listing: listingId,
+          vendor: listing.vendor._id,
+          quantity: effectiveQty,
+          itemTotal,
+          couponCode: validatedCouponCode,
+          couponDiscount: validatedCouponDiscount,
+          shippingCharges: isService ? 0 : validShipping,
+          shippingDetails,
+          pincode: pincode || '',
+          price: finalPayable,
+          status: 'pending',
+          paymentStatus: finalPaymentStatus,
+          paymentMethod,
+          paymentDetails,
+          address: address || 'Customer Address',
+          bookingDate: bookingDate || '',
+          bookingTime: bookingTime || '',
+          scheduledVisitTime: computedVisitTime && !isNaN(computedVisitTime.getTime()) ? computedVisitTime : null,
+          cancellationPolicySnapshot,
+          itemSnapshot,
+          idempotencyKey,
+          shiprocketDetails: {
+            syncStatus: isServiceBooking ? 'not_applicable' : 'pending',
+          },
+        }], { session });
+
+        order = createdOrder;
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    // Notify vendor using centralized notificationService
     const methodLabel = paymentMethod === 'wallet' ? 'Wallet' : paymentMethod === 'cod' ? 'Cash on Delivery' : 'Vendor UPI / QR / Bank Transfer';
-    const notifyVendor = await Notification.create({
-      recipient: listing.vendor._id,
-      sender: req.user._id,
-      type: 'payment',
-      title: isServiceBooking ? 'New Service Booking Received' : 'New Product Order Received',
-      message: `${req.user.name} placed order for ${effectiveQty}x "${listing.title}" (Total: ₹${finalPayable}${validatedCouponDiscount > 0 ? ` with ₹${validatedCouponDiscount} coupon discount` : ''}) via ${methodLabel}.`,
-      data: { orderId: order._id },
+    const notifTitle = isServiceBooking ? 'New Service Booking Received' : 'New Product Order Received';
+    const notifMsg = `${req.user.name} placed order for ${effectiveQty}x "${listing.title}" (Total: ₹${finalPayable}${validatedCouponDiscount > 0 ? ` with ₹${validatedCouponDiscount} coupon discount` : ''}) via ${methodLabel}.`;
+
+    try {
+      await notificationService.create(
+        listing.vendor._id.toString(),
+        'order',
+        notifTitle,
+        notifMsg,
+        { orderId: order._id, isService: isServiceBooking },
+        '/vendor/orders',
+        'vendor'
+      ).catch(() => {});
+    } catch (notifErr) {
+      console.warn('Notification error on order creation:', notifErr?.message);
+    }
+
+    logger.info('[Order Lifecycle] Order created successfully', {
+      orderId: order._id,
+      customerId: req.user._id,
+      vendorId: listing.vendor._id,
+      price: finalPayable,
+      paymentMethod,
+      paymentStatus: finalPaymentStatus,
+      isService: isServiceBooking,
+      idempotencyKey,
     });
-    emitToUser(listing.vendor._id.toString(), 'notification', notifyVendor);
 
     try {
       const { emitToAdmin } = require('../sockets');
       emitToAdmin('admin:update', { tags: ['AdminOrders', 'AdminOverview', 'AdminUsers'] });
     } catch (err) {}
+
+    // Asynchronously trigger Shiprocket fulfillment in background for prepaid/COD product orders
+    if (!isServiceBooking && (finalPaymentStatus === 'paid' || paymentMethod === 'cod')) {
+      const shiprocketService = require('../services/shiprocket.service');
+      shiprocketService.fulfillOrder(order._id).catch(err => {
+        console.warn('Non-blocking Shiprocket fulfillment error in create:', err?.message);
+      });
+    }
 
     return ApiResponse.created(res, 'Order placed successfully.', { order });
   });
@@ -321,7 +480,9 @@ class OrderController {
         .lean()
     ]);
 
-    return ApiResponse.paginated(res, 'Orders retrieved successfully.', orders, {
+    const formattedOrders = orders.map(attachSnapshotFallback);
+
+    return ApiResponse.paginated(res, 'Orders retrieved successfully.', formattedOrders, {
       page: parsedPage,
       limit: parsedLimit,
       total,
@@ -350,6 +511,20 @@ class OrderController {
 
     if (['cancelled', 'rejected', 'refunded'].includes(order.status)) {
       throw ApiError.badRequest('Order is already cancelled or finalized.');
+    }
+
+    // Customer-initiated cancellation status gate
+    if (isCustomer && !isVendor && !isAdmin) {
+      if (['shipped', 'out_for_delivery', 'delivered'].includes(order.status)) {
+        throw ApiError.badRequest(
+          `Cannot cancel order: The order has already been ${order.status.replace(/_/g, ' ')}. It cannot be cancelled once dispatched.`
+        );
+      }
+      if (!['pending', 'accepted'].includes(order.status)) {
+        throw ApiError.badRequest(
+          `Customer cancellation is only allowed while the order is pending or accepted. Current status: "${order.status}".`
+        );
+      }
     }
 
     const isService = order.listing?.type === 'service' || !!order.scheduledVisitTime || !!order.bookingDate;
@@ -512,7 +687,9 @@ class OrderController {
         .lean()
     ]);
 
-    return ApiResponse.paginated(res, 'Vendor orders retrieved successfully.', orders, {
+    const formattedOrders = orders.map(attachSnapshotFallback);
+
+    return ApiResponse.paginated(res, 'Vendor orders retrieved successfully.', formattedOrders, {
       page: parsedPage,
       limit: parsedLimit,
       total,
@@ -530,6 +707,8 @@ class OrderController {
     if (!order) {
       throw ApiError.notFound('Order not found.');
     }
+
+    attachSnapshotFallback(order);
 
     const isCustomer = order.customer && order.customer._id.toString() === req.user._id.toString();
     const isVendor = order.vendor && order.vendor._id.toString() === req.user._id.toString();
@@ -613,6 +792,33 @@ class OrderController {
     const previousStatus = order.status;
     const newStatus = status ? status.toLowerCase() : order.status;
 
+    // Explicit State Machine Transition Rules
+    if (status && previousStatus !== newStatus) {
+      const isService = !!order.scheduledVisitTime ||
+        order.itemSnapshot?.listingType === 'service' ||
+        order.listing?.type === 'service' ||
+        order.listing?.postType === 'service' ||
+        order.listing?.postType === 'services';
+
+      const transitionMap = isService ? ALLOWED_BOOKING_TRANSITIONS : ALLOWED_ORDER_TRANSITIONS;
+      const allowedTargets = transitionMap[previousStatus] || [];
+
+      if (!allowedTargets.includes(newStatus)) {
+        if (isAdmin) {
+          logger.warn('[Order Lifecycle] Admin override state transition', {
+            orderId: order._id,
+            previousStatus,
+            newStatus,
+            adminId: req.user._id,
+          });
+        } else {
+          throw ApiError.badRequest(
+            `Invalid status transition: Cannot change ${isService ? 'booking' : 'order'} from "${previousStatus}" to "${newStatus}". Allowed transitions: ${allowedTargets.length > 0 ? allowedTargets.map(s => `"${s}"`).join(', ') : 'None (terminal state)'}.`
+          );
+        }
+      }
+    }
+
     // Handle cancellation / rejection reasons
     if ((newStatus === 'cancelled' || newStatus === 'rejected') && previousStatus !== newStatus) {
       if (rejectionReason || cancellationReason || notes) {
@@ -655,6 +861,34 @@ class OrderController {
 
     await order.save();
 
+    logger.info('[Order Lifecycle] State transition completed', {
+      orderId: order._id,
+      previousStatus,
+      newStatus,
+      actorId: req.user._id,
+      role: req.user.activeRole || req.user.role,
+      deliveryStatus: order.deliveryStatus,
+      trackingNumber: order.trackingNumber,
+    });
+
+    // Trigger Shiprocket fulfillment for product orders if becoming paid or accepted/processing
+    const isService = !!order.scheduledVisitTime ||
+      order.itemSnapshot?.listingType === 'service' ||
+      order.listing?.type === 'service' ||
+      order.listing?.postType === 'service' ||
+      order.listing?.postType === 'services';
+
+    const isSyncNeeded = !isService &&
+      order.shiprocketDetails?.syncStatus !== 'synced' &&
+      (order.paymentStatus === 'paid' || ['accepted', 'processing'].includes(newStatus));
+
+    if (isSyncNeeded) {
+      const shiprocketService = require('../services/shiprocket.service');
+      shiprocketService.fulfillOrder(order._id).catch(err => {
+        console.warn('Non-blocking Shiprocket fulfillment error in updateStatus:', err?.message);
+      });
+    }
+
     // Notify customer on status progression
     const statusLabels = {
       accepted: 'accepted and is being prepared',
@@ -670,20 +904,20 @@ class OrderController {
     const actionText = statusLabels[newStatus] || `updated to ${newStatus}`;
 
     try {
-      if (customerId) {
-        const notifyCustomer = await Notification.create({
-          recipient: customerId,
-          sender: req.user._id,
-          recipientRole: 'customer',
-          type: 'order',
-          title: newStatus === 'accepted' ? 'Order Accepted! 🎉' : `Order Status: ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
-          message: `Your order for "${order.listing?.title || 'Item'}" has been ${actionText}.${trackingNumber ? ` (Tracking #: ${trackingNumber})` : ''}`,
-          body: `Your order for "${order.listing?.title || 'Item'}" has been ${actionText}.${trackingNumber ? ` (Tracking #: ${trackingNumber})` : ''}`,
-          actionUrl: '/customer/activities?tab=orders',
-          data: { orderId: order._id, status: newStatus, trackingNumber },
-        });
-        emitToUser(customerId, 'notification:new', notifyCustomer);
-        emitToUser(customerId, 'notification', notifyCustomer);
+      if (customerId && previousStatus !== newStatus) {
+        const notifTitle = newStatus === 'accepted' ? (isService ? 'Service Booking Confirmed! 🎉' : 'Order Accepted! 🎉') : `Order Status: ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`;
+        const notifMsg = `Your order for "${order.itemSnapshot?.title || order.listing?.title || 'Item'}" has been ${actionText}.${trackingNumber ? ` (Tracking #: ${trackingNumber})` : ''}`;
+
+        await notificationService.create(
+          customerId,
+          'order',
+          notifTitle,
+          notifMsg,
+          { orderId: order._id, status: newStatus, trackingNumber, isService },
+          '/customer/activities?tab=orders',
+          'customer'
+        ).catch(() => {});
+
         emitToUser(customerId, 'order:updated', order);
       }
 
@@ -700,6 +934,83 @@ class OrderController {
     }
 
     return ApiResponse.ok(res, `Order status updated to ${newStatus}.`, { order });
+  });
+
+  syncShiprocket = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const order = await Order.findById(id).populate('listing').populate('customer').populate('vendor');
+    if (!order) {
+      throw ApiError.notFound('Order not found.');
+    }
+
+    const vendorId = (order.vendor?._id || order.vendor || '').toString();
+    const userId = (req.user?._id || '').toString();
+    const isAdmin = (req.user.roles && req.user.roles.includes('admin')) || req.user.role === 'admin' || req.user.activeRole === 'admin';
+
+    if (vendorId !== userId && !isAdmin) {
+      throw ApiError.forbidden('Only the vendor or admin can trigger Shiprocket fulfillment sync.');
+    }
+
+    const shiprocketService = require('../services/shiprocket.service');
+    const updatedOrder = await shiprocketService.fulfillOrder(order._id);
+
+    return ApiResponse.ok(res, 'Shiprocket sync completed.', {
+      order: updatedOrder || order,
+      shiprocketDetails: updatedOrder?.shiprocketDetails || order.shiprocketDetails,
+    });
+  });
+
+  trackOrder = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const order = await Order.findById(id);
+    if (!order) {
+      throw ApiError.notFound('Order not found.');
+    }
+
+    const customerId = (order.customer?._id || order.customer || '').toString();
+    const vendorId = (order.vendor?._id || order.vendor || '').toString();
+    const userId = (req.user?._id || '').toString();
+    const isAdmin = (req.user.roles && req.user.roles.includes('admin')) || req.user.role === 'admin' || req.user.activeRole === 'admin';
+
+    if (customerId !== userId && vendorId !== userId && !isAdmin) {
+      throw ApiError.forbidden('Unauthorized to track this order.');
+    }
+
+    const shiprocketService = require('../services/shiprocket.service');
+    let trackingInfo = null;
+    try {
+      trackingInfo = await shiprocketService.syncShipmentTracking(order._id);
+    } catch (trackErr) {
+      console.warn('Live Shiprocket track warning:', trackErr?.message);
+    }
+
+    return ApiResponse.ok(res, 'Tracking details retrieved successfully.', {
+      orderId: order._id,
+      trackingNumber: order.trackingNumber || order.shiprocketDetails?.awbCode,
+      shiprocketDetails: order.shiprocketDetails,
+      liveTracking: trackingInfo?.trackingData || null,
+      deliveryStatus: order.deliveryStatus,
+      status: order.status,
+    });
+  });
+
+  handleShiprocketWebhook = asyncHandler(async (req, res) => {
+    const secret = process.env.SHIPROCKET_WEBHOOK_SECRET;
+    if (secret) {
+      const incomingSecret = req.headers['x-api-key'] || req.headers['x-shiprocket-token'] || req.query.secret;
+      if (incomingSecret !== secret) {
+        return res.status(401).json({ success: false, message: 'Invalid webhook signature or secret.' });
+      }
+    }
+
+    const shiprocketService = require('../services/shiprocket.service');
+    const result = await shiprocketService.handleTrackingWebhook(req.body);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Shiprocket tracking webhook processed successfully.',
+      result,
+    });
   });
 }
 

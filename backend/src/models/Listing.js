@@ -184,10 +184,14 @@ const listingSchema = new Schema(
       trim: true,
     },
     shippingDetails: {
-      weight: { type: String },
-      dimensions: { type: String },
+      weight: { type: Number, min: 0.01, default: 0.5 }, // in kg
+      length: { type: Number, min: 0.5, default: 10 },   // in cm
+      breadth: { type: Number, min: 0.5, default: 10 },  // in cm
+      height: { type: Number, min: 0.5, default: 10 },   // in cm
+      dimensions: { type: String, default: '10x10x10' }, // legacy string format
       freeShipping: { type: Boolean, default: false },
       estimatedDays: { type: Number, default: 5 },
+      requiresDimensionsReview: { type: Boolean, default: false },
     },
     gst: {
       type: String,

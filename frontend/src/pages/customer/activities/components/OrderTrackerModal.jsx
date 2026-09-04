@@ -61,6 +61,38 @@ export default function OrderTrackerModal({
             )}
           </div>
 
+          {/* Courier & Tracking Information */}
+          {(order.trackingNumber || order.shiprocketDetails?.awbCode) && (
+            <div className="text-xs bg-brand-purple/5 border border-brand-purple/20 rounded-xl p-3.5 space-y-1.5 font-sans">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-medium text-text-secondary">Courier Partner:</span>
+                <span className="font-bold text-text-primary">{order.shiprocketDetails?.courierName || 'Shiprocket Courier'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-medium text-text-secondary">AWB / Tracking #:</span>
+                <span className="font-mono font-bold text-brand-purple select-all">{order.shiprocketDetails?.awbCode || order.trackingNumber}</span>
+              </div>
+              {order.shiprocketDetails?.trackingStatus && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-medium text-text-secondary">Live Status:</span>
+                  <span className="font-semibold text-text-primary capitalize">{order.shiprocketDetails.trackingStatus}</span>
+                </div>
+              )}
+              {order.shiprocketDetails?.labelUrl && (
+                <div className="pt-1.5 flex justify-end">
+                  <a
+                    href={order.shiprocketDetails.labelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-bold text-brand-purple hover:underline flex items-center gap-1"
+                  >
+                    📄 View Shipping Label
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Visual status stepper */}
           <div className="flex flex-col gap-6 pt-4 pl-4 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
             {TIMELINE_STEPS.map((step, idx) => {

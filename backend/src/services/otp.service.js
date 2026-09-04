@@ -93,11 +93,9 @@ class OtpService {
       cooldownSeconds: config.otp.cooldownSeconds || 60,
     };
 
-    // Include OTP in dev/mock environment for ease of testing
-    const isMock = config.env === 'development' ||
-      (cleanChannel === 'sms' && (config.sms?.provider || 'mock') === 'mock') ||
-      (cleanChannel === 'whatsapp' && (config.whatsapp?.provider || 'mock') === 'mock') ||
-      cleanChannel === 'email';
+    // Include OTP only when delivery provider is explicitly mock
+    const isMock = (cleanChannel === 'sms' && (config.sms?.provider || 'mock') === 'mock') ||
+      (cleanChannel === 'whatsapp' && (config.whatsapp?.provider || 'mock') === 'mock');
 
     if (isMock) {
       response.otp = otp;

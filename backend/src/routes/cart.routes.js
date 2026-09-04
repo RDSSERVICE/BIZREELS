@@ -303,28 +303,38 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
       line_total: i.line_total,
     }));
 
-    // 1. Get or create thread with vendor first
+    // 1. Get or create conversation with vendor first
     let threadId = 'cart_' + req.user._id.toString() + '_' + vendorId;
     try {
-      const thread = await chatService.getOrCreateThread(
+      const conv = await chatService.findOrCreateConversation(
         req.user._id.toString(),
-        vendorId,
-        itemsSnapshot[0]?.listing_id
+        vendorId
       );
-      if (thread && (thread._id || thread.id)) {
-        threadId = (thread._id || thread.id).toString();
+      if (conv && (conv._id || conv.id)) {
+        threadId = (conv._id || conv.id).toString();
       }
     } catch (err) {
-      console.warn('Failed to get/create chat thread during cart checkout:', err);
+      console.warn('Failed to get/create chat conversation during cart checkout:', err);
     }
 
-    // 2. Create Deal with complete attributes
+    // 2. Validate buyer & seller before Deal creation to prevent raw Mongoose ValidationError
+    const buyerId = req.user?._id ? req.user._id.toString() : null;
+    const sellerId = vendorId && vendorId !== 'default_vendor' ? vendorId.toString() : null;
+
+    if (!buyerId) {
+      throw ApiError.unauthorized('Customer authentication required to checkout.');
+    }
+    if (!sellerId || !mongoose.Types.ObjectId.isValid(sellerId)) {
+      throw ApiError.badRequest(`Checkout failed: Invalid or missing seller ID (${sellerId || 'unknown'}) for vendor group.`);
+    }
+
+    // 3. Create Deal with complete attributes
     const deal = await Deal.create({
       thread_id: threadId,
       listing_id: itemsSnapshot[0]?.listing_id || null,
-      buyer_id: req.user._id.toString(),
-      seller_id: vendorId,
-      vendor_id: vendorId,
+      buyer_id: buyerId,
+      seller_id: sellerId,
+      vendor_id: sellerId,
       initial_offer: groupFinalAmount,
       current_offer: groupFinalAmount,
       items: itemsSnapshot,
@@ -338,7 +348,7 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
       status: 'negotiating',
       source: 'cart_checkout',
       offers_history: [{
-        by: req.user._id.toString(),
+        by: buyerId,
         amount: groupFinalAmount,
         note: `Order Request for ${itemsSnapshot.length} item(s)`,
         at: now,
@@ -348,16 +358,44 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
       is_deleted: false,
     });
 
-    // 3. Create Orders for vendor order dashboard & customer activities
+    // 4. Create Orders for vendor order dashboard & customer activities
     for (const item of itemsSnapshot) {
+      const reqQty = parseInt(item.quantity || 1, 10);
+
+      // Atomic conditional stock decrement
+      const updatedListing = await Listing.findOneAndUpdate(
+        { _id: item.listing_id, stock: { $gte: reqQty } },
+        { $inc: { stock: -reqQty } },
+        { new: true }
+      );
+
+      if (!updatedListing) {
+        throw ApiError.badRequest(
+          `Insufficient stock available for "${item.title || 'Product'}". Please update your cart quantity.`
+        );
+      }
+
+      let order;
       try {
-        const itemShare = itemsSnapshot.length > 0 ? 1 / itemsSnapshot.length : 1;
-        const orderPrice = Math.max(0, (item.line_total || (item.price * item.quantity)) - Math.round(allocatedDiscount * itemShare) + Math.round(allocatedShipping * itemShare));
-        const order = await Order.create({
+        const itemSnapshot = {
+          title: updatedListing.title || item.title || 'Product',
+          sku: updatedListing.sku || '',
+          unitPrice: Number(item.price) || 0,
+          images: Array.isArray(updatedListing.images) && updatedListing.images.length > 0
+            ? updatedListing.images
+            : (updatedListing.media?.url ? [updatedListing.media.url] : (updatedListing.thumbnail ? [updatedListing.thumbnail] : [])),
+          variantDetails: item.variant || null,
+          vendorShopName: group.vendor_name || group.shop_name || 'Vendor',
+          vendorId: vendorId,
+          category: updatedListing.category || '',
+          listingType: 'product',
+        };
+
+        order = await Order.create({
           customer: req.user._id,
           listing: item.listing_id,
           vendor: vendorId,
-          quantity: item.quantity || 1,
+          quantity: reqQty,
           itemTotal: item.line_total || (item.price * item.quantity),
           price: Math.round(orderPrice),
           couponCode: couponCode || null,
@@ -368,6 +406,7 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
           paymentStatus: 'unpaid',
           paymentMethod: 'vendor_upi',
           address: address || req.user.location?.address || req.user.address || 'Customer Address',
+          itemSnapshot,
         });
 
         // Notify vendor
@@ -380,11 +419,16 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
           data: { orderId: order._id },
         });
       } catch (orderErr) {
-        console.warn('Non-blocking order creation error during cart checkout:', orderErr);
+        // Roll back stock decrement if Order.create fails
+        await Listing.updateOne(
+          { _id: item.listing_id },
+          { $inc: { stock: reqQty } }
+        ).catch(() => {});
+        throw orderErr;
       }
     }
 
-    // 4. Send summary chat message
+    // 5. Send summary chat message
     try {
       const summaryLines = [`🛒 Order request — ${itemsSnapshot.length} item(s)`];
       for (const i of itemsSnapshot) {
@@ -404,11 +448,11 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
         summaryLines.push(`📍 Deliver to: ${address}`);
       }
 
-      await chatService.sendMessage(
-        threadId,
-        req.user._id.toString(),
-        summaryLines.join('\n')
-      );
+      await chatService.sendMessage({
+        senderId: req.user._id.toString(),
+        recipientId: vendorId.toString(),
+        text: summaryLines.join('\n'),
+      });
     } catch (err) {
       // Non-fatal fallback
     }
