@@ -82,13 +82,9 @@ router.get(
   '/google',
   (req, res, next) => {
     const config = require('../config');
-    let callbackPath = '/api/v1/auth/google/callback';
-    try {
-      if (config.google.callbackUrl) {
-        callbackPath = new URL(config.google.callbackUrl).pathname;
-      }
-    } catch (err) { }
-    const callbackURL = `${req.protocol}://${req.get('host')}${callbackPath}`;
+    // Use the full callback URL from env config directly to avoid
+    // redirect_uri_mismatch behind reverse proxies (Render, Vercel, etc.)
+    const callbackURL = config.google.callbackUrl || `${req.protocol}://${req.get('host')}/api/v1/auth/google/callback`;
     passport.authenticate('google', {
       scope: ['profile', 'email'],
       session: false,
@@ -101,13 +97,9 @@ router.get(
   '/google/callback',
   (req, res, next) => {
     const config = require('../config');
-    let callbackPath = '/api/v1/auth/google/callback';
-    try {
-      if (config.google.callbackUrl) {
-        callbackPath = new URL(config.google.callbackUrl).pathname;
-      }
-    } catch (err) { }
-    const callbackURL = `${req.protocol}://${req.get('host')}${callbackPath}`;
+    // Use the full callback URL from env config directly to avoid
+    // redirect_uri_mismatch behind reverse proxies (Render, Vercel, etc.)
+    const callbackURL = config.google.callbackUrl || `${req.protocol}://${req.get('host')}/api/v1/auth/google/callback`;
     passport.authenticate('google', {
       failureRedirect: '/login',
       session: false,

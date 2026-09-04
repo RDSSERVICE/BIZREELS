@@ -8,14 +8,10 @@ const logger = require('../utils/logger');
  * Passport.js Google OAuth 2.0 Strategy Configuration
  */
 const configurePassport = () => {
-  let callbackURL = '/api/v1/auth/google/callback';
-  if (config.google.callbackUrl) {
-    try {
-      callbackURL = new URL(config.google.callbackUrl).pathname;
-    } catch (err) {
-      callbackURL = config.google.callbackUrl;
-    }
-  }
+  // Use the full callback URL from env config directly.
+  // This avoids redirect_uri_mismatch errors caused by reverse proxies
+  // (e.g. Render, Vercel) where req.protocol may resolve to 'http'.
+  const callbackURL = config.google.callbackUrl || '/api/v1/auth/google/callback';
 
   passport.use(
     new GoogleStrategy(
