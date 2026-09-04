@@ -41,10 +41,30 @@ class RequirementService {
     // Compute backward-compatible budget from range
     const budgetVal = budget ? parseFloat(budget) : (budget_min ? parseFloat(budget_min) : 0);
 
+    function safeTruncateText(str, maxLen) {
+      if (!str || typeof str !== 'string') return str;
+      const trimmed = str.trim();
+      if (trimmed.length <= maxLen) return trimmed;
+      const target = maxLen - 3;
+      const truncated = trimmed.slice(0, target);
+      const lastSpace = truncated.lastIndexOf(' ');
+      const lastNewline = truncated.lastIndexOf('\n');
+      const cutoff = Math.max(lastSpace, lastNewline);
+      if (cutoff > target * 0.7) {
+        return truncated.slice(0, cutoff).trim() + '...';
+      }
+      return truncated.trim() + '...';
+    }
+
+    const sanitizedTitle = safeTruncateText(title, 120);
+    const sanitizedDescription = safeTruncateText(description, 1450);
+    const sanitizedDetailedSpecs = safeTruncateText(detailedSpecifications, 2900);
+    const sanitizedOtherConditions = safeTruncateText(otherConditions, 500);
+
     const requirement = await requirementRepository.createRequirement({
       customer: customerId,
-      title,
-      description,
+      title: sanitizedTitle,
+      description: sanitizedDescription,
       category: customCategory || category,
       subcategory: customSubcategory || subcategory,
       requirementType: requirementType || 'product',
@@ -55,12 +75,12 @@ class RequirementService {
       quantity: parseInt(quantity || 1, 10),
       deadline: deadline ? new Date(deadline) : null,
       location,
-      address: address || null,
+      address: address ? safeTruncateText(address, 500) : null,
       targetDistance: targetDistance ? parseFloat(targetDistance) : null,
-      otherConditions,
-      photos,
-      video,
-      detailedSpecifications: detailedSpecifications || null,
+      otherConditions: sanitizedOtherConditions,
+      photos: Array.isArray(photos) ? photos : [],
+      video: video || null,
+      detailedSpecifications: sanitizedDetailedSpecs,
       expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
       expectedDeliveryTime: expectedDeliveryTime || null,
       productCondition: productCondition || null,
@@ -276,6 +296,11 @@ class RequirementService {
         pincode: updateData.pincode || requirement.location?.pincode || '',
       };
     }
+
+    if (updateData.title) updateData.title = safeTruncateText(updateData.title, 120);
+    if (updateData.description) updateData.description = safeTruncateText(updateData.description, 1450);
+    if (updateData.detailedSpecifications) updateData.detailedSpecifications = safeTruncateText(updateData.detailedSpecifications, 2900);
+    if (updateData.otherConditions) updateData.otherConditions = safeTruncateText(updateData.otherConditions, 500);
 
     if (updateData.status === 'Closed') {
       updateData.closedAt = new Date();

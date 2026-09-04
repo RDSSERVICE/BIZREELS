@@ -51,11 +51,16 @@ export default function ProductRequirementForm({
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       {/* Title */}
-      <div>
-        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Product Title *', 'उत्पाद का नाम *')}</label>
+        <div className="flex justify-between items-center mb-1">
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">{bi('Product Title *', 'उत्पाद का नाम *')}</label>
+          <span className={`text-[10px] font-semibold ${title?.length >= 120 ? 'text-red-500' : 'text-slate-400'}`}>
+            {title?.length || 0}/120
+          </span>
+        </div>
         <input
           type="text"
           required
+          maxLength={120}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={bi('e.g. Need 5 Laptops for office / Core i5 16GB RAM', 'उदाहरण: कार्यालय के लिए 5 लैपटॉप चाहिए')}
@@ -406,10 +411,16 @@ export default function ProductRequirementForm({
 
       {/* Description / Requirement details */}
       <div>
-        <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">{bi('Brief Description *', 'संक्षिप्त विवरण *')}</label>
+        <div className="flex justify-between items-center mb-1">
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">{bi('Brief Description *', 'संक्षिप्त विवरण *')}</label>
+          <span className={`text-[10px] font-semibold ${description?.length >= 1400 ? 'text-red-500' : 'text-slate-400'}`}>
+            {description?.length || 0}/1400
+          </span>
+        </div>
         <textarea
           required
           rows={3}
+          maxLength={1400}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={bi('Briefly describe what product you need (e.g., brand preferences, core use case)...', 'संक्षेप में बताएं कि आपको किस उत्पाद की आवश्यकता है (उदा. ब्रांड पसंद, मुख्य उपयोग)...')}
@@ -420,7 +431,12 @@ export default function ProductRequirementForm({
       {/* AI Detailed Specs Generator */}
       <div>
         <div className="flex justify-between items-center mb-1">
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">{bi('Detailed Technical Specifications', 'विस्तृत तकनीकी विनिर्देश')}</label>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">{bi('Detailed Technical Specifications', 'विस्तृत तकनीकी विनिर्देश')}</label>
+            <span className={`text-[10px] font-semibold ${detailedSpecifications?.length >= 2800 ? 'text-red-500' : 'text-slate-400'}`}>
+              ({detailedSpecifications?.length || 0}/2800)
+            </span>
+          </div>
           <button
             type="button"
             onClick={handleGenerateSpecs}
@@ -433,6 +449,7 @@ export default function ProductRequirementForm({
         </div>
         <textarea
           rows={6}
+          maxLength={2800}
           value={detailedSpecifications}
           onChange={(e) => setDetailedSpecifications(e.target.value)}
           placeholder={bi("Detailed options, measurements, technical parameters, model requirements...", "विस्तृत विकल्प, माप, तकनीकी पैरामीटर, मॉडल की आवश्यकताएं...")}

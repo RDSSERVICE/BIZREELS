@@ -1408,6 +1408,21 @@ const generateAiReel = async (prompt) => {
   }
 };
 
+const safeTruncate = (str, maxLen = 1400) => {
+  if (!str || typeof str !== 'string') return str || '';
+  const trimmed = str.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  const target = maxLen - 3;
+  const truncated = trimmed.slice(0, target);
+  const lastSpace = truncated.lastIndexOf(' ');
+  const lastNewline = truncated.lastIndexOf('\n');
+  const cutoff = Math.max(lastSpace, lastNewline);
+  if (cutoff > target * 0.7) {
+    return truncated.slice(0, cutoff).trim() + '...';
+  }
+  return truncated.trim() + '...';
+};
+
 const generateSpecifications = async (title, category, subcategory, requirementType, budget_min, budget_max, otherConditions) => {
   await ensureBudgetOrRaise(1000);
   const started = Date.now();
@@ -1416,7 +1431,7 @@ const generateSpecifications = async (title, category, subcategory, requirementT
   const prompt = `You are a helpful expert purchasing assistant.
 Generate a detailed list of specifications and technical requirements for a customer requirement.
 Please list specific options, requirements, technical specifications, and standards that local vendors should address in their quotes.
-Keep it extremely clean, formatted in Markdown, and ready to show to the customer.
+Keep it extremely clean, formatted in Markdown, concise, and UNDER 2200 CHARACTERS (max 350 words). Ready to show to the customer.
 
 Input details:
 - Requirement Title: ${title}
@@ -1428,7 +1443,7 @@ Input details:
 Response format:
 Respond in JSON format:
 {
-  "specifications": "markdown string of the detailed specifications"
+  "specifications": "markdown string of the detailed specifications (strictly under 2200 characters)"
 }`;
 
   try {
@@ -1443,14 +1458,14 @@ Respond in JSON format:
 
     return {
       ok: true,
-      specifications: data.specifications || "",
+      specifications: safeTruncate(data.specifications || "", 2800),
     };
   } catch (err) {
     logger.warn(`AI specifications generation failed: ${err.message}`);
     return {
       ok: false,
       error: err.message.slice(0, 400),
-      specifications: `**Technical Specifications for ${title}**\n\n- Standard ${requirementType === 'product' ? 'product' : 'service'} specifications apply.\n- Budget estimate: ${budget_min && budget_max ? `₹${budget_min} - ₹${budget_max}` : 'Flexible'}.`,
+      specifications: safeTruncate(`**Technical Specifications for ${title}**\n\n- Standard ${requirementType === 'product' ? 'product' : 'service'} specifications apply.\n- Budget estimate: ${budget_min && budget_max ? `₹${budget_min} - ₹${budget_max}` : 'Flexible'}.`, 2800),
     };
   }
 };
@@ -1528,9 +1543,9 @@ Respond with STRICT JSON format:
 
     return {
       ok: true,
-      shortDescription: data.shortDescription || data.title || '',
-      detailedDescription: data.detailedDescription || data.description || '',
-      serviceHighlights: data.serviceHighlights || '',
+      shortDescription: safeTruncate(data.shortDescription || data.title || '', 140),
+      detailedDescription: safeTruncate(data.detailedDescription || data.description || '', 1400),
+      serviceHighlights: safeTruncate(data.serviceHighlights || '', 500),
       aiLabels: Array.isArray(data.aiLabels) ? data.aiLabels : ['Verified', 'Top Rated'],
       meta: {
         latency_ms: Date.now() - started,
@@ -1546,8 +1561,8 @@ Respond with STRICT JSON format:
     const catTitle = `${category || ''} ${subcategory || ''}`.trim() || 'services and products';
     return {
       ok: false,
-      shortDescription: `Welcome to ${sName} - Your trusted partner for ${catTitle}.`,
-      detailedDescription: `Welcome to ${sName}! We specialize in delivering high-quality ${catTitle} with unmatched customer dedication. Our verified team is committed to providing prompt, transparent, and reliable solutions tailored to your requirements. Visit us or get in touch for the best service experience!`,
+      shortDescription: safeTruncate(`Welcome to ${sName} - Your trusted partner for ${catTitle}.`, 140),
+      detailedDescription: safeTruncate(`Welcome to ${sName}! We specialize in delivering high-quality ${catTitle} with unmatched customer dedication. Our verified team is committed to providing prompt, transparent, and reliable solutions tailored to your requirements. Visit us or get in touch for the best service experience!`, 1400),
       serviceHighlights: `• 100% Quality & Customer Satisfaction\n• Experienced Specialists\n• Fast & Reliable Doorstep Support\n• Fair & Transparent Rates`,
       aiLabels: ['Fast Service', 'Top Rated', 'Verified Vendor'],
       meta: {
