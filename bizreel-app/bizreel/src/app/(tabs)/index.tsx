@@ -6,12 +6,13 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
   FlatList,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -49,10 +50,14 @@ export default function ReelsFeedScreen() {
   const [isScreenFocused, setIsScreenFocused] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Search state
+  // Search & Filter state
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [reelTypeFilter, setReelTypeFilter] = useState('all');
+  const [durationFilter, setDurationFilter] = useState('all');
+  const [sortFilter, setSortFilter] = useState('trending');
 
   useFocusEffect(
     useCallback(() => {
@@ -69,6 +74,15 @@ export default function ReelsFeedScreen() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const queryParams = useMemo(() => {
+    const pObj: any = {};
+    if (activeQuery) pObj.q = activeQuery;
+    if (reelTypeFilter !== 'all') pObj.type = reelTypeFilter;
+    if (durationFilter !== 'all') pObj.duration = durationFilter;
+    if (sortFilter !== 'trending') pObj.sort = sortFilter;
+    return Object.keys(pObj).length > 0 ? pObj : undefined;
+  }, [activeQuery, reelTypeFilter, durationFilter, sortFilter]);
+
   const {
     data,
     fetchNextPage,
@@ -77,7 +91,7 @@ export default function ReelsFeedScreen() {
     isLoading,
     isError,
     refetch,
-  } = useReelsFeed(activeQuery ? { q: activeQuery } : undefined);
+  } = useReelsFeed(queryParams);
 
   const prefetchNext = usePrefetchNextReelsPage();
   const reels = flattenReels(data?.pages);
@@ -168,6 +182,17 @@ export default function ReelsFeedScreen() {
             onPress={() => setSearchOpen(true)}
             accessibilityLabel="Search Reels">
             <Ionicons name="search" size={18} color={YELLOW} />
+          </Pressable>
+
+          <Pressable
+            style={styles.headerBtn}
+            onPress={() => setFilterModalOpen(true)}
+            accessibilityLabel="Filter Feed">
+            <Ionicons
+              name="options-outline"
+              size={18}
+              color={reelTypeFilter !== 'all' || durationFilter !== 'all' || sortFilter !== 'trending' ? YELLOW : '#fff'}
+            />
           </Pressable>
 
           <Pressable
@@ -295,6 +320,121 @@ export default function ReelsFeedScreen() {
           })}
         />
       )}
+
+      {/* ── REELS FEED FILTER MODAL ── */}
+      <Modal
+        visible={filterModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFilterModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setFilterModalOpen(false)} />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>FILTER REELS & FEED</Text>
+              <TouchableOpacity onPress={() => setFilterModalOpen(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 16, paddingVertical: 8 }}>
+                {/* 1. REEL TYPE */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>🎬 REEL CONTENT TYPE</Text>
+                  <View style={styles.chipsWrap}>
+                    {[
+                      { id: 'all', label: 'All Types' },
+                      { id: 'Product Reel', label: 'Product Reel' },
+                      { id: 'Service Reel', label: 'Service Reel' },
+                      { id: 'Offer Reel', label: 'Offer Reel' },
+                      { id: 'Shop promotion', label: 'Shop Promotion' },
+                      { id: 'Announcement', label: 'Announcement' },
+                    ].map((t) => {
+                      const isSelected = reelTypeFilter === t.id;
+                      return (
+                        <TouchableOpacity
+                          key={t.id}
+                          style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                          onPress={() => setReelTypeFilter(t.id)}>
+                          <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
+                            {t.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* 2. DURATION */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>⏱️ VIDEO DURATION</Text>
+                  <View style={styles.chipsWrap}>
+                    {[
+                      { id: 'all', label: 'All Durations' },
+                      { id: 'under15', label: 'Under 15 sec' },
+                      { id: 'under30', label: 'Under 30 sec' },
+                    ].map((d) => {
+                      const isSelected = durationFilter === d.id;
+                      return (
+                        <TouchableOpacity
+                          key={d.id}
+                          style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                          onPress={() => setDurationFilter(d.id)}>
+                          <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
+                            {d.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* 3. SORTING */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>🔥 POPULARITY & SORT</Text>
+                  <View style={styles.chipsWrap}>
+                    {[
+                      { id: 'trending', label: '🔥 Trending' },
+                      { id: 'most_viewed', label: '👁️ Most Viewed' },
+                      { id: 'most_liked', label: '❤️ Most Liked' },
+                    ].map((s) => {
+                      const isSelected = sortFilter === s.id;
+                      return (
+                        <TouchableOpacity
+                          key={s.id}
+                          style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                          onPress={() => setSortFilter(s.id)}>
+                          <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
+                            {s.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.filterModalFooter}>
+              <TouchableOpacity
+                style={styles.resetModalBtn}
+                onPress={() => {
+                  setReelTypeFilter('all');
+                  setDurationFilter('all');
+                  setSortFilter('trending');
+                  setFilterModalOpen(false);
+                }}>
+                <Text style={styles.resetModalBtnText}>RESET ALL</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.applyModalBtn} onPress={() => setFilterModalOpen(false)}>
+                <Text style={styles.applyModalBtnText}>APPLY FILTERS</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -441,4 +581,75 @@ const styles = StyleSheet.create({
   activeSearchPillClose: {
     padding: 2,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFill,
+  },
+  modalContent: {
+    backgroundColor: DARK_CARD,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 16,
+    gap: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    paddingBottom: 10,
+  },
+  modalTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 1 },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterGroup: { gap: 8 },
+  filterSectionTitle: { color: YELLOW, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  presetChip: {
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  presetChipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
+  presetChipText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700' },
+  presetChipTextActive: { color: BLACK, fontWeight: '900' },
+  filterModalFooter: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  resetModalBtn: {
+    flex: 1,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  resetModalBtnText: { color: '#fff', fontSize: 11, fontWeight: '900' },
+  applyModalBtn: {
+    flex: 2,
+    backgroundColor: YELLOW,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  applyModalBtnText: { color: BLACK, fontSize: 11, fontWeight: '900' },
 });

@@ -94,8 +94,31 @@ const TYPE_FILTERS = [
   { id: 'service', label: 'Services Only' },
 ];
 
+const RATING_FILTERS = [
+  { value: 0, label: 'All Ratings' },
+  { value: 4, label: '4.0⭐ & above' },
+  { value: 3, label: '3.0⭐ & above' },
+  { value: 2, label: '2.0⭐ & above' },
+];
+
+const CONDITION_FILTERS = [
+  { id: 'all', label: 'All Conditions' },
+  { id: 'new', label: 'Brand New' },
+  { id: 'refurbished', label: 'Refurbished' },
+  { id: 'used', label: 'Used / Pre-Owned' },
+];
+
+const UPLOAD_DATE_FILTERS = [
+  { id: 'all', label: 'All Time' },
+  { id: 'today', label: 'Posted Today' },
+  { id: 'this_week', label: 'This Week' },
+  { id: 'this_month', label: 'This Month' },
+];
+
 const SORT_OPTIONS = [
   { id: 'latest', label: 'Newest First' },
+  { id: 'rating_high', label: 'Highest Rated Sellers ⭐' },
+  { id: 'popular', label: 'Most Popular / Trending' },
   { id: 'price_low', label: 'Price: Low to High' },
   { id: 'price_high', label: 'Price: High to Low' },
   { id: 'nearest', label: 'Nearest First' },
@@ -159,7 +182,12 @@ export default function SearchScreen() {
   const [minPriceInput, setMinPriceInput] = useState('');
   const [maxPriceInput, setMaxPriceInput] = useState('');
   const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | 'product' | 'service'>('all');
-  const [sortBy, setSortBy] = useState<'latest' | 'price_low' | 'price_high' | 'nearest'>('latest');
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false);
+  const [itemCondition, setItemCondition] = useState<'all' | 'new' | 'refurbished' | 'used'>('all');
+  const [uploadDate, setUploadDate] = useState<'all' | 'today' | 'this_week' | 'this_month'>('all');
+  const [sortBy, setSortBy] = useState<'latest' | 'price_low' | 'price_high' | 'rating_high' | 'popular' | 'nearest'>('latest');
 
   // Modal Visibility
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -180,16 +208,24 @@ export default function SearchScreen() {
 
   // Defer search input for smooth typing
   const deferredSearch = useDeferredValue((searchText || '').trim());
+  const activeFilterCount = [
+    selectedCategory !== null ? 1 : 0,
+    selectedSubcategory !== null ? 1 : 0,
+    selectedRadius !== 10 ? 1 : 0,
+    selectedPricePreset !== null || minPriceInput !== '' || maxPriceInput !== '' ? 1 : 0,
+    activeTypeFilter !== 'all' ? 1 : 0,
+    selectedRating > 0 ? 1 : 0,
+    verifiedOnly ? 1 : 0,
+    itemCondition !== 'all' ? 1 : 0,
+    uploadDate !== 'all' ? 1 : 0,
+    sortBy !== 'latest' ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
+
   const isQueryActive =
     deferredSearch.length > 0 ||
-    selectedCategory !== null ||
+    activeFilterCount > 0 ||
     selectedCity !== 'All Cities' ||
-    userLocation !== null ||
-    selectedPricePreset !== null ||
-    minPriceInput !== '' ||
-    maxPriceInput !== '' ||
-    activeTypeFilter !== 'all' ||
-    selectedRadius !== 10;
+    userLocation !== null;
 
   // Request GPS Location & Detect City
   async function handleDetectCurrentLocation() {
@@ -272,11 +308,17 @@ export default function SearchScreen() {
 
   const listingsParams = {
     page: 1,
+    limit: 30,
     search: deferredSearch || undefined,
     category: selectedCategory?.name || undefined,
+    subcategory: selectedSubcategory || undefined,
     type: activeTypeFilter !== 'all' ? activeTypeFilter : undefined,
     minPrice: computedMinPrice,
     maxPrice: computedMaxPrice,
+    rating: selectedRating > 0 ? selectedRating : undefined,
+    verified: verifiedOnly ? true : undefined,
+    condition: itemCondition !== 'all' ? itemCondition : undefined,
+    uploadDate: uploadDate !== 'all' ? uploadDate : undefined,
     city: !isGpsActive && selectedCity !== 'All Cities' ? selectedCity : undefined,
     lat: isGpsActive ? userLocation?.lat : undefined,
     lng: isGpsActive ? userLocation?.lng : undefined,
@@ -309,6 +351,16 @@ export default function SearchScreen() {
       const itemType = item.category_type || item.type;
       if (itemType !== activeTypeFilter) return false;
     }
+    if (selectedSubcategory && item.subcategory !== selectedSubcategory) return false;
+    if (selectedRating > 0) {
+      const itemRating = item.rating || item.rating_avg || item.vendor?.rating_avg || 0;
+      if (itemRating < selectedRating) return false;
+    }
+    if (verifiedOnly) {
+      const isVer = item.vendor?.is_subscribed_verified || item.vendor?.isVerified || item.vendor?.is_verified;
+      if (!isVer) return false;
+    }
+    if (itemCondition !== 'all' && item.condition && item.condition !== itemCondition) return false;
     if (computedMinPrice !== undefined && (item.price || 0) < computedMinPrice) return false;
     if (computedMaxPrice !== undefined && (item.price || 0) > computedMaxPrice) return false;
     return true;
@@ -318,11 +370,16 @@ export default function SearchScreen() {
     filteredListings.sort((a: any, b: any) => (a.price || 0) - (b.price || 0));
   } else if (sortBy === 'price_high') {
     filteredListings.sort((a: any, b: any) => (b.price || 0) - (a.price || 0));
+  } else if (sortBy === 'rating_high') {
+    filteredListings.sort((a: any, b: any) => (b.rating || b.rating_avg || 0) - (a.rating || a.rating_avg || 0));
+  } else if (sortBy === 'popular') {
+    filteredListings.sort((a: any, b: any) => (b.viewsCount || 0) - (a.viewsCount || 0));
   }
 
   const resetAllFilters = () => {
     setSearchText('');
     setSelectedCategory(null);
+    setSelectedSubcategory(null);
     setSelectedCity('All Cities');
     setUserLocation(null);
     setSelectedRadius(10);
@@ -330,6 +387,10 @@ export default function SearchScreen() {
     setMinPriceInput('');
     setMaxPriceInput('');
     setActiveTypeFilter('all');
+    setSelectedRating(0);
+    setVerifiedOnly(false);
+    setItemCondition('all');
+    setUploadDate('all');
     setSortBy('latest');
     setFilterModalVisible(false);
   };
@@ -381,6 +442,11 @@ export default function SearchScreen() {
           onPress={() => setFilterModalVisible(true)}
           accessibilityLabel="Filter Options">
           <Ionicons name="options-outline" size={20} color={BLACK} />
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -852,7 +918,83 @@ export default function SearchScreen() {
                   </View>
                 </View>
 
-                {/* 4. SORT ORDER */}
+                {/* 4. VENDOR RATING FILTER */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>⭐ MINIMUM VENDOR RATING</Text>
+                  <View style={styles.chipsWrap}>
+                    {RATING_FILTERS.map((r) => {
+                      const isSelected = selectedRating === r.value;
+                      return (
+                        <TouchableOpacity
+                          key={r.label}
+                          style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                          onPress={() => setSelectedRating(r.value)}>
+                          <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
+                            {r.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* 5. VERIFIED SUPPLIERS TOGGLE */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>🛡️ SELLER BADGE & VERIFICATION</Text>
+                  <TouchableOpacity
+                    style={[styles.sortOption, verifiedOnly && styles.sortOptionSelected]}
+                    onPress={() => setVerifiedOnly(!verifiedOnly)}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="shield-checkmark" size={16} color={verifiedOnly ? BLACK : YELLOW} />
+                      <Text style={[styles.sortOptionText, verifiedOnly && { color: BLACK }]}>
+                        Verified Suppliers & Subscribed Stores Only
+                      </Text>
+                    </View>
+                    {verifiedOnly && <Ionicons name="checkmark-circle" size={16} color={BLACK} />}
+                  </TouchableOpacity>
+                </View>
+
+                {/* 6. ITEM CONDITION */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>📦 ITEM CONDITION</Text>
+                  <View style={styles.chipsWrap}>
+                    {CONDITION_FILTERS.map((c) => {
+                      const isSelected = itemCondition === c.id;
+                      return (
+                        <TouchableOpacity
+                          key={c.id}
+                          style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                          onPress={() => setItemCondition(c.id as any)}>
+                          <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
+                            {c.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* 7. POSTING RECENCY / UPLOAD DATE */}
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterSectionTitle}>🕒 POSTING DATE / RECENCY</Text>
+                  <View style={styles.chipsWrap}>
+                    {UPLOAD_DATE_FILTERS.map((d) => {
+                      const isSelected = uploadDate === d.id;
+                      return (
+                        <TouchableOpacity
+                          key={d.id}
+                          style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                          onPress={() => setUploadDate(d.id as any)}>
+                          <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
+                            {d.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* 8. SORT ORDER */}
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterSectionTitle}>🔃 SORT RESULTS BY</Text>
                   <View style={{ gap: 6 }}>
@@ -1449,4 +1591,16 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
   },
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
 });

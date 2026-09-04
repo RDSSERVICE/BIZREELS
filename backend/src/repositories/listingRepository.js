@@ -79,6 +79,9 @@ class ListingRepository {
     condition,
     status,
     rating,
+    verified,
+    uploadDate,
+    sort,
     coordinates,
     distanceKm,
     search,
@@ -98,7 +101,7 @@ class ListingRepository {
     if (type) match.type = type;
     if (category) match.category = category;
     if (subcategory) match.subcategory = subcategory;
-    if (condition) match.condition = condition;
+    if (condition && condition !== 'all') match.condition = condition;
     if (status) match.status = status;
 
     // Price filters
@@ -109,8 +112,26 @@ class ListingRepository {
     }
 
     // Rating filter
-    if (rating !== undefined) {
-      match.rating = { $gte: parseFloat(rating) };
+    if (rating !== undefined && parseFloat(rating) > 0) {
+      match.$or = [
+        { rating: { $gte: parseFloat(rating) } },
+        { rating_avg: { $gte: parseFloat(rating) } },
+      ];
+    }
+
+    // Upload Date filter
+    if (uploadDate && uploadDate !== 'all') {
+      const now = new Date();
+      if (uploadDate === 'today') {
+        const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+        match.createdAt = { $gte: startOfDay };
+      } else if (uploadDate === 'this_week') {
+        const pastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        match.createdAt = { $gte: pastWeek };
+      } else if (uploadDate === 'this_month') {
+        const pastMonth = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        match.createdAt = { $gte: pastMonth };
+      }
     }
 
     // Search query match (regex across multiple fields)
@@ -287,12 +308,24 @@ class ListingRepository {
       });
 
       const sortSpec = {};
-      if (search) {
+      if (sort === 'price_low') {
+        sortSpec.price = 1;
+      } else if (sort === 'price_high') {
+        sortSpec.price = -1;
+      } else if (sort === 'rating_high') {
+        sortSpec.rating = -1;
+        sortSpec.rating_avg = -1;
+      } else if (sort === 'popular') {
+        sortSpec.viewsCount = -1;
+        sortSpec.likesCount = -1;
+      } else if (search) {
         sortSpec.relevanceScore = -1;
       }
-      sortSpec.followedVendor = -1;
-      sortSpec.interestMatch = -1;
-      if (hasCoordinates) {
+      if (currentUserId) {
+        sortSpec.followedVendor = -1;
+        sortSpec.interestMatch = -1;
+      }
+      if (hasCoordinates && sort === 'nearest') {
         sortSpec.distance = 1;
       }
       sortSpec.isBoosted = -1;
@@ -301,10 +334,20 @@ class ListingRepository {
       pipeline.push({ $sort: sortSpec });
     } else {
       const sortSpec = {};
-      if (search) {
+      if (sort === 'price_low') {
+        sortSpec.price = 1;
+      } else if (sort === 'price_high') {
+        sortSpec.price = -1;
+      } else if (sort === 'rating_high') {
+        sortSpec.rating = -1;
+        sortSpec.rating_avg = -1;
+      } else if (sort === 'popular') {
+        sortSpec.viewsCount = -1;
+        sortSpec.likesCount = -1;
+      } else if (search) {
         sortSpec.relevanceScore = -1;
       }
-      if (hasCoordinates) {
+      if (hasCoordinates && sort === 'nearest') {
         sortSpec.distance = 1;
       }
       sortSpec.isBoosted = -1;
