@@ -16,6 +16,7 @@ import { api, tokenStore, resolveMediaUrl } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 import { useLanguage } from '../../context/LanguageContext';
 import SEO from '../../components/common/SEO';
+import { isOnboardingComplete, getRoleDashboard, getRoleOnboarding } from '../../lib/roleNav';
 
 function VendorSidebarContent({
   onItemClick,
@@ -221,42 +222,33 @@ export default function VendorLayout() {
 
   const handleRoleSwitch = async (targetRole) => {
     setIsRoleDropdownOpen(false);
-    if (targetRole === 'vendor') {
+    if (targetRole === currentRole) {
       navigate('/vendor/dashboard');
-      return;
-    }
-
-    const userRoles = profileUser.roles || roles || ['vendor'];
-    const hasTargetRole = userRoles.includes(targetRole);
-
-    if (!hasTargetRole) {
-      if (targetRole === 'vendor') navigate('/vendor/onboarding');
-      else if (targetRole === 'creator') navigate('/creator/onboarding');
       return;
     }
 
     try {
       const res = await switchRoleApi({ role: targetRole }).unwrap();
-      const updatedUser = res.user || res.data?.user || res.data || profileUser;
+      const resData = res.data || res;
+      const updatedUser = resData.user || res.user || profileUser;
       dispatch(setCredentials({ user: updatedUser }));
       dispatch(setActiveRole(targetRole));
       toast.success(`Switched active role to ${targetRole.toUpperCase()}`);
 
-      if (targetRole === 'vendor') {
-        navigate('/vendor/dashboard');
-      } else if (targetRole === 'creator') {
-        navigate('/creator/dashboard');
-      } else if (targetRole === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/customer/home');
-      }
+      const destination = resData.redirectTo || (
+        resData.isOnboardingRequired
+          ? resData.targetOnboardingPath
+          : (resData.targetDashboardPath || (isOnboardingComplete(updatedUser, targetRole) ? getRoleDashboard(targetRole) : getRoleOnboarding(targetRole)))
+      );
+
+      navigate(destination);
     } catch (err) {
-      // Fallback navigation
+      console.error('Role switch failed:', err);
       dispatch(setActiveRole(targetRole));
-      if (targetRole === 'vendor') navigate('/vendor/dashboard');
-      else if (targetRole === 'creator') navigate('/creator/dashboard');
-      else navigate('/customer/home');
+      const fallbackDestination = isOnboardingComplete(profileUser, targetRole)
+        ? getRoleDashboard(targetRole)
+        : getRoleOnboarding(targetRole);
+      navigate(fallbackDestination);
     }
   };
 
@@ -471,7 +463,12 @@ export default function VendorLayout() {
                     onClick={() => handleRoleSwitch('customer')}
                     className="w-full px-3 py-2 text-left text-xs font-bold text-[#1a1a1a] hover:bg-[#f8f4ec] flex items-center justify-between cursor-pointer border-none bg-transparent"
                   >
-                    <span>{bi('Customer', 'ग्राहक (Customer)')}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{bi('Customer', 'ग्राहक (Customer)')}</span>
+                      {!isOnboardingComplete(profileUser, 'customer') && (
+                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">{bi('Setup', 'शुरू करें')}</span>
+                      )}
+                    </div>
                   </button>
 
                   <button
@@ -481,9 +478,6 @@ export default function VendorLayout() {
                   >
                     <div className="flex items-center gap-2">
                       <span>{bi('Vendor', 'विक्रेता (Vendor)')}</span>
-                      {!roles.includes('vendor') && (
-                        <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">{bi('Join', 'जुड़ें')}</span>
-                      )}
                     </div>
                     <FiCheck className="text-emerald-600 w-4 h-4" />
                   </button>
@@ -495,7 +489,7 @@ export default function VendorLayout() {
                   >
                     <div className="flex items-center gap-2">
                       <span>{bi('Creator', 'क्रिएटर (Creator)')}</span>
-                      {!roles.includes('creator') && (
+                      {!isOnboardingComplete(profileUser, 'creator') && (
                         <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">{bi('Join', 'जुड़ें')}</span>
                       )}
                     </div>

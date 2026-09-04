@@ -35,9 +35,11 @@ import {
   selectIsAuthenticated,
   selectActiveRole,
   logout,
-  setActiveRole
+  setActiveRole,
+  setCredentials
 } from '../features/auth/authSlice';
 import { useSwitchRoleMutation, useLogoutMutation, useAddRoleMutation } from '../features/auth/authApi';
+import { isOnboardingComplete, getRoleDashboard, getRoleOnboarding } from '../lib/roleNav';
 import Button from '../components/common/Button';
 
 /**
@@ -81,15 +83,20 @@ const AppLayout = () => {
         toast.loading(`Switching to ${newRole}...`, { id: 'role-switch' });
       }
 
-      await switchRoleApi({ role: newRole }).unwrap();
+      const res = await switchRoleApi({ role: newRole }).unwrap();
+      const resData = res.data || res;
+      const updatedUser = resData.user || res.user || user;
+      dispatch(setCredentials({ user: updatedUser }));
       dispatch(setActiveRole(newRole));
       setIsProfileMenuOpen(false);
       toast.success(`Active role is now ${newRole.toUpperCase()}`, { id: 'role-switch' });
 
-      if (newRole === 'vendor') navigate('/vendor/dashboard');
-      else if (newRole === 'creator') navigate('/creator/dashboard');
-      else if (newRole === 'admin') navigate('/admin/dashboard');
-      else navigate('/feed');
+      const destination = resData.redirectTo || (
+        resData.isOnboardingRequired
+          ? resData.targetOnboardingPath
+          : (resData.targetDashboardPath || (isOnboardingComplete(updatedUser, newRole) ? getRoleDashboard(newRole) : getRoleOnboarding(newRole)))
+      );
+      navigate(destination);
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to switch role.', { id: 'role-switch' });
     }

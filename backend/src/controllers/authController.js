@@ -223,9 +223,16 @@ class AuthController {
   // ── Switch Role ─────────────────────────────────────────
   switchRole = asyncHandler(async (req, res) => {
     const { role } = req.body;
-    const user = await authService.switchRole(req.user._id, role, req);
+    const result = await authService.switchRole(req.user._id, role, req);
 
-    return ApiResponse.ok(res, `Switched to ${role} role.`, { user });
+    return ApiResponse.ok(res, `Switched to ${role} role.`, {
+      user: result.user,
+      activeRole: result.activeRole,
+      isOnboardingRequired: result.isOnboardingRequired,
+      targetOnboardingPath: result.targetOnboardingPath,
+      targetDashboardPath: result.targetDashboardPath,
+      redirectTo: result.redirectTo,
+    });
   });
 
   // ── Add Role ────────────────────────────────────────────

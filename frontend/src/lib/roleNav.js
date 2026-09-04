@@ -69,8 +69,10 @@ export function getRoleOnboarding(role) {
       return '/vendor/onboarding';
     case 'creator':
       return '/creator/onboarding';
+    case 'customer':
+      return '/customer/choose-interests';
     default:
-      return '/customer/home';
+      return '/customer/choose-interests';
   }
 }
 
@@ -80,38 +82,41 @@ export function getRoleOnboarding(role) {
  */
 export function isOnboardingComplete(user, role) {
   if (!user) return false;
-  const userRoles = user.roles || [];
-  const vp = user.vendorProfile;
-  const cp = user.creatorProfile;
+  const vp = user.vendorProfile || {};
+  const cp = user.creatorProfile || {};
+  const custp = user.customerProfile || {};
 
   switch (role) {
     case 'vendor': {
-      if (userRoles.includes('vendor') || user.activeRole === 'vendor' || user.current_role === 'vendor') {
-        return true;
-      }
-      return !!(vp && (vp.shopName || vp.businessName || vp.businessType || (vp.categories && vp.categories.length > 0) || Object.keys(vp).length > 0));
+      return Boolean(vp.shopName || vp.businessName || vp.store_name);
     }
     case 'creator': {
-      if (userRoles.includes('creator') || user.activeRole === 'creator' || user.current_role === 'creator') {
-        return true;
-      }
-      return !!(cp && (cp.displayName || cp.name || cp.handle || (cp.categories && cp.categories.length > 0) || Object.keys(cp).length > 0));
+      return Boolean(cp.displayName || cp.name);
     }
-    case 'customer':
+    case 'customer': {
+      return Boolean(
+        custp.interestsSelectedAt || (Array.isArray(custp.interests) && custp.interests.length >= 5)
+      );
+    }
+    case 'admin':
       return true;
     default:
-      return true;
+      return false;
   }
+}
+
+/**
+ * Returns the correct destination for a user based on their role and onboarding status.
+ */
+export function getRoleDestination(user, role) {
+  if (role === 'admin') return '/admin/dashboard';
+  return isOnboardingComplete(user, role) ? getRoleDashboard(role) : getRoleOnboarding(role);
 }
 
 /**
  * Returns the correct post-login destination for a user based on their role and onboarding status.
  */
 export function getPostLoginDestination(user, role) {
-  if (role === 'admin') return '/admin/dashboard';
-  if ((role === 'vendor' || role === 'creator') && !isOnboardingComplete(user, role)) {
-    return getRoleOnboarding(role);
-  }
-  return getRoleDashboard(role);
+  return getRoleDestination(user, role);
 }
 

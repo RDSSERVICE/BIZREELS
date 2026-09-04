@@ -34,15 +34,11 @@ const switchRole = async (userId, role) => {
   if (user.roles.includes('admin') && role !== 'admin') {
     throw ApiError.forbidden('Admin accounts cannot switch to non-admin roles');
   }
+  if (!['customer', 'vendor', 'creator', 'admin'].includes(role)) {
+    throw ApiError.badRequest(`Invalid target role: ${role}`);
+  }
   if (!user.roles.includes(role)) {
-    const hasVendorProfile = role === 'vendor' && user.vendorProfile && (user.vendorProfile.shopName || user.vendorProfile.businessName || user.vendorProfile.businessType || (user.vendorProfile.categories && user.vendorProfile.categories.length > 0));
-    const hasCreatorProfile = role === 'creator' && user.creatorProfile && (user.creatorProfile.displayName || user.creatorProfile.name || user.creatorProfile.handle || (user.creatorProfile.categories && user.creatorProfile.categories.length > 0));
-
-    if (hasVendorProfile || hasCreatorProfile) {
-      user.roles.push(role);
-    } else {
-      throw ApiError.badRequest(`You don't have the ${role} role`);
-    }
+    user.roles.push(role);
   }
   user.current_role = role;
   user.activeRole = role;
@@ -51,7 +47,51 @@ const switchRole = async (userId, role) => {
     const cache = require('../utils/cache');
     await cache.deleteCache(`user:auth:${userId}`);
   } catch (err) {}
-  return user;
+
+  let isOnboardingRequired = false;
+  let targetOnboardingPath = null;
+  let targetDashboardPath = null;
+
+  if (role === 'vendor') {
+    targetDashboardPath = '/vendor/dashboard';
+    const vp = user.vendorProfile || {};
+    const isComplete = Boolean(vp.shopName || vp.businessName || vp.store_name);
+    if (!isComplete) {
+      isOnboardingRequired = true;
+      targetOnboardingPath = '/vendor/onboarding';
+    }
+  } else if (role === 'creator') {
+    targetDashboardPath = '/creator/dashboard';
+    const cp = user.creatorProfile || {};
+    const isComplete = Boolean(cp.displayName || cp.name);
+    if (!isComplete) {
+      isOnboardingRequired = true;
+      targetOnboardingPath = '/creator/onboarding';
+    }
+  } else if (role === 'customer') {
+    targetDashboardPath = '/customer/home';
+    const custp = user.customerProfile || {};
+    const isComplete = Boolean(
+      custp.interestsSelectedAt || (Array.isArray(custp.interests) && custp.interests.length >= 5)
+    );
+    if (!isComplete) {
+      isOnboardingRequired = true;
+      targetOnboardingPath = '/customer/choose-interests';
+    }
+  } else if (role === 'admin') {
+    targetDashboardPath = '/admin/dashboard';
+  }
+
+  const redirectTo = isOnboardingRequired ? targetOnboardingPath : (targetDashboardPath || '/customer/home');
+
+  return {
+    user,
+    activeRole: role,
+    isOnboardingRequired,
+    targetOnboardingPath,
+    targetDashboardPath,
+    redirectTo,
+  };
 };
 
 const updateProfile = async (userId, updates) => {

@@ -9,6 +9,8 @@ import {
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+import { isOnboardingComplete, getRoleDashboard, getRoleOnboarding } from "@/lib/roleNav";
+
 const ROLE_META = {
   customer: { label: "Customer", icon: ShoppingBag, gradient: "from-purple-500 to-purple-700",
               desc: "Browse & buy locally", home: "/customer/home" },
@@ -60,19 +62,18 @@ export default function RoleSwitcherChip() {
     setSwitching(true);
     try {
       const { data } = await userApi.switchRole(role);
-      const updatedUser = data.user || { ...user, current_role: role };
+      const updatedUser = data?.user || { ...user, current_role: role, activeRole: role };
       updateLocalUser(updatedUser);
       toast.success(`Switched to ${ROLE_META[role]?.label || role} panel`);
       
-      let targetPath = data?.targetOnboardingPath || homeForRole(role);
-      if (role === 'vendor' && (!updatedUser?.vendorProfile?.shopName && !updatedUser?.vendorProfile?.businessName)) {
-        targetPath = '/vendor/onboarding';
-      } else if (role === 'creator' && (!updatedUser?.creatorProfile?.displayName && !updatedUser?.creatorProfile?.name)) {
-        targetPath = '/creator/onboarding';
-      }
+      const targetPath = data?.redirectTo || (
+        data?.isOnboardingRequired
+          ? data?.targetOnboardingPath
+          : (data?.targetDashboardPath || (isOnboardingComplete(updatedUser, role) ? getRoleDashboard(role) : getRoleOnboarding(role)))
+      );
       navigate(targetPath, { replace: true });
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Role switch failed");
+      toast.error(e?.response?.data?.detail || e?.response?.data?.message || "Role switch failed");
     } finally {
       setSwitching(false);
     }

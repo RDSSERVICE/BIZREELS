@@ -54,22 +54,21 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  const hasVendorAccess = userRoles.includes('vendor') || isOnboardingComplete(user, 'vendor');
-  const hasCreatorAccess = userRoles.includes('creator') || isOnboardingComplete(user, 'creator');
+  // Check required onboarding for the target role
+  const targetRole = allowedRoles[0];
+  if (targetRole && (targetRole === 'vendor' || targetRole === 'creator') && !isOnboardingComplete(user, targetRole)) {
+    return <Navigate to={getRoleOnboarding(targetRole)} replace />;
+  }
 
   // Check if user has permission for the required role
   const hasAllowedRole = allowedRoles.some(role => {
-    if (role === 'vendor') return hasVendorAccess;
-    if (role === 'creator') return hasCreatorAccess;
-    return userRoles.includes(role) || activeRole === role;
+    return userRoles.includes(role) || activeRole === role || isOnboardingComplete(user, role);
   });
 
   if (!hasAllowedRole) {
-    // If user does not have the role or profile yet, navigate to onboarding to become one
-    const targetRole = allowedRoles[0];
     if (targetRole === 'vendor') return <Navigate to="/vendor/onboarding" replace />;
     if (targetRole === 'creator') return <Navigate to="/creator/onboarding" replace />;
-    return <Navigate to="/customer/home" replace />;
+    return <Navigate to="/customer/choose-interests" replace />;
   }
 
   return children;
@@ -94,11 +93,8 @@ export const OnboardingRoute = ({ children, targetRole }) => {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  // If user already has the role OR profile completed, send directly to dashboard
-  const userRoles = user?.roles || [];
-  const hasAccess = userRoles.includes(targetRole) || isOnboardingComplete(user, targetRole);
-
-  if (hasAccess) {
+  // If user already completed onboarding for this role, send directly to dashboard
+  if (isOnboardingComplete(user, targetRole)) {
     return <Navigate to={getRoleDashboard(targetRole)} replace />;
   }
 

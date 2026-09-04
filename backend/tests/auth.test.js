@@ -162,17 +162,20 @@ describe('Authentication & Workspace Roles API Suite', () => {
     // Seed user with roles
     const mockMongoose = require('mongoose');
     const id = new mockMongoose.Types.ObjectId().toString();
-    getMockDb().users[id] = {
+    const mockUser = {
       _id: id,
       name: 'Test Customer',
       email: 'testcustomer@example.com',
       roles: ['customer', 'vendor'],
       activeRole: 'customer',
+      vendorProfile: { shopName: 'Test Shop' },
       toObject: function() { return this; },
+      save: jest.fn().mockResolvedValue(this),
     };
+    getMockDb().users[id] = mockUser;
 
     const authService = require('../src/services/auth.service');
-    const token = authService.generateAccessToken(getMockDb().users[id]);
+    const token = authService.generateAccessToken(mockUser);
 
     const res = await request(app)
       .patch('/api/v1/auth/switch-role')
@@ -184,31 +187,162 @@ describe('Authentication & Workspace Roles API Suite', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.user.activeRole).toBe('vendor');
+    expect(res.body.data.redirectTo).toBe('/vendor/dashboard');
   });
 
-  it('4. Should reject switching to unauthorized roles', async () => {
+  it('4. Should reject switching to unauthorized or invalid roles', async () => {
     // Seed user
     const mockMongoose = require('mongoose');
     const id = new mockMongoose.Types.ObjectId().toString();
-    getMockDb().users[id] = {
+    const mockUser = {
       _id: id,
       name: 'Test Customer',
       email: 'testcustomer@example.com',
       roles: ['customer'],
       activeRole: 'customer',
       toObject: function() { return this; },
+      save: jest.fn().mockResolvedValue(this),
     };
+    getMockDb().users[id] = mockUser;
 
     const authService = require('../src/services/auth.service');
-    const token = authService.generateAccessToken(getMockDb().users[id]);
+    const token = authService.generateAccessToken(mockUser);
 
     const res = await request(app)
       .patch('/api/v1/auth/switch-role')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        role: 'creator',
+        role: 'invalid_role',
       });
 
     expect(res.status).toBe(400);
+  });
+
+  it('5. Creator switching to Customer without completed interests should require onboarding', async () => {
+    const mockMongoose = require('mongoose');
+    const id = new mockMongoose.Types.ObjectId().toString();
+    const mockUser = {
+      _id: id,
+      name: 'Test Creator',
+      email: 'creator@example.com',
+      roles: ['creator'],
+      activeRole: 'creator',
+      creatorProfile: { displayName: 'Creator Pro' },
+      customerProfile: { interests: [], interestsSelectedAt: null },
+      toObject: function() { return this; },
+      save: jest.fn().mockResolvedValue(this),
+    };
+    getMockDb().users[id] = mockUser;
+
+    const authService = require('../src/services/auth.service');
+    const token = authService.generateAccessToken(mockUser);
+
+    const res = await request(app)
+      .patch('/api/v1/auth/switch-role')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ role: 'customer' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.user.activeRole).toBe('customer');
+    expect(res.body.data.isOnboardingRequired).toBe(true);
+    expect(res.body.data.targetOnboardingPath).toBe('/customer/choose-interests');
+    expect(res.body.data.redirectTo).toBe('/customer/choose-interests');
+  });
+
+  it('6. Creator switching to Customer with completed interests should redirect to Customer Dashboard', async () => {
+    const mockMongoose = require('mongoose');
+    const id = new mockMongoose.Types.ObjectId().toString();
+    const mockUser = {
+      _id: id,
+      name: 'Test Creator 2',
+      email: 'creator2@example.com',
+      roles: ['creator'],
+      activeRole: 'creator',
+      creatorProfile: { displayName: 'Creator Pro 2' },
+      customerProfile: { interests: [{ category: 'Fashion' }], interestsSelectedAt: new Date() },
+      toObject: function() { return this; },
+      save: jest.fn().mockResolvedValue(this),
+    };
+    getMockDb().users[id] = mockUser;
+
+    const authService = require('../src/services/auth.service');
+    const token = authService.generateAccessToken(mockUser);
+
+    const res = await request(app)
+      .patch('/api/v1/auth/switch-role')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ role: 'customer' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.user.activeRole).toBe('customer');
+    expect(res.body.data.isOnboardingRequired).toBe(false);
+    expect(res.body.data.targetDashboardPath).toBe('/customer/home');
+    expect(res.body.data.redirectTo).toBe('/customer/home');
+  });
+
+  it('7. Creator switching to Vendor without completed shopName should require vendor onboarding', async () => {
+    const mockMongoose = require('mongoose');
+    const id = new mockMongoose.Types.ObjectId().toString();
+    const mockUser = {
+      _id: id,
+      name: 'Test Creator 3',
+      email: 'creator3@example.com',
+      roles: ['creator'],
+      activeRole: 'creator',
+      creatorProfile: { displayName: 'Creator Pro 3' },
+      vendorProfile: null,
+      toObject: function() { return this; },
+      save: jest.fn().mockResolvedValue(this),
+    };
+    getMockDb().users[id] = mockUser;
+
+    const authService = require('../src/services/auth.service');
+    const token = authService.generateAccessToken(mockUser);
+
+    const res = await request(app)
+      .patch('/api/v1/auth/switch-role')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ role: 'vendor' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.user.activeRole).toBe('vendor');
+    expect(res.body.data.isOnboardingRequired).toBe(true);
+    expect(res.body.data.targetOnboardingPath).toBe('/vendor/onboarding');
+    expect(res.body.data.redirectTo).toBe('/vendor/onboarding');
+  });
+
+  it('8. Creator switching to Vendor with completed shopName should redirect to Vendor Dashboard', async () => {
+    const mockMongoose = require('mongoose');
+    const id = new mockMongoose.Types.ObjectId().toString();
+    const mockUser = {
+      _id: id,
+      name: 'Test Creator 4',
+      email: 'creator4@example.com',
+      roles: ['creator'],
+      activeRole: 'creator',
+      creatorProfile: { displayName: 'Creator Pro 4' },
+      vendorProfile: { shopName: 'Awesome Shop' },
+      toObject: function() { return this; },
+      save: jest.fn().mockResolvedValue(this),
+    };
+    getMockDb().users[id] = mockUser;
+
+    const authService = require('../src/services/auth.service');
+    const token = authService.generateAccessToken(mockUser);
+
+    const res = await request(app)
+      .patch('/api/v1/auth/switch-role')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ role: 'vendor' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.user.activeRole).toBe('vendor');
+    expect(res.body.data.isOnboardingRequired).toBe(false);
+    expect(res.body.data.targetDashboardPath).toBe('/vendor/dashboard');
+    expect(res.body.data.redirectTo).toBe('/vendor/dashboard');
   });
 });

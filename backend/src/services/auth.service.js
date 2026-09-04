@@ -623,8 +623,10 @@ class AuthService {
 
     let isOnboardingRequired = false;
     let targetOnboardingPath = null;
+    let targetDashboardPath = null;
 
     if (newRole === 'vendor') {
+      targetDashboardPath = '/vendor/dashboard';
       const vp = user.vendorProfile || {};
       const isComplete = Boolean(vp.shopName || vp.businessName || vp.store_name);
       if (!isComplete) {
@@ -632,19 +634,36 @@ class AuthService {
         targetOnboardingPath = '/vendor/onboarding';
       }
     } else if (newRole === 'creator') {
+      targetDashboardPath = '/creator/dashboard';
       const cp = user.creatorProfile || {};
       const isComplete = Boolean(cp.displayName || cp.name);
       if (!isComplete) {
         isOnboardingRequired = true;
         targetOnboardingPath = '/creator/onboarding';
       }
+    } else if (newRole === 'customer') {
+      targetDashboardPath = '/customer/home';
+      const custp = user.customerProfile || {};
+      const isComplete = Boolean(
+        custp.interestsSelectedAt || (Array.isArray(custp.interests) && custp.interests.length >= 5)
+      );
+      if (!isComplete) {
+        isOnboardingRequired = true;
+        targetOnboardingPath = '/customer/choose-interests';
+      }
+    } else if (newRole === 'admin') {
+      targetDashboardPath = '/admin/dashboard';
     }
+
+    const redirectTo = isOnboardingRequired ? targetOnboardingPath : (targetDashboardPath || '/customer/home');
 
     return {
       user: sanitized,
       activeRole: newRole,
       isOnboardingRequired,
       targetOnboardingPath,
+      targetDashboardPath,
+      redirectTo,
     };
   }
 

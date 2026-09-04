@@ -235,8 +235,15 @@ router.post('/me/switch-role', requireAuth, catchAsync(async (req, res) => {
   if (!role) {
     throw ApiError.badRequest('role is required');
   }
-  const updated = await userService.switchRole(req.user._id.toString(), role);
-  res.json({ user: userService.serialize(updated) });
+  const result = await userService.switchRole(req.user._id.toString(), role);
+  res.json({
+    user: userService.serialize(result.user),
+    activeRole: result.activeRole,
+    isOnboardingRequired: result.isOnboardingRequired,
+    targetOnboardingPath: result.targetOnboardingPath,
+    targetDashboardPath: result.targetDashboardPath,
+    redirectTo: result.redirectTo,
+  });
 }));
 
 router.post('/me/add-role', requireAuth, catchAsync(async (req, res) => {

@@ -15,6 +15,7 @@ import { api, locationApi, tokenStore } from '../../lib/api';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 import { useLanguage } from '../../context/LanguageContext';
 import CartDrawer, { openCartDrawer, subscribeCartCount, getCartItemCount } from '../../components/app/CartDrawer';
+import { isOnboardingComplete, getRoleDashboard, getRoleOnboarding } from '../../lib/roleNav';
 
 function CustomerSidebarContent({
   onItemClick,
@@ -203,7 +204,7 @@ export default function CustomerLayout() {
     if (
       profileUser &&
       profileUser._id &&
-      !profileUser.customerProfile?.interestsSelectedAt &&
+      !isOnboardingComplete(profileUser, 'customer') &&
       !location.pathname.includes('choose-interests') &&
       !location.pathname.includes('settings')
     ) {
@@ -352,42 +353,33 @@ export default function CustomerLayout() {
 
   const handleRoleSwitch = async (targetRole) => {
     setIsRoleDropdownOpen(false);
-    if (targetRole === 'customer') {
+    if (targetRole === currentRole) {
       navigate('/customer/home');
-      return;
-    }
-
-    const userRoles = profileUser.roles || roles || ['customer'];
-    const hasTargetRole = userRoles.includes(targetRole);
-
-    if (!hasTargetRole) {
-      if (targetRole === 'vendor') navigate('/vendor/onboarding');
-      else if (targetRole === 'creator') navigate('/creator/onboarding');
       return;
     }
 
     try {
       const res = await switchRoleApi({ role: targetRole }).unwrap();
-      const updatedUser = res.user || res.data?.user || res.data || profileUser;
+      const resData = res.data || res;
+      const updatedUser = resData.user || res.user || profileUser;
       dispatch(setCredentials({ user: updatedUser }));
       dispatch(setActiveRole(targetRole));
       toast.success(`Switched active role to ${targetRole.toUpperCase()}`);
 
-      if (targetRole === 'vendor') {
-        navigate('/vendor/dashboard');
-      } else if (targetRole === 'creator') {
-        navigate('/creator/dashboard');
-      } else if (targetRole === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/customer/home');
-      }
+      const destination = resData.redirectTo || (
+        resData.isOnboardingRequired
+          ? resData.targetOnboardingPath
+          : (resData.targetDashboardPath || (isOnboardingComplete(updatedUser, targetRole) ? getRoleDashboard(targetRole) : getRoleOnboarding(targetRole)))
+      );
+
+      navigate(destination);
     } catch (err) {
-      // Fallback navigation
+      console.error('Role switch failed:', err);
       dispatch(setActiveRole(targetRole));
-      if (targetRole === 'vendor') navigate('/vendor/dashboard');
-      else if (targetRole === 'creator') navigate('/creator/dashboard');
-      else navigate('/customer/home');
+      const fallbackDestination = isOnboardingComplete(profileUser, targetRole)
+        ? getRoleDashboard(targetRole)
+        : getRoleOnboarding(targetRole);
+      navigate(fallbackDestination);
     }
   };
 
@@ -411,16 +403,16 @@ export default function CustomerLayout() {
     { label: t('post_requirement', 'Post Requirement', 'आवश्यकता पोस्ट करें (Post Requirement)'), path: '/customer/post-requirement', icon: FiZap },
     { label: t('search_placeholder', 'Search Listings', 'उत्पाद खोजें (Search Listings)'), path: '/customer/search', icon: FiCompass },
     {
-      label: roles.includes('vendor') ? (lang === 'hi' ? 'विक्रेता पोर्टल (Vendor Portal)' : 'Vendor Portal') : (lang === 'hi' ? 'विक्रेता बनें (Become a Vendor)' : 'Become a Vendor'),
-      path: roles.includes('vendor') ? '/vendor/dashboard' : '/vendor/onboarding',
+      label: isOnboardingComplete(profileUser, 'vendor') ? (lang === 'hi' ? 'विक्रेता पोर्टल (Vendor Portal)' : 'Vendor Portal') : (lang === 'hi' ? 'विक्रेता बनें (Become a Vendor)' : 'Become a Vendor'),
+      path: isOnboardingComplete(profileUser, 'vendor') ? '/vendor/dashboard' : '/vendor/onboarding',
       icon: FiShoppingBag,
-      highlight: !roles.includes('vendor')
+      highlight: !isOnboardingComplete(profileUser, 'vendor')
     },
     {
-      label: roles.includes('creator') ? (lang === 'hi' ? 'क्रिएटर पोर्टल (Creator Portal)' : 'Creator Portal') : (lang === 'hi' ? 'क्रिएटर बनें (Become a Creator)' : 'Become a Creator'),
-      path: roles.includes('creator') ? '/creator/dashboard' : '/creator/onboarding',
+      label: isOnboardingComplete(profileUser, 'creator') ? (lang === 'hi' ? 'क्रिएटर पोर्टल (Creator Portal)' : 'Creator Portal') : (lang === 'hi' ? 'क्रिएटर बनें (Become a Creator)' : 'Become a Creator'),
+      path: isOnboardingComplete(profileUser, 'creator') ? '/creator/dashboard' : '/creator/onboarding',
       icon: FiFilm,
-      highlight: !roles.includes('creator')
+      highlight: !isOnboardingComplete(profileUser, 'creator')
     },
     { label: lang === 'hi' ? 'गतिविधियां (Activities)' : 'Activities', path: '/customer/activities', icon: FiTrendingUp, badge: activityCounts.total || 0 },
     { label: t('my_requirements', 'My Requirements', 'मेरी आवश्यकताएं (My Requirements)'), path: '/customer/my-requirements', icon: FiCheckSquare },
@@ -574,7 +566,7 @@ export default function CustomerLayout() {
                   >
                     <div className="flex items-center gap-2">
                       <span>Vendor</span>
-                      {!roles.includes('vendor') && (
+                      {!isOnboardingComplete(profileUser, 'vendor') && (
                         <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
                       )}
                     </div>
@@ -587,7 +579,7 @@ export default function CustomerLayout() {
                   >
                     <div className="flex items-center gap-2">
                       <span>Creator</span>
-                      {!roles.includes('creator') && (
+                      {!isOnboardingComplete(profileUser, 'creator') && (
                         <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] px-1.5 py-0.2 rounded font-black uppercase">Join</span>
                       )}
                     </div>
