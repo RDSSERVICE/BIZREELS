@@ -17,7 +17,7 @@ export default function ActiveSubscriptionCard({
   const { bi } = useLanguage();
   const isPaidPlan = currentPlan && !currentPlan.toLowerCase().includes('free');
   const selectedAddons = activeSubscription?.selected_addons || [];
-  const walletLink = roleParam === 'creator' ? '/creator/wallet' : '/vendor/wallet';
+  const walletLink = roleParam === 'creator' ? '/creator/wallet' : '/vendor/subscription';
 
   return (
     <div className="rounded-2xl bg-gradient-to-r from-[#1c1510] via-[#241b15] to-[#2d221b] text-white border border-[#3e3025] shadow-xl p-6 sm:p-7 relative overflow-hidden">

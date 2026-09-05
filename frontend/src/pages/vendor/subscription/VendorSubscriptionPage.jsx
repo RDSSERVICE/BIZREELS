@@ -53,7 +53,7 @@ export default function VendorSubscriptionPage() {
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#241b15] text-[#d99a3d] font-bold text-xs hover:bg-[#342820] transition shadow-2xs"
           >
             <FiTrendingUp size={14} />
-            <span>{bi('Vendor Wallet', 'विक्रेता वॉलेट')}</span>
+            <span>{bi('Vendor Wallet & Credits', 'विक्रेता वॉलेट और दरें')}</span>
           </Link>
         </div>
       </div>

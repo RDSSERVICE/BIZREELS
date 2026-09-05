@@ -439,7 +439,7 @@ export default function VendorDashboardScreen() {
                 <Ionicons name="wallet" size={20} color="#8B5CF6" />
               </View>
               <Text style={styles.opsTitle}>Credit Wallet</Text>
-              <Text style={styles.opsSub}>Top-up & track credits</Text>
+              <Text style={styles.opsSub}>Top-up & rates</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

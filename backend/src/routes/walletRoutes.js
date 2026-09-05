@@ -19,6 +19,7 @@ router.get('/balance', authenticate, walletController.getBalance);
 router.post('/recharge', authenticate, walletController.recharge);
 router.get('/transactions', authenticate, walletController.getTransactions);
 router.get('/topup-packs', walletController.getTopupPacks);
+router.get('/credit-rates', walletController.getCreditRates);
 router.post('/subscribe', authenticate, walletController.purchaseSubscription);
 router.post('/payout', authenticate, walletController.requestPayout);
 

@@ -226,7 +226,6 @@ export default function ProfileScreen() {
   const FINANCE_MENU = [
     { label: 'Subscription & Billing', route: '/vendor/subscription', icon: 'card-outline' },
     { label: 'Vendor Wallet & Credits', route: '/vendor/wallet', icon: 'wallet-outline' },
-    { label: 'Credit Rate Schedule', route: '/vendor/rates', icon: 'flash-outline' },
     { label: 'Refer & Earn Rewards', route: '/vendor/referrals', icon: 'person-add-outline' },
   ];
 

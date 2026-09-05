@@ -145,7 +145,7 @@ export default function CustomerNotificationsPage() {
     if (actionUrl) {
       let target = actionUrl;
       if (activeRole === 'vendor' && !target.startsWith('/vendor') && !target.startsWith('http')) {
-        if (target.startsWith('/wallet')) target = '/vendor/wallet';
+        if (target.startsWith('/wallet')) target = '/vendor/subscription';
         else if (target.startsWith('/subscription')) target = '/vendor/subscription';
         else if (target.startsWith('/chat')) target = '/vendor/chat';
         else if (target.startsWith('/leads') || target.startsWith('/inquiries')) target = '/vendor/leads';

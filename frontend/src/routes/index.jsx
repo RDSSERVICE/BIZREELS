@@ -54,7 +54,6 @@ const VendorOrdersPage = React.lazy(() => import('../pages/vendor/orders/VendorO
 const VendorAnalyticsPage = React.lazy(() => import('../pages/vendor/analytics/VendorAnalyticsPage'));
 const VendorSubscriptionPage = React.lazy(() => import('../pages/vendor/subscription/VendorSubscriptionPage'));
 const VendorWalletPage = React.lazy(() => import('../pages/vendor/wallet/VendorWalletPage'));
-const VendorCreditRatesPage = React.lazy(() => import('../pages/vendor/wallet/VendorCreditRatesPage'));
 const VendorReferralPage = React.lazy(() => import('../pages/vendor/referrals/VendorReferralPage'));
 const VendorReviewsPage = React.lazy(() => import('../pages/vendor/reviews/VendorReviewsPage'));
 const VendorSettingsPage = React.lazy(() => import('../pages/vendor/settings/VendorSettingsPage'));
@@ -207,7 +206,7 @@ const AppRoutes = () => {
         <Route path="analytics" element={<VendorAnalyticsPage />} />
         <Route path="subscription" element={<VendorSubscriptionPage />} />
         <Route path="wallet" element={<VendorWalletPage />} />
-        <Route path="credit-rates" element={<VendorCreditRatesPage />} />
+        <Route path="credit-rates" element={<VendorWalletPage />} />
         <Route path="referrals" element={<VendorReferralPage />} />
         <Route path="reviews" element={<VendorReviewsPage />} />
         <Route path="settings" element={<VendorSettingsPage />} />

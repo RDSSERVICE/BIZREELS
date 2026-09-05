@@ -9,17 +9,36 @@ import { toast } from 'react-hot-toast';
 const CreatorAvailabilityTab = ({ user }) => {
   const dispatch = useDispatch();
   const [updateProfileApi, { isLoading: isUpdating }] = useUpdateProfileMutation();
-  const [availability, setAvailability] = useState(user?.creatorProfile?.availability || 'available');
+  const getInitialStatus = () => {
+    const raw = user?.creatorProfile?.availability || user?.creatorProfile?.availabilityStatus || user?.availabilityStatus;
+    if (typeof raw === 'string') {
+      const s = raw.toLowerCase();
+      if (s.includes('busy')) return 'busy';
+      if (s.includes('leave')) return 'leave';
+      return 'available';
+    }
+    return 'available';
+  };
+
+  const [availability, setAvailability] = useState(getInitialStatus());
 
   const handleUpdateAvailability = async () => {
+    const statusMap = {
+      available: 'Available',
+      busy: 'Busy',
+      leave: 'On Leave',
+    };
+    const formattedStatus = statusMap[availability] || 'Available';
+
     try {
       const res = await updateProfileApi({
         creatorProfile: {
-          availability
+          availability: formattedStatus,
+          availabilityStatus: formattedStatus,
         }
       }).unwrap();
       dispatch(updateUser(res.data.user));
-      toast.success(`Availability status marked as ${availability.toUpperCase()}!`);
+      toast.success(`Availability status marked as ${formattedStatus.toUpperCase()}!`);
     } catch (e) {
       toast.error('Failed to update availability status.');
     }

@@ -232,6 +232,41 @@ class WalletController {
     await cache.setCache('wallet:topup_packs', packs, 300);
     return ApiResponse.ok(res, 'Topup packs loaded.', { packs });
   });
+
+  // ── Get Credit Rate Schedule ────────────────────────────
+  getCreditRates = asyncHandler(async (req, res) => {
+    const { AppSettings } = require('../models/Admin');
+    const cached = await cache.getCache('wallet:credit_rates');
+    if (cached) {
+      return ApiResponse.ok(res, 'Credit rate schedule loaded.', { rates: cached });
+    }
+
+    let rates = {
+      validLead: 5,
+      reelPost: 0,
+      reelBoost1Day: 25,
+      aiImage: 2,
+      productListing: 10,
+    };
+
+    try {
+      const setting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+      if (setting && setting.value) {
+        rates = { ...rates, ...setting.value };
+      }
+    } catch (err) {}
+
+    const rateItems = [
+      { action: 'Lead Contact Unlock', rate: `${rates.validLead || 5} Credits`, description: 'Unlock direct phone & WhatsApp contact of buyer lead', category: 'Leads' },
+      { action: 'Standard Reel Upload', rate: `${rates.reelPost || 0} Credits (Free)`, description: 'Publish product reel to local discovery feed', category: 'Reels' },
+      { action: 'Reel 24h Feature Boost', rate: `${rates.reelBoost1Day || 25} Credits`, description: 'Pin reel to top of local feeds for 24 hours with priority ranking', category: 'Boost' },
+      { action: 'AI Content Generation', rate: `${rates.aiImage || 2} Credits`, description: 'Generate AI reel script, caption & SEO hashtags', category: 'AI' },
+      { action: 'Catalog Product Boost', rate: `${rates.productListing || 10} Credits`, description: 'Highlight product listing in category search results for 7 days', category: 'Catalog' },
+    ];
+
+    await cache.setCache('wallet:credit_rates', rateItems, 300);
+    return ApiResponse.ok(res, 'Credit rate schedule loaded.', { rates: rateItems });
+  });
 }
 
 module.exports = new WalletController();

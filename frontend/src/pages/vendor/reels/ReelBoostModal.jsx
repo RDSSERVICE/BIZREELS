@@ -141,7 +141,7 @@ export default function ReelBoostModal({ isOpen, onClose, reel, refetchReels }) 
                 type="button"
                 onClick={() => {
                   onClose();
-                  navigate('/vendor/wallet');
+                  navigate('/vendor/subscription');
                 }}
                 className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[10px] font-bold transition shadow-sm cursor-pointer"
               >

@@ -136,8 +136,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
       title: 'FINANCE & ACCOUNT',
       items: [
         { title: 'Subscription Plan', route: '/vendor/subscription', icon: 'card-outline' },
-        { title: 'Vendor Wallet', route: '/vendor/wallet', icon: 'wallet-outline' },
-        { title: 'Credit Rates', route: '/vendor/rates', icon: 'flash-outline' },
+        { title: 'Vendor Wallet & Credits', route: '/vendor/wallet', icon: 'wallet-outline' },
         { title: 'Store Settings', route: '/vendor/settings', icon: 'settings-outline' },
       ],
     },

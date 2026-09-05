@@ -308,8 +308,7 @@ export default function VendorLayout() {
 
     // Finance & Settings
     { label: bi('Subscription', 'सब्सक्रिप्शन'), path: '/vendor/subscription', icon: FiCreditCard },
-    { label: bi('Vendor Wallet', 'विक्रेता वॉलेट'), path: '/vendor/wallet', icon: TbCurrencyRupee },
-    { label: bi('Credit Rates', 'क्रेडिट दरें'), path: '/vendor/credit-rates', icon: FiZap },
+    { label: bi('Vendor Wallet & Credits', 'विक्रेता वॉलेट और दरें'), path: '/vendor/wallet', icon: TbCurrencyRupee },
     { label: bi('Settings', 'सेटिंग्स'), path: '/vendor/settings', icon: FiSettings },
   ];
 

@@ -234,32 +234,84 @@ class CreatorController {
     return ApiResponse.ok(res, 'Creator pricing updated.', { pricing: user.creatorProfile?.pricing });
   });
 
+  // ── Helper to Normalize Availability Status ───────────────
+  parseAvailability = (val) => {
+    if (!val) return 'Available';
+    if (typeof val === 'string') {
+      const s = val.trim().toLowerCase();
+      if (s === 'busy') return 'Busy';
+      if (s === 'on leave' || s === 'on_leave' || s === 'leave') return 'On Leave';
+      return 'Available';
+    }
+    if (typeof val === 'object' && val !== null) {
+      if (val.status && typeof val.status === 'string') return this.parseAvailability(val.status);
+      if (val.availabilityStatus && typeof val.availabilityStatus === 'string') return this.parseAvailability(val.availabilityStatus);
+      if (val.availability && typeof val.availability === 'string') return this.parseAvailability(val.availability);
+      if (val.availableNow === false || val.isAvailable === false) return 'Busy';
+      if (val.availableNow === true || val.isAvailable === true) return 'Available';
+    }
+    if (typeof val === 'boolean') {
+      return val ? 'Available' : 'Busy';
+    }
+    return 'Available';
+  };
+
   // ── Get & Update Availability ────────────────────────────
   getAvailability = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id).select('creatorProfile availabilityStatus availability').lean();
-    const status = user?.creatorProfile?.availability || user?.creatorProfile?.availabilityStatus || user?.availabilityStatus || user?.availability || 'Available';
+    const raw = user?.creatorProfile?.availabilityStatus || user?.creatorProfile?.availability || user?.availabilityStatus || user?.availability;
+    const status = this.parseAvailability(raw);
     return ApiResponse.ok(res, 'Creator availability loaded.', {
-      status
+      status,
+      availability: status,
+      availabilityStatus: status,
     });
   });
 
   updateAvailability = asyncHandler(async (req, res) => {
-    const { status } = req.body;
-    if (!status) throw ApiError.badRequest('Status is required');
+    const rawInput = req.body.status || req.body.availability || req.body.availabilityStatus;
+    if (!rawInput && typeof req.body.availableNow !== 'boolean') {
+      throw ApiError.badRequest('Status is required');
+    }
+
+    const normalized = this.parseAvailability(rawInput ?? req.body);
+
     const user = await User.findById(req.user._id);
     if (!user) throw ApiError.notFound('User not found');
 
-    user.creatorProfile = user.creatorProfile || {};
-    user.creatorProfile.availability = status;
-    user.creatorProfile.availabilityStatus = status;
-    user.availabilityStatus = status;
-    user.availability = status;
+    const cp = (user.creatorProfile && typeof user.creatorProfile === 'object') ? user.creatorProfile : {};
+    cp.availability = normalized;
+    cp.availabilityStatus = normalized;
+
+    user.creatorProfile = cp;
+    user.availabilityStatus = normalized;
+    user.availability = normalized;
+
     user.markModified('creatorProfile');
     await user.save();
 
-    await deleteCache(`user:auth:${user._id}`).catch(() => {});
+    await User.updateOne(
+      { _id: req.user._id },
+      {
+        $set: {
+          'creatorProfile.availability': normalized,
+          'creatorProfile.availabilityStatus': normalized,
+          availabilityStatus: normalized,
+          availability: normalized,
+        },
+      }
+    );
 
-    return ApiResponse.ok(res, 'Creator availability updated.', { status: user.creatorProfile.availability });
+    const cache = require('../utils/cache');
+    await cache.deleteCache(`user:auth:${user._id}`).catch(() => {});
+    await cache.deleteCache(`user:${user._id}`).catch(() => {});
+    await cache.deleteCache(`creator:profile:${user._id}`).catch(() => {});
+
+    return ApiResponse.ok(res, 'Creator availability updated.', { 
+      status: normalized,
+      availability: normalized,
+      availabilityStatus: normalized,
+    });
   });
 
   // ── Get Creator Orders / Projects ────────────────────────

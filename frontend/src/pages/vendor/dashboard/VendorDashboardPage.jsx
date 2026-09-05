@@ -158,12 +158,6 @@ export default function VendorDashboardPage() {
           {/* Wallet Action CTAs */}
           <div className="flex flex-wrap items-center gap-2">
             <Link
-              to="/vendor/credit-rates"
-              className="px-3 py-1.5 bg-[#f8f4ec] hover:bg-[#241b15] hover:text-[#d99a3d] text-slate-700 text-xs font-bold rounded-lg border border-[#e3dccb] transition cursor-pointer"
-            >
-              {bi('Credit Rates', 'क्रेडिट दरें (Credit Rates)')}
-            </Link>
-            <Link
               to="/vendor/referrals"
               className="px-3 py-1.5 bg-[#f8f4ec] hover:bg-[#241b15] hover:text-[#d99a3d] text-slate-700 text-xs font-bold rounded-lg border border-[#e3dccb] transition cursor-pointer"
             >
@@ -173,7 +167,7 @@ export default function VendorDashboardPage() {
               to="/vendor/wallet"
               className="px-4 py-1.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#382b22] text-xs font-black rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer"
             >
-              <span>{bi('Topup Wallet', 'वॉलेट टॉप-अप करें')}</span>
+              <span>{bi('Vendor Wallet & Credits', 'वॉलेट और दरें')}</span>
               <FiArrowRight size={13} />
             </Link>
           </div>

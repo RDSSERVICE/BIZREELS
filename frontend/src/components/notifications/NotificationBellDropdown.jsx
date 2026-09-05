@@ -123,7 +123,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
       let target = notif.actionUrl || notif.action_url;
       if (role === 'vendor') {
         if (target.startsWith('/wallet')) {
-          target = '/vendor/wallet';
+          target = '/vendor/subscription';
         } else if (target.startsWith('/subscription') || target.startsWith('/subscriptions')) {
           target = '/vendor/subscription';
         } else if (target.startsWith('/chat')) {

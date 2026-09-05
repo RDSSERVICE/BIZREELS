@@ -7,21 +7,31 @@ import { useLanguage } from '../../../context/LanguageContext';
 
 export default function CreatorAvailabilityPage() {
   const { bi } = useLanguage();
-  const { data } = useGetCreatorAvailabilityQuery(undefined, { pollingInterval: 300000 });
+  const { data, refetch } = useGetCreatorAvailabilityQuery(undefined, { 
+    refetchOnMountOrArgChange: true,
+    pollingInterval: 60000 
+  });
   const [updateAvailability] = useUpdateCreatorAvailabilityMutation();
   const [status, setStatus] = useState('Available');
 
   useEffect(() => {
-    const fetchedStatus = data?.status || data?.data?.status;
-    if (fetchedStatus) setStatus(fetchedStatus);
+    const fetchedStatus = data?.status || data?.data?.status || data?.availability || data?.availabilityStatus;
+    if (fetchedStatus && typeof fetchedStatus === 'string') {
+      setStatus(fetchedStatus);
+    }
   }, [data]);
 
   const handleStatusChange = async (newStatus) => {
+    const prevStatus = status;
     setStatus(newStatus);
     try {
-      await updateAvailability({ status: newStatus }).unwrap();
+      const res = await updateAvailability({ status: newStatus }).unwrap();
+      const updated = res?.status || res?.data?.status || newStatus;
+      setStatus(updated);
       toast.success(bi(`Creator Availability updated to ${newStatus}`, `उपलब्धता स्थिति बदलकर ${newStatus} कर दी गई`));
+      if (typeof refetch === 'function') refetch();
     } catch (err) {
+      setStatus(prevStatus);
       toast.error(err?.data?.message || bi('Failed to update availability status', 'उपलब्धता स्थिति अपडेट करना विफल रहा'));
     }
   };

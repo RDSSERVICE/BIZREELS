@@ -756,6 +756,15 @@ class AuthService {
         if (age < 18) {
           throw ApiError.badRequest('Must be 18 years or older to register as a Creator.');
         }
+      if (creatorProfile.availability || creatorProfile.availabilityStatus) {
+        const rawAvail = creatorProfile.availability || creatorProfile.availabilityStatus;
+        const normalizedAvail = typeof rawAvail === 'string'
+          ? (rawAvail.toLowerCase().includes('busy') ? 'Busy' : (rawAvail.toLowerCase().includes('leave') ? 'On Leave' : 'Available'))
+          : 'Available';
+        creatorProfile.availability = normalizedAvail;
+        creatorProfile.availabilityStatus = normalizedAvail;
+        updateFields.availabilityStatus = normalizedAvail;
+        updateFields.availability = normalizedAvail;
       }
       const currentProfile = user.creatorProfile ? (user.creatorProfile.toObject ? user.creatorProfile.toObject() : user.creatorProfile) : {};
       updateFields.creatorProfile = {

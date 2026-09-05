@@ -31,3 +31,13 @@ export async function getTopupPacks(): Promise<Array<{ amount: number; label?: s
     return [];
   }
 }
+
+export async function getCreditRates(): Promise<Array<{ action: string; rate: string; desc?: string; description?: string; category?: string; icon?: string }>> {
+  try {
+    const { data } = await api.get('/wallet/credit-rates');
+    const rates = data?.data?.rates || data?.rates || data || [];
+    return Array.isArray(rates) ? rates : [];
+  } catch (err) {
+    return [];
+  }
+}
