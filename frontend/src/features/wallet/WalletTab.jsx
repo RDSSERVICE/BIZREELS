@@ -138,42 +138,41 @@ const WalletTab = ({ user, refetchUser }) => {
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
+    <div className="flex flex-col gap-6 animate-fade-in font-sans">
       {/* Wallet Balance Card */}
-      <div className="gradient-purple p-6 rounded-2xl text-white shadow-premium flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden">
-        <div className="absolute right-0 top-0 opacity-10 transform translate-x-12 -translate-y-12">
-          <FiDollarSign className="w-64 h-64" />
-        </div>
-        <div className="flex flex-col gap-1.5 z-10">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-brand-purple-100">Wallet Balance</span>
-          <h2 className="text-3xl font-black font-display tracking-tight">₹{user?.walletBalance || 0}</h2>
-          <p className="text-[10px] text-brand-purple-200 mt-1">Use this balance to purchase plans or boost your Reels instantly.</p>
+      <div className="bg-[#241b15] p-6 rounded-2xl text-white border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden">
+        <div className="flex flex-col gap-1 z-10">
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#d99a3d]">WALLET BALANCE</span>
+          <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-3xl font-black text-white tracking-tight">₹{user?.walletBalance || 0}</h2>
+          <p className="text-[11px] text-slate-300 font-bold mt-0.5">Use this balance to purchase plans or boost your Reels instantly.</p>
         </div>
         <button
           type="button"
           onClick={() => setIsRechargingModal(true)}
-          className="px-5 py-3 bg-white text-brand-purple text-xs font-black rounded-xl hover:bg-slate-50 transition-all shadow-md flex items-center gap-2 z-10 cursor-pointer"
+          className="px-5 py-2.5 bg-[#d99a3d] text-[#1a1a1a] text-xs font-black rounded-xl hover:bg-[#eab35b] transition-all shadow-2xs flex items-center gap-2 z-10 cursor-pointer border-none"
         >
-          <FiPlus className="w-4 h-4" /> Deposit Funds
+          <FiPlus size={16} /> DEPOSIT FUNDS
         </button>
       </div>
 
       {/* Transaction List */}
       <div className="flex flex-col gap-4">
-        <h4 className="text-xs font-bold text-brand-navy uppercase tracking-wider px-1">Ledger / Transactions History</h4>
+        <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase tracking-wider text-[#1a1a1a]">
+          LEDGER & TRANSACTION HISTORY
+        </h3>
         {isTransactionsLoading ? (
           <div className="py-12 flex justify-center"><Loader /></div>
         ) : transactions.length === 0 ? (
-          <div className="glass p-12 text-center text-slate-500 rounded-2xl border border-white/50 shadow-glass flex flex-col items-center gap-2">
-            <FiInfo className="w-6 h-6 text-brand-purple/50" />
-            <p className="text-xs font-semibold">No recent transactions recorded.</p>
+          <div className="bg-white p-10 text-center text-slate-500 rounded-2xl border border-[#e3dccb] shadow-2xs flex flex-col items-center gap-2">
+            <FiInfo className="w-6 h-6 text-[#d99a3d]" />
+            <p className="text-xs font-bold text-[#1a1a1a]">No recent transactions recorded.</p>
           </div>
         ) : (
-          <div className="glass rounded-2xl border border-white/50 shadow-glass overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#e3dccb] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left text-xs border-collapse font-sans">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <tr className="bg-[#f8f4ec] border-b border-[#e3dccb] text-[10px] font-black text-slate-400 uppercase tracking-wider">
                     <th className="p-4">Transaction ID</th>
                     <th className="p-4">Date / Time</th>
                     <th className="p-4">Type</th>
@@ -181,23 +180,23 @@ const WalletTab = ({ user, refetchUser }) => {
                     <th className="p-4 text-right">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-600">
+                <tbody className="divide-y divide-[#e3dccb] text-slate-700">
                   {transactions.map((tx) => {
                     const isDeposit = tx.type === 'deposit' || tx.type === 'credit';
                     return (
-                      <tr key={tx._id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4 font-mono text-[10px] text-slate-500">{tx._id}</td>
-                        <td className="p-4">{new Date(tx.createdAt).toLocaleString()}</td>
+                      <tr key={tx._id} className="hover:bg-[#f8f4ec]/50 transition-colors">
+                        <td className="p-4 font-mono text-[10px] font-bold text-slate-500">{tx._id}</td>
+                        <td className="p-4 font-bold">{new Date(tx.createdAt).toLocaleString()}</td>
                         <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-1 w-max shadow-sm
-                            ${isDeposit ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}
-                          `}>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1 w-max ${
+                            isDeposit ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
                             {isDeposit ? <FiArrowDownLeft /> : <FiArrowUpRight />}
                             {tx.type}
                           </span>
                         </td>
-                        <td className="p-4 font-medium text-brand-navy">{tx.description || 'Wallet Recharge'}</td>
-                        <td className={`p-4 text-right font-black ${isDeposit ? 'text-emerald-600' : 'text-red-500'}`}>
+                        <td className="p-4 font-extrabold text-[#1a1a1a]">{tx.description || 'Wallet Recharge'}</td>
+                        <td className={`p-4 text-right font-black ${isDeposit ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {isDeposit ? '+' : '-'}₹{tx.amount}
                         </td>
                       </tr>
@@ -212,17 +211,16 @@ const WalletTab = ({ user, refetchUser }) => {
 
       {/* Recharge Modal */}
       {isRechargingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsRechargingModal(false)} />
-          <div className="bg-white rounded-2xl shadow-modal border border-slate-100 w-full max-w-md p-6 z-10 relative flex flex-col gap-4">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-brand-navy font-display flex items-center gap-2">
-                <FiPlus className="w-5 h-5 text-brand-purple" /> Recharge Wallet Balance
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
+          <div className="bg-white rounded-2xl border-2 border-[#241b15] shadow-2xl w-full max-w-md p-6 z-10 relative flex flex-col gap-4">
+            <div className="flex justify-between items-center border-b border-[#e3dccb] pb-3">
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
+                <FiPlus className="text-[#d99a3d]" size={18} /> RECHARGE WALLET BALANCE
               </h3>
               <button
                 type="button"
                 onClick={() => setIsRechargingModal(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-[#1a1a1a] hover:bg-[#f8f4ec] transition-colors cursor-pointer border-none bg-transparent"
               >
                 Close
               </button>
@@ -238,27 +236,26 @@ const WalletTab = ({ user, refetchUser }) => {
                 required
               />
               
-              <div className="bg-brand-purple/5 p-4 rounded-xl border border-brand-purple/20 text-[10px] text-slate-600 leading-relaxed flex items-center gap-2">
-                <FiAlertCircle className="w-4 h-4 text-brand-purple shrink-0" />
-                <span>🔒 Secure payment via <strong>Razorpay</strong>. You will be redirected to the Razorpay payment gateway to complete this transaction.</span>
+              <div className="bg-[#f8f4ec] p-3.5 rounded-xl border border-[#e3dccb] text-[10px] text-slate-600 font-bold leading-relaxed flex items-center gap-2">
+                <FiAlertCircle className="w-4 h-4 text-[#241b15] shrink-0" />
+                <span>Secure payment via Razorpay. Your balance updates instantly upon payment confirmation.</span>
               </div>
 
-              <div className="flex justify-end gap-3 mt-4 border-t border-slate-100 pt-4">
+              <div className="flex justify-end gap-3 mt-2 border-t border-[#e3dccb] pt-4">
                 <button
                   type="button"
                   onClick={() => setIsRechargingModal(false)}
-                  className="px-5 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-all cursor-pointer"
+                  className="px-4 py-2 text-xs font-black text-slate-600 hover:bg-[#f8f4ec] rounded-xl transition-all cursor-pointer border border-[#e3dccb] bg-white"
                 >
                   Cancel
                 </button>
-                <Button
+                <button
                   type="submit"
                   disabled={isProcessing}
-                  variant="primary"
-                  className="text-xs py-2.5 px-6 rounded-xl cursor-pointer"
+                  className="px-5 py-2 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition cursor-pointer border-none"
                 >
                   {isProcessing ? 'Opening Payment...' : `Pay ₹${rechargeAmount || '0'} via Razorpay`}
-                </Button>
+                </button>
               </div>
             </form>
           </div>

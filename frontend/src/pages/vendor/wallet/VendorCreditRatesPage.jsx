@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
-import { FiZap, FiDollarSign, FiTrendingUp, FiPackage, FiVideo, FiImage, FiCpu, FiInbox } from 'react-icons/fi';
+import React from 'react';
+import { FiZap, FiDollarSign, FiTrendingUp, FiPackage, FiVideo, FiImage, FiCpu, FiInbox, FiArrowRight } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import { useGetMeQuery } from '../../../features/auth/authApi';
 import { useGetVendorDashboardQuery } from '../../../features/vendor/vendorApi';
 import { tokenStore } from '../../../lib/api';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorCreditRatesPage() {
+  const { bi } = useLanguage();
   const { data: profileRes } = useGetMeQuery(undefined, {
     skip: !tokenStore.getUser(),
   });
@@ -27,88 +29,96 @@ export default function VendorCreditRatesPage() {
   };
 
   const rateConfig = [
-    { key: 'productListing', label: '1 Product Listing', value: creditRates.productListing, icon: FiPackage, color: 'purple', unit: 'Product Credit', desc: 'Deducted when uploading a product to active listings.' },
-    { key: 'reelPost', label: '1 Reel Post', value: creditRates.reelPost, icon: FiVideo, color: 'violet', unit: 'Reel Credit', desc: 'Consumed when publishing a new promotional business reel.' },
-    { key: 'aiImage', label: '1 AI Image', value: creditRates.aiImage, icon: FiImage, color: 'emerald', unit: 'AI Credits', desc: 'Used for creating high-fidelity product images in AI Studio.' },
-    { key: 'aiVideo30s', label: '30 sec AI Video', value: creditRates.aiVideo30s, icon: FiCpu, color: 'blue', unit: 'AI Credits', desc: 'Charged for rendering dynamic AI product video advertisements.' },
-    { key: 'reelBoost1Day', label: '1 Reel Boost (1 Day)', value: creditRates.reelBoost1Day, icon: FiZap, color: 'amber', unit: 'Boost Credits', desc: 'Credits per day to promote a reel in feed and local searches.' },
-    { key: 'validLead', label: '1 Valid Lead', value: creditRates.validLead, icon: FiInbox, color: 'rose', unit: 'Lead Credit', desc: 'Charged to unlock contact details for customer search requirements.' },
+    { key: 'productListing', label: bi('1 Product Listing', '1 उत्पाद लिस्टिंग'), value: creditRates.productListing, icon: FiPackage, unit: 'Credit / Product', desc: bi('Deducted when publishing a new product to active catalog.', 'सक्रिय सूची में एक नया उत्पाद प्रकाशित करते समय कटौती की जाती है।') },
+    { key: 'reelPost', label: bi('1 Reel Post', '1 रील पोस्ट'), value: creditRates.reelPost, icon: FiVideo, unit: 'Credit / Reel', desc: bi('Consumed when publishing a new promotional business reel.', 'एक नया प्रचार व्यवसाय रील प्रकाशित करते समय उपयोग किया जाता है।') },
+    { key: 'aiImage', label: bi('1 AI Image', '1 एआई इमेज'), value: creditRates.aiImage, icon: FiImage, unit: 'AI Credits', desc: bi('Used for generating high-fidelity product images in AI Studio.', 'एआई स्टूडियो में उच्च-गुणवत्ता वाले उत्पाद चित्र बनाने के लिए उपयोग किया जाता है।') },
+    { key: 'aiVideo30s', label: bi('30 sec AI Video', '30 सेकंड एआई वीडियो'), value: creditRates.aiVideo30s, icon: FiCpu, unit: 'AI Credits', desc: bi('Charged for rendering dynamic AI product video advertisements.', 'डायनामिक एआई उत्पाद वीडियो विज्ञापन रेंडर करने के लिए लिया जाता है।') },
+    { key: 'reelBoost1Day', label: bi('1 Reel Boost (1 Day)', '1 रील बूस्ट (1 दिन)'), value: creditRates.reelBoost1Day, icon: FiZap, unit: 'Boost Credits / Day', desc: bi('Credits per day to promote a reel in feed and local searches.', 'फीड और स्थानीय खोजों में रील को बढ़ावा देने के लिए प्रति दिन क्रेडिट।') },
+    { key: 'validLead', label: bi('1 Valid Lead', '1 मान्य लीड'), value: creditRates.validLead, icon: FiInbox, unit: 'Lead Credit', desc: bi('Charged to unlock contact details for customer search requirements.', 'ग्राहक खोज आवश्यकताओं के लिए संपर्क विवरण अनलॉक करने का शुल्क।') },
   ];
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col gap-6 animate-fade-in pb-12">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans p-2 sm:p-4 animate-fade-in pb-16">
       <AdminPageHeader
         icon={FiZap}
-        title="Credit Rates & Wallet Overview"
-        subtitle="Manage your platform credit wallet and inspect the active consumption rates determined by the platform"
-      />
+        title={bi('Credit Rates & Consumption Limits', 'क्रेडिट दरें और खपत सीमाएं (Credit Rates)')}
+        subtitle={bi('Inspect live credit consumption costs per platform action determined by admin console', 'प्रशासक कंसोल द्वारा निर्धारित लाइव क्रेडिट खपत लागत का निरीक्षण करें')}
+      >
+        <Link
+          to="/vendor/wallet"
+          className="px-4 py-2 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1.5 cursor-pointer border-none"
+        >
+          <FiDollarSign size={16} /> {bi('Manage Wallet & Topup', 'वॉलेट प्रबंधित करें')} <FiArrowRight size={14} />
+        </Link>
+      </AdminPageHeader>
 
       {/* Credit Wallet Stat Cards */}
-      <div className="glass rounded-3xl p-6 border border-white/50 shadow-card bg-gradient-to-r from-brand-purple/10 via-surface to-brand-pink/5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-text-primary font-display flex items-center gap-2">
-            <FiDollarSign className="text-brand-purple" /> Credit Balance Breakdown
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-4">
+        <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
+            <FiDollarSign className="text-[#d99a3d]" size={18} /> {bi('CREDIT BALANCE BREAKDOWN', 'क्रेडिट बैलेंस विवरण')}
           </h3>
-          <Link to="/vendor/wallet" className="px-4 py-2 bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple text-xs font-bold rounded-xl transition">
-            Manage Wallet & Topup →
-          </Link>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-1">
-          <div className="glass p-4 rounded-2xl border border-white/10 text-center">
-            <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">AVAILABLE</span>
-            <span className="text-2xl font-black text-emerald-500">{credits.available}</span>
-            <span className="text-[10px] text-text-secondary block font-medium mt-0.5">Credits (₹{credits.available})</span>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-1">
+          <div className="bg-[#f8f4ec] p-4 rounded-xl border border-[#e3dccb] text-center shadow-2xs space-y-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block truncate">AVAILABLE</span>
+            <span className="text-2xl font-black text-emerald-600 block">{credits.available}</span>
+            <span className="text-[10px] text-slate-500 font-bold block">₹{credits.available} Equivalent</span>
           </div>
-          <div className="glass p-4 rounded-2xl border border-white/10 text-center">
-            <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">DEPOSITED</span>
-            <span className="text-2xl font-black text-blue-400">{credits.deposited}</span>
-            <span className="text-[10px] text-text-secondary block font-medium mt-0.5">Credits (₹{credits.deposited})</span>
+
+          <div className="bg-[#f8f4ec] p-4 rounded-xl border border-[#e3dccb] text-center shadow-2xs space-y-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block truncate">DEPOSITED</span>
+            <span className="text-2xl font-black text-blue-600 block">{credits.deposited}</span>
+            <span className="text-[10px] text-slate-500 font-bold block">₹{credits.deposited} Total Topup</span>
           </div>
-          <div className="glass p-4 rounded-2xl border border-white/10 text-center">
-            <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">EARNED</span>
-            <span className="text-2xl font-black text-brand-purple">{credits.earned}</span>
-            <span className="text-[10px] text-text-secondary block font-medium mt-0.5">Credits (₹{credits.earned})</span>
+
+          <div className="bg-[#f8f4ec] p-4 rounded-xl border border-[#e3dccb] text-center shadow-2xs space-y-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block truncate">EARNED / REWARD</span>
+            <span className="text-2xl font-black text-amber-600 block">{credits.earned}</span>
+            <span className="text-[10px] text-slate-500 font-bold block">₹{credits.earned} Bonus Credits</span>
           </div>
-          <div className="glass p-4 rounded-2xl border border-white/10 text-center">
-            <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider block">USED HISTORY</span>
-            <span className="text-2xl font-black text-amber-500">{credits.used}</span>
-            <span className="text-[10px] text-text-secondary block font-medium mt-0.5">Credits Spent</span>
+
+          <div className="bg-[#f8f4ec] p-4 rounded-xl border border-[#e3dccb] text-center shadow-2xs space-y-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block truncate">CONSUMED HISTORY</span>
+            <span className="text-2xl font-black text-rose-600 block">{credits.used}</span>
+            <span className="text-[10px] text-slate-500 font-bold block">Credits Spent</span>
           </div>
         </div>
       </div>
 
       {/* Credit Rates Grid */}
-      <div className="glass p-6 sm:p-8 rounded-3xl border border-white/50 shadow-glass space-y-6">
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider flex items-center gap-2">
-            <FiZap className="text-amber-500 animate-pulse" /> Active Credit Consumption Rates
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5">
+        <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
+            <FiZap className="text-[#d99a3d]" size={18} /> {bi('ACTIVE CREDIT CONSUMPTION RATES', 'सक्रिय क्रेडिट खपत दरें')}
           </h3>
-          <span className="text-[10px] text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-            Live Rates
+          <span className="text-[10px] text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded font-black uppercase tracking-wider">
+            LIVE CONFIG
           </span>
         </div>
 
         {isLoading ? (
-          <div className="text-center text-xs text-text-tertiary py-8">
-            Loading rates from settings server...
+          <div className="text-center text-xs font-bold text-slate-400 py-10">
+            Loading active rates from server...
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {rateConfig.map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.key} className="glass p-5 rounded-2xl border border-white/20 flex gap-4 items-start hover:border-white/40 transition-all">
-                  <div className={`p-3 rounded-xl bg-${item.color}-500/10 text-${item.color}-500 shrink-0`}>
-                    <Icon className="w-5 h-5" />
+                <div key={item.key} className="bg-[#f8f4ec] p-4.5 rounded-2xl border border-[#e3dccb] flex gap-4 items-start hover:border-[#241b15] transition-all shadow-2xs">
+                  <div className="w-10 h-10 rounded-xl bg-[#241b15] text-[#d99a3d] border border-[#241b15] flex items-center justify-center shrink-0 shadow-xs">
+                    <Icon size={20} />
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-text-primary">{item.label}</span>
-                      <strong className="text-xs font-black text-brand-purple shrink-0">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-xs font-black text-[#1a1a1a] truncate">{item.label}</span>
+                      <span className="px-2 py-0.5 bg-[#241b15] text-[#d99a3d] rounded text-[11px] font-black shrink-0">
                         {item.value} {item.unit}
-                      </strong>
+                      </span>
                     </div>
-                    <p className="text-[10px] text-text-tertiary leading-relaxed">
+                    <p className="text-[11px] text-slate-500 font-bold leading-relaxed">
                       {item.desc}
                     </p>
                   </div>
@@ -118,12 +128,15 @@ export default function VendorCreditRatesPage() {
           </div>
         )}
 
-        <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 flex gap-3 items-start">
-          <FiTrendingUp className="text-amber-600 w-5 h-5 shrink-0 mt-0.5" />
+        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-300 flex gap-3 items-start">
+          <FiTrendingUp className="text-amber-700 w-5 h-5 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
-            <h4 className="text-[11px] font-bold text-amber-800">Dynamic Pricing Warning</h4>
-            <p className="text-[10px] text-text-secondary leading-relaxed">
-              These consumption rates are dynamic and configured directly by the admin console. Whenever you perform an action, the cost corresponding to these live rates will be deducted from your credit wallet.
+            <h4 className="text-xs font-black text-amber-900">{bi('Dynamic Consumption Notice', 'डायनामिक खपत सूचना')}</h4>
+            <p className="text-[11px] font-bold text-amber-800 leading-relaxed">
+              {bi(
+                'These credit consumption rates are configured live by platform admin console. Performing platform actions deducts credits according to these active thresholds.',
+                'ये क्रेडिट खपत दरें प्लेटफॉर्म एडमिन कंसोल द्वारा लाइव कॉन्फ़िगर की जाती हैं। प्लेटफॉर्म क्रियाएं करने से इन सक्रिय सीमाओं के अनुसार क्रेडिट घट जाते हैं।'
+              )}
             </p>
           </div>
         </div>
@@ -131,3 +144,4 @@ export default function VendorCreditRatesPage() {
     </div>
   );
 }
+

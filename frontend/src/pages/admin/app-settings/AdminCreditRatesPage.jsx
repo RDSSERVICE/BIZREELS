@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiZap, FiCheck, FiSliders, FiPackage, FiVideo, FiImage, FiCpu, FiInbox, FiTrendingUp, FiPlus, FiMinus } from 'react-icons/fi';
+import { FiZap, FiCheck, FiSliders, FiPackage, FiVideo, FiImage, FiCpu, FiInbox, FiTrendingUp, FiPlus, FiMinus, FiRefreshCw } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -10,7 +10,7 @@ export default function AdminCreditRatesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Helper mappings for icons, colors, and descriptions
+  // Helper mappings for icons
   const getIcon = (key) => {
     const icons = {
       productListing: FiPackage,
@@ -21,18 +21,6 @@ export default function AdminCreditRatesPage() {
       validLead: FiInbox,
     };
     return icons[key] || FiZap;
-  };
-
-  const getColor = (key) => {
-    const colors = {
-      productListing: 'purple',
-      reelPost: 'violet',
-      aiImage: 'emerald',
-      aiVideo30s: 'blue',
-      reelBoost1Day: 'amber',
-      validLead: 'rose',
-    };
-    return colors[key] || 'purple';
   };
 
   const getDesc = (key) => {
@@ -116,81 +104,76 @@ export default function AdminCreditRatesPage() {
     });
   };
 
-  // Generate dynamic array of configuration cards based on fetched keys
   const keys = Object.keys(form);
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col gap-6 animate-fade-in pb-12">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans p-2 sm:p-4 animate-fade-in pb-16">
       <AdminPageHeader
         icon={FiZap}
-        title="Credit Consumption Rates"
+        title="CREDIT CONSUMPTION RATES"
         subtitle="Manage dynamic admin rates for vendor listings, reel posts, AI generation, boosting, and lead acquisitions"
       >
         <button
           type="button"
           onClick={() => fetchRates(true)}
-          className="px-4 py-2 bg-white border border-border text-brand-purple rounded-xl text-xs font-bold hover:bg-brand-purple/5 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+          className="px-4 py-2 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1.5 cursor-pointer border-none"
         >
-          <FiZap className="w-3.5 h-3.5" /> Refresh / Sync Rates
+          <FiRefreshCw size={14} /> Sync Database Rates
         </button>
       </AdminPageHeader>
 
       {loading ? (
-        <div className="glass rounded-3xl p-12 text-center text-xs text-text-tertiary shadow-glass flex flex-col items-center justify-center gap-3">
-          <div className="w-8 h-8 border-4 border-brand-purple border-t-transparent rounded-full animate-spin" />
+        <div className="bg-white rounded-2xl p-12 text-center text-xs font-bold text-slate-400 border border-[#e3dccb] shadow-2xs flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-4 border-[#241b15] border-t-transparent rounded-full animate-spin" />
           <span>Fetching credit configuration parameters...</span>
         </div>
       ) : (
         <form onSubmit={handleSave} className="space-y-6">
-          <div className="glass p-6 sm:p-8 rounded-3xl border border-white/50 shadow-glass space-y-6">
-            <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
-              <h3 className="text-xs font-bold text-brand-purple uppercase tracking-wider flex items-center gap-2">
-                <FiSliders className="text-brand-purple" /> Dynamic Configuration Dashboard
+          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-5">
+            <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3 mb-2">
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
+                <FiSliders className="text-[#d99a3d]" size={18} /> CONFIGURATION DASHBOARD
               </h3>
-              <span className="px-2 py-0.5 text-[9px] font-black uppercase text-brand-purple bg-brand-purple/15 rounded-full">
-                {keys.length} Active Rates
+              <span className="px-2 py-0.5 text-[10px] font-black uppercase text-[#241b15] bg-[#f8f4ec] border border-[#e3dccb] rounded">
+                {keys.length} ACTIVE RATES
               </span>
             </div>
 
             {keys.length === 0 ? (
-              <div className="text-center py-8 text-xs text-text-tertiary">
+              <div className="text-center py-8 text-xs font-bold text-slate-400">
                 No credit rates found in database. Click Save to initialize defaults.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {keys.map((key, index) => {
                   const Icon = getIcon(key);
-                  const color = getColor(key);
                   const val = form[key] || 0;
 
                   return (
                     <motion.div
                       key={key}
-                      initial={{ opacity: 0, y: 15 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="glass p-5 rounded-2xl border border-white/20 flex gap-4 items-start hover:border-brand-purple/30 hover:shadow-md hover:scale-[1.01] transition-all duration-300 relative group"
+                      transition={{ duration: 0.2, delay: index * 0.04 }}
+                      className="bg-[#f8f4ec] p-4.5 rounded-2xl border border-[#e3dccb] flex gap-4 items-start hover:border-[#241b15] transition-all shadow-2xs relative group"
                     >
-                      {/* Left icon wrapper */}
-                      <div className={`p-3.5 rounded-2xl shrink-0 bg-${color}-500/10 text-${color}-500 group-hover:bg-${color}-500/20 transition-colors duration-300`}>
-                        <Icon className="w-5 h-5" />
+                      <div className="w-10 h-10 rounded-xl bg-[#241b15] text-[#d99a3d] border border-[#241b15] flex items-center justify-center shrink-0 shadow-xs">
+                        <Icon size={20} />
                       </div>
 
-                      {/* Content & Input controls */}
-                      <div className="flex-1 space-y-2">
+                      <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex justify-between items-center gap-2">
-                          <label className="text-xs font-bold text-brand-navy font-display leading-tight">
+                          <label className="text-xs font-black text-[#1a1a1a] truncate">
                             {formatLabel(key)}
                           </label>
                           
-                          {/* Premium interactive numeric controller */}
-                          <div className="flex items-center bg-surface-secondary border border-border rounded-xl px-1 py-0.5 shrink-0 shadow-inner">
+                          <div className="flex items-center bg-white border border-[#e3dccb] rounded-xl px-1 py-0.5 shrink-0 shadow-2xs">
                             <button
                               type="button"
                               onClick={() => adjustValue(key, -1)}
-                              className="p-1 hover:bg-white text-text-secondary hover:text-brand-navy rounded-lg transition-colors cursor-pointer"
+                              className="p-1 hover:bg-[#241b15] hover:text-[#d99a3d] text-[#1a1a1a] rounded-lg transition-colors cursor-pointer border-none bg-transparent"
                             >
-                              <FiMinus className="w-2.5 h-2.5" />
+                              <FiMinus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
@@ -198,20 +181,20 @@ export default function AdminCreditRatesPage() {
                               required
                               value={val}
                               onChange={(e) => handleChange(key, e.target.value)}
-                              className="w-10 bg-transparent border-0 text-xs font-black text-center text-brand-navy focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="w-10 bg-transparent border-0 text-xs font-black text-center text-[#1a1a1a] focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <button
                               type="button"
                               onClick={() => adjustValue(key, 1)}
-                              className="p-1 hover:bg-white text-text-secondary hover:text-brand-navy rounded-lg transition-colors cursor-pointer"
+                              className="p-1 hover:bg-[#241b15] hover:text-[#d99a3d] text-[#1a1a1a] rounded-lg transition-colors cursor-pointer border-none bg-transparent"
                             >
-                              <FiPlus className="w-2.5 h-2.5" />
+                              <FiPlus className="w-3 h-3" />
                             </button>
-                            <span className="text-[8px] text-text-tertiary font-bold pr-1.5 pl-0.5 select-none uppercase">CR</span>
+                            <span className="text-[9px] text-slate-400 font-black pr-1 pl-0.5 select-none uppercase">CR</span>
                           </div>
                         </div>
                         
-                        <p className="text-[10px] text-text-secondary leading-relaxed pr-2 font-medium">
+                        <p className="text-[11px] text-slate-500 font-bold leading-relaxed">
                           {getDesc(key)}
                         </p>
                       </div>
@@ -221,18 +204,17 @@ export default function AdminCreditRatesPage() {
               </div>
             )}
 
-            {/* Bottom actions row */}
-            <div className="pt-5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-[10px] text-amber-600 font-semibold bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20">
-                <FiTrendingUp />
+            <div className="pt-4 border-t border-[#e3dccb] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-[11px] text-amber-900 font-bold bg-amber-50 px-3.5 py-2 rounded-xl border border-amber-300 w-full sm:w-auto">
+                <FiTrendingUp className="text-amber-700 shrink-0" />
                 <span>Changes update active vendor credit consumption thresholds instantly.</span>
               </div>
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full sm:w-auto px-6 py-3 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-95 transition-all flex items-center justify-center gap-1.5 shadow-premium disabled:opacity-50 cursor-pointer"
+                className="w-full sm:w-auto px-6 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer border-none"
               >
-                <FiCheck className="w-4 h-4" /> {saving ? 'Updating Config...' : 'Update Credit Rates'}
+                <FiCheck size={16} /> {saving ? 'Updating Config...' : 'Update Credit Rates'}
               </button>
             </div>
           </div>
@@ -241,3 +223,4 @@ export default function AdminCreditRatesPage() {
     </div>
   );
 }
+

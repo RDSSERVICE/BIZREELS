@@ -54,15 +54,15 @@ export default function AdminWalletPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowCreditModal(true)}
-            className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all flex items-center gap-1 shadow-premium"
+            className="px-4 py-2 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1.5 cursor-pointer border-none"
           >
-            <FiPlus className="w-3.5 h-3.5" /> Manual Credit
+            <FiPlus size={16} /> Manual Credit
           </button>
           <button
             onClick={() => setShowDebitModal(true)}
-            className="px-3 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-all flex items-center gap-1 shadow-premium"
+            className="px-4 py-2 bg-[#f8f4ec] text-[#1a1a1a] hover:bg-white rounded-xl text-xs font-black border border-[#e3dccb] shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
           >
-            <FiMinus className="w-3.5 h-3.5" /> Manual Debit
+            <FiMinus size={16} /> Manual Debit
           </button>
         </div>
       </AdminPageHeader>
