@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiPlusCircle, FiArrowUpRight, FiArrowDownLeft, FiX, FiCheck } from 'react-icons/fi';
+import { FiPlusCircle, FiArrowUpRight, FiArrowDownLeft, FiX, FiCheck, FiPlus, FiCreditCard } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
 import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -112,18 +112,18 @@ export default function VendorWalletPage() {
   const columns = [
     {
       key: 'created_at',
-      label: 'Date & Time',
+      label: bi('Date & Time', 'दिनांक और समय'),
       render: (val, row) => {
         const rawDate = val || row?.created_at || row?.createdAt || row?.date || row?.timestamp;
-        if (!rawDate) return <span className="text-slate-400 font-medium text-xs">N/A</span>;
+        if (!rawDate) return <span className="text-slate-400 font-bold text-xs">N/A</span>;
         const d = new Date(rawDate);
-        if (isNaN(d.getTime())) return <span className="text-slate-400 font-medium text-xs">N/A</span>;
+        if (isNaN(d.getTime())) return <span className="text-slate-400 font-bold text-xs">N/A</span>;
         return (
-          <div className="flex flex-col">
-            <span className="font-bold text-xs text-[#1a1a1a]">
+          <div className="flex flex-col font-sans">
+            <span className="font-black text-xs text-[#1a1a1a]">
               {d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">
+            <span className="text-[10px] text-slate-500 font-bold">
               {d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
             </span>
           </div>
@@ -137,9 +137,9 @@ export default function VendorWalletPage() {
         const desc = val || row?.description || row?.admin_remarks || row?.meta?.plan_name || row?.title || row?.type || 'Transaction';
         const refId = row?.reference_id || row?.referenceId || row?.paymentId || row?.payment_id;
         return (
-          <div className="flex flex-col">
-            <span className="font-bold text-xs text-[#1a1a1a]">{desc}</span>
-            {refId && <span className="text-[10px] text-slate-400">Ref: {refId}</span>}
+          <div className="flex flex-col font-sans">
+            <span className="font-extrabold text-xs text-[#1a1a1a]">{desc}</span>
+            {refId && <span className="text-[10px] text-slate-400 font-medium">Ref: {refId}</span>}
           </div>
         );
       },
@@ -178,38 +178,63 @@ export default function VendorWalletPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans p-2 sm:p-4 animate-fade-in">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans p-2 sm:p-4 animate-fade-in pb-16">
       <AdminPageHeader
         icon={TbCurrencyRupee}
-        title={bi('Vendor Wallet & Balance', 'विक्रेता वॉलेट और शेष राशि (Wallet & Balance)')}
-        subtitle={bi('Preload balance for reel boosts, ads, and manage order payouts & refunds', 'रील बूस्ट, विज्ञापनों के लिए बैलेंस रीचार्ज करें और ऑर्डर पेआउट प्रबंधित करें')}
-      >
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1.5 cursor-pointer border-none"
-        >
-          <FiPlusCircle size={16} /> {bi('Recharge Wallet', 'वॉलेट रीचार्ज करें')}
-        </button>
-      </AdminPageHeader>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <AdminStatCard label={bi('Available Balance', 'उपलब्ध शेष राशि')} value={`₹${balance.toLocaleString('en-IN')}`} icon={TbCurrencyRupee} color="green" />
-        <AdminStatCard label={bi('Total Credits', 'कुल क्रेडिट')} value={`₹${totalCredits.toLocaleString('en-IN')}`} icon={FiArrowDownLeft} color="blue" />
-        <AdminStatCard label={bi('Total Debits', 'कुल डेबिट')} value={`₹${totalDebits.toLocaleString('en-IN')}`} icon={FiArrowUpRight} color="rose" />
-      </div>
-
-      <AdminDataTable
-        columns={columns}
-        data={transactions}
-        loading={isFetchingTx}
-        searchPlaceholder={bi('Search transactions...', 'लेन-देन खोजें...')}
-        emptyMessage={bi('No wallet transactions found.', 'कोई वॉलेट लेन-देन नहीं मिला।')}
-        testId="vendor-wallet-table"
+        title={bi('Vendor Wallet & Financial Ledger', 'विक्रेता वॉलेट और वित्तीय खाता (Vendor Wallet)')}
+        subtitle={bi('Preload balance for reel boosts, ad campaigns, and manage order payouts & refunds', 'रील बूस्ट, विज्ञापनों के लिए बैलेंस रीचार्ज करें और ऑर्डर पेआउट प्रबंधित करें')}
       />
 
+      {/* Hero Neo-Brutalist Balance Banner */}
+      <div className="bg-[#241b15] text-white p-6 sm:p-7 rounded-2xl border-2 border-[#241b15] shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden">
+        <div className="flex flex-col gap-1 z-10">
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#d99a3d]">
+            {bi('AVAILABLE VENDOR BALANCE', 'उपलब्ध विक्रेता वॉलेट बैलेंस')}
+          </span>
+          <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            ₹{balance.toLocaleString('en-IN')}
+          </h2>
+          <p className="text-xs text-slate-300 font-bold mt-0.5">
+            {bi('Preloaded credits available for reel boosts, lead unlocks, and platform promotions', 'रील बूस्ट, लीड अनलॉक और प्लेटफॉर्म प्रमोशन के लिए उपलब्ध प्रीलोडेड क्रेडिट')}
+          </p>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-5 py-2.5 bg-[#d99a3d] text-[#1a1a1a] hover:bg-[#eab35b] text-xs font-black rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer border-none z-10 shrink-0"
+        >
+          <FiPlus size={18} /> {bi('RECHARGE WALLET', 'वॉलेट रीचार्ज करें')}
+        </button>
+      </div>
+
+      {/* Wallet Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <AdminStatCard label={bi('Available Balance', 'उपलब्ध शेष राशि')} value={`₹${balance.toLocaleString('en-IN')}`} icon={TbCurrencyRupee} color="green" />
+        <AdminStatCard label={bi('Total Credits Deposited', 'कुल जमा क्रेडिट')} value={`₹${totalCredits.toLocaleString('en-IN')}`} icon={FiArrowDownLeft} color="blue" />
+        <AdminStatCard label={bi('Total Debits Spent', 'कुल खर्च डेबिट')} value={`₹${totalDebits.toLocaleString('en-IN')}`} icon={FiArrowUpRight} color="rose" />
+      </div>
+
+      {/* Ledger Section Header & Table */}
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-4">
+        <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
+          <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
+            <FiCreditCard className="text-[#d99a3d]" size={18} /> {bi('WALLET TRANSACTION LEDGER', 'वॉलेट लेन-देन खाता')}
+          </h3>
+        </div>
+
+        <AdminDataTable
+          columns={columns}
+          data={transactions}
+          loading={isFetchingTx}
+          searchPlaceholder={bi('Search transactions by description or ID...', 'विवरण या आईडी द्वारा लेन-देन खोजें...')}
+          emptyMessage={bi('No wallet transactions found.', 'कोई वॉलेट लेन-देन नहीं मिला।')}
+          testId="vendor-wallet-table"
+        />
+      </div>
+
+      {/* Recharge Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in font-sans">
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border-2 border-[#241b15] shadow-2xl max-w-md w-full space-y-4 relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl p-6 border-2 border-[#241b15] shadow-2xl max-w-md w-full space-y-4 relative max-h-[90vh] overflow-y-auto">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
@@ -236,30 +261,32 @@ export default function VendorWalletPage() {
                   Select or Enter Amount (₹)
                 </label>
                 
-                {/* Preset Amount Badges (Dynamic from API) */}
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
-                  {topupPacks.map((pack) => {
-                    const valStr = String(pack.amount || pack);
-                    const displayAmt = pack.amount || pack;
-                    return (
-                      <button
-                        key={valStr}
-                        type="button"
-                        onClick={() => setAmount(valStr)}
-                        className={`py-2 px-1 rounded-xl text-xs font-black transition cursor-pointer border ${
-                          amount === valStr
-                            ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
-                            : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb] hover:bg-white'
-                        }`}
-                      >
-                        ₹{Number(displayAmt).toLocaleString('en-IN')}
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* Dynamic Preset Amount Badges (If returned from DB API) */}
+                {topupPacks.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                    {topupPacks.map((pack) => {
+                      const valStr = String(pack.amount || pack);
+                      const displayAmt = pack.amount || pack;
+                      return (
+                        <button
+                          key={valStr}
+                          type="button"
+                          onClick={() => setAmount(valStr)}
+                          className={`py-2 px-1 rounded-xl text-xs font-black transition cursor-pointer border ${
+                            amount === valStr
+                              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                              : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb] hover:bg-white'
+                          }`}
+                        >
+                          ₹{Number(displayAmt).toLocaleString('en-IN')}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Amount Input */}
-                <div className="relative flex items-center bg-[#f8f4ec] rounded-xl border border-[#e3dccb] px-3.5 py-2.5 focus-within:border-[#d99a3d] focus-within:ring-1 focus-within:ring-[#d99a3d]/20 transition-all">
+                <div className="relative flex items-center bg-[#f8f4ec] rounded-xl border border-[#e3dccb] px-3.5 py-2.5 focus-within:border-[#241b15] focus-within:ring-1 focus-within:ring-[#241b15]/20 transition-all">
                   <span className="font-black text-[#d99a3d] text-sm mr-2">₹</span>
                   <input
                     type="number"
@@ -282,11 +309,11 @@ export default function VendorWalletPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#e3dccb]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-[#1a1a1a] transition cursor-pointer border-none bg-transparent"
+                  className="px-4 py-2 text-xs font-black text-slate-600 hover:bg-[#f8f4ec] rounded-xl transition cursor-pointer border border-[#e3dccb] bg-white"
                 >
                   Cancel
                 </button>
@@ -306,3 +333,4 @@ export default function VendorWalletPage() {
     </div>
   );
 }
+
