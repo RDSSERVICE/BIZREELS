@@ -76,6 +76,51 @@ const getVerificationStatus = catchAsync(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
 
+  // Sync latest KycDocument records from DB
+  try {
+    const kycDocs = await KycDocument.find({ user_id: req.user._id.toString(), is_deleted: { $ne: true } });
+    if (kycDocs && kycDocs.length > 0) {
+      const currentCp = user.creatorProfile || {};
+      const docs = currentCp.documents || {};
+      let modified = false;
+
+      for (const kdoc of kycDocs) {
+        const type = kdoc.doc_type;
+        if (!docs[type]) docs[type] = {};
+        
+        if (kdoc.status && docs[type].status !== kdoc.status) {
+          docs[type].status = kdoc.status;
+          modified = true;
+        }
+        if (kdoc.rejection_reason && docs[type].rejectionReason !== kdoc.rejection_reason) {
+          docs[type].rejectionReason = kdoc.rejection_reason;
+          docs[type].failureReason = kdoc.rejection_reason;
+          modified = true;
+        }
+        if (kdoc.doc_url && !docs[type].frontUrl && !docs[type].fileUrl) {
+          docs[type].frontUrl = kdoc.doc_url;
+          docs[type].fileUrl = kdoc.doc_url;
+          modified = true;
+        }
+        if (kdoc.doc_number && !docs[type].docNumber) {
+          docs[type].docNumber = kdoc.doc_number;
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        currentCp.documents = docs;
+        user.creatorProfile = currentCp;
+        const statusInfo = computeCreatorVerification(user);
+        user.creatorProfile.verificationStatus = statusInfo.tier;
+        user.markModified('creatorProfile');
+        await user.save();
+      }
+    }
+  } catch (err) {
+    console.error('Error syncing KycDocument in getVerificationStatus:', err.message);
+  }
+
   const statusInfo = computeCreatorVerification(user);
   res.json({ success: true, ...statusInfo });
 });
@@ -558,10 +603,10 @@ const verifyUpi = catchAsync(async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 8. UNIFIED DOCUMENT VERIFICATION (BACKWARD COMPATIBILITY)
+// 8. UNIFIED DOCUMENT VERIFICATION & SUBMISSION
 // ─────────────────────────────────────────────────────────────
 const verifyDocument = catchAsync(async (req, res) => {
-  const { docType, docNumber, frontUrl, backUrl, fileUrl, docName } = req.body;
+  const { docType, docNumber, frontUrl, backUrl, fileUrl, docName, manualSubmission } = req.body;
   if (!docType) throw ApiError.badRequest('docType is required');
 
   const user = await User.findById(req.user._id);
@@ -572,7 +617,41 @@ const verifyDocument = catchAsync(async (req, res) => {
   const now = new Date();
   const docFileUrl = fileUrl || frontUrl || backUrl || '';
 
-  if (docType === 'pan' && docNumber) {
+  if (manualSubmission || frontUrl || backUrl) {
+    // Manual document submission or re-submission for Admin Review
+    const targetStatus = 'pending';
+    currentDocs[docType] = {
+      docNumber: docNumber || currentDocs[docType]?.docNumber || '',
+      maskedNumber: docNumber ? (docNumber.length > 4 ? `XXXX XXXX ${docNumber.slice(-4)}` : docNumber) : (currentDocs[docType]?.maskedNumber || ''),
+      frontUrl: frontUrl || currentDocs[docType]?.frontUrl || null,
+      backUrl: backUrl || currentDocs[docType]?.backUrl || null,
+      fileUrl: docFileUrl || currentDocs[docType]?.fileUrl || null,
+      status: targetStatus,
+      submittedAt: now,
+      verified: false,
+      rejectionReason: null,
+      failureReason: null
+    };
+
+    // Upsert into KycDocument for Admin Review Queue
+    try {
+      await KycDocument.findOneAndUpdate(
+        { user_id: user._id.toString(), doc_type: docType, is_deleted: { $ne: true } },
+        {
+          $set: {
+            doc_number: docNumber || currentDocs[docType]?.docNumber || 'Submitted Proof',
+            doc_url: docFileUrl || 'https://via.placeholder.com/400x600?text=Uploaded+Document',
+            status: targetStatus,
+            submitted_at: now.toISOString(),
+            rejection_reason: null
+          }
+        },
+        { upsert: true, returnDocument: 'after' }
+      );
+    } catch (err) {
+      console.error(`Error syncing KycDocument for ${docType}:`, err.message);
+    }
+  } else if (docType === 'pan' && docNumber) {
     const fallbackName = user.name || currentCp.displayName || 'Taxpayer Validated';
     const sandboxRes = await sandboxService.verifyPan(docNumber, fallbackName, currentCp.dob || user.dob);
     const isApproved = sandboxRes.success && sandboxRes.verified;
@@ -630,11 +709,13 @@ const verifyDocument = catchAsync(async (req, res) => {
   user.creatorProfile.verificationStatus = statusInfo.tier;
   if (['verified_creator', 'pro_verified'].includes(statusInfo.tier)) {
     user.kyc_status = 'approved';
+  } else if (Object.values(currentDocs).some(d => d.status === 'pending')) {
+    user.kyc_status = 'pending';
   }
   user.markModified('creatorProfile');
   await user.save();
 
-  res.json({ success: true, message: `${docName || docType} verified successfully!`, ...statusInfo });
+  res.json({ success: true, message: `${docName || docType} submitted successfully!`, ...statusInfo });
 });
 
 // ─────────────────────────────────────────────────────────────

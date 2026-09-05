@@ -191,6 +191,46 @@ const kycReview = async (kid, adminId, approve, reason = null) => {
         console.error('Error re-calculating verification status during KYC review:', err);
       }
     }
+
+    if (user.creatorProfile) {
+      const docType = doc.doc_type;
+      const cp = user.creatorProfile || {};
+      const docs = cp.documents || {};
+      
+      if (!docs[docType]) {
+        docs[docType] = {
+          docNumber: doc.doc_number || '',
+          fileUrl: doc.doc_url || '',
+          frontUrl: doc.doc_url || '',
+          status: newStatus,
+          verifiedAt: approve ? new Date() : null,
+          rejectionReason: reason || null,
+          failureReason: reason || null
+        };
+      } else {
+        docs[docType].status = newStatus;
+        if (approve) {
+          docs[docType].verifiedAt = new Date();
+          docs[docType].rejectionReason = null;
+          docs[docType].failureReason = null;
+        } else {
+          docs[docType].rejectionReason = reason;
+          docs[docType].failureReason = reason;
+        }
+      }
+      
+      cp.documents = docs;
+      user.creatorProfile = cp;
+      user.markModified('creatorProfile');
+
+      try {
+        const { computeCreatorVerification } = require('../controllers/creatorVerification.controller');
+        const statusInfo = computeCreatorVerification(user);
+        user.creatorProfile.verificationStatus = statusInfo.tier;
+      } catch (err) {
+        console.error('Error re-calculating creator verification status during KYC review:', err);
+      }
+    }
     await user.save();
     if (approve) {
       try {

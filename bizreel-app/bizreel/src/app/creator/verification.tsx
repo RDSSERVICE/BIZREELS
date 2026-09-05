@@ -166,79 +166,137 @@ export default function CreatorVerificationScreen() {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* PAN Verification */}
-        <View style={styles.card}>
-          <View style={styles.cardTitleRow}>
-            <Ionicons name="card-outline" size={20} color={YELLOW} />
-            <Text style={styles.cardTitle}>1. PAN Card Verification</Text>
-            {status?.panVerified && (
-              <View style={styles.verifiedBadge}><Text style={styles.verifiedBadgeText}>VERIFIED</Text></View>
-            )}
-          </View>
-          {!status?.panVerified ? (
-            <>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter 10-character PAN (e.g. ABCDE1234F)"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={panNumber}
-                onChangeText={setPanNumber}
-                autoCapitalize="characters"
-                maxLength={10}
-              />
-              <TouchableOpacity style={styles.submitBtn} onPress={handleVerifyPan} disabled={verifyingPan}>
-                {verifyingPan ? <ActivityIndicator color={BLACK} /> : <Text style={styles.submitBtnText}>Verify PAN Card</Text>}
-              </TouchableOpacity>
-            </>
-          ) : (
-            <Text style={styles.successNote}>✓ PAN verification completed successfully.</Text>
-          )}
-        </View>
+        {(() => {
+          const panDoc = status?.documents?.pan || {};
+          const isApproved = panDoc.status === 'approved' || status?.panVerified;
+          const isPending = panDoc.status === 'pending';
+          const isRejected = panDoc.status === 'rejected' || panDoc.status === 'failed';
+          const reason = panDoc.rejectionReason || panDoc.failureReason;
+
+          return (
+            <View style={styles.card}>
+              <View style={styles.cardTitleRow}>
+                <Ionicons name="card-outline" size={20} color={YELLOW} />
+                <Text style={styles.cardTitle}>1. PAN Card Verification</Text>
+                {isApproved ? (
+                  <View style={styles.verifiedBadge}><Text style={styles.verifiedBadgeText}>VERIFIED</Text></View>
+                ) : isPending ? (
+                  <View style={[styles.verifiedBadge, { backgroundColor: '#F59E0B' }]}><Text style={styles.verifiedBadgeText}>PENDING</Text></View>
+                ) : isRejected ? (
+                  <View style={[styles.verifiedBadge, { backgroundColor: '#EF4444' }]}><Text style={styles.verifiedBadgeText}>REJECTED</Text></View>
+                ) : null}
+              </View>
+
+              {isRejected && (
+                <View style={{ backgroundColor: '#2D1517', padding: 10, borderWidth: 1, borderColor: '#EF4444', marginBottom: 8 }}>
+                  <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '900' }}>❌ Verification Rejected</Text>
+                  <Text style={{ color: '#FCA5A5', fontSize: 10, marginTop: 2 }}>{reason || 'Uploaded PAN document did not pass compliance inspection.'}</Text>
+                </View>
+              )}
+
+              {isPending && (
+                <View style={{ backgroundColor: '#2B2314', padding: 10, borderWidth: 1, borderColor: '#F59E0B', marginBottom: 8 }}>
+                  <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '900' }}>⏳ Verification Pending Admin Review</Text>
+                  <Text style={{ color: '#FDE68A', fontSize: 10, marginTop: 2 }}>Submitted and currently being verified by compliance team.</Text>
+                </View>
+              )}
+
+              {!isApproved ? (
+                <>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter 10-character PAN (e.g. ABCDE1234F)"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={panNumber}
+                    onChangeText={setPanNumber}
+                    autoCapitalize="characters"
+                    maxLength={10}
+                  />
+                  <TouchableOpacity style={styles.submitBtn} onPress={handleVerifyPan} disabled={verifyingPan}>
+                    {verifyingPan ? <ActivityIndicator color={BLACK} /> : <Text style={styles.submitBtnText}>{isRejected ? 'Re-Submit PAN Card' : 'Verify PAN Card'}</Text>}
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <Text style={styles.successNote}>✓ PAN verification completed successfully.</Text>
+              )}
+            </View>
+          );
+        })()}
 
         {/* Aadhaar Verification */}
-        <View style={styles.card}>
-          <View style={styles.cardTitleRow}>
-            <Ionicons name="finger-print-outline" size={20} color={YELLOW} />
-            <Text style={styles.cardTitle}>2. Aadhaar Identity (OTP)</Text>
-            {status?.aadhaarVerified && (
-              <View style={styles.verifiedBadge}><Text style={styles.verifiedBadgeText}>VERIFIED</Text></View>
-            )}
-          </View>
-          {!status?.aadhaarVerified ? (
-            !showAadhaarOtpInput ? (
-              <>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter 12-digit Aadhaar Number"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={aadhaarNumber}
-                  onChangeText={setAadhaarNumber}
-                  keyboardType="number-pad"
-                  maxLength={12}
-                />
-                <TouchableOpacity style={styles.submitBtn} onPress={handleInitiateAadhaar} disabled={verifyingAadhaar}>
-                  {verifyingAadhaar ? <ActivityIndicator color={BLACK} /> : <Text style={styles.submitBtnText}>Get Aadhaar OTP</Text>}
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter 6-digit OTP sent to mobile"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={aadhaarOtp}
-                  onChangeText={setAadhaarOtp}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                />
-                <TouchableOpacity style={styles.submitBtn} onPress={handleVerifyAadhaarOtp} disabled={verifyingAadhaar}>
-                  {verifyingAadhaar ? <ActivityIndicator color={BLACK} /> : <Text style={styles.submitBtnText}>Verify Aadhaar OTP</Text>}
-                </TouchableOpacity>
-              </>
-            )
-          ) : (
-            <Text style={styles.successNote}>✓ Aadhaar identity verified via DigiLocker OTP.</Text>
-          )}
-        </View>
+        {(() => {
+          const aadhaarDoc = status?.documents?.aadhaar || {};
+          const isApproved = aadhaarDoc.status === 'approved' || status?.aadhaarVerified;
+          const isPending = aadhaarDoc.status === 'pending';
+          const isRejected = aadhaarDoc.status === 'rejected' || aadhaarDoc.status === 'failed';
+          const reason = aadhaarDoc.rejectionReason || aadhaarDoc.failureReason;
+
+          return (
+            <View style={styles.card}>
+              <View style={styles.cardTitleRow}>
+                <Ionicons name="finger-print-outline" size={20} color={YELLOW} />
+                <Text style={styles.cardTitle}>2. Aadhaar Identity (OTP)</Text>
+                {isApproved ? (
+                  <View style={styles.verifiedBadge}><Text style={styles.verifiedBadgeText}>VERIFIED</Text></View>
+                ) : isPending ? (
+                  <View style={[styles.verifiedBadge, { backgroundColor: '#F59E0B' }]}><Text style={styles.verifiedBadgeText}>PENDING</Text></View>
+                ) : isRejected ? (
+                  <View style={[styles.verifiedBadge, { backgroundColor: '#EF4444' }]}><Text style={styles.verifiedBadgeText}>REJECTED</Text></View>
+                ) : null}
+              </View>
+
+              {isRejected && (
+                <View style={{ backgroundColor: '#2D1517', padding: 10, borderWidth: 1, borderColor: '#EF4444', marginBottom: 8 }}>
+                  <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '900' }}>❌ Aadhaar Verification Rejected</Text>
+                  <Text style={{ color: '#FCA5A5', fontSize: 10, marginTop: 2 }}>{reason || 'Aadhaar identity proof did not pass review.'}</Text>
+                </View>
+              )}
+
+              {isPending && (
+                <View style={{ backgroundColor: '#2B2314', padding: 10, borderWidth: 1, borderColor: '#F59E0B', marginBottom: 8 }}>
+                  <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '900' }}>⏳ Verification Pending Admin Review</Text>
+                  <Text style={{ color: '#FDE68A', fontSize: 10, marginTop: 2 }}>Aadhaar submitted and under compliance check.</Text>
+                </View>
+              )}
+
+              {!isApproved ? (
+                !showAadhaarOtpInput ? (
+                  <>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter 12-digit Aadhaar Number"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      value={aadhaarNumber}
+                      onChangeText={setAadhaarNumber}
+                      keyboardType="number-pad"
+                      maxLength={12}
+                    />
+                    <TouchableOpacity style={styles.submitBtn} onPress={handleInitiateAadhaar} disabled={verifyingAadhaar}>
+                      {verifyingAadhaar ? <ActivityIndicator color={BLACK} /> : <Text style={styles.submitBtnText}>{isRejected ? 'Re-Request Aadhaar OTP' : 'Get Aadhaar OTP'}</Text>}
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter 6-digit OTP sent to mobile"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      value={aadhaarOtp}
+                      onChangeText={setAadhaarOtp}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                    />
+                    <TouchableOpacity style={styles.submitBtn} onPress={handleVerifyAadhaarOtp} disabled={verifyingAadhaar}>
+                      {verifyingAadhaar ? <ActivityIndicator color={BLACK} /> : <Text style={styles.submitBtnText}>Verify Aadhaar OTP</Text>}
+                    </TouchableOpacity>
+                  </>
+                )
+              ) : (
+                <Text style={styles.successNote}>✓ Aadhaar identity verified via DigiLocker OTP.</Text>
+              )}
+            </View>
+          );
+        })()}
 
         {/* Bank Account Verification */}
         <View style={styles.card}>

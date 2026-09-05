@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   FiFileText, FiShield, FiCheckCircle, FiAlertCircle, FiUploadCloud,
-  FiUser, FiCalendar, FiMapPin, FiCheck, FiRefreshCw
+  FiUser, FiCalendar, FiMapPin, FiCheck, FiRefreshCw, FiClock, FiXCircle, FiSend
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../../lib/api';
@@ -17,8 +17,18 @@ export default function CreatorIdentityDocumentsSection({
   const aadhaarDoc = documents.aadhaar || {};
   const panDoc = documents.pan || {};
 
-  const isAadhaarApproved = aadhaarDoc.status === 'approved';
-  const isPanApproved = panDoc.status === 'approved';
+  const aadhaarStatus = aadhaarDoc.status || 'unverified';
+  const panStatus = panDoc.status || 'unverified';
+
+  const isAadhaarApproved = aadhaarStatus === 'approved';
+  const isAadhaarPending = aadhaarStatus === 'pending';
+  const isAadhaarRejected = aadhaarStatus === 'rejected' || aadhaarStatus === 'failed';
+  const aadhaarRejectionReason = aadhaarDoc.rejectionReason || aadhaarDoc.failureReason;
+
+  const isPanApproved = panStatus === 'approved';
+  const isPanPending = panStatus === 'pending';
+  const isPanRejected = panStatus === 'rejected' || panStatus === 'failed';
+  const panRejectionReason = panDoc.rejectionReason || panDoc.failureReason;
 
   // Aadhaar Form State
   const [aadhaarNum, setAadhaarNum] = useState(aadhaarDoc.docNumber || aadhaarDoc.maskedNumber || '');
@@ -54,6 +64,32 @@ export default function CreatorIdentityDocumentsSection({
       toast.success(bi('Document uploaded successfully!', 'दस्तावेज़ सफलतापूर्वक अपलोड हो गया!'), { id: toastId });
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || bi('Document upload failed. Please try again.', 'दस्तावेज़ अपलोड विफल रहा। कृपया फिर प्रयास करें।'), { id: toastId });
+    }
+  };
+
+  // Manual Document Submission Handler
+  const handleManualSubmitDocument = async (docType, docNumber, frontUrl, backUrl) => {
+    if (!docNumber && !frontUrl && !backUrl) {
+      toast.error(bi('Please enter a document number or attach document images', 'कृपया एक दस्तावेज़ नंबर दर्ज करें या दस्तावेज़ की छवियां संलग्न करें'));
+      return;
+    }
+    const toastId = toast.loading(bi('Submitting document for verification review...', 'सत्यापन समीक्षा के लिए दस्तावेज़ जमा किया जा रहा है...'));
+    try {
+      const res = await api.post('/v1/creator/me/verify-document', {
+        docType,
+        docNumber,
+        frontUrl,
+        backUrl,
+        manualSubmission: true
+      });
+      if (res.data?.success) {
+        toast.success(res.data.message || bi('Document submitted successfully for Admin review!', 'व्यवस्थापक समीक्षा के लिए दस्तावेज़ सफलतापूर्वक जमा कर दिया गया!'), { id: toastId });
+        if (typeof onRefresh === 'function') await onRefresh();
+      } else {
+        throw new Error(res.data?.message || 'Submission failed');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || bi('Failed to submit document', 'दस्तावेज़ जमा करना विफल रहा'), { id: toastId });
     }
   };
 
@@ -153,7 +189,7 @@ export default function CreatorIdentityDocumentsSection({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       {/* ══════════════════════════════════════════════════════════
           1. AADHAAR CARD OKYC SECTION
          ══════════════════════════════════════════════════════════ */}
@@ -165,10 +201,10 @@ export default function CreatorIdentityDocumentsSection({
             </span>
             <div>
               <h2 className="text-sm font-black uppercase tracking-wider text-[#241b15]">
-                {bi('Aadhaar Card (UIDAI OKYC)', 'आधार कार्ड (यूआईडीएआई ओकेवाईसी)')}
+                {bi('Aadhaar Card Verification', 'आधार कार्ड सत्यापन')}
               </h2>
               <p className="text-xs text-slate-500">
-                {bi('Direct OTP verification with UIDAI database via Sandbox API', 'सैंडबॉक्स एपीआई के माध्यम से यूआईडीएआई डेटाबेस से सीधे ओटीपी सत्यापन')}
+                {bi('UIDAI e-KYC OTP or manual front/back document upload for Admin review', 'यूआईडीएआई ई-केवाईसी ओटीपी या व्यवस्थापक समीक्षा के लिए आधार अपलोड')}
               </p>
             </div>
           </div>
@@ -176,14 +212,61 @@ export default function CreatorIdentityDocumentsSection({
             <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border-2 border-emerald-300 rounded text-xs font-black flex items-center gap-1.5 shadow-2xs">
               <FiCheckCircle size={14} className="text-emerald-600" /> {bi('Verified Record ✓', 'सत्यापित रिकॉर्ड ✓')}
             </span>
+          ) : isAadhaarPending ? (
+            <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border-2 border-amber-300 rounded text-xs font-black flex items-center gap-1.5">
+              <FiClock size={14} className="text-amber-600 animate-spin" /> {bi('Pending Admin Review ⏳', 'समीक्षा लंबित ⏳')}
+            </span>
+          ) : isAadhaarRejected ? (
+            <span className="px-2.5 py-1 bg-rose-50 text-rose-800 border-2 border-rose-300 rounded text-xs font-black flex items-center gap-1.5">
+              <FiXCircle size={14} className="text-rose-600" /> {bi('Verification Rejected ❌', 'सत्यापन अस्वीकृत ❌')}
+            </span>
           ) : (
-            <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border-2 border-amber-300 rounded text-xs font-bold flex items-center gap-1.5">
-              <FiAlertCircle size={14} /> {bi('Pending Verification', 'सत्यापन लंबित')}
+            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border-2 border-slate-300 rounded text-xs font-bold flex items-center gap-1.5">
+              <FiAlertCircle size={14} /> {bi('Not Submitted', 'जमा नहीं किया गया')}
             </span>
           )}
         </div>
 
-        {/* If verified: Render extracted demographic data */}
+        {/* REJECTED ALERT BANNER */}
+        {isAadhaarRejected && (
+          <div className="p-4 rounded-md bg-rose-50 border-2 border-rose-300 text-rose-900 space-y-2">
+            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wide">
+              <FiXCircle className="text-rose-600" size={16} />
+              <span>{bi('Verification Rejected by Compliance Team', 'अनुपालन टीम द्वारा सत्यापन अस्वीकृत')}</span>
+            </div>
+            <p className="text-xs text-rose-800 font-medium">
+              <span className="font-bold">{bi('Reason:', 'कारण:')}</span> {aadhaarRejectionReason || bi('Uploaded document could not be verified. Please upload clear front & back photos.', 'अपलोड किया गया दस्तावेज़ सत्यापित नहीं किया जा सका। कृपया स्पष्ट फोटो अपलोड करें।')}
+            </p>
+            <div className="pt-1">
+              <span className="text-[11px] font-bold text-rose-700 block mb-2">
+                {bi('You can update your document number or upload fresh images below and re-submit:', 'आप अपना विवरण अपडेट कर सकते हैं और नीचे पुनः प्रस्तुत कर सकते हैं:')}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* PENDING ALERT BANNER */}
+        {isAadhaarPending && (
+          <div className="p-4 rounded-md bg-amber-50 border-2 border-amber-300 text-amber-900 space-y-2">
+            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wide">
+              <FiClock className="text-amber-600" size={16} />
+              <span>{bi('Verification Submitted & Pending Admin Approval', 'सत्यापन जमा किया गया और व्यवस्थापक स्वीकृति लंबित है')}</span>
+            </div>
+            <p className="text-xs text-amber-800 font-medium">
+              {bi('Your Aadhaar document has been submitted and is currently under review by our compliance team. Status will update automatically upon verification.', 'आपका आधार दस्तावेज़ जमा कर दिया गया है और हमारी टीम समीक्षा कर रही है।')}
+            </p>
+            {(aadhaarDoc.frontUrl || aadhaarDoc.fileUrl) && (
+              <div className="flex items-center gap-2 pt-1 text-xs">
+                <span className="font-bold text-[#241b15]">{bi('Attached Proof:', 'संलग्न प्रमाण:')}</span>
+                <a href={aadhaarDoc.frontUrl || aadhaarDoc.fileUrl} target="_blank" rel="noopener noreferrer" className="text-[#d99a3d] font-bold underline">
+                  {bi('View Uploaded Front Image ↗', 'अपलोड की गई छवि देखें ↗')}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* APPROVED RECORD DISPLAY */}
         {isAadhaarApproved ? (
           <div className="rounded-md bg-[#f8f4ec] border-2 border-emerald-300 p-4 sm:p-5 space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -204,7 +287,7 @@ export default function CreatorIdentityDocumentsSection({
                     {aadhaarDoc.fullName || 'Verified Citizen'}
                   </h3>
                   <span className="px-2 py-0.5 bg-emerald-600 text-white text-[9.5px] font-black rounded uppercase">
-                    UIDAI OKYC
+                    UIDAI VERIFIED
                   </span>
                 </div>
                 <p className="text-xs font-mono font-bold text-slate-700 tracking-wider">
@@ -236,7 +319,7 @@ export default function CreatorIdentityDocumentsSection({
             )}
           </div>
         ) : (
-          /* Interactive verification input flow */
+          /* Interactive verification input flow (for Unverified, Pending, or Rejected states) */
           <div className="space-y-4">
             {aadhaarOtpStage === 'input' ? (
               <div className="space-y-3">
@@ -255,25 +338,37 @@ export default function CreatorIdentityDocumentsSection({
                   <button
                     type="button"
                     onClick={handleInitiateAadhaar}
-                    disabled={aadhaarLoading || aadhaarNum.length !== 12}
+                    disabled={aadhaarLoading || aadhaarNum.replace(/\D/g, '').length !== 12}
                     className="px-5 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#342820] border border-[#241b15] rounded-md text-xs font-black uppercase tracking-wider transition disabled:opacity-50 shrink-0 cursor-pointer shadow-xs"
                   >
-                    {aadhaarLoading ? bi('Sending OTP...', 'ओटीपी भेजा जा रहा है...') : bi('Send Aadhaar OTP →', 'आधार ओटीपी भेजें →')}
+                    {aadhaarLoading ? bi('Sending OTP...', 'ओटीपी भेजा जा रहा है...') : bi('Send UIDAI OTP →', 'आधार ओटीपी भेजें →')}
                   </button>
                 </div>
 
-                {/* Optional Front & Back Image Attachment */}
+                {/* Front & Back Image Attachment */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <label className="cursor-pointer px-3.5 py-2 bg-[#f8f4ec] border-2 border-dashed border-[#e3dccb] hover:border-[#d99a3d] rounded-md text-xs font-bold text-[#241b15] flex items-center justify-center gap-2 transition">
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-[#f8f4ec] border-2 border-dashed border-[#e3dccb] hover:border-[#d99a3d] rounded-md text-xs font-bold text-[#241b15] flex items-center justify-center gap-2 transition">
                     <FiUploadCloud size={15} />
-                    <span>{aadhaarFront ? bi('Front Attached ✓', 'फ्रंट संलग्न ✓') : bi('Attach Front (Optional)', 'फ्रंट संलग्न करें (वैकल्पिक)')}</span>
+                    <span>{aadhaarFront ? bi('Front Attached ✓', 'फ्रंट संलग्न ✓') : bi('Attach Front Image', 'फ्रंट इमेज संलग्न करें')}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarFront)} />
                   </label>
-                  <label className="cursor-pointer px-3.5 py-2 bg-[#f8f4ec] border-2 border-dashed border-[#e3dccb] hover:border-[#d99a3d] rounded-md text-xs font-bold text-[#241b15] flex items-center justify-center gap-2 transition">
+                  <label className="cursor-pointer px-3.5 py-2.5 bg-[#f8f4ec] border-2 border-dashed border-[#e3dccb] hover:border-[#d99a3d] rounded-md text-xs font-bold text-[#241b15] flex items-center justify-center gap-2 transition">
                     <FiUploadCloud size={15} />
-                    <span>{aadhaarBack ? bi('Back Attached ✓', 'बैक संलग्न ✓') : bi('Attach Back (Optional)', 'बैक संलग्न करें (वैकल्पिक)')}</span>
+                    <span>{aadhaarBack ? bi('Back Attached ✓', 'बैक संलग्न ✓') : bi('Attach Back Image', 'बैक इमेज संलग्न करें')}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setAadhaarBack)} />
                   </label>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleManualSubmitDocument('aadhaar', aadhaarNum, aadhaarFront, aadhaarBack)}
+                    disabled={!aadhaarNum && !aadhaarFront && !aadhaarBack}
+                    className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md text-xs font-black uppercase tracking-wider transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <FiSend size={13} />
+                    <span>{bi('Submit Document for Admin Review', 'समीक्षा के लिए दस्तावेज़ सबमिट करें')}</span>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -337,7 +432,7 @@ export default function CreatorIdentityDocumentsSection({
                 {bi('PAN Card (Taxpayer Identification)', 'पैन कार्ड (करदाता पहचान)')}
               </h2>
               <p className="text-xs text-slate-500">
-                {bi('Instant Income Tax Dept database verification via Sandbox API', 'सैंडबॉक्स एपीआई के माध्यम से आयकर विभाग के डेटाबेस से तुरंत सत्यापन')}
+                {bi('Instant Income Tax Dept database check or manual submission for Admin review', 'आयकर विभाग डेटाबेस जांच या व्यवस्थापक समीक्षा के लिए सबमिट करें')}
               </p>
             </div>
           </div>
@@ -345,12 +440,54 @@ export default function CreatorIdentityDocumentsSection({
             <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border-2 border-emerald-300 rounded text-xs font-black flex items-center gap-1.5 shadow-2xs">
               <FiCheckCircle size={14} className="text-emerald-600" /> {bi('Verified Record ✓', 'सत्यापित रिकॉर्ड ✓')}
             </span>
+          ) : isPanPending ? (
+            <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border-2 border-amber-300 rounded text-xs font-black flex items-center gap-1.5">
+              <FiClock size={14} className="text-amber-600 animate-spin" /> {bi('Pending Admin Review ⏳', 'समीक्षा लंबित ⏳')}
+            </span>
+          ) : isPanRejected ? (
+            <span className="px-2.5 py-1 bg-rose-50 text-rose-800 border-2 border-rose-300 rounded text-xs font-black flex items-center gap-1.5">
+              <FiXCircle size={14} className="text-rose-600" /> {bi('Verification Rejected ❌', 'सत्यापन अस्वीकृत ❌')}
+            </span>
           ) : (
-            <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border-2 border-amber-300 rounded text-xs font-bold flex items-center gap-1.5">
-              <FiAlertCircle size={14} /> {bi('Pending Verification', 'सत्यापन लंबित')}
+            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border-2 border-slate-300 rounded text-xs font-bold flex items-center gap-1.5">
+              <FiAlertCircle size={14} /> {bi('Not Submitted', 'जमा नहीं किया गया')}
             </span>
           )}
         </div>
+
+        {/* PAN REJECTED ALERT BANNER */}
+        {isPanRejected && (
+          <div className="p-4 rounded-md bg-rose-50 border-2 border-rose-300 text-rose-900 space-y-2">
+            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wide">
+              <FiXCircle className="text-rose-600" size={16} />
+              <span>{bi('PAN Card Verification Rejected', 'पैन कार्ड सत्यापन अस्वीकृत')}</span>
+            </div>
+            <p className="text-xs text-rose-800 font-medium">
+              <span className="font-bold">{bi('Reason:', 'कारण:')}</span> {panRejectionReason || bi('PAN details or document proof could not be validated. Please check PAN number and re-submit.', 'पैन विवरण का सत्यापन नहीं हो सका। कृपया नंबर जांचें और पुनः प्रयास करें।')}
+            </p>
+          </div>
+        )}
+
+        {/* PAN PENDING ALERT BANNER */}
+        {isPanPending && (
+          <div className="p-4 rounded-md bg-amber-50 border-2 border-amber-300 text-amber-900 space-y-2">
+            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wide">
+              <FiClock className="text-amber-600" size={16} />
+              <span>{bi('PAN Verification Submitted & Pending Approval', 'पैन सत्यापन जमा किया गया और स्वीकृति लंबित है')}</span>
+            </div>
+            <p className="text-xs text-amber-800 font-medium">
+              {bi('Your PAN document details are currently being reviewed by compliance officers.', 'आपके पैन विवरण की समीक्षा चल रही है।')}
+            </p>
+            {(panDoc.frontUrl || panDoc.fileUrl) && (
+              <div className="flex items-center gap-2 pt-1 text-xs">
+                <span className="font-bold text-[#241b15]">{bi('Attached PAN Image:', 'संलग्न पैन छवि:')}</span>
+                <a href={panDoc.frontUrl || panDoc.fileUrl} target="_blank" rel="noopener noreferrer" className="text-[#d99a3d] font-bold underline">
+                  {bi('View Uploaded Document ↗', 'अपलोड किया गया दस्तावेज़ देखें ↗')}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* If verified: Render extracted PAN details */}
         {isPanApproved ? (
@@ -405,22 +542,34 @@ export default function CreatorIdentityDocumentsSection({
                 disabled={panLoading || panNum.length !== 10}
                 className="px-5 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#342820] border border-[#241b15] rounded-md text-xs font-black uppercase tracking-wider transition disabled:opacity-50 shrink-0 cursor-pointer shadow-xs"
               >
-                {panLoading ? bi('Verifying PAN...', 'पैन सत्यापित किया जा रहा है...') : bi('Verify PAN via Sandbox →', 'सैंडबॉक्स से पैन सत्यापित करें →')}
+                {panLoading ? bi('Verifying PAN...', 'पैन सत्यापित किया जा रहा है...') : bi('Instant Sandbox Check →', 'सैंडबॉक्स से जांच करें →')}
               </button>
             </div>
 
-            {/* Optional Front & Back Image Attachment */}
+            {/* Front & Back Image Attachment */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <label className="cursor-pointer px-3.5 py-2 bg-[#f8f4ec] border-2 border-dashed border-[#e3dccb] hover:border-[#d99a3d] rounded-md text-xs font-bold text-[#241b15] flex items-center justify-center gap-2 transition">
+              <label className="cursor-pointer px-3.5 py-2.5 bg-[#f8f4ec] border-2 border-dashed border-[#e3dccb] hover:border-[#d99a3d] rounded-md text-xs font-bold text-[#241b15] flex items-center justify-center gap-2 transition">
                 <FiUploadCloud size={15} />
-                <span>{panFront ? bi('Front Attached ✓', 'फ्रंट संलग्न ✓') : bi('Attach Front (Optional)', 'फ्रंट संलग्न करें (वैकल्पिक)')}</span>
+                <span>{panFront ? bi('Front Attached ✓', 'फ्रंट संलग्न ✓') : bi('Attach PAN Front Photo', 'पैन फ्रंट फोटो संलग्न करें')}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setPanFront)} />
               </label>
-              <label className="cursor-pointer px-3.5 py-2 bg-[#f8f4ec] border-2 border-dashed border-[#e3dccb] hover:border-[#d99a3d] rounded-md text-xs font-bold text-[#241b15] flex items-center justify-center gap-2 transition">
+              <label className="cursor-pointer px-3.5 py-2.5 bg-[#f8f4ec] border-2 border-dashed border-[#e3dccb] hover:border-[#d99a3d] rounded-md text-xs font-bold text-[#241b15] flex items-center justify-center gap-2 transition">
                 <FiUploadCloud size={15} />
-                <span>{panBack ? bi('Back Attached ✓', 'बैक संलग्न ✓') : bi('Attach Back (Optional)', 'बैक संलग्न करें (वैकल्पिक)')}</span>
+                <span>{panBack ? bi('Back Attached ✓', 'बैक संलग्न ✓') : bi('Attach PAN Back Photo', 'पैन बैक फोटो संलग्न करें')}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, setPanBack)} />
               </label>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => handleManualSubmitDocument('pan', panNum, panFront, panBack)}
+                disabled={!panNum && !panFront && !panBack}
+                className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md text-xs font-black uppercase tracking-wider transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <FiSend size={13} />
+                <span>{bi('Submit PAN for Admin Review', 'समीक्षा के लिए पैन सबमिट करें')}</span>
+              </button>
             </div>
           </div>
         )}
