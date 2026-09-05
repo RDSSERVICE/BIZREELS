@@ -292,7 +292,7 @@ export default function VendorVerificationCenterScreen() {
 
   const contactsVerifiedCount =
     (phoneVerified ? 1 : 0) + (whatsappVerified ? 1 : 0) + (emailVerified ? 1 : 0) + (websiteVerified ? 1 : 0);
-  const docsObj = status?.documents || {};
+  const docsObj = (status as any)?.documents || {};
   const docsVerifiedCount =
     (docsObj.aadhaar?.status === 'approved' ? 1 : 0) +
     (docsObj.pan?.status === 'approved' || status?.panVerified ? 1 : 0) +
