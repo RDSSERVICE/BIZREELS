@@ -209,6 +209,34 @@ class WalletController {
       transaction: result.transaction,
     });
   });
+
+  // ── Get Topup Packs / Presets ────────────────────────────
+  getTopupPacks = asyncHandler(async (req, res) => {
+    const { AppSettings } = require('../models/Admin');
+    const cached = await cache.getCache('wallet:topup_packs');
+    if (cached) {
+      return ApiResponse.ok(res, 'Topup packs loaded.', { packs: cached });
+    }
+
+    let packs = [
+      { amount: 500, label: '₹500', is_popular: false },
+      { amount: 1000, label: '₹1,000', is_popular: true },
+      { amount: 2500, label: '₹2,500', is_popular: false },
+      { amount: 5000, label: '₹5,000', is_popular: false },
+    ];
+
+    try {
+      const setting = await AppSettings.findOne({ key: 'topup_packs' }).lean();
+      if (setting && Array.isArray(setting.value) && setting.value.length > 0) {
+        packs = setting.value.map(p => typeof p === 'number' ? { amount: p, label: `₹${p.toLocaleString('en-IN')}` } : p);
+      }
+    } catch (err) {
+      // fallback to default list
+    }
+
+    await cache.setCache('wallet:topup_packs', packs, 300);
+    return ApiResponse.ok(res, 'Topup packs loaded.', { packs });
+  });
 }
 
 module.exports = new WalletController();

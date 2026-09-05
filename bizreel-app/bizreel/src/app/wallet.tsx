@@ -21,9 +21,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
-import { useRechargeWallet, useWalletInfo, useWalletTransactions } from '@/features/wallet/queries';
-
-const TOPUP_PRESETS = [500, 1000, 2000, 5000];
+import { useRechargeWallet, useTopupPacks, useWalletInfo, useWalletTransactions } from '@/features/wallet/queries';
 
 export default function WalletScreen() {
   const router = useRouter();
@@ -31,7 +29,12 @@ export default function WalletScreen() {
 
   const { data: wallet, isLoading: walletLoading, refetch: refetchWallet, isRefetching } = useWalletInfo();
   const { data: transactions, isLoading: txLoading } = useWalletTransactions();
+  const { data: topupPacks } = useTopupPacks();
   const rechargeMutation = useRechargeWallet();
+
+  const topupPresets = (topupPacks && topupPacks.length > 0)
+    ? topupPacks.map(p => typeof p === 'number' ? p : p.amount)
+    : [500, 1000, 2000, 5000];
 
   const [topupModalVisible, setTopupModalVisible] = useState(false);
   const [customAmount, setCustomAmount] = useState('1000');
@@ -168,7 +171,7 @@ export default function WalletScreen() {
 
             <Text style={styles.inputLabel}>Select or Enter Amount (₹)</Text>
             <View style={styles.presetRow}>
-              {TOPUP_PRESETS.map((amt) => (
+              {topupPresets.map((amt) => (
                 <TouchableOpacity
                   key={amt}
                   style={styles.presetChip}

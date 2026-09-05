@@ -21,3 +21,13 @@ export async function rechargeWallet(input: RechargeWalletInput): Promise<Wallet
   const { data } = await api.post('/wallet/recharge', { amount: input.amount });
   return data.data || data;
 }
+
+export async function getTopupPacks(): Promise<Array<{ amount: number; label?: string; is_popular?: boolean }>> {
+  try {
+    const { data } = await api.get('/wallet/topup-packs');
+    const packs = data?.data?.packs || data?.packs || data || [];
+    return Array.isArray(packs) ? packs : [];
+  } catch (err) {
+    return [{ amount: 500 }, { amount: 1000 }, { amount: 2500 }, { amount: 5000 }];
+  }
+}

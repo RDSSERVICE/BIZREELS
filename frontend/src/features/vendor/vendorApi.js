@@ -199,6 +199,11 @@ const vendorApi = apiSlice.injectEndpoints({
       query: (params = {}) => ({ url: '/transactions/vendor', params }),
       providesTags: ['Wallet'],
     }),
+    getTopupPacks: builder.query({
+      query: () => '/wallet/topup-packs',
+      transformResponse: (res) => res?.data?.packs || res?.packs || [],
+      providesTags: ['TopupPacks'],
+    }),
     rechargeWallet: builder.mutation({
       query: (body) => ({ url: '/wallet/recharge', method: 'POST', body }),
       invalidatesTags: ['Wallet', 'VendorDashboard'],
@@ -265,6 +270,7 @@ export const {
   useReplyToReviewMutation,
   useGetVendorWalletQuery,
   useGetWalletTransactionsQuery,
+  useGetTopupPacksQuery,
   useRechargeWalletMutation,
   useGetVendorSubscriptionQuery,
   useGetSubscriptionPlansQuery,

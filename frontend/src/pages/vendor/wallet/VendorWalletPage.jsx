@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminStatCard from '../../../features/admin/components/AdminStatCard';
 import AdminDataTable from '../../../features/admin/components/AdminDataTable';
-import { useGetVendorWalletQuery, useGetWalletTransactionsQuery, useRechargeWalletMutation } from '../../../features/vendor/vendorApi';
+import { useGetVendorWalletQuery, useGetWalletTransactionsQuery, useGetTopupPacksQuery, useRechargeWalletMutation } from '../../../features/vendor/vendorApi';
 import { api } from '../../../lib/api';
 import { useLanguage } from '../../../context/LanguageContext';
 
@@ -24,11 +24,16 @@ export default function VendorWalletPage() {
   const { bi, t } = useLanguage();
   const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, { pollingInterval: 300000 });
   const { data: txData, isFetching: isFetchingTx, refetch: refetchTx } = useGetWalletTransactionsQuery(undefined, { pollingInterval: 300000 });
+  const { data: topupPacksData } = useGetTopupPacksQuery();
   const [rechargeWallet] = useRechargeWalletMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [amount, setAmount] = useState('1000');
   const [loading, setLoading] = useState(false);
+
+  const topupPacks = Array.isArray(topupPacksData) && topupPacksData.length > 0
+    ? topupPacksData
+    : [{ amount: 500 }, { amount: 1000 }, { amount: 2500 }, { amount: 5000 }];
 
   const balance = walletData?.data?.balance ?? walletData?.data?.walletBalance ?? walletData?.balance ?? walletData?.walletBalance ?? 0;
   const rawTx = txData?.data || txData || [];
@@ -233,22 +238,26 @@ export default function VendorWalletPage() {
                   Select or Enter Amount (₹)
                 </label>
                 
-                {/* Preset Amount Badges */}
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {['500', '1000', '2500'].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setAmount(preset)}
-                      className={`py-2 rounded-xl text-xs font-black transition cursor-pointer border ${
-                        amount === preset
-                          ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
-                          : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb] hover:bg-white'
-                      }`}
-                    >
-                      ₹{Number(preset).toLocaleString('en-IN')}
-                    </button>
-                  ))}
+                {/* Preset Amount Badges (Dynamic from API) */}
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                  {topupPacks.map((pack) => {
+                    const valStr = String(pack.amount || pack);
+                    const displayAmt = pack.amount || pack;
+                    return (
+                      <button
+                        key={valStr}
+                        type="button"
+                        onClick={() => setAmount(valStr)}
+                        className={`py-2 px-1 rounded-xl text-xs font-black transition cursor-pointer border ${
+                          amount === valStr
+                            ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+                            : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb] hover:bg-white'
+                        }`}
+                      >
+                        ₹{Number(displayAmt).toLocaleString('en-IN')}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Amount Input */}

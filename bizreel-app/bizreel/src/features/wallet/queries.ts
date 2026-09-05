@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getWalletInfo, getWalletTransactions, rechargeWallet } from './api';
+import { getTopupPacks, getWalletInfo, getWalletTransactions, rechargeWallet } from './api';
 import type { RechargeWalletInput } from './types';
 
 export function useWalletInfo() {
@@ -13,6 +13,13 @@ export function useWalletTransactions() {
   return useQuery({
     queryKey: ['wallet', 'transactions'],
     queryFn: getWalletTransactions,
+  });
+}
+
+export function useTopupPacks() {
+  return useQuery({
+    queryKey: ['wallet', 'topup-packs'],
+    queryFn: getTopupPacks,
   });
 }
 
