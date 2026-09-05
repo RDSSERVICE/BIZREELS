@@ -46,65 +46,6 @@ const CATEGORIES = [
 
 const CITIES = ['All Cities', 'Phagwara', 'Kapurthala', 'Jalandhar', 'Delhi', 'Mumbai', 'Bangalore'];
 
-const FALLBACK_CREATORS = [
-  {
-    _id: 'c1',
-    name: 'Rohan Sharma',
-    handle: 'rohan_tech',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-    category: 'Tech & Electronics',
-    city: 'Phagwara',
-    rating: 4.9,
-    reviewsCount: 28,
-    reelsCount: 42,
-    rate: 1500,
-    bio: 'Tech reviewer & unboxing creator specializing in gadgets, smartphones, and software.',
-    is_verified: true,
-  },
-  {
-    _id: 'c2',
-    name: 'Ananya Verma',
-    handle: 'ananya_style',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400',
-    category: 'Fashion & Lifestyle',
-    city: 'Kapurthala',
-    rating: 4.8,
-    reviewsCount: 45,
-    reelsCount: 88,
-    rate: 2000,
-    bio: 'Fashion influencer creating high-engagement promotional reels for apparel brands.',
-    is_verified: true,
-  },
-  {
-    _id: 'c3',
-    name: 'Vikram Singh',
-    handle: 'vikram_foodie',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-    category: 'Food & Dining',
-    city: 'Jalandhar',
-    rating: 5.0,
-    reviewsCount: 19,
-    reelsCount: 65,
-    rate: 1800,
-    bio: 'Food blogger showcasing restaurant dishes, cafes, and local food products.',
-    is_verified: true,
-  },
-  {
-    _id: 'c4',
-    name: 'Priya Kapoor',
-    handle: 'priya_beauty',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
-    category: 'Beauty & Wellness',
-    city: 'Delhi',
-    rating: 4.7,
-    reviewsCount: 31,
-    reelsCount: 54,
-    rate: 2200,
-    bio: 'Skincare & makeup tutorial creator helping beauty vendors boost conversions.',
-    is_verified: true,
-  },
-];
-
 export default function VendorHireCreatorScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -135,35 +76,21 @@ export default function VendorHireCreatorScreen() {
       if (selectedCategory !== 'All Categories') params.category = selectedCategory;
       if (selectedCity !== 'All Cities') params.city = selectedCity;
 
-      const { data } = await api.get('/creators/public', { params });
-      const items = data.data || data.creators || data.items || data || [];
-      const list = Array.isArray(items) ? items : [];
-
-      if (list.length > 0) {
-        setCreators(list);
-      } else {
-        // Fallback filter
-        const filtered = FALLBACK_CREATORS.filter((item) => {
-          const matchesSearch = searchQuery
-            ? item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              item.city.toLowerCase().includes(searchQuery.toLowerCase())
-            : true;
-          const matchesCat =
-            selectedCategory !== 'All Categories'
-              ? item.category.toLowerCase().includes(selectedCategory.toLowerCase())
-              : true;
-          const matchesCity =
-            selectedCity !== 'All Cities'
-              ? item.city.toLowerCase().includes(selectedCity.toLowerCase())
-              : true;
-          return matchesSearch && matchesCat && matchesCity;
-        });
-        setCreators(filtered);
+      let list: any[] = [];
+      try {
+        const res = await api.get('/creator-marketplace/discover', { params });
+        const items = res.data?.data || res.data?.creators || res.data?.items || [];
+        list = Array.isArray(items) ? items : [];
+      } catch (e) {
+        const res = await api.get('/creators/public', { params });
+        const items = res.data?.data || res.data?.creators || res.data?.items || [];
+        list = Array.isArray(items) ? items : [];
       }
+
+      setCreators(list);
     } catch (err) {
-      console.warn('Fallback public creators listing');
-      setCreators(FALLBACK_CREATORS);
+      console.error('Error fetching registered creators:', err);
+      setCreators([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -318,11 +245,13 @@ export default function VendorHireCreatorScreen() {
               item.profile_pic ||
               item.creatorProfile?.avatarUrl ||
               'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
-            const cat = item.category || item.creatorProfile?.category || 'General Creator';
-            const city = item.city || item.creatorProfile?.city || 'Punjab';
-            const rating = item.rating || item.creatorProfile?.rating || 4.9;
-            const reelsCount = item.reelsCount || item.creatorProfile?.reelsCount || 40;
-            const rate = item.rate || item.creatorProfile?.pricing?.reel1 || 1500;
+            const cat = item.category || item.creatorProfile?.category || item.occupation || 'Creator';
+            const city = item.city || item.creatorProfile?.location?.city || item.creatorProfile?.city || 'India';
+            const rating = (item.rating_avg ?? item.rating ?? item.creatorProfile?.rating ?? 5.0).toFixed(1);
+            const reelsCount = item.totalReels ?? item.reelsCount ?? item.creatorProfile?.reelsCount ?? 0;
+            const rate = item.rate || item.pricing?.reel1 || item.creatorProfile?.pricing?.reel1 || 1000;
+            const bioText = item.bio || item.creatorProfile?.bio;
+            const isVerified = Boolean(item.isVerified || item.is_verified || item.kyc_status === 'approved');
 
             return (
               <View style={styles.creatorCard}>
@@ -332,7 +261,7 @@ export default function VendorHireCreatorScreen() {
                   <View style={styles.cardMainInfo}>
                     <View style={styles.nameRow}>
                       <Text style={styles.creatorName} numberOfLines={1}>{item.name}</Text>
-                      <Ionicons name="checkmark-circle" size={16} color={YELLOW} />
+                      {isVerified && <Ionicons name="checkmark-circle" size={16} color={YELLOW} />}
                     </View>
 
                     <Text style={styles.handleText}>@{item.handle || item.username || 'creator'}</Text>
@@ -350,9 +279,9 @@ export default function VendorHireCreatorScreen() {
                   </View>
                 </View>
 
-                {item.bio && (
+                {Boolean(bioText) && (
                   <Text style={styles.bioText} numberOfLines={2}>
-                    {item.bio || item.creatorProfile?.bio}
+                    {bioText}
                   </Text>
                 )}
 
@@ -379,7 +308,7 @@ export default function VendorHireCreatorScreen() {
               <Ionicons name="people-outline" size={56} color="rgba(255,255,255,0.2)" />
               <Text style={styles.emptyTitle}>No Creators Found</Text>
               <Text style={styles.emptySub}>
-                Try adjusting your search criteria or category filter to discover talented video creators.
+                No registered creators match your criteria. New creators will appear here automatically as soon as they sign up!
               </Text>
             </View>
           }
