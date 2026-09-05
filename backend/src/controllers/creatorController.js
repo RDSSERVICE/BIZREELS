@@ -6,6 +6,7 @@ const User = require('../models/User');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
+const { deleteCache } = require('../utils/cache');
 
 /**
  * CreatorController
@@ -235,20 +236,30 @@ class CreatorController {
 
   // ── Get & Update Availability ────────────────────────────
   getAvailability = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).select('creatorProfile availabilityStatus availability').lean();
+    const status = user?.creatorProfile?.availability || user?.creatorProfile?.availabilityStatus || user?.availabilityStatus || user?.availability || 'Available';
     return ApiResponse.ok(res, 'Creator availability loaded.', {
-      status: req.user.creatorProfile?.availability || 'Available'
+      status
     });
   });
 
   updateAvailability = asyncHandler(async (req, res) => {
     const { status } = req.body;
+    if (!status) throw ApiError.badRequest('Status is required');
     const user = await User.findById(req.user._id);
     if (!user) throw ApiError.notFound('User not found');
+
     user.creatorProfile = user.creatorProfile || {};
     user.creatorProfile.availability = status;
+    user.creatorProfile.availabilityStatus = status;
+    user.availabilityStatus = status;
+    user.availability = status;
     user.markModified('creatorProfile');
     await user.save();
-    return ApiResponse.ok(res, 'Creator availability updated.', { status: user.creatorProfile?.availability });
+
+    await deleteCache(`user:auth:${user._id}`).catch(() => {});
+
+    return ApiResponse.ok(res, 'Creator availability updated.', { status: user.creatorProfile.availability });
   });
 
   // ── Get Creator Orders / Projects ────────────────────────

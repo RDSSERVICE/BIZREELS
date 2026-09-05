@@ -44,6 +44,7 @@ const creatorApi = apiSlice.injectEndpoints({
     // ── Availability ────────────────────────────────────────
     getCreatorAvailability: builder.query({
       query: () => '/creator/availability',
+      transformResponse: (res) => res?.data || res,
       providesTags: ['CreatorAvailability'],
     }),
     updateCreatorAvailability: builder.mutation({

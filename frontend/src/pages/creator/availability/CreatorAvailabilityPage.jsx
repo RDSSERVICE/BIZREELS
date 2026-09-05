@@ -12,7 +12,8 @@ export default function CreatorAvailabilityPage() {
   const [status, setStatus] = useState('Available');
 
   useEffect(() => {
-    if (data?.status) setStatus(data.status);
+    const fetchedStatus = data?.status || data?.data?.status;
+    if (fetchedStatus) setStatus(fetchedStatus);
   }, [data]);
 
   const handleStatusChange = async (newStatus) => {
