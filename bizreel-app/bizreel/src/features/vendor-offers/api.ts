@@ -45,6 +45,16 @@ export async function createVendorOffer(payload: any): Promise<VendorOffer> {
   }
 }
 
+export async function updateVendorOffer({ id, ...payload }: { id: string; [key: string]: any }): Promise<VendorOffer> {
+  try {
+    const { data } = await api.put(`/vendors/me/offers/${id}`, payload);
+    return data.data || data;
+  } catch (err) {
+    const { data } = await api.put(`/vendor/offers/${id}`, payload);
+    return data.data || data;
+  }
+}
+
 export async function toggleVendorOfferStatus(id: string): Promise<boolean> {
   try {
     const { data } = await api.patch(`/vendors/me/offers/${id}/status`);

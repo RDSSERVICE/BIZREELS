@@ -35,6 +35,7 @@ import {
   useDeleteVendorOffer,
   useDuplicateVendorOffer,
   useToggleVendorOfferStatus,
+  useUpdateVendorOffer,
   useVendorOffers,
 } from '@/features/vendor-offers/queries';
 
@@ -69,9 +70,13 @@ export default function VendorOffersScreen() {
   const { data: listings = [] } = useVendorListings();
 
   const createOfferMutation = useCreateVendorOffer();
+  const updateOfferMutation = useUpdateVendorOffer();
   const toggleStatusMutation = useToggleVendorOfferStatus();
   const duplicateOfferMutation = useDuplicateVendorOffer();
   const deleteOfferMutation = useDeleteVendorOffer();
+
+  // Editing State
+  const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
 
   // Group Filter state: 'ALL' | 'Discounts' | 'Rewards & Loyalty' | 'Service & Package' | 'Marketing & Campaigns'
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
@@ -108,6 +113,7 @@ export default function VendorOffersScreen() {
   });
 
   const handleOpenCreateModal = () => {
+    setEditingOfferId(null);
     setCategory('discount');
     setOfferName(OFFER_CATEGORIES.discount.offerNames[0]);
     setTitle('');
@@ -123,6 +129,30 @@ export default function VendorOffersScreen() {
     setMinOrderVal('0');
     setMaxDiscountLimit('');
     setStep(1);
+    setModalVisible(true);
+  };
+
+  const handleOpenEditModal = (item: any) => {
+    const offerId = item._id || item.id;
+    setEditingOfferId(offerId);
+    const catKey = item.category || 'discount';
+    setCategory(catKey);
+    setOfferName(item.offerName || OFFER_CATEGORIES[catKey]?.offerNames[0] || '');
+    setTitle(item.title || '');
+    setDescription(item.description || '');
+    setCouponCode(item.code || item.couponCode || generateCouponCode());
+    setStartDate(item.startTime ? new Date(item.startTime).toISOString().slice(0, 10) : getNowDate());
+    setEndDate(item.endTime ? new Date(item.endTime).toISOString().slice(0, 10) : getNextWeekDate());
+    setSelectedProductIds(item.applicableProducts || item.applicableServices || []);
+
+    const cfg = item.config || {};
+    setDiscountType(item.discountType || cfg.discountType || 'percent');
+    setDiscountValue(String(item.discountValue || item.discountPct || cfg.discountValue || '15'));
+    setBuyQty(String(cfg.buyQuantity || '1'));
+    setGetQty(String(cfg.getQuantity || '1'));
+    setMinOrderVal(String(cfg.minOrderAmount || item.minOrderAmount || '0'));
+    setMaxDiscountLimit(String(cfg.maxDiscountLimit || item.maxDiscountLimit || ''));
+    setStep(2);
     setModalVisible(true);
   };
 
@@ -172,14 +202,29 @@ export default function VendorOffersScreen() {
       status: 'Active',
     };
 
-    createOfferMutation.mutate(payload, {
-      onSuccess: () => {
-        Alert.alert('🚀 Offer Created!', `Offer "${title}" has been activated successfully!`);
-        setModalVisible(false);
-      },
-      onError: (err: any) =>
-        Alert.alert('Creation Error', err?.response?.data?.message || err?.message || 'Failed to create offer.'),
-    });
+    if (editingOfferId) {
+      updateOfferMutation.mutate(
+        { id: editingOfferId, ...payload },
+        {
+          onSuccess: () => {
+            Alert.alert('🎉 Offer Updated!', `Offer "${title}" has been updated successfully!`);
+            setModalVisible(false);
+            setEditingOfferId(null);
+          },
+          onError: (err: any) =>
+            Alert.alert('Update Error', err?.response?.data?.message || err?.message || 'Failed to update offer.'),
+        }
+      );
+    } else {
+      createOfferMutation.mutate(payload, {
+        onSuccess: () => {
+          Alert.alert('🚀 Offer Created!', `Offer "${title}" has been activated successfully!`);
+          setModalVisible(false);
+        },
+        onError: (err: any) =>
+          Alert.alert('Creation Error', err?.response?.data?.message || err?.message || 'Failed to create offer.'),
+      });
+    }
   };
 
   const handleToggleStatus = (offerId: string) => {
@@ -305,6 +350,10 @@ export default function VendorOffersScreen() {
                       style={[styles.statusToggleBtn, isActive ? styles.statusActive : styles.statusDisabled]}
                       onPress={() => handleToggleStatus(item._id)}>
                       <Text style={styles.statusToggleText}>{isActive ? '● ACTIVE' : '○ DISABLED'}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={() => handleOpenEditModal(item)}>
+                      <Ionicons name="create-outline" size={18} color={YELLOW} />
                     </TouchableOpacity>
 
                     <TouchableOpacity onPress={() => handleDuplicateOffer(item._id, item.title)}>

@@ -5,6 +5,7 @@ import {
   duplicateVendorOffer,
   fetchVendorOffers,
   toggleVendorOfferStatus,
+  updateVendorOffer,
 } from './api';
 
 export function useVendorOffers() {
@@ -18,6 +19,16 @@ export function useCreateVendorOffer() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createVendorOffer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendor', 'offers'] });
+    },
+  });
+}
+
+export function useUpdateVendorOffer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateVendorOffer,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendor', 'offers'] });
     },

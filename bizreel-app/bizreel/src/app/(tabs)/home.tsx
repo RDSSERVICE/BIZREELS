@@ -54,6 +54,7 @@ export default function HomeScreen() {
 
   const [listings, setListings] = useState<any[]>([]);
   const [myReels, setMyReels] = useState<any[]>([]);
+  const [activeOffers, setActiveOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,11 +83,29 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchActiveOffers = async () => {
+    try {
+      const { data } = await api.get('/offers/active');
+      const items = data.data || data.items || data.offers || data || [];
+      const list = Array.isArray(items) ? items : [];
+      const now = new Date();
+      const validActive = list.filter((o: any) => {
+        if (o.endTime && new Date(o.endTime) < now) return false;
+        if (o.status === 'Disabled' || o.status === 'Expired') return false;
+        return true;
+      });
+      setActiveOffers(validActive);
+    } catch (err) {
+      setActiveOffers([]);
+    }
+  };
+
   const fetchHomeData = async () => {
     try {
       const { data } = await api.get('/listings', { params: { limit: 20 } });
       const items = data.data || data.items || data || [];
       setListings(Array.isArray(items) ? items : []);
+      fetchActiveOffers();
       if (isVendor) fetchMyReels();
     } catch (err) {
       console.warn('Failed to load listings', err);
@@ -525,6 +544,60 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
           )
+        )}
+
+        {/* 🔥 Active Deals & Special Offers Section (Customer & Vendor mode) */}
+        {!isCreator && activeOffers.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>🔥 Active Vendor Deals & Coupons ({activeOffers.length})</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+              {activeOffers.map((offer: any, idx: number) => {
+                const code = offer.code || offer.couponCode || 'PROMO';
+                const discount = offer.discountValue || offer.discountPct || 15;
+                const discType = offer.discountType || 'percent';
+                const discText = discType === 'fixed' ? `₹${discount} OFF` : `${discount}% OFF`;
+
+                return (
+                  <View
+                    key={offer._id ? `${offer._id}_${idx}` : `offer_${idx}`}
+                    style={{
+                      width: 220,
+                      backgroundColor: '#18181C',
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: '#F59E0B',
+                      padding: 12,
+                    }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <View style={{ backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ color: '#0F0F12', fontSize: 10, fontWeight: '900' }}>{discText}</Text>
+                      </View>
+                      <Ionicons name="pricetag" size={14} color="#F59E0B" />
+                    </View>
+                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }} numberOfLines={1}>
+                      {offer.title || offer.offerName || 'Special Offer'}
+                    </Text>
+                    {Boolean(offer.description) && (
+                      <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginVertical: 4 }} numberOfLines={2}>
+                        {offer.description}
+                      </Text>
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#2D2D36' }}>
+                      <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '900' }}>CODE: {code}</Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
+                        {offer.endTime ? new Date(offer.endTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Active'}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
         )}
 
         {/* Vendor Catalog / Trending Listings Grid (Customer & Vendor mode only) */}

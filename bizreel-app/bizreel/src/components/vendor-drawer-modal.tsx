@@ -104,6 +104,7 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
         { title: 'Dashboard', route: '/vendor/dashboard', icon: 'grid-outline' },
         { title: 'Notifications', route: '/notifications', icon: 'notifications-outline' },
         { title: 'My Listings', route: '/vendor/listings', icon: 'cube-outline' },
+        { title: 'Offers & Discounts', route: '/vendor/offers', icon: 'pricetags-outline' },
         { title: 'Reels & AI Ads', route: '/vendor/reels', icon: 'videocam-outline' },
         { title: 'Leads / Enquiries', route: '/inquiries', icon: 'mail-outline' },
         { title: 'Order Requests', route: '/vendor/orders', icon: 'cart-outline' },
