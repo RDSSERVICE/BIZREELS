@@ -48,90 +48,38 @@ export default function VendorSubscriptionScreen() {
         .get('/subscription/plans?role=vendor')
         .catch(() => api.get('/wallet/plans?role=vendor'));
       const items = res.data?.data?.items || res.data?.items || res.data?.data || res.data || [];
-      if (Array.isArray(items) && items.length > 0) {
-        setDbPlans(items);
+      if (Array.isArray(items)) {
+        setDbPlans(items.filter((p: any) => p.is_active && !p.is_archived));
       }
     } catch (err) {
-      console.warn('Fallback loading subscription plans:', err);
+      console.warn('Error loading subscription plans:', err);
     }
   };
 
-  const defaultPlans = [
-    {
-      id: 'free',
-      name: 'FREE PLAN',
-      badge: 'CURRENT ACTIVE PLAN',
-      price: '₹0',
-      period: 'Forever Free',
-      description: 'Standard product & service listings for local business setup.',
-      isCurrent: (user as any)?.subscription?.plan === 'free' || !(user as any)?.subscription?.plan,
-      features: [
-        'List up to 5 Products & Services',
-        'Standard Search Visibility',
-        'Direct WhatsApp Inquiry Link',
-        'Basic Store Analytics',
-      ],
-      buttonText: 'Current Active Plan',
-      isPopular: false,
-    },
-    {
-      id: 'pro',
-      name: 'PRO VENDOR PLAN',
-      badge: 'RECOMMENDED',
-      price: selectedCycle === 'monthly' ? '₹999' : '₹8,999',
-      period: selectedCycle === 'monthly' ? '/ month' : '/ year (Save 25%)',
-      description: 'Maximum sales velocity, unlimited store listings & 5x buyer leads.',
-      isCurrent: (user as any)?.subscription?.plan === 'pro',
-      features: [
-        'Unlimited Product & Service Listings',
-        '5x Higher Search Placement',
-        '50 Monthly Reel Boost Credits',
-        'Verified Gold Business Badge',
-        'Real-Time Customer Chat Inbox',
-        'Priority Phone Support',
-      ],
-      buttonText: 'UPGRADE TO PRO VENDOR',
-      isPopular: true,
-    },
-    {
-      id: 'enterprise',
-      name: 'ENTERPRISE GROWTH',
-      badge: 'VIP SCALE',
-      price: selectedCycle === 'monthly' ? '₹2,499' : '₹22,499',
-      period: selectedCycle === 'monthly' ? '/ month' : '/ year',
-      description: 'Dedicated account manager, custom AI ad copy, & featured homepage banners.',
-      isCurrent: (user as any)?.subscription?.plan === 'enterprise',
-      features: [
-        'Everything in Pro Plan',
-        'Featured Store Badge on Homepage',
-        'Dedicated Growth Manager',
-        'Unlimited AI Copy & Reel Creator',
-        '0% Commission on Direct Orders',
-      ],
-      buttonText: 'UPGRADE TO ENTERPRISE',
-      isPopular: false,
-    },
-  ];
+  const plans = dbPlans.map((p) => {
+    const rawPrice = selectedCycle === 'yearly' ? p.price_inr_year || p.price_inr * 10 : p.price_inr || p.price;
+    const isCurr =
+      (user as any)?.subscription?.plan === p.code ||
+      (user as any)?.subscription?.plan === p.id ||
+      (user as any)?.subscription?.plan?.toLowerCase() === (p.title || p.name || '').toLowerCase();
 
-  const plans =
-    dbPlans.length > 0
-      ? dbPlans.map((p) => {
-          const rawPrice = selectedCycle === 'yearly' ? p.price_inr_year || p.price_inr * 10 : p.price_inr || p.price;
-          const isCurr = (user as any)?.subscription?.plan === p.code || (user as any)?.subscription?.plan === p.id;
-          return {
-            id: p.id || p._id || p.code,
-            name: (p.name || p.code || 'PLAN').toUpperCase(),
-            badge: p.badge || (p.is_popular ? 'RECOMMENDED' : isCurr ? 'CURRENT ACTIVE PLAN' : ''),
-            price: `₹${(rawPrice || 0).toLocaleString('en-IN')}`,
-            period: selectedCycle === 'yearly' ? '/ year' : '/ month',
-            description: p.description || 'Full platform access with premium support.',
-            isCurrent: isCurr,
-            features: p.features || ['Unlimited Listings', 'Instant Customer Leads', 'Verified Badge'],
-            buttonText: isCurr ? 'Current Active Plan' : `UPGRADE TO ${p.name?.toUpperCase() || 'PRO'}`,
-            isPopular: !!p.is_popular,
-          };
-        })
-      : defaultPlans;
+    const rawFeatures = Array.isArray(p.features_list) && p.features_list.length > 0
+      ? p.features_list
+      : (typeof p.features === 'string' ? p.features.split(',').map((f: string) => f.trim()) : []);
+
+    return {
+      id: p.id || p._id || p.code,
+      name: (p.title || p.name || p.code || 'PLAN').toUpperCase(),
+      badge: p.badge || (p.is_popular ? 'RECOMMENDED' : isCurr ? 'CURRENT ACTIVE PLAN' : ''),
+      price: `₹${(rawPrice || 0).toLocaleString('en-IN')}`,
+      period: selectedCycle === 'yearly' ? '/ year' : '/ month',
+      description: p.description || 'Full platform access with premium support.',
+      isCurrent: isCurr,
+      features: rawFeatures.length > 0 ? rawFeatures : ['Unlimited Listings', 'Instant Customer Leads', 'Verified Badge'],
+      buttonText: isCurr ? 'Current Active Plan' : `UPGRADE TO ${(p.title || p.name || 'PRO').toUpperCase()}`,
+      isPopular: !!p.is_popular,
+    };
+  });
 
   const handleSubscribe = (plan: typeof plans[0]) => {
     if (plan.isCurrent) return;

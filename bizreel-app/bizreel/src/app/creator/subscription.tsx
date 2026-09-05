@@ -25,32 +25,25 @@ interface Plan {
 export default function CreatorSubscriptionScreen() {
   const [loading, setLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState<string>('free');
+  const [dbPlans, setDbPlans] = useState<any[]>([]);
   const [subscribing, setSubscribing] = useState(false);
-
-  const PLANS: Plan[] = [
-    {
-      id: 'creator_pro',
-      name: 'Creator Pro',
-      price: 999,
-      boostCredits: 5,
-      features: ['Verified Creator Badge', 'Priority Brand Shoot Invites', '5 Video Boost Credits', 'Direct Client Chat'],
-    },
-    {
-      id: 'creator_vip',
-      name: 'Creator VIP Suite',
-      price: 2499,
-      boostCredits: 20,
-      features: ['Featured Marketplace Placement', '20 Video Boost Credits', 'Dedicated Account Manager', '0% Commission Payouts'],
-    },
-  ];
 
   const fetchSubscription = async () => {
     try {
-      const res = await api.get('/subscription/my-subscription');
-      const data = res.data?.data || res.data || {};
-      setCurrentPlan(data.plan || 'free');
+      const [subRes, plansRes] = await Promise.all([
+        api.get('/subscription/my-subscription').catch(() => ({ data: null })),
+        api.get('/subscription/plans?role=creator').catch(() => ({ data: null })),
+      ]);
+
+      const subData = subRes.data?.data || subRes.data || {};
+      setCurrentPlan(subData.plan || 'free');
+
+      const planItems = plansRes.data?.data?.items || plansRes.data?.items || plansRes.data?.data || [];
+      if (Array.isArray(planItems)) {
+        setDbPlans(planItems.filter((p: any) => p.is_active && !p.is_archived));
+      }
     } catch (err) {
-      console.warn('Failed to load subscription:', err);
+      console.warn('Failed to load creator subscription:', err);
     } finally {
       setLoading(false);
     }
@@ -64,7 +57,7 @@ export default function CreatorSubscriptionScreen() {
     setSubscribing(true);
     try {
       await api.post('/subscription/upgrade', { planId, role: 'creator' });
-      Alert.alert('Subscribed!', `Successfully upgraded to ${planId.replace('_', ' ').toUpperCase()}`);
+      Alert.alert('Subscribed!', 'Successfully upgraded your subscription plan.');
       fetchSubscription();
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to upgrade plan');
@@ -101,33 +94,49 @@ export default function CreatorSubscriptionScreen() {
 
         <Text style={styles.sectionTitle}>UPGRADE CREATOR PLAN</Text>
 
-        {PLANS.map((plan) => {
-          const isCurrent = currentPlan === plan.id;
-          return (
-            <View key={plan.id} style={styles.planCard}>
-              <View style={styles.planHeader}>
-                <Text style={styles.planName}>{plan.name}</Text>
-                <Text style={styles.planPrice}>₹{plan.price}/mo</Text>
-              </View>
+        {dbPlans.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Ionicons name="card-outline" size={32} color={YELLOW} />
+            <Text style={styles.emptyText}>No creator subscription plans configured by Admin yet.</Text>
+          </View>
+        ) : (
+          dbPlans.map((plan) => {
+            const planId = plan._id || plan.id;
+            const planTitle = plan.title || plan.name || 'CREATOR PLAN';
+            const isCurrent = currentPlan.toLowerCase() === planTitle.toLowerCase() || currentPlan === planId;
+            const priceVal = plan.price_inr || plan.price || 0;
+            const rawFeatures = Array.isArray(plan.features_list) && plan.features_list.length > 0
+              ? plan.features_list
+              : (typeof plan.features === 'string' ? plan.features.split(',').map((f: string) => f.trim()) : []);
 
-              <View style={styles.featuresList}>
-                {plan.features.map((feat, idx) => (
-                  <View key={idx} style={styles.featureRow}>
-                    <Ionicons name="checkmark-circle" size={14} color={YELLOW} />
-                    <Text style={styles.featureText}>{feat}</Text>
-                  </View>
-                ))}
-              </View>
+            return (
+              <View key={planId} style={styles.planCard}>
+                <View style={styles.planHeader}>
+                  <Text style={styles.planName}>{planTitle}</Text>
+                  <Text style={styles.planPrice}>₹{priceVal.toLocaleString('en-IN')}/mo</Text>
+                </View>
 
-              <TouchableOpacity
-                style={[styles.upgradeBtn, isCurrent && styles.upgradeBtnActive]}
-                onPress={() => handleUpgrade(plan.id)}
-                disabled={isCurrent || subscribing}>
-                <Text style={styles.upgradeBtnText}>{isCurrent ? 'Current Active Plan' : `Upgrade to ${plan.name}`}</Text>
-              </TouchableOpacity>
-            </View>
-          );
-        })}
+                <View style={styles.featuresList}>
+                  {rawFeatures.map((feat: string, idx: number) => (
+                    <View key={idx} style={styles.featureRow}>
+                      <Ionicons name="checkmark-circle" size={14} color={YELLOW} />
+                      <Text style={styles.featureText}>{feat}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.upgradeBtn, isCurrent && styles.upgradeBtnActive]}
+                  onPress={() => handleUpgrade(planId)}
+                  disabled={isCurrent || subscribing}>
+                  <Text style={styles.upgradeBtnText}>
+                    {isCurrent ? 'Current Active Plan' : `Upgrade to ${planTitle}`}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })
+        )}
       </ScrollView>
     </View>
   );
@@ -171,4 +180,6 @@ const styles = StyleSheet.create({
   upgradeBtn: { backgroundColor: YELLOW, height: 44, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   upgradeBtnActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
   upgradeBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+  emptyCard: { backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.six, alignItems: 'center', justifyContent: 'center', gap: Spacing.two },
+  emptyText: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, fontWeight: '700', textAlign: 'center' },
 });

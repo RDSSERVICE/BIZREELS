@@ -21,6 +21,7 @@ import {
 import { HiSparkles } from 'react-icons/hi2';
 import SEO from '../../components/common/SEO';
 import { useLanguage } from '../../context/LanguageContext';
+import { useGetSubscriptionPlansQuery } from '../../features/vendor/vendorApi';
 
 export default function Pricing() {
   const navigate = useNavigate();
@@ -35,6 +36,56 @@ export default function Pricing() {
   };
 
   const isYearly = billingCycle === 'yearly';
+
+  // Fetch dynamic plans created by Admin from backend
+  const { data: dbVendorPlansData } = useGetSubscriptionPlansQuery({ role: 'vendor' });
+  const { data: dbCreatorPlansData } = useGetSubscriptionPlansQuery({ role: 'creator' });
+
+  const formatPlansFromDb = (items, role) => {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    const activeItems = items.filter((p) => p.is_active && !p.is_archived);
+    if (activeItems.length === 0) return null;
+
+    return activeItems.map((p) => {
+      const priceMonthly = p.price_inr || p.price || 0;
+      const priceYearly = p.price_inr_year || Math.round(priceMonthly * 10);
+      const displayPrice = isYearly ? Math.round(priceYearly / 12) : priceMonthly;
+
+      const rawFeatures = p.features_list?.length > 0
+        ? p.features_list
+        : (p.features ? p.features.split(',').map(f => f.trim()) : []);
+
+      const featuresList = rawFeatures.map((fStr) => ({
+        title: fStr,
+        included: true,
+      }));
+
+      if (p.product_limit !== undefined && p.product_limit !== null) {
+        featuresList.unshift({
+          title: `Product Listings: ${p.product_limit || 'Unlimited'}`,
+          included: true,
+        });
+      }
+
+      return {
+        id: p.id || p._id,
+        name: p.title || p.name,
+        badge: p.badge || (p.is_popular ? bi('MOST POPULAR', 'सर्वाधिक लोकप्रिय') : null),
+        desc: p.description || '',
+        priceMonthly,
+        priceYearly,
+        priceLabel: `₹${displayPrice.toLocaleString('en-IN')} / ${bi('month', 'महीना')}`,
+        billedNote: isYearly ? `Billed annually (₹${priceYearly.toLocaleString('en-IN')}/yr)` : 'Billed monthly',
+        popular: Boolean(p.is_popular || p.plan_type === 'popular'),
+        ctaText: role === 'vendor' ? bi('Get Started', 'शुरू करें') : bi('Join as Creator', 'क्रिएटर के रूप में जुड़ें'),
+        ctaLink: `/auth/register?role=${role}`,
+        features: featuresList,
+      };
+    });
+  };
+
+  const dynamicVendorPlans = formatPlansFromDb(dbVendorPlansData?.data?.items || dbVendorPlansData?.items, 'vendor');
+  const dynamicCreatorPlans = formatPlansFromDb(dbCreatorPlansData?.data?.items || dbCreatorPlansData?.items, 'creator');
 
   // Vendor Plans Data
   const vendorPlans = [
@@ -228,7 +279,9 @@ export default function Pricing() {
     },
   ];
 
-  const currentPlans = activeTab === 'vendor' ? vendorPlans : creatorPlans;
+  const currentPlans = activeTab === 'vendor'
+    ? (dynamicVendorPlans || vendorPlans)
+    : (dynamicCreatorPlans || creatorPlans);
 
   return (
     <div className="min-h-screen bg-[#f2ede4] font-sans text-[#1a1a1a] pb-20">
