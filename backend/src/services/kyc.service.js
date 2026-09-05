@@ -140,12 +140,21 @@ const kycReview = async (kid, adminId, approve, reason = null) => {
         if (docs[docType]) {
           docs[docType].status = newStatus;
           docs[docType].verifiedAt = new Date();
+          if (newStatus === 'rejected') {
+            docs[docType].failureReason = reason || 'Document rejected by compliance review';
+            docs[docType].rejectionReason = reason || 'Document rejected by compliance review';
+          } else {
+            docs[docType].failureReason = null;
+            docs[docType].rejectionReason = null;
+          }
         } else {
           docs[docType] = {
             docNumber: doc.doc_number || '',
             fileUrl: doc.doc_url || '',
             status: newStatus,
-            verifiedAt: new Date()
+            verifiedAt: new Date(),
+            failureReason: newStatus === 'rejected' ? (reason || 'Document rejected by compliance review') : null,
+            rejectionReason: newStatus === 'rejected' ? (reason || 'Document rejected by compliance review') : null
           };
         }
       } else {
@@ -156,6 +165,13 @@ const kycReview = async (kid, adminId, approve, reason = null) => {
         if (found) {
           found.status = newStatus;
           found.verifiedAt = new Date();
+          if (newStatus === 'rejected') {
+            found.failureReason = reason || 'Document rejected by compliance review';
+            found.rejectionReason = reason || 'Document rejected by compliance review';
+          } else {
+            found.failureReason = null;
+            found.rejectionReason = null;
+          }
         } else {
           docs.dynamicDocs.push({
             docName: docType,
@@ -163,7 +179,9 @@ const kycReview = async (kid, adminId, approve, reason = null) => {
             docNumber: doc.doc_number || '',
             fileUrl: doc.doc_url || '',
             status: newStatus,
-            verifiedAt: new Date()
+            verifiedAt: new Date(),
+            failureReason: newStatus === 'rejected' ? (reason || 'Document rejected by compliance review') : null,
+            rejectionReason: newStatus === 'rejected' ? (reason || 'Document rejected by compliance review') : null
           });
         }
       }

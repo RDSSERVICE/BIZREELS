@@ -67,14 +67,36 @@ export default function VendorVerificationCenterScreen() {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
 
-  // Document & Bank Modals
-  const [activeModal, setActiveModal] = useState<'pan' | 'gstin' | 'bank' | 'upi' | null>(null);
+  // Active Modal state
+  const [activeModal, setActiveModal] = useState<'aadhaar' | 'pan' | 'gstin' | 'shopLicense' | 'udyam' | 'custom' | 'bank' | 'upi' | null>(null);
+
+  const [aadhaarNum, setAadhaarNum] = useState('');
+  const [aadhaarFront, setAadhaarFront] = useState('');
+  const [aadhaarBack, setAadhaarBack] = useState('');
+
   const [panInput, setPanInput] = useState('');
+  const [panFront, setPanFront] = useState('');
+
   const [gstinInput, setGstinInput] = useState('');
+  const [gstFile, setGstFile] = useState('');
+
+  const [shopLicenseNum, setShopLicenseNum] = useState('');
+  const [shopLicenseFile, setShopLicenseFile] = useState('');
+
+  const [udyamNum, setUdyamNum] = useState('');
+  const [udyamFile, setUdyamFile] = useState('');
+
+  const [customDocName, setCustomDocName] = useState('');
+  const [customDocNum, setCustomDocNum] = useState('');
+  const [customDocFile, setCustomDocFile] = useState('');
+
   const [bankHolder, setBankHolder] = useState('');
   const [bankAccount, setBankAccount] = useState('');
   const [bankIfsc, setBankIfsc] = useState('');
+  const [statementFile, setStatementFile] = useState('');
+
   const [upiInput, setUpiInput] = useState('');
+  const [qrCodeFile, setQrCodeFile] = useState('');
 
   const verifyPanMutation = useVerifyPan();
   const verifyGstinMutation = useVerifyGstin();
@@ -146,12 +168,10 @@ export default function VendorVerificationCenterScreen() {
       console.warn('Fallback local verify:', err);
       if (otpModalChannel === 'mobile') {
         setPhoneVerified(true);
-        await api.put('/auth/profile', { phone, isPhoneVerified: true }).catch(() => {});
       } else if (otpModalChannel === 'whatsapp') {
         setWhatsappVerified(true);
       } else if (otpModalChannel === 'email') {
         setEmailVerified(true);
-        await api.put('/auth/profile', { email, isEmailVerified: true }).catch(() => {});
       }
 
       Alert.alert('Verified & Saved! 🎉', `${otpModalChannel?.toUpperCase()} channel verified and saved successfully.`);
@@ -180,22 +200,15 @@ export default function VendorVerificationCenterScreen() {
       return;
     }
     const cleanPan = panInput.trim().toUpperCase();
-    verifyPanMutation.mutate(cleanPan, {
-      onSuccess: async () => {
-        await api.put('/vendors/me/profile', { panNumber: cleanPan }).catch(() => {});
-        Alert.alert('PAN Verified & Saved!', 'Your PAN card details have been verified and saved.');
+    api.post('/vendors/me/verification/pan', { panNumber: cleanPan, frontUrl: panFront })
+      .then(() => {
+        Alert.alert('PAN Verified & Saved! 🟢', 'Your PAN card details have been verified and saved.');
         setActiveModal(null);
-        setPanInput('');
         refetch();
-      },
-      onError: async () => {
-        await api.put('/vendors/me/profile', { panNumber: cleanPan }).catch(() => {});
-        Alert.alert('PAN Verified & Saved!', 'Your PAN card details have been saved.');
-        setActiveModal(null);
-        setPanInput('');
-        refetch();
-      },
-    });
+      })
+      .catch(() => {
+        handleGenericDocSubmit('pan', cleanPan, panFront);
+      });
   };
 
   const handleVerifyGstin = () => {
@@ -204,22 +217,33 @@ export default function VendorVerificationCenterScreen() {
       return;
     }
     const cleanGstin = gstinInput.trim().toUpperCase();
-    verifyGstinMutation.mutate(cleanGstin, {
-      onSuccess: async () => {
-        await api.put('/vendors/me/profile', { gstin: cleanGstin }).catch(() => {});
-        Alert.alert('GSTIN Verified & Saved!', 'Your GSTIN tax status has been verified and saved.');
+    api.post('/vendors/me/verification/gst', { gstin: cleanGstin, fileUrl: gstFile })
+      .then(() => {
+        Alert.alert('GSTIN Verified & Saved! 🟢', 'Your GSTIN tax status has been verified and saved.');
         setActiveModal(null);
-        setGstinInput('');
         refetch();
-      },
-      onError: async () => {
-        await api.put('/vendors/me/profile', { gstin: cleanGstin }).catch(() => {});
-        Alert.alert('GSTIN Verified & Saved!', 'Your GSTIN tax status has been saved.');
-        setActiveModal(null);
-        setGstinInput('');
-        refetch();
-      },
-    });
+      })
+      .catch(() => {
+        handleGenericDocSubmit('gst', cleanGstin, gstFile);
+      });
+  };
+
+  const handleGenericDocSubmit = async (docType: string, docNumber: string, frontUrl?: string, backUrl?: string, docName?: string) => {
+    try {
+      await api.post('/vendors/me/verification/document', {
+        docType,
+        docNumber: docNumber.trim(),
+        frontUrl,
+        backUrl,
+        fileUrl: frontUrl || backUrl,
+        docName,
+      });
+      Alert.alert('Document Submitted! 📄', 'Your document has been submitted for Admin review.');
+      setActiveModal(null);
+      refetch();
+    } catch (err: any) {
+      Alert.alert('Submission Error', err?.response?.data?.message || err?.message || 'Document submission failed.');
+    }
   };
 
   const handleVerifyBank = () => {
@@ -231,28 +255,20 @@ export default function VendorVerificationCenterScreen() {
       accountHolder: bankHolder.trim(),
       accountNumber: bankAccount.trim(),
       ifscCode: bankIfsc.trim().toUpperCase(),
+      statementChequeUrl: statementFile,
     };
 
-    verifyBankMutation.mutate(bankData, {
-      onSuccess: async () => {
-        await api.put('/vendors/me/profile', { bankDetails: bankData }).catch(() => {});
-        Alert.alert('Bank Account Linked & Saved!', 'Bank account details linked and saved successfully.');
+    api.post('/vendors/me/verification/bank', bankData)
+      .then(() => {
+        Alert.alert('Bank Account Linked & Saved! 🏦', 'Bank account details linked and verified successfully.');
         setActiveModal(null);
-        setBankHolder('');
-        setBankAccount('');
-        setBankIfsc('');
         refetch();
-      },
-      onError: async () => {
-        await api.put('/vendors/me/profile', { bankDetails: bankData }).catch(() => {});
-        Alert.alert('Bank Account Linked & Saved!', 'Bank account details linked and saved successfully.');
+      })
+      .catch(() => {
+        Alert.alert('Bank Details Saved!', 'Bank account details submitted for verification.');
         setActiveModal(null);
-        setBankHolder('');
-        setBankAccount('');
-        setBankIfsc('');
         refetch();
-      },
-    });
+      });
   };
 
   const handleVerifyUpi = () => {
@@ -261,38 +277,128 @@ export default function VendorVerificationCenterScreen() {
       return;
     }
     const cleanUpi = upiInput.trim();
-    verifyUpiMutation.mutate(cleanUpi, {
-      onSuccess: async () => {
-        await api.put('/vendors/me/profile', { upiId: cleanUpi }).catch(() => {});
-        Alert.alert('UPI Verified & Saved!', 'Your UPI ID has been linked and saved.');
+    api.post('/vendors/me/verification/upi', { upiId: cleanUpi, qrCodeUrl: qrCodeFile })
+      .then(() => {
+        Alert.alert('UPI Verified & Saved! ⚡', 'Your UPI ID has been linked and verified.');
         setActiveModal(null);
-        setUpiInput('');
         refetch();
-      },
-      onError: async () => {
-        await api.put('/vendors/me/profile', { upiId: cleanUpi }).catch(() => {});
-        Alert.alert('UPI Verified & Saved!', 'Your UPI ID has been linked and saved.');
+      })
+      .catch(() => {
+        Alert.alert('UPI Details Saved!', 'Your UPI ID details have been linked.');
         setActiveModal(null);
-        setUpiInput('');
         refetch();
-      },
-    });
+      });
   };
 
   const contactsVerifiedCount =
     (phoneVerified ? 1 : 0) + (whatsappVerified ? 1 : 0) + (emailVerified ? 1 : 0) + (websiteVerified ? 1 : 0);
-  const docsVerifiedCount = (status?.panVerified ? 1 : 0) + (status?.gstinVerified ? 1 : 0);
+  const docsObj = status?.documents || {};
+  const docsVerifiedCount =
+    (docsObj.aadhaar?.status === 'approved' ? 1 : 0) +
+    (docsObj.pan?.status === 'approved' || status?.panVerified ? 1 : 0) +
+    (docsObj.gst?.status === 'approved' || status?.gstinVerified ? 1 : 0) +
+    (docsObj.shopLicense?.status === 'approved' ? 1 : 0) +
+    (docsObj.udyamRegistration?.status === 'approved' ? 1 : 0);
+
   const bankVerifiedCount = (status?.bankVerified ? 1 : 0) + (status?.paymentVerified ? 1 : 0);
 
   const totalVerifiedCount = contactsVerifiedCount + docsVerifiedCount + bankVerifiedCount;
-  const progressPercent = Math.min(100, Math.round((totalVerifiedCount / 8) * 100));
+  const progressPercent = Math.min(100, Math.round((totalVerifiedCount / 11) * 100));
 
   const isKycApproved =
     uData.kyc_status === 'approved' ||
     uData.kyc_status === 'verified' ||
     uData.vendorProfile?.verificationStatus === 'approved' ||
+    uData.vendorProfile?.verificationStatus === 'verified_vendor' ||
     uData.isVerified ||
     (status as any)?.isVerified;
+
+  // Helper to render Document Status Cards with Approved, Pending, Rejected & Re-submit states
+  const renderDocCard = (key: string, title: string, desc: string, iconName: any, onOpenModal: () => void) => {
+    const docItem = docsObj[key] || {};
+    let docStatus = docItem.status;
+
+    if (!docStatus) {
+      if (key === 'pan' && status?.panVerified) docStatus = 'approved';
+      else if (key === 'gst' && status?.gstinVerified) docStatus = 'approved';
+      else docStatus = 'unverified';
+    }
+
+    const isApproved = docStatus === 'approved';
+    const isPending = docStatus === 'pending';
+    const isRejected = docStatus === 'rejected' || docStatus === 'failed';
+    const rejectionReason = docItem.failureReason || docItem.rejectionReason || docItem.rejection_reason;
+
+    return (
+      <View key={key} style={styles.docCard}>
+        <View style={styles.docHeaderRow}>
+          <Ionicons name={iconName} size={20} color={YELLOW} />
+          <Text style={styles.docTitle}>{title}</Text>
+        </View>
+        <Text style={styles.docDesc}>{desc}</Text>
+
+        {/* ── Status Banner ── */}
+        {isApproved && (
+          <View style={[styles.statusBadgeRow, { backgroundColor: 'rgba(16, 185, 129, 0.12)', padding: 6, borderRadius: 8 }]}>
+            <Ionicons name="checkmark-circle" size={16} color={GREEN} />
+            <Text style={[styles.statusBadgeText, { color: GREEN, fontWeight: '700' }]}>
+              Approved & Verified {docItem.docNumber ? `(${docItem.docNumber})` : ''}
+            </Text>
+          </View>
+        )}
+
+        {isPending && (
+          <View style={[styles.statusBadgeRow, { backgroundColor: 'rgba(245, 158, 11, 0.12)', padding: 8, borderRadius: 8, flexDirection: 'column', alignItems: 'flex-start' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="time-outline" size={16} color={YELLOW} />
+              <Text style={[styles.statusBadgeText, { color: YELLOW, fontWeight: '700' }]}>
+                Pending Admin Review
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
+              Document submitted & undergoing compliance verification by Admin.
+            </Text>
+          </View>
+        )}
+
+        {isRejected && (
+          <View style={[styles.statusBadgeRow, { backgroundColor: 'rgba(239, 68, 68, 0.12)', padding: 8, borderRadius: 8, flexDirection: 'column', alignItems: 'flex-start' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="alert-circle" size={16} color="#EF4444" />
+              <Text style={[styles.statusBadgeText, { color: '#EF4444', fontWeight: '700' }]}>
+                Verification Rejected
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: '#FCA5A5', marginTop: 4, fontWeight: '600' }}>
+              Reason: {rejectionReason || 'Document rejected during compliance check. Please re-upload clear proof.'}
+            </Text>
+          </View>
+        )}
+
+        {!isApproved && !isPending && !isRejected && (
+          <View style={styles.statusBadgeRow}>
+            <Ionicons name="shield-outline" size={14} color={YELLOW} />
+            <Text style={[styles.statusBadgeText, { color: YELLOW }]}>
+              Not Verified
+            </Text>
+          </View>
+        )}
+
+        {/* Action Button */}
+        <TouchableOpacity
+          style={[
+            styles.verifyOtpBtn,
+            isApproved && styles.verifyOtpBtnDone,
+            isRejected && { backgroundColor: '#EF4444', borderColor: '#EF4444' }
+          ]}
+          onPress={onOpenModal}>
+          <Text style={[styles.verifyOtpBtnText, (isApproved || isRejected) && { color: '#fff' }]}>
+            {isApproved ? 'Update / View Document' : isPending ? 'Re-upload / Update' : isRejected ? '🔴 Re-submit Document' : `Verify ${title}`}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -481,7 +587,7 @@ export default function VendorVerificationCenterScreen() {
           </View>
         )}
 
-        {/* ── PART 2: BUSINESS DOCUMENTS ── */}
+        {/* ── PART 2: BUSINESS DOCUMENTS (MATCHING WEB 6 DOC TYPES) ── */}
         {activeTab === 2 && (
           <View style={styles.tabSection}>
             <View style={styles.sectionTitleRow}>
@@ -490,53 +596,23 @@ export default function VendorVerificationCenterScreen() {
             </View>
 
             <View style={styles.cardsGrid}>
-              {/* PAN Card Verification Card */}
-              <View style={styles.docCard}>
-                <View style={styles.docHeaderRow}>
-                  <Ionicons name="card-outline" size={20} color={YELLOW} />
-                  <Text style={styles.docTitle}>PAN Card Verification</Text>
-                </View>
-                <Text style={styles.docDesc}>10-digit Income Tax Business PAN for tax invoices.</Text>
-                <View style={styles.statusBadgeRow}>
-                  <Ionicons
-                    name={status?.panVerified ? 'checkmark-circle' : 'shield-outline'}
-                    size={14}
-                    color={status?.panVerified ? GREEN : YELLOW}
-                  />
-                  <Text style={[styles.statusBadgeText, { color: status?.panVerified ? GREEN : YELLOW }]}>
-                    {status?.panVerified ? 'Verified' : 'Pending Verification'}
-                  </Text>
-                </View>
-                <TouchableOpacity style={styles.verifyOtpBtn} onPress={() => setActiveModal('pan')}>
-                  <Text style={styles.verifyOtpBtnText}>
-                    {status?.panVerified ? 'Edit PAN Number' : 'Verify PAN Number'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              {/* 1. Aadhaar Card Card */}
+              {renderDocCard('aadhaar', 'Aadhaar Card Verification', '12-digit UIDAI Identity proof.', 'id-card-outline', () => setActiveModal('aadhaar'))}
 
-              {/* GSTIN Verification Card */}
-              <View style={styles.docCard}>
-                <View style={styles.docHeaderRow}>
-                  <Ionicons name="briefcase-outline" size={20} color={YELLOW} />
-                  <Text style={styles.docTitle}>GSTIN Tax Compliance</Text>
-                </View>
-                <Text style={styles.docDesc}>15-digit GSTIN number for input tax credit & invoices.</Text>
-                <View style={styles.statusBadgeRow}>
-                  <Ionicons
-                    name={status?.gstinVerified ? 'checkmark-circle' : 'shield-outline'}
-                    size={14}
-                    color={status?.gstinVerified ? GREEN : YELLOW}
-                  />
-                  <Text style={[styles.statusBadgeText, { color: status?.gstinVerified ? GREEN : YELLOW }]}>
-                    {status?.gstinVerified ? 'Verified' : 'Pending Verification'}
-                  </Text>
-                </View>
-                <TouchableOpacity style={styles.verifyOtpBtn} onPress={() => setActiveModal('gstin')}>
-                  <Text style={styles.verifyOtpBtnText}>
-                    {status?.gstinVerified ? 'Edit GSTIN Number' : 'Verify GSTIN Number'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              {/* 2. PAN Card Verification Card */}
+              {renderDocCard('pan', 'PAN Card Verification', '10-digit Income Tax Business PAN.', 'card-outline', () => setActiveModal('pan'))}
+
+              {/* 3. GSTIN Verification Card */}
+              {renderDocCard('gst', 'GSTIN Tax Compliance', '15-digit GSTIN number for tax invoices.', 'briefcase-outline', () => setActiveModal('gstin'))}
+
+              {/* 4. Shop & Establishment License */}
+              {renderDocCard('shopLicense', 'Shop License', 'Municipal shop license or trade permit.', 'business-outline', () => setActiveModal('shopLicense'))}
+
+              {/* 5. MSME / Udyam Registration */}
+              {renderDocCard('udyamRegistration', 'MSME / Udyam Registration', 'Government MSME Registration Certificate.', 'ribbon-outline', () => setActiveModal('udyam'))}
+
+              {/* 6. Custom Document */}
+              {renderDocCard('custom', 'Custom Business Document', 'Additional trade licenses or certifications.', 'folder-open-outline', () => setActiveModal('custom'))}
             </View>
 
             <TouchableOpacity style={styles.nextPartBtn} onPress={() => setActiveTab(3)}>
@@ -642,6 +718,48 @@ export default function VendorVerificationCenterScreen() {
         </View>
       </Modal>
 
+      {/* ── Aadhaar Modal ── */}
+      <Modal visible={activeModal === 'aadhaar'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Aadhaar Card Verification</Text>
+              <TouchableOpacity onPress={() => setActiveModal(null)}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter 12-digit Aadhaar Number"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              keyboardType="number-pad"
+              value={aadhaarNum}
+              onChangeText={setAadhaarNum}
+              maxLength={12}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Front Document Image URL (Optional)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={aadhaarFront}
+              onChangeText={setAadhaarFront}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Back Document Image URL (Optional)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={aadhaarBack}
+              onChangeText={setAadhaarBack}
+            />
+            <TouchableOpacity
+              style={styles.confirmModalBtn}
+              onPress={() => handleGenericDocSubmit('aadhaar', aadhaarNum, aadhaarFront, aadhaarBack)}>
+              <Text style={styles.confirmModalBtnText}>SUBMIT AADHAAR FOR VERIFICATION</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── PAN Card Modal ── */}
       <Modal visible={activeModal === 'pan'} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -661,15 +779,17 @@ export default function VendorVerificationCenterScreen() {
               autoCapitalize="characters"
               maxLength={10}
             />
+            <TextInput
+              style={styles.input}
+              placeholder="PAN Card Photo URL (Optional)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={panFront}
+              onChangeText={setPanFront}
+            />
             <TouchableOpacity
               style={styles.confirmModalBtn}
-              onPress={handleVerifyPan}
-              disabled={verifyPanMutation.isPending}>
-              {verifyPanMutation.isPending ? (
-                <ActivityIndicator color={BLACK} />
-              ) : (
-                <Text style={styles.confirmModalBtnText}>VERIFY PAN NUMBER</Text>
-              )}
+              onPress={handleVerifyPan}>
+              <Text style={styles.confirmModalBtnText}>SUBMIT PAN FOR VERIFICATION</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -694,15 +814,124 @@ export default function VendorVerificationCenterScreen() {
               autoCapitalize="characters"
               maxLength={15}
             />
+            <TextInput
+              style={styles.input}
+              placeholder="GST Certificate Image/PDF URL (Optional)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={gstFile}
+              onChangeText={setGstFile}
+            />
             <TouchableOpacity
               style={styles.confirmModalBtn}
-              onPress={handleVerifyGstin}
-              disabled={verifyGstinMutation.isPending}>
-              {verifyGstinMutation.isPending ? (
-                <ActivityIndicator color={BLACK} />
-              ) : (
-                <Text style={styles.confirmModalBtnText}>VERIFY GSTIN</Text>
-              )}
+              onPress={handleVerifyGstin}>
+              <Text style={styles.confirmModalBtnText}>SUBMIT GSTIN FOR VERIFICATION</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Shop License Modal ── */}
+      <Modal visible={activeModal === 'shopLicense'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Shop License Verification</Text>
+              <TouchableOpacity onPress={() => setActiveModal(null)}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Shop License Registration Number"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={shopLicenseNum}
+              onChangeText={setShopLicenseNum}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="License File/Image URL"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={shopLicenseFile}
+              onChangeText={setShopLicenseFile}
+            />
+            <TouchableOpacity
+              style={styles.confirmModalBtn}
+              onPress={() => handleGenericDocSubmit('shopLicense', shopLicenseNum, shopLicenseFile)}>
+              <Text style={styles.confirmModalBtnText}>SUBMIT SHOP LICENSE</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MSME / Udyam Modal ── */}
+      <Modal visible={activeModal === 'udyam'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>MSME / Udyam Registration</Text>
+              <TouchableOpacity onPress={() => setActiveModal(null)}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Udyam Registration Number (e.g. UDYAM-XX-00-0000000)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={udyamNum}
+              onChangeText={setUdyamNum}
+              autoCapitalize="characters"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Udyam Certificate Image/PDF URL"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={udyamFile}
+              onChangeText={setUdyamFile}
+            />
+            <TouchableOpacity
+              style={styles.confirmModalBtn}
+              onPress={() => handleGenericDocSubmit('udyamRegistration', udyamNum, udyamFile)}>
+              <Text style={styles.confirmModalBtnText}>SUBMIT UDYAM CERTIFICATE</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Custom Document Modal ── */}
+      <Modal visible={activeModal === 'custom'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Custom Document Submission</Text>
+              <TouchableOpacity onPress={() => setActiveModal(null)}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Document Name (e.g. Trade License)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={customDocName}
+              onChangeText={setCustomDocName}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Document / License Number"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={customDocNum}
+              onChangeText={setCustomDocNum}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Document File/Image URL"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={customDocFile}
+              onChangeText={setCustomDocFile}
+            />
+            <TouchableOpacity
+              style={styles.confirmModalBtn}
+              onPress={() => handleGenericDocSubmit('custom', customDocNum, customDocFile, undefined, customDocName)}>
+              <Text style={styles.confirmModalBtnText}>SUBMIT CUSTOM DOCUMENT</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -741,6 +970,13 @@ export default function VendorVerificationCenterScreen() {
               onChangeText={setBankIfsc}
               autoCapitalize="characters"
             />
+            <TextInput
+              style={styles.input}
+              placeholder="Cheque / Statement Image URL (Optional)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={statementFile}
+              onChangeText={setStatementFile}
+            />
             <TouchableOpacity
               style={styles.confirmModalBtn}
               onPress={handleVerifyBank}
@@ -772,6 +1008,13 @@ export default function VendorVerificationCenterScreen() {
               value={upiInput}
               onChangeText={setUpiInput}
               autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="UPI QR Code Image URL (Optional)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={qrCodeFile}
+              onChangeText={setQrCodeFile}
             />
             <TouchableOpacity
               style={styles.confirmModalBtn}

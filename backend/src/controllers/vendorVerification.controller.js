@@ -24,6 +24,36 @@ const getVerificationStatus = catchAsync(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
 
+  // Query KycDocument collection to synchronize live Admin review decisions & rejection reasons
+  try {
+    const kycDocs = await KycDocument.find({ user_id: req.user._id.toString(), is_deleted: { $ne: true } }).lean();
+    if (kycDocs && kycDocs.length > 0 && user.vendorProfile) {
+      const docs = user.vendorProfile.documents || {};
+      let modified = false;
+      for (const kdoc of kycDocs) {
+        const dt = kdoc.doc_type;
+        if (['aadhaar', 'pan', 'gst', 'shopLicense', 'udyamRegistration'].includes(dt)) {
+          if (!docs[dt]) docs[dt] = {};
+          if (kdoc.status) docs[dt].status = kdoc.status;
+          if (kdoc.rejection_reason) {
+            docs[dt].failureReason = kdoc.rejection_reason;
+            docs[dt].rejectionReason = kdoc.rejection_reason;
+          }
+          if (kdoc.doc_url) docs[dt].fileUrl = kdoc.doc_url;
+          if (kdoc.doc_number && !docs[dt].docNumber) docs[dt].docNumber = kdoc.doc_number;
+          modified = true;
+        }
+      }
+      if (modified) {
+        user.vendorProfile.documents = docs;
+        user.markModified('vendorProfile');
+        await user.save();
+      }
+    }
+  } catch (err) {
+    console.error('Error syncing KycDocument in getVerificationStatus:', err.message);
+  }
+
   const statusInfo = await fetchAndComputeStatus(user);
   res.json({ success: true, ...statusInfo });
 });
