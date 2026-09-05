@@ -35,6 +35,17 @@ export async function createVendorListing(payload: {
   return data.data || data;
 }
 
+export async function updateVendorListing({
+  id,
+  ...payload
+}: {
+  id: string;
+  [key: string]: any;
+}): Promise<Listing> {
+  const { data } = await api.patch(`/listings/${id}`, payload);
+  return data.data || data;
+}
+
 export async function deleteVendorListing(id: string): Promise<boolean> {
   const { data } = await api.delete(`/listings/${id}`);
   return data.success || true;

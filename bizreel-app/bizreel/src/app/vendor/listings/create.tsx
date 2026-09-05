@@ -7,7 +7,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -22,7 +22,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
-import { useCreateVendorListing } from '@/features/vendor-listings/queries';
+import { useCreateVendorListing, useUpdateVendorListing } from '@/features/vendor-listings/queries';
 import { api } from '@/lib/api';
 
 const YELLOW = '#F59E0B';
@@ -33,8 +33,11 @@ const BORDER = '#2D2D36';
 export default function CreateListingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const isEdit = Boolean(editId);
 
   const [type, setType] = useState<'product' | 'service'>('product');
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   // Category & Subcategory
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
@@ -65,6 +68,45 @@ export default function CreateListingScreen() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const createMutation = useCreateVendorListing();
+  const updateMutation = useUpdateVendorListing();
+
+  useEffect(() => {
+    if (editId) {
+      setLoadingEdit(true);
+      api.get(`/listings/${editId}`)
+        .then((res) => {
+          const item = res.data?.data || res.data?.item || res.data;
+          if (item) {
+            if (item.type) setType(item.type);
+            if (item.category) setCategory(item.category);
+            if (item.subcategory) setSubcategory(item.subcategory);
+            if (item.title) setTitle(item.title);
+            if (item.brand || item.productDetails?.brand) setBrand(item.brand || item.productDetails?.brand);
+            if (item.sku || item.productDetails?.sku) setSku(item.sku || item.productDetails?.sku);
+            if (item.shortDescription) setShortDescription(item.shortDescription);
+            if (item.description) setDescription(item.description);
+            if (item.actualPrice) setActualPrice(String(item.actualPrice));
+            if (item.sellingPrice || item.price) setSellingPrice(String(item.sellingPrice || item.price));
+            if (item.stock !== undefined) setStock(String(item.stock));
+            if (item.minOrderQty || item.productDetails?.minOrderQty)
+              setMinOrderQty(String(item.minOrderQty || item.productDetails?.minOrderQty));
+            if (item.unit || item.productDetails?.unit) setUnit(item.unit || item.productDetails?.unit);
+            if (item.warranty || item.productDetails?.warranty)
+              setWarranty(item.warranty || item.productDetails?.warranty);
+            if (item.returnPolicy || item.productDetails?.returnPolicy)
+              setReturnPolicy(item.returnPolicy || item.productDetails?.returnPolicy);
+            if (item.gst) setGst(item.gst);
+            const img = item.image || item.images?.[0] || '';
+            if (img) setImageUrl(img);
+            if (item.video) setVideoUrl(item.video);
+          }
+        })
+        .catch(() => {
+          Alert.alert('Error', 'Failed to load existing listing details.');
+        })
+        .finally(() => setLoadingEdit(false));
+    }
+  }, [editId]);
 
   useEffect(() => {
     api.get('/categories')
@@ -179,40 +221,53 @@ export default function CreateListingScreen() {
       return;
     }
 
-    createMutation.mutate(
-      {
-        type,
-        title: title.trim(),
-        brand: brand.trim() || undefined,
-        sku: sku.trim() || undefined,
-        category: category.trim(),
-        subcategory: subcategory.trim(),
-        shortDescription: shortDescription.trim() || undefined,
-        description: description.trim() || undefined,
-        price: basePrice,
-        salePrice: selling,
-        actualPrice: actual > 0 ? actual : basePrice,
-        discount: discountPercent,
-        stock: type === 'product' ? parseInt(stock || '10', 10) : undefined,
-        minOrderQty: parseInt(minOrderQty || '1', 10),
-        unit,
-        warranty: warranty.trim() || undefined,
-        returnPolicy: returnPolicy.trim() || undefined,
-        gst: gst.trim() || undefined,
-        image: imageUrl.trim() || undefined,
-        images: imageUrl.trim() ? [imageUrl.trim()] : [],
-        video: videoUrl.trim() || undefined,
-        status: 'published',
-      },
-      {
+    const payload = {
+      type,
+      title: title.trim(),
+      brand: brand.trim() || undefined,
+      sku: sku.trim() || undefined,
+      category: category.trim(),
+      subcategory: subcategory.trim(),
+      shortDescription: shortDescription.trim() || undefined,
+      description: description.trim() || undefined,
+      price: basePrice,
+      salePrice: selling,
+      actualPrice: actual > 0 ? actual : basePrice,
+      discount: discountPercent,
+      stock: type === 'product' ? parseInt(stock || '10', 10) : undefined,
+      minOrderQty: parseInt(minOrderQty || '1', 10),
+      unit,
+      warranty: warranty.trim() || undefined,
+      returnPolicy: returnPolicy.trim() || undefined,
+      gst: gst.trim() || undefined,
+      image: imageUrl.trim() || undefined,
+      images: imageUrl.trim() ? [imageUrl.trim()] : [],
+      video: videoUrl.trim() || undefined,
+      status: 'published',
+    };
+
+    if (isEdit && editId) {
+      updateMutation.mutate(
+        { id: editId, ...payload },
+        {
+          onSuccess: () => {
+            Alert.alert('🎉 Listing Updated!', `"${title}" details updated and saved successfully!`);
+            router.back();
+          },
+          onError: (err: any) =>
+            Alert.alert('Update Failed', err?.response?.data?.message || err?.message || 'Failed to update listing'),
+        }
+      );
+    } else {
+      createMutation.mutate(payload, {
         onSuccess: () => {
           Alert.alert('🎉 Listing Created!', `"${title}" has been published to your store catalog!`);
           router.back();
         },
         onError: (err: any) =>
           Alert.alert('Creation Failed', err?.response?.data?.message || err?.message || 'Failed to create listing'),
-      }
-    );
+      });
+    }
   }
 
   return (
@@ -222,7 +277,9 @@ export default function CreateListingScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Add Product / Service Listing</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {isEdit ? 'Edit Product / Service Listing' : 'Add Product / Service Listing'}
+        </Text>
         <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
           <Ionicons name="close" size={20} color="#fff" />
         </TouchableOpacity>
@@ -516,11 +573,13 @@ export default function CreateListingScreen() {
         <TouchableOpacity
           style={styles.submitBtn}
           onPress={handleSubmit}
-          disabled={createMutation.isPending}>
-          {createMutation.isPending ? (
+          disabled={createMutation.isPending || updateMutation.isPending || loadingEdit}>
+          {createMutation.isPending || updateMutation.isPending || loadingEdit ? (
             <ActivityIndicator color={BLACK} />
           ) : (
-            <Text style={styles.submitBtnText}>🚀 PUBLISH LISTING TO STORE</Text>
+            <Text style={styles.submitBtnText}>
+              {isEdit ? '💾 SAVE LISTING CHANGES' : '🚀 PUBLISH LISTING TO STORE'}
+            </Text>
           )}
         </TouchableOpacity>
 

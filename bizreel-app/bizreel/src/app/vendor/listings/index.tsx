@@ -390,6 +390,17 @@ export default function VendorCatalogScreen() {
 
                     <TouchableOpacity
                       style={styles.actionIconBtn}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/vendor/listings/create' as any,
+                          params: { editId: item._id || (item as any).id },
+                        } as any)
+                      }>
+                      <Ionicons name="create-outline" size={15} color={YELLOW} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.actionIconBtn}
                       onPress={() => handleDuplicate(item)}>
                       <Ionicons name="copy-outline" size={15} color="#3B82F6" />
                     </TouchableOpacity>
