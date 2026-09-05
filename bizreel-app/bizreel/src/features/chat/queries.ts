@@ -4,10 +4,10 @@ import { fetchConversations, fetchMessages, sendMessage } from './api';
 
 export const CHAT_QUERY_KEY = ['chat', 'conversations'] as const;
 
-export function useConversations() {
+export function useConversations(role?: string) {
   return useQuery({
-    queryKey: CHAT_QUERY_KEY,
-    queryFn: fetchConversations,
+    queryKey: ['chat', 'conversations', role],
+    queryFn: () => fetchConversations(role),
     refetchInterval: 5000, // 5s auto polling for live messages
   });
 }

@@ -7,9 +7,10 @@ const asyncHandler = require('../utils/asyncHandler');
  * Manages request endpoints for conversations, messaging history, and direct messages.
  */
 class ChatController {
-  // ── Get User Conversations ──────────────────────────────
+  // ── Get User Conversations (Role Scoped) ────────────────
   getConversations = asyncHandler(async (req, res) => {
-    const list = await chatService.getConversations(req.user._id);
+    const roleFilter = req.query.role || req.headers['x-active-role'] || req.user?.activeRole || null;
+    const list = await chatService.getConversations(req.user._id, roleFilter);
     return ApiResponse.ok(res, 'Conversations list retrieved.', { conversations: list });
   });
 
@@ -32,13 +33,15 @@ class ChatController {
 
   // ── Send Message ────────────────────────────────────────
   sendMessage = asyncHandler(async (req, res) => {
-    const { recipientId, text, media } = req.body;
+    const { recipientId, text, media, roleContext, role, contextType } = req.body;
 
     const message = await chatService.sendMessage({
       senderId: req.user._id,
       recipientId,
       text,
       media,
+      roleContext: roleContext || role,
+      contextType,
     }, req);
 
     return ApiResponse.created(res, 'Message delivered.', { message });

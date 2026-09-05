@@ -59,8 +59,8 @@ export default function CustomerChatPage() {
     setHasCheckedQuery(false);
   }, [queryUserId]);
 
-  // RTK Query hooks with 5m polling for real-time sync
-  const { data: convData, isFetching: isConvLoading, refetch: refetchConvs } = useGetConversationsQuery(undefined, { pollingInterval: 300000 });
+  // RTK Query hooks with 5m polling for real-time sync (Scoped to Customer role)
+  const { data: convData, isFetching: isConvLoading, refetch: refetchConvs } = useGetConversationsQuery('customer', { pollingInterval: 300000 });
   const [sendMessageApi, { isLoading: isSending }] = useSendMessageMutation();
   const [clearChatApi, { isLoading: isClearing }] = useClearChatMutation();
   const [deleteConversationApi, { isLoading: isDeletingConvs }] = useDeleteConversationMutation();

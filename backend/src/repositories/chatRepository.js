@@ -8,16 +8,43 @@ const Message = require('../models/Message');
  */
 class ChatRepository {
   /**
-   * Finds existing conversations between two participants, or creates one if missing.
+   * Finds existing conversations between two participants for a specific role context, or creates one if missing.
    */
-  async findOrCreateConversation(participantA, participantB) {
-    let conversation = await Conversation.findOne({
+  async findOrCreateConversation(participantA, participantB, options = {}) {
+    let roleContext = options.roleContext;
+    if (!roleContext) {
+      if (options.creatorId) roleContext = 'creator';
+      else if (options.vendorId) roleContext = 'vendor';
+      else if (options.customerId) roleContext = 'customer';
+      else roleContext = 'vendor';
+    }
+
+    const query = {
       participants: { $all: [participantA, participantB] },
-    });
+    };
+
+    if (roleContext) {
+      query.roleContext = roleContext;
+    }
+
+    let conversation = await Conversation.findOne(query);
+
+    if (!conversation && roleContext === 'vendor') {
+      // Fallback check for legacy threads without roleContext
+      conversation = await Conversation.findOne({
+        participants: { $all: [participantA, participantB] },
+        roleContext: { $exists: false }
+      });
+    }
 
     if (!conversation) {
       conversation = await Conversation.create({
         participants: [participantA, participantB],
+        roleContext: roleContext || 'vendor',
+        vendorId: options.vendorId || null,
+        creatorId: options.creatorId || null,
+        customerId: options.customerId || null,
+        contextType: options.contextType || null,
         unreadCount: {
           [participantA.toString()]: 0,
           [participantB.toString()]: 0,
@@ -29,18 +56,38 @@ class ChatRepository {
   }
 
   async findConversationById(id) {
-    return Conversation.findById(id).select('participants unreadCount').lean();
+    return Conversation.findById(id).select('participants unreadCount roleContext').lean();
   }
 
   /**
-   * Retrieves active conversations list for a user.
+   * Retrieves active conversations list for a user, filtered strictly by roleContext.
    */
-  async getConversationsForUser(userId) {
-    const list = await Conversation.find({
+  async getConversationsForUser(userId, roleFilter = null) {
+    const query = {
       participants: userId,
       isDeletedBy: { $ne: userId },
-    })
-      .populate('participants', 'name avatarUrl activeRole')
+    };
+
+    if (roleFilter === 'vendor') {
+      query.$or = [
+        { roleContext: 'vendor' },
+        { vendorId: userId },
+        { roleContext: { $exists: false } }
+      ];
+    } else if (roleFilter === 'creator') {
+      query.$or = [
+        { roleContext: 'creator' },
+        { creatorId: userId }
+      ];
+    } else if (roleFilter === 'customer') {
+      query.$or = [
+        { roleContext: 'customer' },
+        { customerId: userId }
+      ];
+    }
+
+    const list = await Conversation.find(query)
+      .populate('participants', 'name avatarUrl activeRole roles')
       .populate({
         path: 'lastMessage',
         select: 'text media sender isSeen createdAt deletedFor',

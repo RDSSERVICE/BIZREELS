@@ -75,6 +75,7 @@ const CreatorReviewsPage = React.lazy(() => import('../pages/creator/reviews/Cre
 const CreatorAnalyticsPage = React.lazy(() => import('../pages/creator/analytics/CreatorAnalyticsPage'));
 const CreatorVerificationPage = React.lazy(() => import('../pages/creator/verification/CreatorVerificationPage'));
 const CreatorSettingsPage = React.lazy(() => import('../pages/creator/settings/CreatorSettingsPage'));
+const CreatorChatPage = React.lazy(() => import('../pages/creator/chat/CreatorChatPage'));
 const Chats = React.lazy(() => import('../pages/chat/Chats'));
 
 // Admin Pages
@@ -252,7 +253,7 @@ const AppRoutes = () => {
         <Route path="reviews" element={<CreatorReviewsPage />} />
         <Route path="analytics" element={<CreatorAnalyticsPage />} />
         <Route path="settings" element={<CreatorSettingsPage />} />
-        <Route path="chat" element={<Chats />} />
+        <Route path="chat" element={<CreatorChatPage />} />
         <Route path="notifications" element={<CustomerNotificationsPage />} />
         <Route path="" element={<Navigate to="dashboard" replace />} />
       </Route>

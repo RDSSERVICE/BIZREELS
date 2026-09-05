@@ -6,9 +6,12 @@ import apiSlice from '../../api/apiSlice';
  */
 const chatApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // Retrieve conversations list
+    // Retrieve conversations list (role-scoped)
     getConversations: builder.query({
-      query: () => '/chat/conversations',
+      query: (arg) => {
+        const role = typeof arg === 'string' ? arg : arg?.role;
+        return role ? `/chat/conversations?role=${role}` : '/chat/conversations';
+      },
       providesTags: ['Chat'],
     }),
 

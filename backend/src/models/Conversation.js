@@ -29,6 +29,34 @@ const conversationSchema = new Schema(
         ref: 'User',
       },
     ],
+    roleContext: {
+      type: String,
+      enum: ['vendor', 'creator', 'customer', 'direct'],
+      default: 'vendor',
+      index: true,
+    },
+    vendorId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
+    creatorId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
+    customerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
+    contextType: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -36,7 +64,7 @@ const conversationSchema = new Schema(
 );
 
 // Indexes
-conversationSchema.index({ participants: 1 });
+conversationSchema.index({ participants: 1, roleContext: 1 });
 conversationSchema.index({ updatedAt: -1 });
 
 module.exports = mongoose.models.Conversation || mongoose.model('Conversation', conversationSchema);

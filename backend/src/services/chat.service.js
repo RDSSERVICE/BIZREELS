@@ -10,12 +10,12 @@ const logger = require('../utils/logger');
  * Orchestrates conversation groups, real-time message routing, and unread badges.
  */
 class ChatService {
-  async findOrCreateConversation(participantA, participantB) {
-    return chatRepository.findOrCreateConversation(participantA, participantB);
+  async findOrCreateConversation(participantA, participantB, options = {}) {
+    return chatRepository.findOrCreateConversation(participantA, participantB, options);
   }
 
-  async getConversations(userId) {
-    return chatRepository.getConversationsForUser(userId);
+  async getConversations(userId, roleFilter = null) {
+    return chatRepository.getConversationsForUser(userId, roleFilter);
   }
 
   async getMessages(conversationId, userId, { page = 1, limit = 30 }) {
@@ -54,12 +54,27 @@ class ChatService {
     return result;
   }
 
-  async sendMessage({ senderId, recipientId, text, media }, req) {
+  async sendMessage({ senderId, recipientId, text, media, roleContext, contextType }, req) {
     if (!text && !media) {
       throw ApiError.badRequest('Cannot send an empty message.');
     }
 
-    const conversation = await chatRepository.findOrCreateConversation(senderId, recipientId);
+    const activeRole = req?.headers?.['x-active-role'] || req?.user?.activeRole || 'vendor';
+    const targetRoleContext = roleContext || activeRole;
+
+    const options = {
+      roleContext: targetRoleContext,
+      contextType: contextType || null,
+    };
+    if (targetRoleContext === 'creator') {
+      options.creatorId = senderId;
+    } else if (targetRoleContext === 'vendor') {
+      options.vendorId = senderId;
+    } else if (targetRoleContext === 'customer') {
+      options.customerId = senderId;
+    }
+
+    const conversation = await chatRepository.findOrCreateConversation(senderId, recipientId, options);
     
     const message = await chatRepository.addMessage(conversation._id, senderId, text, media);
 

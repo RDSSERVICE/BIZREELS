@@ -36,8 +36,8 @@ export interface ChatMessage {
   read?: boolean;
 }
 
-export async function fetchConversations(): Promise<Conversation[]> {
-  const { data } = await api.get('/chat/conversations');
+export async function fetchConversations(role?: string): Promise<Conversation[]> {
+  const { data } = await api.get('/chat/conversations' + (role ? `?role=${role}` : ''));
   const list = data.data?.conversations || data.conversations || data.data || (Array.isArray(data) ? data : []);
   return Array.isArray(list) ? list : [];
 }
