@@ -28,6 +28,6 @@ export async function getTopupPacks(): Promise<Array<{ amount: number; label?: s
     const packs = data?.data?.packs || data?.packs || data || [];
     return Array.isArray(packs) ? packs : [];
   } catch (err) {
-    return [{ amount: 500 }, { amount: 1000 }, { amount: 2500 }, { amount: 5000 }];
+    return [];
   }
 }

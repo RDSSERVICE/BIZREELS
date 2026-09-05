@@ -31,9 +31,7 @@ export default function VendorWalletPage() {
   const [amount, setAmount] = useState('1000');
   const [loading, setLoading] = useState(false);
 
-  const topupPacks = Array.isArray(topupPacksData) && topupPacksData.length > 0
-    ? topupPacksData
-    : [{ amount: 500 }, { amount: 1000 }, { amount: 2500 }, { amount: 5000 }];
+  const topupPacks = Array.isArray(topupPacksData) ? topupPacksData : [];
 
   const balance = walletData?.data?.balance ?? walletData?.data?.walletBalance ?? walletData?.balance ?? walletData?.walletBalance ?? 0;
   const rawTx = txData?.data || txData || [];

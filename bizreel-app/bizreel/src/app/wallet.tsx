@@ -34,7 +34,7 @@ export default function WalletScreen() {
 
   const topupPresets = (topupPacks && topupPacks.length > 0)
     ? topupPacks.map(p => typeof p === 'number' ? p : p.amount)
-    : [500, 1000, 2000, 5000];
+    : [];
 
   const [topupModalVisible, setTopupModalVisible] = useState(false);
   const [customAmount, setCustomAmount] = useState('1000');
