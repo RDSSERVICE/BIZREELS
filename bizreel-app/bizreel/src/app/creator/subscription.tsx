@@ -40,7 +40,13 @@ export default function CreatorSubscriptionScreen() {
 
       const planItems = plansRes.data?.data?.items || plansRes.data?.items || plansRes.data?.data || [];
       if (Array.isArray(planItems)) {
-        setDbPlans(planItems.filter((p: any) => p.is_active && !p.is_archived));
+        setDbPlans(
+          planItems.filter((p: any) => {
+            if (!p.is_active || p.is_archived) return false;
+            const pRole = (p.user_type || p.target_role || '').toLowerCase();
+            return pRole === 'creator' || pRole === 'all';
+          })
+        );
       }
     } catch (err) {
       console.warn('Failed to load creator subscription:', err);

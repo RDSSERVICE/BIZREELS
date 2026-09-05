@@ -49,7 +49,13 @@ export default function VendorSubscriptionScreen() {
         .catch(() => api.get('/wallet/plans?role=vendor'));
       const items = res.data?.data?.items || res.data?.items || res.data?.data || res.data || [];
       if (Array.isArray(items)) {
-        setDbPlans(items.filter((p: any) => p.is_active && !p.is_archived));
+        setDbPlans(
+          items.filter((p: any) => {
+            if (!p.is_active || p.is_archived) return false;
+            const pRole = (p.user_type || p.target_role || '').toLowerCase();
+            return pRole === 'vendor' || pRole === 'all' || !pRole;
+          })
+        );
       }
     } catch (err) {
       console.warn('Error loading subscription plans:', err);

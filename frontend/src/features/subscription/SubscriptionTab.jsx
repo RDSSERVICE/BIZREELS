@@ -93,7 +93,13 @@ export default function SubscriptionTab({ user, refetchUser, role }) {
     : (vendorWalletData?.data?.balance ?? vendorWalletData?.balance ?? user?.walletBalance ?? 0);
 
   const plans = plansData?.data?.items || plansData?.items || [];
-  const activePlans = plans.filter((p) => p.is_active && !p.is_archived);
+  const activePlans = plans.filter((p) => {
+    if (!p.is_active || p.is_archived) return false;
+    const pRole = (p.user_type || p.target_role || '').toLowerCase();
+    if (roleParam === 'vendor') return pRole === 'vendor' || pRole === 'all' || !pRole;
+    if (roleParam === 'creator') return pRole === 'creator' || pRole === 'all';
+    return true;
+  });
 
   // Open Checkout Modal
   const handleSelectPlan = (plan) => {

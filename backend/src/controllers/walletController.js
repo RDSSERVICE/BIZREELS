@@ -74,14 +74,32 @@ class WalletController {
 
     const { SubscriptionPlan } = require('../models/Admin');
     const query = { is_active: true, is_deleted: { $ne: true }, is_archived: { $ne: true } };
-
-    // Filter by role if specified
-    if (role && role !== 'all') {
-      query.$or = [
-        { user_type: role },
-        { target_role: role },
-        { user_type: 'all' },
-        { target_role: 'all' },
+    if (role === 'vendor') {
+      query.$and = [
+        {
+          $or: [
+            { user_type: 'vendor' },
+            { target_role: 'vendor' },
+            { user_type: 'all' },
+            { target_role: 'all' },
+            { user_type: { $exists: false } },
+          ],
+        },
+        { user_type: { $ne: 'creator' } },
+        { target_role: { $ne: 'creator' } },
+      ];
+    } else if (role === 'creator') {
+      query.$and = [
+        {
+          $or: [
+            { user_type: 'creator' },
+            { target_role: 'creator' },
+            { user_type: 'all' },
+            { target_role: 'all' },
+          ],
+        },
+        { user_type: { $ne: 'vendor' } },
+        { target_role: { $ne: 'vendor' } },
       ];
     }
 
