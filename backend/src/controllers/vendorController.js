@@ -20,6 +20,8 @@ class VendorController {
   // ── Vendor Dashboard ─────────────────────────────────────
   getDashboard = asyncHandler(async (req, res) => {
     const userId = req.user._id;
+    const userIdStr = userId.toString();
+    const vendorMatch = { $in: [userId, userIdStr] };
     const referralService = require('../services/referral.service');
     const walletService = require('../services/wallet.service');
 
@@ -52,55 +54,55 @@ class VendorController {
       recentFollowersCount,
       prevFollowersCount
     ] = await Promise.all([
-      Listing.countDocuments({ vendor: userId, type: 'product', isDeleted: { $ne: true } }),
-      Listing.countDocuments({ vendor: userId, type: 'product', isDeleted: { $ne: true }, createdAt: { $gte: thirtyDaysAgo } }),
-      Listing.countDocuments({ vendor: userId, type: 'product', isDeleted: { $ne: true }, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      Listing.countDocuments({ vendor: vendorMatch, type: 'product', isDeleted: { $ne: true } }),
+      Listing.countDocuments({ vendor: vendorMatch, type: 'product', isDeleted: { $ne: true }, createdAt: { $gte: thirtyDaysAgo } }),
+      Listing.countDocuments({ vendor: vendorMatch, type: 'product', isDeleted: { $ne: true }, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
       
-      Listing.countDocuments({ vendor: userId, type: 'service', isDeleted: { $ne: true } }),
-      Listing.countDocuments({ vendor: userId, type: 'service', isDeleted: { $ne: true }, createdAt: { $gte: thirtyDaysAgo } }),
-      Listing.countDocuments({ vendor: userId, type: 'service', isDeleted: { $ne: true }, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      Listing.countDocuments({ vendor: vendorMatch, type: 'service', isDeleted: { $ne: true } }),
+      Listing.countDocuments({ vendor: vendorMatch, type: 'service', isDeleted: { $ne: true }, createdAt: { $gte: thirtyDaysAgo } }),
+      Listing.countDocuments({ vendor: vendorMatch, type: 'service', isDeleted: { $ne: true }, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
       
-      Reel.find({ creator: userId, isDeleted: { $ne: true } }).select('views status createdAt').lean(),
+      Reel.find({ creator: vendorMatch, isDeleted: { $ne: true } }).select('views status createdAt').lean(),
       
-      Order.countDocuments({ vendor: userId }),
-      Order.countDocuments({ vendor: userId, createdAt: { $gte: thirtyDaysAgo } }),
-      Order.countDocuments({ vendor: userId, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      Order.countDocuments({ vendor: vendorMatch }),
+      Order.countDocuments({ vendor: vendorMatch, createdAt: { $gte: thirtyDaysAgo } }),
+      Order.countDocuments({ vendor: vendorMatch, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
       
-      Inquiry.countDocuments({ vendor: userId }),
-      Inquiry.countDocuments({ vendor: userId, createdAt: { $gte: thirtyDaysAgo } }),
-      Inquiry.countDocuments({ vendor: userId, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      Inquiry.countDocuments({ vendor: vendorMatch }),
+      Inquiry.countDocuments({ vendor: vendorMatch, createdAt: { $gte: thirtyDaysAgo } }),
+      Inquiry.countDocuments({ vendor: vendorMatch, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
       
       walletService.getOrCreateWallet(userId),
       referralService.getVendorDashboard(userId).catch(() => null),
       
       Order.aggregate([
-        { $match: { vendor: userId, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }] } },
-        { $group: { _id: null, total: { $sum: { $multiply: ['$price', '$quantity'] } } } }
+        { $match: { vendor: vendorMatch, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }] } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$itemTotal', { $multiply: ['$price', '$quantity'] }] } } } }
       ]).catch(() => []),
       Order.aggregate([
-        { $match: { vendor: userId, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }], createdAt: { $gte: thirtyDaysAgo } } },
-        { $group: { _id: null, total: { $sum: { $multiply: ['$price', '$quantity'] } } } }
+        { $match: { vendor: vendorMatch, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }], createdAt: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$itemTotal', { $multiply: ['$price', '$quantity'] }] } } } }
       ]).catch(() => []),
       Order.aggregate([
-        { $match: { vendor: userId, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }], createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
-        { $group: { _id: null, total: { $sum: { $multiply: ['$price', '$quantity'] } } } }
+        { $match: { vendor: vendorMatch, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }], createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$itemTotal', { $multiply: ['$price', '$quantity'] }] } } } }
       ]).catch(() => []),
       
       Deal.aggregate([
-        { $match: { seller_id: userId.toString(), status: 'completed' } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer'] } } } }
+        { $match: { seller_id: { $in: [userIdStr, userId] }, status: 'completed' } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer', '$amount_paise'] } } } }
       ]).catch(() => []),
       Deal.aggregate([
-        { $match: { seller_id: userId.toString(), status: 'completed', created_at: { $gte: thirtyDaysAgo } } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer'] } } } }
+        { $match: { seller_id: { $in: [userIdStr, userId] }, status: 'completed', created_at: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer', '$amount_paise'] } } } }
       ]).catch(() => []),
       Deal.aggregate([
-        { $match: { seller_id: userId.toString(), status: 'completed', created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer'] } } } }
+        { $match: { seller_id: { $in: [userIdStr, userId] }, status: 'completed', created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer', '$amount_paise'] } } } }
       ]).catch(() => []),
       
-      Follow.countDocuments({ following_id: userId.toString(), created_at: { $gte: thirtyDaysAgo } }),
-      Follow.countDocuments({ following_id: userId.toString(), created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
+      Follow.countDocuments({ following_id: { $in: [userIdStr, userId] }, created_at: { $gte: thirtyDaysAgo } }),
+      Follow.countDocuments({ following_id: { $in: [userIdStr, userId] }, created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
     ]);
 
     const totalReels = reels.length;

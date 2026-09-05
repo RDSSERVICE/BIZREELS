@@ -47,10 +47,11 @@ export default function VendorAnalyticsScreen() {
   const productTitle = title || 'Product Performance';
   const productPrice = price ? `₹${parseFloat(price).toLocaleString('en-IN')}` : '₹0';
 
-  const totalViews = liveData?.views ?? liveData?.totalViews ?? (views ? parseInt(views, 10) : 0);
-  const totalLikes = liveData?.likes ?? liveData?.reelsStats?.likes ?? (likes ? parseInt(likes, 10) : 0);
-  const totalOrders = liveData?.ordersCount ?? liveData?.completedOrdersCount ?? (orders ? parseInt(orders, 10) : 0);
-  const rawRevenue = liveData?.revenue ?? (orders && price ? parseInt(orders, 10) * parseFloat(price) : 0);
+  const kpis = liveData?.kpis || liveData || {};
+  const totalViews = kpis?.views ?? liveData?.totalViews ?? (views ? parseInt(views, 10) : 0);
+  const totalLikes = kpis?.saves ?? liveData?.likes ?? (likes ? parseInt(likes, 10) : 0);
+  const totalOrders = kpis?.total_orders ?? kpis?.deals_started ?? liveData?.ordersCount ?? (orders ? parseInt(orders, 10) : 0);
+  const rawRevenue = kpis?.total_revenue ?? kpis?.revenue ?? liveData?.revenue ?? (orders && price ? parseInt(orders, 10) * parseFloat(price) : 0);
   const totalRevenue = `₹${rawRevenue.toLocaleString('en-IN')}`;
 
   const viewToCartRate = totalViews > 0 ? ((totalOrders / totalViews) * 100).toFixed(1) : '0.0';

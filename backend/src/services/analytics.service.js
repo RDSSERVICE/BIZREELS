@@ -5,6 +5,8 @@ const Inquiry = require('../models/Inquiry');
 const Deal = require('../models/Deal');
 const User = require('../models/User');
 const Interaction = require('../models/Interaction');
+const Follow = require('../models/Follow');
+const Quote = require('../models/Quote');
 const { Review } = require('../models/Phase4');
 const { ListingEvent } = require('../models/Misc');
 const ApiError = require('../utils/ApiError');
@@ -30,7 +32,7 @@ const overview = async (vendorId, rangeKey = '30d') => {
   const vendorMatch = { $in: [vendorObjId, vendorIdStr] };
 
   const evQ = { vendor_id: { $in: [vendorIdStr, vendorObjId] } };
-  const interactionQ = { target_user_id: vendorIdStr };
+  const interactionQ = { target_user_id: { $in: [vendorIdStr, vendorObjId] } };
   const dateFilter = {};
 
   if (cutoffDate) {
@@ -49,9 +51,19 @@ const overview = async (vendorId, rangeKey = '30d') => {
     userDoc,
     totalListings,
     activeListings,
+    productsCount,
+    servicesCount,
+    reelsCount,
     inquiriesCount,
     ordersCount,
     completedOrdersCount,
+    orderRevenueAgg,
+    dealRevenueAgg,
+    orderCustomers,
+    inquiryCustomers,
+    dealCustomers,
+    quotesCount,
+    followersCount,
     listingStatsAgg,
     reelsStatsAgg
   ] = await Promise.all([
@@ -79,18 +91,18 @@ const overview = async (vendorId, rangeKey = '30d') => {
 
     // 5. Deals strictly for this vendor
     Deal.aggregate([
-      { $match: { seller_id: vendorIdStr, ...(cutoffDate ? { created_at: { $gte: cutoffDate } } : {}) } },
+      { $match: { seller_id: { $in: [vendorIdStr, vendorObjId] }, ...(cutoffDate ? { created_at: { $gte: cutoffDate } } : {}) } },
       { $group: { _id: '$status', n: { $sum: 1 } } },
     ]).catch(() => []),
 
     // 6. Reviews strictly for this vendor
     Review.aggregate([
-      { $match: { target_type: 'vendor', target_id: vendorIdStr, is_deleted: { $ne: true } } },
+      { $match: { target_type: 'vendor', target_id: { $in: [vendorIdStr, vendorObjId] }, is_deleted: { $ne: true } } },
       { $group: { _id: null, avg: { $avg: '$rating' }, n: { $sum: 1 } } },
     ]).catch(() => []),
 
     // 7. Vendor User rating profile
-    User.findById(vendorObjId).select('rating_avg rating_count vendorProfile').lean().catch(() => null),
+    User.findById(vendorObjId).select('rating_avg rating_count followersCount followers vendorProfile').lean().catch(() => null),
 
     // 8. Total listings by this vendor
     Listing.countDocuments({
@@ -105,27 +117,99 @@ const overview = async (vendorId, rangeKey = '30d') => {
       status: { $in: ['active', 'published'] },
     }).catch(() => 0),
 
-    // 10. Direct customer inquiries to this vendor
+    // 10. Products count
+    Listing.countDocuments({
+      vendor: vendorMatch,
+      type: 'product',
+      isDeleted: { $ne: true },
+    }).catch(() => 0),
+
+    // 11. Services count
+    Listing.countDocuments({
+      vendor: vendorMatch,
+      type: 'service',
+      isDeleted: { $ne: true },
+    }).catch(() => 0),
+
+    // 12. Reels count
+    Reel.countDocuments({
+      creator: vendorMatch,
+      isDeleted: { $ne: true },
+    }).catch(() => 0),
+
+    // 13. Direct customer inquiries to this vendor
     Inquiry.countDocuments({
       vendor: vendorMatch,
       isDeleted: { $ne: true },
       ...dateFilter,
     }).catch(() => 0),
 
-    // 11. Orders placed with this vendor
+    // 14. Orders placed with this vendor
     Order.countDocuments({
       vendor: vendorMatch,
       ...dateFilter,
     }).catch(() => 0),
 
-    // 12. Completed orders for this vendor
+    // 15. Completed orders for this vendor
     Order.countDocuments({
       vendor: vendorMatch,
-      status: { $in: ['delivered', 'completed', 'paid'] },
+      status: { $in: ['delivered', 'completed', 'paid', 'accepted', 'processing', 'shipped', 'out_for_delivery'] },
       ...dateFilter,
     }).catch(() => 0),
 
-    // 13. Baseline cumulative stats on this vendor's listings
+    // 16. Revenue from Orders
+    Order.aggregate([
+      {
+        $match: {
+          vendor: vendorMatch,
+          $or: [
+            { paymentStatus: 'paid' },
+            { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'completed'] } }
+          ],
+          ...dateFilter
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $ifNull: ['$itemTotal', { $multiply: ['$price', '$quantity'] }] } }
+        }
+      }
+    ]).catch(() => []),
+
+    // 17. Revenue from Deals
+    Deal.aggregate([
+      {
+        $match: {
+          seller_id: { $in: [vendorIdStr, vendorObjId] },
+          status: 'completed',
+          ...(cutoffDate ? { created_at: { $gte: cutoffDate } } : {})
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $ifNull: ['$final_amount', '$current_offer', '$amount_paise'] } }
+        }
+      }
+    ]).catch(() => []),
+
+    // 18. Distinct customers from Orders
+    Order.distinct('customer', { vendor: vendorMatch }).catch(() => []),
+
+    // 19. Distinct customers from Inquiries
+    Inquiry.distinct('customer', { vendor: vendorMatch }).catch(() => []),
+
+    // 20. Distinct customers from Deals
+    Deal.distinct('buyer_id', { seller_id: { $in: [vendorIdStr, vendorObjId] } }).catch(() => []),
+
+    // 21. Quotes count
+    Quote.countDocuments({ vendor: vendorMatch }).catch(() => 0),
+
+    // 22. Followers count
+    Follow.countDocuments({ following_id: { $in: [vendorIdStr, vendorObjId] } }).catch(() => 0),
+
+    // 23. Baseline cumulative stats on this vendor's listings
     Listing.aggregate([
       { $match: { vendor: vendorMatch, isDeleted: { $ne: true } } },
       {
@@ -140,7 +224,7 @@ const overview = async (vendorId, rangeKey = '30d') => {
       }
     ]).catch(() => []),
 
-    // 14. Baseline cumulative stats on this vendor's reels
+    // 24. Baseline cumulative stats on this vendor's reels
     Reel.aggregate([
       { $match: { creator: vendorMatch, isDeleted: { $ne: true } } },
       {
@@ -216,6 +300,23 @@ const overview = async (vendorId, rangeKey = '30d') => {
     totalDeals += row.n;
   }
 
+  // Calculate unique customer count
+  const allCustomerIds = new Set([
+    ...orderCustomers.map(c => c?.toString()),
+    ...inquiryCustomers.map(c => c?.toString()),
+    ...dealCustomers.map(c => c?.toString())
+  ].filter(Boolean));
+  const uniqueCustomersCount = Math.max(allCustomerIds.size, uniqueChattersCount);
+
+  // Calculate revenue
+  const orderRevenue = orderRevenueAgg[0]?.total || 0;
+  const dealRevenue = dealRevenueAgg[0]?.total || 0;
+  const totalRevenue = Math.round(orderRevenue + dealRevenue);
+
+  const totalOffersCount = totalDeals + (quotesCount || 0);
+  const totalOrdersCount = Math.max(ordersCount, completedOrdersCount, baseListingStats.orders || 0);
+  const effectiveFollowers = Math.max(followersCount || 0, userDoc?.followersCount || (userDoc?.followers?.length || 0));
+
   // Conversion rates strictly for this vendor's funnel
   const viewToChat = totalViews ? Math.round(((chatsStarted + waClicks) / totalViews) * 100 * 10) / 10 : 0.0;
   const chatToDeal = (chatsStarted + waClicks) ? Math.round((dealsStarted / (chatsStarted + waClicks)) * 100 * 10) / 10 : 0.0;
@@ -242,6 +343,15 @@ const overview = async (vendorId, rangeKey = '30d') => {
       wa_clicks: waClicks,
       listings_total: totalListings,
       listings_active: activeListings,
+      products_total: productsCount,
+      services_total: servicesCount,
+      reels_total: reelsCount,
+      total_orders: totalOrdersCount,
+      total_customers: uniqueCustomersCount,
+      total_offers: totalOffersCount,
+      total_revenue: totalRevenue,
+      revenue: totalRevenue,
+      followers: effectiveFollowers,
     },
     deals_by_status: dealsByStatus,
     deals_total: totalDeals,

@@ -21,7 +21,11 @@ import {
   FiRefreshCw,
   FiActivity,
   FiShare2,
-  FiBookmark
+  FiBookmark,
+  FiDollarSign,
+  FiTag,
+  FiVideo,
+  FiShoppingBag
 } from 'react-icons/fi';
 import {
   ResponsiveContainer,
@@ -147,7 +151,7 @@ export default function VendorAnalyticsPage() {
     { key: 'wa_clicks', label: bi('WhatsApp', 'व्हाट्सएप (WhatsApp)') },
     { key: 'deals', label: bi('Orders', 'ऑर्डर (Orders)') },
     { key: 'saves', label: bi('Saves', 'सहेजे गए (Saves)') },
-    { key: 'shares', label: bi('Shares', 'शेयर (Shares)') },
+    { key: 'shares', label: bi('Shares', 'शेयर (Shares)') }
   ];
 
   // Helper formatting values
@@ -159,7 +163,7 @@ export default function VendorAnalyticsPage() {
       <AdminPageHeader
         icon={FiPieChart}
         title={bi('Vendor Analytics & Insights', 'विक्रेता एनालिटिक्स और अंतर्दृष्टि (Analytics & Insights)')}
-        subtitle={bi('Track real-time reel views, product clicks, phone calls, WhatsApp leads, and customer conversion rates', 'वास्तविक समय में रील विज़िट, उत्पाद क्लिक, फोन कॉल, व्हाट्सएप लीड और ग्राहक रूपांतरण दर ट्रैक करें')}
+        subtitle={bi('Track real-time revenue, listing traffic, phone calls, WhatsApp leads, and customer conversion rates', 'वास्तविक समय में राजस्व, सूची विज़िट, फोन कॉल, व्हाट्सएप लीड और ग्राहक रूपांतरण दर ट्रैक करें')}
       >
         <div className="flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-black">
@@ -215,17 +219,21 @@ export default function VendorAnalyticsPage() {
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
+      {/* KPI Cards Grid — Complete Business Metrics Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {[
-          { label: 'Catalog Views', value: formatVal(kpis.views), desc: 'Product/service & reel page views', icon: FiEye },
-          { label: 'Customer Inquiries', value: formatVal(kpis.chats_started), desc: 'Direct buyer inquiries initiated', icon: FiMessageCircle },
-          { label: 'WhatsApp Clicks', value: formatVal(kpis.wa_clicks), desc: 'Direct WhatsApp chats initiated', icon: FiPhone },
-          { label: 'Total Leads', value: formatVal(kpis.leads), desc: 'Inquirers + listing watchers', icon: FiUsers },
-          { label: 'Engagement', value: `${formatVal(kpis.saves)} Saves / ${formatVal(kpis.shares)} Shares`, desc: 'User bookmarks & social shares', icon: FiMousePointer },
-          { label: 'Orders Started', value: formatVal(kpis.deals_started), desc: 'Purchase orders placed by buyers', icon: FiTrendingUp },
-          { label: 'Sales Delivered', value: formatVal(kpis.deals_completed), desc: 'Successfully fulfilled orders', icon: FiUserCheck },
-          { label: 'Active Listings', value: `${kpis.listings_active || 0}/${kpis.listings_total || 0}`, desc: 'Active vs total listed catalog items', icon: FiPackage }
+          { label: 'Total Revenue', value: `₹${formatVal(kpis.total_revenue || kpis.revenue || 0)}`, desc: 'Gross sales from orders & deals', icon: FiDollarSign },
+          { label: 'Total Customers', value: formatVal(kpis.total_customers || kpis.unique_chatters), desc: 'Unique buyers & inquirers', icon: FiUsers },
+          { label: 'Total Orders', value: formatVal(kpis.total_orders || kpis.deals_started), desc: 'Fulfillable orders & deals', icon: FiShoppingBag },
+          { label: 'Total Offers', value: formatVal(kpis.total_offers || kpis.deals_completed), desc: 'Bids, quotes & price deals', icon: FiTag },
+          { label: 'Catalog Views', value: formatVal(kpis.views), desc: 'Product, service & reel views', icon: FiEye },
+          { label: 'Active Listings', value: `${kpis.listings_active || 0}/${kpis.listings_total || 0}`, desc: 'Active vs total listed catalog items', icon: FiPackage },
+          { label: 'Products & Services', value: `${kpis.products_total || 0} Prod / ${kpis.services_total || 0} Serv`, desc: 'Catalog type distribution', icon: FiTool },
+          { label: 'Reels & Videos', value: formatVal(kpis.reels_total), desc: 'Published store video reels', icon: FiVideo },
+          { label: 'Inquiries & WA', value: `${formatVal(kpis.chats_started)} Chat / ${formatVal(kpis.wa_clicks)} WA`, desc: 'Direct customer lead touches', icon: FiMessageCircle },
+          { label: 'Total Leads & Followers', value: `${formatVal(kpis.leads)} Leads / ${formatVal(kpis.followers)} Fans`, desc: 'Active audience & inquirers', icon: FiUserCheck },
+          { label: 'Store Engagement', value: `${formatVal(kpis.saves)} Saves / ${formatVal(kpis.shares)} Shares`, desc: 'Bookmarks & social shares', icon: FiMousePointer },
+          { label: 'Sales Delivered', value: formatVal(kpis.deals_completed), desc: 'Successfully completed orders', icon: FiTrendingUp }
         ].map((c, idx) => (
           <div
             key={idx}
@@ -238,7 +246,7 @@ export default function VendorAnalyticsPage() {
               </div>
             </div>
             <div>
-              <div style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] mt-1 group-hover:translate-x-0.5 transition-transform">
+              <div style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xl sm:text-2xl text-[#1a1a1a] mt-1 group-hover:translate-x-0.5 transition-transform">
                 {isOverviewLoading ? <div className="h-8 w-24 bg-[#f8f4ec] animate-pulse rounded-lg" /> : c.value}
               </div>
               <span className="text-[11px] text-slate-500 mt-2 block font-medium">{c.desc}</span>
