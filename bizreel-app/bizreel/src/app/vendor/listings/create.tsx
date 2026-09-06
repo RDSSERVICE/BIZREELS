@@ -117,6 +117,21 @@ export default function CreateListingScreen() {
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  
+  // Service Details
+  const [serviceType, setServiceType] = useState('At Home');
+  const [priceType, setPriceType] = useState('Fixed Price');
+  const [serviceHighlights, setServiceHighlights] = useState('');
+  const [termsAndConditions, setTermsAndConditions] = useState('');
+  const [duration, setDuration] = useState('1 Hour');
+  const [serviceArea, setServiceArea] = useState('Local Area');
+  const [minOrderValue, setMinOrderValue] = useState('');
+  const [homeVisitAvailable, setHomeVisitAvailable] = useState(true);
+  const [maxTravelDistanceKm, setMaxTravelDistanceKm] = useState('15');
+  const [availableCities, setAvailableCities] = useState('');
+  const [emergencyService24x7, setEmergencyService24x7] = useState(false);
+  const [advanceBookingRequired, setAdvanceBookingRequired] = useState(true);
+  const [bookingAvailability, setBookingAvailability] = useState('Immediate');
 
   const createMutation = useCreateVendorListing();
   const updateMutation = useUpdateVendorListing();
@@ -130,27 +145,34 @@ export default function CreateListingScreen() {
           const item = res.data?.data || res.data?.item || res.data;
           if (item) {
             const prod = item.productDetails || {};
-            if (item.type) setType(item.type);
+            const sd = item.serviceDetails || {};
+
+            const itemType = item.type || item.listingType || (item.serviceDetails ? 'service' : 'product');
+            setType(itemType as 'product' | 'service');
+
             if (item.category) setCategory(item.category);
             if (item.subcategory) setSubcategory(item.subcategory);
             if (item.title) setTitle(item.title);
-            if (item.brand || prod.brand) setBrand(item.brand || prod.brand);
-            if (item.sku || prod.sku) setSku(item.sku || prod.sku);
-            if (item.shortDescription) setShortDescription(item.shortDescription);
-            if (item.description) setDescription(item.description);
-            if (item.actualPrice) setActualPrice(String(item.actualPrice));
-            if (item.sellingPrice || item.price) setSellingPrice(String(item.sellingPrice || item.price));
-            if (item.stock !== undefined) setStock(String(item.stock));
-            if (item.minOrderQty || prod.minOrderQty) setMinOrderQty(String(item.minOrderQty || prod.minOrderQty));
-            if (item.unit || prod.unit) setUnit(item.unit || prod.unit);
-            if (item.warranty || prod.warranty) setWarranty(item.warranty || prod.warranty);
-            if (item.returnPolicy || prod.returnPolicy) setReturnPolicy(item.returnPolicy || prod.returnPolicy);
-            if (item.gst || prod.gst) setGst(item.gst || prod.gst);
-            if (item.tags) setTags(item.tags);
-            if (item.labels) setLabels(item.labels);
-            if (item.variants) setVariants(item.variants);
+            setBrand(item.brand || prod.brand || '');
+            setSku(item.sku || prod.sku || '');
+            setShortDescription(item.shortDescription || '');
+            setDescription(item.description || '');
 
-            const ship = prod.shippingDetails || {};
+            const actualVal = item.actualPrice || item.price || prod.actualPrice || 0;
+            const sellingVal = item.sellingPrice || item.salePrice || item.price || prod.sellingPrice || sd.price || 0;
+            if (actualVal) setActualPrice(String(actualVal));
+            if (sellingVal) setSellingPrice(String(sellingVal));
+            if (item.stock !== undefined || prod.stock !== undefined) setStock(String(item.stock ?? prod.stock ?? 10));
+            if (item.minOrderQty || prod.minOrderQty) setMinOrderQty(String(item.minOrderQty || prod.minOrderQty || 1));
+            if (item.unit || prod.unit) setUnit(item.unit || prod.unit || 'piece');
+            if (item.warranty || prod.warranty) setWarranty(item.warranty || prod.warranty || '');
+            if (item.returnPolicy || prod.returnPolicy) setReturnPolicy(item.returnPolicy || prod.returnPolicy || '');
+            if (item.gst || prod.gst) setGst(item.gst || prod.gst || '18%');
+            if (Array.isArray(item.tags)) setTags(item.tags);
+            if (Array.isArray(item.labels)) setLabels(item.labels);
+            if (Array.isArray(item.variants)) setVariants(item.variants);
+
+            const ship = prod.shippingDetails || item.shippingDetails || {};
             if (ship.weight) setShippingWeight(String(ship.weight));
             if (ship.weightUnit) setShippingWeightUnit(ship.weightUnit);
             if (ship.length) setShippingLength(String(ship.length));
@@ -159,6 +181,23 @@ export default function CreateListingScreen() {
             if (ship.shippingType) setShippingType(ship.shippingType);
             if (ship.freeShipping !== undefined) setFreeShipping(Boolean(ship.freeShipping));
             if (ship.estimatedDays) setEstimatedDays(String(ship.estimatedDays));
+
+            // Populate Service Details
+            if (sd) {
+              if (sd.serviceHighlights) setServiceHighlights(sd.serviceHighlights);
+              if (sd.termsAndConditions) setTermsAndConditions(sd.termsAndConditions);
+              if (sd.serviceType) setServiceType(sd.serviceType);
+              if (sd.priceType) setPriceType(sd.priceType);
+              if (sd.duration || sd.durationText) setDuration(sd.duration || sd.durationText);
+              if (sd.serviceArea) setServiceArea(sd.serviceArea);
+              if (sd.minOrderValue) setMinOrderValue(String(sd.minOrderValue));
+              if (sd.homeVisitAvailable !== undefined) setHomeVisitAvailable(Boolean(sd.homeVisitAvailable));
+              if (sd.maxTravelDistanceKm) setMaxTravelDistanceKm(String(sd.maxTravelDistanceKm));
+              if (sd.availableCities) setAvailableCities(sd.availableCities);
+              if (sd.emergencyService24x7 !== undefined) setEmergencyService24x7(Boolean(sd.emergencyService24x7));
+              if (sd.advanceBookingRequired !== undefined) setAdvanceBookingRequired(Boolean(sd.advanceBookingRequired));
+              if (sd.bookingAvailability) setBookingAvailability(sd.bookingAvailability);
+            }
 
             // Populate All Previous Main Cover & Gallery Images
             const collectedImages: string[] = [];
@@ -219,7 +258,7 @@ export default function CreateListingScreen() {
             setGalleryImages(collectedImages);
             setImageUrl(collectedImages[0] || '');
 
-            const vid = item.video || item.videos?.[0] || prod.video || '';
+            const vid = item.video || item.videos?.[0] || prod.video || sd.reelVideo || '';
             if (vid) setVideoUrl(vid);
           }
         })
@@ -265,7 +304,7 @@ export default function CreateListingScreen() {
     return cats.filter(Boolean);
   }, [user, vendorProfile]);
 
-  // Extract onboarded Subcategories from vendor profile / user profile
+  // Extract onboarded Subcategories
   const onboardedSubcategories = React.useMemo(() => {
     let subs: string[] = [];
     const authUser = user as any;
@@ -273,10 +312,8 @@ export default function CreateListingScreen() {
       subs = authUser.subcategories;
     } else if (Array.isArray(vendorProfile.subcategories) && vendorProfile.subcategories.length > 0) {
       subs = vendorProfile.subcategories;
-    } else if (Array.isArray(vendorProfile.subCategories) && vendorProfile.subCategories.length > 0) {
-      subs = vendorProfile.subCategories;
-    } else if (Array.isArray(vendorProfile.selectedSubCategories) && vendorProfile.selectedSubCategories.length > 0) {
-      subs = vendorProfile.selectedSubCategories;
+    } else if (Array.isArray(vendorProfile.selectedSubcategories) && vendorProfile.selectedSubcategories.length > 0) {
+      subs = vendorProfile.selectedSubcategories;
     } else if (vendorProfile.subcategory) {
       subs = [vendorProfile.subcategory];
     } else if (authUser?.subcategory) {
@@ -287,8 +324,9 @@ export default function CreateListingScreen() {
 
   // Master parent categories filtered STRICTLY by vendor's onboarded categories
   const parentCategories = React.useMemo(() => {
+    let list: any[] = [];
     if (onboardedCategories.length > 0) {
-      return onboardedCategories.map((catName) => {
+      list = onboardedCategories.map((catName) => {
         const foundMaster = categoriesList.find(
           (c: any) => !c.parent_id && (c.name?.toLowerCase() === catName.toLowerCase() || c.id === catName || c._id === catName)
         );
@@ -297,56 +335,65 @@ export default function CreateListingScreen() {
           name: foundMaster?.name || catName,
         };
       });
+    } else {
+      const allParents = categoriesList.filter((c: any) => !c.parent_id);
+      list = allParents.map((c: any) => ({ id: c.id || c._id, name: c.name }));
     }
-    // If no onboarded categories found on profile, show master categories from API
-    const allParents = categoriesList.filter((c: any) => !c.parent_id);
-    return allParents.map((c: any) => ({ id: c.id || c._id, name: c.name }));
-  }, [categoriesList, onboardedCategories]);
+
+    if (category && !list.some((c: any) => c.name?.toLowerCase() === category.toLowerCase())) {
+      list.unshift({ id: category, name: category });
+    }
+
+    return list;
+  }, [categoriesList, onboardedCategories, category]);
 
   // Master subcategories filtered STRICTLY by active parent category AND vendor's onboarded subcategories
   const childSubcategories = React.useMemo(() => {
-    const activeParent = parentCategories.find((c: any) => c.name === category);
+    const activeParent = parentCategories.find((c: any) => c.name?.toLowerCase() === category?.toLowerCase());
     const parentId = activeParent?.id || (activeParent as any)?._id;
     const subsFromMaster = categoriesList.filter(
       (c: any) => parentId && (c.parent_id === parentId || c.parent_id === (activeParent as any)?._id)
     ).map((c: any) => c.name);
 
+    let list: any[] = [];
     if (onboardedSubcategories.length > 0) {
       const matched = onboardedSubcategories.filter((os) =>
         subsFromMaster.length === 0 || subsFromMaster.some((sm: string) => sm.toLowerCase() === os.toLowerCase())
       );
-      if (matched.length > 0) {
-        return matched.map((name) => ({ name }));
-      }
-      return onboardedSubcategories.map((name) => ({ name }));
+      list = (matched.length > 0 ? matched : onboardedSubcategories).map((name) => ({ name }));
+    } else if (subsFromMaster.length > 0) {
+      list = subsFromMaster.map((name: string) => ({ name }));
+    } else {
+      list = [{ name: 'General' }];
     }
 
-    if (subsFromMaster.length > 0) {
-      return subsFromMaster.map((name: string) => ({ name }));
+    if (subcategory && !list.some((s: any) => (s.name || s)?.toLowerCase() === subcategory?.toLowerCase())) {
+      list.unshift({ name: subcategory });
     }
-    return [{ name: 'General' }];
-  }, [categoriesList, parentCategories, category, onboardedSubcategories]);
 
-  // Sync selected category with vendor's available categories
+    return list;
+  }, [categoriesList, parentCategories, category, onboardedSubcategories, subcategory]);
+
+  // Sync selected category with vendor's available categories (only in Create mode)
   useEffect(() => {
-    if (parentCategories.length > 0) {
-      const exists = parentCategories.some((c: any) => c.name === category);
+    if (parentCategories.length > 0 && !isEdit) {
+      const exists = parentCategories.some((c: any) => c.name?.toLowerCase() === category?.toLowerCase());
       if (!exists && parentCategories[0]?.name) {
         setCategory(parentCategories[0].name);
       }
     }
-  }, [parentCategories, category]);
+  }, [parentCategories, category, isEdit]);
 
-  // Sync selected subcategory with available subcategories
+  // Sync selected subcategory with available subcategories (only in Create mode)
   useEffect(() => {
-    if (childSubcategories.length > 0) {
-      const exists = childSubcategories.some((s: any) => (s.name || s) === subcategory);
+    if (childSubcategories.length > 0 && !isEdit) {
+      const exists = childSubcategories.some((s: any) => (s.name || s)?.toLowerCase() === subcategory?.toLowerCase());
       if (!exists && childSubcategories[0]) {
         const firstSubName = typeof childSubcategories[0] === 'string' ? childSubcategories[0] : childSubcategories[0]?.name || 'General';
         setSubcategory(firstSubName);
       }
     }
-  }, [childSubcategories, subcategory]);
+  }, [childSubcategories, subcategory, isEdit]);
 
   // Auto-Gen SKU
   function generateSKU() {
@@ -587,7 +634,7 @@ export default function CreateListingScreen() {
 
     const finalImages = galleryImages.length > 0 ? galleryImages : imageUrl.trim() ? [imageUrl.trim()] : [];
 
-    const payload = {
+    const payload: any = {
       type,
       title: title.trim(),
       brand: brand.trim() || undefined,
@@ -609,7 +656,34 @@ export default function CreateListingScreen() {
       tags,
       labels,
       variants,
-      shippingDetails: {
+      image: imageUrl.trim() || finalImages[0] || undefined,
+      images: finalImages,
+      video: videoUrl.trim() || undefined,
+      status: 'published',
+    };
+
+    if (type === 'service') {
+      payload.serviceDetails = {
+        serviceType,
+        priceType,
+        price: basePrice,
+        serviceHighlights: serviceHighlights.trim() || undefined,
+        termsAndConditions: termsAndConditions.trim() || undefined,
+        duration: duration.trim() || '1 Hour',
+        serviceArea: serviceArea.trim() || 'Local Area',
+        minOrderValue: minOrderValue ? parseFloat(minOrderValue) : undefined,
+        homeVisitAvailable,
+        maxTravelDistanceKm: maxTravelDistanceKm ? parseFloat(maxTravelDistanceKm) : 15,
+        availableCities: availableCities.trim() || undefined,
+        emergencyService24x7,
+        advanceBookingRequired,
+        bookingAvailability,
+        coverImage: imageUrl.trim() || finalImages[0] || undefined,
+        galleryImages: finalImages.slice(1),
+        reelVideo: videoUrl.trim() || undefined,
+      };
+    } else {
+      payload.shippingDetails = {
         weight: shippingWeight ? parseFloat(shippingWeight) : undefined,
         weightUnit: shippingWeightUnit,
         length: shippingLength ? parseFloat(shippingLength) : undefined,
@@ -619,12 +693,18 @@ export default function CreateListingScreen() {
         shippingType,
         freeShipping,
         estimatedDays: parseInt(estimatedDays || '5', 10),
-      },
-      image: imageUrl.trim() || finalImages[0] || undefined,
-      images: finalImages,
-      video: videoUrl.trim() || undefined,
-      status: 'published',
-    };
+      };
+      payload.productDetails = {
+        brand: brand.trim() || undefined,
+        sku: sku.trim() || undefined,
+        minOrderQty: parseInt(minOrderQty || '1', 10),
+        unit,
+        warranty: warranty.trim() || undefined,
+        returnPolicy: returnPolicy.trim() || undefined,
+        gst: gst.trim() || undefined,
+        shippingDetails: payload.shippingDetails,
+      };
+    }
 
     if (isEdit && editId) {
       updateMutation.mutate(
