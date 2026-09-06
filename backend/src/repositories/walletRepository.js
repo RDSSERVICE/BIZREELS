@@ -74,20 +74,26 @@ class WalletRepository {
         const IsolatedWallet = require('../models/IsolatedWallet.model');
         const IsolatedTransaction = require('../models/IsolatedTransaction.model');
 
+        const desc = (description || '').toLowerCase();
+        // Customer activities (e.g. order purchases, service bookings, customer refunds) belong to Customer wallet only
+        const isCustomerActivity = type === 'refund' || desc.includes('cancelled') || desc.includes('ordered:') || desc.includes('order:');
+
         let targetRole = null;
-        if (amount < 0) {
-          targetRole = 'vendor';
-        } else {
-          const desc = (description || '').toLowerCase();
-          if (desc.includes('campaign') || desc.includes('creator') || desc.includes('shoot')) {
-            targetRole = 'creator';
-          } else {
+        if (!isCustomerActivity) {
+          if (amount < 0) {
             targetRole = 'vendor';
+          } else {
+            if (desc.includes('campaign') || desc.includes('creator') || desc.includes('shoot')) {
+              targetRole = 'creator';
+            } else {
+              targetRole = 'vendor';
+            }
           }
         }
 
-        // Get or create isolated wallet
-        let isoWallet = await IsolatedWallet.findOne({ userId: uid, role: targetRole }).session(session);
+        if (targetRole) {
+          // Get or create isolated wallet
+          let isoWallet = await IsolatedWallet.findOne({ userId: uid, role: targetRole }).session(session);
         if (!isoWallet) {
           let initialBalance = 0;
           if (targetRole === 'vendor') {
@@ -143,6 +149,7 @@ class WalletRepository {
               status: 'success',
             }], { session });
           }
+        }
         }
       } catch (err) {
         logger.error('Failed to sync isolated wallet during updateWalletBalance', { error: err.message });

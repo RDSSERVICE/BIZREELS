@@ -50,7 +50,7 @@ if (config.redis.enabled && process.env.NODE_ENV !== 'test') {
         }
         return 100;
       },
-      connectTimeout: 10000,
+      connectTimeout: 2000,
     };
 
     // Configure SSL/TLS if config.redis.tls is true or if the REDIS_URL starts with rediss://

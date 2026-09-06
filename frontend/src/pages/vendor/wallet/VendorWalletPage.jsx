@@ -100,13 +100,18 @@ export default function VendorWalletPage() {
   const rawTx = txData?.data || txData || [];
   const transactions = Array.isArray(rawTx) ? rawTx : rawTx.transactions || [];
 
+  const isTxCredit = (t) => {
+    const typeStr = (t?.type || t?.credit_debit || '').toLowerCase();
+    return typeStr === 'credit' || typeStr === 'deposit' || typeStr === 'recharge' || typeStr === 'referral_bonus' || typeStr === 'refund' || t?.credit_debit === 'credit';
+  };
+
   const totalCredits = transactions
-    .filter(t => t.type === 'credit' || t.type === 'deposit' || t.type === 'recharge')
-    .reduce((acc, t) => acc + (t.amount || 0), 0);
+    .filter(isTxCredit)
+    .reduce((acc, t) => acc + Math.abs(t.amount || 0), 0);
 
   const totalDebits = transactions
-    .filter(t => t.type === 'debit' || t.type === 'withdrawal' || t.type === 'boost' || t.type === 'lead_unlock')
-    .reduce((acc, t) => acc + (t.amount || 0), 0);
+    .filter(t => !isTxCredit(t))
+    .reduce((acc, t) => acc + Math.abs(t.amount || 0), 0);
 
   const handleRechargeSubmit = async (e) => {
     e.preventDefault();
@@ -216,8 +221,7 @@ export default function VendorWalletPage() {
       key: 'type',
       label: bi('Type', 'प्रकार (Type)'),
       render: (val, row) => {
-        const typeStr = (val || row?.type || row?.credit_debit || 'debit').toLowerCase();
-        const isCredit = typeStr === 'credit' || typeStr === 'deposit' || typeStr === 'recharge' || typeStr === 'referral_bonus' || row?.credit_debit === 'credit';
+        const isCredit = isTxCredit(row);
         return (
           <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
             isCredit
@@ -234,8 +238,7 @@ export default function VendorWalletPage() {
       label: bi('Amount (INR)', 'राशि (रुपये)'),
       render: (val, row) => {
         const amt = typeof val === 'number' ? val : (typeof row?.amount === 'number' ? row.amount : 0);
-        const typeStr = (row?.type || row?.credit_debit || '').toLowerCase();
-        const isCredit = typeStr === 'credit' || typeStr === 'deposit' || typeStr === 'recharge' || typeStr === 'referral_bonus' || row?.credit_debit === 'credit';
+        const isCredit = isTxCredit(row);
         return (
           <span className={`font-black text-xs font-mono ${isCredit ? 'text-emerald-700' : 'text-rose-700'}`}>
             {isCredit ? '+' : '-'}₹{Math.abs(amt).toLocaleString('en-IN')}
