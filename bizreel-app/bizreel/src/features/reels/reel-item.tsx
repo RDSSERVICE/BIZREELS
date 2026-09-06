@@ -538,20 +538,43 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
   }
 
   function handleOpenVendorProfile() {
+    const creatorObj: any = typeof (reel as any).creator === 'object' ? (reel as any).creator : null;
+    const creatorId =
+      (reel as any).creatorId ||
+      (reel as any).creator_id ||
+      creatorObj?._id ||
+      creatorObj?.id ||
+      (typeof (reel as any).creator === 'string' ? (reel as any).creator : null);
+
+    const vendorObj: any = typeof (reel as any).vendor === 'object' ? (reel as any).vendor : null;
     const vendorId =
       (reel as any).vendor_id ||
       (reel as any).vendorId ||
-      (reel as any).vendor?._id ||
-      (reel as any).vendor?.id ||
-      (typeof reel.creator === 'object' ? (reel.creator as any)?._id || (reel.creator as any)?.id : reel.creator);
+      vendorObj?._id ||
+      vendorObj?.id ||
+      (typeof (reel as any).vendor === 'string' ? (reel as any).vendor : null);
 
-    if (vendorId) {
+    const isCreatorReel =
+      Boolean(creatorId) &&
+      (!vendorId ||
+        (reel as any).user_role === 'creator' ||
+        (reel as any).userRole === 'creator' ||
+        creatorObj?.current_role === 'creator' ||
+        creatorObj?.roles?.includes('creator'));
+
+    if (isCreatorReel && creatorId) {
+      router.push({
+        pathname: '/creator/[id]',
+        params: { id: creatorId.toString() },
+      } as any);
+    } else if (vendorId || creatorId) {
+      const targetId = (vendorId || creatorId).toString();
       router.push({
         pathname: '/vendor/[id]',
-        params: { id: vendorId.toString() },
+        params: { id: targetId },
       } as any);
     } else {
-      Alert.alert('Vendor Profile', 'Vendor details not available for this reel.');
+      Alert.alert('Profile', 'Profile details not available for this reel author.');
     }
   }
 

@@ -253,31 +253,40 @@ export default function VendorHireCreatorScreen() {
             const bioText = item.bio || item.creatorProfile?.bio;
             const isVerified = Boolean(item.isVerified || item.is_verified || item.kyc_status === 'approved');
 
+            const creatorId = item._id || item.id;
+            const handleNavigateProfile = () => {
+              if (creatorId) {
+                router.push({ pathname: '/creator/[id]', params: { id: creatorId.toString() } } as any);
+              }
+            };
+
             return (
               <View style={styles.creatorCard}>
-                <View style={styles.cardHeaderRow}>
-                  <Image source={{ uri: avatar }} style={styles.avatar} />
-                  
-                  <View style={styles.cardMainInfo}>
-                    <View style={styles.nameRow}>
-                      <Text style={styles.creatorName} numberOfLines={1}>{item.name}</Text>
-                      {isVerified && <Ionicons name="checkmark-circle" size={16} color={YELLOW} />}
-                    </View>
-
-                    <Text style={styles.handleText}>@{item.handle || item.username || 'creator'}</Text>
-
-                    <View style={styles.metaBadgeRow}>
-                      <View style={styles.ratingBadge}>
-                        <Ionicons name="star" size={11} color={BLACK} />
-                        <Text style={styles.ratingText}>{rating}</Text>
+                <TouchableOpacity activeOpacity={0.8} onPress={handleNavigateProfile}>
+                  <View style={styles.cardHeaderRow}>
+                    <Image source={{ uri: avatar }} style={styles.avatar} />
+                    
+                    <View style={styles.cardMainInfo}>
+                      <View style={styles.nameRow}>
+                        <Text style={styles.creatorName} numberOfLines={1}>{item.name}</Text>
+                        {isVerified && <Ionicons name="checkmark-circle" size={16} color={YELLOW} />}
                       </View>
 
-                      <View style={styles.catBadge}>
-                        <Text style={styles.catBadgeText}>{cat}</Text>
+                      <Text style={styles.handleText}>@{item.handle || item.username || 'creator'}</Text>
+
+                      <View style={styles.metaBadgeRow}>
+                        <View style={styles.ratingBadge}>
+                          <Ionicons name="star" size={11} color={BLACK} />
+                          <Text style={styles.ratingText}>{rating}</Text>
+                        </View>
+
+                        <View style={styles.catBadge}>
+                          <Text style={styles.catBadgeText}>{cat}</Text>
+                        </View>
                       </View>
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
 
                 {Boolean(bioText) && (
                   <Text style={styles.bioText} numberOfLines={2}>
@@ -292,6 +301,13 @@ export default function VendorHireCreatorScreen() {
                   </View>
 
                   <View style={styles.actionBtnGroup}>
+                    <TouchableOpacity
+                      style={styles.viewProfileBtn}
+                      onPress={handleNavigateProfile}>
+                      <Ionicons name="person-outline" size={14} color="#fff" />
+                      <Text style={styles.viewProfileBtnText}>PROFILE</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                       style={styles.hireBtn}
                       onPress={() => handleOpenHireModal(item)}>
@@ -627,6 +643,21 @@ const styles = StyleSheet.create({
   actionBtnGroup: {
     flexDirection: 'row',
     gap: 8,
+  },
+  viewProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  viewProfileBtnText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
   },
   hireBtn: {
     flexDirection: 'row',
