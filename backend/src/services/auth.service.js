@@ -731,6 +731,10 @@ class AuthService {
     }
     if (vendorProfile) {
       const currentProfile = user.vendorProfile ? (user.vendorProfile.toObject ? user.vendorProfile.toObject() : user.vendorProfile) : {};
+      const newShopName = vendorProfile.shopName || vendorProfile.businessName;
+      if (newShopName && !name) {
+        updateFields.name = newShopName;
+      }
       updateFields.vendorProfile = {
         ...currentProfile,
         ...vendorProfile

@@ -245,12 +245,16 @@ const updateVendorProfileHandler = catchAsync(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (!user) throw ApiError.notFound('User not found');
 
+  const vpData = req.body.vendorProfile ? { ...req.body, ...req.body.vendorProfile } : req.body;
+
   const {
     businessName, shopName, storeName, ownerName, phone, email, category, subcategory, bio,
     city, state, pincode, address, gstin, panNumber, registrationLicense, timings,
     isTemporaryClosed, closeScheduleReason, socialLinks, avatarUrl, coverUrl,
-    bannerUrl, profile_pic
-  } = req.body;
+    bannerUrl, profile_pic, description, businessDescription, website, whatsapp, instagram, facebook,
+    coverBanner, shopLogo, shopCoverImage, businessHours, businessTiming, profession, businessType,
+    area, tehsil, businessAddress
+  } = vpData;
 
   const currentVp = user.vendorProfile ? (user.vendorProfile.toObject ? user.vendorProfile.toObject() : user.vendorProfile) : {};
 
@@ -281,12 +285,35 @@ const updateVendorProfileHandler = catchAsync(async (req, res) => {
     if (Array.isArray(subcategory)) currentVp.subCategories = subcategory;
     else if (typeof subcategory === 'string') currentVp.subCategories = [subcategory];
   }
+  const prof = profession || businessType;
+  if (prof) {
+    currentVp.profession = String(prof).trim();
+    currentVp.businessType = String(prof).trim();
+    user.profession = String(prof).trim();
+    user.occupation = String(prof).trim();
+  }
+  const desc = description || businessDescription;
+  if (desc !== undefined) {
+    currentVp.description = String(desc || '').trim();
+    currentVp.businessDescription = String(desc || '').trim();
+  }
+  if (website !== undefined) currentVp.website = String(website || '').trim();
+  if (whatsapp !== undefined) {
+    currentVp.whatsapp = String(whatsapp || '').trim();
+    currentVp.whatsappNumber = String(whatsapp || '').trim();
+  }
+  if (instagram !== undefined) currentVp.instagram = String(instagram || '').trim();
+  if (facebook !== undefined) currentVp.facebook = String(facebook || '').trim();
+  if (businessHours !== undefined) currentVp.businessHours = businessHours;
+  if (businessTiming !== undefined) currentVp.businessTiming = businessTiming;
   if (bio !== undefined) currentVp.bio = String(bio || '').trim();
   if (city !== undefined) {
     currentVp.city = String(city || '').trim();
     user.city = String(city || '').trim();
   }
   if (state !== undefined) currentVp.state = String(state || '').trim();
+  if (tehsil !== undefined) currentVp.tehsil = String(tehsil || '').trim();
+  if (area !== undefined) currentVp.area = String(area || '').trim();
   if (pincode !== undefined) currentVp.pincode = String(pincode || '').trim();
 
   if (address !== undefined) {
@@ -294,10 +321,14 @@ const updateVendorProfileHandler = catchAsync(async (req, res) => {
     const fullAddrStr = typeof address === 'string' ? address : address?.fullAddress || address?.street || address?.address || '';
     if (!user.location) user.location = { type: 'Point', coordinates: [0, 0] };
     user.location.address = fullAddrStr;
+    if (state) user.location.state = state;
+    if (city) user.location.city = city;
+    if (pincode) user.location.pincode = pincode;
     if (!user.location.coordinates || user.location.coordinates.length < 2) {
       user.location.coordinates = [0, 0];
     }
   }
+  if (businessAddress !== undefined) currentVp.businessAddress = businessAddress;
 
   if (gstin !== undefined) currentVp.gstin = String(gstin || '').trim();
   if (panNumber !== undefined) currentVp.panNumber = String(panNumber || '').trim();
@@ -307,12 +338,18 @@ const updateVendorProfileHandler = catchAsync(async (req, res) => {
   if (closeScheduleReason !== undefined) currentVp.closeScheduleReason = String(closeScheduleReason || '').trim();
   if (socialLinks !== undefined) currentVp.socialLinks = socialLinks;
 
-  const pic = avatarUrl || coverUrl || bannerUrl || profile_pic;
+  const pic = avatarUrl || shopLogo || profile_pic;
   if (pic) {
     currentVp.avatarUrl = pic;
-    currentVp.coverUrl = coverUrl || pic;
+    currentVp.shopLogo = pic;
     user.avatarUrl = pic;
     user.profile_pic = pic;
+  }
+  const banner = coverBanner || shopCoverImage || coverUrl || bannerUrl;
+  if (banner) {
+    currentVp.coverBanner = banner;
+    currentVp.shopCoverImage = banner;
+    currentVp.coverUrl = banner;
   }
 
   currentVp.updatedAt = new Date();
@@ -331,9 +368,43 @@ const updateVendorProfileHandler = catchAsync(async (req, res) => {
     message: '🟢 Vendor Business Profile updated successfully!',
     data: { user: user.toObject ? user.toObject() : user, vendorProfile: currentVp },
     vendorProfile: currentVp,
-    user,
+    user: user.toObject ? user.toObject() : user,
   });
 });
+
+router.get('/me/profile', requireAuth, catchAsync(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found');
+  const vp = user.vendorProfile ? (user.vendorProfile.toObject ? user.vendorProfile.toObject() : user.vendorProfile) : {};
+  res.json({
+    success: true,
+    data: {
+      ...vp,
+      avatarUrl: vp.avatarUrl || vp.shopLogo || user.avatarUrl || user.profile_pic || '',
+      coverUrl: vp.coverBanner || vp.shopCoverImage || vp.coverUrl || '',
+      businessName: vp.businessName || vp.shopName || user.name || '',
+      storeName: vp.shopName || vp.businessName || user.name || '',
+      ownerName: vp.ownerName || user.name || '',
+      phone: vp.mobileNumber || user.phone || '',
+      email: vp.email || user.email || '',
+      category: vp.category || 'Tech & Electronics',
+      bio: vp.description || vp.bio || '',
+      city: vp.city || user.city || '',
+      state: vp.state || '',
+      pincode: vp.pincode || '',
+      address: vp.address || {},
+      gstin: vp.gstin || '',
+      panNumber: vp.panNumber || '',
+      registrationLicense: vp.registrationLicense || '',
+      timings: vp.businessTiming || vp.timings || {},
+      isTemporaryClosed: !!vp.isTemporaryClosed,
+      closeScheduleReason: vp.closeScheduleReason || '',
+      socialLinks: vp.socialLinks || { instagram: vp.instagram || '', whatsapp: vp.whatsapp || '', website: vp.website || '' },
+    },
+    user: user.toObject ? user.toObject() : user,
+    vendorProfile: vp,
+  });
+}));
 
 router.put('/me/profile', requireAuth, updateVendorProfileHandler);
 router.patch('/me/profile', requireAuth, updateVendorProfileHandler);

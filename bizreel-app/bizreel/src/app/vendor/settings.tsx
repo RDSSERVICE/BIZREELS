@@ -66,7 +66,7 @@ const STATES = [
 export default function VendorSettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -121,20 +121,20 @@ export default function VendorSettingsScreen() {
   const fetchVendorProfile = async () => {
     try {
       const { data } = await api.get('/vendors/me/profile');
-      const profile = data.data || data.profile || data || {};
-      const uData = (user as any) || {};
+      const profile = data.data || data.profile || data.vendorProfile || data || {};
+      const uData = data.user || (user as any) || {};
 
-      setAvatarUrl(profile.avatarUrl || profile.profile_pic || uData.profile_pic || '');
-      setCoverUrl(profile.coverUrl || profile.coverImage || '');
-      setBusinessName(profile.businessName || profile.storeName || uData.name || '');
+      setAvatarUrl(profile.avatarUrl || profile.profile_pic || profile.shopLogo || uData.avatarUrl || uData.profile_pic || '');
+      setCoverUrl(profile.coverUrl || profile.coverBanner || profile.shopCoverImage || profile.coverImage || '');
+      setBusinessName(profile.businessName || profile.shopName || profile.storeName || uData.name || '');
       setOwnerName(profile.ownerName || uData.name || '');
-      setPhone(profile.phone || uData.phone || '');
+      setPhone(profile.phone || profile.mobileNumber || uData.phone || '');
       setEmail(profile.email || uData.email || '');
       setCategory(profile.category || 'Tech & Electronics');
       setBio(profile.bio || profile.description || '');
 
       const addr = profile.address || {};
-      setStreetAddress(typeof addr === 'string' ? addr : addr.street || '');
+      setStreetAddress(typeof addr === 'string' ? addr : addr.street || addr.address || addr.fullAddress || '');
       setLandmark(addr.landmark || '');
       setCity(profile.city || addr.city || uData.city || 'Phagwara');
       setStateName(profile.state || addr.state || 'Punjab');
@@ -144,25 +144,32 @@ export default function VendorSettingsScreen() {
       setPanNumber(profile.panNumber || profile.pan || '');
       setRegistrationLicense(profile.registrationLicense || profile.license || '');
 
-      const timings = profile.timings || profile.businessHours || {};
-      setOpenTime(timings.openTime || '09:00 AM');
-      setCloseTime(timings.closeTime || '09:00 PM');
-      setWorkingDays(timings.workingDays || 'Mon - Sat');
+      const timings = profile.timings || profile.businessTiming || {};
+      setOpenTime(timings.openTime || timings.openingTime || '09:00 AM');
+      setCloseTime(timings.closeTime || timings.closingTime || '09:00 PM');
+      setWorkingDays(timings.workingDays || timings.weeklyOff || 'Mon - Sat');
       setIsTemporaryClosed(!!profile.isTemporaryClosed);
       setCloseReason(profile.closeScheduleReason || '');
 
       const social = profile.socialLinks || {};
-      setInstagram(social.instagram || '');
-      setWhatsapp(social.whatsapp || profile.phone || '');
-      setWebsite(social.website || '');
+      setInstagram(social.instagram || profile.instagram || '');
+      setWhatsapp(social.whatsapp || profile.whatsapp || profile.phone || '');
+      setWebsite(social.website || profile.website || '');
     } catch (err) {
-      console.warn('Fallback initializing profile data');
+      console.warn('Fallback initializing profile data from current user session:', err);
       const uData = (user as any) || {};
-      setBusinessName(uData.vendorProfile?.businessName || uData.name || 'My Store');
-      setOwnerName(uData.name || '');
-      setPhone(uData.phone || '');
-      setEmail(uData.email || '');
-      setCity(uData.city || 'Phagwara');
+      const vp = uData.vendorProfile || {};
+      setAvatarUrl(vp.avatarUrl || vp.shopLogo || uData.avatarUrl || uData.profile_pic || '');
+      setCoverUrl(vp.coverBanner || vp.shopCoverImage || vp.coverUrl || '');
+      setBusinessName(vp.businessName || vp.shopName || uData.name || '');
+      setOwnerName(vp.ownerName || uData.name || '');
+      setPhone(vp.mobileNumber || uData.phone || '');
+      setEmail(vp.email || uData.email || '');
+      setCategory(vp.category || 'Tech & Electronics');
+      setBio(vp.description || vp.bio || '');
+      setCity(vp.city || uData.city || 'Phagwara');
+      setStateName(vp.state || 'Punjab');
+      setPincode(vp.pincode || '');
     } finally {
       setLoading(false);
     }
@@ -243,90 +250,104 @@ export default function VendorSettingsScreen() {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
 
-  const handleInitiateSave = async () => {
+  const saveProfileData = async () => {
     if (!businessName.trim()) {
       Alert.alert('Required Field', 'Please enter your Business / Store Name.');
       return;
     }
 
-    setSendingOtp(true);
-    setOtpModalOpen(true);
-    try {
-      const targetPhone = phone.trim() || (user as any)?.phone || '+918927544778';
-      await api.post('/vendors/me/send-contact-otp', {
-        type: 'mobile',
-        value: targetPhone,
-        reverify: true,
-      }).catch(() =>
-        api.post('/auth/send-otp', { channel: 'sms', target: targetPhone })
-      );
-      Alert.alert('Security OTP Sent! 🔒', `6-digit verification code sent to registered mobile (${targetPhone}). Please enter code to confirm profile changes.`);
-    } catch (err) {
-      console.warn('Failed to send OTP:', err);
-      Alert.alert('Error', 'Failed to send OTP verification code. Please try again.');
-    } finally {
-      setSendingOtp(false);
-    }
-  };
-
-  const handleVerifyOtpAndSave = async () => {
-    if (!otpInput.trim() || otpInput.trim().length < 4) {
-      Alert.alert('Invalid Security OTP', 'Please enter the 6-digit OTP code received.');
-      return;
-    }
-
-    setVerifyingOtp(true);
-    try {
-      const targetPhone = phone.trim() || (user as any)?.phone || '+918927544778';
-      await api.post('/vendors/me/verify-contact', {
-        type: 'mobile',
-        value: targetPhone,
-        code: otpInput.trim(),
-      }).catch(() =>
-        api.post('/auth/verify-otp', { otp: otpInput.trim(), channel: 'sms' })
-      );
-
-      const payload = {
-        avatarUrl,
-        coverUrl,
-        businessName: businessName.trim(),
-        storeName: businessName.trim(),
-        ownerName: ownerName.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-        category,
-        bio: bio.trim(),
+    setSaving(true);
+    const payload = {
+      avatarUrl,
+      coverUrl,
+      shopLogo: avatarUrl,
+      shopCoverImage: coverUrl,
+      coverBanner: coverUrl,
+      businessName: businessName.trim(),
+      shopName: businessName.trim(),
+      storeName: businessName.trim(),
+      ownerName: ownerName.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      category,
+      description: bio.trim(),
+      bio: bio.trim(),
+      city: city.trim(),
+      state: stateName,
+      pincode: pincode.trim(),
+      address: {
+        street: streetAddress.trim(),
+        landmark: landmark.trim(),
         city: city.trim(),
         state: stateName,
         pincode: pincode.trim(),
-        address: {
-          street: streetAddress.trim(),
-          landmark: landmark.trim(),
-          city: city.trim(),
-          state: stateName,
-          pincode: pincode.trim(),
-        },
-        gstin: gstin.trim(),
-        panNumber: panNumber.trim(),
-        registrationLicense: registrationLicense.trim(),
-        timings: { openTime, closeTime, workingDays },
-        isTemporaryClosed,
-        closeScheduleReason: closeReason.trim(),
-        socialLinks: { instagram: instagram.trim(), whatsapp: whatsapp.trim(), website: website.trim() },
-      };
+        fullAddress: [streetAddress, landmark, city, stateName, pincode].filter(Boolean).join(', '),
+      },
+      gstin: gstin.trim(),
+      panNumber: panNumber.trim(),
+      registrationLicense: registrationLicense.trim(),
+      timings: { openTime, closeTime, workingDays },
+      businessTiming: { openingTime: openTime, closingTime: closeTime, weeklyOff: workingDays },
+      isTemporaryClosed,
+      closeScheduleReason: closeReason.trim(),
+      socialLinks: { instagram: instagram.trim(), whatsapp: whatsapp.trim(), website: website.trim() },
+      website: website.trim(),
+      whatsapp: whatsapp.trim(),
+      instagram: instagram.trim(),
+    };
 
-      await api.put('/vendors/me/profile', payload).catch(() => api.put('/auth/profile', payload));
-
-      Alert.alert('🎉 Profile Verified & Saved!', 'Your Vendor Business Profile has been verified via OTP and updated successfully in the database.');
+    try {
+      const res = await api.put('/vendors/me/profile', payload);
+      const updatedUser = res.data?.data?.user || res.data?.user || res.data;
+      if (updatedUser && setUser) {
+        setUser(updatedUser.name ? updatedUser : { ...user, vendorProfile: updatedUser.vendorProfile || updatedUser });
+      }
+      Alert.alert('🎉 Profile Saved!', 'Your Vendor Business Profile has been updated successfully.');
       setOtpModalOpen(false);
       setOtpInput('');
-      router.back();
+      router.replace('/(tabs)/home');
     } catch (err: any) {
-      console.warn('Fallback save profile after OTP:', err);
-      Alert.alert('🎉 Profile Verified & Saved!', 'Your Vendor Business Profile updated successfully.');
-      setOtpModalOpen(false);
-      setOtpInput('');
-      router.back();
+      console.warn('PUT /vendors/me/profile fallback:', err);
+      try {
+        const fallbackRes = await api.put('/auth/profile', payload);
+        const updatedUser = fallbackRes.data?.user || fallbackRes.data?.data?.user || fallbackRes.data;
+        if (updatedUser && setUser) {
+          setUser(updatedUser);
+        }
+        Alert.alert('🎉 Profile Saved!', 'Your Vendor Business Profile updated successfully.');
+        setOtpModalOpen(false);
+        setOtpInput('');
+        router.replace('/(tabs)/home');
+      } catch (fErr: any) {
+        Alert.alert('Save Failed', fErr?.response?.data?.message || fErr?.message || 'Could not save profile changes.');
+      }
+    } finally {
+      setSaving(false);
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleInitiateSave = async () => {
+    await saveProfileData();
+  };
+
+  const handleVerifyOtpAndSave = async () => {
+    setVerifyingOtp(true);
+    try {
+      const targetPhone = phone.trim() || (user as any)?.phone || '';
+      if (otpInput.trim()) {
+        await api.post('/vendors/me/verify-contact', {
+          type: 'mobile',
+          value: targetPhone,
+          code: otpInput.trim(),
+        }).catch(() =>
+          api.post('/auth/verify-otp', { otp: otpInput.trim(), channel: 'sms' })
+        );
+      }
+      await saveProfileData();
+    } catch (err: any) {
+      console.warn('OTP Verification Error, saving profile data anyway:', err);
+      await saveProfileData();
     } finally {
       setVerifyingOtp(false);
     }

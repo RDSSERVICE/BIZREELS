@@ -29,6 +29,124 @@ const generateCouponCode = () => {
   return code;
 };
 
+const getDefaultConfigForCategory = (categoryKey, currentForm = {}, editConfig = null) => {
+  if (editConfig && Object.keys(editConfig).length > 0) return editConfig;
+
+  switch (categoryKey) {
+    case 'discount':
+      return {
+        discountType: 'percent',
+        discountValue: 15,
+        minOrderAmount: 0,
+      };
+    case 'buy_x_get_y':
+      return {
+        buyQuantity: 1,
+        getQuantity: 1,
+        freeItemType: 'same_product',
+      };
+    case 'free_product':
+      return {
+        purchaseRequirementType: 'min_amount',
+        purchaseRequirementValue: 500,
+        freeQuantity: 1,
+      };
+    case 'combo':
+      return {
+        items: [{ qty: 1, productId: null }, { qty: 1, productId: null }],
+        individualTotalPrice: 200,
+        comboPrice: 150,
+      };
+    case 'coupon':
+      return {
+        couponCode: currentForm.couponCode || generateCouponCode(),
+        couponType: 'percent',
+        discountValue: 10,
+        minOrderAmount: 0,
+        usagePerCustomer: 1,
+      };
+    case 'first_order':
+      return {
+        discountType: 'percent',
+        discountValue: 20,
+        minOrderAmount: 0,
+      };
+    case 'repeat_customer':
+      return {
+        requiredPreviousOrders: 1,
+        discountType: 'percent',
+        discountValue: 15,
+      };
+    case 'festival_seasonal':
+      return {
+        festivalName: 'Festival Sale',
+        applicableProducts: [],
+      };
+    case 'flash_sale':
+      return {
+        discountValue: 25,
+        countdownTimerEnabled: true,
+      };
+    case 'quantity_based':
+      return {
+        slabs: [{ minQty: 2, maxQty: 5, discountPercent: 10 }],
+      };
+    case 'free_delivery':
+      return {
+        minOrderAmountForFreeDelivery: 0,
+      };
+    case 'service_offer':
+      return {
+        normalPrice: 1000,
+        offerPrice: 800,
+      };
+    case 'package_offer':
+      return {
+        packageItems: [{ serviceId: 'srv_1', count: 1 }],
+        packagePrice: 1500,
+        validityDays: 30,
+      };
+    case 'cashback':
+      return {
+        cashbackType: 'percent',
+        cashbackValue: 10,
+        minPurchase: 0,
+      };
+    case 'referral':
+      return {
+        referrerBenefitType: 'coupon',
+        referrerBenefitValue: 50,
+        newCustomerBenefitType: 'coupon',
+        newCustomerBenefitValue: 50,
+      };
+    case 'customer_specific':
+      return {
+        hiddenFromPublicFeed: true,
+      };
+    case 'location_based':
+      return {
+        locationType: 'city',
+        distanceOrAreaValue: 'Indore',
+      };
+    case 'minimum_order':
+      return {
+        minOrderValue: 500,
+        discountValue: 100,
+      };
+    case 'special_price':
+      return {
+        regularPrice: 1000,
+        offerPrice: 799,
+      };
+    default:
+      return {
+        discountType: 'percent',
+        discountValue: 15,
+        minOrderAmount: 0,
+      };
+  }
+};
+
 /**
  * OfferFormModal — 3-Step Wizard for 19-Type Offer Engine
  * Step 1: Select Offer Category (19 types)
@@ -59,12 +177,18 @@ export default function OfferFormModal({
     targetServices: [],
     bannerImage: '',
     priority: 0,
-    config: {},
+    config: getDefaultConfigForCategory('discount'),
   });
 
   useEffect(() => {
     if (editData) {
       const category = editData.category || 'discount';
+      const initialCfg = editData.config || (editData.discountValue ? {
+        discountType: editData.discountType === 'fixed' ? 'fixed' : 'percent',
+        discountValue: Number(editData.discountValue || editData.discountPct || 0),
+        minOrderAmount: Number(editData.minOrderAmount || 0),
+        maxDiscountLimit: editData.maxDiscountLimit || null,
+      } : null);
       setForm({
         category,
         offerName: editData.offerName || '',
@@ -77,32 +201,24 @@ export default function OfferFormModal({
         targetServices: editData.applicableServices || editData.targetServices || [],
         bannerImage: editData.image || editData.bannerImage || '',
         priority: editData.priority || 0,
-        config: editData.config || (editData.discountValue ? {
-          discountType: editData.discountType === 'fixed' ? 'fixed' : 'percent',
-          discountValue: Number(editData.discountValue || editData.discountPct || 0),
-          minOrderAmount: Number(editData.minOrderAmount || 0),
-          maxDiscountLimit: editData.maxDiscountLimit || null,
-        } : {}),
+        config: getDefaultConfigForCategory(category, {}, initialCfg),
       });
       setStep(2); // Jump to details when editing
     } else {
+      const defaultCoupon = generateCouponCode();
       setForm({
         category: 'discount',
         offerName: '',
         title: '',
         description: '',
-        couponCode: generateCouponCode(),
+        couponCode: defaultCoupon,
         startDate: getNowDate(),
         endDate: getNextWeekDate(),
         targetProducts: [],
         targetServices: [],
         bannerImage: '',
         priority: 0,
-        config: {
-          discountType: 'percent',
-          discountValue: 15,
-          minOrderAmount: 0,
-        },
+        config: getDefaultConfigForCategory('discount', { couponCode: defaultCoupon }),
       });
       setStep(1);
     }
@@ -121,8 +237,12 @@ export default function OfferFormModal({
 
   const handleSelectCategory = (catKey) => {
     const defaultNames = OFFER_CATEGORIES[catKey]?.offerNames || [];
-    updateForm('category', catKey);
-    updateForm('offerName', defaultNames[0] || '');
+    setForm(prev => ({
+      ...prev,
+      category: catKey,
+      offerName: defaultNames[0] || '',
+      config: getDefaultConfigForCategory(catKey, prev),
+    }));
     setStep(2);
   };
 
@@ -140,6 +260,7 @@ export default function OfferFormModal({
 
     setSubmitting(true);
     try {
+      const cfg = form.config || {};
       const payload = {
         category: form.category,
         offerName: form.offerName || undefined,
@@ -153,7 +274,10 @@ export default function OfferFormModal({
         applicableServices: form.targetServices,
         image: form.bannerImage || null,
         priority: Number(form.priority || 0),
-        config: form.config || {},
+        config: cfg,
+        discountType: cfg.discountType || cfg.couponType || cfg.cashbackType || (cfg.cashbackValue ? 'percent' : undefined),
+        discountValue: cfg.discountValue != null ? Number(cfg.discountValue) : (cfg.cashbackValue != null ? Number(cfg.cashbackValue) : undefined),
+        minOrderAmount: Number(cfg.minOrderAmount || cfg.minOrderValue || cfg.minPurchaseAmount || cfg.minPurchase || 0),
         status: 'Active',
       };
 

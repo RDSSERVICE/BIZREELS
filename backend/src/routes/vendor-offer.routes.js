@@ -95,22 +95,28 @@ router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
     throw ApiError.badRequest(`Config validation failed: ${configValidation.error}`);
   }
 
+  const validatedCfg = configValidation.value || {};
+  const derivedDiscountType = discountType || validatedCfg.discountType || validatedCfg.couponType || validatedCfg.cashbackType || (validatedCfg.cashbackValue ? 'percent' : null);
+  const derivedDiscountValue = discountValue != null ? Number(discountValue) : (validatedCfg.discountValue != null ? Number(validatedCfg.discountValue) : (validatedCfg.cashbackValue != null ? Number(validatedCfg.cashbackValue) : null));
+  const derivedMinOrderAmount = minOrderAmount != null ? Number(minOrderAmount) : Number(validatedCfg.minOrderAmount || validatedCfg.minOrderValue || validatedCfg.minPurchaseAmount || validatedCfg.minPurchase || 0);
+  const derivedMaxDiscountLimit = maxDiscountLimit ? Number(maxDiscountLimit) : (validatedCfg.maxDiscountLimit ? Number(validatedCfg.maxDiscountLimit) : null);
+
   const offerData = {
     category,
     offerName: offerName || null,
     vendorId: req.user._id,
     isVendorOffer: true,
-    config: configValidation.value,
+    config: validatedCfg,
     title: String(title).trim(),
     description: String(description || '').trim(),
     code: code ? String(code).trim().toUpperCase() : undefined,
     targetRoles: targetRoles || ['customer'],
-    discountType: discountType || null,
-    discountValue: discountValue != null ? Number(discountValue) : null,
-    minOrderAmount: Number(minOrderAmount || 0),
-    maxDiscountLimit: maxDiscountLimit ? Number(maxDiscountLimit) : null,
-    usageLimit: usageLimit ? Number(usageLimit) : null,
-    perUserLimit: perUserLimit ? Number(perUserLimit) : 1,
+    discountType: derivedDiscountType,
+    discountValue: derivedDiscountValue,
+    minOrderAmount: derivedMinOrderAmount,
+    maxDiscountLimit: derivedMaxDiscountLimit,
+    usageLimit: usageLimit ? Number(usageLimit) : (validatedCfg.totalUsageLimit ? Number(validatedCfg.totalUsageLimit) : null),
+    perUserLimit: perUserLimit ? Number(perUserLimit) : (validatedCfg.usagePerCustomer ? Number(validatedCfg.usagePerCustomer) : 1),
     startTime: new Date(startTime),
     endTime: new Date(endTime),
     priority: Number(priority || 0),

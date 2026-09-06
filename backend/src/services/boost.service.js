@@ -188,7 +188,8 @@ const boostReelWithCredits = async (vendorId, reelId, durationDays) => {
     throw ApiError.notFound('Reel not found');
   }
 
-  if (reel.creator.toString() !== vendorId.toString()) {
+  const creatorId = reel.creator?._id ? reel.creator._id.toString() : (reel.creator ? reel.creator.toString() : '');
+  if (creatorId && creatorId !== vendorId.toString()) {
     throw ApiError.forbidden('Only the reel owner can boost');
   }
 
@@ -216,8 +217,8 @@ const boostReelWithCredits = async (vendorId, reelId, durationDays) => {
   // Calculate new boost expiration date
   const now = new Date();
   let baseFrom = now;
-  if (reel.boostExpiresAt && reel.boostExpiresAt > now) {
-    baseFrom = reel.boostExpiresAt;
+  if (reel.boostExpiresAt && new Date(reel.boostExpiresAt) > now) {
+    baseFrom = new Date(reel.boostExpiresAt);
   }
   const newExpiry = new Date(baseFrom.getTime() + days * 24 * 60 * 60 * 1000);
 
@@ -236,17 +237,21 @@ const boostReelWithCredits = async (vendorId, reelId, durationDays) => {
   );
 
   // Trigger notification for vendor
-  await notificationService.create(
-    vendorId,
-    'boost',
-    'Reel boosted!',
-    `Your reel is boosted for ${days} days.`,
-    {},
-    '/vendor/reels',
-    'vendor'
-  );
+  try {
+    await notificationService.create(
+      vendorId,
+      'boost',
+      'Reel boosted!',
+      `Your reel is boosted for ${days} days.`,
+      {},
+      '/vendor/reels',
+      'vendor'
+    );
+  } catch (nErr) {
+    logger.warn(`Notification warning during boost: ${nErr.message}`);
+  }
 
-  return { reel_id: reelId, isBoosted: true, boostExpiresAt: newExpiry };
+  return { reel_id: reelId, isBoosted: true, boostExpiresAt: newExpiry, boostDurationDays: days };
 };
 
 const expireBoostsLoop = async () => {

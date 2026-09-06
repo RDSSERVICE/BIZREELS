@@ -7,6 +7,7 @@ import {
   FiSearch, FiChevronDown, FiCheck, FiX, FiFileText
 } from 'react-icons/fi';
 import { useGetMeQuery, useUpdateProfileMutation } from '../../../features/auth/authApi';
+import { useUpdateVendorProfileMutation } from '../../../features/vendor/vendorApi';
 import { setCredentials } from '../../../features/auth/authSlice';
 import api, { tokenStore, resolveMediaUrl } from '../../../lib/api';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -233,6 +234,7 @@ export default function VendorBusinessProfilePage() {
     skip: !authUser && !tokenStore.getUser(),
   });
   const [updateProfileApi] = useUpdateProfileMutation();
+  const [updateVendorProfileApi] = useUpdateVendorProfileMutation();
 
   const user = profileRes?.data?.user || profileRes?.user || authUser || {};
   const vendorProfile = user.vendorProfile || {};
@@ -288,12 +290,9 @@ export default function VendorBusinessProfilePage() {
   // Initial population from user & vendorProfile
   useEffect(() => {
     if ((user?._id || authUser?._id) && !isHydrated) {
-      // Do not prefill shopName with user personal full name
-      const cleanShopName = (vendorProfile.shopName && vendorProfile.shopName !== user.name)
-        ? vendorProfile.shopName
-        : '';
+      const cleanShopName = vendorProfile.shopName || vendorProfile.businessName || '';
       setShopName(cleanShopName);
-      setBusinessName(vendorProfile.businessName || '');
+      setBusinessName(vendorProfile.businessName || vendorProfile.shopName || '');
 
       const currentProf = vendorProfile.profession || vendorProfile.businessType || user.profession || user.occupation || 'Retailer / Shop Owner';
       if (VENDOR_PROFESSIONS.includes(currentProf)) {
@@ -648,9 +647,12 @@ export default function VendorBusinessProfilePage() {
         address: areaAddress.trim() || finalAddress,
       };
 
-      const resolvedProf = profession === 'Other / Custom Profession' ? customProfession.trim() : profession;
+      const resolvedName = shopName || businessName || user.name;
 
       const payload = {
+        name: resolvedName,
+        shopName,
+        businessName: businessName || shopName,
         profile_pic: profilePic || undefined,
         avatarUrl: profilePic || undefined,
         profession: resolvedProf,
@@ -669,7 +671,7 @@ export default function VendorBusinessProfilePage() {
           profession: resolvedProf,
           businessType: resolvedProf,
           shopName,
-          businessName,
+          businessName: businessName || shopName,
           category,
           description,
           businessHours: hoursStr,
@@ -698,11 +700,17 @@ export default function VendorBusinessProfilePage() {
         }
       };
 
-      const res = await updateProfileApi(payload).unwrap();
-      const updatedUser = res.user || res.data?.user || res;
+      let res;
+      try {
+        res = await updateVendorProfileApi(payload).unwrap();
+      } catch (vErr) {
+        res = await updateProfileApi(payload).unwrap();
+      }
 
-      if (updatedUser) {
-        dispatch(setCredentials({ user: updatedUser }));
+      const updatedUser = res.user || res.data?.user || res.vendorProfile || res;
+
+      if (updatedUser && typeof updatedUser === 'object') {
+        dispatch(setCredentials({ user: updatedUser.name ? updatedUser : { ...user, vendorProfile: updatedUser.vendorProfile || updatedUser } }));
       }
       
       try {
