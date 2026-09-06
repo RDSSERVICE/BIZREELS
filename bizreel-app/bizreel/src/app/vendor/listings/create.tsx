@@ -159,23 +159,31 @@ export default function CreateListingScreen() {
             if (ship.freeShipping !== undefined) setFreeShipping(Boolean(ship.freeShipping));
             if (ship.estimatedDays) setEstimatedDays(String(ship.estimatedDays));
 
-            // Populate Main Cover Image and Gallery Images
-            const mainImg = item.image || item.images?.[0] || item.coverImage || item.media?.[0] || '';
-            if (mainImg) setImageUrl(mainImg);
+            // Populate All Previous Main Cover & Gallery Images
+            const mainImg = item.image || item.images?.[0] || item.coverImage || item.media?.[0] || prod.image || prod.images?.[0] || '';
 
             let allImgs: string[] = [];
             if (Array.isArray(item.images) && item.images.length > 0) {
-              allImgs = item.images;
+              allImgs = [...item.images];
             } else if (Array.isArray(item.media) && item.media.length > 0) {
-              allImgs = item.media;
-            } else if (mainImg) {
-              allImgs = [mainImg];
+              allImgs = [...item.media];
+            } else if (Array.isArray(item.photos) && item.photos.length > 0) {
+              allImgs = [...item.photos];
+            } else if (Array.isArray(prod.images) && prod.images.length > 0) {
+              allImgs = [...prod.images];
             }
-            if (mainImg && !allImgs.includes(mainImg)) {
-              allImgs = [mainImg, ...allImgs];
-            }
-            setGalleryImages(allImgs);
-            if (item.video) setVideoUrl(item.video);
+
+            if (item.image && !allImgs.includes(item.image)) allImgs.unshift(item.image);
+            if (item.coverImage && !allImgs.includes(item.coverImage)) allImgs.unshift(item.coverImage);
+            if (prod.image && !allImgs.includes(prod.image)) allImgs.unshift(prod.image);
+            if (mainImg && !allImgs.includes(mainImg)) allImgs.unshift(mainImg);
+
+            const uniqueImgs = Array.from(new Set(allImgs.filter(Boolean)));
+            setGalleryImages(uniqueImgs);
+            setImageUrl(uniqueImgs[0] || mainImg || '');
+
+            const vid = item.video || item.videos?.[0] || prod.video || '';
+            if (vid) setVideoUrl(vid);
           }
         })
         .catch(() => {

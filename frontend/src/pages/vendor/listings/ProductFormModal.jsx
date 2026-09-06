@@ -220,7 +220,20 @@ export default function ProductFormModal({
   useEffect(() => {
     if (editData) {
       const prod = editData.productDetails || {};
-      const imgList = editData.images || [];
+      let imgList = Array.isArray(editData.images) && editData.images.length > 0
+        ? [...editData.images]
+        : Array.isArray(editData.media) && editData.media.length > 0
+        ? [...editData.media]
+        : Array.isArray(editData.photos) && editData.photos.length > 0
+        ? [...editData.photos]
+        : Array.isArray(prod.images) && prod.images.length > 0
+        ? [...prod.images]
+        : [];
+
+      if (editData.image && !imgList.includes(editData.image)) imgList.unshift(editData.image);
+      if (editData.coverImage && !imgList.includes(editData.coverImage)) imgList.unshift(editData.coverImage);
+      if (prod.image && !imgList.includes(prod.image)) imgList.unshift(prod.image);
+      imgList = Array.from(new Set(imgList.filter(Boolean)));
       const actual = Number(editData.actualPrice || editData.price || 0);
       const selling = Number(editData.salePrice || editData.price || 0);
       const discount = actual > selling && actual > 0 ? Math.round(((actual - selling) / actual) * 100) : (prod.discount || 0);
