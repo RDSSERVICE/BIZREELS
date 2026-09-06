@@ -541,11 +541,16 @@ router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
   const Reel = require('../models/Reel');
   const Listing = require('../models/Listing');
   const Review = require('../models/Review');
+  const Interaction = require('../models/Interaction');
+  const ReelLike = require('../models/ReelLike');
+
+  const uIdObj = new mongoose.Types.ObjectId(user_id);
+  const uIdStr = user_id.toString();
 
   // Stats count
-  const postsCount = await Reel.countDocuments({ creator: user_id, isDeleted: { $ne: true } });
-  const productsCount = await Listing.countDocuments({ vendor: user_id, type: 'product', isDeleted: { $ne: true } });
-  const servicesCount = await Listing.countDocuments({ vendor: user_id, type: 'service', isDeleted: { $ne: true } });
+  const postsCount = await Reel.countDocuments({ creator: { $in: [uIdObj, uIdStr] }, isDeleted: { $ne: true } });
+  const productsCount = await Listing.countDocuments({ vendor: { $in: [uIdObj, uIdStr] }, type: 'product', isDeleted: { $ne: true } });
+  const servicesCount = await Listing.countDocuments({ vendor: { $in: [uIdObj, uIdStr] }, type: 'service', isDeleted: { $ne: true } });
   const followersCount = await followService.followersCount(user_id);
   
   const followingIdsList = await followService.followingIds(user_id);
@@ -553,24 +558,24 @@ router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
 
   // Sum of views & likes on Reels
   const reelStats = await Reel.aggregate([
-    { $match: { creator: new mongoose.Types.ObjectId(user_id), isDeleted: { $ne: true } } },
+    { $match: { creator: { $in: [uIdObj, uIdStr] }, isDeleted: { $ne: true } } },
     {
       $group: {
         _id: null,
-        likes: { $sum: '$likesCount' },
-        views: { $sum: '$views' }
+        likes: { $sum: { $ifNull: ['$likesCount', { $ifNull: ['$likes', { $ifNull: ['$likes_count', 0] }] }] } },
+        views: { $sum: { $ifNull: ['$views', 0] } }
       }
     }
   ]);
 
-  // Sum of views & likes on Listings
+  // Sum of views & likes on Listings (accounting for both 'likes' and 'likes_count' fields)
   const listingStats = await Listing.aggregate([
-    { $match: { vendor: new mongoose.Types.ObjectId(user_id), isDeleted: { $ne: true } } },
+    { $match: { vendor: { $in: [uIdObj, uIdStr] }, isDeleted: { $ne: true } } },
     {
       $group: {
         _id: null,
         views: { $sum: { $ifNull: ['$views', 0] } },
-        likes: { $sum: { $ifNull: ['$likesCount', 0] } }
+        likes: { $sum: { $ifNull: ['$likes', { $ifNull: ['$likes_count', { $ifNull: ['$likesCount', 0] }] }] } }
       }
     }
   ]);
@@ -580,7 +585,24 @@ router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
   const totalListingLikes = listingStats[0]?.likes || 0;
   const totalListingViews = listingStats[0]?.views || 0;
 
-  const totalLikes = totalReelLikes + totalListingLikes;
+  // Cross-check with direct Interaction records for listings
+  const vendorListings = await Listing.find({ vendor: { $in: [uIdObj, uIdStr] }, isDeleted: { $ne: true } }).select('_id').lean();
+  const listingIds = vendorListings.map(l => l._id.toString());
+  const interactionListingLikes = listingIds.length > 0
+    ? await Interaction.countDocuments({ listing_id: { $in: listingIds }, type: 'like' })
+    : 0;
+
+  // Cross-check with direct ReelLike records for reels
+  const vendorReels = await Reel.find({ creator: { $in: [uIdObj, uIdStr] }, isDeleted: { $ne: true } }).select('_id').lean();
+  const reelIds = vendorReels.map(r => r._id);
+  const directReelLikes = reelIds.length > 0
+    ? await ReelLike.countDocuments({ reelId: { $in: reelIds } })
+    : 0;
+
+  const finalListingLikes = Math.max(totalListingLikes, interactionListingLikes);
+  const finalReelLikes = Math.max(totalReelLikes, directReelLikes);
+
+  const totalLikes = finalReelLikes + finalListingLikes;
   const totalViews = totalReelViews + totalListingViews;
 
   const reviewsCount = await Review.countDocuments({ targetUser: user_id, isDeleted: { $ne: true } });
@@ -618,17 +640,17 @@ router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
       rating_avg: u.rating_avg || 0.0,
       rating_count: u.rating_count || 0,
       trust_score: u.trust_score || 0,
-      city: u.city || vp.city || u.location?.city || null,
-      state: u.location?.state || null,
-      address: u.location?.address || vp.businessAddress || null,
+      city: u.city || vp.city || u.location?.city || vp.address?.city || null,
+      state: u.location?.state || vp.state || vp.address?.state || null,
+      address: u.location?.address || vp.businessAddress || vp.address?.fullAddress || null,
       joined_date: u.created_at,
       online_status: onlineStatus,
 
       // Business Profile details
-      business_name: vp.businessName || vp.shopName || u.name,
-      description: vp.description || 'Verified vendor on BizReels.',
-      category: vp.category || 'Electronics',
-      subcategory: vp.subcategory || '',
+      business_name: vp.displayName || vp.businessName || vp.shopName || u.name,
+      description: vp.description || vp.businessDescription || vp.bio || 'Verified vendor on BizReels.',
+      category: vp.category || (Array.isArray(vp.categories) && vp.categories[0]) || 'General',
+      subcategory: vp.subcategory || (Array.isArray(vp.subCategories) && vp.subCategories[0]) || '',
       business_hours: vp.businessHours || '9:00 AM - 9:00 PM (Mon-Sat)',
       website: vp.website || '',
       whatsapp: vp.whatsapp || u.phone || '',

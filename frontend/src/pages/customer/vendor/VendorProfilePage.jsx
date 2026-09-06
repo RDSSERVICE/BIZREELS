@@ -270,6 +270,19 @@ export default function VendorProfilePage() {
         return p;
       }));
 
+      // Update overall profile stats likes count
+      setProfile(prev => {
+        if (!prev) return prev;
+        const delta = nextLiked ? 1 : -1;
+        return {
+          ...prev,
+          stats: {
+            ...prev.stats,
+            likes: Math.max(0, (prev.stats?.likes || 0) + delta)
+          }
+        };
+      });
+
       toast.success(nextLiked ? 'Liked reel!' : 'Unliked reel');
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Failed to update like status');
