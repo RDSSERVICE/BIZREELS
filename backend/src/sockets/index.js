@@ -211,6 +211,12 @@ const emitToRoom = (room, event, payload) => {
   }
 };
 
+const broadcast = (event, payload) => {
+  if (ioInstance) {
+    ioInstance.emit(event, payload);
+  }
+};
+
 const isUserOnline = (userId) => {
   if (!ioInstance || !userId) return false;
   try {
