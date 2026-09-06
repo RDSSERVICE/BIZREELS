@@ -185,10 +185,14 @@ const hasBase64 = (obj) => {
   }
 };
 
-// Pre-validate hook to block base64 strings in Reels
+// Pre-validate hook to block base64 strings and local device file paths in Reels
 reelSchema.pre('validate', function () {
   if (hasBase64(this.videoUrl) || hasBase64(this.thumbnailUrl) || hasBase64(this.mediaUrls)) {
     throw new Error('Uploading base64 files directly to MongoDB is not permitted. Please upload files via /api/v1/upload/image first.');
+  }
+  const isLocalDevicePath = (val) => typeof val === 'string' && (/file:\/\//i.test(val) || val.includes('/host.exp.exponent/') || val.includes('cache/ImagePicker'));
+  if (isLocalDevicePath(this.videoUrl) || isLocalDevicePath(this.thumbnailUrl) || (Array.isArray(this.mediaUrls) && this.mediaUrls.some(isLocalDevicePath))) {
+    throw new Error('Local device paths (file://) cannot be saved directly. Please upload files to cloud storage first.');
   }
 });
 
@@ -199,20 +203,32 @@ reelSchema.pre(/^find/, function () {
 });
 
 const sanitizeMediaUrl = (url) => {
-  if (!url || typeof url !== 'string') return url;
-  if (/^file:\/\//i.test(url) || url.includes('/host.exp.exponent/')) {
-    return 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
+  if (!url || typeof url !== 'string') return '';
+  if (/file:\/\//i.test(url) || url.includes('/host.exp.exponent/') || url.includes('cache/ImagePicker')) {
+    return process.env.DEFAULT_FALLBACK_VIDEO_URL || '';
   }
   return url;
 };
+
+const sanitizeImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  if (/file:\/\//i.test(url) || url.includes('/host.exp.exponent/') || url.includes('cache/ImagePicker')) {
+    return '';
+  }
+  return url;
+};
+
+reelSchema.pre('save', function (next) {
+  if (this.videoUrl) this.videoUrl = sanitizeMediaUrl(this.videoUrl);
+  if (this.thumbnailUrl) this.thumbnailUrl = sanitizeImageUrl(this.thumbnailUrl);
+  next();
+});
 
 reelSchema.post(['find', 'findOne', 'findOneAndUpdate'], function (docs) {
   if (!docs) return;
   const sanitizeDoc = (doc) => {
     if (doc.videoUrl) doc.videoUrl = sanitizeMediaUrl(doc.videoUrl);
-    if (doc.thumbnailUrl && (/^file:\/\//i.test(doc.thumbnailUrl) || doc.thumbnailUrl.includes('/host.exp.exponent/'))) {
-      doc.thumbnailUrl = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80';
-    }
+    if (doc.thumbnailUrl) doc.thumbnailUrl = sanitizeImageUrl(doc.thumbnailUrl);
   };
   if (Array.isArray(docs)) {
     docs.forEach(sanitizeDoc);

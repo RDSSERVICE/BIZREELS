@@ -170,7 +170,13 @@ class ReelRepository {
     pipeline.push({
       $unwind: {
         path: '$creatorDetails',
-        preserveNullAndEmptyArrays: true
+        preserveNullAndEmptyArrays: false
+      }
+    });
+
+    pipeline.push({
+      $match: {
+        'creatorDetails.is_deleted': { $ne: true }
       }
     });
 

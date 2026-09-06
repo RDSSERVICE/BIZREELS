@@ -467,18 +467,8 @@ const MyListingsTab = ({ user }) => {
                         value={videoUrl}
                         onChange={(e) => setVideoUrl(e.target.value)}
                         placeholder="https://example.com/video.mp4"
-                        className="flex-grow p-2.5 bg-slate-50 border border-slate-200 focus:border-brand-purple rounded-xl text-xs focus:outline-none"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-brand-purple rounded-xl text-xs focus:outline-none"
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setVideoUrl('https://assets.mixkit.co/videos/preview/mixkit-fashion-woman-with-silver-glitter-makeup-40191-large.mp4');
-                          toast.success('AI Generated video asset set!');
-                        }}
-                        className="px-3 bg-brand-purple/10 text-brand-purple hover:bg-brand-purple hover:text-white rounded-xl text-[10px] font-bold cursor-pointer transition-colors whitespace-nowrap"
-                      >
-                        Create AI Video
-                      </button>
                     </div>
                     <button
                       type="button"

@@ -82,7 +82,13 @@ export default function SearchListingsPage() {
   const handleSelectItem = (item) => {
     if (!item) return;
     const listingId = item._id || item.id;
-    navigate(`/customer/listings/${listingId}`, { state: { listing: item } });
+    navigate(`/customer/listings/${listingId}`, {
+      state: {
+        listing: item,
+        isLiked: Boolean(likedItems[listingId]),
+        isSaved: Boolean(savedItems[listingId])
+      }
+    });
   };
 
   // Fetch coordinates on mount / user location change

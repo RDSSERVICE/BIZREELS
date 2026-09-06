@@ -130,10 +130,12 @@ export default function DirectBuyModal({
 
   // Fetch full vendor details
   useEffect(() => {
-    if (isOpen && vendorId && typeof vendorId === 'string') {
-      api.get(`/v1/users/${vendorId}/profile`)
+    if (isOpen && vendorId && typeof vendorId === 'string' && /^[0-9a-fA-F]{24}$/.test(vendorId)) {
+      api.get(`/v1/vendors/${vendorId}/profile`)
+        .catch(() => api.get(`/v1/users/${vendorId}/profile`))
         .then((res) => {
-          const vData = res.data?.data || res.data?.user || res.data;
+          if (!res) return;
+          const vData = res.data?.data || res.data?.vendor || res.data?.user || res.data;
           if (vData) setVendorFullDetails(vData);
         })
         .catch(() => {});
@@ -258,6 +260,11 @@ export default function DirectBuyModal({
         vendorId: vendorId || undefined,
         listingId: itemId,
       });
+
+      if (res.data?.success === false || res.data?.valid === false) {
+        toast.error(res.data?.message || 'Invalid or expired coupon code.');
+        return;
+      }
 
       const couponData = res.data?.data;
       if (couponData) {

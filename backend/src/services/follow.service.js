@@ -8,10 +8,17 @@ const follow = async (followerId, followingId) => {
     throw ApiError.badRequest("You can't follow yourself");
   }
 
+  if (!followerId || !followingId || !mongoose.Types.ObjectId.isValid(followerId) || !mongoose.Types.ObjectId.isValid(followingId)) {
+    throw ApiError.badRequest('Invalid user ID');
+  }
+
   const follower = await User.findOne({ _id: followerId, is_deleted: { $ne: true } });
   const target = await User.findOne({ _id: followingId, is_deleted: { $ne: true } });
-  if (!target || !follower) {
-    throw ApiError.notFound('User not found');
+  if (!follower) {
+    throw ApiError.unauthorized('Your account session is invalid or user not found');
+  }
+  if (!target) {
+    throw ApiError.notFound('User or creator not found');
   }
 
   // Save follow relationship in database
@@ -86,6 +93,10 @@ const follow = async (followerId, followingId) => {
 };
 
 const unfollow = async (followerId, followingId) => {
+  if (!followerId || !followingId || !mongoose.Types.ObjectId.isValid(followerId) || !mongoose.Types.ObjectId.isValid(followingId)) {
+    throw ApiError.badRequest('Invalid user ID');
+  }
+
   await Follow.deleteOne({ follower_id: followerId, following_id: followingId });
 
   // Update customer (follower) following array & followingCount

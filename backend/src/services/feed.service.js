@@ -215,21 +215,22 @@ const buildFeed = async ({
   const allUserIds = Array.from(new Set([...listingVendorIds, ...reelCreatorIds]));
 
   if (allUserIds.length > 0) {
-    const users = await User.find({ _id: { $in: allUserIds } })
-      .select('name profile_pic avatarUrl shop_name business_name location city address phone vendorProfile isVerified kyc_status is_subscribed_verified paymentDetails payoutDetails')
+    const users = await User.find({ _id: { $in: allUserIds }, is_deleted: { $ne: true } })
+      .select('name profile_pic avatarUrl shop_name business_name location city address phone vendorProfile isVerified kyc_status is_subscribed_verified paymentDetails payoutDetails is_deleted')
       .lean();
     const umap = {};
     for (const u of users) {
       umap[u._id.toString()] = u;
     }
+    const validItems = [];
     for (const r of resultItems) {
       const uId = r.postType === 'listing' ? r.vendor?.toString() : r.creator?.toString();
       const u = umap[uId];
-      if (u) {
+      if (u && !u.is_deleted) {
         const userObj = {
           id: u._id.toString(),
           _id: u._id.toString(),
-          name: u.shop_name || u.business_name || u.name,
+          name: u.shop_name || u.business_name || u.name || 'Verified Vendor',
           shop_name: u.shop_name,
           business_name: u.business_name,
           profile_pic: u.profile_pic || u.avatarUrl,
@@ -249,8 +250,13 @@ const buildFeed = async ({
         } else {
           r.creator = userObj;
         }
+        validItems.push(r);
       }
     }
+    resultItems.length = 0;
+    resultItems.push(...validItems);
+  } else {
+    resultItems.length = 0;
   }
 
   // Populate tagged listing & prices for reels
@@ -269,8 +275,20 @@ const buildFeed = async ({
     } catch (err) { }
   }
 
+  const cleanVideoUrl = (url) => {
+    if (!url || typeof url !== 'string') return process.env.DEFAULT_FALLBACK_VIDEO_URL || '';
+    if (/file:\/\//i.test(url) || url.includes('/host.exp.exponent/') || url.includes('cache/ImagePicker')) {
+      return process.env.DEFAULT_FALLBACK_VIDEO_URL || '';
+    }
+    return url;
+  };
+
   for (const r of resultItems) {
     if (r.postType === 'reel') {
+      r.videoUrl = cleanVideoUrl(r.videoUrl);
+      if (Array.isArray(r.mediaUrls)) {
+        r.mediaUrls = r.mediaUrls.map(cleanVideoUrl);
+      }
       const targetId = (r.targetListing?._id || r.targetListing || r.taggedListing?._id || r.taggedListing || '').toString();
       const lObj = targetListingMap[targetId] || (typeof r.targetListing === 'object' ? r.targetListing : null);
 

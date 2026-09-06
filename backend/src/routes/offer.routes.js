@@ -116,7 +116,7 @@ router.post('/validate-coupon', requireAuth, catchAsync(async (req, res) => {
   const { couponCode, orderAmount = 0, vendorId, listingId } = req.body;
 
   if (!couponCode || typeof couponCode !== 'string' || !couponCode.trim()) {
-    throw ApiError.badRequest('Please enter a coupon code.');
+    return res.json({ success: false, valid: false, message: 'Please enter a coupon code.' });
   }
 
   const cleanCode = couponCode.trim().toUpperCase();
@@ -138,7 +138,7 @@ router.post('/validate-coupon', requireAuth, catchAsync(async (req, res) => {
   const candidateOffers = await Offer.find(query).lean();
 
   if (!candidateOffers || candidateOffers.length === 0) {
-    throw ApiError.badRequest(`Coupon "${cleanCode}" is invalid or has expired.`);
+    return res.json({ success: false, valid: false, message: `Coupon "${cleanCode}" is invalid or has expired.` });
   }
 
   // Pick best matching offer (vendor-specific first if vendorId provided, otherwise platform-wide)
@@ -163,12 +163,12 @@ router.post('/validate-coupon', requireAuth, catchAsync(async (req, res) => {
 
   // 1. Min order amount check
   if (parsedAmount > 0 && minAmount > 0 && parsedAmount < minAmount) {
-    throw ApiError.badRequest(`Minimum order amount of ₹${minAmount} required to apply "${cleanCode}".`);
+    return res.json({ success: false, valid: false, message: `Minimum order amount of ₹${minAmount} required to apply "${cleanCode}".` });
   }
 
   // 2. Total usage limit check
   if (totalLimit && (matchedOffer.usedCount || 0) >= totalLimit) {
-    throw ApiError.badRequest(`Coupon "${cleanCode}" has reached its maximum usage limit.`);
+    return res.json({ success: false, valid: false, message: `Coupon "${cleanCode}" has reached its maximum usage limit.` });
   }
 
   // 3. Per-user usage limit check
@@ -177,7 +177,7 @@ router.post('/validate-coupon', requireAuth, catchAsync(async (req, res) => {
       r => r.userId && r.userId.toString() === req.user._id.toString()
     );
     if (userRedemptions.length >= perUser) {
-      throw ApiError.badRequest(`You have already used coupon "${cleanCode}" the maximum allowed number of times.`);
+      return res.json({ success: false, valid: false, message: `You have already used coupon "${cleanCode}" the maximum allowed number of times.` });
     }
   }
 

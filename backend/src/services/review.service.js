@@ -16,16 +16,32 @@ class ReviewService {
     }
 
     if (targetListingId) {
-      const listing = await Listing.findById(targetListingId);
+      let listing = await Listing.findById(targetListingId);
       if (!listing) {
-        throw ApiError.notFound('Listing target not found.');
+        const Reel = require('../models/Reel');
+        const reel = await Reel.findById(targetListingId);
+        if (!reel) {
+          throw ApiError.notFound('Listing target not found.');
+        }
+        if (!targetUserId && reel.creator) {
+          targetUserId = reel.creator;
+        }
+      } else {
+        if (!targetUserId && listing.vendor) {
+          targetUserId = listing.vendor?._id || listing.vendor;
+        }
       }
       
       const queryCheck = await Review.findOne({ author: authorId, targetListing: targetListingId, isDeleted: false });
       if (queryCheck) {
         queryCheck.rating = parseInt(rating, 10);
         queryCheck.comment = comment;
+        if (targetUserId && !queryCheck.targetUser) {
+          queryCheck.targetUser = targetUserId;
+        }
         await queryCheck.save();
+        await this.updateStats(targetListingId, targetUserId);
+        await queryCheck.populate('author', 'name avatarUrl activeRole');
         logger.info(`Review updated successfully: ${queryCheck._id}`, { service: 'reviews' });
         return queryCheck;
       }
@@ -49,6 +65,8 @@ class ReviewService {
       comment,
     });
 
+    await this.updateStats(targetListingId, targetUserId);
+
     await reviewRepository.logReviewAction({
       userId: authorId,
       action: 'ADMIN_ACTION',
@@ -58,8 +76,47 @@ class ReviewService {
       agent: req?.headers?.['user-agent'] || 'unknown',
     });
 
+    await review.populate('author', 'name avatarUrl activeRole');
     logger.info(`Review created successfully: ${review._id}`, { service: 'reviews' });
     return review;
+  }
+
+  async updateStats(targetListingId, targetUserId) {
+    try {
+      if (targetListingId) {
+        const stats = await Review.aggregate([
+          { $match: { targetListing: targetListingId, isDeleted: false } },
+          { $group: { _id: '$targetListing', avgRating: { $avg: '$rating' }, totalReviews: { $sum: 1 } } }
+        ]);
+        await Listing.findByIdAndUpdate(targetListingId, {
+          rating: stats.length > 0 ? Math.round(stats[0].avgRating * 10) / 10 : 0,
+          totalReviews: stats.length > 0 ? stats[0].totalReviews : 0,
+        });
+      }
+
+      if (targetUserId) {
+        const stats = await Review.aggregate([
+          { $match: { targetUser: targetUserId, isDeleted: false } },
+          { $group: { _id: '$targetUser', avgRating: { $avg: '$rating' }, totalReviews: { $sum: 1 } } }
+        ]);
+        const targetUserDoc = await User.findById(targetUserId);
+        if (targetUserDoc) {
+          const avg = stats.length > 0 ? Math.round(stats[0].avgRating * 10) / 10 : 0;
+          const total = stats.length > 0 ? stats[0].totalReviews : 0;
+          if (targetUserDoc.roles?.includes('vendor') && targetUserDoc.vendorProfile) {
+            targetUserDoc.vendorProfile.rating = avg;
+            targetUserDoc.vendorProfile.totalReviews = total;
+          }
+          if (targetUserDoc.roles?.includes('creator') && targetUserDoc.creatorProfile) {
+            targetUserDoc.creatorProfile.rating = avg;
+            targetUserDoc.creatorProfile.totalReviews = total;
+          }
+          await targetUserDoc.save();
+        }
+      }
+    } catch (err) {
+      logger.error('Error updating review stats:', err);
+    }
   }
 
   async getReviewsForUser(targetUserId, { page = 1, limit = 10 } = {}) {

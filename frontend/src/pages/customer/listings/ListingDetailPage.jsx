@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   FiArrowLeft, FiMapPin, FiStar, FiHeart, FiBookmark, FiShare2,
@@ -75,8 +75,12 @@ export default function ListingDetailPage() {
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
 
   // Interaction States
-  const [isSaved, setIsSaved] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(
+    Boolean(location.state?.isSaved ?? passedListing?.isSaved)
+  );
+  const [isLiked, setIsLiked] = useState(
+    Boolean(location.state?.isLiked ?? passedListing?.isLiked)
+  );
   const [detailDistStr, setDetailDistStr] = useState('');
 
   // Order & Booking Form States
@@ -191,6 +195,12 @@ export default function ListingDetailPage() {
         const listingData = raw.listing || raw;
         if (listingData && (listingData._id || listingData.id || listingData.title)) {
           setItem(listingData);
+          if (listingData.isLiked !== undefined) {
+            setIsLiked(Boolean(listingData.isLiked));
+          }
+          if (listingData.isSaved !== undefined) {
+            setIsSaved(Boolean(listingData.isSaved));
+          }
         }
       } catch (err) {
         // Fallback search if direct ID fetch fails
@@ -200,6 +210,8 @@ export default function ListingDetailPage() {
           if (items.length > 0) {
             const first = items[0]?.listing || items[0];
             setItem(first);
+            if (first.isLiked !== undefined) setIsLiked(Boolean(first.isLiked));
+            if (first.isSaved !== undefined) setIsSaved(Boolean(first.isSaved));
           }
         } catch {}
       } finally {
@@ -209,6 +221,38 @@ export default function ListingDetailPage() {
 
     fetchListing();
   }, [targetId]);
+
+  // Synchronize interaction states with user profile
+  useEffect(() => {
+    const syncInteractions = async () => {
+      const listingId = targetId || item?._id || item?.id;
+      if (!listingId) return;
+      try {
+        const [savedRes, likedRes] = await Promise.all([
+          api.get('/v1/interactions/me/saved').catch(() => ({ data: { items: [] } })),
+          api.get('/v1/interactions/me/liked').catch(() => ({ data: { items: [] } })),
+        ]);
+        const savedList = savedRes.data?.items || savedRes.data?.data?.items || savedRes.data || [];
+        const likedList = likedRes.data?.items || likedRes.data?.data?.items || likedRes.data || [];
+
+        const hasSaved = Array.isArray(savedList) && savedList.some((s) => {
+          const sId = s._id || s.id || s.listing_id || s.listing?._id || s.listing;
+          return sId && sId.toString() === listingId.toString();
+        });
+        const hasLiked = Array.isArray(likedList) && likedList.some((l) => {
+          const lId = l._id || l.id || l.listing_id || l.listing?._id || l.listing;
+          return lId && lId.toString() === listingId.toString();
+        });
+
+        if (hasSaved) setIsSaved(true);
+        if (hasLiked) setIsLiked(true);
+      } catch (err) {
+        console.warn('Failed to sync interactions in ListingDetailPage:', err);
+      }
+    };
+
+    syncInteractions();
+  }, [targetId, item?._id, item?.id]);
 
   // Calculate distance if coordinates available
   useEffect(() => {
@@ -245,17 +289,28 @@ export default function ListingDetailPage() {
         );
       }
     }
+  }, [item]);
 
-    // Fetch reviews for this listing
-    const fetchReviews = async () => {
-      const lid = item._id || item.id || targetId;
+  // Fetch reviews for this listing
+  const fetchReviews = useCallback(async () => {
+    const lid = item?._id || item?.id || targetId;
+    if (!lid) return;
+    try {
+      const res = await api.get(`/v1/reviews/listing/${lid}`);
+      const list = res.data?.data?.reviews || res.data?.reviews || res.data?.data || res.data || [];
+      setReviewsList(Array.isArray(list) ? list : []);
+    } catch {
       try {
-        const res = await api.get(`/v1/reviews?listingId=${lid}`);
-        setReviewsList(res.data?.data || res.data || []);
+        const resFallback = await api.get(`/v1/reviews?listingId=${lid}`);
+        const listFallback = resFallback.data?.data?.reviews || resFallback.data?.reviews || resFallback.data?.data || resFallback.data || [];
+        setReviewsList(Array.isArray(listFallback) ? listFallback : []);
       } catch {}
-    };
+    }
+  }, [item?._id, item?.id, targetId]);
+
+  useEffect(() => {
     fetchReviews();
-  }, [item, targetId]);
+  }, [fetchReviews]);
 
   if (loading && !item) {
     return (
@@ -391,26 +446,42 @@ export default function ListingDetailPage() {
 
   // Toggle Save & Like Handlers
   const handleToggleSave = async () => {
-    setIsSaved(!isSaved);
+    const targetState = !isSaved;
+    setIsSaved(targetState);
     try {
-      if (!isSaved) {
-        await api.post(`/v1/listings/${itemId}/save`);
+      if (targetState) {
+        const res = await api.post(`/v1/listings/${itemId}/save`);
+        const active = res.data?.active ?? res.data?.data?.active;
+        if (active !== undefined) setIsSaved(Boolean(active));
         toast.success('Saved to your bookmarks!');
       } else {
-        await api.post(`/v1/listings/${itemId}/unsave`);
+        const res = await api.post(`/v1/listings/${itemId}/unsave`);
+        const active = res.data?.active ?? res.data?.data?.active;
+        if (active !== undefined) setIsSaved(Boolean(active));
         toast.success('Removed from saved items');
       }
     } catch {
+      setIsSaved(!targetState);
       toast.error('Unable to update bookmark status');
     }
   };
 
   const handleToggleLike = async () => {
-    setIsLiked(!isLiked);
+    const targetState = !isLiked;
+    setIsLiked(targetState);
     try {
-      await api.post(`/v1/listings/${itemId}/like`);
-      toast.success(isLiked ? 'Unliked' : 'Liked!');
-    } catch {}
+      const res = await api.post(`/v1/listings/${itemId}/like`);
+      const active = res.data?.active ?? res.data?.data?.active;
+      if (active !== undefined) {
+        setIsLiked(Boolean(active));
+        toast.success(active ? '❤️ Liked!' : 'Unliked');
+      } else {
+        toast.success(targetState ? '❤️ Liked!' : 'Unliked');
+      }
+    } catch {
+      setIsLiked(!targetState);
+      toast.error('Failed to update like status');
+    }
   };
 
   const handleShare = async () => {
@@ -538,16 +609,23 @@ export default function ListingDetailPage() {
 
     setSubmittingReview(true);
     try {
+      const vendorId = vendorObj._id || vendorObj.id || (typeof item.vendor === 'string' ? item.vendor : undefined);
       const res = await api.post('/v1/reviews', {
+        targetListingId: itemId,
         listingId: itemId,
+        targetUserId: vendorId,
         rating: reviewRating,
-        comment: reviewText,
+        comment: reviewText.trim(),
       });
       toast.success('Thank you! Your review has been published.');
-      setReviewsList([res.data?.data || res.data, ...reviewsList]);
+      const createdReview = res.data?.data?.review || res.data?.review || res.data?.data || res.data;
+      if (createdReview) {
+        setReviewsList((prev) => [createdReview, ...prev.filter((r) => r._id !== createdReview._id)]);
+      }
       setReviewText('');
+      fetchReviews();
     } catch (err) {
-      toast.error('Failed to submit review.');
+      toast.error(err?.response?.data?.message || 'Failed to submit review.');
     } finally {
       setSubmittingReview(false);
     }

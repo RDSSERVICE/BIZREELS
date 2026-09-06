@@ -238,6 +238,9 @@ export default function ImageFullscreenViewer({
   if (!currentPost) return null;
 
   const vendor = currentPost.creator || currentPost.vendor || {};
+  const rawVendorId = vendor._id || vendor.id || (typeof vendor === 'string' ? vendor : null);
+  const vendorId = rawVendorId ? String(rawVendorId) : null;
+  const isFollowing = vendorId ? !!followingMap[vendorId] : false;
 
   return (
     <motion.div
@@ -394,20 +397,22 @@ export default function ImageFullscreenViewer({
                   </span>
                 )}
                 {/* Follow button (neatly placed inline right next to PROMOTED) */}
-                <button
-                  onClick={() => onFollow?.(vendor._id || vendor.id)}
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black transition shrink-0 cursor-pointer flex items-center gap-1 shadow-xs border ${
-                    followingMap[vendor._id || vendor.id]
-                      ? 'bg-white/20 text-white border-white/30 backdrop-blur-xs'
-                      : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] border-[#d99a3d]'
-                  }`}
-                >
-                  {followingMap[vendor._id || vendor.id] ? (
-                    <><FiCheck size={11} /> Following</>
-                  ) : (
-                    <><FiUserPlus size={11} /> Follow</>
-                  )}
-                </button>
+                {vendorId && (
+                  <button
+                    onClick={() => onFollow?.(vendorId)}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black transition shrink-0 cursor-pointer flex items-center gap-1 shadow-xs border ${
+                      isFollowing
+                        ? 'bg-white/20 text-white border-white/30 backdrop-blur-xs'
+                        : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] border-[#d99a3d]'
+                    }`}
+                  >
+                    {isFollowing ? (
+                      <><FiCheck size={11} /> Following</>
+                    ) : (
+                      <><FiUserPlus size={11} /> Follow</>
+                    )}
+                  </button>
+                )}
               </div>
               <p className="text-white/60 text-[10px] truncate font-medium">
                 {currentPost.category || 'Business'}

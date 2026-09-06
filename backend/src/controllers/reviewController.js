@@ -9,7 +9,10 @@ const asyncHandler = require('../utils/asyncHandler');
 class ReviewController {
   // ── Create Review ──────────────────────────────────────
   create = asyncHandler(async (req, res) => {
-    const { targetUserId, targetListingId, rating, comment } = req.body;
+    const targetUserId = req.body.targetUserId || req.body.userId || req.body.vendorId || req.body.vendor_id;
+    const targetListingId = req.body.targetListingId || req.body.listingId || req.body.listing_id;
+    const comment = req.body.comment || req.body.review || req.body.text || req.body.reviewText || '';
+    const rating = req.body.rating;
     
     const review = await reviewService.postReview(
       req.user._id,

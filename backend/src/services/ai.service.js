@@ -1386,7 +1386,7 @@ const generateAiReel = async (prompt) => {
     const subId = firstCat && firstCat.sub.length > 0 ? firstCat.sub[0].id : null;
     const subName = firstCat && firstCat.sub.length > 0 ? firstCat.sub[0].name : 'General';
 
-    let imageUrl = 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
+    let imageUrl = '';
     try {
       const fallbackImage = await generateAiImage(prompt);
       imageUrl = fallbackImage.url;

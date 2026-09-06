@@ -4,11 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiX,
   FiVolume2, FiVolumeX, FiMapPin, FiPhone, FiMessageSquare,
-  FiShield, FiUserPlus, FiCheck, FiShoppingCart, FiZap
+  FiShield, FiUserPlus, FiCheck, FiShoppingCart, FiZap, FiVideoOff
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { api, cartApi } from '../../lib/api';
+import { api, cartApi, resolveMediaUrl } from '../../lib/api';
 import { notifyCartChanged, openCartDrawer } from '../app/CartDrawer';
 import ChatDrawer from '../ui/ChatDrawer';
 
@@ -35,6 +35,7 @@ export default function ReelFullscreenViewer({
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [muted, setMuted] = useState(true);
+  const [failedVideoIds, setFailedVideoIds] = useState({});
   const [directBuyModalOpen, setDirectBuyModalOpen] = useState(false);
   const [selectedBuyItem, setSelectedBuyItem] = useState(null);
   const containerRef = useRef(null);
@@ -258,25 +259,43 @@ export default function ReelFullscreenViewer({
           const isLiked = (reelId && likedMap[reelId] !== undefined) ? likedMap[reelId] : initialLiked;
           const initialSaved = Boolean(reel.isSaved || reel.is_saved || reel.hasSaved || reel.viewer_state?.saved);
           const isSaved = (reelId && savedMap[reelId] !== undefined) ? savedMap[reelId] : initialSaved;
-          const isFollowing = followingMap[reel.creator?._id || reel.creator?.id || reel.creator];
+          const rawCreatorId = reel.creator?._id || reel.creator?.id || (typeof reel.creator === 'string' ? reel.creator : null);
+          const reelCreatorId = rawCreatorId ? String(rawCreatorId) : null;
+          const isFollowing = reelCreatorId ? !!followingMap[reelCreatorId] : false;
           const baseLikes = Number(reel.likesCount ?? reel.likes ?? reel.likes_count ?? 0);
           const likesDiff = (isLiked ? 1 : 0) - (initialLiked ? 1 : 0);
           const displayLikesCount = Math.max(0, baseLikes + likesDiff);
 
-          return (
-            <div
-              key={reel._id || reel.id || idx}
-              className="w-full h-full snap-start snap-always flex-shrink-0 flex items-center justify-center relative bg-black"
-            >
-              {/* Video Element */}
-              <video
-                ref={el => videoRefs.current[idx] = el}
-                src={reel.videoUrl || reel.mediaUrls?.[0] || ''}
-                loop
-                muted={muted}
-                playsInline
-                className="w-full h-full object-cover"
-              />
+            const videoSourceUrl = resolveMediaUrl(reel.videoUrl || reel.mediaUrls?.[0] || '');
+            const isVideoUnavailable = !videoSourceUrl || Boolean(failedVideoIds[reelId]);
+
+            return (
+              <div
+                key={reel._id || reel.id || idx}
+                className="w-full h-full snap-start snap-always flex-shrink-0 flex items-center justify-center relative bg-black"
+              >
+                {/* Video Element or Graceful Fallback Card */}
+                {isVideoUnavailable ? (
+                  <div className="flex flex-col items-center justify-center p-8 text-center text-zinc-400 select-none z-10">
+                    <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 mb-4 shadow-inner">
+                      <FiVideoOff className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-base font-bold text-zinc-200">Video Preview Unavailable</h3>
+                    <p className="text-xs text-zinc-400 mt-1 max-w-[260px] line-clamp-3 leading-relaxed">
+                      {reel.caption || reel.title || 'This video could not be loaded or is being processed.'}
+                    </p>
+                  </div>
+                ) : (
+                  <video
+                    ref={el => videoRefs.current[idx] = el}
+                    src={videoSourceUrl}
+                    loop
+                    muted={muted}
+                    playsInline
+                    onError={() => setFailedVideoIds(prev => ({ ...prev, [reelId]: true }))}
+                    className="w-full h-full object-cover"
+                  />
+                )}
 
               {/* Right-side vertical action rail */}
               <div className="absolute right-2.5 bottom-48 sm:bottom-52 z-30 flex flex-col items-center gap-4 select-none">
@@ -358,20 +377,22 @@ export default function ReelFullscreenViewer({
                         </span>
                       )}
                       {/* Follow button (neatly placed inline right next to PROMOTED) */}
-                      <button
-                        onClick={() => onFollow?.(reel.creator?._id || reel.creator?.id || reel.creator)}
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black transition shrink-0 cursor-pointer flex items-center gap-1 shadow-xs border ${
-                          isFollowing
-                            ? 'bg-white/20 text-white border-white/30 backdrop-blur-xs'
-                            : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] border-[#d99a3d]'
-                        }`}
-                      >
-                        {isFollowing ? (
-                          <><FiCheck size={11} /> Following</>
-                        ) : (
-                          <><FiUserPlus size={11} /> Follow</>
-                        )}
-                      </button>
+                      {reelCreatorId && (
+                        <button
+                          onClick={() => onFollow?.(reelCreatorId)}
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black transition shrink-0 cursor-pointer flex items-center gap-1 shadow-xs border ${
+                            isFollowing
+                              ? 'bg-white/20 text-white border-white/30 backdrop-blur-xs'
+                              : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] border-[#d99a3d]'
+                          }`}
+                        >
+                          {isFollowing ? (
+                            <><FiCheck size={11} /> Following</>
+                          ) : (
+                            <><FiUserPlus size={11} /> Follow</>
+                          )}
+                        </button>
+                      )}
                     </div>
                     <p className="text-white/60 text-[10px] truncate font-medium">
                       {reel.category || 'Business'} {reel.subcategory ? `• ${reel.subcategory}` : ''}

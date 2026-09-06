@@ -354,7 +354,7 @@ class ListingService {
     });
   }
 
-  async getListingDetails(id) {
+  async getListingDetails(id, currentUserId = null) {
     let listing = await listingRepository.findListingById(id);
     if (!listing) {
       try {
@@ -393,13 +393,36 @@ class ListingService {
             isReelPost: true,
             createdAt: reel.createdAt,
           };
-          return listing;
         }
       } catch (err) {
         console.error('Error fetching reel fallback in getListingDetails:', err);
       }
-      throw ApiError.notFound('Listing not found.');
+      if (!listing) {
+        throw ApiError.notFound('Listing not found.');
+      }
     }
+
+    if (listing && currentUserId) {
+      try {
+        const Interaction = require('../models/Interaction');
+        const User = require('../models/User');
+        const listingIdStr = (listing._id || id).toString();
+        const [likeExists, saveExists, userDoc] = await Promise.all([
+          Interaction.exists({ user_id: currentUserId.toString(), listing_id: listingIdStr, type: 'like' }),
+          Interaction.exists({ user_id: currentUserId.toString(), listing_id: listingIdStr, type: 'save' }),
+          User.exists({ _id: currentUserId, 'customerProfile.savedListings': listingIdStr }),
+        ]);
+
+        if (typeof listing.toObject === 'function') {
+          listing = listing.toObject();
+        }
+        listing.isLiked = Boolean(likeExists);
+        listing.isSaved = Boolean(saveExists || userDoc);
+      } catch (enrichErr) {
+        console.warn('Could not enrich listing with user interactions:', enrichErr);
+      }
+    }
+
     return listing;
   }
 

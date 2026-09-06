@@ -187,8 +187,18 @@ class ReelService {
       finalThumbnailUrl = finalVideoUrl.replace(/\.[^/.]+$/, '.jpg');
     }
 
-    if (!finalVideoUrl) {
-      finalVideoUrl = 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
+    const isLocalPath = (u) => typeof u === 'string' && (/file:\/\//i.test(u) || u.includes('/host.exp.exponent/') || u.includes('cache/ImagePicker'));
+    if (isLocalPath(finalVideoUrl) || isLocalPath(videoUrl)) {
+      throw ApiError.badRequest('Local device file paths cannot be accepted. Please upload the video file directly.');
+    }
+
+    if (!finalVideoUrl && processedMediaUrls.length === 0) {
+      const configuredFallback = process.env.DEFAULT_FALLBACK_VIDEO_URL;
+      if (configuredFallback) {
+        finalVideoUrl = configuredFallback;
+      } else {
+        throw ApiError.badRequest('A valid uploaded video file or video URL is required to publish a reel.');
+      }
     }
 
     // Extract hashtags from caption or tags list

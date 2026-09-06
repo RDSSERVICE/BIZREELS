@@ -127,6 +127,10 @@ export default function VendorProfilePage() {
 
   // ── Follow / Unfollow Handling ─────────────────────────────
   const handleFollowToggle = async () => {
+    if (!vendorId || typeof vendorId !== 'string') {
+      toast.error('Vendor details are currently unavailable');
+      return;
+    }
     // Optimistic Update
     const originalFollowing = isFollowing;
     const originalCount = followersCount;
@@ -144,7 +148,13 @@ export default function VendorProfilePage() {
     } catch (err) {
       setIsFollowing(originalFollowing);
       setFollowersCount(originalCount);
-      toast.error('Failed to update follow status');
+      const status = err.response?.status;
+      const errorMsg = err.response?.data?.message || err.response?.data?.error;
+      if (status === 404) {
+        toast.error('Vendor profile is no longer available');
+      } else {
+        toast.error(errorMsg || 'Failed to update follow status');
+      }
     }
   };
 

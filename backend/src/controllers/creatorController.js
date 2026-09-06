@@ -179,9 +179,12 @@ class CreatorController {
   // ── Add Reel to Portfolio ────────────────────────────────
   addPortfolioReel = asyncHandler(async (req, res) => {
     const { videoUrl, title } = req.body;
+    if (!videoUrl || typeof videoUrl !== 'string' || /file:\/\//i.test(videoUrl) || videoUrl.includes('/host.exp.exponent/')) {
+      throw ApiError.badRequest('A valid remote video URL is required.');
+    }
     const newReel = await Reel.create({
       creator: req.user._id,
-      videoUrl: videoUrl || 'https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-neon-room-41566-large.mp4',
+      videoUrl: videoUrl.trim(),
       caption: title || 'New Sample Reel'
     });
     return ApiResponse.created(res, 'Sample reel added to portfolio.', { reel: newReel });

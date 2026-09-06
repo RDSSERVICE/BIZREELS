@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiCalendar, FiAlertTriangle, FiSend, FiPercent, FiBell, FiTag } from 'react-icons/fi';
+import { FiCalendar, FiAlertTriangle, FiSend, FiPercent, FiBell, FiTag, FiVideo } from 'react-icons/fi';
 import AdminModal from '../../../features/admin/components/AdminModal';
 
 export default function ReelPreviewModal({
@@ -110,7 +110,11 @@ export default function ReelPreviewModal({
                     <img src={mainMedia} alt="Post Media" className="w-full h-full object-cover" />
                   )
                 ) : (
-                  <video src="https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4" muted autoPlay loop className="w-full h-full object-cover" />
+                  <div className="flex flex-col items-center justify-center gap-1.5 p-4 text-center text-slate-400">
+                    <FiVideo size={28} className="text-amber-400/70" />
+                    <span className="text-[11px] font-semibold text-slate-300">No media attached</span>
+                    <span className="text-[9px] text-slate-500">Attach an image or video to preview</span>
+                  </div>
                 )}
                 <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm px-2.5 py-1 rounded-full text-[9px] font-extrabold text-amber-300 border border-amber-400/30">
                   📷 {mediaList.length || 1} Media Item(s) Attached

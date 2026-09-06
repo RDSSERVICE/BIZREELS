@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiHeart, FiMessageCircle, FiShare2, FiBookmark, FiUserPlus,
   FiMapPin, FiSearch, FiSliders, FiPlay, FiVolume2, FiVolumeX, FiCheck,
-  FiChevronLeft, FiChevronRight, FiVideo, FiImage, FiMessageSquare, FiLayers,
+  FiChevronLeft, FiChevronRight, FiVideo, FiVideoOff, FiImage, FiMessageSquare, FiLayers,
   FiMoreHorizontal, FiSend, FiShoppingCart, FiZap
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { api, cartApi } from '../../../lib/api';
+import { api, cartApi, resolveMediaUrl } from '../../../lib/api';
 import { notifyCartChanged, openCartDrawer } from '../../../components/app/CartDrawer';
 import { getSocket } from '../../../lib/socket';
 import HomeFeedSearchFilter from '../../../components/feed/HomeFeedSearchFilter';
@@ -91,13 +91,14 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
   const containerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showHeartPop, setShowHeartPop] = useState(false);
+  const [mediaError, setMediaError] = useState(false);
   const lastTapRef = useRef(0);
 
   const rawMediaList = Array.isArray(reel.mediaUrls) && reel.mediaUrls.length > 0
     ? reel.mediaUrls
-    : [reel.videoUrl || reel.thumbnailUrl || 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'];
+    : [reel.videoUrl, reel.thumbnailUrl].filter(Boolean);
 
-  const mediaList = rawMediaList.filter(Boolean);
+  const mediaList = rawMediaList.map(resolveMediaUrl).filter(Boolean);
   const currentUrl = mediaList[0] || '';
 
   const isVideo = reel.mediaType === 'video' ||
@@ -106,7 +107,7 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
 
   // IntersectionObserver for video auto-play on scroll
   useEffect(() => {
-    if (!isVideo || !containerRef.current) return;
+    if (!isVideo || !containerRef.current || !currentUrl || mediaError) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -126,7 +127,7 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
 
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, [isVideo, currentUrl]);
+  }, [isVideo, currentUrl, mediaError]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -146,30 +147,46 @@ function CustomerReelMedia({ reel, muted, setMuted, onDoubleTap }) {
     lastTapRef.current = now;
   };
 
+  const hasValidMedia = Boolean(currentUrl && !mediaError);
+
   return (
     <div
       ref={containerRef}
       onClick={handleContainerClick}
-      className="relative aspect-[4/5] sm:aspect-[9/16] max-h-[500px] bg-[#241b15] overflow-hidden rounded-md border border-[#3a2c22] select-none cursor-pointer group w-full flex items-center justify-center"
+      className="relative aspect-[4/5] sm:aspect-[9/16] max-h-[500px] bg-[#1a130e] overflow-hidden rounded-md border border-[#3a2c22] select-none cursor-pointer group w-full flex items-center justify-center"
     >
-      {isVideo ? (
-        <video
-          ref={videoRef}
-          src={currentUrl}
-          loop
-          muted={muted}
-          playsInline
-          preload="metadata"
-          className="w-full h-full object-cover"
-        />
+      {hasValidMedia ? (
+        isVideo ? (
+          <video
+            ref={videoRef}
+            src={currentUrl}
+            loop
+            muted={muted}
+            playsInline
+            preload="metadata"
+            onError={() => setMediaError(true)}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <img
+            src={currentUrl}
+            alt={reel.caption || reel.title || 'Reel Post'}
+            loading="lazy"
+            decoding="async"
+            onError={() => setMediaError(true)}
+            className="w-full h-full object-cover"
+          />
+        )
       ) : (
-        <img
-          src={currentUrl}
-          alt={reel.caption || reel.title || 'Reel Post'}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover"
-        />
+        <div className="flex flex-col items-center justify-center p-6 text-center text-zinc-400 select-none">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 mb-3 shadow-inner">
+            <FiVideoOff className="w-7 h-7" />
+          </div>
+          <span className="text-sm font-bold text-zinc-200">Media Preview Unavailable</span>
+          <p className="text-xs text-zinc-400 mt-1 max-w-[220px] line-clamp-2">
+            {reel.caption || reel.title || 'Video is being processed or was removed.'}
+          </p>
+        </div>
       )}
 
       {/* Double Tap Heart Pop Animation */}
@@ -452,8 +469,12 @@ export default function CustomerHomePage() {
     }
   };
 
-  const handleFollow = async (vendorId) => {
-    if (!vendorId) return;
+  const handleFollow = async (rawVendorId) => {
+    const vendorId = typeof rawVendorId === 'object' ? (rawVendorId?._id || rawVendorId?.id) : rawVendorId;
+    if (!vendorId || typeof vendorId !== 'string') {
+      toast.error('Creator or vendor details are currently unavailable');
+      return;
+    }
     const isFollowing = !!followingMap[vendorId];
     setFollowingMap((prev) => ({ ...prev, [vendorId]: !isFollowing }));
     try {
@@ -466,7 +487,13 @@ export default function CustomerHomePage() {
       }
     } catch (err) {
       setFollowingMap((prev) => ({ ...prev, [vendorId]: isFollowing }));
-      toast.error('Failed to update follow status');
+      const status = err.response?.status;
+      const errorMsg = err.response?.data?.message || err.response?.data?.error;
+      if (status === 404) {
+        toast.error('User or vendor is no longer available');
+      } else {
+        toast.error(errorMsg || 'Failed to update follow status');
+      }
     }
   };
 
@@ -761,8 +788,9 @@ export default function CustomerHomePage() {
               const displayLikesCount = Math.max(0, baseLikesCount + likesDiff);
 
               if (item.postType === 'reel') {
-                const vendorId = item.creator?._id || item.creator?.id || item.creator;
-                const isFollowing = followingMap[vendorId];
+                const rawCreatorId = item.creator?._id || item.creator?.id || (typeof item.creator === 'string' ? item.creator : null);
+                const vendorId = rawCreatorId ? String(rawCreatorId) : null;
+                const isFollowing = vendorId ? !!followingMap[vendorId] : false;
 
                 const reelPrice = Number(item.taggedListing?.salePrice || item.taggedListing?.price || item.price || 0);
                 const reelOriginalPrice = Number(item.taggedListing?.actualPrice || item.taggedListing?.regularPrice || item.regularPrice || 0);
@@ -784,7 +812,7 @@ export default function CustomerHomePage() {
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d99a3d] to-[#241b15] p-0.5 shrink-0">
                           <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-xs font-bold text-[#1a1a1a] overflow-hidden">
                             {item.creator?.avatarUrl || item.creator?.profile_pic ? (
-                              <img src={item.creator.avatarUrl || item.creator.profile_pic} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                              <img src={resolveMediaUrl(item.creator.avatarUrl || item.creator.profile_pic)} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                             ) : (
                               <span>{item.creator?.name ? item.creator.name.charAt(0) : 'V'}</span>
                             )}
@@ -804,15 +832,17 @@ export default function CustomerHomePage() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleFollow(vendorId)}
-                        className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
-                          ? 'bg-slate-200 text-slate-700'
-                          : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
-                          }`}
-                      >
-                        {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
-                      </button>
+                      {vendorId && (
+                        <button
+                          onClick={() => handleFollow(vendorId)}
+                          className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
+                            ? 'bg-slate-200 text-slate-700'
+                            : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
+                            }`}
+                        >
+                          {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
+                        </button>
+                      )}
                     </div>
 
                     {/* Reel Media Section (Auto-Play + Double Tap Heart) */}
@@ -971,8 +1001,9 @@ export default function CustomerHomePage() {
                   </div>
                 );
               } else {
-                const vendorId = item.vendor?._id || item.vendor?.id || item.vendor;
-                const isFollowing = followingMap[vendorId];
+                const rawVendorId = item.vendor?._id || item.vendor?.id || (typeof item.vendor === 'string' ? item.vendor : null);
+                const vendorId = rawVendorId ? String(rawVendorId) : null;
+                const isFollowing = vendorId ? !!followingMap[vendorId] : false;
                 const priceVal = Number(item.salePrice || item.price || 0);
                 const originalPrice = Number(item.actualPrice || item.regularPrice || item.mrp || 0);
                 const discountPercent = originalPrice > priceVal
@@ -1013,15 +1044,17 @@ export default function CustomerHomePage() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleFollow(vendorId)}
-                        className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
-                          ? 'bg-slate-200 text-slate-700'
-                          : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
-                          }`}
-                      >
-                        {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
-                      </button>
+                      {vendorId && (
+                        <button
+                          onClick={() => handleFollow(vendorId)}
+                          className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 transition cursor-pointer border-none ${isFollowing
+                            ? 'bg-slate-200 text-slate-700'
+                            : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] shadow-xs'
+                            }`}
+                        >
+                          {isFollowing ? <><FiCheck size={12} /> Following</> : <><FiUserPlus size={12} /> Follow</>}
+                        </button>
+                      )}
                     </div>
 
                     {/* Listing Media Section */}

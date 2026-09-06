@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiChevronLeft, FiChevronRight, FiVideo, FiImage } from 'react-icons/fi';
 import { resolveMediaUrl } from '@/lib/api';
 
@@ -8,6 +8,11 @@ import { resolveMediaUrl } from '@/lib/api';
  */
 export default function ReelCardMediaCarousel({ reel }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [mediaError, setMediaError] = useState(false);
+
+  useEffect(() => {
+    setMediaError(false);
+  }, [currentIndex, reel._id, reel.id]);
 
   const rawMediaList = Array.isArray(reel.mediaUrls) && reel.mediaUrls.length > 0
     ? reel.mediaUrls
@@ -42,9 +47,11 @@ export default function ReelCardMediaCarousel({ reel }) {
     setCurrentIndex((prev) => (prev + 1) % mediaList.length);
   };
 
+  const hasValidMedia = Boolean(currentUrl && !mediaError);
+
   return (
     <div className="aspect-[9/16] bg-slate-900 relative group overflow-hidden flex items-center justify-center">
-      {currentUrl ? (
+      {hasValidMedia ? (
         isVideo ? (
           <video
             src={currentUrl}
@@ -53,12 +60,14 @@ export default function ReelCardMediaCarousel({ reel }) {
             autoPlay
             loop
             playsInline
+            onError={() => setMediaError(true)}
             className="w-full h-full object-cover"
           />
         ) : (
           <img
             src={currentUrl}
             alt={reel.caption || reel.title || 'Reel Post'}
+            onError={() => setMediaError(true)}
             className="w-full h-full object-cover"
           />
         )

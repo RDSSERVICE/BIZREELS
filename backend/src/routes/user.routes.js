@@ -823,8 +823,11 @@ router.post('/me/track-interaction', requireAuth, catchAsync(async (req, res) =>
   res.json({ success: true, message: 'Interaction tracked' });
 }));
 
-router.get('/:userId', catchAsync(async (req, res) => {
+router.get(['/:userId', '/:userId/profile'], catchAsync(async (req, res) => {
   const { userId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw ApiError.badRequest('Invalid user ID');
+  }
   const u = await User.findOne({ _id: userId, is_deleted: { $ne: true } });
   if (!u) {
     throw ApiError.notFound('User not found');

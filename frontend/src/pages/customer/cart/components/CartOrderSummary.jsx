@@ -49,6 +49,11 @@ export default function CartOrderSummary({
         orderAmount: totalAmount,
       });
 
+      if (res.data?.success === false || res.data?.valid === false) {
+        toast.error(res.data?.message || 'Invalid coupon code');
+        return;
+      }
+
       const couponData = res.data?.data;
       if (couponData) {
         onApplyCoupon(couponData);

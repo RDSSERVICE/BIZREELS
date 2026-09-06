@@ -217,7 +217,7 @@ export const mediaApi = {
  *  - an absolute URL (Cloudinary etc.) — returned as-is
  *  - a relative dev-mode path like "/api/uploads/xxx.jpg" — prefixed with BACKEND_URL
  */
-const DEFAULT_VIDEO_FALLBACK = 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
+const DEFAULT_VIDEO_FALLBACK = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_DEFAULT_FALLBACK_VIDEO_URL) || '';
 
 export function resolveMediaUrl(url) {
   if (!url || typeof url !== 'string') return '';
@@ -225,12 +225,13 @@ export function resolveMediaUrl(url) {
   if (!trimmed) return '';
   if (trimmed.startsWith('[')) return DEFAULT_VIDEO_FALLBACK;
   if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
 
-  // Handle local mobile file paths (e.g. Expo ImagePicker cache)
-  if (/^file:\/\//i.test(trimmed) || trimmed.includes('/host.exp.exponent/')) {
+  // Handle local mobile file paths (e.g. Expo ImagePicker cache or file:// scheme)
+  if (/file:\/\//i.test(trimmed) || trimmed.includes('/host.exp.exponent/') || trimmed.includes('cache/ImagePicker') || trimmed.includes('ImagePicker')) {
     return DEFAULT_VIDEO_FALLBACK;
   }
+
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
 
   const host = BACKEND_URL || 'https://api.bizreels.in';
   return `${host}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
