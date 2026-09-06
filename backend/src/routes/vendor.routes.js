@@ -598,6 +598,12 @@ router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
   const isSub = !!u.is_subscribed_verified;
   const verifiedBadge = isSub && u.kyc_status === 'approved';
 
+  const { isOnline } = require('../services/socket.service');
+  let onlineStatus = 'offline';
+  if (!vp.isTemporaryClosed && isOnline(user_id)) {
+    onlineStatus = 'online';
+  }
+
   res.json({
     success: true,
     data: {
@@ -616,7 +622,7 @@ router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
       state: u.location?.state || null,
       address: u.location?.address || vp.businessAddress || null,
       joined_date: u.created_at,
-      online_status: 'online',
+      online_status: onlineStatus,
 
       // Business Profile details
       business_name: vp.businessName || vp.shopName || u.name,

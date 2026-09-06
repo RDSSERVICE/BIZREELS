@@ -87,6 +87,9 @@ const initSockets = (server) => {
     // Join personal user room to receive targeted alerts (quotes, leads, notifications)
     socket.join(`user:${userId}`);
 
+    // Broadcast real-time presence change
+    io.emit('user_presence_change', { userId, status: 'online' });
+
     // Join role-specific rooms
     if (socket.user.roles && Array.isArray(socket.user.roles)) {
       socket.user.roles.forEach(role => {
@@ -144,6 +147,10 @@ const initSockets = (server) => {
     // Disconnect event
     socket.on('disconnect', () => {
       logger.info(`Socket client disconnected: User ID ${userId}`, { service: 'sockets' });
+      const room = io.sockets.adapter.rooms.get(`user:${userId}`);
+      if (!room || room.size === 0) {
+        io.emit('user_presence_change', { userId, status: 'offline' });
+      }
     });
   });
 
@@ -204,9 +211,13 @@ const emitToRoom = (room, event, payload) => {
   }
 };
 
-const broadcast = (event, payload) => {
-  if (ioInstance) {
-    ioInstance.emit(event, payload);
+const isUserOnline = (userId) => {
+  if (!ioInstance || !userId) return false;
+  try {
+    const room = ioInstance.sockets?.adapter?.rooms?.get(`user:${userId.toString()}`);
+    return Boolean(room && room.size > 0);
+  } catch (err) {
+    return false;
   }
 };
 
@@ -218,4 +229,5 @@ module.exports = {
   emitToRole,
   emitToRoom,
   broadcast,
+  isUserOnline,
 };

@@ -114,13 +114,21 @@ export default function VendorProfilePage() {
         }
       };
 
+      const handlePresenceChange = (data) => {
+        if (data.userId === vendorId) {
+          setProfile(prev => prev ? { ...prev, online_status: data.status } : prev);
+        }
+      };
+
       socket.on('vendor_stats_update', handleStatsUpdate);
       socket.on('following_update', handleFollowingUpdate);
+      socket.on('user_presence_change', handlePresenceChange);
 
       return () => {
         socket.emit('leave_conversation', vendorId);
         socket.off('vendor_stats_update', handleStatsUpdate);
         socket.off('following_update', handleFollowingUpdate);
+        socket.off('user_presence_change', handlePresenceChange);
       };
     }
   }, [vendorId]);
@@ -384,19 +392,19 @@ export default function VendorProfilePage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="w-12 h-12 border-4 border-brand-purple border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-semibold text-text-tertiary">Loading premium profile...</p>
+        <div className="w-12 h-12 border-4 border-[#d99a3d] border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-semibold text-text-tertiary">Loading vendor profile...</p>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="text-center py-20 glass border border-border rounded-2xl max-w-lg mx-auto">
-        <FiAlertTriangle className="mx-auto text-brand-orange w-12 h-12 mb-4" />
-        <h3 className="font-bold text-base text-text-primary">Vendor Profile Not Found</h3>
+      <div className="text-center py-20 bg-white border border-[#e3dccb] rounded-2xl max-w-lg mx-auto shadow-xs">
+        <FiAlertTriangle className="mx-auto text-[#d99a3d] w-12 h-12 mb-4" />
+        <h3 className="font-bold text-base text-[#1a1a1a]">Vendor Profile Not Found</h3>
         <p className="text-xs text-text-tertiary mt-2">This business profile may have been closed or is temporarily unavailable.</p>
-        <button onClick={() => navigate(-1)} className="mt-4 px-4 py-2 bg-brand-purple text-white font-bold text-xs rounded-xl shadow-premium">
+        <button onClick={() => navigate(-1)} className="mt-4 px-5 py-2.5 bg-[#1c1a17] text-[#d99a3d] font-extrabold text-xs rounded-xl shadow-2xs hover:bg-[#2b2520] transition">
           Go Back
         </button>
       </div>
@@ -420,20 +428,48 @@ export default function VendorProfilePage() {
       />
       
       {/* ── PROFILE HEADER (COVER BANNER & OVERLAPPING AVATAR) ── */}
-      <div className="glass rounded-3xl border border-white/50 overflow-hidden shadow-card relative">
+      <div className="bg-white rounded-3xl border border-[#e3dccb] overflow-hidden shadow-xs relative">
         {/* Cover Banner */}
-        <div className="h-44 sm:h-56 w-full bg-gradient-to-r from-brand-purple/20 via-brand-pink/20 to-brand-orange/20 relative">
+        <div className="h-44 sm:h-56 w-full relative overflow-hidden">
           {profile.cover_banner ? (
             <img src={resolveMediaUrl(profile.cover_banner)} alt="" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-cover-gradient" />
+            <div className="w-full h-full relative overflow-hidden bg-[#1c1a17]">
+              {/* Warm Editorial Bento-Brutalism background (harmonized with BizReels brand) */}
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#d99a3d]/25 via-[#2b221a]/85 to-[#161311]" />
+              {/* Subtle geometric dot matrix */}
+              <div
+                className="absolute inset-0 opacity-[0.08]"
+                style={{
+                  backgroundImage: 'radial-gradient(#d99a3d 1.2px, transparent 1.2px)',
+                  backgroundSize: '24px 24px',
+                }}
+              />
+              {/* Ambient amber glow */}
+              <div className="absolute -right-10 -bottom-10 w-56 h-56 rounded-full bg-[#d99a3d]/15 blur-3xl pointer-events-none" />
+              {/* Subtle branded watermark */}
+              <div className="absolute left-8 top-1/2 -translate-y-1/2 select-none pointer-events-none opacity-[0.08]">
+                <span className="font-heading font-black text-6xl sm:text-8xl tracking-tight text-[#d99a3d] uppercase">
+                  BIZREELS
+                </span>
+              </div>
+            </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
           
           {/* Online/Offline Status Indicator */}
-          <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/20 rounded-full text-[10px] font-bold text-white uppercase shadow-lg">
-            <span className={`w-2 h-2 rounded-full ${profile.online_status === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-            <span>{profile.online_status}</span>
+          <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1 bg-black/65 backdrop-blur-md border border-white/20 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
+            {profile.online_status === 'online' ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+                <span className="text-emerald-300">Online</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-slate-400" />
+                <span className="text-slate-300">Offline</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -441,13 +477,13 @@ export default function VendorProfilePage() {
         <div className="px-6 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-16 sm:-mt-20">
           
           {/* Avatar Picture */}
-          <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full p-1 gradient-brand bg-surface shadow-2xl relative z-10 flex-shrink-0">
-            <div className="w-full h-full bg-surface rounded-full overflow-hidden border-2 border-surface">
+          <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full p-1 bg-white ring-4 ring-[#d99a3d]/35 shadow-2xl relative z-10 flex-shrink-0">
+            <div className="w-full h-full bg-surface rounded-full overflow-hidden border-2 border-white">
               {profile.profile_pic ? (
                 <img src={resolveMediaUrl(profile.profile_pic)} alt={profile.name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-surface-tertiary flex items-center justify-center text-4xl font-extrabold text-brand-purple">
-                  {profile.business_name?.charAt(0)}
+                <div className="w-full h-full bg-[#f4ede3] flex items-center justify-center text-4xl font-black text-[#1c1a17] font-heading">
+                  {profile.business_name?.charAt(0) || profile.name?.charAt(0) || 'V'}
                 </div>
               )}
             </div>
@@ -456,49 +492,51 @@ export default function VendorProfilePage() {
           {/* Details Column */}
           <div className="flex-1 text-center sm:text-left space-y-2 mt-2 sm:mt-0 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-text-primary font-display truncate">
+              <h1 className="text-xl sm:text-2xl font-black text-[#1a1a1a] font-display truncate">
                 {profile.business_name}
               </h1>
               {profile.verified_badge && (
-                <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 bg-blue-500/10 text-blue-500 border border-blue-500/20 text-[10px] font-black rounded-full uppercase w-fit mx-auto sm:mx-0">
+                <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 bg-[#d99a3d]/15 text-[#b0741c] border border-[#d99a3d]/30 text-[10px] font-black rounded-full uppercase w-fit mx-auto sm:mx-0">
                   <FiCheck className="stroke-[3]" /> Verified
                 </span>
               )}
             </div>
 
-            <p className="text-xs font-bold text-brand-purple uppercase tracking-wider">{profile.category} {profile.subcategory && `• ${profile.subcategory}`}</p>
+            <p className="text-xs font-black text-[#d99a3d] uppercase tracking-wider">
+              {profile.category} {profile.subcategory && `• ${profile.subcategory}`}
+            </p>
             <p className="text-xs text-text-secondary leading-relaxed max-w-lg italic">"{profile.description}"</p>
             
             <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3 text-xs text-text-tertiary pt-1">
-              <span className="flex items-center gap-1"><FiMapPin className="text-brand-orange" /> {profile.city}, {profile.state || 'IN'}</span>
+              <span className="flex items-center gap-1"><FiMapPin className="text-[#d99a3d]" /> {profile.city}, {profile.state || 'IN'}</span>
               <span>Joined {new Date(profile.joined_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}</span>
             </div>
           </div>
         </div>
 
         {/* Action Row */}
-        <div className="border-t border-border bg-surface-tertiary/40 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="border-t border-[#e3dccb] bg-[#fbf9f5] px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           
           {/* Quick Statistics Summary */}
           <div className="flex items-center gap-5 sm:gap-7 overflow-x-auto w-full sm:w-auto py-1 justify-center">
             <div className="text-center">
-              <span className="block font-black text-sm text-text-primary">{profile.stats?.posts || 0}</span>
+              <span className="block font-black text-sm text-[#1a1a1a]">{profile.stats?.posts || 0}</span>
               <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Posts</span>
             </div>
             <div className="text-center">
-              <span className="block font-black text-sm text-text-primary">{followersCount}</span>
+              <span className="block font-black text-sm text-[#1a1a1a]">{followersCount}</span>
               <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Followers</span>
             </div>
             <div className="text-center">
-              <span className="block font-black text-sm text-text-primary">{profile.stats?.following || 0}</span>
+              <span className="block font-black text-sm text-[#1a1a1a]">{profile.stats?.following || 0}</span>
               <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Following</span>
             </div>
             <div className="text-center">
-              <span className="block font-black text-sm text-text-primary">{profile.stats?.likes || 0}</span>
+              <span className="block font-black text-sm text-[#1a1a1a]">{profile.stats?.likes || 0}</span>
               <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Likes</span>
             </div>
             <div className="text-center">
-              <span className="block font-black text-sm text-text-primary">
+              <span className="block font-black text-sm text-[#1a1a1a]">
                 <span className="flex items-center justify-center gap-0.5 text-amber-500 font-black">
                   <FiStar className="fill-amber-500" size={13} /> {profile.rating_avg?.toFixed(1) || '0.0'}
                 </span>
@@ -511,10 +549,10 @@ export default function VendorProfilePage() {
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             <button
               onClick={handleFollowToggle}
-              className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-premium transition ${
+              className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer ${
                 isFollowing
-                  ? 'bg-surface border border-border text-text-secondary hover:bg-surface-tertiary'
-                  : 'gradient-brand text-white'
+                  ? 'bg-white border border-[#e3dccb] text-slate-700 hover:bg-[#f5efe4]'
+                  : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a]'
               }`}
             >
               {isFollowing ? <><FiCheck size={14} /> Following</> : <><FiUserPlus size={14} /> Follow</>}
@@ -522,14 +560,14 @@ export default function VendorProfilePage() {
 
             <button
               onClick={() => setIsMessageModalOpen(true)}
-              className="flex-1 sm:flex-initial px-5 py-2.5 bg-surface border border-border hover:bg-surface-tertiary text-text-primary font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-premium"
+              className="flex-1 sm:flex-initial px-5 py-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-[#1a1a1a] font-extrabold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
             >
               <FiMessageCircle size={14} /> Message
             </button>
 
             <button
               onClick={handleShareProfile}
-              className="p-2.5 bg-surface border border-border hover:bg-surface-tertiary text-text-secondary rounded-xl transition"
+              className="p-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-slate-700 rounded-xl transition cursor-pointer"
               title="Share Profile"
             >
               <FiShare2 size={16} />
@@ -537,7 +575,7 @@ export default function VendorProfilePage() {
 
             <button
               onClick={handleReportProfile}
-              className="p-2.5 bg-surface border border-border hover:bg-surface-tertiary text-error rounded-xl transition"
+              className="p-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-red-500 rounded-xl transition cursor-pointer"
               title="Report Profile"
             >
               <FiAlertTriangle size={16} />
@@ -548,7 +586,7 @@ export default function VendorProfilePage() {
       </div>
 
       {/* ── NAVIGATION TAB BAR (INSTAGRAM STYLE) ── */}
-      <div className="flex justify-center border-b border-border bg-surface rounded-2xl p-1 shadow-card border">
+      <div className="flex justify-center border border-[#e3dccb] bg-white rounded-2xl p-1 shadow-2xs">
         {[
           { key: 'posts', label: 'Posts', icon: FiGrid },
           { key: 'reels', label: 'Reels', icon: FiMessageCircle },
@@ -560,10 +598,10 @@ export default function VendorProfilePage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-[10px] sm:text-xs transition-all ${
+            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl font-extrabold text-[10px] sm:text-xs transition-all cursor-pointer ${
               activeTab === tab.key
-                ? 'bg-brand-purple/10 text-brand-purple border border-brand-purple/20'
-                : 'text-text-tertiary hover:text-text-primary'
+                ? 'bg-[#1c1a17] text-[#d99a3d] shadow-2xs'
+                : 'text-slate-600 hover:text-[#1a1a1a]'
             }`}
           >
             <tab.icon size={14} />
@@ -573,7 +611,7 @@ export default function VendorProfilePage() {
       </div>
 
       {/* ── TAB CONTENT CONTAINERS ── */}
-      <div className="glass rounded-3xl border border-white/50 p-6 shadow-card min-h-[300px]">
+      <div className="bg-white rounded-3xl border border-[#e3dccb] p-6 shadow-xs min-h-[300px]">
 
         {/* 1. POSTS GRID TAB */}
         {activeTab === 'posts' && (
@@ -663,7 +701,7 @@ export default function VendorProfilePage() {
                     </div>
                     <button
                       onClick={() => toast.success('Added to favorites!')}
-                      className="p-2.5 bg-surface border border-border hover:bg-surface-tertiary text-brand-purple rounded-xl transition"
+                      className="p-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-[#d99a3d] rounded-xl transition cursor-pointer"
                     >
                       <FiBookmark size={15} />
                     </button>
@@ -684,13 +722,13 @@ export default function VendorProfilePage() {
                 const img = resolveMediaUrl(s.images?.[0] || 'https://via.placeholder.com/300');
                 const sd = s.serviceDetails || {};
                 return (
-                  <div key={s._id} className="glass rounded-2xl border border-white/40 p-4 space-y-3 shadow-card hover:shadow-card-hover transition">
+                  <div key={s._id} className="bg-white rounded-2xl border border-[#e3dccb] p-4 space-y-3 shadow-2xs hover:shadow-xs transition">
                     <div className="flex gap-4 items-center">
-                      <img src={img} alt={s.title} className="w-16 h-16 rounded-xl object-cover border border-border flex-shrink-0" />
+                      <img src={img} alt={s.title} className="w-16 h-16 rounded-xl object-cover border border-[#e3dccb] flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-xs text-text-primary truncate">{s.title}</h4>
-                        <p className="text-[10px] text-brand-purple mt-0.5 uppercase font-bold">{sd.serviceType || 'On-site'} • {sd.durationText || '1 Hour'}</p>
-                        <span className="text-xs font-black text-brand-purple mt-1.5 block">₹{(s.price || 0).toLocaleString()} ({sd.priceType || 'Fixed'})</span>
+                        <h4 className="font-bold text-xs text-[#1a1a1a] truncate">{s.title}</h4>
+                        <p className="text-[10px] text-[#d99a3d] mt-0.5 uppercase font-bold">{sd.serviceType || 'On-site'} • {sd.durationText || '1 Hour'}</p>
+                        <span className="text-xs font-black text-[#1a1a1a] mt-1.5 block">₹{(s.price || 0).toLocaleString()} ({sd.priceType || 'Fixed'})</span>
                       </div>
                     </div>
                     
@@ -744,9 +782,9 @@ export default function VendorProfilePage() {
             </div>
 
             {/* Submit Review Form */}
-            <form onSubmit={handleReviewSubmit} className="glass border border-white/50 p-5 rounded-2xl space-y-4">
-              <h4 className="font-bold text-xs text-text-primary font-display flex items-center gap-2">
-                <FiStar className="text-brand-purple" /> Write a Review
+            <form onSubmit={handleReviewSubmit} className="bg-white border border-[#e3dccb] p-5 rounded-2xl space-y-4 shadow-2xs">
+              <h4 className="font-bold text-xs text-[#1a1a1a] font-display flex items-center gap-2">
+                <FiStar className="text-[#d99a3d]" /> Write a Review
               </h4>
               
               <div className="flex items-center gap-2">
@@ -757,7 +795,7 @@ export default function VendorProfilePage() {
                       key={star}
                       type="button"
                       onClick={() => setReviewRating(star)}
-                      className="text-amber-500 transition hover:scale-110"
+                      className="text-amber-500 transition hover:scale-110 cursor-pointer"
                     >
                       <FiStar size={20} className={star <= reviewRating ? 'fill-amber-500' : ''} />
                     </button>
@@ -772,14 +810,14 @@ export default function VendorProfilePage() {
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
                   placeholder="Share details of your experience with this vendor business..."
-                  className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple transition resize-none font-medium"
+                  className="w-full px-4 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d] transition resize-none font-medium"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submittingReview}
-                className="px-6 py-2.5 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-95 transition flex items-center gap-2 cursor-pointer"
+                className="px-6 py-2.5 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
               >
                 <FiSend size={13} />
                 <span>{submittingReview ? 'Submitting...' : 'Post Review'}</span>
@@ -788,7 +826,7 @@ export default function VendorProfilePage() {
 
             {/* Reviews List */}
             <div className="space-y-4">
-              <h4 className="font-bold text-xs text-text-primary font-display">Customer Comments ({reviews.length})</h4>
+              <h4 className="font-bold text-xs text-[#1a1a1a] font-display">Customer Comments ({reviews.length})</h4>
               {reviews.length === 0 ? (
                 <p className="text-center py-6 text-xs text-text-tertiary">No reviews written yet. Be the first to review!</p>
               ) : (
@@ -797,7 +835,7 @@ export default function VendorProfilePage() {
                     const avatar = rev.author?.avatarUrl || rev.author?.profile_pic;
                     return (
                       <div key={rev._id} className="pt-4 flex gap-4 items-start">
-                        <div className="w-10 h-10 rounded-full bg-surface-tertiary overflow-hidden border border-border flex-shrink-0 flex items-center justify-center text-xs font-bold text-brand-purple">
+                        <div className="w-10 h-10 rounded-full bg-[#f4ede3] overflow-hidden border border-[#e3dccb] flex-shrink-0 flex items-center justify-center text-xs font-bold text-[#1c1a17]">
                           {avatar ? <img src={resolveMediaUrl(avatar)} alt="" className="w-full h-full object-cover" /> : rev.author?.name?.charAt(0)}
                         </div>
                         <div className="flex-1 space-y-1 min-w-0">
@@ -830,10 +868,10 @@ export default function VendorProfilePage() {
             
             {/* Description Card */}
             <div className="space-y-2">
-              <h4 className="font-bold text-xs text-text-primary font-display flex items-center gap-2">
-                <FiInfo className="text-brand-purple" /> About Our Business
+              <h4 className="font-bold text-xs text-[#1a1a1a] font-display flex items-center gap-2">
+                <FiInfo className="text-[#d99a3d]" /> About Our Business
               </h4>
-              <p className="text-xs text-text-secondary leading-relaxed bg-surface-tertiary/20 p-4 border border-border rounded-xl">
+              <p className="text-xs text-text-secondary leading-relaxed bg-[#fbf9f5] p-4 border border-[#e3dccb] rounded-xl">
                 {profile.description || 'Welcome to our verified shop listing on BizReels. We provide state-of-the-art products and services to address customer requirements locally with quality craftsmanship and premium support.'}
               </p>
             </div>
@@ -847,19 +885,19 @@ export default function VendorProfilePage() {
                 
                 <div className="space-y-2.5 text-xs">
                   <div className="flex items-center gap-2.5 text-text-secondary">
-                    <FiClock className="text-brand-purple" size={14} />
+                    <FiClock className="text-[#d99a3d]" size={14} />
                     <span><strong>Operating Hours:</strong> {profile.business_hours}</span>
                   </div>
                   {profile.address && (
                     <div className="flex items-start gap-2.5 text-text-secondary">
-                      <FiMapPin className="text-brand-orange mt-0.5" size={14} />
+                      <FiMapPin className="text-[#d99a3d] mt-0.5" size={14} />
                       <span><strong>Address:</strong> {profile.address}</span>
                     </div>
                   )}
                   {profile.website && (
                     <div className="flex items-center gap-2.5 text-text-secondary">
                       <FiGlobe className="text-emerald-500" size={14} />
-                      <a href={profile.website} target="_blank" rel="noreferrer" className="hover:underline text-brand-purple">
+                      <a href={profile.website} target="_blank" rel="noreferrer" className="hover:underline text-[#d99a3d] font-bold">
                         {profile.website}
                       </a>
                     </div>
@@ -880,7 +918,7 @@ export default function VendorProfilePage() {
                   )}
                   {profile.socials?.instagram && (
                     <div className="flex items-center gap-2.5 text-text-secondary">
-                      <FiInstagram className="text-brand-pink" size={14} />
+                      <FiInstagram className="text-[#d99a3d]" size={14} />
                       <span><strong>Instagram:</strong> {profile.socials.instagram}</span>
                     </div>
                   )}
@@ -903,14 +941,14 @@ export default function VendorProfilePage() {
       {/* ── MODAL 1: SEND MESSAGE / DIRECT INBOX CHAT POPUP ── */}
       {isMessageModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-border rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-scale-in">
-            <div className="flex justify-between items-center border-b border-border pb-3">
-              <h3 className="font-bold text-sm text-text-primary font-display flex items-center gap-2">
-                <FiMessageCircle className="text-brand-purple" /> Chat with {profile.business_name}
+          <div className="bg-white border border-[#e3dccb] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-scale-in">
+            <div className="flex justify-between items-center border-b border-[#e3dccb] pb-3">
+              <h3 className="font-bold text-sm text-[#1a1a1a] font-display flex items-center gap-2">
+                <FiMessageCircle className="text-[#d99a3d]" /> Chat with {profile.business_name}
               </h3>
               <button
                 onClick={() => setIsMessageModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-surface-tertiary text-text-tertiary hover:text-text-primary flex items-center justify-center font-bold text-xs"
+                className="w-7 h-7 rounded-full bg-[#f4ede3] text-slate-600 hover:text-[#1a1a1a] flex items-center justify-center font-bold text-xs cursor-pointer"
               >
                 ✕
               </button>
@@ -927,21 +965,21 @@ export default function VendorProfilePage() {
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
                 placeholder="Type your message here e.g. Hey, do you have stock for..."
-                className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-purple transition resize-none font-medium"
+                className="w-full px-4 py-3 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d] transition resize-none font-medium"
               />
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsMessageModalOpen(false)}
-                  className="px-4 py-2 border border-border text-text-secondary font-bold text-xs rounded-xl hover:bg-surface-tertiary transition"
+                  className="px-4 py-2 border border-[#e3dccb] text-slate-600 font-bold text-xs rounded-xl hover:bg-[#f5efe4] transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingMessage}
-                  className="px-5 py-2 gradient-brand text-white font-bold text-xs rounded-xl shadow-premium hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <FiSend size={13} />
                   <span>{submittingMessage ? 'Delivering...' : 'Send Message'}</span>
@@ -983,12 +1021,12 @@ export default function VendorProfilePage() {
               {/* Header */}
               <div className="p-3.5 sm:p-4 border-b border-[#e3dccb] flex items-center justify-between bg-[#fdfcf9]">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full p-[1.5px] bg-gradient-to-tr from-[#d99a3d] to-purple-500 shadow-xs flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full p-[1.5px] bg-[#d99a3d] shadow-xs flex-shrink-0">
                     <div className="w-full h-full rounded-full bg-white overflow-hidden flex items-center justify-center">
                       {profile.profile_pic ? (
                         <img src={resolveMediaUrl(profile.profile_pic)} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-purple-50 flex items-center justify-center font-black text-purple-700 text-xs">
+                        <div className="w-full h-full bg-[#f4ede3] flex items-center justify-center font-black text-[#1c1a17] text-xs">
                           {(profile.business_name || profile.name || 'V').charAt(0).toUpperCase()}
                         </div>
                       )}
