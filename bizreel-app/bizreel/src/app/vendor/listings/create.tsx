@@ -186,10 +186,13 @@ export default function CreateListingScreen() {
   const { user } = useAuth();
   const vendorProfile = user?.vendorProfile || (user as any)?.profileData || {};
 
-  // Extract onboarded Categories from vendor profile
+  // Extract onboarded Categories from vendor profile / user profile
   const onboardedCategories = React.useMemo(() => {
     let cats: string[] = [];
-    if (Array.isArray(vendorProfile.categories) && vendorProfile.categories.length > 0) {
+    const authUser = user as any;
+    if (Array.isArray(authUser?.categories) && authUser.categories.length > 0) {
+      cats = authUser.categories;
+    } else if (Array.isArray(vendorProfile.categories) && vendorProfile.categories.length > 0) {
       cats = vendorProfile.categories;
     } else if (Array.isArray(vendorProfile.selectedCategories) && vendorProfile.selectedCategories.length > 0) {
       cats = vendorProfile.selectedCategories;
@@ -197,14 +200,19 @@ export default function CreateListingScreen() {
       cats = [vendorProfile.category];
     } else if (vendorProfile.businessCategory) {
       cats = [vendorProfile.businessCategory];
+    } else if (authUser?.category) {
+      cats = [authUser.category];
     }
     return cats.filter(Boolean);
-  }, [vendorProfile]);
+  }, [user, vendorProfile]);
 
-  // Extract onboarded Subcategories from vendor profile
+  // Extract onboarded Subcategories from vendor profile / user profile
   const onboardedSubcategories = React.useMemo(() => {
     let subs: string[] = [];
-    if (Array.isArray(vendorProfile.subcategories) && vendorProfile.subcategories.length > 0) {
+    const authUser = user as any;
+    if (Array.isArray(authUser?.subcategories) && authUser.subcategories.length > 0) {
+      subs = authUser.subcategories;
+    } else if (Array.isArray(vendorProfile.subcategories) && vendorProfile.subcategories.length > 0) {
       subs = vendorProfile.subcategories;
     } else if (Array.isArray(vendorProfile.subCategories) && vendorProfile.subCategories.length > 0) {
       subs = vendorProfile.subCategories;
@@ -212,41 +220,74 @@ export default function CreateListingScreen() {
       subs = vendorProfile.selectedSubCategories;
     } else if (vendorProfile.subcategory) {
       subs = [vendorProfile.subcategory];
+    } else if (authUser?.subcategory) {
+      subs = [authUser.subcategory];
     }
     return subs.filter(Boolean);
-  }, [vendorProfile]);
+  }, [user, vendorProfile]);
 
-  // Master parent categories filtered strictly by vendor's onboarded categories
+  // Master parent categories filtered STRICTLY by vendor's onboarded categories
   const parentCategories = React.useMemo(() => {
-    const allParents = categoriesList.filter((c: any) => !c.parent_id);
-    if (onboardedCategories.length === 0) {
-      return allParents;
+    if (onboardedCategories.length > 0) {
+      return onboardedCategories.map((catName) => {
+        const foundMaster = categoriesList.find(
+          (c: any) => !c.parent_id && (c.name?.toLowerCase() === catName.toLowerCase() || c.id === catName || c._id === catName)
+        );
+        return {
+          id: foundMaster?.id || foundMaster?._id || catName,
+          name: foundMaster?.name || catName,
+        };
+      });
     }
-    const filtered = allParents.filter((cat: any) =>
-      onboardedCategories.some(
-        (oc) => oc.toLowerCase() === cat.name?.toLowerCase() || oc === cat.id || oc === cat._id
-      )
-    );
-    return filtered.length > 0 ? filtered : allParents;
+    // If no onboarded categories found on profile, show master categories from API
+    const allParents = categoriesList.filter((c: any) => !c.parent_id);
+    return allParents.map((c: any) => ({ id: c.id || c._id, name: c.name }));
   }, [categoriesList, onboardedCategories]);
 
-  // Master subcategories filtered strictly by active parent category AND vendor's onboarded subcategories
+  // Master subcategories filtered STRICTLY by active parent category AND vendor's onboarded subcategories
   const childSubcategories = React.useMemo(() => {
     const activeParent = parentCategories.find((c: any) => c.name === category);
+    const parentId = activeParent?.id || (activeParent as any)?._id;
     const subsFromMaster = categoriesList.filter(
-      (c: any) => activeParent && (c.parent_id === activeParent.id || c.parent_id === activeParent._id)
-    );
+      (c: any) => parentId && (c.parent_id === parentId || c.parent_id === (activeParent as any)?._id)
+    ).map((c: any) => c.name);
 
     if (onboardedSubcategories.length > 0) {
-      const matched = subsFromMaster.filter((s: any) =>
-        onboardedSubcategories.some((os) => os.toLowerCase() === (s.name || s).toLowerCase())
+      const matched = onboardedSubcategories.filter((os) =>
+        subsFromMaster.length === 0 || subsFromMaster.some((sm: string) => sm.toLowerCase() === os.toLowerCase())
       );
       if (matched.length > 0) {
-        return matched; 
+        return matched.map((name) => ({ name }));
+      }
+      return onboardedSubcategories.map((name) => ({ name }));
+    }
+
+    if (subsFromMaster.length > 0) {
+      return subsFromMaster.map((name: string) => ({ name }));
+    }
+    return [{ name: 'General' }];
+  }, [categoriesList, parentCategories, category, onboardedSubcategories]);
+
+  // Sync selected category with vendor's available categories
+  useEffect(() => {
+    if (parentCategories.length > 0) {
+      const exists = parentCategories.some((c: any) => c.name === category);
+      if (!exists && parentCategories[0]?.name) {
+        setCategory(parentCategories[0].name);
       }
     }
-    return subsFromMaster;
-  }, [categoriesList, parentCategories, category, onboardedSubcategories]);
+  }, [parentCategories, category]);
+
+  // Sync selected subcategory with available subcategories
+  useEffect(() => {
+    if (childSubcategories.length > 0) {
+      const exists = childSubcategories.some((s: any) => (s.name || s) === subcategory);
+      if (!exists && childSubcategories[0]) {
+        const firstSubName = typeof childSubcategories[0] === 'string' ? childSubcategories[0] : childSubcategories[0]?.name || 'General';
+        setSubcategory(firstSubName);
+      }
+    }
+  }, [childSubcategories, subcategory]);
 
   // Auto-Gen SKU
   function generateSKU() {
@@ -578,10 +619,7 @@ export default function CreateListingScreen() {
 
             <Text style={styles.fieldLabel}>CATEGORY</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-              {(parentCategories.length > 0
-                ? parentCategories
-                : [{ name: 'Electronics' }, { name: 'Fashion' }, { name: 'Real Estate' }, { name: 'Automobile' }, { name: 'Home' }]
-              ).map((catItem: any, idx: number) => (
+              {parentCategories.map((catItem: any, idx: number) => (
                 <TouchableOpacity
                   key={idx}
                   style={[styles.dropdownChip, category === catItem.name && styles.dropdownChipActive]}
@@ -596,10 +634,7 @@ export default function CreateListingScreen() {
 
             <Text style={[styles.fieldLabel, { marginTop: 10 }]}>SUBCATEGORY</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-              {(childSubcategories.length > 0
-                ? childSubcategories
-                : [{ name: 'Mobile' }, { name: 'Headsets' }, { name: 'Smartphones' }, { name: 'Laptop' }]
-              ).map((subItem: any, idx: number) => {
+              {childSubcategories.map((subItem: any, idx: number) => {
                 const subName = subItem.name || subItem;
                 return (
                   <TouchableOpacity
