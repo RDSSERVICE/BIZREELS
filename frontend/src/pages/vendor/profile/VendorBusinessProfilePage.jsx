@@ -630,6 +630,7 @@ export default function VendorBusinessProfilePage() {
     setLoading(true);
 
     try {
+      const resolvedProf = profession === 'Other / Custom Profession' ? customProfession.trim() : profession;
       const hoursStr = open24x7
         ? 'Open 24/7'
         : `${openingTime} - ${closingTime} (Off: ${weeklyOff})`;
