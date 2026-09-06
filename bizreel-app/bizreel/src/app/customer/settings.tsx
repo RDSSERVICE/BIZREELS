@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   FlatList,
 } from 'react-native';
@@ -600,6 +601,21 @@ export default function CustomerSettingsScreen() {
                 )}
               </TouchableOpacity>
             </View>
+
+            {/* PRIVACY & TERMS */}
+            <TouchableOpacity
+              style={styles.sectionCard}
+              onPress={() => Linking.openURL('https://bizreels.in/privacy-policy')}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Ionicons name="document-text-outline" size={20} color={YELLOW} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sectionHeader}>PRIVACY POLICY &amp; TERMS</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs }}>https://bizreels.in/privacy-policy</Text>
+                </View>
+                <Ionicons name="open-outline" size={16} color={YELLOW} />
+              </View>
+            </TouchableOpacity>
 
             {/* DANGER ZONE */}
             <View style={[styles.sectionCard, { borderColor: '#EF4444' }]}>

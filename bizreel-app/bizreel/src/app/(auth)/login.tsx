@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -539,14 +540,23 @@ export default function LoginScreen() {
           </Link>
         </View>
 
-        {/* Security note */}
+        {/* Security note & Privacy Policy */}
         <View style={s.securityNote}>
           <Ionicons name="shield-checkmark" size={20} color={YELLOW} />
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={s.securityTitle}>Your information is secure with us.</Text>
             <Text style={s.securitySub}>We use encrypted token authentication.</Text>
           </View>
         </View>
+
+        <TouchableOpacity
+          style={{ alignItems: 'center', paddingVertical: 12 }}
+          onPress={() => Linking.openURL('https://bizreels.in/privacy-policy')}
+        >
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, textDecorationLine: 'underline' }}>
+            Terms of Service &amp; Privacy Policy (https://bizreels.in/privacy-policy)
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );

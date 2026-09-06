@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -163,6 +164,21 @@ export default function CreatorSettingsScreen() {
             {saving ? <ActivityIndicator color={BLACK} /> : <Text style={styles.saveBtnText}>Update Password</Text>}
           </TouchableOpacity>
         </View>
+
+        {/* Privacy Policy & Terms */}
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => Linking.openURL('https://bizreels.in/privacy-policy')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name="document-text-outline" size={20} color={YELLOW} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>PRIVACY POLICY &amp; TERMS</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs }}>https://bizreels.in/privacy-policy</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color={YELLOW} />
+          </View>
+        </TouchableOpacity>
 
         {/* Danger Zone: Delete Account */}
         <View style={[styles.card, { borderColor: '#EF4444', backgroundColor: '#1E1212' }]}>

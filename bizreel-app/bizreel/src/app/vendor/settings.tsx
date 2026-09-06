@@ -14,6 +14,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -1098,6 +1099,21 @@ export default function VendorSettingsScreen() {
           )}
         </TouchableOpacity>
 
+        {/* Legal & Privacy Policy (Play Store Requirement) */}
+        <TouchableOpacity
+          style={styles.legalCard}
+          onPress={() => Linking.openURL('https://bizreels.in/privacy-policy')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name="document-text-outline" size={20} color={YELLOW} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>Privacy Policy &amp; Terms</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>https://bizreels.in/privacy-policy</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color={YELLOW} />
+          </View>
+        </TouchableOpacity>
+
         {/* Danger Zone: Account Deletion (Play Store Requirement) */}
         <View style={styles.dangerZoneCard}>
           <Text style={styles.dangerZoneTitle}>DANGER ZONE</Text>
@@ -1430,6 +1446,14 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
+  },
+  legalCard: {
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: Spacing.four,
+    borderRadius: 8,
+    marginTop: 16,
   },
   dangerZoneCard: {
     backgroundColor: '#1E1212',
