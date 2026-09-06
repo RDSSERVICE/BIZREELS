@@ -76,29 +76,160 @@ class VendorController {
       referralService.getVendorDashboard(userId).catch(() => null),
       
       Order.aggregate([
-        { $match: { vendor: vendorMatch, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }] } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$itemTotal', { $multiply: ['$price', '$quantity'] }] } } } }
+        {
+          $match: {
+            vendor: vendorMatch,
+            status: { $nin: ['cancelled', 'rejected', 'refunded'] },
+            $or: [
+              { paymentStatus: 'paid' },
+              { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'completed'] } }
+            ]
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: {
+                $max: [
+                  0,
+                  {
+                    $subtract: [
+                      { $ifNull: ['$itemTotal', { $multiply: [{ $ifNull: ['$price', 0] }, { $ifNull: ['$quantity', 1] }] }] },
+                      { $ifNull: ['$couponDiscount', 0] }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
       ]).catch(() => []),
       Order.aggregate([
-        { $match: { vendor: vendorMatch, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }], createdAt: { $gte: thirtyDaysAgo } } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$itemTotal', { $multiply: ['$price', '$quantity'] }] } } } }
+        {
+          $match: {
+            vendor: vendorMatch,
+            status: { $nin: ['cancelled', 'rejected', 'refunded'] },
+            $or: [
+              { paymentStatus: 'paid' },
+              { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'completed'] } }
+            ],
+            createdAt: { $gte: thirtyDaysAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: {
+                $max: [
+                  0,
+                  {
+                    $subtract: [
+                      { $ifNull: ['$itemTotal', { $multiply: [{ $ifNull: ['$price', 0] }, { $ifNull: ['$quantity', 1] }] }] },
+                      { $ifNull: ['$couponDiscount', 0] }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
       ]).catch(() => []),
       Order.aggregate([
-        { $match: { vendor: vendorMatch, $or: [{ paymentStatus: 'paid' }, { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered'] } }], createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$itemTotal', { $multiply: ['$price', '$quantity'] }] } } } }
+        {
+          $match: {
+            vendor: vendorMatch,
+            status: { $nin: ['cancelled', 'rejected', 'refunded'] },
+            $or: [
+              { paymentStatus: 'paid' },
+              { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'completed'] } }
+            ],
+            createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: {
+                $max: [
+                  0,
+                  {
+                    $subtract: [
+                      { $ifNull: ['$itemTotal', { $multiply: [{ $ifNull: ['$price', 0] }, { $ifNull: ['$quantity', 1] }] }] },
+                      { $ifNull: ['$couponDiscount', 0] }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
       ]).catch(() => []),
       
       Deal.aggregate([
         { $match: { seller_id: { $in: [userIdStr, userId] }, status: 'completed' } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer', '$amount_paise'] } } } }
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: {
+                $ifNull: [
+                  '$final_amount',
+                  {
+                    $ifNull: [
+                      '$current_offer',
+                      { $divide: [{ $ifNull: ['$amount_paise', 0] }, 100] }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
       ]).catch(() => []),
       Deal.aggregate([
         { $match: { seller_id: { $in: [userIdStr, userId] }, status: 'completed', created_at: { $gte: thirtyDaysAgo } } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer', '$amount_paise'] } } } }
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: {
+                $ifNull: [
+                  '$final_amount',
+                  {
+                    $ifNull: [
+                      '$current_offer',
+                      { $divide: [{ $ifNull: ['$amount_paise', 0] }, 100] }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
       ]).catch(() => []),
       Deal.aggregate([
         { $match: { seller_id: { $in: [userIdStr, userId] }, status: 'completed', created_at: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$final_amount', '$current_offer', '$amount_paise'] } } } }
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: {
+                $ifNull: [
+                  '$final_amount',
+                  {
+                    $ifNull: [
+                      '$current_offer',
+                      { $divide: [{ $ifNull: ['$amount_paise', 0] }, 100] }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
       ]).catch(() => []),
       
       Follow.countDocuments({ following_id: { $in: [userIdStr, userId] }, created_at: { $gte: thirtyDaysAgo } }),

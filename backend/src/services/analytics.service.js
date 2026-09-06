@@ -162,6 +162,7 @@ const overview = async (vendorId, rangeKey = '30d') => {
       {
         $match: {
           vendor: vendorMatch,
+          status: { $nin: ['cancelled', 'rejected', 'refunded'] },
           $or: [
             { paymentStatus: 'paid' },
             { status: { $in: ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'completed'] } }
@@ -172,7 +173,19 @@ const overview = async (vendorId, rangeKey = '30d') => {
       {
         $group: {
           _id: null,
-          total: { $sum: { $ifNull: ['$itemTotal', { $multiply: ['$price', '$quantity'] }] } }
+          total: {
+            $sum: {
+              $max: [
+                0,
+                {
+                  $subtract: [
+                    { $ifNull: ['$itemTotal', { $multiply: [{ $ifNull: ['$price', 0] }, { $ifNull: ['$quantity', 1] }] }] },
+                    { $ifNull: ['$couponDiscount', 0] }
+                  ]
+                }
+              ]
+            }
+          }
         }
       }
     ]).catch(() => []),
@@ -189,7 +202,19 @@ const overview = async (vendorId, rangeKey = '30d') => {
       {
         $group: {
           _id: null,
-          total: { $sum: { $ifNull: ['$final_amount', '$current_offer', '$amount_paise'] } }
+          total: {
+            $sum: {
+              $ifNull: [
+                '$final_amount',
+                {
+                  $ifNull: [
+                    '$current_offer',
+                    { $divide: [{ $ifNull: ['$amount_paise', 0] }, 100] }
+                  ]
+                }
+              ]
+            }
+          }
         }
       }
     ]).catch(() => []),

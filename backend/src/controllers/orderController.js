@@ -342,6 +342,14 @@ class OrderController {
       await session.endSession();
     }
 
+    // Synchronize listing orders_count & revenue asynchronously
+    if (listingId) {
+      const netOrderRev = Math.max(0, itemTotal - validatedCouponDiscount);
+      Listing.findByIdAndUpdate(listingId, {
+        $inc: { orders_count: effectiveQty, revenue: netOrderRev }
+      }).catch(() => {});
+    }
+
     // Notify vendor using centralized notificationService
     const methodLabel = paymentMethod === 'wallet' ? 'Wallet' : paymentMethod === 'cod' ? 'Cash on Delivery' : 'Vendor UPI / QR / Bank Transfer';
     const notifTitle = isServiceBooking ? 'New Service Booking Received' : 'New Product Order Received';
@@ -860,6 +868,17 @@ class OrderController {
     }
 
     await order.save();
+
+    // Revert listing orders_count & revenue if order was cancelled/refunded
+    if (['cancelled', 'rejected', 'refunded'].includes(newStatus) && !['cancelled', 'rejected', 'refunded'].includes(previousStatus)) {
+      const targetListingId = order.listing?._id || order.listing;
+      if (targetListingId) {
+        const netOrderRev = Math.max(0, (order.itemTotal || (order.price * (order.quantity || 1))) - (order.couponDiscount || 0));
+        Listing.findByIdAndUpdate(targetListingId, {
+          $inc: { orders_count: -(order.quantity || 1), revenue: -netOrderRev }
+        }).catch(() => {});
+      }
+    }
 
     logger.info('[Order Lifecycle] State transition completed', {
       orderId: order._id,
