@@ -420,9 +420,9 @@ export default function ProductFormModal({
   };
 
   // Web Speech API
-  const toggleVoiceRecording = () => {
+  const toggleVoiceRecording = (fieldKey = 'aiPrompt') => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      toast.error('Speech recognition not supported in this browser.');
+      toast.error('Speech recognition not supported in this browser. Please use Chrome/Edge.');
       return;
     }
     if (isListeningVoice) {
@@ -437,17 +437,26 @@ export default function ProductFormModal({
 
     recognition.onstart = () => {
       setIsListeningVoice(true);
-      toast('Listening... Speak product specs now', { icon: '🎙️' });
+      toast(`Listening for ${fieldKey}... Speak now 🎙️`, { icon: '🎙️' });
     };
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setAiPrompt((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      const transcript = event.results[0][0]?.transcript;
+      if (transcript) {
+        if (fieldKey === 'aiPrompt') {
+          setAiPrompt((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        } else {
+          setForm((prev) => ({
+            ...prev,
+            [fieldKey]: prev[fieldKey] ? `${prev[fieldKey]} ${transcript}` : transcript,
+          }));
+        }
+        toast.success(`Voice captured: "${transcript}"`);
+      }
       setIsListeningVoice(false);
-      toast.success('Voice captured!');
     };
     recognition.onerror = () => {
       setIsListeningVoice(false);
-      toast.error('Voice input error. Please try again.');
+      toast.error('Voice input error. Please check microphone permissions.');
     };
     recognition.onend = () => setIsListeningVoice(false);
     recognition.start();
