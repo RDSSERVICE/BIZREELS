@@ -830,7 +830,29 @@ export default function VendorSettingsScreen() {
             <Text style={styles.cardTitle}>Business Physical Address</Text>
           </View>
 
-          {/* State Picker */}
+          {/* 1. Pin Code Input */}
+          <View style={styles.fieldGroup}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={styles.label}>PIN CODE *</Text>
+              {lookingUpPincode && <ActivityIndicator size="small" color={YELLOW} />}
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Pin Code"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              keyboardType="number-pad"
+              maxLength={6}
+              value={selectedPincode === 'OTHER_CUSTOM' ? customPincode : (selectedPincode || customPincode)}
+              onChangeText={(val) => {
+                const clean = val.replace(/\D/g, '').slice(0, 6);
+                setCustomPincode(clean);
+                setSelectedPincode('OTHER_CUSTOM');
+                if (clean.length === 6) handlePincodeAutoLookup(clean);
+              }}
+            />
+          </View>
+
+          {/* 2. State Picker */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>STATE *</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
@@ -848,7 +870,7 @@ export default function VendorSettingsScreen() {
             </ScrollView>
           </View>
 
-          {/* District Picker */}
+          {/* 3. District Picker */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>DISTRICT *</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
@@ -883,7 +905,7 @@ export default function VendorSettingsScreen() {
             )}
           </View>
 
-          {/* Tehsil Picker */}
+          {/* 4. Tehsil Picker */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>TEHSIL / TALUKA</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
@@ -914,53 +936,6 @@ export default function VendorSettingsScreen() {
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={customTehsil}
                 onChangeText={setCustomTehsil}
-              />
-            )}
-          </View>
-
-          {/* Pincode & Auto Lookup */}
-          <View style={styles.fieldGroup}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={styles.label}>PIN CODE *</Text>
-              {lookingUpPincode && <ActivityIndicator size="small" color={YELLOW} />}
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
-              {availablePincodes.map((pin) => {
-                const isSelected = selectedPincode === pin;
-                return (
-                  <TouchableOpacity
-                    key={pin}
-                    style={[styles.pill, isSelected && styles.pillActive]}
-                    onPress={() => {
-                      setSelectedPincode(pin);
-                      handlePincodeAutoLookup(pin);
-                    }}>
-                    <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>{pin}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-              <TouchableOpacity
-                style={[styles.pill, selectedPincode === 'OTHER_CUSTOM' && styles.pillActive]}
-                onPress={() => setSelectedPincode('OTHER_CUSTOM')}>
-                <Text style={[styles.pillText, selectedPincode === 'OTHER_CUSTOM' && styles.pillTextActive]}>
-                  + Custom PIN
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
-
-            {selectedPincode === 'OTHER_CUSTOM' && (
-              <TextInput
-                style={[styles.input, { marginTop: 8 }]}
-                placeholder="Enter 6-digit Pin Code"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                keyboardType="number-pad"
-                maxLength={6}
-                value={customPincode}
-                onChangeText={(val) => {
-                  const clean = val.replace(/\D/g, '').slice(0, 6);
-                  setCustomPincode(clean);
-                  if (clean.length === 6) handlePincodeAutoLookup(clean);
-                }}
               />
             )}
           </View>
