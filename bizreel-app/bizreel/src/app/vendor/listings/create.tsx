@@ -34,13 +34,13 @@ import { useCreateVendorListing, useUpdateVendorListing } from '@/features/vendo
 import { api } from '@/lib/api';
 
 const YELLOW = '#F59E0B';
-const DARK_BG = '#0A0915';
-const CARD_BG = '#FDFBF7';
-const CARD_BORDER = '#EADFC9';
-const TEXT_DARK = '#1A1813';
-const PURPLE_ACCENT = '#3B1566';
-const PINK_BANNER = '#FAF0FA';
-const PINK_BORDER = '#E9D5FF';
+const DARK_BG = '#0F0F12';
+const DARK_CARD = '#18181C';
+const BORDER = '#2D2D36';
+const PURPLE_ACCENT = '#A855F7';
+const PURPLE_BG = 'rgba(168,85,247,0.12)';
+const PURPLE_BORDER = 'rgba(168,85,247,0.3)';
+const TEXT_MUTED = 'rgba(255,255,255,0.7)';
 
 export default function CreateListingScreen() {
   const router = useRouter();
@@ -532,7 +532,7 @@ export default function CreateListingScreen() {
                   <Text style={[styles.dropdownChipText, category === catItem.name && styles.dropdownChipTextActive]}>
                     {catItem.name}
                   </Text>
-                  <Ionicons name="chevron-down" size={14} color={category === catItem.name ? '#000' : '#666'} />
+                  <Ionicons name="chevron-down" size={14} color={category === catItem.name ? '#0F0F12' : '#888'} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -552,7 +552,7 @@ export default function CreateListingScreen() {
                     <Text style={[styles.dropdownChipText, subcategory === subName && styles.dropdownChipTextActive]}>
                       {subName}
                     </Text>
-                    <Ionicons name="chevron-down" size={14} color={subcategory === subName ? '#000' : '#666'} />
+                    <Ionicons name="chevron-down" size={14} color={subcategory === subName ? '#0F0F12' : '#888'} />
                   </TouchableOpacity>
                 );
               })}
@@ -569,7 +569,7 @@ export default function CreateListingScreen() {
               </View>
             </View>
 
-            {/* AI Description Generator Pink/Purple Banner */}
+            {/* AI Description Generator Glassmorphic Banner */}
             <View style={styles.aiBannerCard}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={styles.aiBannerTitle}>🤖 AI Description Generator (Voice & Text)</Text>
@@ -585,7 +585,7 @@ export default function CreateListingScreen() {
                 <TextInput
                   style={styles.aiPromptInput}
                   placeholder="Tell AI about product features or speak via mic..."
-                  placeholderTextColor="#999"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
                   value={aiPrompt}
                   onChangeText={setAiPrompt}
                 />
@@ -597,14 +597,14 @@ export default function CreateListingScreen() {
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <>
-                      <Ionicons name="globe-outline" size={14} color="#fff" />
+                      <Ionicons name="sparkles" size={14} color="#fff" />
                       <Text style={styles.autoGenerateBtnText}>Auto-Generate</Text>
                     </>
                   )}
                 </TouchableOpacity>
               </View>
 
-              <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(233,213,255,0.6)' }}>
+              <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(168,85,247,0.2)' }}>
                 <Text style={styles.subLabelText}>OR UPLOAD PRODUCT MEDIA FOR AI AUTO-FILL</Text>
                 <TouchableOpacity
                   style={styles.filePickerBtn}
@@ -613,7 +613,7 @@ export default function CreateListingScreen() {
                   {analyzingMedia ? (
                     <ActivityIndicator size="small" color={PURPLE_ACCENT} />
                   ) : (
-                    <Text style={styles.filePickerBtnText}>Choose file No file chosen</Text>
+                    <Text style={styles.filePickerBtnText}>📷 Select Photo/Video for AI Scan</Text>
                   )}
                 </TouchableOpacity>
                 <Text style={styles.helperText}>
@@ -629,14 +629,14 @@ export default function CreateListingScreen() {
                 <TouchableOpacity
                   style={styles.voiceSmallBtn}
                   onPress={() => toggleVoiceInput(setTitle, 'Title')}>
-                  <Ionicons name="mic" size={11} color={PURPLE_ACCENT} />
+                  <Ionicons name="mic" size={11} color={YELLOW} />
                   <Text style={styles.voiceSmallBtnText}>Voice Input</Text>
                 </TouchableOpacity>
               </View>
               <TextInput
                 style={styles.whiteInput}
                 placeholder="e.g. Wireless Noise-Cancelling Headphones"
-                placeholderTextColor="#999"
+                placeholderTextColor="rgba(255,255,255,0.35)"
                 value={title}
                 onChangeText={setTitle}
               />
@@ -649,14 +649,14 @@ export default function CreateListingScreen() {
                 <TouchableOpacity
                   style={styles.voiceSmallBtn}
                   onPress={() => toggleVoiceInput(setShortDescription, 'Short Description')}>
-                  <Ionicons name="mic" size={11} color={PURPLE_ACCENT} />
+                  <Ionicons name="mic" size={11} color={YELLOW} />
                   <Text style={styles.voiceSmallBtnText}>Voice Input</Text>
                 </TouchableOpacity>
               </View>
               <TextInput
                 style={styles.whiteInput}
                 placeholder="Brief 1-line summary..."
-                placeholderTextColor="#999"
+                placeholderTextColor="rgba(255,255,255,0.35)"
                 value={shortDescription}
                 onChangeText={setShortDescription}
               />
@@ -678,7 +678,7 @@ export default function CreateListingScreen() {
               <TextInput
                 style={[styles.whiteInput, { height: 80, textAlignVertical: 'top' }]}
                 placeholder="Comprehensive product details..."
-                placeholderTextColor="#999"
+                placeholderTextColor="rgba(255,255,255,0.35)"
                 value={description}
                 onChangeText={setDescription}
                 multiline
@@ -692,7 +692,7 @@ export default function CreateListingScreen() {
                 <TextInput
                   style={styles.whiteInput}
                   placeholder="e.g. Sony"
-                  placeholderTextColor="#999"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
                   value={brand}
                   onChangeText={setBrand}
                 />
@@ -702,13 +702,13 @@ export default function CreateListingScreen() {
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={styles.fieldLabel}>SKU Code</Text>
                   <TouchableOpacity onPress={generateSKU}>
-                    <Text style={{ color: PURPLE_ACCENT, fontSize: 9, fontWeight: '900' }}>⚡ Auto-Generate</Text>
+                    <Text style={{ color: YELLOW, fontSize: 9, fontWeight: '900' }}>⚡ Auto-Generate</Text>
                   </TouchableOpacity>
                 </View>
                 <TextInput
                   style={styles.whiteInput}
                   placeholder="SKU-XXX-000"
-                  placeholderTextColor="#999"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
                   value={sku}
                   onChangeText={setSku}
                 />
@@ -733,7 +733,7 @@ export default function CreateListingScreen() {
                 <TextInput
                   style={styles.whiteInput}
                   placeholder="3999"
-                  placeholderTextColor="#999"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
                   value={actualPrice}
                   onChangeText={setActualPrice}
                   keyboardType="number-pad"
@@ -745,7 +745,7 @@ export default function CreateListingScreen() {
                 <TextInput
                   style={[styles.whiteInput, { borderColor: YELLOW }]}
                   placeholder="2588"
-                  placeholderTextColor="#999"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
                   value={sellingPrice}
                   onChangeText={setSellingPrice}
                   keyboardType="number-pad"
@@ -760,7 +760,7 @@ export default function CreateListingScreen() {
                   <TextInput
                     style={styles.whiteInput}
                     placeholder="10"
-                    placeholderTextColor="#999"
+                    placeholderTextColor="rgba(255,255,255,0.35)"
                     value={stock}
                     onChangeText={setStock}
                     keyboardType="number-pad"
@@ -772,7 +772,7 @@ export default function CreateListingScreen() {
                   <TextInput
                     style={styles.whiteInput}
                     placeholder="piece / kg / set"
-                    placeholderTextColor="#999"
+                    placeholderTextColor="rgba(255,255,255,0.35)"
                     value={unit}
                     onChangeText={setUnit}
                   />
@@ -790,10 +790,10 @@ export default function CreateListingScreen() {
               onPress={() => pickImageFile('main')}
               disabled={uploadingImage}>
               {uploadingImage ? (
-                <ActivityIndicator color={DARK_BG} />
+                <ActivityIndicator color={YELLOW} />
               ) : (
                 <>
-                  <Ionicons name="cloud-upload-outline" size={20} color={DARK_BG} />
+                  <Ionicons name="cloud-upload-outline" size={20} color={YELLOW} />
                   <Text style={styles.uploadBtnText}>
                     {imageUrl ? '🖼️ Change Main Product Photo' : '📁 Upload Main Product Photo'}
                   </Text>
@@ -817,7 +817,7 @@ export default function CreateListingScreen() {
             onPress={handleSubmit}
             disabled={createMutation.isPending || updateMutation.isPending || loadingEdit}>
             {createMutation.isPending || updateMutation.isPending || loadingEdit ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#0F0F12" />
             ) : (
               <Text style={styles.submitBtnText}>
                 {isEdit ? '💾 SAVE LISTING CHANGES' : '🚀 PUBLISH LISTING TO STORE'}
@@ -839,11 +839,11 @@ export default function CreateListingScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="mic" size={20} color={PURPLE_ACCENT} />
+                <Ionicons name="mic" size={20} color={YELLOW} />
                 <Text style={styles.modalTitle}>Voice Input: {voiceTargetField}</Text>
               </View>
               <TouchableOpacity onPress={() => setVoiceModalVisible(false)}>
-                <Ionicons name="close" size={20} color={TEXT_DARK} />
+                <Ionicons name="close" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
 
@@ -856,7 +856,7 @@ export default function CreateListingScreen() {
             <TextInput
               style={styles.modalInput}
               placeholder={`Dictate or type ${voiceTargetField}...`}
-              placeholderTextColor="#999"
+              placeholderTextColor="rgba(255,255,255,0.4)"
               value={voiceText}
               onChangeText={setVoiceText}
               multiline
@@ -940,15 +940,15 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   sectionCard: {
-    backgroundColor: CARD_BG,
+    backgroundColor: DARK_CARD,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
+    borderColor: BORDER,
     padding: 16,
     gap: 12,
   },
   sectionHeaderTitle: {
-    color: TEXT_DARK,
+    color: YELLOW,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.8,
@@ -958,31 +958,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#fff',
+    backgroundColor: '#0F0F12',
     borderWidth: 1,
-    borderColor: '#E5E0D4',
+    borderColor: BORDER,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
   },
   dropdownChipActive: {
-    backgroundColor: '#F3E8FF',
-    borderColor: PURPLE_ACCENT,
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
   },
   dropdownChipText: {
-    color: TEXT_DARK,
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 11,
     fontWeight: '700',
   },
   dropdownChipTextActive: {
-    color: PURPLE_ACCENT,
+    color: '#0F0F12',
     fontWeight: '900',
   },
   aiBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: 'rgba(168,85,247,0.18)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
@@ -993,14 +993,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   aiBannerCard: {
-    backgroundColor: PINK_BANNER,
+    backgroundColor: PURPLE_BG,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: PINK_BORDER,
+    borderColor: PURPLE_BORDER,
     padding: 12,
   },
   aiBannerTitle: {
-    color: PURPLE_ACCENT,
+    color: '#E9D5FF',
     fontSize: 11,
     fontWeight: '900',
   },
@@ -1020,11 +1020,11 @@ const styles = StyleSheet.create({
   },
   aiPromptInput: {
     flex: 1,
-    backgroundColor: '#fff',
-    color: TEXT_DARK,
+    backgroundColor: '#0F0F12',
+    color: '#fff',
     fontSize: 11,
     borderWidth: 1,
-    borderColor: '#E9D5FF',
+    borderColor: PURPLE_BORDER,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1044,26 +1044,26 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   subLabelText: {
-    color: PURPLE_ACCENT,
+    color: '#C084FC',
     fontSize: 9,
     fontWeight: '900',
     marginBottom: 4,
   },
   filePickerBtn: {
-    backgroundColor: '#fff',
+    backgroundColor: '#0F0F12',
     borderWidth: 1,
-    borderColor: '#E9D5FF',
+    borderColor: PURPLE_BORDER,
     borderRadius: 8,
     padding: 8,
     alignItems: 'center',
   },
   filePickerBtnText: {
-    color: '#666',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 10,
     fontWeight: '700',
   },
   helperText: {
-    color: '#888',
+    color: 'rgba(255,255,255,0.4)',
     fontSize: 9,
     marginTop: 4,
     fontStyle: 'italic',
@@ -1074,7 +1074,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fieldLabel: {
-    color: TEXT_DARK,
+    color: 'rgba(255,255,255,0.85)',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -1084,17 +1084,17 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   voiceSmallBtnText: {
-    color: PURPLE_ACCENT,
+    color: YELLOW,
     fontSize: 10,
     fontWeight: '900',
   },
   whiteInput: {
-    backgroundColor: '#fff',
-    color: TEXT_DARK,
+    backgroundColor: '#0F0F12',
+    color: '#fff',
     fontSize: 11,
     fontWeight: '600',
     borderWidth: 1,
-    borderColor: '#E2DDD0',
+    borderColor: BORDER,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1125,14 +1125,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#fff',
+    backgroundColor: '#0F0F12',
     borderWidth: 1,
-    borderColor: '#E2DDD0',
+    borderColor: BORDER,
     borderRadius: 10,
     padding: 12,
   },
   uploadBtnText: {
-    color: TEXT_DARK,
+    color: YELLOW,
     fontSize: 11,
     fontWeight: '800',
   },
@@ -1159,29 +1159,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   submitBtn: {
-    backgroundColor: PURPLE_ACCENT,
+    backgroundColor: YELLOW,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   submitBtnText: {
-    color: '#fff',
+    color: '#0F0F12',
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: CARD_BG,
+    backgroundColor: DARK_CARD,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: PURPLE_ACCENT,
+    borderColor: YELLOW,
     padding: 16,
     gap: 12,
   },
@@ -1190,25 +1190,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2DDD0',
+    borderBottomColor: BORDER,
     paddingBottom: 10,
   },
   modalTitle: {
-    color: PURPLE_ACCENT,
+    color: YELLOW,
     fontSize: 12,
     fontWeight: '900',
   },
   modalSubtext: {
-    color: '#555',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 11,
     fontWeight: '600',
   },
   modalInput: {
-    backgroundColor: '#fff',
-    color: TEXT_DARK,
+    backgroundColor: '#0F0F12',
+    color: '#fff',
     fontSize: 12,
     borderWidth: 1,
-    borderColor: '#E2DDD0',
+    borderColor: BORDER,
     borderRadius: 10,
     padding: 12,
     minHeight: 90,
@@ -1224,12 +1224,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: '#0F0F12',
     borderWidth: 1,
-    borderColor: '#E2DDD0',
+    borderColor: BORDER,
   },
   modalCancelText: {
-    color: TEXT_DARK,
+    color: '#fff',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1237,10 +1237,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: PURPLE_ACCENT,
+    backgroundColor: YELLOW,
   },
   modalApplyText: {
-    color: '#fff',
+    color: '#0F0F12',
     fontSize: 11,
     fontWeight: '900',
   },
