@@ -150,8 +150,8 @@ const vendorApi = apiSlice.injectEndpoints({
       providesTags: ['Orders'],
     }),
     updateOrderStatus: builder.mutation({
-      query: ({ id, status }) => ({ url: `/orders/${id}/status`, method: 'PATCH', body: { status } }),
-      invalidatesTags: ['Orders', 'VendorDashboard'],
+      query: ({ id, ...body }) => ({ url: `/orders/${id}/status`, method: 'PATCH', body }),
+      invalidatesTags: ['Orders', 'VendorDashboard', 'Analytics', { type: 'Products', id: 'LIST' }],
     }),
 
     // ── Analytics ────────────────────────────────────────────

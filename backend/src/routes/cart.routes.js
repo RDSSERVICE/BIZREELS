@@ -361,6 +361,11 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
     // 4. Create Orders for vendor order dashboard & customer activities
     for (const item of itemsSnapshot) {
       const reqQty = parseInt(item.quantity || 1, 10);
+      const itemLineTotal = item.line_total || ((Number(item.price) || 0) * reqQty);
+      const itemShare = subtotal > 0 ? (itemLineTotal / subtotal) : (1 / itemsSnapshot.length);
+      const itemDiscount = Math.round(allocatedDiscount * itemShare);
+      const itemShipping = Math.round(allocatedShipping * itemShare);
+      const orderPrice = Math.max(0, itemLineTotal - itemDiscount + itemShipping);
 
       // Atomic conditional stock decrement
       const updatedListing = await Listing.findOneAndUpdate(
@@ -396,24 +401,25 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
           listing: item.listing_id,
           vendor: vendorId,
           quantity: reqQty,
-          itemTotal: item.line_total || (item.price * item.quantity),
+          itemTotal: itemLineTotal,
           price: Math.round(orderPrice),
           couponCode: couponCode || null,
-          couponDiscount: Math.round(allocatedDiscount * itemShare),
-          shippingCharges: Math.round(allocatedShipping * itemShare),
+          couponDiscount: itemDiscount,
+          shippingCharges: itemShipping,
           pincode: pincode || '',
           status: 'pending',
           paymentStatus: 'unpaid',
+          revenueRecognized: false,
           paymentMethod: 'vendor_upi',
           address: address || req.user.location?.address || req.user.address || 'Customer Address',
           itemSnapshot,
         });
 
-        // Update listing revenue & orders_count
+        // Update listing orders_count (revenue is recognized only upon payment or confirmation)
         await Listing.updateOne(
           { _id: item.listing_id },
           {
-            $inc: { orders_count: reqQty, revenue: Math.round(orderPrice) },
+            $inc: { orders_count: reqQty },
             ...(updatedListing.stock <= 0 ? { $set: { status: 'out_of_stock' } } : {})
           }
         ).catch(() => {});
@@ -432,7 +438,7 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
           sender: req.user._id,
           type: 'payment',
           title: 'New Product Order Received',
-          message: `${req.user.name || 'Customer'} placed order for ${item.quantity}x "${item.title}" (Total: ₹${Math.round(orderPrice)}).`,
+          message: `${req.user.name || 'Customer'} placed order for ${reqQty}x "${item.title}" (Total: ₹${Math.round(orderPrice)}).`,
           data: { orderId: order._id },
         });
       } catch (orderErr) {

@@ -87,6 +87,11 @@ const orderSchema = new Schema(
       default: 'unpaid',
       index: true,
     },
+    revenueRecognized: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     paymentMethod: {
       type: String,
       enum: ['wallet', 'vendor_upi', 'vendor_qr', 'vendor_bank', 'cod', 'vendor_payment', 'upi', 'qr', 'bank_transfer', 'cash'],
@@ -138,6 +143,10 @@ const orderSchema = new Schema(
       default: 0,
       min: 0,
       max: 100,
+    },
+    refundMode: {
+      type: String,
+      default: null,
     },
     cancelledAt: {
       type: Date,

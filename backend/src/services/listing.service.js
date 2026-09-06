@@ -622,15 +622,20 @@ class ListingService {
     ]);
 
     const liveOrders = Math.max(listing.orders_count || 0, orderStats[0]?.ordersCount || 0);
-    const liveRevenue = Math.max(listing.revenue || 0, orderStats[0]?.totalRevenue || 0);
+    const liveRevenue = orderStats[0]?.totalRevenue !== undefined ? orderStats[0].totalRevenue : (listing.revenue || 0);
     const liveShares = Math.max(listing.shares || 0, eventShares || 0);
 
-    // Self-healing synchronization on the document if missing
-    if ((listing.revenue || 0) < liveRevenue || (listing.orders_count || 0) < liveOrders || (listing.shares || 0) < liveShares) {
+    // Self-healing synchronization on the document if missing or mismatched
+    const updateSet = {};
+    if ((listing.revenue || 0) !== liveRevenue) updateSet.revenue = liveRevenue;
+    if ((listing.orders_count || 0) < liveOrders) updateSet.orders_count = liveOrders;
+    if ((listing.shares || 0) < liveShares) updateSet.shares = liveShares;
+
+    if (Object.keys(updateSet).length > 0) {
       const ListingModel = require('../models/Listing');
       ListingModel.updateOne(
         { _id: listing._id },
-        { $set: { revenue: liveRevenue, orders_count: liveOrders, shares: liveShares } }
+        { $set: updateSet }
       ).catch(() => {});
     }
 

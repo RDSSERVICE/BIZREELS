@@ -587,6 +587,7 @@ export default function ListingDetailPage() {
         quantity: orderQty,
         address: orderAddress,
         bookingDate: isService ? bookingDate : undefined,
+        bookingTime: isService ? bookingTime : undefined,
         bookingTimeSlot: isService ? bookingTime : undefined,
         notes: bookingNotes,
         paymentMethod,

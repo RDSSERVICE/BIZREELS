@@ -196,8 +196,8 @@ class OrderController {
     const validShipping = Math.max(0, parseFloat(shippingCharges) || 0);
     const finalPayable = Math.max(0, itemTotal - validatedCouponDiscount + (isService ? 0 : validShipping));
     // Compute scheduled visit time if bookingDate/time provided
-    const effectiveBookingDate = bookingDate || req.body.paymentDetails?.bookingDate || '';
-    const effectiveBookingTime = bookingTime || req.body.paymentDetails?.bookingTime || '';
+    const effectiveBookingDate = bookingDate || req.body.bookingDate || req.body.paymentDetails?.bookingDate || '';
+    const effectiveBookingTime = bookingTime || req.body.bookingTimeSlot || req.body.paymentDetails?.bookingTime || req.body.paymentDetails?.bookingTimeSlot || '';
     let computedVisitTime = null;
     if (scheduledVisitTime) {
       computedVisitTime = new Date(scheduledVisitTime);
@@ -328,11 +328,12 @@ class OrderController {
           price: finalPayable,
           status: 'pending',
           paymentStatus: finalPaymentStatus,
+          revenueRecognized: finalPaymentStatus === 'paid',
           paymentMethod,
           paymentDetails,
           address: address || 'Customer Address',
           bookingDate: bookingDate || '',
-          bookingTime: bookingTime || '',
+          bookingTime: effectiveBookingTime || bookingTime || '',
           scheduledVisitTime: computedVisitTime && !isNaN(computedVisitTime.getTime()) ? computedVisitTime : null,
           cancellationPolicySnapshot,
           itemSnapshot,
@@ -351,8 +352,12 @@ class OrderController {
     // Synchronize listing orders_count & revenue asynchronously and emit live events
     if (listingId) {
       const netOrderRev = Math.max(0, itemTotal - validatedCouponDiscount);
+      const incObj = { orders_count: effectiveQty };
+      if (finalPaymentStatus === 'paid') {
+        incObj.revenue = netOrderRev;
+      }
       Listing.findByIdAndUpdate(listingId, {
-        $inc: { orders_count: effectiveQty, revenue: netOrderRev }
+        $inc: incObj
       }).catch(() => {});
 
       try {
@@ -606,31 +611,39 @@ class OrderController {
 
     // Wallet refund is ONLY applicable if money was actually paid upfront (paymentStatus === 'paid')
     const isPaid = order.paymentStatus === 'paid';
+    const isPlatformWallet = order.paymentMethod === 'wallet';
     const refundAmount = isPaid ? Math.round((order.price * refundPercent) / 100) : 0;
 
     if (isPaid && refundAmount > 0) {
-      try {
-        await walletRepository.updateWalletBalance(
-          customerId,
-          refundAmount,
-          'refund',
-          order._id,
-          `Refund (${refundPercent}%) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
-        );
-      } catch (err) {
-        console.warn('Customer wallet refund error (non-fatal):', err?.message);
-      }
+      if (isPlatformWallet) {
+        order.refundMode = 'wallet';
+        try {
+          await walletRepository.updateWalletBalance(
+            customerId,
+            refundAmount,
+            'refund',
+            order._id,
+            `Refund (${refundPercent}%) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
+          );
+        } catch (err) {
+          console.warn('Customer wallet refund error (non-fatal):', err?.message);
+        }
 
-      try {
-        await walletRepository.updateWalletBalance(
-          vendorId,
-          -refundAmount,
-          'payment',
-          order._id,
-          `Debit (${refundPercent}% refund) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
-        );
-      } catch (err) {
-        console.warn('Vendor wallet debit error (non-fatal):', err?.message);
+        try {
+          await walletRepository.updateWalletBalance(
+            vendorId,
+            -refundAmount,
+            'payment',
+            order._id,
+            `Debit (${refundPercent}% refund) for cancelled ${isService ? 'service booking' : 'order'}: "${order.listing?.title || 'Order Item'}"`
+          );
+        } catch (err) {
+          console.warn('Vendor wallet debit error (non-fatal):', err?.message);
+        }
+      } else {
+        // Direct peer-to-peer payment (Vendor UPI / QR / COD)
+        order.refundMode = 'offline_direct';
+        policyExplanation += ' [Direct vendor payment: refund to be settled directly with vendor via UPI/offline]';
       }
     }
 
@@ -640,18 +653,26 @@ class OrderController {
     order.refundPercentage = isPaid ? refundPercent : 0;
     order.cancelledAt = new Date();
     if (reason) order.cancellationReason = reason;
-    await order.save();
 
     // Restore stock and adjust listing orders_count and revenue if order was cancelled/rejected
-    if (!isService && order.listing) {
+    if (order.listing) {
       const targetListingId = order.listing._id || order.listing;
       const qty = order.quantity || 1;
       const netOrderRev = Math.max(0, (order.itemTotal || (order.price * qty)) - (order.couponDiscount || 0));
+      const incObj = { orders_count: -qty };
+      if (!isService) {
+        incObj.stock = qty;
+      }
+      if (order.revenueRecognized) {
+        incObj.revenue = -netOrderRev;
+        order.revenueRecognized = false;
+      }
+
       Listing.findByIdAndUpdate(targetListingId, {
-        $inc: { stock: qty, orders_count: -qty, revenue: -netOrderRev }
+        $inc: incObj
       }, { new: true }).then(async (restoredListing) => {
         if (restoredListing) {
-          if (restoredListing.stock > 0 && restoredListing.status === 'out_of_stock') {
+          if (!isService && restoredListing.stock > 0 && restoredListing.status === 'out_of_stock') {
             await Listing.updateOne({ _id: targetListingId }, { status: 'published' }).catch(() => {});
           }
           try {
@@ -662,6 +683,8 @@ class OrderController {
         }
       }).catch(() => {});
     }
+
+    await order.save();
 
     // Notify vendor
     if (vendorId) {
@@ -912,17 +935,40 @@ class OrderController {
       }
     }
 
-    await order.save();
+    const targetListingId = order.listing?._id || order.listing;
+    const qty = order.quantity || 1;
+    const netOrderRev = Math.max(0, (order.itemTotal || (order.price * qty)) - (order.couponDiscount || 0));
+
+    // Revenue Recognition: Recognize revenue when order transitions to accepted, processing, shipped, delivered, completed or paid
+    const qualifiesForRevenue = (order.paymentStatus === 'paid' || ['accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'completed'].includes(newStatus)) && !['cancelled', 'rejected', 'refunded'].includes(newStatus);
+
+    if (qualifiesForRevenue && !order.revenueRecognized) {
+      order.revenueRecognized = true;
+      if (targetListingId) {
+        Listing.findByIdAndUpdate(targetListingId, {
+          $inc: { revenue: netOrderRev }
+        }).then(() => {
+          try {
+            const { emitToUser } = require('../sockets');
+            const vid = (order.vendor?._id || order.vendor || '').toString();
+            if (vid) {
+              emitToUser(vid, 'listing:updated', { id: targetListingId.toString() });
+            }
+          } catch (e) {}
+        }).catch(() => {});
+      }
+    }
 
     // Revert listing orders_count, revenue & restore stock if order was cancelled/refunded
     if (['cancelled', 'rejected', 'refunded'].includes(newStatus) && !['cancelled', 'rejected', 'refunded'].includes(previousStatus)) {
-      const targetListingId = order.listing?._id || order.listing;
       if (targetListingId) {
-        const qty = order.quantity || 1;
-        const netOrderRev = Math.max(0, (order.itemTotal || (order.price * qty)) - (order.couponDiscount || 0));
         const isProd = !order.scheduledVisitTime && order.itemSnapshot?.listingType !== 'service';
-        const incObj = { orders_count: -qty, revenue: -netOrderRev };
+        const incObj = { orders_count: -qty };
         if (isProd) incObj.stock = qty;
+        if (order.revenueRecognized) {
+          incObj.revenue = -netOrderRev;
+          order.revenueRecognized = false;
+        }
 
         Listing.findByIdAndUpdate(targetListingId, {
           $inc: incObj
@@ -943,6 +989,8 @@ class OrderController {
         }).catch(() => {});
       }
     }
+
+    await order.save();
 
     logger.info('[Order Lifecycle] State transition completed', {
       orderId: order._id,
