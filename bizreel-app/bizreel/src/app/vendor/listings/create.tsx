@@ -257,6 +257,63 @@ export default function CreateListingScreen() {
     Alert.alert('SKU Code Auto-Generated', `Assigned Code: ${code}`);
   }
 
+  // Tags Handlers
+  const handleAddTag = () => {
+    const cleanTag = newTag.trim().replace(/^#/, '');
+    if (!cleanTag) return;
+    if (tags.includes(cleanTag)) {
+      Alert.alert('Duplicate Tag', 'Tag already added');
+      return;
+    }
+    setTags([...tags, cleanTag]);
+    setNewTag('');
+  };
+
+  const handleRemoveTag = (idx: number) => {
+    setTags(tags.filter((_, i) => i !== idx));
+  };
+
+  // Specifications / Key-Value Attributes Handlers
+  const handleAddLabel = () => {
+    if (!newLabelKey.trim() || !newLabelVal.trim()) {
+      Alert.alert('Missing Attribute', 'Enter both attribute key and value (e.g. Color: Matte Black)');
+      return;
+    }
+    setLabels([...labels, { key: newLabelKey.trim(), value: newLabelVal.trim() }]);
+    setNewLabelKey('');
+    setNewLabelVal('');
+  };
+
+  const handleRemoveLabel = (idx: number) => {
+    setLabels(labels.filter((_, i) => i !== idx));
+  };
+
+  // Product Variants Handlers
+  const handleAddVariant = () => {
+    if (!variantLabel.trim() || !variantValue.trim()) {
+      Alert.alert('Missing Variant Data', 'Please enter variant type and value (e.g. Size: XL)');
+      return;
+    }
+    const finalPrice = variantPriceAdj !== '' ? parseFloat(variantPriceAdj) : parseFloat(sellingPrice || '0');
+    const newVar = {
+      label: variantLabel.trim(),
+      type: variantLabel.trim(),
+      value: variantValue.trim(),
+      sku: `${sku || 'SKU'}-${variantValue.trim().toUpperCase()}`,
+      price: isNaN(finalPrice) ? 0 : finalPrice,
+      image: variantImageUrl || undefined,
+    };
+    setVariants([...variants, newVar]);
+    setVariantValue('');
+    setVariantPriceAdj('');
+    setVariantImageUrl('');
+    Alert.alert('Variant Added!', `Variant "${variantLabel}: ${variantValue}" added.`);
+  };
+
+  const handleRemoveVariant = (idx: number) => {
+    setVariants(variants.filter((_, i) => i !== idx));
+  };
+
   // Voice Input Speech-to-Text Dictation Handler 🎙️
   const toggleVoiceInput = (
     targetSetter: React.Dispatch<React.SetStateAction<string>>,
@@ -714,9 +771,67 @@ export default function CreateListingScreen() {
                 />
               </View>
             </View>
+
+            {/* Tags & Keywords */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.labelVoiceRow}>
+                <Text style={styles.fieldLabel}>Tags / Keywords</Text>
+                <TouchableOpacity
+                  style={styles.voiceSmallBtn}
+                  onPress={() => toggleVoiceInput(setNewTag, 'Tag Keyword')}>
+                  <Ionicons name="mic" size={11} color={YELLOW} />
+                  <Text style={styles.voiceSmallBtnText}>Voice Input</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <TextInput
+                  style={[styles.whiteInput, { flex: 1 }]}
+                  placeholder="Type tag & press Add (e.g. bluetooth, wireless)"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={newTag}
+                  onChangeText={setNewTag}
+                  onSubmitEditing={handleAddTag}
+                />
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: YELLOW,
+                    paddingHorizontal: 14,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={handleAddTag}>
+                  <Text style={{ color: '#0F0F12', fontSize: 11, fontWeight: '900' }}>+ Add</Text>
+                </TouchableOpacity>
+              </View>
+              {tags.length > 0 ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                  {tags.map((t, idx) => (
+                    <View
+                      key={idx}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                        backgroundColor: 'rgba(245,158,11,0.18)',
+                        borderWidth: 1,
+                        borderColor: YELLOW,
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 12,
+                      }}>
+                      <Text style={{ color: YELLOW, fontSize: 10, fontWeight: '800' }}>#{t}</Text>
+                      <TouchableOpacity onPress={() => handleRemoveTag(idx)}>
+                        <Ionicons name="close-circle" size={12} color={YELLOW} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
           </View>
 
-          {/* SECTION 3: PRICING & INVENTORY */}
+          {/* SECTION 3: PRICING, INVENTORY & SHIPPING CONFIGURATION */}
           <View style={styles.sectionCard}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={styles.sectionHeaderTitle}>PRICING & INVENTORY</Text>
@@ -727,6 +842,7 @@ export default function CreateListingScreen() {
               )}
             </View>
 
+            {/* MRP & Selling Price */}
             <View style={styles.row}>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
                 <Text style={styles.fieldLabel}>MRP / Actual Price (₹)</Text>
@@ -753,32 +869,174 @@ export default function CreateListingScreen() {
               </View>
             </View>
 
-            {type === 'product' && (
+            {/* GST Rate (%) selector */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>GST Rate (%)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+                {['0%', '5%', '12%', '18%', '28%'].map((gstVal, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.dropdownChip, gst === gstVal && styles.dropdownChipActive]}
+                    onPress={() => setGst(gstVal)}>
+                    <Text style={[styles.dropdownChipText, gst === gstVal && styles.dropdownChipTextActive]}>
+                      {gstVal} GST
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Unit / Quantity Type selector */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Unit / Quantity Type</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+                {['piece', 'kg', 'g', 'litre', 'ml', 'meter', 'box', 'pack', 'set', 'pair', 'dozen', 'other'].map((uVal, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.dropdownChip, unit === uVal && styles.dropdownChipActive]}
+                    onPress={() => setUnit(uVal)}>
+                    <Text style={[styles.dropdownChipText, unit === uVal && styles.dropdownChipTextActive]}>
+                      {uVal.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              {unit === 'other' ? (
+                <TextInput
+                  style={[styles.whiteInput, { marginTop: 6 }]}
+                  placeholder="Enter custom unit (e.g. Bottle, Sheet)..."
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  onChangeText={(val) => setUnit(val || 'other')}
+                />
+              ) : null}
+            </View>
+
+            {/* Stock, Min Order Qty & Warranty */}
+            <View style={styles.row}>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.fieldLabel}>Stock Quantity</Text>
+                <TextInput
+                  style={styles.whiteInput}
+                  placeholder="10"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={stock}
+                  onChangeText={setStock}
+                  keyboardType="number-pad"
+                />
+              </View>
+
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.fieldLabel}>Min Order Qty</Text>
+                <TextInput
+                  style={styles.whiteInput}
+                  placeholder="1"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={minOrderQty}
+                  onChangeText={setMinOrderQty}
+                  keyboardType="number-pad"
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Warranty Details</Text>
+              <TextInput
+                style={styles.whiteInput}
+                placeholder="e.g. 1 Year Brand Warranty"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                value={warranty}
+                onChangeText={setWarranty}
+              />
+            </View>
+
+            {/* Return Policy Switch & Days */}
+            <View style={[styles.fieldGroup, { paddingTop: 6, borderTopWidth: 1, borderTopColor: BORDER }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.fieldLabel}>Return & Replacement Policy</Text>
+                <Switch
+                  value={!returnPolicy.toLowerCase().includes('no return')}
+                  onValueChange={(val) =>
+                    setReturnPolicy(val ? '7 Days Replacement Policy' : 'No Returns Applicable (Final Sale)')
+                  }
+                  trackColor={{ false: '#333', true: YELLOW }}
+                  thumbColor="#fff"
+                />
+              </View>
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>{returnPolicy}</Text>
+            </View>
+
+            {/* Shipping Details */}
+            <View style={[styles.fieldGroup, { paddingTop: 6, borderTopWidth: 1, borderTopColor: BORDER }]}>
+              <Text style={styles.sectionHeaderTitle}>SHIPPING & DELIVERY DETAILS</Text>
+              
               <View style={styles.row}>
                 <View style={[styles.fieldGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Stock Quantity</Text>
+                  <Text style={styles.fieldLabel}>Package Weight ({shippingWeightUnit})</Text>
                   <TextInput
                     style={styles.whiteInput}
-                    placeholder="10"
+                    placeholder="0.5"
                     placeholderTextColor="rgba(255,255,255,0.35)"
-                    value={stock}
-                    onChangeText={setStock}
-                    keyboardType="number-pad"
+                    value={shippingWeight}
+                    onChangeText={setShippingWeight}
+                    keyboardType="numeric"
                   />
                 </View>
 
                 <View style={[styles.fieldGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Unit</Text>
-                  <TextInput
-                    style={styles.whiteInput}
-                    placeholder="piece / kg / set"
-                    placeholderTextColor="rgba(255,255,255,0.35)"
-                    value={unit}
-                    onChangeText={setUnit}
-                  />
+                  <Text style={styles.fieldLabel}>Weight Unit</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+                    {['kg', 'g', 'lb'].map((wUnit, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={[styles.dropdownChip, shippingWeightUnit === wUnit && styles.dropdownChipActive]}
+                        onPress={() => setShippingWeightUnit(wUnit)}>
+                        <Text style={[styles.dropdownChipText, shippingWeightUnit === wUnit && styles.dropdownChipTextActive]}>
+                          {wUnit}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
                 </View>
               </View>
-            )}
+
+              <Text style={[styles.fieldLabel, { marginTop: 4 }]}>Dimensions L × W × H (cm)</Text>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <TextInput
+                  style={[styles.whiteInput, { flex: 1 }]}
+                  placeholder="L"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={shippingLength}
+                  onChangeText={setShippingLength}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[styles.whiteInput, { flex: 1 }]}
+                  placeholder="W"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={shippingWidth}
+                  onChangeText={setShippingWidth}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[styles.whiteInput, { flex: 1 }]}
+                  placeholder="H"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={shippingHeight}
+                  onChangeText={setShippingHeight}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                <Text style={styles.fieldLabel}>Free Shipping Available</Text>
+                <Switch
+                  value={freeShipping}
+                  onValueChange={setFreeShipping}
+                  trackColor={{ false: '#333', true: YELLOW }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
           </View>
 
           {/* SECTION 4: PRODUCT MEDIA & GALLERY */}
@@ -801,12 +1059,188 @@ export default function CreateListingScreen() {
               )}
             </TouchableOpacity>
 
-            {imageUrl ? (
-              <View style={styles.imagePreviewContainer}>
-                <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
-                <TouchableOpacity style={styles.removeImageBtn} onPress={() => setImageUrl('')}>
-                  <Ionicons name="close" size={12} color="#fff" />
+            <TouchableOpacity
+              style={[styles.uploadBtn, { borderColor: PURPLE_BORDER }]}
+              onPress={() => pickImageFile('gallery')}
+              disabled={uploadingImage}>
+              <Ionicons name="images-outline" size={20} color={PURPLE_ACCENT} />
+              <Text style={[styles.uploadBtnText, { color: PURPLE_ACCENT }]}>
+                📷 Add Photos to Product Gallery ({galleryImages.length})
+              </Text>
+            </TouchableOpacity>
+
+            {/* Gallery Thumbnails Grid */}
+            {galleryImages.length > 0 ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+                {galleryImages.map((gImg, idx) => (
+                  <View key={idx} style={{ position: 'relative', width: 70, height: 70 }}>
+                    <Image source={{ uri: gImg }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
+                    {idx === 0 && (
+                      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: YELLOW, paddingVertical: 1 }}>
+                        <Text style={{ color: '#000', fontSize: 7, fontWeight: '900', textAlign: 'center' }}>COVER</Text>
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={{
+                        position: 'absolute',
+                        top: -4,
+                        right: -4,
+                        backgroundColor: '#EF4444',
+                        width: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onPress={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))}>
+                      <Ionicons name="close" size={11} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {/* Video Link Input */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Product Video URL (Optional)</Text>
+              <TextInput
+                style={styles.whiteInput}
+                placeholder="https://youtube.com/watch?v=... or MP4 link"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                value={videoUrl}
+                onChangeText={setVideoUrl}
+              />
+            </View>
+          </View>
+
+          {/* SECTION 5: SPECIFICATIONS & VARIANTS */}
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionHeaderTitle}>SPECIFICATIONS & ATTRIBUTES</Text>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <TextInput
+                style={[styles.whiteInput, { flex: 1 }]}
+                placeholder="Attribute (e.g. Color)"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                value={newLabelKey}
+                onChangeText={setNewLabelKey}
+              />
+              <TextInput
+                style={[styles.whiteInput, { flex: 1 }]}
+                placeholder="Value (e.g. Matte Black)"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                value={newLabelVal}
+                onChangeText={setNewLabelVal}
+              />
+              <TouchableOpacity
+                style={{
+                  backgroundColor: YELLOW,
+                  paddingHorizontal: 12,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={handleAddLabel}>
+                <Text style={{ color: '#0F0F12', fontSize: 11, fontWeight: '900' }}>+ Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            {labels.length > 0 ? (
+              <View style={{ gap: 6, marginTop: 6 }}>
+                {labels.map((lbl, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      backgroundColor: '#0F0F12',
+                      borderWidth: 1,
+                      borderColor: BORDER,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 10,
+                    }}>
+                    <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '800' }}>
+                      {lbl.key}: <Text style={{ color: '#fff', fontWeight: '600' }}>{lbl.value}</Text>
+                    </Text>
+                    <TouchableOpacity onPress={() => handleRemoveLabel(idx)}>
+                      <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            <Text style={[styles.sectionHeaderTitle, { marginTop: 10 }]}>PRODUCT VARIANTS (SIZES, COLORS)</Text>
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <TextInput
+                  style={[styles.whiteInput, { flex: 1 }]}
+                  placeholder="Type (e.g. Size)"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={variantLabel}
+                  onChangeText={setVariantLabel}
+                />
+                <TextInput
+                  style={[styles.whiteInput, { flex: 1 }]}
+                  placeholder="Value (e.g. XL)"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={variantValue}
+                  onChangeText={setVariantValue}
+                />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <TextInput
+                  style={[styles.whiteInput, { flex: 1 }]}
+                  placeholder="Variant Price Adjustment (₹)"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={variantPriceAdj}
+                  onChangeText={setVariantPriceAdj}
+                  keyboardType="numeric"
+                />
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: PURPLE_ACCENT,
+                    paddingHorizontal: 14,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={handleAddVariant}>
+                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>+ Add Variant</Text>
                 </TouchableOpacity>
+              </View>
+            </View>
+
+            {variants.length > 0 ? (
+              <View style={{ gap: 6, marginTop: 6 }}>
+                {variants.map((v, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      backgroundColor: '#0F0F12',
+                      borderWidth: 1,
+                      borderColor: BORDER,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 10,
+                    }}>
+                    <View>
+                      <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '900' }}>
+                        {v.label || v.type}: {v.value}
+                      </Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>
+                        Price: ₹{v.price || sellingPrice} • SKU: {v.sku}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => handleRemoveVariant(idx)}>
+                      <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
               </View>
             ) : null}
           </View>
