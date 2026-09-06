@@ -76,7 +76,8 @@ class WalletRepository {
 
         const desc = (description || '').toLowerCase();
         // Customer activities (e.g. order purchases, service bookings, customer refunds) belong to Customer wallet only
-        const isCustomerActivity = type === 'refund' || desc.includes('cancelled') || desc.includes('ordered:') || desc.includes('order:');
+        const isVendorEarning = desc.includes('escrow') || desc.includes('payout') || desc.includes('received payment');
+        const isCustomerActivity = !isVendorEarning && (type === 'refund' || desc.includes('cancelled') || desc.includes('ordered:') || desc.includes('order:'));
 
         let targetRole = null;
         if (!isCustomerActivity) {

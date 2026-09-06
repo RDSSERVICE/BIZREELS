@@ -1149,7 +1149,7 @@ class OrderController {
       }
     }
 
-    // Escrow Release: When a Razorpay order reaches delivered/completed, release held escrow
+    // Escrow Release: When a Razorpay order reaches delivered/completed, release held escrow and credit vendor wallet
     if (['delivered', 'completed'].includes(newStatus) && order.escrowStatus === 'held') {
       order.escrowStatus = 'released';
       logger.info('[Razorpay] Escrow released on delivery/completion', {
@@ -1157,6 +1157,56 @@ class OrderController {
         newStatus,
         paymentMethod: order.paymentMethod,
       });
+
+      // Auto-credit vendor wallet with net earnings
+      const vendorId = order.vendor?._id || order.vendor;
+      if (vendorId) {
+        try {
+          const payoutAmount = Math.max(0, order.price);
+          if (payoutAmount > 0) {
+            const isServiceOrder = !!order.scheduledVisitTime || order.itemSnapshot?.listingType === 'service' || order.listing?.type === 'service';
+            await walletRepository.updateWalletBalance(
+              vendorId,
+              payoutAmount,
+              'deposit',
+              order._id,
+              `Escrow payout released for completed ${isServiceOrder ? 'service' : 'order'}: "${order.itemSnapshot?.title || order.listing?.title || 'Order'}"`
+            );
+            logger.info('[Escrow Settlement] Credited vendor wallet', {
+              vendorId,
+              orderId: order._id,
+              payoutAmount,
+            });
+
+            // Emit live socket updates to vendor
+            try {
+              emitToUser(vendorId.toString(), 'wallet:updated', { orderId: order._id, payoutAmount });
+              emitToUser(vendorId.toString(), 'order:updated', { orderId: order._id });
+            } catch (e) {}
+
+            // Send in-app notification to vendor
+            try {
+              await Notification.create({
+                recipient: vendorId,
+                recipientRole: 'vendor',
+                type: 'order_payout',
+                title: '💰 Escrow Payout Released',
+                message: `₹${payoutAmount.toLocaleString('en-IN')} for ${isServiceOrder ? 'service booking' : 'order'} #${order._id.toString().slice(-6)} has been credited to your wallet balance.`,
+                actionUrl: '/vendor/wallet',
+                data: { orderId: order._id, amount: payoutAmount },
+              });
+            } catch (notifErr) {
+              console.warn('Notification creation error (non-fatal):', notifErr?.message);
+            }
+          }
+        } catch (walletErr) {
+          logger.error('[Escrow Settlement] Failed to credit vendor wallet', {
+            vendorId,
+            orderId: order._id,
+            error: walletErr?.message,
+          });
+        }
+      }
     }
 
     // Revert listing orders_count, revenue & restore stock if order was cancelled/refunded

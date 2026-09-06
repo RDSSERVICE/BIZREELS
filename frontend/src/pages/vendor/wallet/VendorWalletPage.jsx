@@ -90,6 +90,38 @@ export default function VendorWalletPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('wallet'); // 'wallet' | 'rates'
 
+  // Payout Withdrawal State
+  const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState('');
+  const [payoutLoading, setPayoutLoading] = useState(false);
+
+  const handleRequestPayout = async (e) => {
+    if (e) e.preventDefault();
+    const numAmt = parseFloat(payoutAmount);
+    if (!numAmt || numAmt <= 0) {
+      toast.error('Please enter a valid withdrawal amount.');
+      return;
+    }
+    if (numAmt > balance) {
+      toast.error('Withdrawal amount cannot exceed available balance.');
+      return;
+    }
+
+    setPayoutLoading(true);
+    try {
+      await api.post('/v1/wallet/payout', { amount: numAmt });
+      toast.success(`🎉 Payout request for ₹${numAmt.toLocaleString('en-IN')} submitted successfully!`);
+      setIsPayoutModalOpen(false);
+      setPayoutAmount('');
+      if (typeof refetchWallet === 'function') refetchWallet();
+      if (typeof refetchTx === 'function') refetchTx();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to submit payout request.');
+    } finally {
+      setPayoutLoading(false);
+    }
+  };
+
   // Dynamic Packs & Rates from Backend (zero client-side hardcoding)
   const topupPacks = Array.isArray(topupPacksData) ? topupPacksData : topupPacksData?.data || [];
   const creditRates = Array.isArray(creditRatesData) && creditRatesData.length > 0
@@ -314,6 +346,17 @@ export default function VendorWalletPage() {
           >
             <FiPlus size={18} strokeWidth={3} />
             <span>{bi('RECHARGE WALLET', 'वॉलेट रीचार्ज करें')}</span>
+          </button>
+          <button
+            onClick={() => {
+              setPayoutAmount(balance > 0 ? String(balance) : '');
+              setIsPayoutModalOpen(true);
+            }}
+            disabled={balance <= 0}
+            className="px-5 py-3 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-black rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <FiArrowUpRight size={18} strokeWidth={2.5} />
+            <span>{bi('WITHDRAW TO BANK', 'बैंक में निकालें')}</span>
           </button>
           <Link
             to="/vendor/subscription"
@@ -568,6 +611,99 @@ export default function VendorWalletPage() {
                   className="px-5 py-2.5 bg-[#241b15] text-[#d99a3d] hover:bg-[#3a2c22] text-xs font-black rounded-xl shadow-xs transition flex items-center gap-2 disabled:opacity-50 cursor-pointer border-none"
                 >
                   {loading ? 'Processing...' : `Pay ₹${Number(amount || 0).toLocaleString('en-IN')} via Razorpay`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payout / Withdrawal Modal */}
+      {isPayoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-2xl border-2 border-[#241b15] shadow-2xl max-w-md w-full p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#e3dccb] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-black">
+                  <FiArrowUpRight size={18} />
+                </div>
+                <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm sm:text-base font-black text-[#1a1a1a] uppercase">
+                  {bi('Withdraw to Bank', 'बैंक खाते में निकालें')}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPayoutModalOpen(false)}
+                className="w-7 h-7 rounded-lg bg-[#f8f4ec] hover:bg-[#e3dccb] text-[#1a1a1a] flex items-center justify-center transition border-none cursor-pointer"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRequestPayout} className="space-y-4">
+              {/* Available balance badge */}
+              <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-500">Available Balance:</span>
+                <span className="font-black text-base text-[#1a1a1a]">₹{balance.toLocaleString('en-IN')}</span>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Withdrawal Amount (₹)
+                  </label>
+                  {balance > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPayoutAmount(String(balance))}
+                      className="text-[10px] font-black text-[#d99a3d] hover:underline cursor-pointer bg-transparent border-none"
+                    >
+                      Withdraw All (₹{balance.toLocaleString('en-IN')})
+                    </button>
+                  )}
+                </div>
+
+                <div className="relative flex items-center bg-[#f8f4ec] rounded-xl border-2 border-[#241b15] px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-emerald-500 transition-all">
+                  <span className="font-black text-emerald-700 text-base mr-2">₹</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={balance}
+                    required
+                    value={payoutAmount}
+                    onChange={(e) => setPayoutAmount(e.target.value)}
+                    placeholder="Enter amount to withdraw"
+                    className="w-full bg-transparent text-base font-black text-[#1a1a1a] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Info Box */}
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 space-y-1">
+                <div className="flex items-center gap-1.5 font-black">
+                  <FiShield size={14} className="text-emerald-700 shrink-0" />
+                  <span>Verified Direct Bank Settlement</span>
+                </div>
+                <p className="text-[10.5px] text-emerald-800/80 leading-snug">
+                  Funds will be disbursed via NEFT/IMPS to your verified bank account on file within 24 to 48 business hours.
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#e3dccb]">
+                <button
+                  type="button"
+                  onClick={() => setIsPayoutModalOpen(false)}
+                  className="px-4 py-2.5 text-xs font-black text-slate-600 hover:bg-[#f8f4ec] rounded-xl transition cursor-pointer border border-[#e3dccb] bg-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={payoutLoading || !payoutAmount || parseFloat(payoutAmount) <= 0 || parseFloat(payoutAmount) > balance}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-xs transition flex items-center gap-2 disabled:opacity-50 cursor-pointer border-none"
+                >
+                  {payoutLoading ? 'Submitting...' : `Withdraw ₹${Number(payoutAmount || 0).toLocaleString('en-IN')}`}
                 </button>
               </div>
             </form>
