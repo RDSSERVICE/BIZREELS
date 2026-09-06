@@ -112,6 +112,7 @@ export default function CreateListingScreen() {
 
   // Media
   const [imageUrl, setImageUrl] = useState('');
+  const [imageUrlInput, setImageUrlInput] = useState('');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -158,9 +159,22 @@ export default function CreateListingScreen() {
             if (ship.freeShipping !== undefined) setFreeShipping(Boolean(ship.freeShipping));
             if (ship.estimatedDays) setEstimatedDays(String(ship.estimatedDays));
 
-            const img = item.image || item.images?.[0] || '';
-            if (img) setImageUrl(img);
-            if (item.images && Array.isArray(item.images)) setGalleryImages(item.images);
+            // Populate Main Cover Image and Gallery Images
+            const mainImg = item.image || item.images?.[0] || item.coverImage || item.media?.[0] || '';
+            if (mainImg) setImageUrl(mainImg);
+
+            let allImgs: string[] = [];
+            if (Array.isArray(item.images) && item.images.length > 0) {
+              allImgs = item.images;
+            } else if (Array.isArray(item.media) && item.media.length > 0) {
+              allImgs = item.media;
+            } else if (mainImg) {
+              allImgs = [mainImg];
+            }
+            if (mainImg && !allImgs.includes(mainImg)) {
+              allImgs = [mainImg, ...allImgs];
+            }
+            setGalleryImages(allImgs);
             if (item.video) setVideoUrl(item.video);
           }
         })
@@ -1078,60 +1092,137 @@ export default function CreateListingScreen() {
           <View style={styles.sectionCard}>
             <Text style={styles.sectionHeaderTitle}>PRODUCT MEDIA & GALLERY</Text>
 
-            <TouchableOpacity
-              style={styles.uploadBtn}
-              onPress={() => pickImageFile('main')}
-              disabled={uploadingImage}>
-              {uploadingImage ? (
-                <ActivityIndicator color={YELLOW} />
-              ) : (
-                <>
-                  <Ionicons name="cloud-upload-outline" size={20} color={YELLOW} />
-                  <Text style={styles.uploadBtnText}>
-                    {imageUrl ? '🖼️ Change Main Product Photo' : '📁 Upload Main Product Photo'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {/* Main Cover Photo Card */}
+            {imageUrl ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
+                <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: YELLOW, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                  <Text style={{ color: '#0F0F12', fontSize: 9, fontWeight: '900' }}>COVER PHOTO</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.removeImageBtn}
+                  onPress={() => {
+                    setImageUrl('');
+                    const remaining = galleryImages.filter((img) => img !== imageUrl);
+                    setGalleryImages(remaining);
+                  }}>
+                  <Ionicons name="close" size={12} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
-            <TouchableOpacity
-              style={[styles.uploadBtn, { borderColor: PURPLE_BORDER }]}
-              onPress={() => pickImageFile('gallery')}
-              disabled={uploadingImage}>
-              <Ionicons name="images-outline" size={20} color={PURPLE_ACCENT} />
-              <Text style={[styles.uploadBtnText, { color: PURPLE_ACCENT }]}>
-                📷 Add Photos to Product Gallery ({galleryImages.length})
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.uploadBtn, { flex: 1 }]}
+                onPress={() => pickImageFile('main')}
+                disabled={uploadingImage}>
+                {uploadingImage ? (
+                  <ActivityIndicator color={YELLOW} />
+                ) : (
+                  <>
+                    <Ionicons name="cloud-upload-outline" size={18} color={YELLOW} />
+                    <Text style={styles.uploadBtnText}>
+                      {imageUrl ? '🖼️ Change Cover' : '📁 Upload Cover'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.uploadBtn, { flex: 1, borderColor: PURPLE_BORDER }]}
+                onPress={() => pickImageFile('gallery')}
+                disabled={uploadingImage}>
+                <Ionicons name="images-outline" size={18} color={PURPLE_ACCENT} />
+                <Text style={[styles.uploadBtnText, { color: PURPLE_ACCENT }]}>
+                  📷 Add Gallery ({galleryImages.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Paste Image URL Input */}
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <TextInput
+                style={[styles.whiteInput, { flex: 1 }]}
+                placeholder="Or paste direct image URL (https://...)"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                value={imageUrlInput}
+                onChangeText={setImageUrlInput}
+              />
+              <TouchableOpacity
+                style={{
+                  backgroundColor: PURPLE_ACCENT,
+                  paddingHorizontal: 12,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => {
+                  const cleanUrl = imageUrlInput.trim();
+                  if (!cleanUrl) return;
+                  if (!imageUrl) setImageUrl(cleanUrl);
+                  if (!galleryImages.includes(cleanUrl)) setGalleryImages([...galleryImages, cleanUrl]);
+                  setImageUrlInput('');
+                  Alert.alert('Photo Attached!', 'Image URL added to listing gallery.');
+                }}>
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>+ Add URL</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Gallery Thumbnails Grid */}
             {galleryImages.length > 0 ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-                {galleryImages.map((gImg, idx) => (
-                  <View key={idx} style={{ position: 'relative', width: 70, height: 70 }}>
-                    <Image source={{ uri: gImg }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
-                    {idx === 0 && (
-                      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: YELLOW, paddingVertical: 1 }}>
-                        <Text style={{ color: '#000', fontSize: 7, fontWeight: '900', textAlign: 'center' }}>COVER</Text>
-                      </View>
-                    )}
-                    <TouchableOpacity
-                      style={{
-                        position: 'absolute',
-                        top: -4,
-                        right: -4,
-                        backgroundColor: '#EF4444',
-                        width: 18,
-                        height: 18,
-                        borderRadius: 9,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onPress={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))}>
-                      <Ionicons name="close" size={11} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Gallery Photos (Tap photo to set as Main Cover)</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                  {galleryImages.map((gImg, idx) => {
+                    const isCover = gImg === imageUrl || (idx === 0 && !imageUrl);
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        style={{ position: 'relative', width: 75, height: 75 }}
+                        onPress={() => {
+                          setImageUrl(gImg);
+                          Alert.alert('Main Cover Updated', 'Selected photo assigned as listing main cover.');
+                        }}>
+                        <Image
+                          source={{ uri: gImg }}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: 8,
+                            borderWidth: isCover ? 2 : 1,
+                            borderColor: isCover ? YELLOW : BORDER,
+                          }}
+                        />
+                        {isCover && (
+                          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: YELLOW, paddingVertical: 1, borderBottomLeftRadius: 6, borderBottomRightRadius: 6 }}>
+                            <Text style={{ color: '#0F0F12', fontSize: 7, fontWeight: '900', textAlign: 'center' }}>COVER</Text>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={{
+                            position: 'absolute',
+                            top: -4,
+                            right: -4,
+                            backgroundColor: '#EF4444',
+                            width: 18,
+                            height: 18,
+                            borderRadius: 9,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onPress={() => {
+                            const filtered = galleryImages.filter((_, i) => i !== idx);
+                            setGalleryImages(filtered);
+                            if (gImg === imageUrl) {
+                              setImageUrl(filtered[0] || '');
+                            }
+                          }}>
+                          <Ionicons name="close" size={11} color="#fff" />
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             ) : null}
 
