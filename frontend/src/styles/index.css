@@ -170,11 +170,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-brand-purple-300);
+    background: #d99a3d;
     border-radius: var(--radius-full);
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-brand-purple-500);
+    background: #b87d27;
   }
 }
 

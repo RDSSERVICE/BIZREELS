@@ -180,3 +180,38 @@ img, video {
     -webkit-backdrop-filter: blur(12px);
 }
 
+/* ── BizReels Warm Theme Scrollbar ─────────────────────────── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #d99a3d;
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #b87d27;
+}
+
+.bizreels-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+.bizreels-scrollbar::-webkit-scrollbar-track {
+    background: #faf7f2;
+    border-radius: 9999px;
+}
+.bizreels-scrollbar::-webkit-scrollbar-thumb {
+    background: #d99a3d;
+    border-radius: 9999px;
+}
+.bizreels-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #b87d27;
+}
+.bizreels-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #d99a3d #faf7f2;
+}
+

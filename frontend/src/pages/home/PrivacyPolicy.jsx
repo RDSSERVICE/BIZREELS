@@ -89,13 +89,15 @@ const SECTIONS = [
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
           {/* Customer Card */}
           <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e3dccb] hover:border-[#d99a3d]/50 transition-all space-y-2.5 flex flex-col">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-blue-100 text-blue-800">
-                Buyers & Consumers
+            <div className="flex items-center justify-between gap-2 flex-wrap pb-1 border-b border-[#e3dccb]/70">
+              <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-blue-100 text-blue-900 leading-tight">
+                Buyers &amp; Consumers
               </span>
-              <span className="text-[10px] text-slate-400 font-bold">Role: Customer</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white text-slate-600 border border-[#e3dccb]">
+                Role: Customer
+              </span>
             </div>
-            <h4 className="font-bold text-sm text-[#1a1a1a]">Buyer Profile & Orders</h4>
+            <h4 className="font-bold text-sm text-[#1a1a1a]">Buyer Profile &amp; Orders</h4>
             <ul className="text-xs text-slate-600 space-y-1.5 flex-1">
               <li className="flex items-start gap-1.5">
                 <span className="text-blue-500 font-black mt-0.5">•</span>
@@ -118,13 +120,15 @@ const SECTIONS = [
 
           {/* Vendor Card */}
           <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e3dccb] hover:border-[#d99a3d]/50 transition-all space-y-2.5 flex flex-col">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                Suppliers & Stores
+            <div className="flex items-center justify-between gap-2 flex-wrap pb-1 border-b border-[#e3dccb]/70">
+              <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 leading-tight">
+                Suppliers &amp; Stores
               </span>
-              <span className="text-[10px] text-slate-400 font-bold">Role: Vendor</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white text-slate-600 border border-[#e3dccb]">
+                Role: Vendor
+              </span>
             </div>
-            <h4 className="font-bold text-sm text-[#1a1a1a]">Business Profile & Store</h4>
+            <h4 className="font-bold text-sm text-[#1a1a1a]">Business Profile &amp; Store</h4>
             <ul className="text-xs text-slate-600 space-y-1.5 flex-1">
               <li className="flex items-start gap-1.5">
                 <span className="text-[#d99a3d] font-black mt-0.5">•</span>
@@ -147,11 +151,13 @@ const SECTIONS = [
 
           {/* Creator Card */}
           <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e3dccb] hover:border-[#d99a3d]/50 transition-all space-y-2.5 flex flex-col">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-purple-100 text-purple-800">
+            <div className="flex items-center justify-between gap-2 flex-wrap pb-1 border-b border-[#e3dccb]/70">
+              <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-purple-100 text-purple-900 leading-tight">
                 Content Creators
               </span>
-              <span className="text-[10px] text-slate-400 font-bold">Role: Creator</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white text-slate-600 border border-[#e3dccb]">
+                Role: Creator
+              </span>
             </div>
             <h4 className="font-bold text-sm text-[#1a1a1a]">Creator Marketplace</h4>
             <ul className="text-xs text-slate-600 space-y-1.5 flex-1">
@@ -584,24 +590,24 @@ const SECTIONS = [
               <strong className="text-[#1a1a1a]">Right to Information &amp; Access:</strong> You can inspect all profile details, saved addresses, order records, and wallet history at any time from your Account Settings.
             </div>
           </div>
-          <li className="p-3 rounded-xl bg-[#faf7f2] border border-[#e3dccb] flex items-start gap-2.5 list-none">
+          <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e3dccb] flex items-start gap-2.5">
             <span className="font-black text-[#d99a3d]">2.</span>
             <div>
               <strong className="text-[#1a1a1a]">Right to Correction &amp; Updation:</strong> Seamlessly update inaccurate phone numbers, addresses, shop listings, or creator pricing cards in real time.
             </div>
-          </li>
-          <li className="p-3 rounded-xl bg-[#faf7f2] border border-[#e3dccb] flex items-start gap-2.5 list-none">
+          </div>
+          <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e3dccb] flex items-start gap-2.5">
             <span className="font-black text-[#d99a3d]">3.</span>
             <div>
               <strong className="text-[#1a1a1a]">Unified Role Switching:</strong> Switch dynamically between Customer, Vendor, and Creator workspaces from your top navigation switcher without managing duplicate accounts.
             </div>
-          </li>
-          <li className="p-3 rounded-xl bg-[#faf7f2] border border-[#e3dccb] flex items-start gap-2.5 list-none">
+          </div>
+          <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e3dccb] flex items-start gap-2.5">
             <span className="font-black text-[#d99a3d]">4.</span>
             <div>
               <strong className="text-[#1a1a1a]">Right to Erasure &amp; Account Deletion:</strong> You can request full erasure of your account and associated personal data by contacting our Grievance Officer or using the account deletion workflow in Settings.
             </div>
-          </li>
+          </div>
         </div>
       </div>
     ),
@@ -956,7 +962,7 @@ export default function PrivacyPolicy() {
             </div>
 
             {/* Quick Index List */}
-            <div className="bg-white rounded-2xl border-2 border-[#241b15] p-3 sm:p-4 shadow-sm space-y-1.5 max-h-[72vh] overflow-y-auto">
+            <div className="bg-white rounded-2xl border-2 border-[#241b15] p-3 sm:p-4 shadow-sm space-y-1.5 max-h-[72vh] overflow-y-auto bizreels-scrollbar">
               <div className="flex items-center justify-between pb-2.5 border-b border-[#e3dccb] mb-2 px-1">
                 <h3
                   style={{ fontFamily: "'Archivo Black', sans-serif" }}
