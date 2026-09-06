@@ -723,7 +723,7 @@ const styles = StyleSheet.create({
   buyBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.8)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)' },
   modalContent: { backgroundColor: DARK_CARD, borderTopWidth: 2, borderTopColor: YELLOW, padding: Spacing.four, gap: 10 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: BORDER, paddingBottom: 8 },
   modalTitle: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },

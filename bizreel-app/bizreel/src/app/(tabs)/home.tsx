@@ -1021,10 +1021,10 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
   },
   reelThumbnail: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
   },
   reelOverlayGradient: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   reelPlayBadge: {
