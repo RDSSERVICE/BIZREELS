@@ -16,6 +16,7 @@ export default function CheckoutPriceDetails({
   totalCustomerSavings,
   submitting,
   deliveryAddress,
+  paymentMethod = 'razorpay',
 }) {
   return (
     <div className="bg-white rounded-xl border border-[#e3dccb] p-4 sm:p-5 shadow-xs space-y-3.5 sticky top-2">
@@ -101,7 +102,9 @@ export default function CheckoutPriceDetails({
           <>
             <FiZap size={16} />
             <span>
-              {isService ? 'Confirm & Book Appointment' : `Place Order (₹${totalAmount.toLocaleString('en-IN')})`}
+              {isService
+                ? (paymentMethod === 'razorpay' ? `Pay Online & Book (₹${totalAmount.toLocaleString('en-IN')})` : 'Confirm & Book Appointment')
+                : (paymentMethod === 'razorpay' ? `Pay Online & Place Order (₹${totalAmount.toLocaleString('en-IN')})` : `Place Order (₹${totalAmount.toLocaleString('en-IN')})`)}
             </span>
           </>
         )}

@@ -129,6 +129,79 @@ const publicKeyId = () => {
   return keyId || '';
 };
 
+/**
+ * Refund a Razorpay payment (partial or full).
+ * @param {string} paymentId - Razorpay payment ID (pay_XXXXX)
+ * @param {number} amountPaise - Refund amount in paise (e.g. 10000 = ₹100)
+ * @param {object} notes - Optional notes object
+ * @returns {Promise<{refundId, amount, status}>}
+ */
+const refundPayment = async (paymentId, amountPaise, notes = {}) => {
+  if (isDevMode()) {
+    const devRefundId = `rfnd_dev_${crypto.randomBytes(10).toString('hex')}`;
+    logger.info(`[Razorpay] DEV MODE: Mock refund ${devRefundId} for ${amountPaise} paise on payment ${paymentId}`);
+    return {
+      refundId: devRefundId,
+      amount: amountPaise,
+      status: 'processed',
+      mock: true,
+    };
+  }
+
+  if (!hasCreds()) {
+    logger.error('[Razorpay] Cannot refund: Razorpay credentials are not configured.');
+    throw new Error('Payment gateway credentials are not configured for refunds. Please contact support.');
+  }
+
+  const { keyId, keySecret } = getCreds();
+
+  try {
+    const Razorpay = require('razorpay');
+    const rzp = new Razorpay({ key_id: keyId, key_secret: keySecret });
+
+    const refund = await rzp.payments.refund(paymentId, {
+      amount: amountPaise,
+      notes,
+      speed: 'normal',
+    });
+
+    logger.info(`[Razorpay] Refund created: ${refund.id}, amount: ${amountPaise} paise, payment: ${paymentId}, status: ${refund.status}`);
+    return {
+      refundId: refund.id,
+      amount: refund.amount,
+      status: refund.status,
+    };
+  } catch (err) {
+    logger.error(`[Razorpay] Refund FAILED for payment ${paymentId}: ${err.message}`, {
+      statusCode: err.statusCode,
+      error: err.error,
+      paymentId,
+      amountPaise,
+    });
+    throw new Error(`Payment refund failed: ${err.message}`);
+  }
+};
+
+/**
+ * Fetch a Razorpay payment to verify its status.
+ * @param {string} paymentId - Razorpay payment ID
+ * @returns {Promise<object>}
+ */
+const fetchPayment = async (paymentId) => {
+  if (isDevMode()) {
+    return { id: paymentId, status: 'captured', amount: 0, mock: true };
+  }
+
+  if (!hasCreds()) {
+    throw new Error('Payment gateway credentials are not configured.');
+  }
+
+  const { keyId, keySecret } = getCreds();
+  const Razorpay = require('razorpay');
+  const rzp = new Razorpay({ key_id: keyId, key_secret: keySecret });
+  return rzp.payments.fetch(paymentId);
+};
+
 module.exports = {
   isDevMode,
   createOrder,
@@ -136,4 +209,6 @@ module.exports = {
   verifyWebhookSignature,
   publicKeyId,
   logConfigStatus,
+  refundPayment,
+  fetchPayment,
 };

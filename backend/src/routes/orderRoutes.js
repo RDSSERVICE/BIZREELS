@@ -8,6 +8,7 @@ const router = express.Router();
 router.post('/shiprocket/webhook', orderController.handleShiprocketWebhook);
 router.post('/shipping/webhook', orderController.handleShiprocketWebhook);
 
+router.post('/razorpay/create-order', authenticate, orderController.createRazorpayOrder);
 router.post('/', authenticate, orderController.create);
 router.get('/', authenticate, orderController.getOrders);
 router.get('/vendor/me', authenticate, orderController.getVendorOrders);

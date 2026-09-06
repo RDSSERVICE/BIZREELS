@@ -1,9 +1,9 @@
 import React from 'react';
-import { FiCreditCard, FiShield, FiDollarSign, FiCheck, FiCopy, FiExternalLink } from 'react-icons/fi';
+import { FiCreditCard, FiShield, FiDollarSign, FiCheck, FiCopy, FiExternalLink, FiZap } from 'react-icons/fi';
 import { resolveMediaUrl } from '../../../lib/api';
 
 /**
- * CheckoutPaymentStep — Step 4: Multi-Mode Payment Options (UPI/QR, Bank Transfer, COD)
+ * CheckoutPaymentStep — Step 4: Multi-Mode Payment Options (Razorpay, UPI/QR, Bank Transfer, COD)
  */
 export default function CheckoutPaymentStep({
   activeStep,
@@ -46,7 +46,9 @@ export default function CheckoutPaymentStep({
           </span>
         </div>
         <span className="text-[10px] font-bold text-slate-500 uppercase">
-          {paymentMethod === 'cod'
+          {paymentMethod === 'razorpay'
+            ? 'Razorpay Online'
+            : paymentMethod === 'cod'
             ? 'Cash on Delivery'
             : paymentMethod === 'bank_transfer'
             ? 'Bank Transfer'
@@ -56,7 +58,24 @@ export default function CheckoutPaymentStep({
 
       {isCurrent && (
         <div className="p-4 space-y-3.5 bg-[#faf7f2]">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* Razorpay Online — Primary Recommended */}
+            <div
+              onClick={() => setPaymentMethod('razorpay')}
+              className={`p-2.5 rounded-xl border transition cursor-pointer text-center flex flex-col items-center justify-center relative ${
+                paymentMethod === 'razorpay'
+                  ? 'bg-blue-50/90 border-blue-500 text-[#1a1a1a] font-black shadow-xs ring-1 ring-blue-500'
+                  : 'bg-white border-[#e3dccb] text-slate-600 hover:bg-blue-50/40'
+              }`}
+            >
+              <span className="absolute -top-1.5 -right-1 text-[7px] font-black px-1.5 py-[1px] rounded-full bg-emerald-500 text-white uppercase tracking-wider shadow-sm">
+                Recommended
+              </span>
+              <FiZap size={17} className="text-blue-600 mb-1" />
+              <span className="text-[10.5px] font-bold leading-tight">Pay Online</span>
+              <span className="text-[8px] text-slate-400 font-semibold">(Razorpay)</span>
+            </div>
+
             {/* UPI Mode */}
             <div
               onClick={() => setPaymentMethod('vendor_upi')}
@@ -96,6 +115,37 @@ export default function CheckoutPaymentStep({
               <span className="text-[10.5px] font-bold">{isService ? 'Pay on Visit' : 'Cash on Delivery'}</span>
             </div>
           </div>
+
+          {/* Razorpay Online Info */}
+          {paymentMethod === 'razorpay' && (
+            <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 text-xs space-y-2">
+              <div className="flex items-center gap-1.5 text-blue-900 font-black">
+                <FiZap size={15} className="text-blue-600" />
+                <span>Secure Online Payment via Razorpay</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {['GPay', 'PhonePe', 'Paytm', 'UPI', 'Cards', 'NetBanking', 'Wallets'].map((badge) => (
+                  <span
+                    key={badge}
+                    className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/80 text-blue-800 border border-blue-200 shadow-xs"
+                  >
+                    {badge}
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[9px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  ✓ 100% Instant Refund on Cancellation
+                </span>
+                <span className="text-[9px] font-black px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">
+                  ✓ Buyer Protection
+                </span>
+              </div>
+              <p className="text-[10.5px] text-blue-800/80 leading-snug mt-1">
+                Pay securely using UPI, Debit/Credit Cards, or Net Banking. Your payment is held in escrow and automatically refunded if the order is cancelled.
+              </p>
+            </div>
+          )}
 
           {/* UPI Payment Preview */}
           {paymentMethod === 'vendor_upi' && (

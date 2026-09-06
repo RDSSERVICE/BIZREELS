@@ -170,6 +170,14 @@ export const offersApi = {
   trackClick: (id) => api.post(`/v1/offers/${id}/click`),
 };
 
+export const ordersApi = {
+  create: (body) => api.post("/v1/orders", body),
+  createRazorpayOrder: (body) => api.post("/v1/orders/razorpay/create-order", body),
+  cancel: (id, body) => api.post(`/v1/orders/${id}/cancel`, body),
+  list: (params = {}) => api.get("/v1/orders", { params }),
+  get: (id) => api.get(`/v1/orders/${id}`),
+};
+
 export const moreFromVendor = (vendor_id, exclude_listing_id, limit = 12) =>
   api.get(`/v1/listings/vendor/${vendor_id}/related`, { params: { exclude_listing_id, limit } });
 

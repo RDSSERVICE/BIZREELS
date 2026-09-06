@@ -14,6 +14,20 @@ import CheckoutPaymentStep from './checkout/CheckoutPaymentStep';
 import CheckoutPriceDetails from './checkout/CheckoutPriceDetails';
 import CheckoutSuccessScreen from './checkout/CheckoutSuccessScreen';
 
+const loadRazorpaySDK = () => {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && window.Razorpay) {
+      return resolve(true);
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 /**
  * DirectBuyModal — Modular Flipkart-Style Instant Checkout & Booking Modal
  */
@@ -47,7 +61,7 @@ export default function DirectBuyModal({
   const [specialInstructions, setSpecialInstructions] = useState('');
 
   // Payment State
-  const [paymentMethod, setPaymentMethod] = useState('vendor_upi');
+  const [paymentMethod, setPaymentMethod] = useState('razorpay');
   const [vendorFullDetails, setVendorFullDetails] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(null);
@@ -294,7 +308,7 @@ export default function DirectBuyModal({
   };
 
   const handleConfirmOrder = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
 
     if (!deliveryAddress.trim()) {
       toast.error('Please enter a valid delivery address or service location.');
@@ -314,6 +328,109 @@ export default function DirectBuyModal({
         ? `${deliveryAddress.trim()} [Scheduled Date: ${bookingDate}, Slot: ${bookingTime}] ${specialInstructions ? `| Instructions: ${specialInstructions.trim()}` : ''}`
         : `${deliveryAddress.trim()}${pincode ? ` - Pincode: ${pincode}` : ''} [Recipient: ${customerName || user?.name || 'Customer'}, Contact: ${customerPhone || user?.phone || 'N/A'}] ${specialInstructions ? `| Note: ${specialInstructions.trim()}` : ''}`;
 
+      // Razorpay Online Flow
+      if (paymentMethod === 'razorpay') {
+        const sdkLoaded = await loadRazorpaySDK();
+        if (!sdkLoaded) {
+          toast.error('Unable to load Razorpay checkout. Please check your internet connection.');
+          setSubmitting(false);
+          return;
+        }
+
+        // 1. Create pre-payment order on backend
+        const rzpOrderRes = await api.post('/v1/orders/razorpay/create-order', {
+          listingId: itemId,
+          quantity: isService ? 1 : quantity,
+          couponCode: appliedCoupon ? appliedCoupon.couponCode : undefined,
+          couponDiscount,
+          shippingCharges: deliveryFee,
+        });
+
+        const rzpData = rzpOrderRes.data?.data || rzpOrderRes.data;
+        if (!rzpData?.orderId || !rzpData?.keyId) {
+          throw new Error('Failed to initialize Razorpay payment order.');
+        }
+
+        // 2. Open Razorpay Checkout Modal
+        const options = {
+          key: rzpData.keyId,
+          amount: rzpData.amount,
+          currency: rzpData.currency || 'INR',
+          name: 'BizReels',
+          description: `${item?.title || item?.caption || 'Order'} - ${vendorName}`,
+          image: '/favicon.png',
+          order_id: rzpData.orderId,
+          prefill: {
+            name: customerName || user?.name || '',
+            email: user?.email || '',
+            contact: customerPhone || user?.phone || '',
+          },
+          theme: {
+            color: '#241b15',
+          },
+          handler: async (response) => {
+            setSubmitting(true);
+            try {
+              const res = await api.post('/v1/orders', {
+                listingId: itemId,
+                quantity: isService ? 1 : quantity,
+                address: fullAddressPayload,
+                pincode: pincode || undefined,
+                bookingDate: isService ? bookingDate : undefined,
+                bookingTime: isService ? bookingTime : undefined,
+                bookingNotes: specialInstructions.trim(),
+                paymentMethod: 'razorpay',
+                couponCode: appliedCoupon ? appliedCoupon.couponCode : undefined,
+                couponDiscount,
+                shippingCharges: deliveryFee,
+                shippingDetails: shippingRate,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                paymentDetails: {
+                  method: 'razorpay',
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  amount: rzpData.amount,
+                  currency: rzpData.currency,
+                  bookingDate: isService ? bookingDate : undefined,
+                  bookingTime: isService ? bookingTime : undefined,
+                  instructions: specialInstructions.trim(),
+                  shippingCharges: deliveryFee,
+                  couponCode: appliedCoupon ? appliedCoupon.couponCode : undefined,
+                  discountAmount: couponDiscount,
+                },
+              });
+
+              const placedOrder = res.data?.data?.order || res.data?.order || { _id: `ORD-${Date.now().toString().slice(-6)}` };
+              setOrderConfirmed(placedOrder);
+              toast.success(isService ? 'Service appointment booked & payment verified!' : 'Order placed & payment verified!');
+              if (onSuccess) onSuccess(placedOrder);
+            } catch (orderErr) {
+              toast.error(orderErr?.response?.data?.message || 'Payment received but failed to record order. Please contact support.');
+            } finally {
+              setSubmitting(false);
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              setSubmitting(false);
+              toast('Payment window closed.', { icon: 'ℹ️' });
+            },
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', (resp) => {
+          toast.error(resp?.error?.description || 'Payment failed. Please try again.');
+          setSubmitting(false);
+        });
+        rzp.open();
+        return;
+      }
+
+      // Direct UPI / Bank / COD Flow
       const res = await api.post('/v1/orders', {
         listingId: itemId,
         quantity: isService ? 1 : quantity,
@@ -350,7 +467,9 @@ export default function DirectBuyModal({
     } catch (err) {
       toast.error(err?.response?.data?.message || err?.response?.data?.detail || 'Failed to place order. Please try again.');
     } finally {
-      setSubmitting(false);
+      if (paymentMethod !== 'razorpay') {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -538,6 +657,7 @@ export default function DirectBuyModal({
                     totalCustomerSavings={totalCustomerSavings}
                     submitting={submitting}
                     deliveryAddress={deliveryAddress}
+                    paymentMethod={paymentMethod}
                   />
                 </div>
               </div>

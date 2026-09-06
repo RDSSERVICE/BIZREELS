@@ -8,6 +8,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 const notificationService = require('../services/notification.service');
+const razorpayService = require('../services/razorpay.service');
 
 const ALLOWED_ORDER_TRANSITIONS = {
   pending: ['accepted', 'cancelled', 'rejected'],
@@ -53,6 +54,124 @@ function attachSnapshotFallback(order) {
 }
 
 class OrderController {
+  /**
+   * POST /api/v1/orders/razorpay/create-order
+   * Pre-create a Razorpay order for the frontend Checkout SDK.
+   * Validates listing, computes coupon and shipping, returns Razorpay order details.
+   */
+  createRazorpayOrder = asyncHandler(async (req, res) => {
+    const {
+      listingId,
+      quantity = 1,
+      couponCode = null,
+      couponDiscount = 0,
+      shippingCharges = 0,
+    } = req.body;
+
+    const listing = await Listing.findById(listingId).populate('vendor');
+    if (!listing) {
+      throw ApiError.notFound('Listing or product not found');
+    }
+
+    // Verify supplier KYC
+    const identityService = require('../services/identity.service');
+    const vendorId = listing.vendor?._id || listing.vendor;
+    const isVerified = await identityService.hasVerifiedIdentity(vendorId);
+    if (!isVerified) {
+      throw ApiError.badRequest('Orders cannot be placed with unverified suppliers.');
+    }
+
+    const isService = listing.type === 'service' || listing.postType === 'service' || listing.postType === 'services';
+    const effectiveQty = isService ? 1 : (quantity || 1);
+
+    // Price resolution
+    const unitPriceCandidates = [
+      listing.salePrice, listing.sellingPrice, listing.offer_price,
+      listing.price, listing.rate, listing.pricing?.amount,
+      listing.pricing?.price, listing.actualPrice, listing.regularPrice,
+      listing.originalPrice, listing.cost,
+    ];
+    const validUnitPrice = unitPriceCandidates.map(p => parseFloat(p)).find(p => !isNaN(p) && p > 0);
+    const unitPrice = validUnitPrice || 0;
+    const itemTotal = unitPrice * effectiveQty;
+
+    // Coupon validation
+    let validatedCouponDiscount = 0;
+    if (couponCode && typeof couponCode === 'string' && couponCode.trim()) {
+      const cleanCode = couponCode.trim().toUpperCase();
+      const Offer = require('../models/Offer');
+      const now = new Date();
+      const offerDoc = await Offer.findOne({
+        $or: [
+          { code: { $regex: new RegExp(`^${cleanCode}$`, 'i') } },
+          { 'config.couponCode': { $regex: new RegExp(`^${cleanCode}$`, 'i') } },
+        ],
+        status: 'Active',
+        isDeleted: { $ne: true },
+        startTime: { $lte: now },
+        endTime: { $gte: now },
+      });
+
+      if (offerDoc) {
+        const config = offerDoc.config || {};
+        const dType = config.couponType || config.discountType || offerDoc.discountType || 'percentage';
+        const dVal = Number(config.discountValue || offerDoc.discountValue || 0);
+        const maxLim = config.maxDiscountLimit || offerDoc.maxDiscountLimit;
+        const minAmt = Number(config.minOrderAmount || offerDoc.minOrderAmount || 0);
+
+        if (itemTotal >= minAmt) {
+          if (dType === 'percentage' || dType === 'percent') {
+            validatedCouponDiscount = Math.round((itemTotal * dVal) / 100);
+            if (maxLim && validatedCouponDiscount > maxLim) {
+              validatedCouponDiscount = maxLim;
+            }
+          } else {
+            validatedCouponDiscount = Math.min(itemTotal, dVal);
+          }
+        }
+      } else if (Number(couponDiscount) > 0) {
+        validatedCouponDiscount = Math.min(itemTotal, Number(couponDiscount));
+      }
+    }
+
+    const validShipping = Math.max(0, parseFloat(shippingCharges) || 0);
+    const finalPayable = Math.max(0, itemTotal - validatedCouponDiscount + (isService ? 0 : validShipping));
+
+    if (finalPayable <= 0) {
+      throw ApiError.badRequest('Total payable amount must be greater than zero for online payment.');
+    }
+
+    // Create Razorpay order (amount in paise)
+    const amountPaise = Math.round(finalPayable * 100);
+    const receipt = `bizreels_${req.user._id.toString().slice(-6)}_${Date.now().toString().slice(-8)}`;
+
+    const rzpOrder = await razorpayService.createOrder(amountPaise, receipt, {
+      customerId: req.user._id.toString(),
+      listingId: listingId.toString(),
+      listingTitle: listing.title || 'Order',
+    });
+
+    logger.info('[Razorpay] Pre-payment order created', {
+      rzpOrderId: rzpOrder.id,
+      amountPaise,
+      receipt,
+      customerId: req.user._id,
+      listingId,
+    });
+
+    return ApiResponse.ok(res, 'Razorpay order created successfully.', {
+      orderId: rzpOrder.id,
+      amount: amountPaise,
+      currency: 'INR',
+      keyId: razorpayService.publicKeyId(),
+      receipt,
+      finalPayable,
+      itemTotal,
+      couponDiscount: validatedCouponDiscount,
+      shippingCharges: isService ? 0 : validShipping,
+    });
+  });
+
   create = asyncHandler(async (req, res) => {
     const {
       listingId,
@@ -300,6 +419,29 @@ class OrderController {
           finalPaymentStatus = 'paid';
         }
 
+        // 4. Razorpay Online Payment: Verify signature from the Razorpay Checkout SDK callback
+        if (paymentMethod === 'razorpay') {
+          const rzpOrderId = paymentDetails?.razorpay_order_id || req.body.razorpay_order_id;
+          const rzpPaymentId = paymentDetails?.razorpay_payment_id || req.body.razorpay_payment_id;
+          const rzpSignature = paymentDetails?.razorpay_signature || req.body.razorpay_signature;
+
+          if (!rzpOrderId || !rzpPaymentId || !rzpSignature) {
+            throw ApiError.badRequest('Missing Razorpay payment verification details (order_id, payment_id, or signature).');
+          }
+
+          const isValidSig = razorpayService.verifySignature(rzpOrderId, rzpPaymentId, rzpSignature);
+          if (!isValidSig) {
+            throw ApiError.badRequest('Razorpay payment signature verification failed. Payment may be tampered.');
+          }
+
+          finalPaymentStatus = 'paid';
+          logger.info('[Razorpay] Payment verified for order creation', {
+            rzpOrderId,
+            rzpPaymentId,
+            customerId: req.user._id,
+          });
+        }
+
         const itemSnapshot = {
           title: listing.title || 'Product/Service',
           sku: listing.sku || '',
@@ -331,6 +473,7 @@ class OrderController {
           revenueRecognized: finalPaymentStatus === 'paid',
           paymentMethod,
           paymentDetails,
+          escrowStatus: paymentMethod === 'razorpay' && finalPaymentStatus === 'paid' ? 'held' : 'not_applicable',
           address: address || 'Customer Address',
           bookingDate: bookingDate || '',
           bookingTime: effectiveBookingTime || bookingTime || '',
@@ -380,7 +523,7 @@ class OrderController {
     }
 
     // Notify vendor using centralized notificationService
-    const methodLabel = paymentMethod === 'wallet' ? 'Wallet' : paymentMethod === 'cod' ? 'Cash on Delivery' : 'Vendor UPI / QR / Bank Transfer';
+    const methodLabel = paymentMethod === 'wallet' ? 'Wallet' : paymentMethod === 'cod' ? 'Cash on Delivery' : paymentMethod === 'razorpay' ? 'Razorpay Online' : 'Vendor UPI / QR / Bank Transfer';
     const notifTitle = isServiceBooking ? 'New Service Booking Received' : 'New Product Order Received';
     const notifMsg = `${req.user.name} placed order for ${effectiveQty}x "${listing.title}" (Total: ₹${finalPayable}${validatedCouponDiscount > 0 ? ` with ₹${validatedCouponDiscount} coupon discount` : ''}) via ${methodLabel}.`;
 
@@ -640,6 +783,53 @@ class OrderController {
         } catch (err) {
           console.warn('Vendor wallet debit error (non-fatal):', err?.message);
         }
+      } else if (order.paymentMethod === 'razorpay') {
+        // Automated Razorpay gateway refund — zero vendor wallet deductions
+        order.refundMode = 'razorpay_gateway';
+        const rzpPaymentId = order.paymentDetails?.razorpay_payment_id;
+        if (rzpPaymentId) {
+          try {
+            const refundAmountPaise = Math.round(refundAmount * 100);
+            const rzpRefund = await razorpayService.refundPayment(rzpPaymentId, refundAmountPaise, {
+              orderId: order._id.toString(),
+              reason: reason || 'Order cancelled',
+            });
+
+            order.refundDetails = {
+              refundId: rzpRefund.refundId,
+              gateway: 'razorpay',
+              amount: refundAmount,
+              status: rzpRefund.status || 'processed',
+              refundedAt: new Date(),
+            };
+            order.escrowStatus = 'refunded';
+
+            logger.info('[Razorpay] Automated refund processed', {
+              orderId: order._id,
+              refundId: rzpRefund.refundId,
+              amountPaise: refundAmountPaise,
+              paymentId: rzpPaymentId,
+            });
+          } catch (refundErr) {
+            logger.error('[Razorpay] Automated refund FAILED', {
+              orderId: order._id,
+              paymentId: rzpPaymentId,
+              error: refundErr?.message,
+            });
+            // Mark for manual resolution
+            order.refundDetails = {
+              gateway: 'razorpay',
+              amount: refundAmount,
+              status: 'failed',
+              refundedAt: null,
+            };
+            policyExplanation += ' [Razorpay refund attempt failed — will be retried or processed manually]';
+          }
+        } else {
+          logger.warn('[Razorpay] No payment ID found for refund', { orderId: order._id });
+          order.refundMode = 'razorpay_gateway_pending';
+          policyExplanation += ' [Razorpay payment ID missing — refund will be processed manually by admin]';
+        }
       } else {
         // Direct peer-to-peer payment (Vendor UPI / QR / COD)
         order.refundMode = 'offline_direct';
@@ -717,10 +907,10 @@ class OrderController {
           recipientRole: 'customer',
           type: 'order',
           title: isVendor ? 'Order Rejected by Vendor' : `${isService ? 'Booking' : 'Order'} Cancelled`,
-          message: `Your order for "${order.listing?.title || 'Item'}" has been ${isVendor ? 'rejected by the vendor' : 'cancelled'}.${refundAmount > 0 ? ` ₹${refundAmount} (${refundPercent}%) credited to your wallet.` : ''}`,
-          body: `Your order for "${order.listing?.title || 'Item'}" has been ${isVendor ? 'rejected by the vendor' : 'cancelled'}.${refundAmount > 0 ? ` ₹${refundAmount} (${refundPercent}%) credited to your wallet.` : ''}`,
+          message: `Your order for "${order.listing?.title || 'Item'}" has been ${isVendor ? 'rejected by the vendor' : 'cancelled'}.${refundAmount > 0 ? (order.refundMode === 'razorpay_gateway' ? ` ₹${refundAmount} refund initiated via Razorpay (Ref: ${order.refundDetails?.refundId || 'processing'}). It will be credited to your original payment method in 5-7 business days.` : ` ₹${refundAmount} (${refundPercent}%) credited to your wallet.`) : ''}`,
+          body: `Your order for "${order.listing?.title || 'Item'}" has been ${isVendor ? 'rejected by the vendor' : 'cancelled'}.${refundAmount > 0 ? (order.refundMode === 'razorpay_gateway' ? ` ₹${refundAmount} refund initiated via Razorpay (Ref: ${order.refundDetails?.refundId || 'processing'}). It will be credited to your original payment method in 5-7 business days.` : ` ₹${refundAmount} (${refundPercent}%) credited to your wallet.`) : ''}`,
           actionUrl: '/customer/activities?tab=orders',
-          data: { orderId: order._id, refundAmount, refundPercent },
+          data: { orderId: order._id, refundAmount, refundPercent, refundDetails: order.refundDetails || null },
         });
         emitToUser(customerId, 'notification:new', notifyCustomer);
         emitToUser(customerId, 'notification', notifyCustomer);
@@ -957,6 +1147,16 @@ class OrderController {
           } catch (e) {}
         }).catch(() => {});
       }
+    }
+
+    // Escrow Release: When a Razorpay order reaches delivered/completed, release held escrow
+    if (['delivered', 'completed'].includes(newStatus) && order.escrowStatus === 'held') {
+      order.escrowStatus = 'released';
+      logger.info('[Razorpay] Escrow released on delivery/completion', {
+        orderId: order._id,
+        newStatus,
+        paymentMethod: order.paymentMethod,
+      });
     }
 
     // Revert listing orders_count, revenue & restore stock if order was cancelled/refunded

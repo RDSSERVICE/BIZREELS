@@ -94,8 +94,20 @@ const orderSchema = new Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['wallet', 'vendor_upi', 'vendor_qr', 'vendor_bank', 'cod', 'vendor_payment', 'upi', 'qr', 'bank_transfer', 'cash'],
+      enum: ['wallet', 'vendor_upi', 'vendor_qr', 'vendor_bank', 'cod', 'vendor_payment', 'upi', 'qr', 'bank_transfer', 'cash', 'razorpay'],
       default: 'vendor_upi',
+    },
+    escrowStatus: {
+      type: String,
+      enum: ['held', 'released', 'refunded', 'not_applicable'],
+      default: 'not_applicable',
+    },
+    refundDetails: {
+      refundId: { type: String, default: null },
+      gateway: { type: String, default: null },
+      amount: { type: Number, default: 0 },
+      status: { type: String, default: null },
+      refundedAt: { type: Date, default: null },
     },
     paymentDetails: {
       type: Schema.Types.Mixed,
