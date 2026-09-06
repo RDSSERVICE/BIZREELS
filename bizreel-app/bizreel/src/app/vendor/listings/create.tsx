@@ -140,9 +140,11 @@ export default function CreateListingScreen() {
   useEffect(() => {
     if (editId) {
       setLoadingEdit(true);
-      api.get(`/listings/${editId}`)
+      api.get(`/v1/listings/${editId}`)
+        .catch(() => api.get(`/listings/${editId}`))
         .then((res) => {
-          const item = res.data?.data || res.data?.item || res.data;
+          const raw = res.data?.data || res.data;
+          const item = raw?.listing || raw?.item || (raw?.data && !raw.data.listing ? raw.data : null) || raw;
           if (item) {
             const prod = item.productDetails || {};
             const sd = item.serviceDetails || {};
