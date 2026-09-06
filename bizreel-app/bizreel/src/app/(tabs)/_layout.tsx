@@ -38,8 +38,8 @@ export default function TabLayout() {
 
   const tabOrder = isVendor ? VENDOR_TAB_ORDER : isCreator ? CREATOR_TAB_ORDER : CUSTOMER_TAB_ORDER;
 
-  // Determine currently active tab index
-  const currentTab = (segments[1] as string) || (isVendor || isCreator ? 'home' : 'index');
+  const segmentsArr = segments as unknown as string[];
+  const currentTab = segmentsArr[1] || (isVendor || isCreator ? 'home' : 'index');
 
   // Route guard: if vendor or creator is on index (reels) or search, redirect to home
   if ((isVendor || isCreator) && (currentTab === 'index' || currentTab === 'search')) {

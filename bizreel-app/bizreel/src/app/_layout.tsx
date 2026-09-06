@@ -43,9 +43,13 @@ function AuthGate() {
       const isVendorIncomplete = isVendor && (!user?.vendorProfile || (!(user as any)?.vendorProfile?.shopName && !(user as any)?.vendorProfile?.businessName));
       const isCreatorIncomplete = isCreator && (!user?.creatorProfile || (!(user as any)?.creatorProfile?.displayName && !(user as any)?.creatorProfile?.name));
 
-      if (isVendorIncomplete) {
+      const segmentsArr = segments as unknown as string[];
+      const onVendorOnboarding = firstSegment === 'vendor' && (segmentsArr[1] || '') === 'onboarding';
+      const onCreatorOnboarding = firstSegment === 'creator' && (segmentsArr[1] || '') === 'onboarding';
+
+      if (isVendorIncomplete && !onVendorOnboarding) {
         router.replace('/vendor/onboarding');
-      } else if (isCreatorIncomplete) {
+      } else if (isCreatorIncomplete && !onCreatorOnboarding) {
         router.replace('/creator/onboarding');
       } else if (inAuthGroup) {
         router.replace('/(tabs)/home');
