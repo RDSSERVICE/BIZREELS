@@ -245,31 +245,41 @@ const ReelsTab = ({ user }) => {
         {/* ── 3. List Sub-View ── */}
         {reelsSubTab === 'list' && (
           <div className="flex flex-col gap-3">
-            {mockReels.map((reel) => (
-              <div
-                key={reel.id}
-                className="glass p-4 rounded-2xl border border-white/50 shadow-glass flex justify-between items-center gap-4 hover:shadow-premium transition-all duration-300"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-16 bg-slate-100 border border-slate-200/50 rounded-xl flex items-center justify-center text-brand-purple">
-                    <FiVideo className="w-5 h-5 animate-pulse" />
-                  </div>
-                  <div className="flex flex-col">
-                    <h4 className="text-xs font-bold text-brand-navy">{reel.caption}</h4>
-                    <span className="text-[10px] text-slate-500 mt-1 block">
-                      {reel.status === 'scheduled'
-                        ? `Scheduled for ${reel.date}`
-                        : `Published • Views: ${reel.views} • Likes: ${reel.likes}`}
-                    </span>
-                  </div>
-                </div>
-                <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-sm
-                  ${reel.status === 'published' ? 'bg-emerald-100 text-emerald-800' : 'bg-brand-orange/25 text-brand-orange'}
-                `}>
-                  {reel.status}
-                </span>
+            {myReels.length === 0 ? (
+              <div className="glass p-12 text-center text-slate-500 text-xs rounded-2xl">
+                No reels published yet.
               </div>
-            ))}
+            ) : (
+              myReels.map((reel) => (
+                <div
+                  key={reel._id || reel.id}
+                  className="glass p-4 rounded-2xl border border-white/50 shadow-glass flex justify-between items-center gap-4 hover:shadow-premium transition-all duration-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-16 bg-slate-100 border border-slate-200/50 rounded-xl flex items-center justify-center text-brand-purple overflow-hidden">
+                      {reel.thumbnailUrl ? (
+                        <img src={reel.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <FiVideo className="w-5 h-5 animate-pulse" />
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <h4 className="text-xs font-bold text-brand-navy">{reel.caption || reel.title || 'Reel Post'}</h4>
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        {reel.status === 'scheduled'
+                          ? `Scheduled for ${reel.scheduledDate || reel.date}`
+                          : `Published • Views: ${reel.views || 0} • Likes: ${reel.likesCount || reel.likes || 0}`}
+                      </span>
+                    </div>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-sm
+                    ${reel.status === 'published' ? 'bg-emerald-100 text-emerald-800' : 'bg-brand-orange/25 text-brand-orange'}
+                  `}>
+                    {reel.status || 'published'}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         )}
 

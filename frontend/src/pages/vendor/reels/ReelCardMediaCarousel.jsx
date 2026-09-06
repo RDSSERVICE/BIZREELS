@@ -9,14 +9,13 @@ import { resolveMediaUrl } from '@/lib/api';
 export default function ReelCardMediaCarousel({ reel }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const defaultSample = 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4';
   const rawMediaList = Array.isArray(reel.mediaUrls) && reel.mediaUrls.length > 0
     ? reel.mediaUrls
-    : [reel.videoUrl || reel.thumbnailUrl || defaultSample];
+    : [reel.videoUrl || reel.thumbnailUrl || ''];
 
   const mediaList = rawMediaList.filter(Boolean);
-  const rawUrl = mediaList[currentIndex] || mediaList[0] || defaultSample;
-  const currentUrl = resolveMediaUrl(rawUrl) || defaultSample;
+  const rawUrl = mediaList[currentIndex] || mediaList[0] || '';
+  const currentUrl = resolveMediaUrl(rawUrl) || '';
 
   const checkIsVideo = (url) => {
     if (!url) return false;
@@ -44,23 +43,30 @@ export default function ReelCardMediaCarousel({ reel }) {
   };
 
   return (
-    <div className="aspect-[9/16] bg-black relative group overflow-hidden">
-      {isVideo ? (
-        <video
-          src={currentUrl}
-          controls
-          muted
-          autoPlay
-          loop
-          playsInline
-          className="w-full h-full object-cover"
-        />
+    <div className="aspect-[9/16] bg-slate-900 relative group overflow-hidden flex items-center justify-center">
+      {currentUrl ? (
+        isVideo ? (
+          <video
+            src={currentUrl}
+            controls
+            muted
+            autoPlay
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <img
+            src={currentUrl}
+            alt={reel.caption || reel.title || 'Reel Post'}
+            className="w-full h-full object-cover"
+          />
+        )
       ) : (
-        <img
-          src={currentUrl}
-          alt={reel.caption || reel.title || 'Reel Post'}
-          className="w-full h-full object-cover"
-        />
+        <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
+          <FiVideo size={36} className="text-slate-600" />
+          <span className="text-[11px] font-bold">No Media Preview</span>
+        </div>
       )}
 
       {/* Purpose badge */}

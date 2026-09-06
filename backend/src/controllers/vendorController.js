@@ -335,33 +335,6 @@ class VendorController {
 
     // Check if the vendor has any reels
     let reels = await Reel.find({ creator: userId, isDeleted: { $ne: true } });
-    if (reels.length === 0) {
-      const sampleReels = [
-        {
-          creator: userId,
-          videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-headphones-on-a-table-32943-large.mp4',
-          thumbnailUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e',
-          caption: 'Elevate your sound. Premium Headphones unboxing! 🎧 #audio #lifestyle',
-          postType: 'product',
-          category: 'Electronics',
-          isDeleted: false,
-          views: 0,
-          likes: 0,
-        },
-        {
-          creator: userId,
-          videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-mens-wallet-and-watch-on-table-32947-large.mp4',
-          thumbnailUrl: 'https://images.unsplash.com/photo-1627124118303-19dec36d069f',
-          caption: 'Handcrafted leather perfection. 💼 #leathergoods #fashion',
-          postType: 'product',
-          category: 'Accessories',
-          isDeleted: false,
-          views: 0,
-          likes: 0,
-        }
-      ];
-      reels = await Reel.create(sampleReels);
-    }
 
     // Set one listing as boosted for Boost ROI demonstration
     const boostedListing = listings[0];

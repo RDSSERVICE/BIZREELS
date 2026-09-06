@@ -203,7 +203,8 @@ export default function VendorReelsPage() {
     }
 
     if (finalMedia.length === 0) {
-      finalMedia = ['https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'];
+      toast.error('Please upload or select at least one video or image for this post');
+      return;
     }
 
     // Auto-detect mediaType based on finalMedia content
