@@ -596,6 +596,19 @@ const adminApi = apiSlice.injectEndpoints({
       query: (body) => ({ url: '/admin/locations/radius', method: 'PATCH', body }),
       invalidatesTags: ['LocationRadius'],
     }),
+    // ---- Contact Form Submissions ----
+    listContactSubmissions: builder.query({
+      query: (params = {}) => ({ url: '/admin/contact-submissions', params }),
+      providesTags: ['ContactSubmissions'],
+    }),
+    updateContactSubmission: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/admin/contact-submissions/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['ContactSubmissions'],
+    }),
+    deleteContactSubmission: builder.mutation({
+      query: (id) => ({ url: `/admin/contact-submissions/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['ContactSubmissions'],
+    }),
   }),
 });
 
@@ -726,6 +739,9 @@ export const {
   useGetFinancialReportQuery,
   useGetLocationRadiusQuery,
   useUpdateLocationRadiusMutation,
+  useListContactSubmissionsQuery,
+  useUpdateContactSubmissionMutation,
+  useDeleteContactSubmissionMutation,
 } = adminApi;
 
 

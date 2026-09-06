@@ -8,7 +8,7 @@ import {
   FiMapPin, FiInbox, FiMessageSquare, FiShoppingBag, FiCreditCard, FiStar,
   FiBarChart2, FiCpu, FiBell, FiGift, FiDollarSign, FiAlertTriangle, FiFileText,
   FiSettings, FiLock, FiList, FiPieChart, FiMenu, FiX, FiLogOut, FiChevronDown,
-  FiChevronRight, FiHome, FiSearch
+  FiChevronRight, FiHome, FiSearch, FiMail
 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 import { selectCurrentUser, logout } from '../../features/auth/authSlice';
@@ -16,7 +16,7 @@ import { useLogoutMutation } from '../../features/auth/authApi';
 import NotificationBellDropdown from '../../components/notifications/NotificationBellDropdown';
 import { useEffect } from 'react';
 import { getSocket, disconnectSocket } from '../../lib/socket';
-import adminApi, { useGetAdminOverviewQuery } from '../../features/admin/adminApi';
+import adminApi, { useGetAdminOverviewQuery, useListContactSubmissionsQuery } from '../../features/admin/adminApi';
 import AdminQuickSearchModal from '../../features/admin/components/AdminQuickSearchModal';
 import SEO from '../../components/common/SEO';
 
@@ -56,6 +56,7 @@ const NAV_SECTIONS = [
     items: [
       { name: 'Locations', path: '/admin/locations', icon: FiMapPin },
       { name: 'Requirements', path: '/admin/requirements', icon: FiInbox },
+      { name: 'Contact Inquiries', path: '/admin/contact-inquiries', icon: FiMail },
       { name: 'Chat Monitor', path: '/admin/chat', icon: FiMessageSquare },
       { name: 'Orders', path: '/admin/orders', icon: FiShoppingBag },
     ],
@@ -245,6 +246,7 @@ const AdminLayout = () => {
 
   // Fetch overview stats for live notification badges (Production Grade: Event-driven via admin:update Socket.IO)
   const { data: ov } = useGetAdminOverviewQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
+  const { data: contactSubmissionsRes } = useListContactSubmissionsQuery({ status: 'new', limit: 1 }, { refetchOnMountOrArgChange: true });
 
   const toggleSection = (title) => {
     setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));
@@ -286,6 +288,9 @@ const AdminLayout = () => {
   const getBadgeCount = (itemPath) => {
     if (itemPath === '/admin/kyc' && ov?.pending_kyc_count > 0) return ov.pending_kyc_count;
     if ((itemPath === '/admin/reports' || itemPath === '/admin/moderation') && ov?.open_reports_count > 0) return ov.open_reports_count;
+    if (itemPath === '/admin/contact-inquiries' && (contactSubmissionsRes?.data?.new_count || contactSubmissionsRes?.data?.total) > 0) {
+      return contactSubmissionsRes.data.new_count || contactSubmissionsRes.data.total;
+    }
     return null;
   };
 

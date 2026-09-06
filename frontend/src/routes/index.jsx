@@ -92,6 +92,7 @@ const AdminCategoriesPage = React.lazy(() => import('../pages/admin/categories/A
 const AdminLocationsPage = React.lazy(() => import('../pages/admin/locations/AdminLocationsPage'));
 const AdminRequirementsPage = React.lazy(() => import('../pages/admin/requirements/AdminRequirementsPage'));
 const AdminChatPage = React.lazy(() => import('../pages/admin/chat/AdminChatPage'));
+const AdminContactInquiriesPage = React.lazy(() => import('../pages/admin/contact/AdminContactInquiriesPage'));
 const AdminOrdersPage = React.lazy(() => import('../pages/admin/orders/AdminOrdersPage'));
 const AdminWalletPage = React.lazy(() => import('../pages/admin/wallet/AdminWalletPage'));
 const AdminSubscriptionsPage = React.lazy(() => import('../pages/admin/subscriptions/AdminSubscriptionsPage'));
@@ -289,6 +290,8 @@ const AppRoutes = () => {
         <Route path="/admin/categories" element={<AdminCategoriesPage />} />
         <Route path="/admin/locations" element={<AdminLocationsPage />} />
         <Route path="/admin/requirements" element={<AdminRequirementsPage />} />
+        <Route path="/admin/contact-inquiries" element={<AdminContactInquiriesPage />} />
+        <Route path="/admin/contact-submissions" element={<AdminContactInquiriesPage />} />
         <Route path="/admin/chat" element={<AdminChatPage />} />
         <Route path="/admin/orders" element={<AdminOrdersPage />} />
         <Route path="/admin/wallet" element={<AdminWalletPage />} />

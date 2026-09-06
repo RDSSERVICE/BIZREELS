@@ -402,7 +402,24 @@ router.post('/contact', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name, email, and message are required.' });
     }
 
-    // Attempt to log or send notification if Admin user exists
+    const ContactSubmission = require('../models/ContactSubmission');
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
+    const submission = await ContactSubmission.create({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: (phone || '').trim(),
+      subject: subject || 'general',
+      message: message.trim(),
+      ip_address: ip,
+    });
+
+    // Notify admin in real-time
+    try {
+      const { emitToAdmin } = require('../sockets');
+      emitToAdmin('admin:update', { tags: ['ContactSubmissions', 'AdminOverview'] });
+    } catch (_) {}
+
+    // Attempt to log notification if Admin user exists
     try {
       const { Notification } = require('../models/Notification') || {};
       const User = require('../models/User');
@@ -411,18 +428,17 @@ router.post('/contact', async (req, res) => {
         await Notification.create({
           user: adminUser._id,
           type: 'support',
-          title: `New Contact Request: ${subject || 'general'}`,
-          message: `From ${name} (${email}, ${phone || 'N/A'}): ${message.substring(0, 120)}...`,
-          data: { name, email, phone, subject, message },
+          title: `New Contact Form: ${name}`,
+          message: `Topic: ${subject || 'general'} | Message: ${message.substring(0, 100)}...`,
+          data: { submissionId: submission._id, name, email, phone, subject },
         });
       }
-    } catch (_) {
-      // Non-critical background notification failure
-    }
+    } catch (_) {}
 
     return res.status(200).json({
       success: true,
       message: 'Thank you for reaching out. Our customer care team will respond within 4 hours.',
+      data: { id: submission._id },
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Server error processing contact request.' });

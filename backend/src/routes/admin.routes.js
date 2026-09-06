@@ -1898,4 +1898,98 @@ router.post('/credit-rates', requireAuth, requireAdmin, catchAsync(async (req, r
   res.json({ success: true, message: 'Credit rates updated successfully!', data: rates });
 }));
 
+// ============================================================ CONTACT FORM SUBMISSIONS
+router.get('/contact-submissions', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const ContactSubmission = require('../models/ContactSubmission');
+  const { page = 1, limit = 20, status, search, subject } = req.query;
+
+  const query = {};
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+  if (subject && subject !== 'all') {
+    query.subject = subject;
+  }
+  if (search && search.trim()) {
+    const s = search.trim();
+    query.$or = [
+      { name: { $regex: s, $options: 'i' } },
+      { email: { $regex: s, $options: 'i' } },
+      { phone: { $regex: s, $options: 'i' } },
+      { message: { $regex: s, $options: 'i' } },
+    ];
+  }
+
+  const skip = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+  const [items, total, newCount] = await Promise.all([
+    ContactSubmission.find(query)
+      .sort({ created_at: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean(),
+    ContactSubmission.countDocuments(query),
+    ContactSubmission.countDocuments({ status: 'new' }),
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      items,
+      total,
+      new_count: newCount,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)) || 1,
+    },
+  });
+}));
+
+router.patch('/contact-submissions/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const ContactSubmission = require('../models/ContactSubmission');
+  const { status, admin_notes } = req.body;
+
+  const update = {};
+  if (status) {
+    update.status = status;
+    if (status === 'resolved') {
+      update.resolved_by = req.user._id;
+      update.resolved_at = new Date();
+    }
+  }
+  if (typeof admin_notes === 'string') {
+    update.admin_notes = admin_notes;
+  }
+
+  const item = await ContactSubmission.findByIdAndUpdate(
+    req.params.id,
+    { $set: update },
+    { new: true }
+  );
+
+  if (!item) {
+    throw ApiError.notFound('Contact submission not found');
+  }
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['ContactSubmissions'] });
+  } catch (_) {}
+
+  res.json({ success: true, message: 'Submission updated', data: item });
+}));
+
+router.delete('/contact-submissions/:id', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const ContactSubmission = require('../models/ContactSubmission');
+  const item = await ContactSubmission.findByIdAndDelete(req.params.id);
+  if (!item) {
+    throw ApiError.notFound('Contact submission not found');
+  }
+
+  try {
+    const { emitToAdmin } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['ContactSubmissions'] });
+  } catch (_) {}
+
+  res.json({ success: true, message: 'Submission deleted' });
+}));
+
 module.exports = router;
