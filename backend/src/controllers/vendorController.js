@@ -586,7 +586,10 @@ class VendorController {
   });
 
   purchaseBoost = asyncHandler(async (req, res) => {
-    const { reelId, plan, cost, days } = req.body;
+    const body = req.body || {};
+    const { plan, cost } = body;
+    const reelId = body.reelId || body.id;
+    const days = body.days || body.durationDays;
     const walletService = require('../services/wallet.service');
     const ApiError = require('../utils/ApiError');
 

@@ -214,7 +214,15 @@ class ReelController {
   // ── Boost Reel ───────────────────────────────────────────
   boostReel = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { durationDays } = req.body;
+    const body = req.body || {};
+    const durationDays =
+      body.durationDays ??
+      body.duration_days ??
+      body.days ??
+      body.duration ??
+      body.boostDurationDays ??
+      (body.plan ? (String(body.plan).includes('30') ? 30 : String(body.plan).includes('3') ? 3 : 7) : 7);
+
     const boostService = require('../services/boost.service');
 
     const result = await boostService.boostReelWithCredits(req.user._id, id, durationDays);

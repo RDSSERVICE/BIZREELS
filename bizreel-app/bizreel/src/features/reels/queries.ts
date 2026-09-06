@@ -187,7 +187,12 @@ export function useDeleteReel() {
 export function useBoostReel() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: boostReel,
+    mutationFn: (args: string | { reelId: string; durationDays?: number }) => {
+      if (typeof args === 'string') {
+        return boostReel(args, 7);
+      }
+      return boostReel(args.reelId, args.durationDays || 7);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reels', 'my-reels'] });
     },
