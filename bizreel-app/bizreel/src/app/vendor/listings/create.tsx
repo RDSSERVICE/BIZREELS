@@ -32,6 +32,7 @@ import { FontSize, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useCreateVendorListing, useUpdateVendorListing } from '@/features/vendor-listings/queries';
 import { api } from '@/lib/api';
+import { resolveImageUrl } from '@/utils/image';
 
 const YELLOW = '#F59E0B';
 const DARK_BG = '#0F0F12';
@@ -160,27 +161,63 @@ export default function CreateListingScreen() {
             if (ship.estimatedDays) setEstimatedDays(String(ship.estimatedDays));
 
             // Populate All Previous Main Cover & Gallery Images
-            const mainImg = item.image || item.images?.[0] || item.coverImage || item.media?.[0] || prod.image || prod.images?.[0] || '';
+            const collectedImages: string[] = [];
 
-            let allImgs: string[] = [];
-            if (Array.isArray(item.images) && item.images.length > 0) {
-              allImgs = [...item.images];
-            } else if (Array.isArray(item.media) && item.media.length > 0) {
-              allImgs = [...item.media];
-            } else if (Array.isArray(item.photos) && item.photos.length > 0) {
-              allImgs = [...item.photos];
-            } else if (Array.isArray(prod.images) && prod.images.length > 0) {
-              allImgs = [...prod.images];
+            const addImageCandidate = (candidate: any) => {
+              if (!candidate) return;
+              if (Array.isArray(candidate)) {
+                candidate.forEach((itemCandidate) => addImageCandidate(itemCandidate));
+                return;
+              }
+              const resolved = resolveImageUrl(candidate);
+              if (resolved && !collectedImages.includes(resolved)) {
+                collectedImages.push(resolved);
+              }
+            };
+
+            // Root listing image properties
+            addImageCandidate(item.image);
+            addImageCandidate(item.imageUrl);
+            addImageCandidate(item.coverImage);
+            addImageCandidate(item.thumbnailUrl);
+            addImageCandidate(item.thumbnail);
+            addImageCandidate(item.images);
+            addImageCandidate(item.media);
+            addImageCandidate(item.mediaUrls);
+            addImageCandidate(item.photos);
+            addImageCandidate(item.gallery);
+
+            // Nested productDetails fields
+            if (item.productDetails) {
+              addImageCandidate(item.productDetails.image);
+              addImageCandidate(item.productDetails.imageUrl);
+              addImageCandidate(item.productDetails.coverImage);
+              addImageCandidate(item.productDetails.images);
+              addImageCandidate(item.productDetails.media);
+              addImageCandidate(item.productDetails.mediaUrls);
+              addImageCandidate(item.productDetails.photos);
+              addImageCandidate(item.productDetails.gallery);
             }
 
-            if (item.image && !allImgs.includes(item.image)) allImgs.unshift(item.image);
-            if (item.coverImage && !allImgs.includes(item.coverImage)) allImgs.unshift(item.coverImage);
-            if (prod.image && !allImgs.includes(prod.image)) allImgs.unshift(prod.image);
-            if (mainImg && !allImgs.includes(mainImg)) allImgs.unshift(mainImg);
+            // Nested serviceDetails fields
+            if (item.serviceDetails) {
+              addImageCandidate(item.serviceDetails.image);
+              addImageCandidate(item.serviceDetails.coverImage);
+              addImageCandidate(item.serviceDetails.images);
+              addImageCandidate(item.serviceDetails.galleryImages);
+              addImageCandidate(item.serviceDetails.portfolio);
+            }
 
-            const uniqueImgs = Array.from(new Set(allImgs.filter(Boolean)));
-            setGalleryImages(uniqueImgs);
-            setImageUrl(uniqueImgs[0] || mainImg || '');
+            // Variant images
+            if (Array.isArray(item.variants)) {
+              item.variants.forEach((v: any) => {
+                addImageCandidate(v?.image);
+                addImageCandidate(v?.imageUrl);
+              });
+            }
+
+            setGalleryImages(collectedImages);
+            setImageUrl(collectedImages[0] || '');
 
             const vid = item.video || item.videos?.[0] || prod.video || '';
             if (vid) setVideoUrl(vid);

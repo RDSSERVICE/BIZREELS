@@ -220,20 +220,51 @@ export default function ProductFormModal({
   useEffect(() => {
     if (editData) {
       const prod = editData.productDetails || {};
-      let imgList = Array.isArray(editData.images) && editData.images.length > 0
-        ? [...editData.images]
-        : Array.isArray(editData.media) && editData.media.length > 0
-        ? [...editData.media]
-        : Array.isArray(editData.photos) && editData.photos.length > 0
-        ? [...editData.photos]
-        : Array.isArray(prod.images) && prod.images.length > 0
-        ? [...prod.images]
-        : [];
 
-      if (editData.image && !imgList.includes(editData.image)) imgList.unshift(editData.image);
-      if (editData.coverImage && !imgList.includes(editData.coverImage)) imgList.unshift(editData.coverImage);
-      if (prod.image && !imgList.includes(prod.image)) imgList.unshift(prod.image);
-      imgList = Array.from(new Set(imgList.filter(Boolean)));
+      const collectedImages = [];
+      const addCandidate = (candidate) => {
+        if (!candidate) return;
+        if (Array.isArray(candidate)) {
+          candidate.forEach((c) => addCandidate(c));
+          return;
+        }
+        let url = typeof candidate === 'string' ? candidate : (candidate.url || candidate.src || candidate.uri || candidate.path || candidate.imageUrl || null);
+        if (url && typeof url === 'string' && url.trim() && !collectedImages.includes(url.trim())) {
+          collectedImages.push(url.trim());
+        }
+      };
+
+      // Root listing image properties
+      addCandidate(editData.image);
+      addCandidate(editData.imageUrl);
+      addCandidate(editData.coverImage);
+      addCandidate(editData.thumbnailUrl);
+      addCandidate(editData.thumbnail);
+      addCandidate(editData.images);
+      addCandidate(editData.media);
+      addCandidate(editData.mediaUrls);
+      addCandidate(editData.photos);
+      addCandidate(editData.gallery);
+
+      // Product details fields
+      addCandidate(prod.image);
+      addCandidate(prod.imageUrl);
+      addCandidate(prod.coverImage);
+      addCandidate(prod.images);
+      addCandidate(prod.media);
+      addCandidate(prod.mediaUrls);
+      addCandidate(prod.photos);
+      addCandidate(prod.gallery);
+
+      // Variant images
+      if (Array.isArray(editData.variants)) {
+        editData.variants.forEach((v) => {
+          addCandidate(v?.image);
+          addCandidate(v?.imageUrl);
+        });
+      }
+
+      let imgList = collectedImages;
       const actual = Number(editData.actualPrice || editData.price || 0);
       const selling = Number(editData.salePrice || editData.price || 0);
       const discount = actual > selling && actual > 0 ? Math.round(((actual - selling) / actual) * 100) : (prod.discount || 0);
