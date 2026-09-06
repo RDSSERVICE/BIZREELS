@@ -33,30 +33,42 @@ const AuthLayout = () => {
   const isRegister = location.pathname === '/auth/register';
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden flex items-start sm:items-center justify-center font-sans px-4 py-6 sm:py-10 sm:px-6 lg:px-8" style={{ backgroundColor: '#f2ede4' }}>
+    <div className="relative min-h-screen overflow-x-hidden flex flex-col justify-between font-sans px-4 py-6 sm:py-8 sm:px-6 lg:px-8" style={{ backgroundColor: '#f2ede4' }}>
       <SEO title="Authentication" robots="noindex, nofollow" />
-      
-      <div className={`w-full ${isRegister ? 'max-w-6xl' : 'max-w-5xl'} grid lg:grid-cols-12 gap-6 lg:gap-10 items-center z-10 my-auto`}>
-        {/* Left Side: Brand Visual (Desktop only) */}
-        <div className="hidden lg:flex lg:col-span-6 flex-col justify-start text-left space-y-5 lg:sticky lg:top-10 pt-1">
-          <div>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-600 hover:text-[#1a1a1a] transition-all group mb-4 px-3 py-1.5 rounded-full bg-white/70 hover:bg-white border border-[#e3dccb] shadow-2xs"
-            >
-              <FiArrowLeft className="w-3.5 h-3.5 text-[#d99a3d] transition-transform group-hover:-translate-x-1" />
-              <span>Back to Website</span>
-            </Link>
-          </div>
 
-          <Link to="/" className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="BizReels Logo" className="h-12 w-auto" />
-            <span className="text-2xl font-heading font-extrabold tracking-tight text-[#1a1a1a]">
-              Biz<span className="gradient-text font-black">Reels</span>
+      {/* Subtle ambient warm background glow */}
+      <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-[#d99a3d]/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-[#1c1a17]/5 blur-3xl pointer-events-none" />
+      
+      {/* Top Bar with Back to Website Navigation */}
+      <div className={`w-full ${isRegister ? 'max-w-6xl' : 'max-w-5xl'} mx-auto mb-6 sm:mb-8 flex items-center justify-between z-20`}>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-700 hover:text-[#1a1a1a] transition-all group px-4 py-2 rounded-full bg-white/85 hover:bg-white border border-[#e3dccb] shadow-2xs hover:shadow-xs cursor-pointer"
+        >
+          <FiArrowLeft className="w-4 h-4 text-[#d99a3d] transition-transform group-hover:-translate-x-1" />
+          <span>Back to Website</span>
+        </Link>
+        <Link to="/" className="flex items-center gap-2 lg:hidden">
+          <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto" />
+          <span className="text-xl font-heading font-extrabold text-[#1a1a1a]">
+            Biz<span className="text-[#d99a3d] font-black">Reels</span>
+          </span>
+        </Link>
+      </div>
+
+      {/* Main Grid: Left Brand Hero + Right Auth Card (Both starting at the top!) */}
+      <div className={`w-full ${isRegister ? 'max-w-6xl' : 'max-w-5xl'} mx-auto grid lg:grid-cols-12 gap-8 lg:gap-12 items-start z-10 my-auto`}>
+        {/* Left Side: Brand Visual (Desktop only) */}
+        <div className="hidden lg:flex lg:col-span-6 flex-col justify-start text-left space-y-6 pt-1">
+          <Link to="/" className="flex items-center gap-3 group w-fit">
+            <img src="/logo.png" alt="BizReels Logo" className="h-12 w-auto transition-transform group-hover:scale-105" />
+            <span className="text-3xl font-heading font-extrabold tracking-tight text-[#1a1a1a]">
+              Biz<span className="text-[#d99a3d] font-black">Reels</span>
             </span>
           </Link>
 
-          <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-4xl xl:text-5xl text-[#1a1a1a] uppercase leading-[1.05] tracking-tight">
+          <h1 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-4xl xl:text-5xl text-[#1a1a1a] uppercase leading-[1.08] tracking-tight">
             WATCH.<br />
             DISCOVER.<br />
             <span style={{ color: '#d99a3d' }}>CONNECT.</span>
@@ -66,47 +78,36 @@ const AuthLayout = () => {
             India's first visual reels commerce platform. Watch short clips, discover local vendors, request services, and close fair deals directly.
           </p>
 
-          <div className="grid grid-cols-2 gap-3 pt-1 max-w-md">
-            <div className="p-3.5 bg-[#1c1a17] text-white rounded-xl border border-[#3a3630]">
-              <div className="flex items-center gap-2 text-[#d99a3d] font-bold text-xs uppercase tracking-wider mb-1">
+          <div className="grid grid-cols-2 gap-3.5 pt-2 max-w-md">
+            <div className="p-4 bg-[#1c1a17] text-white rounded-2xl border border-[#3a3630] shadow-sm hover:border-[#d99a3d]/40 transition">
+              <div className="flex items-center gap-2 text-[#d99a3d] font-bold text-xs uppercase tracking-wider mb-1.5">
                 <FiVideo className="w-4 h-4" />
                 Visual Feed
               </div>
-              <p className="text-xs text-[#c9c4bb]">Short reels &amp; live shop showcases from verified creators.</p>
+              <p className="text-xs text-[#c9c4bb] leading-relaxed">Short reels &amp; live shop showcases from verified creators.</p>
             </div>
 
-            <div className="p-3.5 bg-[#d99a3d] text-[#1a1a1a] rounded-xl border border-[#1a1a1a]/20">
-              <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider mb-1">
+            <div className="p-4 bg-[#d99a3d] text-[#1a1a1a] rounded-2xl border border-[#b87f28] shadow-sm hover:bg-[#cf8f31] transition">
+              <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider mb-1.5 text-[#1a1a1a]">
                 <FiZap className="w-4 h-4" />
                 Direct Deals
               </div>
-              <p className="text-xs text-[#3a2f1f] font-medium">Post job requirements and get instant vendor quotes.</p>
+              <p className="text-xs text-[#2b2217] font-medium leading-relaxed">Post job requirements and get instant vendor quotes.</p>
             </div>
           </div>
         </div>
 
         {/* Right Side: Auth Card */}
-        <div className="col-span-12 lg:col-span-6 flex justify-center">
-          <div className={`w-full ${isRegister ? 'max-w-xl p-5 sm:p-7' : 'max-w-md p-6 sm:p-8'} bg-white rounded-2xl border border-[#e3dccb] shadow-sm flex flex-col gap-5 transition-all`}>
-            {/* Small Logo & Back to Website for mobile viewports */}
-            <div className="flex lg:hidden items-center justify-between pb-1 border-b border-[#f0eae1]">
-              <Link
-                to="/"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors"
-              >
-                <FiArrowLeft className="w-3.5 h-3.5 text-[#d99a3d]" />
-                <span>Back to Website</span>
-              </Link>
-              <Link to="/" className="flex items-center gap-2">
-                <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto" />
-                <span className="text-lg font-heading font-extrabold text-[#1a1a1a]">
-                  Biz<span className="gradient-text font-black">Reels</span>
-                </span>
-              </Link>
-            </div>
+        <div className="col-span-12 lg:col-span-6 flex justify-center lg:justify-end">
+          <div className={`w-full ${isRegister ? 'max-w-xl p-6 sm:p-8' : 'max-w-md p-7 sm:p-9'} bg-white rounded-3xl border border-[#e3dccb] shadow-sm flex flex-col gap-6 transition-all`}>
             <Outlet />
           </div>
         </div>
+      </div>
+
+      {/* Subtle bottom footer copyright */}
+      <div className="w-full max-w-5xl mx-auto pt-8 pb-2 text-center text-xs text-slate-500 font-medium">
+        © {new Date().getFullYear()} BizReels Marketplace. All rights reserved.
       </div>
     </div>
   );

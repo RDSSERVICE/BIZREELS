@@ -154,7 +154,7 @@ const Login = () => {
     <div className="flex flex-col gap-5 w-full font-sans">
       {/* Title Header */}
       <div className="text-center md:text-left">
-        <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] uppercase tracking-tight">
+        <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl sm:text-3xl text-[#1a1a1a] uppercase tracking-tight">
           WELCOME BACK
         </h2>
         <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -163,12 +163,12 @@ const Login = () => {
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex bg-[#f8f4ec] p-1 rounded-md border border-[#e3dccb]">
+      <div className="flex bg-[#f5efe4] p-1.5 rounded-xl border border-[#e3dccb]">
         <button
           type="button"
           onClick={() => { setLoginMode('email'); setOtpSent(false); }}
-          className={`flex-1 py-2 text-xs font-bold rounded transition-all cursor-pointer border-none ${
-            loginMode === 'email' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
+          className={`flex-1 py-2.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer border-none ${
+            loginMode === 'email' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-2xs' : 'text-slate-600 hover:text-[#1a1a1a] bg-transparent'
           }`}
         >
           Email &amp; Password
@@ -176,8 +176,8 @@ const Login = () => {
         <button
           type="button"
           onClick={() => setLoginMode('otp')}
-          className={`flex-1 py-2 text-xs font-bold rounded transition-all cursor-pointer border-none ${
-            loginMode === 'otp' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
+          className={`flex-1 py-2.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer border-none ${
+            loginMode === 'otp' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-2xs' : 'text-slate-600 hover:text-[#1a1a1a] bg-transparent'
           }`}
         >
           Instant OTP Login
@@ -186,7 +186,7 @@ const Login = () => {
 
       {/* Forms based on mode */}
       {loginMode === 'email' ? (
-        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-3.5">
+        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-4">
           <Input
             label="Email Address"
             type="email"
@@ -209,7 +209,7 @@ const Login = () => {
               })}
             />
             <div className="text-right">
-              <Link to="/auth/forgot-password" className="text-[11px] font-bold text-[#d99a3d] hover:underline">
+              <Link to="/auth/forgot-password" className="text-[11px] font-extrabold text-[#d99a3d] hover:text-[#b87b24] hover:underline">
                 Forgot password?
               </Link>
             </div>
@@ -218,10 +218,10 @@ const Login = () => {
           <button
             type="submit"
             disabled={isEmailLoading}
-            className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2b2621] text-[#d99a3d] text-xs font-black uppercase tracking-wider rounded-full shadow-2xs hover:shadow-xs transition-all border-none cursor-pointer mt-1 flex items-center justify-center gap-2 group"
           >
             {isEmailLoading ? 'Signing in...' : 'SIGN IN'}
-            <FiArrowRight className="w-4 h-4" />
+            <FiArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
         </form>
       ) : (
@@ -353,7 +353,7 @@ const Login = () => {
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="w-full py-3 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs"
+        className="w-full py-3.5 px-4 bg-white border border-[#e3dccb] hover:border-[#d99a3d]/50 hover:bg-[#fbf9f5] text-slate-800 text-xs font-extrabold rounded-full transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs hover:shadow-xs"
       >
         <FcGoogle className="w-4 h-4" />
         <span>Sign in with Google</span>
@@ -363,7 +363,7 @@ const Login = () => {
       <div className="text-center text-xs font-medium text-slate-600 mt-2 space-y-3">
         <p>
           New to BizReels?{' '}
-          <Link to="/auth/register" className="font-bold text-[#d99a3d] hover:underline">
+          <Link to="/auth/register" className="font-extrabold text-[#d99a3d] hover:text-[#b87b24] hover:underline">
             Create Account
           </Link>
         </p>
