@@ -501,7 +501,7 @@ const PublicLayout = () => {
                 { label: 'Success Stories',  path: '/about' },
                 { label: 'Business Guide',   path: '/about' },
                 { label: 'Terms of Service', path: '/about' },
-                { label: 'Privacy Policy',   path: '/about' },
+                { label: 'Privacy Policy',   path: '/privacy-policy' },
               ].map(({ label, path }) => (
                 <Link key={label} to={path} style={{ fontSize: 13, color: '#8a8578', textDecoration: 'none', transition: 'color .15s' }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = '#f2ede4'; }}

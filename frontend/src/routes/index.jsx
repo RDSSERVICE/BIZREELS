@@ -19,6 +19,7 @@ const About = React.lazy(() => import('../pages/home/About'));
 const Pricing = React.lazy(() => import('../pages/home/Pricing'));
 const PublicLocalReelsPage = React.lazy(() => import('../pages/reels/PublicLocalReelsPage'));
 const PublicCreatorMarketplacePage = React.lazy(() => import('../pages/creator/PublicCreatorMarketplacePage'));
+const PrivacyPolicy = React.lazy(() => import('../pages/home/PrivacyPolicy'));
 const Login = React.lazy(() => import('../pages/auth/Login'));
 const CustomerLogin = React.lazy(() => import('../pages/auth/CustomerLogin'));
 const VendorLogin = React.lazy(() => import('../pages/auth/VendorLogin'));
@@ -121,6 +122,8 @@ const AppRoutes = () => {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/local-reels" element={<PublicLocalReelsPage />} />
         <Route path="/creator-marketplace" element={<PublicCreatorMarketplacePage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
       </Route>
 
       <Route path="/feed" element={<DashboardRouter />} />

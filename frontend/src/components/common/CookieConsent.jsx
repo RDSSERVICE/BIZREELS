@@ -127,7 +127,7 @@ export default function CookieConsent() {
             <p className="text-xs text-[#c9c4bb] leading-relaxed font-normal">
               We use cookies to enhance your experience, serve personalized reels and business listings, analyze traffic, and ensure platform security. Choose your preference below or learn more in our{' '}
               <Link
-                to="/about"
+                to="/privacy-policy"
                 className="text-[#d99a3d] underline hover:text-[#f5c366] transition-colors font-semibold"
               >
                 Privacy Policy

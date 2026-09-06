@@ -380,4 +380,18 @@ router.get(['/reels/:id', '/reels/share/:id'], async (req, res) => {
   }
 });
 
+// Public CMS Page route (Privacy policy, Terms, etc.)
+router.get('/cms/:slug', async (req, res) => {
+  try {
+    const { CmsPage } = require('../models/Admin');
+    const page = await CmsPage.findOne({ slug: req.params.slug, is_published: true }).lean();
+    if (!page) {
+      return res.status(404).json({ success: false, message: 'Page not found' });
+    }
+    return res.status(200).json({ success: true, data: page });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server Error fetching CMS page' });
+  }
+});
+
 module.exports = router;
