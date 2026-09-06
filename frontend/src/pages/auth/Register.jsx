@@ -4,17 +4,16 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
-import { FiArrowRight } from 'react-icons/fi';
+import { FiArrowRight, FiArrowLeft, FiShoppingBag, FiShoppingCart, FiVideo } from 'react-icons/fi';
 import { useRegisterMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
 import { getRoleDashboard } from '../../lib/roleNav';
-import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
-import RoleQuickSwitcher from '../../components/auth/RoleQuickSwitcher';
 import API_CONFIG from '../../config';
 
 /**
  * Premium Registration Page supporting standard email registration and Google OAuth.
+ * Designed with a streamlined 2-column grid for standard screen heights and Back to Website navigation.
  */
 const Register = () => {
   const dispatch = useDispatch();
@@ -35,6 +34,7 @@ const Register = () => {
   }, [refCodeFromUrl, setValue]);
 
   const password = watch('password');
+  const selectedRole = watch('role') || 'customer';
 
   const onSubmit = async (data) => {
     try {
@@ -76,154 +76,205 @@ const Register = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-fade-in">
-      <div className="text-center md:text-left">
-        <h2 className="text-2xl font-black tracking-tight text-brand-navy">
+    <div className="flex flex-col gap-4 w-full animate-fade-in font-sans">
+      {/* Top Header: Back to Website + Step Indicator */}
+      <div className="flex items-center justify-between pb-1">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 hover:text-[#1a1a1a] transition-colors group"
+        >
+          <FiArrowLeft className="w-3.5 h-3.5 text-[#d99a3d] transition-transform group-hover:-translate-x-1" />
+          <span>Back to Website</span>
+        </Link>
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          New Account
+        </span>
+      </div>
+
+      {/* Title */}
+      <div className="text-left">
+        <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#1a1a1a]">
           Create Account
         </h2>
-        <p className="text-sm text-text-secondary mt-1">
-          Join BizReels and access India's best local marketplace.
+        <p className="text-xs text-slate-500 mt-1 font-medium">
+          Join BizReels to discover local deals, hire creators, or grow your business.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input
-          label="Full Name"
-          placeholder="John Doe"
-          error={errors.name}
-          {...register('name', {
-            required: 'Name is required.',
-            minLength: { value: 2, message: 'Name must be at least 2 characters.' }
+      {/* Role Selection Tabs */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-[11px] font-extrabold tracking-wider text-slate-700 uppercase">
+          I Want to Join As
+        </label>
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#f5efe4] rounded-xl border border-[#e3dccb]">
+          {[
+            { value: 'customer', label: 'Customer', icon: FiShoppingBag },
+            { value: 'vendor', label: 'Vendor', icon: FiShoppingCart },
+            { value: 'creator', label: 'Creator', icon: FiVideo },
+          ].map(({ value, label, icon: Icon }) => {
+            const isSelected = selectedRole === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setValue('role', value, { shouldValidate: true })}
+                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                  isSelected
+                    ? 'bg-[#1c1a17] text-[#d99a3d] border-[#1c1a17] shadow-2xs'
+                    : 'bg-transparent text-slate-700 border-transparent hover:bg-white/60'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected ? 'text-[#d99a3d]' : 'text-slate-600'}`} />
+                <span className="truncate">{label}</span>
+              </button>
+            );
           })}
-        />
+        </div>
+        <input type="hidden" {...register('role', { required: 'Please select a role' })} />
+        {errors.role && (
+          <span className="text-xs font-medium text-red-500 pl-2">{errors.role.message}</span>
+        )}
+      </div>
 
-        <Input
-          label="Email Address"
-          placeholder="name@example.com"
-          error={errors.email}
-          {...register('email', {
-            required: 'Email is required.',
-            pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' }
-          })}
-        />
+      {/* Registration Form in Standard 2-Column Grid */}
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Row 1: Name & Email */}
+          <Input
+            label="Full Name"
+            placeholder="e.g. Rahul Sharma"
+            error={errors.name}
+            {...register('name', {
+              required: 'Name is required.',
+              minLength: { value: 2, message: 'At least 2 characters.' }
+            })}
+          />
 
-        {/* Mobile Number Field */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold tracking-wide text-brand-navy uppercase">
-            Mobile Number
-          </label>
-          <div className="flex gap-2">
-            <div className="flex items-center justify-center px-3 py-3 text-sm font-bold text-brand-navy bg-surface-tertiary border border-border rounded-premium min-w-[56px]">
-              +91
+          <Input
+            type="email"
+            label="Email Address"
+            placeholder="name@example.com"
+            error={errors.email}
+            {...register('email', {
+              required: 'Email is required.',
+              pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' }
+            })}
+          />
+
+          {/* Row 2: Mobile Number & Referral Code */}
+          <div className="flex flex-col w-full gap-1.5">
+            <label className="text-[11px] font-extrabold tracking-wider text-slate-700 uppercase">
+              Mobile Number <span className="text-[10px] font-normal text-slate-400 lowercase">(optional)</span>
+            </label>
+            <div className="relative flex items-center">
+              <span className="absolute left-3.5 text-xs font-extrabold text-slate-500 select-none border-r border-[#e3dccb] pr-2.5">
+                +91
+              </span>
+              <input
+                type="tel"
+                placeholder="9876543210"
+                {...register('phone', {
+                  pattern: {
+                    value: /^[6-9]\d{9}$/,
+                    message: 'Enter a valid 10-digit Indian mobile number.'
+                  }
+                })}
+                className={`w-full pl-14 pr-4 py-3 text-xs font-medium transition-all duration-200 border border-[#e3dccb] rounded-full bg-white text-slate-800 focus:outline-none focus:border-[#d99a3d] focus:ring-2 focus:ring-[#d99a3d]/20 placeholder:text-slate-400 shadow-2xs ${
+                  errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'hover:border-slate-400'
+                }`}
+                maxLength={10}
+              />
             </div>
-            <input
-              type="tel"
-              placeholder="9876543210"
-              {...register('phone', {
-                pattern: {
-                  value: /^[6-9]\d{9}$/,
-                  message: 'Enter a valid 10-digit Indian mobile number.'
-                }
-              })}
-              className={`flex-1 px-4 py-3 text-sm transition-all duration-300 border rounded-premium bg-surface/50 text-brand-navy focus:outline-none focus:bg-surface focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple placeholder-text-tertiary ${
-                errors.phone ? 'border-error focus:border-error focus:ring-error/20' : 'border-border hover:border-brand-purple/40'
-              }`}
-              maxLength={10}
-            />
+            {errors.phone && (
+              <span className="text-xs font-medium text-red-500 pl-3">{errors.phone.message}</span>
+            )}
           </div>
-          {errors.phone && (
-            <span className="text-xs font-medium text-error animate-slide-down">{errors.phone.message}</span>
-          )}
-          <span className="text-[10px] text-text-tertiary">Optional — can be used for OTP login later</span>
+
+          <Input
+            label="Referral Code (Optional)"
+            placeholder="e.g. BIZ100"
+            error={errors.referralCode}
+            {...register('referralCode')}
+          />
+
+          {/* Row 3: Password & Confirm Password */}
+          <Input
+            type="password"
+            label="Password"
+            placeholder="Min. 8 characters"
+            error={errors.password}
+            {...register('password', {
+              required: 'Password is required.',
+              minLength: { value: 8, message: 'Min. 8 characters.' },
+              pattern: {
+                value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]/,
+                message: 'Include uppercase, lowercase, digit & symbol.'
+              }
+            })}
+          />
+
+          <Input
+            type="password"
+            label="Confirm Password"
+            placeholder="Re-enter password"
+            error={errors.confirmPassword}
+            {...register('confirmPassword', {
+              required: 'Confirm password is required.',
+              validate: value => value === password || 'Passwords do not match.'
+            })}
+          />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold tracking-wide text-brand-navy uppercase">
-            I want to join as
-          </label>
-          <select
-            {...register('role', { required: 'Please select a role' })}
-            className="w-full h-12 px-4 rounded-xl border border-border bg-white text-text-primary text-sm font-semibold outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple transition-all cursor-pointer shadow-sm"
-          >
-            <option value="customer">Customer / Buyer (Default)</option>
-            <option value="vendor">Vendor / Business Owner</option>
-            <option value="creator">Creator / Content Producer</option>
-          </select>
-          {errors.role && (
-            <span className="text-xs text-error font-medium">{errors.role.message}</span>
-          )}
-        </div>
-
-        <Input
-          type="password"
-          label="Password"
-          placeholder="••••••••"
-          error={errors.password}
-          {...register('password', {
-            required: 'Password is required.',
-            minLength: { value: 8, message: 'Password must be at least 8 characters.' },
-            pattern: {
-              value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]/,
-              message: 'Must include uppercase, lowercase, number and special char.'
-            }
-          })}
-        />
-
-        <Input
-          type="password"
-          label="Confirm Password"
-          placeholder="••••••••"
-          error={errors.confirmPassword}
-          {...register('confirmPassword', {
-            required: 'Confirm password is required.',
-            validate: value => value === password || 'Passwords do not match.'
-          })}
-        />
-
-        <Input
-          label="Referral Code (Optional)"
-          placeholder="Enter referral code"
-          error={errors.referralCode}
-          {...register('referralCode')}
-        />
-
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3.5 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-2 flex items-center justify-center gap-2"
+          className="w-full py-3 px-4 bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1.5 flex items-center justify-center gap-2"
         >
-          {isLoading ? 'Creating Account...' : 'SIGN UP'}
+          {isLoading ? 'Creating Account...' : 'CREATE ACCOUNT'}
           <FiArrowRight className="w-4 h-4" />
         </button>
       </form>
 
-      <div className="relative flex py-1 items-center">
+      {/* Social Divider */}
+      <div className="relative flex py-0.5 items-center">
         <div className="flex-grow border-t border-[#e3dccb]"></div>
-        <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+        <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
           Or sign up with
         </span>
         <div className="flex-grow border-t border-[#e3dccb]"></div>
       </div>
 
+      {/* Google OAuth Button */}
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="w-full py-3 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs"
+        className="w-full py-2.5 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs"
       >
         <FcGoogle className="w-4 h-4" />
         <span>Sign up with Google</span>
       </button>
 
-      <p className="text-center text-xs font-medium text-slate-600 mt-2">
+      {/* Sign In Redirect Link */}
+      <p className="text-center text-xs font-medium text-slate-600">
         Already have an account?{' '}
         <Link to="/auth/login" className="font-bold text-[#d99a3d] hover:underline">
           Sign In
         </Link>
       </p>
 
-      <RoleQuickSwitcher />
+      {/* Compact Quick Portal Navigation */}
+      <div className="pt-2 border-t border-[#f0eae1] flex items-center justify-center gap-2 text-[11px] text-slate-500 font-medium">
+        <span>Direct sign in:</span>
+        <Link to="/auth/customer-login" className="font-bold text-slate-700 hover:text-[#d99a3d] transition-colors">Customer</Link>
+        <span>•</span>
+        <Link to="/auth/vendor-login" className="font-bold text-slate-700 hover:text-[#d99a3d] transition-colors">Vendor</Link>
+        <span>•</span>
+        <Link to="/auth/creator-login" className="font-bold text-slate-700 hover:text-[#d99a3d] transition-colors">Creator</Link>
+      </div>
     </div>
   );
 };
 
 export default Register;
+
