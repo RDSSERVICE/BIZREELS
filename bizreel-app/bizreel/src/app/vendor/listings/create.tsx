@@ -36,6 +36,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
 import { useCreateVendorListing, useUpdateVendorListing } from '@/features/vendor-listings/queries';
 import { api } from '@/lib/api';
 
@@ -179,11 +180,91 @@ export default function CreateListingScreen() {
       .catch(() => {});
   }, [editId]);
 
-  const parentCategories = categoriesList.filter((c: any) => !c.parent_id);
+  const { user } = useAuth();
+  const vendorProfile = user?.vendorProfile || (user as any)?.profileData || {};
+
+  // Extract onboarded Categories from vendor profile
+  const onboardedCategories = React.useMemo(() => {
+    let cats: string[] = [];
+    if (Array.isArray(vendorProfile.categories) && vendorProfile.categories.length > 0) {
+      cats = vendorProfile.categories;
+    } else if (Array.isArray(vendorProfile.selectedCategories) && vendorProfile.selectedCategories.length > 0) {
+      cats = vendorProfile.selectedCategories;
+    } else if (vendorProfile.category) {
+      cats = [vendorProfile.category];
+    } else if (vendorProfile.businessCategory) {
+      cats = [vendorProfile.businessCategory];
+    }
+    return cats.filter(Boolean);
+  }, [vendorProfile]);
+
+  // Extract onboarded Subcategories from vendor profile
+  const onboardedSubcategories = React.useMemo(() => {
+    let subs: string[] = [];
+    if (Array.isArray(vendorProfile.subcategories) && vendorProfile.subcategories.length > 0) {
+      subs = vendorProfile.subcategories;
+    } else if (Array.isArray(vendorProfile.subCategories) && vendorProfile.subCategories.length > 0) {
+      subs = vendorProfile.subCategories;
+    } else if (Array.isArray(vendorProfile.selectedSubCategories) && vendorProfile.selectedSubCategories.length > 0) {
+      subs = vendorProfile.selectedSubCategories;
+    } else if (vendorProfile.subcategory) {
+      subs = [vendorProfile.subcategory];
+    }
+    return subs.filter(Boolean);
+  }, [vendorProfile]);
+
+  // Master parent categories filtered strictly by vendor's onboarded categories
+  const parentCategories = React.useMemo(() => {
+    const allParents = categoriesList.filter((c: any) => !c.parent_id);
+    if (onboardedCategories.length === 0) {
+      return allParents;
+    }
+    const filtered = allParents.filter((cat: any) =>
+      onboardedCategories.some(
+        (oc) => oc.toLowerCase() === cat.name?.toLowerCase() || oc === cat.id || oc === cat._id
+      )
+    );
+    return filtered.length > 0 ? filtered : allParents;
+  }, [categoriesList, onboardedCategories]);
+
+  // Default to first onboarded category if not set
+  useEffect(() => {
+    if (!editId && parentCategories.length > 0) {
+      if (!parentCategories.some((c: any) => c.name === category)) {
+        setCategory(parentCategories[0].name);
+      }
+    }
+  }, [parentCategories, editId, category]);
+
   const activeParent = parentCategories.find((c: any) => c.name === category);
-  const childSubcategories = categoriesList.filter(
-    (c: any) => activeParent && c.parent_id === (activeParent.id || activeParent._id)
-  );
+
+  // Master subcategories filtered strictly by active parent category AND vendor's onboarded subcategories
+  const childSubcategories = React.useMemo(() => {
+    const subsFromMaster = categoriesList.filter(
+      (c: any) => activeParent && (c.parent_id === activeParent.id || c.parent_id === activeParent._id)
+    );
+
+    if (onboardedSubcategories.length > 0) {
+      const matched = subsFromMaster.filter((s: any) =>
+        onboardedSubcategories.some((os) => os.toLowerCase() === (s.name || s).toLowerCase())
+      );
+      if (matched.length > 0) {
+        return matched; // STRICTLY ONLY onboarded subcategories
+      }
+    }
+
+    return subsFromMaster;
+  }, [categoriesList, activeParent, onboardedSubcategories]);
+
+  // Default to first available subcategory if not set
+  useEffect(() => {
+    if (!editId && childSubcategories.length > 0) {
+      const firstSubName = childSubcategories[0].name || childSubcategories[0];
+      if (!childSubcategories.some((s: any) => (s.name || s) === subcategory)) {
+        setSubcategory(firstSubName);
+      }
+    }
+  }, [childSubcategories, editId, subcategory]);
 
   // Auto-Gen SKU
   function generateSKU() {
