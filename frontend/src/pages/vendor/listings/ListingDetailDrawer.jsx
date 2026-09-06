@@ -27,7 +27,7 @@ export default function ListingDetailDrawer({
 
   const { data: analyticsRes } = useGetListingAnalyticsQuery(lid, {
     skip: !isOpen || !lid,
-    pollingInterval: 10000,
+    pollingInterval: 300000, // 5 minutes fallback polling (production standard with Socket.IO)
   });
 
   if (!isOpen || !listing) return null;
