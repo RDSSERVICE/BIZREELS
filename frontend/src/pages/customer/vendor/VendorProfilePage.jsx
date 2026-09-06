@@ -473,12 +473,11 @@ export default function VendorProfilePage() {
           </div>
         </div>
 
-        {/* Profile Details Container */}
-        <div className="px-6 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-16 sm:-mt-20">
-          
+        {/* Profile Top Row: Overlapping Avatar on Left + Action Buttons on Right */}
+        <div className="px-6 sm:px-8 relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-14 sm:-mt-18">
           {/* Avatar Picture */}
-          <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full p-1 bg-white ring-4 ring-[#d99a3d]/35 shadow-2xl relative z-10 flex-shrink-0">
-            <div className="w-full h-full bg-surface rounded-full overflow-hidden border-2 border-white">
+          <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full p-1 bg-white ring-4 ring-[#d99a3d]/35 shadow-xl relative z-10 flex-shrink-0 mx-auto sm:mx-0">
+            <div className="w-full h-full bg-white rounded-full overflow-hidden border-2 border-white">
               {profile.profile_pic ? (
                 <img src={resolveMediaUrl(profile.profile_pic)} alt={profile.name} className="w-full h-full object-cover" />
               ) : (
@@ -489,67 +488,11 @@ export default function VendorProfilePage() {
             </div>
           </div>
 
-          {/* Details Column */}
-          <div className="flex-1 text-center sm:text-left space-y-2 mt-2 sm:mt-0 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-[#1a1a1a] font-display truncate">
-                {profile.business_name}
-              </h1>
-              {profile.verified_badge && (
-                <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 bg-[#d99a3d]/15 text-[#b0741c] border border-[#d99a3d]/30 text-[10px] font-black rounded-full uppercase w-fit mx-auto sm:mx-0">
-                  <FiCheck className="stroke-[3]" /> Verified
-                </span>
-              )}
-            </div>
-
-            <p className="text-xs font-black text-[#d99a3d] uppercase tracking-wider">
-              {profile.category} {profile.subcategory && `• ${profile.subcategory}`}
-            </p>
-            <p className="text-xs text-text-secondary leading-relaxed max-w-lg italic">"{profile.description}"</p>
-            
-            <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3 text-xs text-text-tertiary pt-1">
-              <span className="flex items-center gap-1"><FiMapPin className="text-[#d99a3d]" /> {profile.city}, {profile.state || 'IN'}</span>
-              <span>Joined {new Date(profile.joined_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Row */}
-        <div className="border-t border-[#e3dccb] bg-[#fbf9f5] px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          
-          {/* Quick Statistics Summary */}
-          <div className="flex items-center gap-5 sm:gap-7 overflow-x-auto w-full sm:w-auto py-1 justify-center">
-            <div className="text-center">
-              <span className="block font-black text-sm text-[#1a1a1a]">{profile.stats?.posts || 0}</span>
-              <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Posts</span>
-            </div>
-            <div className="text-center">
-              <span className="block font-black text-sm text-[#1a1a1a]">{followersCount}</span>
-              <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Followers</span>
-            </div>
-            <div className="text-center">
-              <span className="block font-black text-sm text-[#1a1a1a]">{profile.stats?.following || 0}</span>
-              <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Following</span>
-            </div>
-            <div className="text-center">
-              <span className="block font-black text-sm text-[#1a1a1a]">{profile.stats?.likes || 0}</span>
-              <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Likes</span>
-            </div>
-            <div className="text-center">
-              <span className="block font-black text-sm text-[#1a1a1a]">
-                <span className="flex items-center justify-center gap-0.5 text-amber-500 font-black">
-                  <FiStar className="fill-amber-500" size={13} /> {profile.rating_avg?.toFixed(1) || '0.0'}
-                </span>
-              </span>
-              <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">({profile.rating_count} reviews)</span>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          {/* Action Buttons (cleanly positioned on the white background) */}
+          <div className="flex items-center gap-2.5 justify-center sm:justify-end pb-1 flex-wrap">
             <button
               onClick={handleFollowToggle}
-              className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer ${
+              className={`px-5 py-2.5 rounded-full font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer ${
                 isFollowing
                   ? 'bg-white border border-[#e3dccb] text-slate-700 hover:bg-[#f5efe4]'
                   : 'bg-[#d99a3d] hover:bg-[#c8872b] text-[#1a1a1a]'
@@ -560,14 +503,14 @@ export default function VendorProfilePage() {
 
             <button
               onClick={() => setIsMessageModalOpen(true)}
-              className="flex-1 sm:flex-initial px-5 py-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-[#1a1a1a] font-extrabold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+              className="px-5 py-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-[#1a1a1a] font-extrabold text-xs rounded-full transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
             >
               <FiMessageCircle size={14} /> Message
             </button>
 
             <button
               onClick={handleShareProfile}
-              className="p-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-slate-700 rounded-xl transition cursor-pointer"
+              className="p-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-slate-700 rounded-full transition cursor-pointer"
               title="Share Profile"
             >
               <FiShare2 size={16} />
@@ -575,13 +518,84 @@ export default function VendorProfilePage() {
 
             <button
               onClick={handleReportProfile}
-              className="p-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-red-500 rounded-xl transition cursor-pointer"
+              className="p-2.5 bg-white border border-[#e3dccb] hover:bg-[#f5efe4] text-red-500 rounded-full transition cursor-pointer"
               title="Report Profile"
             >
               <FiAlertTriangle size={16} />
             </button>
           </div>
+        </div>
 
+        {/* Profile Details Container (100% on clean white card background — zero banner overlap!) */}
+        <div className="px-6 sm:px-8 pt-3 pb-5 space-y-2.5 text-center sm:text-left">
+          {/* Business Name + Verified Badge + Category Pill Badge */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#1a1a1a] font-display tracking-tight">
+              {profile.business_name}
+            </h1>
+            <div className="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
+              {profile.verified_badge && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#d99a3d]/15 text-[#b0741c] border border-[#d99a3d]/30 text-[10px] font-black rounded-full uppercase">
+                  <FiCheck className="stroke-[3]" /> Verified
+                </span>
+              )}
+              {profile.category && (
+                <span className="inline-flex items-center px-3 py-0.5 bg-[#f5efe4] text-[#8c5e1e] border border-[#e3dccb] text-[11px] font-extrabold rounded-full uppercase tracking-wider">
+                  {profile.category} {profile.subcategory && `• ${profile.subcategory}`}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Description Quote */}
+          {profile.description && (
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl font-medium">
+              "{profile.description}"
+            </p>
+          )}
+          
+          {/* Metadata: Location & Joined Date */}
+          <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4 text-xs font-semibold text-slate-500 pt-0.5">
+            <span className="flex items-center gap-1.5">
+              <FiMapPin className="text-[#d99a3d] w-3.5 h-3.5" />
+              <span>{profile.city || 'India'}{profile.state ? `, ${profile.state}` : ''}</span>
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="flex items-center gap-1.5">
+              <FiClock className="text-slate-400 w-3.5 h-3.5" />
+              <span>Joined {new Date(profile.joined_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Quick Statistics Summary Bar */}
+        <div className="border-t border-[#e3dccb] bg-[#fdfcf9] px-6 sm:px-8 py-3.5">
+          <div className="flex items-center gap-6 sm:gap-10 overflow-x-auto w-full py-1 justify-center sm:justify-start">
+            <div className="text-center sm:text-left">
+              <span className="block font-black text-base text-[#1a1a1a]">{profile.stats?.posts || 0}</span>
+              <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Posts</span>
+            </div>
+            <div className="text-center sm:text-left">
+              <span className="block font-black text-base text-[#1a1a1a]">{followersCount}</span>
+              <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Followers</span>
+            </div>
+            <div className="text-center sm:text-left">
+              <span className="block font-black text-base text-[#1a1a1a]">{profile.stats?.following || 0}</span>
+              <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Following</span>
+            </div>
+            <div className="text-center sm:text-left">
+              <span className="block font-black text-base text-[#1a1a1a]">{profile.stats?.likes || 0}</span>
+              <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Likes</span>
+            </div>
+            <div className="text-center sm:text-left">
+              <span className="block font-black text-base text-[#1a1a1a]">
+                <span className="flex items-center justify-center sm:justify-start gap-1 text-amber-500 font-black">
+                  <FiStar className="fill-amber-500" size={14} /> {profile.rating_avg?.toFixed(1) || '0.0'}
+                </span>
+              </span>
+              <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">({profile.rating_count} reviews)</span>
+            </div>
+          </div>
         </div>
       </div>
 
