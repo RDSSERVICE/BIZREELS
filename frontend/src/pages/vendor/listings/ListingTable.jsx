@@ -3,7 +3,7 @@ import {
   FiEye, FiEyeOff, FiEdit2, FiTrash2, FiCopy, FiShare2,
   FiMoreVertical, FiChevronLeft, FiChevronRight, FiExternalLink,
   FiStar, FiShoppingCart, FiHeart, FiBookmark, FiBarChart2,
-  FiAlertTriangle, FiPackage
+  FiAlertTriangle, FiPackage, FiCalendar
 } from 'react-icons/fi';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 
@@ -176,7 +176,9 @@ export default function ListingTable({
                       <div className="flex items-center gap-3 text-[9px] text-slate-500 font-bold">
                         <span className="flex items-center gap-0.5" title="Views"><FiEye className="w-3 h-3 text-slate-400" /> {row.views || 0}</span>
                         <span className="flex items-center gap-0.5" title="Likes"><FiHeart className="w-3 h-3 text-slate-400" /> {row.likes ?? row.likes_count ?? 0}</span>
-                        <span className="flex items-center gap-0.5" title="Orders"><FiShoppingCart className="w-3 h-3 text-slate-400" /> {row.orders_count || 0}</span>
+                        <span className="flex items-center gap-0.5" title={row.type === 'service' ? 'Bookings' : 'Orders'}>
+                          {row.type === 'service' ? <FiCalendar className="w-3 h-3 text-purple-400" /> : <FiShoppingCart className="w-3 h-3 text-slate-400" />} {row.orders_count || 0}
+                        </span>
                         {row.rating > 0 && <span className="flex items-center gap-0.5 text-amber-500" title="Rating"><FiStar className="w-3 h-3" /> {row.rating.toFixed(1)}</span>}
                       </div>
                     </td>
@@ -275,7 +277,9 @@ export default function ListingTable({
                 <div className="flex items-center gap-4 text-[9px] text-slate-500 font-bold px-7">
                   <span className="flex items-center gap-0.5"><FiEye className="w-3 h-3 text-slate-400" /> {row.views || 0}</span>
                   <span className="flex items-center gap-0.5"><FiHeart className="w-3 h-3 text-slate-400" /> {row.likes ?? row.likes_count ?? 0}</span>
-                  <span className="flex items-center gap-0.5"><FiShoppingCart className="w-3 h-3 text-slate-400" /> {row.orders_count || 0}</span>
+                  <span className="flex items-center gap-0.5" title={row.type === 'service' ? 'Bookings' : 'Orders'}>
+                    {row.type === 'service' ? <FiCalendar className="w-3 h-3 text-purple-400" /> : <FiShoppingCart className="w-3 h-3 text-slate-400" />} {row.orders_count || 0}
+                  </span>
                   {row.type === 'product' && renderStockBadge(row)}
                 </div>
 

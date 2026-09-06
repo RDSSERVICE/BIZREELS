@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
 import { api } from '../../../lib/api';
+import { getSocket } from '../../../lib/socket';
 import {
   useGetVendorListingsQuery,
   useCreateListingMutation,
@@ -118,12 +119,12 @@ export default function VendorListingsPage() {
   // RTK Query endpoints
   const { data: listingsData, isFetching: listingsFetching, refetch: refetchListings } = useGetVendorListingsQuery(
     vendorId ? { vendor: vendorId } : undefined,
-    { pollingInterval: 300000 }
+    { pollingInterval: 30000 }
   );
 
   const { data: offersData, isFetching: offersFetching, refetch: refetchOffers } = useGetVendorOffersQuery(
     undefined,
-    { pollingInterval: 300000 }
+    { pollingInterval: 30000 }
   );
 
   const [createListing] = useCreateListingMutation();
@@ -139,6 +140,50 @@ export default function VendorListingsPage() {
   const [deleteOffer] = useDeleteVendorOfferMutation();
   const [duplicateOffer] = useDuplicateVendorOfferMutation();
   const [toggleOfferStatus] = useToggleOfferStatusMutation();
+
+  // Socket.IO Real-time listeners for instant stock & metrics synchronization
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleStockUpdated = (data) => {
+      refetchListings();
+      if (selectedListingDetails && (selectedListingDetails._id === data?.id || selectedListingDetails.id === data?.id)) {
+        setSelectedListingDetails(prev => ({
+          ...prev,
+          stock: data.stock,
+          status: data.status || prev.status
+        }));
+      }
+    };
+
+    const handleListingUpdated = (data) => {
+      refetchListings();
+      if (selectedListingDetails && (selectedListingDetails._id === data?.id || selectedListingDetails.id === data?.id)) {
+        setSelectedListingDetails(prev => ({
+          ...prev,
+          ...(data.shares !== undefined ? { shares: data.shares } : {}),
+          ...(data.stock !== undefined ? { stock: data.stock } : {}),
+          ...(data.orders_count !== undefined ? { orders_count: data.orders_count } : {}),
+          ...(data.revenue !== undefined ? { revenue: data.revenue } : {})
+        }));
+      }
+    };
+
+    const handleOrderNew = () => {
+      refetchListings();
+    };
+
+    socket.on('listing:stock_updated', handleStockUpdated);
+    socket.on('listing:updated', handleListingUpdated);
+    socket.on('order:new', handleOrderNew);
+
+    return () => {
+      socket.off('listing:stock_updated', handleStockUpdated);
+      socket.off('listing:updated', handleListingUpdated);
+      socket.off('order:new', handleOrderNew);
+    };
+  }, [refetchListings, selectedListingDetails]);
 
   // Load Geolocation on mount
   useEffect(() => {
@@ -594,9 +639,14 @@ export default function VendorListingsPage() {
           onEdit={handleEditRow}
           onDuplicate={handleDuplicateRow}
           onToggleVisibility={handleToggleRowVisibility}
-          onShare={(row) => {
+          onShare={async (row) => {
+            const lid = row._id || row.id;
+            try {
+              await api.post(`/v1/listings/${lid}/share`);
+            } catch {}
             navigator.clipboard.writeText(`${window.location.origin}/listings/${row.slug || row._id}`);
             toast.success('Listing URL copied to clipboard!');
+            refetchListings();
           }}
           onDelete={handleDeleteRow}
           pageSize={10}

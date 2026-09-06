@@ -319,6 +319,9 @@ export default function SearchListingsPage() {
   // Share Listing
   const handleShare = async (item) => {
     const itemId = item._id || item.id;
+    if (itemId) {
+      api.post(`/v1/listings/${itemId}/share`).catch(() => {});
+    }
     const shareUrl = `${window.location.origin}/customer/search?productId=${itemId}`;
     const shareData = {
       title: item.title || 'BizReels Listing',

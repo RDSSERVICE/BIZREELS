@@ -272,7 +272,7 @@ export default function ServiceDetailsSection({ form, updateForm }) {
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Min Order Value (₹)</label>
+          <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Min Booking Value (₹)</label>
           <div className="relative">
             <input
               type="number"

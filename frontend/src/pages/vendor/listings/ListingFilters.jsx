@@ -131,7 +131,9 @@ export default function ListingFilters({
               className="appearance-none pl-3.5 pr-8 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-black text-[#1a1a1a] focus:outline-none focus:border-[#d99a3d] cursor-pointer"
             >
               {SORT_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.value === 'most_ordered' && activeTab === 'services' ? 'Most Booked' : opt.label}
+                </option>
               ))}
             </select>
             <FiChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />

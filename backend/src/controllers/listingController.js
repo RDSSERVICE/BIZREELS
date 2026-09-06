@@ -290,6 +290,46 @@ class ListingController {
     const result = await interactionService.toggle(req.user._id.toString(), id, 'like');
     return ApiResponse.ok(res, result.active ? 'Listing liked.' : 'Listing unliked.', result);
   });
+
+  // ── Record Listing Share ─────────────────────────────────
+  share = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const Listing = require('../models/Listing');
+    const { ListingEvent } = require('../models/Misc');
+    const listing = await Listing.findById(id);
+    if (!listing) {
+      throw ApiError.notFound('Listing not found');
+    }
+
+    const updatedListing = await Listing.findByIdAndUpdate(
+      id,
+      { $inc: { shares: 1 } },
+      { new: true }
+    );
+
+    // Track ListingEvent for vendor analytics
+    try {
+      await ListingEvent.create({
+        listing_id: id.toString(),
+        vendor_id: (listing.vendor?._id || listing.vendor || '').toString(),
+        event_type: 'share',
+        user_id: req.user?._id ? req.user._id.toString() : null,
+      });
+    } catch (e) {}
+
+    // Emit live socket event to vendor
+    try {
+      const { emitToUser } = require('../sockets');
+      const vendorId = (listing.vendor?._id || listing.vendor || '').toString();
+      if (vendorId) {
+        emitToUser(vendorId, 'listing:updated', { id: id.toString(), shares: updatedListing.shares });
+      }
+    } catch (e) {}
+
+    return ApiResponse.ok(res, 'Listing share recorded.', {
+      shares: updatedListing ? (updatedListing.shares || 0) : 1
+    });
+  });
 }
 
 module.exports = new ListingController();

@@ -409,6 +409,23 @@ router.post(['/checkout', '/me/checkout'], requireAuth, catchAsync(async (req, r
           itemSnapshot,
         });
 
+        // Update listing revenue & orders_count
+        await Listing.updateOne(
+          { _id: item.listing_id },
+          {
+            $inc: { orders_count: reqQty, revenue: Math.round(orderPrice) },
+            ...(updatedListing.stock <= 0 ? { $set: { status: 'out_of_stock' } } : {})
+          }
+        ).catch(() => {});
+
+        // Emit socket events to vendor
+        try {
+          const { emitToUser } = require('../sockets');
+          emitToUser(vendorId.toString(), 'listing:stock_updated', { id: item.listing_id.toString(), stock: updatedListing.stock });
+          emitToUser(vendorId.toString(), 'listing:updated', { id: item.listing_id.toString() });
+          emitToUser(vendorId.toString(), 'order:new', { orderId: order._id });
+        } catch {}
+
         // Notify vendor
         await Notification.create({
           recipient: vendorId,

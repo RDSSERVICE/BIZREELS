@@ -229,6 +229,7 @@ class OrderController {
     const isServiceBooking = isService || !!computedVisitTime;
     let finalPaymentStatus = 'unpaid';
     let order = null;
+    let updatedListing = null;
 
     // Wrap slot locking / stock decrement, wallet operations, and Order.create in a single MongoDB transaction
     const mongoose = require('mongoose');
@@ -252,7 +253,7 @@ class OrderController {
 
         // 2. Inventory Concurrency: Atomic conditional stock decrement for product listings
         if (!isServiceBooking) {
-          const updatedListing = await Listing.findOneAndUpdate(
+          updatedListing = await Listing.findOneAndUpdate(
             { _id: listingId, stock: { $gte: effectiveQty } },
             { $inc: { stock: -effectiveQty } },
             { session, new: true }
@@ -262,6 +263,11 @@ class OrderController {
             throw ApiError.badRequest(
               `Insufficient stock available for "${listing.title}". Please reduce your quantity or choose another item.`
             );
+          }
+
+          if (updatedListing.stock <= 0) {
+            await Listing.updateOne({ _id: listingId }, { status: 'out_of_stock' }, { session });
+            updatedListing.status = 'out_of_stock';
           }
         }
 
@@ -342,12 +348,30 @@ class OrderController {
       await session.endSession();
     }
 
-    // Synchronize listing orders_count & revenue asynchronously
+    // Synchronize listing orders_count & revenue asynchronously and emit live events
     if (listingId) {
       const netOrderRev = Math.max(0, itemTotal - validatedCouponDiscount);
       Listing.findByIdAndUpdate(listingId, {
         $inc: { orders_count: effectiveQty, revenue: netOrderRev }
       }).catch(() => {});
+
+      try {
+        const { emitToUser, emitToRole } = require('../sockets');
+        const vendorIdStr = (listing.vendor?._id || listing.vendor || '').toString();
+        if (vendorIdStr) {
+          emitToUser(vendorIdStr, 'listing:stock_updated', {
+            id: listingId.toString(),
+            stock: updatedListing ? updatedListing.stock : undefined,
+            orders_count: effectiveQty,
+            status: updatedListing ? updatedListing.status : undefined,
+          });
+          emitToUser(vendorIdStr, 'listing:updated', { id: listingId.toString() });
+          emitToUser(vendorIdStr, 'order:new', { orderId: order._id });
+        }
+        if (updatedListing && updatedListing.stock <= 0) {
+          emitToRole('customer', 'listing:out_of_stock', { id: listingId.toString() });
+        }
+      } catch (e) {}
     }
 
     // Notify vendor using centralized notificationService
@@ -618,6 +642,27 @@ class OrderController {
     if (reason) order.cancellationReason = reason;
     await order.save();
 
+    // Restore stock and adjust listing orders_count and revenue if order was cancelled/rejected
+    if (!isService && order.listing) {
+      const targetListingId = order.listing._id || order.listing;
+      const qty = order.quantity || 1;
+      const netOrderRev = Math.max(0, (order.itemTotal || (order.price * qty)) - (order.couponDiscount || 0));
+      Listing.findByIdAndUpdate(targetListingId, {
+        $inc: { stock: qty, orders_count: -qty, revenue: -netOrderRev }
+      }, { new: true }).then(async (restoredListing) => {
+        if (restoredListing) {
+          if (restoredListing.stock > 0 && restoredListing.status === 'out_of_stock') {
+            await Listing.updateOne({ _id: targetListingId }, { status: 'published' }).catch(() => {});
+          }
+          try {
+            const { emitToUser } = require('../sockets');
+            emitToUser(vendorId, 'listing:stock_updated', { id: targetListingId.toString(), stock: restoredListing.stock });
+            emitToUser(vendorId, 'listing:updated', { id: targetListingId.toString() });
+          } catch (e) {}
+        }
+      }).catch(() => {});
+    }
+
     // Notify vendor
     if (vendorId) {
       try {
@@ -869,13 +914,32 @@ class OrderController {
 
     await order.save();
 
-    // Revert listing orders_count & revenue if order was cancelled/refunded
+    // Revert listing orders_count, revenue & restore stock if order was cancelled/refunded
     if (['cancelled', 'rejected', 'refunded'].includes(newStatus) && !['cancelled', 'rejected', 'refunded'].includes(previousStatus)) {
       const targetListingId = order.listing?._id || order.listing;
       if (targetListingId) {
-        const netOrderRev = Math.max(0, (order.itemTotal || (order.price * (order.quantity || 1))) - (order.couponDiscount || 0));
+        const qty = order.quantity || 1;
+        const netOrderRev = Math.max(0, (order.itemTotal || (order.price * qty)) - (order.couponDiscount || 0));
+        const isProd = !order.scheduledVisitTime && order.itemSnapshot?.listingType !== 'service';
+        const incObj = { orders_count: -qty, revenue: -netOrderRev };
+        if (isProd) incObj.stock = qty;
+
         Listing.findByIdAndUpdate(targetListingId, {
-          $inc: { orders_count: -(order.quantity || 1), revenue: -netOrderRev }
+          $inc: incObj
+        }, { new: true }).then(async (restoredListing) => {
+          if (restoredListing) {
+            if (restoredListing.stock > 0 && restoredListing.status === 'out_of_stock') {
+              await Listing.updateOne({ _id: targetListingId }, { status: 'published' }).catch(() => {});
+            }
+            try {
+              const { emitToUser } = require('../sockets');
+              const vid = (order.vendor?._id || order.vendor || '').toString();
+              if (vid) {
+                emitToUser(vid, 'listing:stock_updated', { id: targetListingId.toString(), stock: restoredListing.stock });
+                emitToUser(vid, 'listing:updated', { id: targetListingId.toString() });
+              }
+            } catch (e) {}
+          }
         }).catch(() => {});
       }
     }

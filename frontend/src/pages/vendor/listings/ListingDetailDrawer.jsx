@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import {
   FiX, FiEye, FiHeart, FiBookmark, FiShare2, FiShoppingCart,
   FiStar, FiTrendingUp, FiPackage, FiEdit2, FiTrash2, FiCopy,
-  FiEyeOff, FiAlertTriangle, FiDollarSign, FiBarChart2
+  FiEyeOff, FiAlertTriangle, FiDollarSign, FiBarChart2, FiCalendar
 } from 'react-icons/fi';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
+import { useGetListingAnalyticsQuery } from '../../../features/vendor/vendorApi';
 
 /**
  * ListingDetailDrawer — Slide-out drawer showing full listing details + analytics
@@ -22,22 +23,31 @@ export default function ListingDetailDrawer({
   const [stockInput, setStockInput] = useState('');
   const [updatingStock, setUpdatingStock] = useState(false);
 
+  const lid = listing?._id || listing?.id;
+
+  const { data: analyticsRes } = useGetListingAnalyticsQuery(lid, {
+    skip: !isOpen || !lid,
+    pollingInterval: 10000,
+  });
+
   if (!isOpen || !listing) return null;
 
-  const lid = listing._id || listing.id;
+  const liveData = analyticsRes?.data || analyticsRes || {};
+  const isService = listing.type === 'service';
+
   const image = listing.images?.[0];
   const sellingPrice = listing.sellingPrice || listing.price || 0;
-  const views = listing.views || 0;
-  const likes = listing.likes ?? listing.likes_count ?? 0;
-  const saves = listing.saves_count ?? listing.saves ?? 0;
-  const shares = listing.shares || 0;
-  const orders = listing.orders_count || 0;
-  const revenue = listing.revenue || 0;
-  const rating = listing.rating || 0;
-  const stock = listing.stock ?? 0;
+  const views = liveData.views ?? listing.views ?? 0;
+  const likes = liveData.likes ?? listing.likes ?? listing.likes_count ?? 0;
+  const saves = liveData.saves ?? listing.saves_count ?? listing.saves ?? 0;
+  const shares = liveData.shares ?? listing.shares ?? 0;
+  const orders = liveData.orders ?? listing.orders_count ?? 0;
+  const revenue = liveData.revenue ?? listing.revenue ?? 0;
+  const rating = liveData.rating ?? listing.rating ?? 0;
+  const stock = liveData.stock ?? listing.stock ?? 0;
   const threshold = listing.lowStockThreshold ?? 5;
-  const conversionRate = views > 0 ? ((orders / views) * 100).toFixed(1) : '0.0';
-  const ctr = views > 0 ? ((likes / views) * 100).toFixed(1) : '0.0';
+  const conversionRate = liveData.conversionRate ?? (views > 0 ? ((orders / views) * 100).toFixed(1) : '0.0');
+  const ctr = liveData.ctr ?? (views > 0 ? ((likes / views) * 100).toFixed(1) : '0.0');
 
   const handleStockUpdate = async () => {
     if (!stockInput && stockInput !== 0) return;
@@ -52,11 +62,16 @@ export default function ListingDetailDrawer({
 
   const stats = [
     { label: 'Total Views', value: views, icon: FiEye, color: 'text-blue-500' },
-    { label: 'Unique Visitors', value: listing.uniqueVisitors || Math.floor(views * 0.7), icon: FiEye, color: 'text-cyan-500' },
+    { label: 'Unique Visitors', value: liveData.uniqueVisitors ?? listing.uniqueVisitors ?? Math.floor(views * 0.7), icon: FiEye, color: 'text-cyan-500' },
     { label: 'Likes', value: likes, icon: FiHeart, color: 'text-red-400' },
     { label: 'Saves', value: saves, icon: FiBookmark, color: 'text-amber-500' },
     { label: 'Shares', value: shares, icon: FiShare2, color: 'text-emerald-500' },
-    { label: 'Orders', value: orders, icon: FiShoppingCart, color: 'text-purple-500' },
+    {
+      label: isService ? 'Bookings' : 'Orders',
+      value: orders,
+      icon: isService ? FiCalendar : FiShoppingCart,
+      color: 'text-purple-500',
+    },
     { label: 'Revenue', value: `₹${revenue.toLocaleString('en-IN')}`, icon: FiDollarSign, color: 'text-emerald-600' },
     { label: 'Rating', value: rating > 0 ? `${rating.toFixed(1)} ⭐` : 'No rating', icon: FiStar, color: 'text-amber-500' },
     { label: 'Conversion', value: `${conversionRate}%`, icon: FiTrendingUp, color: 'text-brand-purple' },

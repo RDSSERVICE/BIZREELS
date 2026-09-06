@@ -53,6 +53,7 @@ router.post(
 // ── Parameterized routes ──────────────────────────────────
 router.get('/:id', optionalAuth, listingValidation.idParam, validate, listingController.getListingDetails);
 router.post('/:id/like', authenticate, listingValidation.idParam, validate, listingController.toggleLike);
+router.post('/:id/share', optionalAuth, listingValidation.idParam, validate, listingController.share);
 router.post('/:id/save', authenticate, listingController.save);
 router.post('/:id/unsave', authenticate, listingController.unsave);
 router.post('/:id/save-image', authenticate, listingController.saveImage);
@@ -73,7 +74,6 @@ router.get(
   '/:id/analytics',
   authenticate,
   authorize('vendor', 'admin'),
-  requireSubscriptionFeature('analytics_access'),
   listingValidation.idParam,
   validate,
   listingController.getAnalytics

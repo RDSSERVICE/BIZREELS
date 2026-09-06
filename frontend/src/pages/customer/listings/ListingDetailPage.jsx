@@ -486,9 +486,13 @@ export default function ListingDetailPage() {
 
   const handleShare = async () => {
     const shareUrl = window.location.href;
+    const targetId = item?._id || item?.id || id;
+    if (targetId) {
+      api.post(`/v1/listings/${targetId}/share`).catch(() => {});
+    }
     if (navigator.share) {
       try {
-        await navigator.share({ title: item.title, text: item.description, url: shareUrl });
+        await navigator.share({ title: item?.title, text: item?.description, url: shareUrl });
       } catch {}
     } else {
       navigator.clipboard?.writeText(shareUrl);
