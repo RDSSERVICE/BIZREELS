@@ -502,12 +502,18 @@ export default function VendorBusinessProfilePage() {
 
       // 3. Backend postal API lookup
       try {
-        const res = await api.post('/v1/location/pincode-lookup', { pincode: cleanPin });
-        if (res.data) {
-          if (res.data.state) detectedState = res.data.state;
-          if (res.data.district || res.data.city) detectedDistrict = res.data.district || res.data.city;
-          if (res.data.tehsil || res.data.area) detectedTehsil = res.data.tehsil || res.data.area;
-          if (res.data.area) detectedArea = res.data.area;
+        let res;
+        try {
+          res = await api.post('/location/pincode-lookup', { pincode: cleanPin });
+        } catch {
+          res = await api.post('/v1/location/pincode-lookup', { pincode: cleanPin });
+        }
+        const resData = res.data?.data || res.data;
+        if (resData) {
+          if (resData.state) detectedState = resData.state;
+          if (resData.district || resData.city) detectedDistrict = resData.district || resData.city;
+          if (resData.tehsil || resData.area) detectedTehsil = resData.tehsil || resData.area;
+          if (resData.area || resData.postOffices?.[0]) detectedArea = resData.area || resData.postOffices?.[0];
         }
       } catch (apiErr) {
         console.warn('Backend postal lookup fallback:', apiErr);

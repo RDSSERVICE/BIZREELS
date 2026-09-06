@@ -298,26 +298,93 @@ export default function VendorSettingsScreen() {
   const activeTehsil = selectedTehsil === 'OTHER_CUSTOM' ? customTehsil.trim() : selectedTehsil;
   const activePincode = selectedPincode === 'OTHER_CUSTOM' ? customPincode.trim() : selectedPincode;
 
-  const handlePincodeAutoLookup = (pin: string) => {
-    if (!pin || pin.trim().length !== 6 || !/^\d{6}$/.test(pin.trim())) return;
+  const handlePincodeAutoLookup = async (pin: string) => {
+    if (!pin || typeof pin !== 'string') return;
+    const cleanPin = pin.trim();
+    if (cleanPin.length !== 6 || !/^\d{6}$/.test(cleanPin)) return;
+
     setLookingUpPincode(true);
-    const match = lookupPincodeLocal(pin.trim());
-    if (match) {
-      setSelectedState(match.state);
-      const dists = getDistrictsForState(match.state);
-      if (dists.includes(match.district)) {
-        setSelectedDistrict(match.district);
-        setCustomDistrict('');
-      } else {
-        setSelectedDistrict('OTHER_CUSTOM');
-        setCustomDistrict(match.district);
-      }
-      if (match.tehsils && match.tehsils.length > 0) {
-        setSelectedTehsil(match.tehsils[0]);
-        setCustomTehsil('');
+
+    let detectedState = '';
+    let detectedDistrict = '';
+    let detectedTehsil = '';
+    let detectedArea = '';
+
+    // 1. Try local memory dataset first for instant response
+    const localMatch = lookupPincodeLocal(cleanPin);
+    if (localMatch) {
+      detectedState = localMatch.state;
+      detectedDistrict = localMatch.district;
+      if (localMatch.tehsils && localMatch.tehsils.length > 0) {
+        detectedTehsil = localMatch.tehsils[0];
       }
     }
-    setLookingUpPincode(false);
+
+    // 2. Query Backend Postal API (/location/pincode-lookup)
+    try {
+      let resData: any = null;
+      try {
+        const res = await api.post('/location/pincode-lookup', { pincode: cleanPin });
+        resData = res.data?.data || res.data;
+      } catch (e1) {
+        const res = await api.post('/v1/location/pincode-lookup', { pincode: cleanPin });
+        resData = res.data?.data || res.data;
+      }
+
+      if (resData) {
+        if (resData.state) detectedState = resData.state;
+        if (resData.district || resData.city) detectedDistrict = resData.district || resData.city;
+        if (resData.tehsil || resData.area) detectedTehsil = resData.tehsil || resData.area;
+        if (resData.area || resData.postOffices?.[0]) detectedArea = resData.area || resData.postOffices?.[0];
+      }
+    } catch (apiErr) {
+      console.warn('Backend pincode API lookup fallback:', apiErr);
+    } finally {
+      setLookingUpPincode(false);
+    }
+
+    // Apply detected state, district, tehsil, and area to state
+    if (detectedState) {
+      const allStates = getStatesList();
+      const matchedState = allStates.find((s) => s.toLowerCase() === detectedState.toLowerCase()) || detectedState;
+      setSelectedState(matchedState);
+
+      const allDistricts = getDistrictsForState(matchedState);
+      let matchedDistrict = allDistricts.find((d) => d.toLowerCase() === detectedDistrict.toLowerCase());
+      if (!matchedDistrict && detectedDistrict) {
+        matchedDistrict = allDistricts.find(
+          (d) => detectedDistrict.toLowerCase().includes(d.toLowerCase()) || d.toLowerCase().includes(detectedDistrict.toLowerCase())
+        );
+      }
+
+      if (matchedDistrict) {
+        setSelectedDistrict(matchedDistrict);
+        setCustomDistrict('');
+      } else if (detectedDistrict) {
+        setSelectedDistrict('OTHER_CUSTOM');
+        setCustomDistrict(detectedDistrict);
+      }
+
+      const effectiveDist = matchedDistrict || detectedDistrict;
+      const allTehsils = getTehsilsForDistrict(matchedState, effectiveDist);
+      if (detectedTehsil && allTehsils.includes(detectedTehsil)) {
+        setSelectedTehsil(detectedTehsil);
+        setCustomTehsil('');
+      } else if (detectedTehsil) {
+        setSelectedTehsil('OTHER_CUSTOM');
+        setCustomTehsil(detectedTehsil);
+      } else if (allTehsils.length > 0) {
+        setSelectedTehsil(allTehsils[0]);
+        setCustomTehsil('');
+      }
+    } else if (detectedDistrict) {
+      setSelectedDistrict('OTHER_CUSTOM');
+      setCustomDistrict(detectedDistrict);
+    }
+
+    if (detectedArea) {
+      setAreaAddress(detectedArea);
+    }
   };
 
   const compileFullAddress = () => {
