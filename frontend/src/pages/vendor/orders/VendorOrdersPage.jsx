@@ -297,8 +297,12 @@ export default function VendorOrdersPage() {
                     </span>
 
                     {/* Payment Mode Badge */}
-                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 font-semibold text-slate-600 uppercase">
-                      {o.paymentMethod ? o.paymentMethod.replace(/_/g, ' ') : 'Vendor UPI'}
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold uppercase ${
+                      o.paymentMethod === 'razorpay'
+                        ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {o.paymentMethod === 'razorpay' ? '⚡ Razorpay Online' : o.paymentMethod ? o.paymentMethod.replace(/_/g, ' ') : 'Vendor UPI'}
                     </span>
 
                     {/* Paid / Unpaid Status Badge */}
@@ -307,6 +311,21 @@ export default function VendorOrdersPage() {
                     }`}>
                       {isPaid ? bi('✓ Paid', '✓ भुगतान प्राप्त') : bi('⏳ Unpaid', '⏳ भुगतान शेष')}
                     </span>
+
+                    {/* Escrow Status Badge for Razorpay */}
+                    {o.paymentMethod === 'razorpay' && o.escrowStatus && o.escrowStatus !== 'not_applicable' && (
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                        o.escrowStatus === 'held'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                          : o.escrowStatus === 'released'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : 'bg-rose-50 text-rose-800 border border-rose-200'
+                      }`}>
+                        {o.escrowStatus === 'held' && '🔒 ' + bi('Escrow Held', 'एस्क्रो में सुरक्षित')}
+                        {o.escrowStatus === 'released' && '🔓 ' + bi('Escrow Released to Wallet', 'वॉलेट में भुगतान जारी')}
+                        {o.escrowStatus === 'refunded' && '↩️ ' + bi('Escrow Refunded', 'एस्क्रो रिफंड किया गया')}
+                      </span>
+                    )}
 
                     {/* Revenue Recognized indicator */}
                     {o.revenueRecognized && (
@@ -320,6 +339,8 @@ export default function VendorOrdersPage() {
                       <span className="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200">
                         {bi('Refunded:', 'रिफंड किया गया:')} ₹{(o.refundAmount ?? o.price).toLocaleString()} ({o.refundPercentage ?? 100}%)
                         {o.refundMode === 'offline_direct' && ` • ${bi('Direct UPI Refund', 'सीधा UPI रिफंड')}`}
+                        {o.refundMode === 'razorpay_gateway' && ` • ${bi('Gateway Auto-Refund', 'गेटवे ऑटो-रिफंड')}`}
+                        {o.refundDetails?.refundId && ` [ID: ${o.refundDetails.refundId}]`}
                       </span>
                     )}
                   </div>

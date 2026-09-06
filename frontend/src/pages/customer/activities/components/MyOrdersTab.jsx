@@ -62,11 +62,30 @@ export default function MyOrdersTab({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {/* Payment Method Badge */}
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#f8f4ec] text-[#1a1a1a] border border-[#e3dccb]">
-                  {method === 'cod' ? '💵 COD' : method === 'wallet' ? '💳 Wallet' : '📲 Direct UPI/QR'}
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                  method === 'razorpay'
+                    ? 'bg-blue-50 text-blue-800 border-blue-200'
+                    : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb]'
+                }`}>
+                  {method === 'razorpay' ? '⚡ Razorpay Online' : method === 'cod' ? '💵 COD' : method === 'wallet' ? '💳 Wallet' : '📲 Direct UPI/QR'}
                 </span>
+
+                {/* Escrow Status Badge for Razorpay */}
+                {method === 'razorpay' && o.escrowStatus && o.escrowStatus !== 'not_applicable' && (
+                  <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-bold ${
+                    o.escrowStatus === 'held'
+                      ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                      : o.escrowStatus === 'released'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'bg-rose-50 text-rose-800 border border-rose-200'
+                  }`}>
+                    {o.escrowStatus === 'held' && '🔒 Escrow Held'}
+                    {o.escrowStatus === 'released' && '✓ Escrow Released'}
+                    {o.escrowStatus === 'refunded' && '↩️ Refunded'}
+                  </span>
+                )}
 
                 {/* Status Pill */}
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
@@ -107,6 +126,12 @@ export default function MyOrdersTab({
                   {Number(o.shippingCharges) > 0 && (
                     <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                       🚚 Shipping: ₹{o.shippingCharges}
+                    </span>
+                  )}
+                  {status === 'cancelled' && (
+                    <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                      ↩️ Refund: ₹{(o.refundAmount ?? o.price).toLocaleString()} ({o.refundPercentage ?? 100}%)
+                      {o.refundDetails?.refundId && ` • ID: ${o.refundDetails.refundId}`}
                     </span>
                   )}
                 </div>
