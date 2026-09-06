@@ -484,7 +484,7 @@ const PublicLayout = () => {
                 { label: 'About Us',   path: '/about' },
                 { label: 'Careers',    path: '/about' },
                 { label: 'Blog',       path: '/about' },
-                { label: 'Contact Us', path: '/about' },
+                { label: 'Contact Us', path: '/contact' },
               ].map(({ label, path }) => (
                 <Link key={label} to={path} style={{ fontSize: 13, color: '#8a8578', textDecoration: 'none', transition: 'color .15s' }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = '#f2ede4'; }}

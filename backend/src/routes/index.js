@@ -394,4 +394,39 @@ router.get('/cms/:slug', async (req, res) => {
   }
 });
 
+// Public Contact Submission route
+router.post('/contact', async (req, res) => {
+  try {
+    const { name, email, phone, subject, message } = req.body;
+    if (!name || !email || !message) {
+      return res.status(400).json({ success: false, message: 'Name, email, and message are required.' });
+    }
+
+    // Attempt to log or send notification if Admin user exists
+    try {
+      const { Notification } = require('../models/Notification') || {};
+      const User = require('../models/User');
+      const adminUser = await User.findOne({ role: 'admin' }).select('_id');
+      if (adminUser && Notification) {
+        await Notification.create({
+          user: adminUser._id,
+          type: 'support',
+          title: `New Contact Request: ${subject || 'general'}`,
+          message: `From ${name} (${email}, ${phone || 'N/A'}): ${message.substring(0, 120)}...`,
+          data: { name, email, phone, subject, message },
+        });
+      }
+    } catch (_) {
+      // Non-critical background notification failure
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Thank you for reaching out. Our customer care team will respond within 4 hours.',
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server error processing contact request.' });
+  }
+});
+
 module.exports = router;
