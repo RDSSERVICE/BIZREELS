@@ -41,3 +41,9 @@ export async function getCreditRates(): Promise<Array<{ action: string; rate: st
     return [];
   }
 }
+
+export async function requestPayout(amount: number): Promise<any> {
+  const { data } = await api.post('/wallet/payout', { amount }).catch(() => api.post('/v1/wallet/payout', { amount }));
+  return data.data || data;
+}
+

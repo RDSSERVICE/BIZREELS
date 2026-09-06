@@ -269,6 +269,14 @@ router.delete('/me/fcm-token/:token', requireAuth, catchAsync(async (req, res) =
   res.json(result);
 }));
 
+router.delete(['/me', '/profile', '/delete-account'], requireAuth, catchAsync(async (req, res) => {
+  const authService = require('../services/auth.service');
+  const userId = req.userId || (req.user?._id ? req.user._id.toString() : null);
+  const result = await authService.deleteAccount(userId, req);
+  res.json({ success: true, message: 'Account deleted successfully.', data: result });
+}));
+
+
 router.get('/me/role-activity', requireAuth, catchAsync(async (req, res) => {
   const user = req.user;
   const uid = user._id.toString();

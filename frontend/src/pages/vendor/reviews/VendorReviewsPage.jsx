@@ -27,7 +27,7 @@ export default function VendorReviewsPage() {
     setReplyTextMap((prev) => ({ ...prev, [id]: '' }));
   };
 
-  const avgRating = reviews.length ? (reviews.reduce((acc, r) => acc + (r.rating || 5), 0) / reviews.length).toFixed(1) : '5.0';
+  const avgRating = reviews.length ? (reviews.reduce((acc, r) => acc + (r.rating || 5), 0) / reviews.length).toFixed(1) : '0.0';
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in font-sans p-2 sm:p-4">

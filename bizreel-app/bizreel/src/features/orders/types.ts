@@ -23,44 +23,61 @@ export interface OrderItem {
 
 export interface Order {
   _id: string;
-  customer: {
-    _id: string;
-    name: string;
+  id?: string;
+  customer?: {
+    _id?: string;
+    id?: string;
+    name?: string;
     email?: string;
     phone?: string;
     avatarUrl?: string;
   };
-  vendor: {
-    _id: string;
-    name: string;
+  vendor?: {
+    _id?: string;
+    id?: string;
+    name?: string;
     email?: string;
     phone?: string;
     businessName?: string;
     avatarUrl?: string;
   };
-  listing: {
-    _id: string;
-    title: string;
+  listing?: {
+    _id?: string;
+    id?: string;
+    title?: string;
     images?: Array<{ url: string }>;
     type?: string;
+    postType?: string;
     category?: string;
-    price: number;
+    price?: number;
     salePrice?: number;
     sellingPrice?: number;
   };
-  quantity: number;
-  price: number;
-  status: 'pending' | 'active' | 'accepted' | 'completed' | 'delivered' | 'cancelled' | 'rejected';
-  paymentStatus: 'unpaid' | 'paid' | 'refunded';
-  paymentMethod: PaymentMethod;
-  address: string;
+  itemSnapshot?: {
+    title?: string;
+    listingType?: string;
+    price?: number;
+  };
+  quantity?: number;
+  price?: number;
+  status: string;
+  paymentStatus?: string;
+  paymentMethod?: PaymentMethod | string;
+  address?: string;
+  pincode?: string;
   bookingDate?: string;
   bookingTime?: string;
   scheduledVisitTime?: string;
+  trackingNumber?: string;
+  shippingDetails?: {
+    courierName?: string;
+    trackingNumber?: string;
+  };
   refundAmount?: number;
   refundPercentage?: number;
   cancellationReason?: string;
-  createdAt: string;
+  date?: string;
+  createdAt?: string;
   updatedAt?: string;
 }
 

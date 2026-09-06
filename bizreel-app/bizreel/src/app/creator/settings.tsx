@@ -17,9 +17,35 @@ import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
 
 export default function CreatorSettingsScreen() {
-  const { user, setUser } = useAuth();
+  const { user, setUser, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete BizReels Account ⚠️',
+      'Are you sure you want to permanently delete your BizReels Creator account? Your portfolio, reels, and data will be permanently removed. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete('/v1/auth/profile').catch(() => api.delete('/auth/profile'));
+              Alert.alert('Account Deleted', 'Your creator account has been permanently deleted.');
+              if (signOut) {
+                await signOut();
+              }
+              router.replace('/(auth)/login' as any);
+            } catch (err: any) {
+              Alert.alert('Error', err.response?.data?.message || 'Could not delete account. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -137,6 +163,18 @@ export default function CreatorSettingsScreen() {
             {saving ? <ActivityIndicator color={BLACK} /> : <Text style={styles.saveBtnText}>Update Password</Text>}
           </TouchableOpacity>
         </View>
+
+        {/* Danger Zone: Delete Account */}
+        <View style={[styles.card, { borderColor: '#EF4444', backgroundColor: '#1E1212' }]}>
+          <Text style={[styles.cardTitle, { color: '#EF4444' }]}>DANGER ZONE</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs }}>
+            Permanently delete your creator account, public portfolio, reels, and wallet history.
+          </Text>
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount}>
+            <Ionicons name="trash-outline" size={16} color="#fff" />
+            <Text style={styles.deleteBtnText}>Permanently Delete Account</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -171,4 +209,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, color: '#fff', paddingHorizontal: Spacing.three, height: 44, fontSize: FontSize.xs },
   saveBtn: { backgroundColor: YELLOW, height: 44, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   saveBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#EF4444', height: 44, marginTop: 8 },
+  deleteBtnText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '900' },
 });
+

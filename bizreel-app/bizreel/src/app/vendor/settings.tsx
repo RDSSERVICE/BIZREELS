@@ -84,10 +84,36 @@ const CATEGORIES = [
 export default function VendorSettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, setUser } = useAuth();
+  const { user, setUser, signOut } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete BizReels Account ⚠️',
+      'Are you sure you want to permanently delete your BizReels Vendor account? All your listings, wallet balance, and data will be permanently removed. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete('/v1/auth/profile').catch(() => api.delete('/auth/profile'));
+              Alert.alert('Account Deleted', 'Your vendor account has been permanently deleted.');
+              if (signOut) {
+                await signOut();
+              }
+              router.replace('/(auth)/login' as any);
+            } catch (err: any) {
+              Alert.alert('Error', err.response?.data?.message || 'Could not delete account. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
 
@@ -1072,6 +1098,19 @@ export default function VendorSettingsScreen() {
           )}
         </TouchableOpacity>
 
+        {/* Danger Zone: Account Deletion (Play Store Requirement) */}
+        <View style={styles.dangerZoneCard}>
+          <Text style={styles.dangerZoneTitle}>DANGER ZONE</Text>
+          <Text style={styles.dangerZoneSub}>
+            Permanently delete your vendor account, store profile, product listings, and wallet balance.
+          </Text>
+
+          <TouchableOpacity style={styles.deleteAccountBtn} onPress={handleDeleteAccount}>
+            <Ionicons name="trash-outline" size={16} color="#fff" />
+            <Text style={styles.deleteAccountBtnText}>Permanently Delete Account</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -1392,4 +1431,40 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.5,
   },
+  dangerZoneCard: {
+    backgroundColor: '#1E1212',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    padding: Spacing.four,
+    borderRadius: 8,
+    gap: 8,
+    marginTop: 16,
+  },
+  dangerZoneTitle: {
+    color: '#EF4444',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  dangerZoneSub: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  deleteAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    borderRadius: 6,
+    gap: 6,
+    marginTop: 4,
+  },
+  deleteAccountBtnText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+  },
 });
+

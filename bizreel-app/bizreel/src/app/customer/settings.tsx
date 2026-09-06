@@ -250,9 +250,12 @@ export default function CustomerSettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.delete('/v1/users/me').catch(() => api.delete('/users/me'));
-              signOut();
-              Alert.alert('Account Deleted', 'Your account has been deleted.');
+              await api.delete('/v1/auth/profile').catch(() => api.delete('/v1/users/me')).catch(() => api.delete('/users/me'));
+              Alert.alert('Account Deleted', 'Your customer account has been permanently deleted.');
+              if (signOut) {
+                await signOut();
+              }
+              router.replace('/(auth)/login' as any);
             } catch (err: any) {
               Alert.alert('Error', err.response?.data?.message || 'Could not delete account.');
             }

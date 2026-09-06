@@ -11,15 +11,13 @@ export function useVendorOrders() {
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      orderId,
-      status,
-      trackingNumber,
-    }: {
+    mutationFn: (params: {
       orderId: string;
-      status: string;
+      status?: string;
+      paymentStatus?: string;
       trackingNumber?: string;
-    }) => updateOrderStatus(orderId, status, trackingNumber),
+      shippingDetails?: { courierName?: string; trackingNumber?: string };
+    }) => updateOrderStatus(params.orderId, params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendor', 'orders'] });
     },
