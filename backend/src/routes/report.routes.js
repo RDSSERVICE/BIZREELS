@@ -20,7 +20,7 @@ router.post('/reports', requireAuth, catchAsync(async (req, res) => {
   if (!target_type || !target_id || !reason) {
     throw ApiError.badRequest('target_type, target_id and reason are required');
   }
-  if (!['listing', 'user', 'review', 'message'].includes(target_type)) {
+  if (!['listing', 'user', 'review', 'message', 'reel'].includes(target_type)) {
     throw ApiError.badRequest('Invalid target_type');
   }
   if (!['spam', 'offensive', 'scam', 'wrong_category', 'other'].includes(reason)) {
