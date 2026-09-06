@@ -10,10 +10,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bizreel.app"
+      "bundleIdentifier": "com.bizreels.app"
     },
     "android": {
-      "package": "com.bizreel.app",
+      "package": "com.bizreels.app",
       "versionCode": 1,
       "allowBackup": false,
       "permissions": [
