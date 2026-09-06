@@ -962,7 +962,7 @@ export default function PrivacyPolicy() {
             </div>
 
             {/* Quick Index List */}
-            <div className="bg-white rounded-2xl border-2 border-[#241b15] p-3 sm:p-4 shadow-sm space-y-1.5 max-h-[72vh] overflow-y-auto bizreels-scrollbar">
+            <div className="bg-white rounded-2xl border-2 border-[#241b15] p-3 sm:p-4 shadow-sm space-y-1.5 overflow-hidden">
               <div className="flex items-center justify-between pb-2.5 border-b border-[#e3dccb] mb-2 px-1">
                 <h3
                   style={{ fontFamily: "'Archivo Black', sans-serif" }}
@@ -974,6 +974,9 @@ export default function PrivacyPolicy() {
                   {filteredSections.length} of {SECTIONS.length}
                 </span>
               </div>
+
+              {/* Scrollable links container */}
+              <div className="max-h-[62vh] overflow-y-auto pr-1.5 space-y-1 bizreels-scrollbar">
 
               {filteredSections.length === 0 ? (
                 <div className="p-4 text-center text-xs text-slate-500">
@@ -1009,6 +1012,7 @@ export default function PrivacyPolicy() {
                   );
                 })
               )}
+              </div>
             </div>
 
             {/* Quick Contact Grievance Desk Card */}
