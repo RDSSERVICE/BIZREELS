@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getSocket } from '../../../lib/socket';
 import { 
   FiPlusCircle, 
   FiArrowUpRight, 
@@ -51,11 +52,38 @@ const DEFAULT_CREDIT_RATES = [
 
 export default function VendorWalletPage() {
   const { bi } = useLanguage();
-  const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, { pollingInterval: 60000 });
-  const { data: txData, isFetching: isFetchingTx, refetch: refetchTx } = useGetWalletTransactionsQuery(undefined, { pollingInterval: 60000 });
+  const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  });
+  const { data: txData, isFetching: isFetchingTx, refetch: refetchTx } = useGetWalletTransactionsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  });
   const { data: topupPacksData } = useGetTopupPacksQuery();
   const { data: creditRatesData } = useGetCreditRatesQuery();
   const [rechargeWallet] = useRechargeWalletMutation();
+
+  // Production Grade: Real-time Socket.IO listeners for instant wallet updates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleWalletUpdate = () => {
+      refetchWallet();
+      refetchTx();
+    };
+
+    socket.on('wallet:updated', handleWalletUpdate);
+    socket.on('payment:success', handleWalletUpdate);
+    socket.on('transaction:new', handleWalletUpdate);
+
+    return () => {
+      socket.off('wallet:updated', handleWalletUpdate);
+      socket.off('payment:success', handleWalletUpdate);
+      socket.off('transaction:new', handleWalletUpdate);
+    };
+  }, [refetchWallet, refetchTx]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [amount, setAmount] = useState('1000');

@@ -41,7 +41,7 @@ export default function AdminSecurityPage() {
   const [updateProfile, { isLoading: isUpdatingProfile }] = useUpdateAdminProfileMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangeAdminPasswordMutation();
 
-  const { data, isFetching } = useGetAdminSecurityLogsQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useGetAdminSecurityLogsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
   const logs = data?.items || [];
 
   useEffect(() => {

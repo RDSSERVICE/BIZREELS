@@ -9,7 +9,7 @@ export default function CreatorAvailabilityPage() {
   const { bi } = useLanguage();
   const { data, refetch } = useGetCreatorAvailabilityQuery(undefined, { 
     refetchOnMountOrArgChange: true,
-    pollingInterval: 60000 
+    refetchOnFocus: true
   });
   const [updateAvailability] = useUpdateCreatorAvailabilityMutation();
   const [status, setStatus] = useState('Available');

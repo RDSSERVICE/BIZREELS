@@ -26,7 +26,7 @@ export default function AdminCmsPage() {
   const [editContent, setEditContent] = useState('');
   const [editTitle, setEditTitle] = useState('');
 
-  const { data: cmsData, isFetching } = useGetCmsPagesQuery(undefined, { pollingInterval: 5000 });
+  const { data: cmsData, isFetching } = useGetCmsPagesQuery(undefined, { refetchOnMountOrArgChange: true });
   const [updateCms] = useUpdateCmsPageMutation();
 
   const handleOpenEdit = (page) => {

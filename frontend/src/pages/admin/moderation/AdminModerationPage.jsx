@@ -26,7 +26,7 @@ export default function AdminModerationPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
 
-  const { data, isFetching } = useListAdminReportsQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useListAdminReportsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
   const [resolveReport] = useResolveReportMutation();
   const [dismissReport] = useDismissReportMutation();
 

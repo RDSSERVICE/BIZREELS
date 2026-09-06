@@ -56,24 +56,24 @@ export default function VendorAnalyticsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedListingForRoi, setSelectedListingForRoi] = useState(null);
 
-  // RTK Queries with auto background polling
+  // RTK Queries (Production Grade: Event-driven via Socket.IO + SWR refetchOnFocus)
   const {
     data: overviewData,
     isFetching: isOverviewLoading,
     refetch: refetchOverview
-  } = useGetVendorAnalyticsOverviewQuery(range, { pollingInterval: 30000 });
+  } = useGetVendorAnalyticsOverviewQuery(range, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
 
   const {
     data: listingsData,
     isFetching: isListingsLoading,
     refetch: refetchListings
-  } = useGetVendorAnalyticsListingsQuery({ range, sort: listingSort, limit: 50 }, { pollingInterval: 30000 });
+  } = useGetVendorAnalyticsListingsQuery({ range, sort: listingSort, limit: 50 }, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
 
   const {
     data: timeseriesData,
     isFetching: isTimeseriesLoading,
     refetch: refetchTimeseries
-  } = useGetVendorAnalyticsTimeseriesQuery({ range, metric }, { pollingInterval: 30000 });
+  } = useGetVendorAnalyticsTimeseriesQuery({ range, metric }, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
 
   const [simulateTraffic, { isLoading: isSimulating }] = useSimulateVendorAnalyticsMutation();
 

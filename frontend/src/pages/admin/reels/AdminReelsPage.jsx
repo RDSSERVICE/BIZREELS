@@ -33,7 +33,7 @@ export default function AdminReelsPage() {
   if (activeTab === 'deleted') queryParams.is_deleted = 'true';
   if (activeTab === 'live') queryParams.is_live = 'true';
 
-  const { data, isFetching } = useListAdminReelsQuery(queryParams, { pollingInterval: 5000 });
+  const { data, isFetching } = useListAdminReelsQuery(queryParams, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
   const [takedownReel] = useTakedownReelMutation();
   const [toggleBoost] = useToggleBoostReelMutation();
 

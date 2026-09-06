@@ -26,9 +26,9 @@ export default function AdminLocationsPage() {
   const [radiusKm, setRadiusKm] = useState(25);
   const [form, setForm] = useState({ name: '', type: 'city', is_popular: false });
 
-  const { data, isFetching } = useListLocationsQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useListLocationsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
   const [createLocation] = useCreateLocationMutation();
-  const { data: radiusData } = useGetLocationRadiusQuery(undefined, { pollingInterval: 10000 });
+  const { data: radiusData } = useGetLocationRadiusQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
   const [updateRadius] = useUpdateLocationRadiusMutation();
 
   // Sync radius from server

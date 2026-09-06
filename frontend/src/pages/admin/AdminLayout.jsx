@@ -243,8 +243,8 @@ const AdminLayout = () => {
   const [collapsedSections, setCollapsedSections] = useState({});
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Fetch overview stats for live notification badges
-  const { data: ov } = useGetAdminOverviewQuery(undefined, { pollingInterval: 30000 });
+  // Fetch overview stats for live notification badges (Production Grade: Event-driven via admin:update Socket.IO)
+  const { data: ov } = useGetAdminOverviewQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
 
   const toggleSection = (title) => {
     setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }));

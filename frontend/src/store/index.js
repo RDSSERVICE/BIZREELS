@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import { setupListeners } from '@reduxjs/toolkit/query';
 import apiSlice from '../api/apiSlice';
 import authReducer from '../features/auth/authSlice';
 
@@ -18,5 +19,8 @@ const store = configureStore({
     }).concat(apiSlice.middleware),
   devTools: import.meta.env.DEV,
 });
+
+// Production Grade: Enable refetchOnFocus and refetchOnReconnect
+setupListeners(store.dispatch);
 
 export default store;

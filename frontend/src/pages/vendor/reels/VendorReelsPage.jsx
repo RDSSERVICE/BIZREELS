@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { api } from '../../../lib/api';
+import { getSocket } from '../../../lib/socket';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import {
@@ -83,14 +84,33 @@ export default function VendorReelsPage() {
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
 
-  // API QUERIES & MUTATIONS
-  const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, { pollingInterval: 10000 });
+  // API QUERIES & MUTATIONS (Production Grade: Event-driven via Socket.IO + SWR refetchOnFocus)
+  const { data: reelsData, isFetching, refetch } = useGetVendorReelsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  });
   const { data: listingsData } = useGetVendorListingsQuery(undefined);
   const [createReel, { isLoading: isPublishing }] = useCreateReelMutation();
   const [deleteReel] = useDeleteReelMutation();
 
+  // Socket.IO event listeners for real-time reel updates
   useEffect(() => {
-    refetch();
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleReelUpdate = () => {
+      refetch();
+    };
+
+    socket.on('reel:created', handleReelUpdate);
+    socket.on('reel:deleted', handleReelUpdate);
+    socket.on('reel:updated', handleReelUpdate);
+
+    return () => {
+      socket.off('reel:created', handleReelUpdate);
+      socket.off('reel:deleted', handleReelUpdate);
+      socket.off('reel:updated', handleReelUpdate);
+    };
   }, [refetch]);
 
   const scanForForbiddenContact = (text) => {

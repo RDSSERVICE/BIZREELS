@@ -26,7 +26,7 @@ export default function AdminReviewsPage() {
   if (activeTab === 'product') queryParams.target_type = 'listing';
   else if (activeTab === 'vendor') queryParams.target_type = 'vendor';
 
-  const { data, isFetching } = useListAdminReviewsQuery(queryParams, { pollingInterval: 5000 });
+  const { data, isFetching } = useListAdminReviewsQuery(queryParams, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
   const [deleteReview] = useDeleteAdminReviewMutation();
 
   const items = data?.items || [

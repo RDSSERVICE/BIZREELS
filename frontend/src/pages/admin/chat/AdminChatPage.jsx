@@ -21,7 +21,7 @@ export default function AdminChatPage() {
   const [search, setSearch] = useState('');
   const [viewLog, setViewLog] = useState(null);
 
-  const { data, isFetching } = useListReportedChatsQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useListReportedChatsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
   const items = data?.items || [
     { id: '1', reporter_id: 'user_101', target_id: 'chat_55', reason: 'Spam / Abusive language', description: 'Sender kept pushing suspicious external links.', status: 'pending', created_at: new Date().toISOString() },
     { id: '2', reporter_id: 'user_202', target_id: 'chat_88', reason: 'Fraud / Payment scam', description: 'Asked for direct bank transfer outside Razorpay.', status: 'pending', created_at: new Date().toISOString() },

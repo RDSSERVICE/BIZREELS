@@ -8,7 +8,8 @@ import { useGetReferralOfferStatsQuery } from '../../../../features/vendor/vendo
  */
 export default function ReferralOfferStatsCard({ onCreateReferralOffer }) {
   const { data, isLoading } = useGetReferralOfferStatsQuery(undefined, {
-    pollingInterval: 30000,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
   });
 
   const payload = data?.data;

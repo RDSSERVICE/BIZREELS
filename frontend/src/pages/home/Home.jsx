@@ -165,7 +165,7 @@ export default function Home() {
     { name: 'Travel & Tourism' }
   ], []);
 
-  const { data: dbCatRes } = useListCategoriesQuery(undefined, { pollingInterval: 60000 });
+  const { data: dbCatRes } = useListCategoriesQuery(undefined, { refetchOnMountOrArgChange: false });
   const dbCategories = dbCatRes?.items || dbCatRes?.data || dbCatRes || [];
 
   const categoriesToDisplay = React.useMemo(() => {

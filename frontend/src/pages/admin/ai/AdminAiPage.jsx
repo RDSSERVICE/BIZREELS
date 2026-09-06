@@ -18,12 +18,11 @@ const TABS = [
 ];
 
 export default function AdminAiPage() {
-  const [activeTab, setActiveTab] = useState('usage');
-  const { data: settings } = useGetIntegrationSettingsQuery(undefined, { pollingInterval: 5000 });
+  const { data: settings } = useGetIntegrationSettingsQuery(undefined, { refetchOnMountOrArgChange: true });
   const [updateSettings] = useUpdateIntegrationSettingsMutation();
   const [testIntegration] = useTestIntegrationMutation();
 
-  const { data: securityLogsData, isFetching: isLogsFetching } = useGetAdminSecurityLogsQuery(undefined, { pollingInterval: 10000 });
+  const { data: securityLogsData, isFetching: isLogsFetching } = useGetAdminSecurityLogsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
 
   const [aiKeys, setAiKeys] = useState({
     openai_key: '',

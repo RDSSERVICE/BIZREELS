@@ -24,8 +24,8 @@ export default function AdminBoostPage() {
   const [editPlan, setEditPlan] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', duration_days: 7, price_inr: 499, credits_cost: 50 });
 
-  const { data, isFetching } = useListBoostPlansQuery(undefined, { pollingInterval: 5000 });
-  const { data: ov, isFetching: isFetchingOverview } = useGetAdminOverviewQuery(undefined, { pollingInterval: 5000 });
+  const { data, isFetching } = useListBoostPlansQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
+  const { data: ov, isFetching: isFetchingOverview } = useGetAdminOverviewQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
   const [createPlan] = useCreateBoostPlanMutation();
   const [updatePlan] = useUpdateBoostPlanMutation();
 

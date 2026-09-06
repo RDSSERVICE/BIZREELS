@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FiX, FiEye, FiHeart, FiBookmark, FiShare2, FiShoppingCart,
   FiStar, FiTrendingUp, FiPackage, FiEdit2, FiTrash2, FiCopy,
@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fi';
 import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
 import { useGetListingAnalyticsQuery } from '../../../features/vendor/vendorApi';
+import { getSocket } from '../../../lib/socket';
 
 /**
  * ListingDetailDrawer — Slide-out drawer showing full listing details + analytics
@@ -25,10 +26,33 @@ export default function ListingDetailDrawer({
 
   const lid = listing?._id || listing?.id;
 
-  const { data: analyticsRes } = useGetListingAnalyticsQuery(lid, {
+  const { data: analyticsRes, refetch: refetchAnalytics } = useGetListingAnalyticsQuery(lid, {
     skip: !isOpen || !lid,
-    pollingInterval: 300000, // 5 minutes fallback polling (production standard with Socket.IO)
+    refetchOnMountOrArgChange: true,
   });
+
+  // Production Grade: Event-driven real-time updates via WebSockets instead of short polling
+  useEffect(() => {
+    if (!isOpen || !lid) return;
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleListingUpdate = (data) => {
+      if (!data || data.id === lid || data._id === lid) {
+        refetchAnalytics();
+      }
+    };
+
+    socket.on('listing:stock_updated', handleListingUpdate);
+    socket.on('listing:updated', handleListingUpdate);
+    socket.on('order:new', refetchAnalytics);
+
+    return () => {
+      socket.off('listing:stock_updated', handleListingUpdate);
+      socket.off('listing:updated', handleListingUpdate);
+      socket.off('order:new', refetchAnalytics);
+    };
+  }, [isOpen, lid, refetchAnalytics]);
 
   if (!isOpen || !listing) return null;
 

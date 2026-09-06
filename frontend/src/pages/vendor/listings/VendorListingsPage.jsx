@@ -116,15 +116,15 @@ export default function VendorListingsPage() {
   const [subcategoriesList, setSubcategoriesList] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
-  // RTK Query endpoints
+  // RTK Query endpoints (Production Grade: Event-driven via Socket.IO + SWR refetchOnFocus)
   const { data: listingsData, isFetching: listingsFetching, refetch: refetchListings } = useGetVendorListingsQuery(
     vendorId ? { vendor: vendorId } : undefined,
-    { pollingInterval: 30000 }
+    { refetchOnMountOrArgChange: true, refetchOnFocus: true }
   );
 
   const { data: offersData, isFetching: offersFetching, refetch: refetchOffers } = useGetVendorOffersQuery(
     undefined,
-    { pollingInterval: 30000 }
+    { refetchOnMountOrArgChange: true, refetchOnFocus: true }
   );
 
   const [createListing] = useCreateListingMutation();
