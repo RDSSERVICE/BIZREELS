@@ -258,22 +258,24 @@ const updateVendorProfileHandler = catchAsync(async (req, res) => {
 
   const currentVp = user.vendorProfile ? (user.vendorProfile.toObject ? user.vendorProfile.toObject() : user.vendorProfile) : {};
 
-  const bName = businessName || shopName || storeName || currentVp.businessName || currentVp.shopName;
-  if (bName) {
-    currentVp.businessName = String(bName).trim();
-    currentVp.shopName = String(bName).trim();
-    currentVp.displayName = String(bName).trim();
-    user.name = String(bName).trim();
+  if (shopName !== undefined) currentVp.shopName = String(shopName || '').trim();
+  if (businessName !== undefined) currentVp.businessName = String(businessName || '').trim();
+  if (storeName !== undefined) currentVp.storeName = String(storeName || '').trim();
+
+  const resolvedDisplayName = currentVp.shopName || currentVp.businessName || currentVp.storeName || user.name;
+  if (resolvedDisplayName) {
+    currentVp.displayName = String(resolvedDisplayName).trim();
+    user.name = String(resolvedDisplayName).trim();
   }
 
-  if (ownerName) currentVp.ownerName = String(ownerName).trim();
-  if (phone) {
-    currentVp.mobileNumber = String(phone).trim();
-    if (!user.phone) user.phone = String(phone).trim();
+  if (ownerName !== undefined) currentVp.ownerName = String(ownerName || '').trim();
+  if (phone !== undefined) {
+    currentVp.mobileNumber = String(phone || '').trim();
+    if (phone) user.phone = String(phone).trim();
   }
-  if (email) {
-    currentVp.email = String(email).trim();
-    if (!user.email) user.email = String(email).trim();
+  if (email !== undefined) {
+    currentVp.email = String(email || '').trim();
+    if (email) user.email = String(email).trim();
   }
   if (category) {
     currentVp.category = category;
@@ -382,8 +384,14 @@ router.get('/me/profile', requireAuth, catchAsync(async (req, res) => {
       ...vp,
       avatarUrl: vp.avatarUrl || vp.shopLogo || user.avatarUrl || user.profile_pic || '',
       coverUrl: vp.coverBanner || vp.shopCoverImage || vp.coverUrl || '',
+      coverBanner: vp.coverBanner || vp.shopCoverImage || vp.coverUrl || '',
+      profile_pic: vp.avatarUrl || vp.shopLogo || user.avatarUrl || user.profile_pic || '',
+      shopLogo: vp.avatarUrl || vp.shopLogo || user.profile_pic || '',
+      shopName: vp.shopName || vp.businessName || user.name || '',
       businessName: vp.businessName || vp.shopName || user.name || '',
       storeName: vp.shopName || vp.businessName || user.name || '',
+      profession: vp.profession || vp.businessType || user.profession || user.occupation || 'Retailer / Shop Owner',
+      businessType: vp.businessType || vp.profession || user.profession || 'Retailer / Shop Owner',
       ownerName: vp.ownerName || user.name || '',
       phone: vp.mobileNumber || user.phone || '',
       email: vp.email || user.email || '',

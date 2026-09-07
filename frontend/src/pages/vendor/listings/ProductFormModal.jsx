@@ -220,7 +220,51 @@ export default function ProductFormModal({
   useEffect(() => {
     if (editData) {
       const prod = editData.productDetails || {};
-      const imgList = editData.images || [];
+
+      const collectedImages = [];
+      const addCandidate = (candidate) => {
+        if (!candidate) return;
+        if (Array.isArray(candidate)) {
+          candidate.forEach((c) => addCandidate(c));
+          return;
+        }
+        let url = typeof candidate === 'string' ? candidate : (candidate.url || candidate.src || candidate.uri || candidate.path || candidate.imageUrl || null);
+        if (url && typeof url === 'string' && url.trim() && !collectedImages.includes(url.trim())) {
+          collectedImages.push(url.trim());
+        }
+      };
+
+      // Root listing image properties
+      addCandidate(editData.image);
+      addCandidate(editData.imageUrl);
+      addCandidate(editData.coverImage);
+      addCandidate(editData.thumbnailUrl);
+      addCandidate(editData.thumbnail);
+      addCandidate(editData.images);
+      addCandidate(editData.media);
+      addCandidate(editData.mediaUrls);
+      addCandidate(editData.photos);
+      addCandidate(editData.gallery);
+
+      // Product details fields
+      addCandidate(prod.image);
+      addCandidate(prod.imageUrl);
+      addCandidate(prod.coverImage);
+      addCandidate(prod.images);
+      addCandidate(prod.media);
+      addCandidate(prod.mediaUrls);
+      addCandidate(prod.photos);
+      addCandidate(prod.gallery);
+
+      // Variant images
+      if (Array.isArray(editData.variants)) {
+        editData.variants.forEach((v) => {
+          addCandidate(v?.image);
+          addCandidate(v?.imageUrl);
+        });
+      }
+
+      let imgList = collectedImages;
       const actual = Number(editData.actualPrice || editData.price || 0);
       const selling = Number(editData.salePrice || editData.price || 0);
       const discount = actual > selling && actual > 0 ? Math.round(((actual - selling) / actual) * 100) : (prod.discount || 0);
@@ -420,9 +464,9 @@ export default function ProductFormModal({
   };
 
   // Web Speech API
-  const toggleVoiceRecording = () => {
+  const toggleVoiceRecording = (fieldKey = 'aiPrompt') => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      toast.error('Speech recognition not supported in this browser.');
+      toast.error('Speech recognition not supported in this browser. Please use Chrome/Edge.');
       return;
     }
     if (isListeningVoice) {
@@ -437,17 +481,26 @@ export default function ProductFormModal({
 
     recognition.onstart = () => {
       setIsListeningVoice(true);
-      toast('Listening... Speak product specs now', { icon: '🎙️' });
+      toast(`Listening for ${fieldKey}... Speak now 🎙️`, { icon: '🎙️' });
     };
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setAiPrompt((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      const transcript = event.results[0][0]?.transcript;
+      if (transcript) {
+        if (fieldKey === 'aiPrompt') {
+          setAiPrompt((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        } else {
+          setForm((prev) => ({
+            ...prev,
+            [fieldKey]: prev[fieldKey] ? `${prev[fieldKey]} ${transcript}` : transcript,
+          }));
+        }
+        toast.success(`Voice captured: "${transcript}"`);
+      }
       setIsListeningVoice(false);
-      toast.success('Voice captured!');
     };
     recognition.onerror = () => {
       setIsListeningVoice(false);
-      toast.error('Voice input error. Please try again.');
+      toast.error('Voice input error. Please check microphone permissions.');
     };
     recognition.onend = () => setIsListeningVoice(false);
     recognition.start();

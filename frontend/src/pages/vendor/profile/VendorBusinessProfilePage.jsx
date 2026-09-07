@@ -502,12 +502,18 @@ export default function VendorBusinessProfilePage() {
 
       // 3. Backend postal API lookup
       try {
-        const res = await api.post('/v1/location/pincode-lookup', { pincode: cleanPin });
-        if (res.data) {
-          if (res.data.state) detectedState = res.data.state;
-          if (res.data.district || res.data.city) detectedDistrict = res.data.district || res.data.city;
-          if (res.data.tehsil || res.data.area) detectedTehsil = res.data.tehsil || res.data.area;
-          if (res.data.area) detectedArea = res.data.area;
+        let res;
+        try {
+          res = await api.post('/location/pincode-lookup', { pincode: cleanPin });
+        } catch {
+          res = await api.post('/v1/location/pincode-lookup', { pincode: cleanPin });
+        }
+        const resData = res.data?.data || res.data;
+        if (resData) {
+          if (resData.state) detectedState = resData.state;
+          if (resData.district || resData.city) detectedDistrict = resData.district || resData.city;
+          if (resData.tehsil || resData.area) detectedTehsil = resData.tehsil || resData.area;
+          if (resData.area || resData.postOffices?.[0]) detectedArea = resData.area || resData.postOffices?.[0];
         }
       } catch (apiErr) {
         console.warn('Backend postal lookup fallback:', apiErr);
@@ -630,6 +636,7 @@ export default function VendorBusinessProfilePage() {
     setLoading(true);
 
     try {
+      const resolvedProf = profession === 'Other / Custom Profession' ? customProfession.trim() : profession;
       const hoursStr = open24x7
         ? 'Open 24/7'
         : `${openingTime} - ${closingTime} (Off: ${weeklyOff})`;
@@ -1055,7 +1062,36 @@ export default function VendorBusinessProfilePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* 1. Searchable State Dropdown */}
+            {/* 1. Pin Code Input */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                  Pin Code *
+                </label>
+                {lookingUpPincode && (
+                  <span className="text-[10px] text-[#d99a3d] font-bold animate-pulse">Fetching...</span>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={selectedPincode === 'OTHER_CUSTOM' ? customPincode : (selectedPincode || customPincode)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setCustomPincode(val);
+                    setSelectedPincode('OTHER_CUSTOM');
+                    if (val.length === 6) {
+                      handlePincodeAutoLookup(val);
+                    }
+                  }}
+                  placeholder="Enter Pin Code"
+                  className="w-full px-4 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] transition-all"
+                />
+              </div>
+            </div>
+
+            {/* 2. Searchable State Dropdown */}
             <div>
               <SearchableSelect
                 label="State *"
@@ -1063,11 +1099,11 @@ export default function VendorBusinessProfilePage() {
                 onChange={handleStateChange}
                 options={statesList}
                 placeholder="-- Select State --"
-                searchPlaceholder="Type to search state..."
+                searchPlaceholder="Search state..."
               />
             </div>
 
-            {/* 2. Searchable District Dropdown */}
+            {/* 3. Searchable District Dropdown */}
             <div>
               <SearchableSelect
                 label="District *"
@@ -1076,8 +1112,8 @@ export default function VendorBusinessProfilePage() {
                 options={availableDistricts}
                 disabled={!selectedState}
                 placeholder="-- Select District --"
-                searchPlaceholder="Type to search district..."
-                customOptionLabel="+ Other / Custom District"
+                searchPlaceholder="Search district..."
+                customOptionLabel="+ Custom District"
                 customOptionValue="OTHER_CUSTOM"
               />
 
@@ -1092,7 +1128,7 @@ export default function VendorBusinessProfilePage() {
               )}
             </div>
 
-            {/* 3. Searchable Tehsil Dropdown */}
+            {/* 4. Searchable Tehsil Dropdown */}
             <div>
               <SearchableSelect
                 label="Tehsil / Taluka"
@@ -1101,8 +1137,8 @@ export default function VendorBusinessProfilePage() {
                 options={availableTehsils}
                 disabled={!selectedDistrict}
                 placeholder="-- Select Tehsil --"
-                searchPlaceholder="Type to search tehsil..."
-                customOptionLabel="+ Other / Custom Tehsil"
+                searchPlaceholder="Search tehsil..."
+                customOptionLabel="+ Custom Tehsil"
                 customOptionValue="OTHER_CUSTOM"
               />
 
@@ -1114,50 +1150,6 @@ export default function VendorBusinessProfilePage() {
                   placeholder="Enter Tehsil Name"
                   className="mt-2 w-full px-4 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-bold focus:outline-none focus:border-[#d99a3d] transition-all"
                 />
-              )}
-            </div>
-
-            {/* 4. Searchable Pin Code Dropdown / Selector */}
-            <div>
-              <SearchableSelect
-                label="Pin Code"
-                value={selectedPincode}
-                onChange={(val) => {
-                  setSelectedPincode(val);
-                  if (val && val !== 'OTHER_CUSTOM') {
-                    handlePincodeAutoLookup(val);
-                  }
-                }}
-                options={availablePincodes}
-                disabled={!selectedDistrict}
-                placeholder="-- Select Pin Code --"
-                searchPlaceholder="Type to search pin..."
-                customOptionLabel="+ Enter 6-digit Pin Code"
-                customOptionValue="OTHER_CUSTOM"
-                loading={lookingUpPincode}
-                badgeText="Auto-detecting..."
-              />
-
-              {selectedPincode === 'OTHER_CUSTOM' && (
-                <div className="mt-2 relative">
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={customPincode}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      setCustomPincode(val);
-                      if (val.length === 6) {
-                        handlePincodeAutoLookup(val);
-                      }
-                    }}
-                    placeholder="Enter 6-digit Pin Code"
-                    className="w-full px-4 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] font-black focus:outline-none focus:border-[#d99a3d] transition-all"
-                  />
-                  <span className="absolute right-3 top-2.5 text-[10px] font-black text-slate-400">
-                    {customPincode.length}/6
-                  </span>
-                </div>
               )}
             </div>
           </div>

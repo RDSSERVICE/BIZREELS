@@ -48,7 +48,6 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
   // Collapsible section state
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     MAIN: false,
-    PORTALS: false,
     BUSINESS: false,
     FINANCE: false,
   });
@@ -109,13 +108,6 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
         { title: 'Leads / Enquiries', route: '/inquiries', icon: 'mail-outline' },
         { title: 'Order Requests', route: '/vendor/orders', icon: 'cart-outline' },
         { title: 'Chat / Inbox', route: '/messages', icon: 'chatbubble-ellipses-outline' },
-      ],
-    },
-    {
-      key: 'PORTALS',
-      title: 'PORTALS & FEEDS',
-      items: [
-        { title: 'Customer Feed', route: '/(tabs)/home', icon: 'tv-outline' },
       ],
     },
     {

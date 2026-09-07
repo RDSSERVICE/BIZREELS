@@ -137,8 +137,8 @@ export async function deleteReel(reelId: string): Promise<boolean> {
   return data.success || true;
 }
 
-export async function boostReel(reelId: string): Promise<boolean> {
-  const { data } = await api.post(`/reels/${reelId}/boost`);
+export async function boostReel(reelId: string, durationDays: number = 7): Promise<boolean> {
+  const { data } = await api.post(`/reels/${reelId}/boost`, { durationDays });
   return data.success || true;
 }
 

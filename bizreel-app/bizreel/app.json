@@ -10,10 +10,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bizreel.app"
+      "bundleIdentifier": "in.bizreels.app"
     },
     "android": {
-      "package": "com.bizreel.app",
+      "package": "in.bizreels.app",
       "allowBackup": false,
       "permissions": [
         "android.permission.INTERNET",
@@ -56,7 +56,13 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow BizReels to access your photo library to select listing images and profile photos.",
-          "cameraPermission": "Allow BizReels to access your camera to capture listing images."
+          "cameraPermission": "Allow BizReels to access your camera to capture listing images and product reels."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow BizReels to access your microphone for recording video reels."
         }
       ],
       [

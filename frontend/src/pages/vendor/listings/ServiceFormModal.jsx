@@ -236,6 +236,33 @@ export default function ServiceFormModal({
   useEffect(() => {
     if (editData) {
       const sd = editData.serviceDetails || {};
+      const collectedImages = [];
+      const addCandidate = (candidate) => {
+        if (!candidate) return;
+        if (Array.isArray(candidate)) {
+          candidate.forEach((c) => addCandidate(c));
+          return;
+        }
+        let url = typeof candidate === 'string' ? candidate : (candidate.url || candidate.src || candidate.uri || candidate.path || candidate.imageUrl || null);
+        if (url && typeof url === 'string' && url.trim() && !collectedImages.includes(url.trim())) {
+          collectedImages.push(url.trim());
+        }
+      };
+
+      // Root & Service level image candidates
+      addCandidate(sd.coverImage);
+      addCandidate(sd.galleryImages);
+      addCandidate(sd.images);
+      addCandidate(sd.portfolio);
+      addCandidate(editData.image);
+      addCandidate(editData.imageUrl);
+      addCandidate(editData.coverImage);
+      addCandidate(editData.images);
+      addCandidate(editData.media);
+      addCandidate(editData.mediaUrls);
+      addCandidate(editData.photos);
+      addCandidate(editData.gallery);
+
       setForm({
         category: editData.category || registeredCat || '',
         subcategory: editData.subcategory || '',
@@ -287,8 +314,8 @@ export default function ServiceFormModal({
         emergencyService24x7: sd.emergencyService24x7 || false,
         advanceBookingRequired: sd.advanceBookingRequired !== undefined ? sd.advanceBookingRequired : true,
         bookingAvailability: sd.bookingAvailability || 'Immediate',
-        coverImage: sd.coverImage || editData.images?.[0] || '',
-        galleryImages: sd.galleryImages || editData.images?.slice(1) || [],
+        coverImage: collectedImages[0] || '',
+        galleryImages: collectedImages.slice(1),
         videos: editData.videos || [],
         reelVideo: sd.reelVideo || '',
         contactSettings: sd.contactSettings || { chat: true, call: true, whatsapp: true, callbackRequest: true },

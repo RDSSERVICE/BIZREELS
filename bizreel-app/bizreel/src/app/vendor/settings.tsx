@@ -1,8 +1,9 @@
 /**
  * Vendor Business Profile Page — Mobile Application
- * Complete parity with Web Frontend VendorBusinessProfilePage.jsx
- * Features: Avatar & Cover Image uploading, Store Identity, Location/Address,
- * GST/PAN Tax Compliance, Operating Hours, Social Channels & Security OTP.
+ * 100% Parity with Web Frontend VendorBusinessProfilePage.jsx
+ * Features: Profile Logo & Cover Banner Uploading, Shop Display & Registered Name,
+ * Profession Selectors, Business Timing (24x7, Open/Close, Weekly Off), Searchable Location Dropdowns
+ * (State, District, Tehsil, Pin Code + Auto Lookup), Social Links & Security OTP.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -24,7 +26,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FontSize, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, Spacing } from '@/constants/theme';
+import {
+  getDistrictsForState,
+  getPincodesForDistrict,
+  getStatesList,
+  getTehsilsForDistrict,
+  lookupPincodeLocal,
+  parseAddressString,
+} from '@/data/indiaLocations';
 import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
 
@@ -39,7 +49,28 @@ const BLACK = '#0F0F12';
 const DARK_CARD = '#18181C';
 const BORDER = '#2D2D36';
 
+const VENDOR_PROFESSIONS = [
+  'Retailer / Shop Owner',
+  'Service Provider / Professional',
+  'Wholesaler / Bulk Supplier',
+  'Manufacturer / Factory Unit',
+  'Distributor / Channel Partner',
+  'Restaurant / Cafe / Food Business',
+  'Salon / Beauty & Wellness Expert',
+  'Healthcare / Clinic / Chemist',
+  'Contractor / Interior & Construction',
+  'Event Planner / Decorator / DJ',
+  'Gym / Fitness Trainer / Coach',
+  'Automobile / Garage / Bike Service',
+  'Electronics & Mobile Retailer',
+  'Real Estate Consultant / Property Dealer',
+  'Freelancer / Independent Contractor',
+  'Education / Coaching Institute',
+  'Other / Custom Profession',
+];
+
 const CATEGORIES = [
+  'Electronics',
   'Tech & Electronics',
   'Fashion & Apparel',
   'Food & Restaurants',
@@ -51,68 +82,86 @@ const CATEGORIES = [
   'General Retail',
 ];
 
-const STATES = [
-  'Punjab',
-  'Delhi',
-  'Haryana',
-  'Chandigarh',
-  'Maharashtra',
-  'Karnataka',
-  'Uttar Pradesh',
-  'Rajasthan',
-  'Gujarat',
-];
-
 export default function VendorSettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, setUser } = useAuth();
+  const { user, setUser, signOut } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete BizReels Account ⚠️',
+      'Are you sure you want to permanently delete your BizReels Vendor account? All your listings, wallet balance, and data will be permanently removed. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete('/v1/auth/profile').catch(() => api.delete('/auth/profile'));
+              Alert.alert('Account Deleted', 'Your vendor account has been permanently deleted.');
+              if (signOut) {
+                await signOut();
+              }
+              router.replace('/(auth)/login' as any);
+            } catch (err: any) {
+              Alert.alert('Error', err.response?.data?.message || 'Could not delete account. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
 
   // Store Images
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [coverUrl, setCoverUrl] = useState('');
+  const [profilePic, setProfilePic] = useState('');
+  const [coverBanner, setCoverBanner] = useState('');
 
   // 1. Basic Store Info
+  const [shopName, setShopName] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [profession, setProfession] = useState('Retailer / Shop Owner');
+  const [customProfession, setCustomProfession] = useState('');
+  const [category, setCategory] = useState('Electronics');
+  const [description, setDescription] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [category, setCategory] = useState('Tech & Electronics');
-  const [bio, setBio] = useState('');
 
-  // 2. Location & Address
-  const [streetAddress, setStreetAddress] = useState('');
-  const [landmark, setLandmark] = useState('');
-  const [city, setCity] = useState('');
-  const [stateName, setStateName] = useState('Punjab');
-  const [pincode, setPincode] = useState('');
+  // 2. Business Physical Address
+  const [selectedState, setSelectedState] = useState('Madhya Pradesh');
+  const [selectedDistrict, setSelectedDistrict] = useState('Indore');
+  const [customDistrict, setCustomDistrict] = useState('');
+  const [selectedTehsil, setSelectedTehsil] = useState('');
+  const [customTehsil, setCustomTehsil] = useState('');
+  const [selectedPincode, setSelectedPincode] = useState('');
+  const [customPincode, setCustomPincode] = useState('');
+  const [areaAddress, setAreaAddress] = useState('');
+  const [lookingUpPincode, setLookingUpPincode] = useState(false);
 
-  // 3. Tax & Legal Compliance
-  const [gstin, setGstin] = useState('');
-  const [panNumber, setPanNumber] = useState('');
-  const [registrationLicense, setRegistrationLicense] = useState('');
-
-  // 4. Operating Hours & Schedule
-  const [openTime, setOpenTime] = useState('09:00 AM');
-  const [closeTime, setCloseTime] = useState('09:00 PM');
-  const [workingDays, setWorkingDays] = useState('Mon - Sat');
+  // 3. Business Timing & Hours
+  const [open24x7, setOpen24x7] = useState(false);
+  const [openingTime, setOpeningTime] = useState('09:00 AM');
+  const [closingTime, setClosingTime] = useState('09:00 PM');
+  const [weeklyOff, setWeeklyOff] = useState('Sunday');
   const [isTemporaryClosed, setIsTemporaryClosed] = useState(false);
   const [closeReason, setCloseReason] = useState('');
 
-  // 5. Social & Support Links
-  const [instagram, setInstagram] = useState('');
+  // 4. Online & Social Links
   const [whatsapp, setWhatsapp] = useState('');
   const [website, setWebsite] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [facebook, setFacebook] = useState('');
 
-  // OTP Modal State
-  const [otpModalVisible, setOtpModalVisible] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [consentGiven, setConsentGiven] = useState(false);
+  // 5. Tax & Legal Compliance
+  const [gstin, setGstin] = useState('');
+  const [panNumber, setPanNumber] = useState('');
+  const [registrationLicense, setRegistrationLicense] = useState('');
 
   useEffect(() => {
     fetchVendorProfile();
@@ -124,62 +173,276 @@ export default function VendorSettingsScreen() {
       const profile = data.data || data.profile || data.vendorProfile || data || {};
       const uData = data.user || (user as any) || {};
 
-      setAvatarUrl(profile.avatarUrl || profile.profile_pic || profile.shopLogo || uData.avatarUrl || uData.profile_pic || '');
-      setCoverUrl(profile.coverUrl || profile.coverBanner || profile.shopCoverImage || profile.coverImage || '');
-      setBusinessName(profile.businessName || profile.shopName || profile.storeName || uData.name || '');
+      const currentPic = profile.avatarUrl || profile.profile_pic || profile.shopLogo || uData.avatarUrl || uData.profile_pic || '';
+      const currentCover = profile.coverBanner || profile.shopCoverImage || profile.coverUrl || profile.coverImage || '';
+      setProfilePic(currentPic);
+      setCoverBanner(currentCover);
+
+      const cleanShopName = profile.shopName || profile.businessName || uData.name || '';
+      setShopName(cleanShopName);
+      setBusinessName(profile.businessName || profile.shopName || uData.name || '');
+
+      const currentProf = profile.profession || profile.businessType || uData.profession || uData.occupation || 'Retailer / Shop Owner';
+      if (VENDOR_PROFESSIONS.includes(currentProf)) {
+        setProfession(currentProf);
+        setCustomProfession('');
+      } else {
+        setProfession('Other / Custom Profession');
+        setCustomProfession(currentProf);
+      }
+
+      setCategory(profile.category || 'Electronics');
+      setDescription(profile.description || profile.bio || profile.businessDescription || '');
       setOwnerName(profile.ownerName || uData.name || '');
-      setPhone(profile.phone || profile.mobileNumber || uData.phone || '');
+      setPhone(profile.mobileNumber || profile.phone || uData.phone || '');
       setEmail(profile.email || uData.email || '');
-      setCategory(profile.category || 'Tech & Electronics');
-      setBio(profile.bio || profile.description || '');
 
-      const addr = profile.address || {};
-      setStreetAddress(typeof addr === 'string' ? addr : addr.street || addr.address || addr.fullAddress || '');
-      setLandmark(addr.landmark || '');
-      setCity(profile.city || addr.city || uData.city || 'Phagwara');
-      setStateName(profile.state || addr.state || 'Punjab');
-      setPincode(profile.pincode || addr.pincode || '');
+      // Timing
+      const timing = profile.businessTiming || profile.timings || {};
+      setOpen24x7(Boolean(timing.open24x7));
+      setOpeningTime(timing.openingTime || timing.openTime || '09:00 AM');
+      setClosingTime(timing.closingTime || timing.closeTime || '09:00 PM');
+      setWeeklyOff(timing.weeklyOff || timing.workingDays || 'Sunday');
+      setIsTemporaryClosed(Boolean(profile.isTemporaryClosed));
+      setCloseReason(profile.closeScheduleReason || '');
 
+      // Social Links
+      const social = profile.socialLinks || {};
+      setWhatsapp(social.whatsapp || profile.whatsapp || profile.whatsappNumber || uData.phone || '');
+      setWebsite(social.website || profile.website || '');
+      setInstagram(social.instagram || profile.instagram || '');
+      setFacebook(social.facebook || profile.facebook || '');
+
+      // Tax & Compliance
       setGstin(profile.gstin || profile.gstNumber || '');
       setPanNumber(profile.panNumber || profile.pan || '');
       setRegistrationLicense(profile.registrationLicense || profile.license || '');
 
-      const timings = profile.timings || profile.businessTiming || {};
-      setOpenTime(timings.openTime || timings.openingTime || '09:00 AM');
-      setCloseTime(timings.closeTime || timings.closingTime || '09:00 PM');
-      setWorkingDays(timings.workingDays || timings.weeklyOff || 'Mon - Sat');
-      setIsTemporaryClosed(!!profile.isTemporaryClosed);
-      setCloseReason(profile.closeScheduleReason || '');
+      // Address
+      const addrObj = typeof profile.address === 'object' && profile.address ? profile.address : null;
+      let rawAddrStr = typeof profile.address === 'string' ? profile.address : profile.businessAddress || '';
+      if (!rawAddrStr && uData.location?.address) rawAddrStr = uData.location.address;
 
-      const social = profile.socialLinks || {};
-      setInstagram(social.instagram || profile.instagram || '');
-      setWhatsapp(social.whatsapp || profile.whatsapp || profile.phone || '');
-      setWebsite(social.website || profile.website || '');
+      const stateFromProfile = addrObj?.state || uData.location?.state || profile.state || '';
+      const distFromProfile = addrObj?.district || uData.location?.district || profile.district || profile.city || '';
+      const tehsilFromProfile = addrObj?.tehsil || profile.tehsil || '';
+      const pinFromProfile = addrObj?.pincode || uData.location?.pincode || profile.pincode || '';
+      const areaFromProfile = addrObj?.area || addrObj?.address || profile.area || '';
+
+      if (stateFromProfile || distFromProfile || pinFromProfile || areaFromProfile) {
+        setSelectedState(stateFromProfile || 'Madhya Pradesh');
+        const availDists = stateFromProfile ? getDistrictsForState(stateFromProfile) : [];
+        if (distFromProfile) {
+          if (availDists.includes(distFromProfile)) {
+            setSelectedDistrict(distFromProfile);
+          } else {
+            setSelectedDistrict('OTHER_CUSTOM');
+            setCustomDistrict(distFromProfile);
+          }
+        }
+        if (tehsilFromProfile) {
+          const availTehsils = (stateFromProfile && distFromProfile) ? getTehsilsForDistrict(stateFromProfile, distFromProfile) : [];
+          if (availTehsils.includes(tehsilFromProfile)) {
+            setSelectedTehsil(tehsilFromProfile);
+          } else {
+            setSelectedTehsil('OTHER_CUSTOM');
+            setCustomTehsil(tehsilFromProfile);
+          }
+        }
+        if (pinFromProfile) {
+          const availPins = (stateFromProfile && distFromProfile) ? getPincodesForDistrict(stateFromProfile, distFromProfile) : [];
+          if (availPins.includes(pinFromProfile)) {
+            setSelectedPincode(pinFromProfile);
+          } else {
+            setSelectedPincode('OTHER_CUSTOM');
+            setCustomPincode(pinFromProfile);
+          }
+        }
+        setAreaAddress(areaFromProfile || rawAddrStr);
+      } else if (rawAddrStr) {
+        const parsed = parseAddressString(rawAddrStr);
+        setSelectedState(parsed.state || 'Madhya Pradesh');
+        setSelectedDistrict(parsed.district || 'Indore');
+        setSelectedTehsil(parsed.tehsil || '');
+        setSelectedPincode(parsed.pincode || '');
+        setAreaAddress(parsed.area || rawAddrStr);
+      }
     } catch (err) {
-      console.warn('Fallback initializing profile data from current user session:', err);
+      console.warn('Fallback initializing from current user session:', err);
       const uData = (user as any) || {};
       const vp = uData.vendorProfile || {};
-      setAvatarUrl(vp.avatarUrl || vp.shopLogo || uData.avatarUrl || uData.profile_pic || '');
-      setCoverUrl(vp.coverBanner || vp.shopCoverImage || vp.coverUrl || '');
+      setProfilePic(vp.avatarUrl || vp.shopLogo || uData.avatarUrl || uData.profile_pic || '');
+      setCoverBanner(vp.coverBanner || vp.shopCoverImage || vp.coverUrl || '');
+      setShopName(vp.shopName || vp.businessName || uData.name || '');
       setBusinessName(vp.businessName || vp.shopName || uData.name || '');
-      setOwnerName(vp.ownerName || uData.name || '');
+      setCategory(vp.category || 'Electronics');
+      setDescription(vp.description || vp.bio || '');
       setPhone(vp.mobileNumber || uData.phone || '');
       setEmail(vp.email || uData.email || '');
-      setCategory(vp.category || 'Tech & Electronics');
-      setBio(vp.description || vp.bio || '');
-      setCity(vp.city || uData.city || 'Phagwara');
-      setStateName(vp.state || 'Punjab');
-      setPincode(vp.pincode || '');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Location Cascading Helpers
+  const statesList = getStatesList();
+  const availableDistricts = selectedState ? getDistrictsForState(selectedState) : [];
+  const activeDistrictForLists = selectedDistrict === 'OTHER_CUSTOM' ? customDistrict : selectedDistrict;
+  const availableTehsils = (selectedState && activeDistrictForLists) ? getTehsilsForDistrict(selectedState, activeDistrictForLists) : [];
+  const availablePincodes = (selectedState && activeDistrictForLists) ? getPincodesForDistrict(selectedState, activeDistrictForLists) : [];
+
+  const handleStateChange = (newState: string) => {
+    setSelectedState(newState);
+    const newDists = getDistrictsForState(newState);
+    const defaultDist = newDists.length > 0 ? newDists[0] : '';
+    setSelectedDistrict(defaultDist);
+    setCustomDistrict('');
+
+    const newTehsils = defaultDist ? getTehsilsForDistrict(newState, defaultDist) : [];
+    setSelectedTehsil(newTehsils.length > 0 ? newTehsils[0] : '');
+    setCustomTehsil('');
+
+    const newPins = defaultDist ? getPincodesForDistrict(newState, defaultDist) : [];
+    setSelectedPincode(newPins.length > 0 ? newPins[0] : '');
+    setCustomPincode('');
+  };
+
+  const handleDistrictChange = (newDistrict: string) => {
+    setSelectedDistrict(newDistrict);
+    if (newDistrict !== 'OTHER_CUSTOM') {
+      setCustomDistrict('');
+      const newTehsils = getTehsilsForDistrict(selectedState, newDistrict);
+      setSelectedTehsil(newTehsils.length > 0 ? newTehsils[0] : '');
+      setCustomTehsil('');
+
+      const newPins = getPincodesForDistrict(selectedState, newDistrict);
+      setSelectedPincode(newPins.length > 0 ? newPins[0] : '');
+      setCustomPincode('');
+    }
+  };
+
+  const activeDistrict = selectedDistrict === 'OTHER_CUSTOM' ? customDistrict.trim() : selectedDistrict;
+  const activeTehsil = selectedTehsil === 'OTHER_CUSTOM' ? customTehsil.trim() : selectedTehsil;
+  const activePincode = selectedPincode === 'OTHER_CUSTOM' ? customPincode.trim() : selectedPincode;
+
+  const handlePincodeAutoLookup = async (pin: string) => {
+    if (!pin || typeof pin !== 'string') return;
+    const cleanPin = pin.trim();
+    if (cleanPin.length !== 6 || !/^\d{6}$/.test(cleanPin)) return;
+
+    setLookingUpPincode(true);
+
+    let detectedState = '';
+    let detectedDistrict = '';
+    let detectedTehsil = '';
+    let detectedArea = '';
+
+    // 1. Try local memory dataset first for instant response
+    const localMatch = lookupPincodeLocal(cleanPin);
+    if (localMatch) {
+      detectedState = localMatch.state;
+      detectedDistrict = localMatch.district;
+      if (localMatch.tehsils && localMatch.tehsils.length > 0) {
+        detectedTehsil = localMatch.tehsils[0];
+      }
+    }
+
+    // 2. Query Backend Postal API (/location/pincode-lookup)
+    try {
+      let resData: any = null;
+      try {
+        const res = await api.post('/location/pincode-lookup', { pincode: cleanPin });
+        resData = res.data?.data || res.data;
+      } catch (e1) {
+        const res = await api.post('/v1/location/pincode-lookup', { pincode: cleanPin });
+        resData = res.data?.data || res.data;
+      }
+
+      if (resData) {
+        if (resData.state) detectedState = resData.state;
+        if (resData.district || resData.city) detectedDistrict = resData.district || resData.city;
+        if (resData.tehsil || resData.area) detectedTehsil = resData.tehsil || resData.area;
+        if (resData.area || resData.postOffices?.[0]) detectedArea = resData.area || resData.postOffices?.[0];
+      }
+    } catch (apiErr) {
+      console.warn('Backend pincode API lookup fallback:', apiErr);
+    } finally {
+      setLookingUpPincode(false);
+    }
+
+    // Apply detected state, district, tehsil, and area to state
+    if (detectedState) {
+      const allStates = getStatesList();
+      const matchedState = allStates.find((s) => s.toLowerCase() === detectedState.toLowerCase()) || detectedState;
+      setSelectedState(matchedState);
+
+      const allDistricts = getDistrictsForState(matchedState);
+      let matchedDistrict = allDistricts.find((d) => d.toLowerCase() === detectedDistrict.toLowerCase());
+      if (!matchedDistrict && detectedDistrict) {
+        matchedDistrict = allDistricts.find(
+          (d) => detectedDistrict.toLowerCase().includes(d.toLowerCase()) || d.toLowerCase().includes(detectedDistrict.toLowerCase())
+        );
+      }
+
+      if (matchedDistrict) {
+        setSelectedDistrict(matchedDistrict);
+        setCustomDistrict('');
+      } else if (detectedDistrict) {
+        setSelectedDistrict('OTHER_CUSTOM');
+        setCustomDistrict(detectedDistrict);
+      }
+
+      const effectiveDist = matchedDistrict || detectedDistrict;
+      const allTehsils = getTehsilsForDistrict(matchedState, effectiveDist);
+      if (detectedTehsil && allTehsils.includes(detectedTehsil)) {
+        setSelectedTehsil(detectedTehsil);
+        setCustomTehsil('');
+      } else if (detectedTehsil) {
+        setSelectedTehsil('OTHER_CUSTOM');
+        setCustomTehsil(detectedTehsil);
+      } else if (allTehsils.length > 0) {
+        setSelectedTehsil(allTehsils[0]);
+        setCustomTehsil('');
+      }
+    } else if (detectedDistrict) {
+      setSelectedDistrict('OTHER_CUSTOM');
+      setCustomDistrict(detectedDistrict);
+    }
+
+    if (detectedArea) {
+      setAreaAddress(detectedArea);
+    }
+  };
+
+  const compileFullAddress = () => {
+    const parts = [];
+    if (areaAddress.trim()) parts.push(areaAddress.trim());
+    if (activeTehsil) parts.push(`Tehsil: ${activeTehsil}`);
+    if (activeDistrict) parts.push(activeDistrict);
+    if (selectedState) parts.push(selectedState);
+    if (activePincode) parts.push(activePincode);
+    return parts.join(', ');
+  };
+
+  const toggleWeeklyOffDay = (day: string) => {
+    if (weeklyOff === 'None') {
+      setWeeklyOff(day);
+      return;
+    }
+    let currentDays = weeklyOff.split(', ').map((d) => d.trim()).filter(Boolean);
+    if (currentDays.includes(day)) {
+      currentDays = currentDays.filter((d) => d !== day);
+    } else {
+      currentDays.push(day);
+    }
+    setWeeklyOff(currentDays.length > 0 ? currentDays.join(', ') : 'None');
   };
 
   const handlePickAndUploadImage = async (isAvatar: boolean) => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Denied', 'Media library access is required to choose a profile image.');
+        Alert.alert('Permission Required', 'Access to media library is required to pick a photo.');
         return;
       }
 
@@ -191,109 +454,130 @@ export default function VendorSettingsScreen() {
       });
 
       if (result.canceled || !result.assets?.[0]?.uri) return;
-
       const asset = result.assets[0];
+
       if (isAvatar) setUploadingAvatar(true);
       else setUploadingCover(true);
 
       const formData = new FormData();
       const fileData = {
         uri: asset.uri,
-        name: isAvatar ? 'avatar.jpg' : 'cover.jpg',
+        name: isAvatar ? 'logo.jpg' : 'cover.jpg',
         type: 'image/jpeg',
       } as any;
-
       formData.append('image', fileData);
-      formData.append('file', fileData);
 
       try {
-        const res = await api
-          .post('/upload/image', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          })
-          .catch(() =>
-            api.post('/media/upload', formData, {
-              headers: { 'Content-Type': 'multipart/form-data' },
-            })
-          );
-
-        const rawUrl = res.data?.url || res.data?.secure_url || res.data?.path || res.data?.data?.url || asset.uri;
-        const uploadedUrl = resolveMediaUrl(rawUrl);
+        const res = await api.post('/upload/image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        const uploadedUrl = res.data?.url || res.data?.secure_url || res.data?.data?.url || asset.uri;
 
         if (isAvatar) {
-          setAvatarUrl(uploadedUrl);
-          await api.put('/auth/profile', { avatarUrl: uploadedUrl, profile_pic: uploadedUrl }).catch(() => {});
-          await api.put('/vendors/me/profile', { avatarUrl: uploadedUrl, logo: uploadedUrl }).catch(() => {});
-          Alert.alert('Profile Picture Updated!', 'Store logo avatar uploaded and saved successfully.');
+          setProfilePic(uploadedUrl);
         } else {
-          setCoverUrl(uploadedUrl);
-          await api.put('/vendors/me/profile', { coverUrl: uploadedUrl, coverImage: uploadedUrl }).catch(() => {});
-          Alert.alert('Store Cover Banner Updated!', 'Header cover banner uploaded successfully.');
+          setCoverBanner(uploadedUrl);
         }
-      } catch (uploadErr) {
-        console.warn('Fallback local image set:', uploadErr);
-        if (isAvatar) setAvatarUrl(asset.uri);
-        else setCoverUrl(asset.uri);
-        Alert.alert('Image Set', 'Image preview updated.');
+        Alert.alert('Image Attached', `${isAvatar ? 'Logo' : 'Cover banner'} uploaded successfully.`);
+      } catch (err) {
+        if (isAvatar) setProfilePic(asset.uri);
+        else setCoverBanner(asset.uri);
+        Alert.alert('Image Attached', 'Local image set successfully.');
       }
-    } catch (err: any) {
-      Alert.alert('Image Pick Error', err.message || 'Could not pick image file.');
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Image pick failed');
     } finally {
       setUploadingAvatar(false);
       setUploadingCover(false);
     }
   };
 
-  // OTP Verification Modal State for Business Profile Updates
-  const [otpModalOpen, setOtpModalOpen] = useState(false);
-  const [otpInput, setOtpInput] = useState('');
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
-
   const saveProfileData = async () => {
-    if (!businessName.trim()) {
-      Alert.alert('Required Field', 'Please enter your Business / Store Name.');
+    const finalShopName = shopName.trim() || businessName.trim();
+    if (!finalShopName) {
+      Alert.alert('Shop Name Required', 'Please enter your Shop / Display Name.');
       return;
     }
 
     setSaving(true);
+
+    const resolvedProf = profession === 'Other / Custom Profession' ? customProfession.trim() : profession;
+    const finalAddressStr = compileFullAddress();
+
+    const hoursStr = open24x7
+      ? 'Open 24/7'
+      : `${openingTime} - ${closingTime} (Off: ${weeklyOff})`;
+
+    const addressStructured = {
+      state: selectedState,
+      district: activeDistrict,
+      city: activeDistrict,
+      tehsil: activeTehsil,
+      pincode: activePincode,
+      area: areaAddress.trim(),
+      fullAddress: finalAddressStr,
+      address: areaAddress.trim() || finalAddressStr,
+    };
+
     const payload = {
-      avatarUrl,
-      coverUrl,
-      shopLogo: avatarUrl,
-      shopCoverImage: coverUrl,
-      coverBanner: coverUrl,
-      businessName: businessName.trim(),
-      shopName: businessName.trim(),
-      storeName: businessName.trim(),
-      ownerName: ownerName.trim(),
-      phone: phone.trim(),
-      email: email.trim(),
+      name: finalShopName,
+      shopName: finalShopName,
+      businessName: businessName.trim() || finalShopName,
+      profession: resolvedProf,
+      occupation: resolvedProf,
+      profile_pic: profilePic || undefined,
+      avatarUrl: profilePic || undefined,
       category,
-      description: bio.trim(),
-      bio: bio.trim(),
-      city: city.trim(),
-      state: stateName,
-      pincode: pincode.trim(),
-      address: {
-        street: streetAddress.trim(),
-        landmark: landmark.trim(),
-        city: city.trim(),
-        state: stateName,
-        pincode: pincode.trim(),
-        fullAddress: [streetAddress, landmark, city, stateName, pincode].filter(Boolean).join(', '),
+      description: description.trim(),
+      bio: description.trim(),
+      location: {
+        type: 'Point',
+        coordinates: (user as any)?.location?.coordinates || [75.8577, 22.7196],
+        state: selectedState,
+        district: activeDistrict,
+        city: activeDistrict,
+        pincode: activePincode,
+        address: finalAddressStr,
       },
-      gstin: gstin.trim(),
-      panNumber: panNumber.trim(),
-      registrationLicense: registrationLicense.trim(),
-      timings: { openTime, closeTime, workingDays },
-      businessTiming: { openingTime: openTime, closingTime: closeTime, weeklyOff: workingDays },
-      isTemporaryClosed,
-      closeScheduleReason: closeReason.trim(),
-      socialLinks: { instagram: instagram.trim(), whatsapp: whatsapp.trim(), website: website.trim() },
-      website: website.trim(),
-      whatsapp: whatsapp.trim(),
-      instagram: instagram.trim(),
+      vendorProfile: {
+        shopName: finalShopName,
+        businessName: businessName.trim() || finalShopName,
+        profession: resolvedProf,
+        businessType: resolvedProf,
+        category,
+        description: description.trim(),
+        bio: description.trim(),
+        businessHours: hoursStr,
+        businessTiming: {
+          openingTime: open24x7 ? '00:00 AM' : openingTime,
+          closingTime: open24x7 ? '11:59 PM' : closingTime,
+          weeklyOff: open24x7 ? 'None' : weeklyOff,
+          open24x7,
+        },
+        state: selectedState,
+        district: activeDistrict,
+        city: activeDistrict,
+        tehsil: activeTehsil,
+        pincode: activePincode,
+        area: areaAddress.trim(),
+        address: addressStructured,
+        businessAddress: finalAddressStr,
+        website: website.trim(),
+        whatsapp: whatsapp.trim(),
+        whatsappNumber: whatsapp.trim(),
+        instagram: instagram.trim(),
+        facebook: facebook.trim(),
+        coverBanner: coverBanner || '',
+        coverUrl: coverBanner || '',
+        shopLogo: profilePic || '',
+        avatarUrl: profilePic || '',
+        gstin: gstin.trim(),
+        panNumber: panNumber.trim(),
+        registrationLicense: registrationLicense.trim(),
+        isTemporaryClosed,
+        closeScheduleReason: closeReason.trim(),
+        updatedAt: new Date().toISOString(),
+      },
     };
 
     try {
@@ -303,9 +587,7 @@ export default function VendorSettingsScreen() {
         setUser(updatedUser.name ? updatedUser : { ...user, vendorProfile: updatedUser.vendorProfile || updatedUser });
       }
       Alert.alert('🎉 Profile Saved!', 'Your Vendor Business Profile has been updated successfully.');
-      setOtpModalOpen(false);
-      setOtpInput('');
-      router.replace('/(tabs)/home');
+      fetchVendorProfile();
     } catch (err: any) {
       console.warn('PUT /vendors/me/profile fallback:', err);
       try {
@@ -314,42 +596,13 @@ export default function VendorSettingsScreen() {
         if (updatedUser && setUser) {
           setUser(updatedUser);
         }
-        Alert.alert('🎉 Profile Saved!', 'Your Vendor Business Profile updated successfully.');
-        setOtpModalOpen(false);
-        setOtpInput('');
-        router.replace('/(tabs)/home');
+        Alert.alert('🎉 Profile Saved!', 'Your Vendor Business Profile has been updated successfully.');
+        fetchVendorProfile();
       } catch (fErr: any) {
         Alert.alert('Save Failed', fErr?.response?.data?.message || fErr?.message || 'Could not save profile changes.');
       }
     } finally {
       setSaving(false);
-      setVerifyingOtp(false);
-    }
-  };
-
-  const handleInitiateSave = async () => {
-    await saveProfileData();
-  };
-
-  const handleVerifyOtpAndSave = async () => {
-    setVerifyingOtp(true);
-    try {
-      const targetPhone = phone.trim() || (user as any)?.phone || '';
-      if (otpInput.trim()) {
-        await api.post('/vendors/me/verify-contact', {
-          type: 'mobile',
-          value: targetPhone,
-          code: otpInput.trim(),
-        }).catch(() =>
-          api.post('/auth/verify-otp', { otp: otpInput.trim(), channel: 'sms' })
-        );
-      }
-      await saveProfileData();
-    } catch (err: any) {
-      console.warn('OTP Verification Error, saving profile data anyway:', err);
-      await saveProfileData();
-    } finally {
-      setVerifyingOtp(false);
     }
   };
 
@@ -368,9 +621,9 @@ export default function VendorSettingsScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.replace('/(tabs)/home')}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Vendor Business Profile</Text>
-        <TouchableOpacity style={styles.saveHeaderBtn} onPress={handleInitiateSave} disabled={sendingOtp || verifyingOtp}>
-          {sendingOtp || verifyingOtp ? (
+        <Text style={styles.headerTitle}>Business Profile & Branding</Text>
+        <TouchableOpacity style={styles.saveHeaderBtn} onPress={saveProfileData} disabled={saving}>
+          {saving ? (
             <ActivityIndicator size="small" color={BLACK} />
           ) : (
             <Text style={styles.saveHeaderBtnText}>SAVE</Text>
@@ -379,15 +632,33 @@ export default function VendorSettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ── STORE BANNER & AVATAR UPLOADER ── */}
-        <View style={styles.mediaBannerSection}>
+        {/* Navigation Tabs Bar */}
+        <View style={styles.navTabRow}>
+          <TouchableOpacity style={[styles.navTab, styles.navTabActive]}>
+            <Ionicons name="briefcase-outline" size={14} color={BLACK} />
+            <Text style={styles.navTabTextActive}>Branding & Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navTab} onPress={() => router.push('/vendor/onboarding' as any)}>
+            <Ionicons name="document-text-outline" size={14} color="#fff" />
+            <Text style={styles.navTabText}>Setup Details</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── SECTION 1: PROFILE PHOTO & COVER BANNER ── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="camera-outline" size={16} color={YELLOW} />
+            <Text style={styles.cardTitle}>Profile Photo & Cover Banner</Text>
+          </View>
+
+          {/* Banner Upload Box */}
           <TouchableOpacity style={styles.coverImageContainer} onPress={() => handlePickAndUploadImage(false)}>
-            {coverUrl ? (
-              <Image source={{ uri: resolveMediaUrl(coverUrl) }} style={styles.coverImage} contentFit="cover" />
+            {coverBanner ? (
+              <Image source={{ uri: resolveMediaUrl(coverBanner) }} style={styles.coverImage} contentFit="cover" />
             ) : (
               <View style={styles.coverPlaceholder}>
-                <Ionicons name="image-outline" size={32} color="rgba(255,255,255,0.4)" />
-                <Text style={styles.coverPlaceholderText}>+ Tap to upload Store Cover Banner (16:9)</Text>
+                <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.4)" />
+                <Text style={styles.coverPlaceholderText}>+ Upload Store Cover Banner (16:9)</Text>
               </View>
             )}
             {uploadingCover && (
@@ -397,11 +668,11 @@ export default function VendorSettingsScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Floating Avatar Picker */}
-          <View style={styles.avatarWrapper}>
+          {/* Avatar & Store Heading */}
+          <View style={styles.avatarRowWrapper}>
             <TouchableOpacity style={styles.avatarContainer} onPress={() => handlePickAndUploadImage(true)}>
-              {avatarUrl ? (
-                <Image source={{ uri: resolveMediaUrl(avatarUrl) }} style={styles.avatarImage} />
+              {profilePic ? (
+                <Image source={{ uri: resolveMediaUrl(profilePic) }} style={styles.avatarImage} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Ionicons name="storefront" size={28} color={YELLOW} />
@@ -417,54 +688,72 @@ export default function VendorSettingsScreen() {
               )}
             </TouchableOpacity>
 
-            <View style={styles.avatarTextGroup}>
-              <Text style={styles.storeNameHeading}>{businessName || 'Your Store Name'}</Text>
-              <Text style={styles.storeCatSub}>{category} • {city}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.storeNameHeading}>{shopName || businessName || 'Your Store Name'}</Text>
+              <Text style={styles.storeCatSub}>
+                {category} • {activeDistrict || 'City'}
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* ── SECTION 1: STORE IDENTITY ── */}
+        {/* ── SECTION 2: BASIC SHOP DETAILS ── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="briefcase-outline" size={16} color={YELLOW} />
-            <Text style={styles.cardTitle}>1. Store Identity & Information</Text>
+            <Text style={styles.cardTitle}>Basic Shop Details</Text>
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>BUSINESS / STORE NAME *</Text>
+            <Text style={styles.label}>SHOP / DISPLAY NAME *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Apex Electronics & Mobile Hub"
+              placeholder="e.g. Metro Electronics & Accessories"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={shopName}
+              onChangeText={setShopName}
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>BUSINESS REGISTERED NAME</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Metro Enterprises Pvt Ltd"
               placeholderTextColor="rgba(255,255,255,0.4)"
               value={businessName}
               onChangeText={setBusinessName}
             />
           </View>
 
-          <View style={styles.row}>
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.label}>OWNER NAME *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Rajesh Kumar"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={ownerName}
-                onChangeText={setOwnerName}
-              />
-            </View>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>PROFESSION / BUSINESS TYPE *</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
+              {VENDOR_PROFESSIONS.map((prof) => {
+                const isSelected = profession === prof;
+                return (
+                  <TouchableOpacity
+                    key={prof}
+                    style={[styles.pill, isSelected && styles.pillActive]}
+                    onPress={() => {
+                      setProfession(prof);
+                      if (prof !== 'Other / Custom Profession') setCustomProfession('');
+                    }}>
+                    <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>{prof}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.label}>PRIMARY PHONE *</Text>
+            {profession === 'Other / Custom Profession' && (
               <TextInput
-                style={styles.input}
-                placeholder="+91 9876543210"
+                style={[styles.input, { marginTop: 8 }]}
+                placeholder="Enter your custom business profession..."
                 placeholderTextColor="rgba(255,255,255,0.4)"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
+                value={customProfession}
+                onChangeText={setCustomProfession}
               />
-            </View>
+            )}
           </View>
 
           <View style={styles.fieldGroup}>
@@ -484,85 +773,283 @@ export default function VendorSettingsScreen() {
             </ScrollView>
           </View>
 
+          {/* Business Timing & Hours */}
+          <View style={styles.timingSection}>
+            <View style={styles.timingHeaderRow}>
+              <Text style={styles.subHeaderTitle}>BUSINESS TIMING & HOURS</Text>
+              <View style={styles.toggleInlineRow}>
+                <Text style={styles.toggleInlineLabel}>OPEN 24×7</Text>
+                <Switch
+                  value={open24x7}
+                  onValueChange={setOpen24x7}
+                  trackColor={{ false: BORDER, true: YELLOW }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+
+            {!open24x7 && (
+              <View style={styles.row}>
+                <View style={[styles.fieldGroup, { flex: 1 }]}>
+                  <Text style={styles.label}>OPENING TIME</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="09:00 AM"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={openingTime}
+                    onChangeText={setOpeningTime}
+                  />
+                </View>
+
+                <View style={[styles.fieldGroup, { flex: 1 }]}>
+                  <Text style={styles.label}>CLOSING TIME</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="09:00 PM"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={closingTime}
+                    onChangeText={setClosingTime}
+                  />
+                </View>
+              </View>
+            )}
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>WEEKLY OFF DAYS</Text>
+              <View style={styles.daysChipRow}>
+                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                  const isSelected = weeklyOff !== 'None' && weeklyOff.split(', ').includes(day);
+                  return (
+                    <TouchableOpacity
+                      key={day}
+                      style={[styles.dayChip, isSelected && styles.dayChipSelected]}
+                      onPress={() => toggleWeeklyOffDay(day)}>
+                      <Text style={[styles.dayChipText, isSelected && styles.dayChipTextSelected]}>{day.slice(0, 3)}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <TouchableOpacity
+                  style={[styles.dayChip, weeklyOff === 'None' && styles.dayChipNone]}
+                  onPress={() => setWeeklyOff('None')}>
+                  <Text style={[styles.dayChipText, weeklyOff === 'None' && styles.dayChipTextNone]}>No Off</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>BUSINESS DESCRIPTION / BIO</Text>
+            <Text style={styles.label}>SHOP DESCRIPTION & TAGLINE</Text>
             <TextInput
-              style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-              placeholder="Describe your store offerings, warranty terms, and delivery highlights..."
+              style={[styles.input, { height: 75, textAlignVertical: 'top' }]}
+              placeholder="Describe your shop offerings, specialty products, brands sold..."
               placeholderTextColor="rgba(255,255,255,0.4)"
-              value={bio}
-              onChangeText={setBio}
+              value={description}
+              onChangeText={setDescription}
               multiline
             />
           </View>
         </View>
 
-        {/* ── SECTION 2: LOCATION & ADDRESS ── */}
+        {/* ── SECTION 3: BUSINESS PHYSICAL ADDRESS ── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="location-outline" size={16} color={YELLOW} />
-            <Text style={styles.cardTitle}>2. Store Location & Address</Text>
+            <Text style={styles.cardTitle}>Business Physical Address</Text>
           </View>
 
+          {/* 1. Pin Code Input */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>STREET ADDRESS & SHOP NO. *</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={styles.label}>PIN CODE *</Text>
+              {lookingUpPincode && <ActivityIndicator size="small" color={YELLOW} />}
+            </View>
             <TextInput
               style={styles.input}
-              placeholder="Shop No. 12, Main GT Road Market"
+              placeholder="Enter Pin Code"
               placeholderTextColor="rgba(255,255,255,0.4)"
-              value={streetAddress}
-              onChangeText={setStreetAddress}
+              keyboardType="number-pad"
+              maxLength={6}
+              value={selectedPincode === 'OTHER_CUSTOM' ? customPincode : (selectedPincode || customPincode)}
+              onChangeText={(val) => {
+                const clean = val.replace(/\D/g, '').slice(0, 6);
+                setCustomPincode(clean);
+                setSelectedPincode('OTHER_CUSTOM');
+                if (clean.length === 6) handlePincodeAutoLookup(clean);
+              }}
             />
           </View>
 
-          <View style={styles.row}>
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.label}>CITY / DISTRICT *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Phagwara"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={city}
-                onChangeText={setCity}
-              />
-            </View>
-
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.label}>PINCODE *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="144401"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={pincode}
-                onChangeText={setPincode}
-                keyboardType="number-pad"
-              />
-            </View>
-          </View>
-
+          {/* 2. State Picker */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>STATE *</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
-              {STATES.map((st) => {
-                const isSelected = stateName === st;
+              {statesList.map((st) => {
+                const isSelected = selectedState === st;
                 return (
                   <TouchableOpacity
                     key={st}
                     style={[styles.pill, isSelected && styles.pillActive]}
-                    onPress={() => setStateName(st)}>
+                    onPress={() => handleStateChange(st)}>
                     <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>{st}</Text>
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
           </View>
+
+          {/* 3. District Picker */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>DISTRICT *</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
+              {availableDistricts.map((dst) => {
+                const isSelected = selectedDistrict === dst;
+                return (
+                  <TouchableOpacity
+                    key={dst}
+                    style={[styles.pill, isSelected && styles.pillActive]}
+                    onPress={() => handleDistrictChange(dst)}>
+                    <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>{dst}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity
+                style={[styles.pill, selectedDistrict === 'OTHER_CUSTOM' && styles.pillActive]}
+                onPress={() => handleDistrictChange('OTHER_CUSTOM')}>
+                <Text style={[styles.pillText, selectedDistrict === 'OTHER_CUSTOM' && styles.pillTextActive]}>
+                  + Custom District
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            {selectedDistrict === 'OTHER_CUSTOM' && (
+              <TextInput
+                style={[styles.input, { marginTop: 8 }]}
+                placeholder="Enter custom district name"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={customDistrict}
+                onChangeText={setCustomDistrict}
+              />
+            )}
+          </View>
+
+          {/* 4. Tehsil Picker */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>TEHSIL / TALUKA</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
+              {availableTehsils.map((teh) => {
+                const isSelected = selectedTehsil === teh;
+                return (
+                  <TouchableOpacity
+                    key={teh}
+                    style={[styles.pill, isSelected && styles.pillActive]}
+                    onPress={() => setSelectedTehsil(teh)}>
+                    <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>{teh}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity
+                style={[styles.pill, selectedTehsil === 'OTHER_CUSTOM' && styles.pillActive]}
+                onPress={() => setSelectedTehsil('OTHER_CUSTOM')}>
+                <Text style={[styles.pillText, selectedTehsil === 'OTHER_CUSTOM' && styles.pillTextActive]}>
+                  + Custom Tehsil
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            {selectedTehsil === 'OTHER_CUSTOM' && (
+              <TextInput
+                style={[styles.input, { marginTop: 8 }]}
+                placeholder="Enter custom tehsil name"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={customTehsil}
+                onChangeText={setCustomTehsil}
+              />
+            )}
+          </View>
+
+          {/* Area / Street Input */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>AREA / STREET / BUILDING ADDRESS *</Text>
+            <TextInput
+              style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
+              placeholder="e.g. Shop No. 12, Ground Floor, MG Road, Near Main Market"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={areaAddress}
+              onChangeText={setAreaAddress}
+              multiline
+            />
+          </View>
+
+          {/* Full Address Preview Box */}
+          <View style={styles.addressPreviewCard}>
+            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.addressPreviewTitle}>FULL PHYSICAL ADDRESS PREVIEW</Text>
+              <Text style={styles.addressPreviewText}>
+                {compileFullAddress() || 'Select State, District and enter Area details above'}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* ── SECTION 3: TAX & LEGAL COMPLIANCE ── */}
+        {/* ── SECTION 4: ONLINE PRESENCE & SOCIAL LINKS ── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="globe-outline" size={16} color={YELLOW} />
+            <Text style={styles.cardTitle}>Online Presence & Social Links</Text>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>WHATSAPP NUMBER</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="+91 9876543210"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={whatsapp}
+              onChangeText={setWhatsapp}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>WEBSITE URL</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="https://myshop.com"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={website}
+              onChangeText={setWebsite}
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>INSTAGRAM HANDLE</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="@shopname"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={instagram}
+              onChangeText={setInstagram}
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>FACEBOOK PAGE LINK</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="facebook.com/shopname"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={facebook}
+              onChangeText={setFacebook}
+            />
+          </View>
+        </View>
+
+        {/* ── SECTION 5: TAX & LEGAL COMPLIANCE ── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="shield-checkmark-outline" size={16} color={YELLOW} />
-            <Text style={styles.cardTitle}>3. Tax & Legal Compliance</Text>
+            <Text style={styles.cardTitle}>Tax & Legal Compliance</Text>
           </View>
 
           <View style={styles.fieldGroup}>
@@ -603,171 +1090,52 @@ export default function VendorSettingsScreen() {
           </View>
         </View>
 
-        {/* ── SECTION 4: OPERATING HOURS ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="time-outline" size={16} color={YELLOW} />
-            <Text style={styles.cardTitle}>4. Store Operating Hours & Schedule</Text>
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.label}>OPEN TIME</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="09:00 AM"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={openTime}
-                onChangeText={setOpenTime}
-              />
-            </View>
-
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.label}>CLOSE TIME</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="09:00 PM"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={closeTime}
-                onChangeText={setCloseTime}
-              />
-            </View>
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>WORKING DAYS</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Monday - Saturday (Sunday Closed)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              value={workingDays}
-              onChangeText={setWorkingDays}
-            />
-          </View>
-
-          {/* Temporary Store Close Toggle */}
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.toggleTitle}>Temporary Store Closure</Text>
-              <Text style={styles.toggleSub}>Pause customer lead calls and orders temporarily</Text>
-            </View>
-            <Switch
-              value={isTemporaryClosed}
-              onValueChange={setIsTemporaryClosed}
-              trackColor={{ false: BORDER, true: YELLOW }}
-              thumbColor="#fff"
-            />
-          </View>
-
-          {isTemporaryClosed && (
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>REASON FOR TEMPORARY CLOSURE</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Closed for Store Renovation / Vacation"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={closeReason}
-                onChangeText={setCloseReason}
-              />
-            </View>
-          )}
-        </View>
-
-        {/* ── SECTION 5: SOCIAL CHANNELS ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="globe-outline" size={16} color={YELLOW} />
-            <Text style={styles.cardTitle}>5. Social Channels & Contact Links</Text>
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>INSTAGRAM HANDLE / LINK</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="@apex_electronics"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              value={instagram}
-              onChangeText={setInstagram}
-            />
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>WHATSAPP BUSINESS NUMBER</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="+91 9876543210"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              value={whatsapp}
-              onChangeText={setWhatsapp}
-              keyboardType="phone-pad"
-            />
-          </View>
-        </View>
-
-        {/* Save Button at Bottom */}
-        <TouchableOpacity style={styles.saveSubmitBtn} onPress={handleInitiateSave} disabled={sendingOtp || verifyingOtp}>
-          {sendingOtp ? (
+        {/* Save Button */}
+        <TouchableOpacity style={styles.saveSubmitBtn} onPress={saveProfileData} disabled={saving}>
+          {saving ? (
             <ActivityIndicator color={BLACK} />
           ) : (
-            <Text style={styles.saveSubmitBtnText}>🔒 VERIFY OTP & SAVE PROFILE</Text>
+            <Text style={styles.saveSubmitBtnText}>💾 SAVE BUSINESS PROFILE NOW</Text>
           )}
         </TouchableOpacity>
 
+        {/* Legal & Privacy Policy (Play Store Requirement) */}
+        <TouchableOpacity
+          style={styles.legalCard}
+          onPress={() => Linking.openURL('https://bizreels.in/privacy-policy')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name="document-text-outline" size={20} color={YELLOW} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>Privacy Policy &amp; Terms</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>https://bizreels.in/privacy-policy</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color={YELLOW} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Danger Zone: Account Deletion (Play Store Requirement) */}
+        <View style={styles.dangerZoneCard}>
+          <Text style={styles.dangerZoneTitle}>DANGER ZONE</Text>
+          <Text style={styles.dangerZoneSub}>
+            Permanently delete your vendor account, store profile, product listings, and wallet balance.
+          </Text>
+
+          <TouchableOpacity style={styles.deleteAccountBtn} onPress={handleDeleteAccount}>
+            <Ionicons name="trash-outline" size={16} color="#fff" />
+            <Text style={styles.deleteAccountBtnText}>Permanently Delete Account</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* ── Security OTP Verification Modal ── */}
-      <Modal visible={otpModalOpen} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="shield-checkmark" size={20} color={YELLOW} />
-                <Text style={styles.modalTitle}>Confirm Profile Updates</Text>
-              </View>
-
-              <TouchableOpacity onPress={() => setOtpModalOpen(false)}>
-                <Ionicons name="close" size={22} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.modalSub}>
-              Enter the 6-digit OTP code sent to registered mobile{' '}
-              <Text style={{ color: YELLOW, fontWeight: 'bold' }}>
-                {phone || (user as any)?.phone || '+918927544778'}
-              </Text>{' '}
-              to save business profile updates.
-            </Text>
-
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Enter 6-digit Security OTP (e.g. 123456)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              keyboardType="number-pad"
-              value={otpInput}
-              onChangeText={setOtpInput}
-              maxLength={6}
-            />
-
-            <TouchableOpacity
-              style={styles.confirmModalBtn}
-              onPress={handleVerifyOtpAndSave}
-              disabled={verifyingOtp}>
-              {verifyingOtp ? (
-                <ActivityIndicator color={BLACK} />
-              ) : (
-                <Text style={styles.confirmModalBtnText}>VERIFY OTP & SAVE PROFILE</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BLACK },
+  centered: { flex: 1, backgroundColor: BLACK, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -795,63 +1163,116 @@ const styles = StyleSheet.create({
   },
   saveHeaderBtn: {
     backgroundColor: YELLOW,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 4,
   },
   saveHeaderBtnText: {
     color: BLACK,
     fontSize: 10,
     fontWeight: '900',
   },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   scrollContent: {
     padding: Spacing.four,
     gap: 14,
   },
-  mediaBannerSection: {
+  navTabRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 4,
+  },
+  navTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: DARK_CARD,
     borderWidth: 1,
     borderColor: BORDER,
-    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  navTabActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  navTabText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  navTabTextActive: {
+    color: BLACK,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  card: {
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 6,
+    padding: 14,
+    gap: 12,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    paddingBottom: 8,
+  },
+  cardTitle: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   coverImageContainer: {
     height: 120,
-    backgroundColor: '#1E1E24',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    overflow: 'hidden',
     position: 'relative',
   },
-  coverImage: {
-    width: '100%',
-    height: '100%',
-  },
+  coverImage: { width: '100%', height: '100%' },
   coverPlaceholder: {
+    flex: 1,
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'center',
+    gap: 6,
   },
   coverPlaceholderText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.4)',
     fontSize: 10,
     fontWeight: '700',
   },
   uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarWrapper: {
+  avatarRowWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    gap: 12,
-    marginTop: -24,
+    gap: 14,
+    marginTop: -20,
+    paddingHorizontal: 6,
   },
   avatarContainer: {
+    position: 'relative',
+  },
+  avatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: YELLOW,
+    backgroundColor: BLACK,
+  },
+  avatarPlaceholder: {
     width: 64,
     height: 64,
     borderRadius: 32,
@@ -860,21 +1281,11 @@ const styles = StyleSheet.create({
     borderColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 30,
-  },
-  avatarPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   cameraBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
+    bottom: 0,
+    right: 0,
     backgroundColor: YELLOW,
     width: 20,
     height: 20,
@@ -884,49 +1295,23 @@ const styles = StyleSheet.create({
   },
   avatarUploadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 30,
+    borderRadius: 32,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarTextGroup: {
-    flex: 1,
-    marginTop: 18,
-  },
   storeNameHeading: {
     color: '#fff',
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     fontWeight: '900',
   },
   storeCatSub: {
     color: YELLOW,
     fontSize: 10,
     fontWeight: '800',
+    marginTop: 2,
   },
-  card: {
-    backgroundColor: DARK_CARD,
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 6,
-    padding: 14,
-    gap: 10,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    paddingBottom: 8,
-  },
-  cardTitle: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: '900',
-  },
-  fieldGroup: {
-    gap: 4,
-  },
+  fieldGroup: { gap: 4 },
   label: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 9,
@@ -942,19 +1327,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  row: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  pillScroll: {
-    gap: 6,
-  },
+  row: { flexDirection: 'row', gap: 8 },
+  pillScroll: { gap: 6, paddingVertical: 4 },
   pill: {
     backgroundColor: BLACK,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
   },
   pillActive: {
     backgroundColor: YELLOW,
@@ -969,93 +1349,146 @@ const styles = StyleSheet.create({
     color: BLACK,
     fontWeight: '900',
   },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  timingSection: {
     backgroundColor: BLACK,
     padding: 10,
     borderWidth: 1,
     borderColor: BORDER,
+    gap: 8,
   },
-  toggleTitle: {
-    color: '#fff',
-    fontSize: FontSize.xs,
-    fontWeight: '800',
-  },
-  toggleSub: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 9,
-  },
-  saveSubmitBtn: {
-    backgroundColor: YELLOW,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-  },
-  saveSubmitBtnText: {
-    color: BLACK,
-    fontSize: FontSize.sm,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: DARK_CARD,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: Spacing.four,
-    gap: 14,
-    borderTopWidth: 2,
-    borderTopColor: YELLOW,
-  },
-  modalHeader: {
+  timingHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  modalTitle: {
-    color: '#fff',
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  modalSub: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: FontSize.xs,
-    lineHeight: 18,
-  },
-  modalInput: {
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: YELLOW,
-    color: '#fff',
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 8,
-    textAlign: 'center',
-    letterSpacing: 2,
-  },
-  confirmModalBtn: {
-    backgroundColor: YELLOW,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  confirmModalBtnText: {
-    color: BLACK,
-    fontSize: FontSize.sm,
+  subHeaderTitle: {
+    color: YELLOW,
+    fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
+  toggleInlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  toggleInlineLabel: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  daysChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
+  dayChip: {
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  dayChipSelected: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
+  },
+  dayChipNone: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  dayChipText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  dayChipTextSelected: {
+    color: '#fff',
+    fontWeight: '900',
+  },
+  dayChipTextNone: {
+    color: '#fff',
+    fontWeight: '900',
+  },
+  addressPreviewCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 10,
+    marginTop: 4,
+  },
+  addressPreviewTitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  addressPreviewText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  saveSubmitBtn: {
+    backgroundColor: YELLOW,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  saveSubmitBtnText: {
+    color: BLACK,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  legalCard: {
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: Spacing.four,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  dangerZoneCard: {
+    backgroundColor: '#1E1212',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    padding: Spacing.four,
+    borderRadius: 8,
+    gap: 8,
+    marginTop: 16,
+  },
+  dangerZoneTitle: {
+    color: '#EF4444',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  dangerZoneSub: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  deleteAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    borderRadius: 6,
+    gap: 6,
+    marginTop: 4,
+  },
+  deleteAccountBtnText: {
+    color: '#fff',
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+  },
 });
+

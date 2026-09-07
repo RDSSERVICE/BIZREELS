@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getCreditRates, getTopupPacks, getWalletInfo, getWalletTransactions, rechargeWallet } from './api';
+import { getCreditRates, getTopupPacks, getWalletInfo, getWalletTransactions, rechargeWallet, requestPayout } from './api';
 import type { RechargeWalletInput } from './types';
 
 export function useWalletInfo() {
@@ -40,3 +40,15 @@ export function useRechargeWallet() {
     },
   });
 }
+
+export function useRequestPayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (amount: number) => requestPayout(amount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet', 'transactions'] });
+    },
+  });
+}
+
