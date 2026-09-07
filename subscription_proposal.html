@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizReels — Comprehensive Monetization & Subscription Master Plan</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap');
+
+    @page {
+      size: A4;
+      margin: 10mm 12mm 10mm 12mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1a1714;
+      background: #ffffff;
+      line-height: 1.4;
+      font-size: 9.5pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      padding: 0;
+      page-break-after: always;
+      height: 100%;
+    }
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .avoid-break {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* Cover / Header Banner */
+    .header-banner {
+      background: linear-gradient(135deg, #181512 0%, #29211a 60%, #14110e 100%);
+      color: #ffffff;
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      position: relative;
+      border: 1px solid #3d352e;
+    }
+
+    .logo-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .brand-title {
+      font-size: 21pt;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      font-family: 'Space Grotesk', sans-serif;
+      color: #ffffff;
+    }
+
+    .brand-title span {
+      color: #d99a3d;
+    }
+
+    .badge-confidential {
+      background: rgba(217, 154, 61, 0.15);
+      border: 1px solid rgba(217, 154, 61, 0.45);
+      color: #d99a3d;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 7.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .banner-heading {
+      font-size: 15pt;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 4px;
+      color: #ffffff;
+    }
+
+    .banner-sub {
+      color: #d6cfc5;
+      font-size: 8.8pt;
+      line-height: 1.35;
+      max-width: 680px;
+    }
+
+    /* Section Styles */
+    .section-title {
+      font-size: 11.5pt;
+      font-weight: 800;
+      font-family: 'Space Grotesk', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #1a1714;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1.5px solid #e3dccb;
+      padding-bottom: 4px;
+    }
+
+    .section-title .pill {
+      background: #d99a3d;
+      color: #1a1714;
+      font-size: 7.2pt;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 800;
+    }
+
+    p {
+      margin-bottom: 6px;
+      color: #3b3731;
+      font-size: 8.8pt;
+    }
+
+    /* Grids */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 9px;
+      margin-bottom: 10px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    /* Metric / Highlight Card */
+    .metric-card {
+      background: #fdfbf7;
+      border: 1px solid #e5decb;
+      border-radius: 9px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 15pt;
+      font-weight: 800;
+      color: #925f19;
+      font-family: 'Space Grotesk', sans-serif;
+      line-height: 1.1;
+    }
+
+    .metric-label {
+      font-size: 7.2pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #635b50;
+      margin-top: 2px;
+    }
+
+    .metric-sub {
+      font-size: 6.8pt;
+      color: #8c8275;
+    }
+
+    /* Tier Cards */
+    .tier-card {
+      background: #fdfbf7;
+      border: 1.5px solid #e3dccb;
+      border-radius: 11px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .tier-card.featured {
+      background: #fffdfa;
+      border: 2px solid #d99a3d;
+      box-shadow: 0 3px 14px rgba(217, 154, 61, 0.14);
+    }
+
+    .featured-tag {
+      position: absolute;
+      top: -8px;
+      right: 10px;
+      background: #d99a3d;
+      color: #1a1714;
+      font-size: 6.8pt;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tier-header {
+      border-bottom: 1px solid #e8e2d5;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+
+    .tier-name {
+      font-size: 10.5pt;
+      font-weight: 800;
+      color: #1a1714;
+      margin-bottom: 2px;
+    }
+
+    .tier-price {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #1a1714;
+      font-family: 'Space Grotesk', sans-serif;
+      line-height: 1.1;
+    }
+
+    .tier-price span {
+      font-size: 7.5pt;
+      font-weight: 600;
+      color: #6e675d;
+    }
+
+    .credit-badge {
+      display: inline-block;
+      background: #edf7ed;
+      border: 1px solid #b7e1cd;
+      color: #137333;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 7.2pt;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+
+    .annual-note {
+      font-size: 7pt;
+      color: #8c5e1e;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .feature-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .feature-list li {
+      font-size: 7.8pt;
+      color: #38342f;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+      line-height: 1.3;
+    }
+
+    .feature-list li.pro-highlight {
+      font-weight: 700;
+      color: #1a1714;
+    }
+
+    .check-icon {
+      color: #15803d;
+      font-weight: 800;
+      font-size: 8pt;
+      flex-shrink: 0;
+    }
+
+    .cross-icon {
+      color: #9ca3af;
+      font-weight: 800;
+      font-size: 8pt;
+      flex-shrink: 0;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+      font-size: 8pt;
+      border: 1px solid #e3dccb;
+    }
+
+    th, td {
+      padding: 5px 8px;
+      border: 1px solid #e8e2d6;
+      text-align: left;
+    }
+
+    th {
+      background: #1a1714;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 7.8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    th.highlight {
+      background: #d99a3d;
+      color: #1a1714;
+    }
+
+    tr:nth-child(even) td {
+      background: #faf7f2;
+    }
+
+    td.center, th.center {
+      text-align: center;
+    }
+
+    .bold {
+      font-weight: 700;
+    }
+
+    /* Callouts */
+    .callout {
+      background: #fdfaf3;
+      border-left: 3.5px solid #d99a3d;
+      padding: 7px 11px;
+      border-radius: 0 7px 7px 0;
+      margin-bottom: 9px;
+      border-top: 1px solid #e8e2d5;
+      border-right: 1px solid #e8e2d5;
+      border-bottom: 1px solid #e8e2d5;
+    }
+
+    .callout.green-border {
+      border-left-color: #15803d;
+      background: #f8faf8;
+    }
+
+    .callout.dark-border {
+      border-left-color: #1a1714;
+      background: #f9f8f6;
+    }
+
+    .callout-title {
+      font-weight: 800;
+      font-size: 8.5pt;
+      color: #8c5e1e;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .callout p {
+      font-size: 8pt;
+      color: #47423a;
+      margin: 0;
+      line-height: 1.35;
+    }
+
+    /* Footer */
+    .doc-footer {
+      border-top: 1px solid #e3dccb;
+      padding-top: 6px;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.2pt;
+      color: #787168;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- PAGE 1: EXECUTIVE REVENUE MODEL & CORE MECHANICS -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="page">
+    <div class="header-banner">
+      <div class="logo-row">
+        <div class="brand-title">Biz<span>Reels</span></div>
+        <div class="badge-confidential">Commercial Monetization Master Plan</div>
+      </div>
+      <div class="banner-heading">Commercial Subscription Architecture & Revenue Strategy</div>
+      <div class="banner-sub">
+        Outcome-driven monetization model engineered around <strong>100% Free Product & Reel Listings</strong>, verified per-lead charging, visual reel boosting, job requirement bidding, and <strong>100% Unused Lead Credit Rollover</strong>.
+      </div>
+    </div>
+
+    <!-- Core Philosophy -->
+    <div class="avoid-break">
+      <div class="section-title">
+        <span>1. Platform Foundation: Free Onboarding + Outcome Monetization</span>
+        <span class="pill">Acquisition + Revenue</span>
+      </div>
+      <p>
+        BizReels removes all merchant onboarding resistance. Local businesses and creators join for <strong>₹0 upfront cost</strong>. The platform generates recurring, high-margin cash flow through performance visibility, verified buyer connections, and job bidding:
+      </p>
+
+      <div class="grid-2" style="margin-bottom: 8px;">
+        <div class="callout dark-border" style="margin: 0;">
+          <div class="callout-title" style="color: #1a1714;">✅ 100% Free Organic Foundation</div>
+          <p>
+            • <strong>Product Listing (FREE)</strong>: Vendors upload full catalogs with zero listing charges.<br/>
+            • <strong>Reels & Image Posts (FREE)</strong>: Showcase video clips, portfolio work, and shop updates freely.
+          </p>
+        </div>
+        <div class="callout green-border" style="margin: 0;">
+          <div class="callout-title" style="color: #15803d;">💰 High-Intent Monetization Streams</div>
+          <p>
+            • <strong>Pay-Per-Outcome Leads</strong>: WhatsApp, direct phone calls, customer chats, and order inquiries.<br/>
+            • <strong>Search & Feed Promotion</strong>: Top search bar, product offer showcases, and reels boost plans.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- The 4 Lead Charge Unit Economics -->
+    <div class="avoid-break">
+      <div class="section-title">
+        <span>2. Exact Lead Charge Unit Economics</span>
+        <span class="pill">Per-Action Pricing</span>
+      </div>
+      <p>
+        When an active customer expresses verified purchase intent across any product, reel, or vendor profile, lead charges are automatically deducted from the vendor's prepaid credit wallet:
+      </p>
+
+      <div class="grid-4">
+        <div class="metric-card">
+          <div class="metric-value">₹2.00</div>
+          <div class="metric-label">WhatsApp Lead</div>
+          <div class="metric-sub">Direct 1-to-1 chat trigger</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">₹5.00</div>
+          <div class="metric-label">Direct Phone Call</div>
+          <div class="metric-sub">Verified click-to-call connection</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">₹0.50</div>
+          <div class="metric-label">In-App Chat / Inquiry</div>
+          <div class="metric-sub">Messaging & spec inquiry</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">₹5.00</div>
+          <div class="metric-label">Order Request / Quote</div>
+          <div class="metric-sub">Direct purchase requirement</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- The Game Changing Lead Credit Wallet & Rollover Rule -->
+    <div class="avoid-break">
+      <div class="section-title">
+        <span>3. Lead Credit Wallet & 100% Rollover Guarantee</span>
+        <span class="pill">Core Mechanism</span>
+      </div>
+
+      <div class="callout" style="border-left-width: 4px; margin-bottom: 8px;">
+        <div class="callout-title" style="font-size: 8.8pt;">
+          🔄 "हर Plan में Lead Credit देंगे + Unused Credit Next Month Forward Hoga"
+        </div>
+        <p style="font-size: 8pt; line-height: 1.38; color: #2e2a24;">
+          <strong>Why Vendors Subscribe Eagerly:</strong> Vendors do not perceive this as an overhead software fee. <strong>Almost the entire subscription price is returned directly as usable Lead Credits in their BizReels Wallet!</strong>
+          <br/>
+          • <strong>Flagship Example (₹1,599/mo Plan)</strong>: Vendor pays ₹1,599/mo. BizReels immediately credits <strong>₹1,099</strong> into their wallet! That unlocks up to <strong>549 WhatsApp Leads</strong> (at ₹2) OR <strong>219 Direct Calls</strong> (at ₹5) OR <strong>2,198 Chats</strong> (at ₹0.50)!<br/>
+          • <strong>100% Rollover Rule</strong>: If a vendor uses ₹650 this month, the remaining <strong>₹449 NEVER expires</strong>. It forwards automatically into next month's balance upon renewal.
+        </p>
+      </div>
+
+      <!-- 4 Core Revenue Pillars Overview -->
+      <table>
+        <thead>
+          <tr>
+            <th>Monetization Stream</th>
+            <th>Delivery Mechanism</th>
+            <th>Primary Value to Vendor</th>
+            <th class="center">Revenue Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">1. Product Search & Offers</td>
+            <td>Priority product placement in search + offer banner carousel</td>
+            <td>5x higher product discovery when local buyers search category</td>
+            <td class="center bold">Monthly SaaS</td>
+          </tr>
+          <tr>
+            <td class="bold">2. Reels & Content Boost</td>
+            <td>Bundled monthly video boost quota (5, 15, or 35 reels promoted)</td>
+            <td>Visual reach in city feed + instant call/WhatsApp action on reels</td>
+            <td class="center bold">Monthly SaaS</td>
+          </tr>
+          <tr>
+            <td class="bold">3. Lead Credit Wallet</td>
+            <td>Prepaid consumption for WhatsApp (₹2), Call (₹5), Chat (₹0.50)</td>
+            <td>Direct buyer conversations and closed deals with 0% commission</td>
+            <td class="center bold">Pay-per-Outcome</td>
+          </tr>
+          <tr>
+            <td class="bold">4. Requirement Bid Plans</td>
+            <td>Vendors bid directly on buyer job requests (Per bid, Monthly, Annual)</td>
+            <td>Access to immediate customer requirements without waiting</td>
+            <td class="center bold">Bidding Credits</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="doc-footer">
+      <span>BizReels Master Commercial Architecture • Confidential</span>
+      <span>Page 1 of 4</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- PAGE 2: VENDOR SUBSCRIPTION TIERS & BIDDING PLANS -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="page">
+    <div class="avoid-break">
+      <div class="section-title">
+        <span>4. Vendor Subscription Plans (With Bundled Lead Credits)</span>
+        <span class="pill">B2B Core Tiers</span>
+      </div>
+      <p>
+        Every tier is packed with bundled lead wallet credits, top search positioning, boosted reels, and requirement bids:
+      </p>
+
+      <div class="grid-4" style="grid-template-columns: 1.1fr 1.3fr 1.5fr 1.3fr;">
+        <!-- Tier 1: Free Starter -->
+        <div class="tier-card">
+          <div class="tier-header">
+            <div class="tier-name">Free Starter</div>
+            <div class="tier-price">₹0 <span>/ mo</span></div>
+            <div class="credit-badge" style="background: #f1f3f4; color: #5f6368; border-color: #dadce0;">₹50 Welcome Bonus</div>
+            <div class="annual-note">Zero risk start</div>
+          </div>
+          <ul class="feature-list">
+            <li><span class="check-icon">✓</span> Free Catalog & Listings</li>
+            <li><span class="check-icon">✓</span> Free Reels & Images</li>
+            <li><span class="check-icon">✓</span> Direct Customer Chat</li>
+            <li><span class="check-icon">✓</span> 2 Requirement Bids/mo</li>
+            <li><span class="cross-icon">✗</span> Standard search rank</li>
+            <li><span class="cross-icon">✗</span> No Verified Gold Badge</li>
+            <li><span class="cross-icon">✗</span> Pay-per-lead post ₹50</li>
+          </ul>
+        </div>
+
+        <!-- Tier 2: Silver Growth -->
+        <div class="tier-card">
+          <div class="tier-header">
+            <div class="tier-name" style="color: #616161;">Silver Growth</div>
+            <div class="tier-price">₹799 <span>/ mo</span></div>
+            <div class="credit-badge">₹500 Lead Credit Included</div>
+            <div class="annual-note">Annual: ₹649/mo (₹7,788/yr)</div>
+          </div>
+          <ul class="feature-list">
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>₹500 Lead Wallet (Rollover)</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>5 Boosted Reels / Month</strong></li>
+            <li><span class="check-icon">✓</span> Priority Product Search</li>
+            <li><span class="check-icon">✓</span> 1 Active Offer Display Banner</li>
+            <li><span class="check-icon">✓</span> 20 Requirement Bids / Month</li>
+            <li><span class="check-icon">✓</span> Verified Silver Badge</li>
+            <li><span class="check-icon">✓</span> WhatsApp Lead Alerts</li>
+          </ul>
+        </div>
+
+        <!-- Tier 3: Gold Prime (FLAGSHIP) -->
+        <div class="tier-card featured">
+          <div class="featured-tag">Client Flagship</div>
+          <div class="tier-header">
+            <div class="tier-name" style="color: #8c5e1e;">Gold Prime</div>
+            <div class="tier-price">₹1,599 <span>/ mo</span></div>
+            <div class="credit-badge" style="background: #fef7e0; color: #b06000; border-color: #fce8b2;">
+              ⭐ ₹1,099 Lead Credit Included
+            </div>
+            <div class="annual-note">Annual: ₹1,299/mo (₹15,588/yr)</div>
+          </div>
+          <ul class="feature-list">
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>₹1,099 Lead Wallet (100% Rollover)</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>Top in Search Bar Plan</strong> (Sticky)</li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>15 Boosted Reels / Month</strong> (5x reach)</li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>Verified Gold Seller Badge ✓</strong></li>
+            <li><span class="check-icon">✓</span> 3 Product Offer Display Banners</li>
+            <li><span class="check-icon">✓</span> 1 Targeted Customer Promo Push</li>
+            <li><span class="check-icon">✓</span> 50 Requirement Bids / Month</li>
+            <li><span class="check-icon">✓</span> Instant WhatsApp & CRM Sync</li>
+          </ul>
+        </div>
+
+        <!-- Tier 4: Platinum Enterprise -->
+        <div class="tier-card">
+          <div class="tier-header">
+            <div class="tier-name" style="color: #1a1714;">Platinum Elite</div>
+            <div class="tier-price">₹2,999 <span>/ mo</span></div>
+            <div class="credit-badge">₹2,200 Lead Credit Included</div>
+            <div class="annual-note">Annual: ₹2,499/mo (₹29,988/yr)</div>
+          </div>
+          <ul class="feature-list">
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>₹2,200 Lead Wallet (Rollover)</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>Top Billboard Spotlight</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>35 Boosted Reels / Month</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>Unlimited Product Offers</strong></li>
+            <li><span class="check-icon">✓</span> 4 Customer Promo Ad Blasts</li>
+            <li><span class="check-icon">✓</span> <strong>Unlimited Requirement Bids</strong></li>
+            <li><span class="check-icon">✓</span> Dedicated Account Manager</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Post Requirement Bid Plan (Customer Job Postings / RFQ Bidding) -->
+    <div class="avoid-break" style="margin-top: 4px;">
+      <div class="section-title">
+        <span>5. Post Requirement Bid Plans (Customer RFQ Lead Bidding)</span>
+        <span class="pill">Direct Client Inquiries</span>
+      </div>
+      <p>
+        When customers post custom requirements (e.g. <em>"Need interior designer for 3BHK flat in Sector 18"</em> or <em>"Need catering for 150 pax"</em>), vendors spend bid tokens to submit proposals and view client contact details:
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Bid Plan Type</th>
+            <th>Pricing Model</th>
+            <th>Bid Quota / Allocation</th>
+            <th>Key Features & Rollover Rules</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">1. Per-Bid Plan (Pay-as-you-go)</td>
+            <td class="bold" style="color: #8c5e1e;">₹25 / single bid</td>
+            <td>1 Bid token per purchase</td>
+            <td>Instant purchase from wallet balance. Ideal for occasional bids or trial.</td>
+          </tr>
+          <tr>
+            <td class="bold">2. Monthly Bid Bundle (Pro)</td>
+            <td class="bold" style="color: #8c5e1e;">₹499 / month</td>
+            <td>30 Bids (₹16.6 / bid)</td>
+            <td><strong>100% Unused Bids Rollover</strong> to next month + Priority Proposal Badge.</td>
+          </tr>
+          <tr>
+            <td class="bold">3. Monthly High-Volume Bid Pack</td>
+            <td class="bold" style="color: #8c5e1e;">₹899 / month</td>
+            <td>75 Bids (₹11.9 / bid)</td>
+            <td><strong>100% Rollover</strong> + SMS alert within 60 seconds of new customer post.</td>
+          </tr>
+          <tr>
+            <td class="bold">4. Annual Unlimited Bid Pass</td>
+            <td class="bold" style="color: #15803d;">₹4,999 / year</td>
+            <td>Unlimited Bids (365 Days)</td>
+            <td>Submit proposals to unlimited customer requirements across the city. Saves ₹5,000+.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout green-border" style="margin-bottom: 0;">
+        <div class="callout-title" style="color: #15803d;">
+          💡 Strategic Synergy: Lead Wallet + Bidding
+        </div>
+        <p>
+          Vendors can seamlessly use their <strong>subscription lead wallet credits</strong> to fund both inbound lead charges (WhatsApp/Call/Chat) AND requirement bids! This unified credit model maximizes vendor satisfaction.
+        </p>
+      </div>
+    </div>
+
+    <div class="doc-footer">
+      <span>BizReels Master Commercial Architecture • Confidential</span>
+      <span>Page 2 of 4</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- PAGE 3: CREATOR PLANS, WALLET TOP-UPS & ROI -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="page">
+    <div class="avoid-break">
+      <div class="section-title">
+        <span>6. Creator (Influencer & Videographer) Monetization Plans</span>
+        <span class="pill">Creative Talent</span>
+      </div>
+      <p>
+        Creators produce the visual reels that drive vendor sales. To attract the top 10% of local creators, BizReels offers a <strong>0% Commission Waiver</strong> and <strong>Verified Blue Badges</strong> in exchange for monthly recurring SaaS:
+      </p>
+
+      <div class="grid-3">
+        <!-- Creator Free -->
+        <div class="tier-card">
+          <div class="tier-header">
+            <div class="tier-name">Free Creator</div>
+            <div class="tier-price">₹0 <span>/ month</span></div>
+            <div class="annual-note">For aspiring beginners</div>
+          </div>
+          <ul class="feature-list">
+            <li><span class="check-icon">✓</span> Showcase up to 10 Video Clips</li>
+            <li><span class="check-icon">✓</span> Standard Directory Profile</li>
+            <li><span class="check-icon">✓</span> Receive Vendor Shoot Inquiries</li>
+            <li><span class="check-icon">✓</span> Standard 3-5 day escrow payout</li>
+            <li><span class="cross-icon">✗</span> <strong>12% Platform Commission Cut</strong></li>
+            <li><span class="cross-icon">✗</span> No Verified Blue Badge</li>
+            <li><span class="cross-icon">✗</span> Standard search visibility</li>
+          </ul>
+        </div>
+
+        <!-- Creator Pro -->
+        <div class="tier-card featured">
+          <div class="featured-tag">Most Popular</div>
+          <div class="tier-header">
+            <div class="tier-name" style="color: #8c5e1e;">Creator Pro</div>
+            <div class="tier-price">₹499 <span>/ month</span></div>
+            <div class="credit-badge">₹250 Shoot Lead Credit Included</div>
+            <div class="annual-note">Annual: ₹399/mo (₹4,788/yr)</div>
+          </div>
+          <ul class="feature-list">
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>0% Commission Fee (Keep 100% Earnings)</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>Verified Blue Creator Badge ✓</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>Top 10 Creator Directory Rank</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>Unlimited 4K Portfolio Reels</strong></li>
+            <li><span class="check-icon">✓</span> Instant WhatsApp Shoot Requests</li>
+            <li><span class="check-icon">✓</span> Express 24-Hour Escrow Payouts</li>
+            <li><span class="check-icon">✓</span> ₹250 Lead & Shoot Proposal Credits (Rollover)</li>
+          </ul>
+        </div>
+
+        <!-- Creator Studio -->
+        <div class="tier-card">
+          <div class="tier-header">
+            <div class="tier-name">Studio Agency</div>
+            <div class="tier-price">₹1,499 <span>/ month</span></div>
+            <div class="credit-badge">₹800 Gig Proposal Credit</div>
+            <div class="annual-note">Annual: ₹1,199/mo (₹14,388/yr)</div>
+          </div>
+          <ul class="feature-list">
+            <li class="pro-highlight"><span class="check-icon">✓</span> Everything in Creator Pro</li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>Agency Team Profile (Up to 5 Crew)</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>VIP Billboard Spotlight on Creator Hub</strong></li>
+            <li class="pro-highlight"><span class="check-icon">✓</span> <strong>First Access to High-Ticket Brand Deals</strong></li>
+            <li><span class="check-icon">✓</span> VIP Escrow Payout within 2 Hours</li>
+            <li><span class="check-icon">✓</span> White-label delivery without platform watermark</li>
+            <li><span class="check-icon">✓</span> ₹800 Proposal Credit (Rollover)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">The Creator Subscription ROI Proof</div>
+        <p>
+          On the Free Plan, a creator doing a single <strong>₹5,000 video shoot</strong> pays 12% commission = <strong>₹600</strong>. On the Pro Plan (₹499), they pay <strong>₹0 commission</strong>. Completing just <strong>ONE video shoot per month saves ₹600</strong>, paying for the ₹499 subscription and putting cash directly in the creator's pocket!
+        </p>
+      </div>
+    </div>
+
+    <!-- On-Demand Wallet Top-Up Packs & Add-Ons -->
+    <div class="avoid-break" style="margin-top: 8px;">
+      <div class="section-title">
+        <span>7. Standalone Wallet Top-Ups & Promotional Add-Ons</span>
+        <span class="pill">Instant Wallet Top-Up</span>
+      </div>
+      <p>
+        Vendors and creators can top up lead credits or purchase individual micro-promotions on demand:
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Wallet Add-On / Top-Up</th>
+            <th class="center">Target Role</th>
+            <th class="center">Price</th>
+            <th>Deliverables / Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">Lead Wallet Booster — ₹200</td>
+            <td class="center">Vendor</td>
+            <td class="center bold">₹200</td>
+            <td>₹200 Balance = 100 WhatsApp Leads OR 40 Direct Calls (Never expires).</td>
+          </tr>
+          <tr>
+            <td class="bold">Lead Wallet Mega Pack — ₹1,000 (+20% Bonus)</td>
+            <td class="center">Vendor</td>
+            <td class="center bold">₹1,000</td>
+            <td><strong>₹1,200 Usable Credit</strong> (+₹200 extra bonus) = 600 WhatsApp or 240 Calls.</td>
+          </tr>
+          <tr>
+            <td class="bold">Single Reel 7-Day Feed Boost</td>
+            <td class="center">Vendor / Creator</td>
+            <td class="center bold">₹99</td>
+            <td>Boosts 1 specific reel to top of city visual feed for 7 days (4x views).</td>
+          </tr>
+          <tr>
+            <td class="bold">Product Offer Carousel Display (7 Days)</td>
+            <td class="center">Vendor</td>
+            <td class="center bold">₹149</td>
+            <td>Displays special festive or clearance offer in the "Hot Deals" city carousel.</td>
+          </tr>
+          <tr>
+            <td class="bold">Search Bar Pinned Spotlight (7 Days)</td>
+            <td class="center">Vendor</td>
+            <td class="center bold">₹299</td>
+            <td>Sticky sponsor card when customers search your specific trade in your city.</td>
+          </tr>
+          <tr>
+            <td class="bold">Targeted Customer Promo Push</td>
+            <td class="center">Vendor</td>
+            <td class="center bold">₹499</td>
+            <td>Sends in-app notification & featured alert to 1,000+ local active buyers.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="doc-footer">
+      <span>BizReels Master Commercial Architecture • Confidential</span>
+      <span>Page 3 of 4</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- PAGE 4: MASTER COMPARISON, FINANCIALS & ROADMAP -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="page">
+    <!-- Master Feature Comparison Matrix -->
+    <div class="avoid-break">
+      <div class="section-title">
+        <span>8. Comprehensive Ecosystem Comparison Matrix</span>
+        <span class="pill">Unified Grid</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Platform Feature</th>
+            <th class="center">Vendor Free</th>
+            <th class="center highlight">Vendor Gold (₹1,599)</th>
+            <th class="center">Creator Free</th>
+            <th class="center highlight">Creator Pro (₹499)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">Catalog & Reels Posting</td>
+            <td class="center">Free Unlimited</td>
+            <td class="center bold">Free Unlimited</td>
+            <td class="center">10 Clips</td>
+            <td class="center bold">Unlimited 4K</td>
+          </tr>
+          <tr>
+            <td class="bold">Monthly Lead Wallet Credit</td>
+            <td class="center">₹50 One-time</td>
+            <td class="center bold" style="color: #137333;">₹1,099 Included</td>
+            <td class="center">₹0</td>
+            <td class="center bold" style="color: #137333;">₹250 Included</td>
+          </tr>
+          <tr>
+            <td class="bold">Unused Lead Credit Rollover</td>
+            <td class="center">❌ No</td>
+            <td class="center bold" style="color: #15803d;">✅ 100% Rollover</td>
+            <td class="center">❌ No</td>
+            <td class="center bold" style="color: #15803d;">✅ 100% Rollover</td>
+          </tr>
+          <tr>
+            <td class="bold">Reel Boosts / Month</td>
+            <td class="center">₹99 / reel</td>
+            <td class="center bold">15 Boosts Included</td>
+            <td class="center">Organic only</td>
+            <td class="center bold">Priority Feed Rank</td>
+          </tr>
+          <tr>
+            <td class="bold">Search Bar Placement</td>
+            <td class="center">Standard Rank</td>
+            <td class="center bold" style="color: #8c5e1e;">Top Sticky Sponsor</td>
+            <td class="center">Standard Rank</td>
+            <td class="center bold">Top 10 Directory</td>
+          </tr>
+          <tr>
+            <td class="bold">Product Offer Displays</td>
+            <td class="center">❌ None</td>
+            <td class="center bold">3 Active Banners</td>
+            <td class="center">N/A</td>
+            <td class="center">Custom Rate Card</td>
+          </tr>
+          <tr>
+            <td class="bold">Customer Requirement Bids</td>
+            <td class="center">2 Bids / mo</td>
+            <td class="center bold">50 Bids / mo</td>
+            <td class="center">N/A</td>
+            <td class="center bold">Direct Shoot Requests</td>
+          </tr>
+          <tr>
+            <td class="bold">Verified Trust Badge</td>
+            <td class="center">❌ None</td>
+            <td class="center bold" style="color: #b0741c;">Gold Seller ✓</td>
+            <td class="center">❌ None</td>
+            <td class="center bold" style="color: #2563eb;">Blue Creator ✓</td>
+          </tr>
+          <tr>
+            <td class="bold">Deal Commission Cut</td>
+            <td class="center">0% Direct Deals</td>
+            <td class="center bold" style="color: #15803d;">0% Direct Deals</td>
+            <td class="center">12% Platform Fee</td>
+            <td class="center bold" style="color: #15803d;">0% (Keep 100%)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Scaled Revenue Projections -->
+    <div class="avoid-break" style="margin-top: 8px;">
+      <div class="section-title">
+        <span>9. Financial Projections (Multi-City Scaled Model)</span>
+        <span class="pill">Conservative Forecast</span>
+      </div>
+      <p>
+        Revenue projections based on hybrid SaaS subscriptions + Lead Consumption + Requirement Bidding across commercial clusters:
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Expansion Milestone</th>
+            <th class="center">Active Vendors</th>
+            <th class="center">Active Creators</th>
+            <th class="center">Vendor SaaS + Leads</th>
+            <th class="center">Creator SaaS</th>
+            <th class="center highlight">Total Monthly MRR</th>
+            <th class="center highlight">Annualized ARR</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">Phase 1: 2 Cities (Launch)</td>
+            <td class="center">400 (60 Paid)</td>
+            <td class="center">120 (35 Pro)</td>
+            <td class="center">₹84,000</td>
+            <td class="center">₹17,465</td>
+            <td class="center bold">₹1,01,465 / mo</td>
+            <td class="center bold">₹12.17 Lakhs / yr</td>
+          </tr>
+          <tr>
+            <td class="bold">Phase 2: 6 Cities (Growth)</td>
+            <td class="center">1,500 (280 Paid)</td>
+            <td class="center">500 (160 Pro)</td>
+            <td class="center">₹3,92,000</td>
+            <td class="center">₹79,840</td>
+            <td class="center bold">₹4,71,840 / mo</td>
+            <td class="center bold">₹56.62 Lakhs / yr</td>
+          </tr>
+          <tr>
+            <td class="bold">Phase 3: 18 Cities (Scale)</td>
+            <td class="center">6,000 (1,350 Paid)</td>
+            <td class="center">2,200 (750 Pro)</td>
+            <td class="center">₹18,90,000</td>
+            <td class="center">₹3,74,250</td>
+            <td class="center bold">₹22,64,250 / mo</td>
+            <td class="center bold" style="color: #15803d; font-size: 9.5pt;">₹2.71 Crore / yr</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Technical Implementation Architecture -->
+    <div class="avoid-break" style="margin-top: 8px;">
+      <div class="section-title">
+        <span>10. Technical Architecture & Next Steps</span>
+        <span class="pill">Execution Roadmap</span>
+      </div>
+
+      <div class="grid-3">
+        <div class="callout" style="margin: 0;">
+          <div class="callout-title">1. MongoDB Schema</div>
+          <p>
+            Add <code>leadCreditBalance</code>, <code>leadCreditExpiry</code>, and <code>rolloverHistory</code> to the <code>VendorProfile</code> and <code>Wallet</code> collections.
+          </p>
+        </div>
+        <div class="callout" style="margin: 0; border-left-color: #2563eb;">
+          <div class="callout-title" style="color: #2563eb;">2. Real-Time Deductions</div>
+          <p>
+            Connect WhatsApp (₹2), Call (₹5), Chat (₹0.50), and Bid (₹25) triggers to deduct micro-amounts with SMS/push alerts.
+          </p>
+        </div>
+        <div class="callout" style="margin: 0; border-left-color: #15803d;">
+          <div class="callout-title" style="color: #15803d;">3. Razorpay Recurring</div>
+          <p>
+            Implement Razorpay Subscriptions (UPI Autopay & Cards) with automatic monthly credit replenishment and rollover logic.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="doc-footer">
+      <span>BizReels Master Commercial Architecture • Confidential</span>
+      <span>Page 4 of 4</span>
+    </div>
+  </div>
+
+</body>
+</html>

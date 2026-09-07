@@ -1,6 +1,7 @@
 const config = require('../config');
 const logger = require('../utils/logger');
 const { normalizeIndianPhone } = require('../utils/otp.utils');
+const { getTwilioClient } = require('../config/twilio.client');
 
 class SmsService {
   /**
@@ -40,8 +41,7 @@ class SmsService {
     }
 
     try {
-      const twilio = require('twilio');
-      const twilioClient = twilio(accountSid, authToken);
+      const twilioClient = getTwilioClient(accountSid, authToken);
       const payload = {
         to: formattedPhone,
         body: message,
@@ -56,7 +56,7 @@ class SmsService {
       const res = await twilioClient.messages.create(payload);
       return { success: true, provider: 'twilio', sid: res.sid, status: res.status };
     } catch (err) {
-      logger.error('Twilio transactional SMS error:', err.message);
+      logger.error('Twilio transactional SMS error:', { error: err.message });
       return { success: false, error: err.message };
     }
   }
@@ -80,13 +80,9 @@ class SmsService {
     const targetMobile = phone.startsWith('+') ? phone : `+91${phone}`;
 
     try {
-      let twilioClient;
-      try {
-        const twilio = require('twilio');
-        twilioClient = twilio(accountSid, authToken);
-      } catch (loadErr) {
-        logger.error('Twilio SDK initialization error:', loadErr.message);
-        throw loadErr;
+      const twilioClient = getTwilioClient(accountSid, authToken);
+      if (!twilioClient) {
+        throw new Error('Could not instantiate Twilio client: missing credentials');
       }
 
       const payload = {

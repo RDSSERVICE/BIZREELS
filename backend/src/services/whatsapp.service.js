@@ -1,6 +1,7 @@
 const config = require('../config');
 const logger = require('../utils/logger');
 const { normalizeIndianPhone } = require('../utils/otp.utils');
+const { getTwilioClient } = require('../config/twilio.client');
 
 class WhatsAppService {
   /**
@@ -42,8 +43,7 @@ class WhatsAppService {
     }
 
     try {
-      const twilio = require('twilio');
-      const twilioClient = twilio(effectiveAccountSid, effectiveAuthToken);
+      const twilioClient = getTwilioClient(effectiveAccountSid, effectiveAuthToken);
       const fromNumber = from.startsWith('whatsapp:') ? from : `whatsapp:${from}`;
       const toNumber = formattedPhone.startsWith('whatsapp:') ? formattedPhone : `whatsapp:${formattedPhone}`;
 
@@ -55,7 +55,7 @@ class WhatsAppService {
 
       return { success: true, provider: 'twilio', sid: res.sid, status: res.status };
     } catch (err) {
-      logger.error('Twilio transactional WhatsApp error:', err.message);
+      logger.error('Twilio transactional WhatsApp error:', { error: err.message });
       return { success: false, error: err.message };
     }
   }
@@ -77,13 +77,9 @@ class WhatsAppService {
     const targetWhatsApp = phone.startsWith('whatsapp:') ? phone : `whatsapp:${phone}`;
 
     try {
-      let twilioClient;
-      try {
-        const twilio = require('twilio');
-        twilioClient = twilio(effectiveAccountSid, effectiveAuthToken);
-      } catch (loadErr) {
-        logger.error('Twilio SDK initialization error for WhatsApp:', loadErr.message);
-        throw loadErr;
+      const twilioClient = getTwilioClient(effectiveAccountSid, effectiveAuthToken);
+      if (!twilioClient) {
+        throw new Error('Could not instantiate Twilio client: missing credentials');
       }
 
       const payload = {
@@ -139,3 +135,4 @@ class WhatsAppService {
 }
 
 module.exports = new WhatsAppService();
+

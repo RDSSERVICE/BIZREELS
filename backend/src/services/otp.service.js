@@ -46,19 +46,16 @@ class OtpService {
     // 1. Check 60s cooldown
     await redisOtpService.checkCooldown(formattedIdentifier, normalizedPurpose);
 
-    // 2. Invalidate any existing OTP for this identifier + purpose
-    await redisOtpService.deleteOtp(formattedIdentifier, normalizedPurpose).catch(() => {});
-
-    // 3. Cryptographically generate 6-digit numeric OTP
+    // 2. Cryptographically generate 6-digit numeric OTP
     const otp = generateOtp();
 
-    // 4. Save hashed OTP to Redis with 10-minute TTL
-    await redisOtpService.saveOtp(formattedIdentifier, otp, cleanChannel, normalizedPurpose);
+    // 3. Save hashed OTP and enforce cooldown concurrently to minimize Redis network latency
+    await Promise.all([
+      redisOtpService.saveOtp(formattedIdentifier, otp, cleanChannel, normalizedPurpose),
+      redisOtpService.setCooldown(formattedIdentifier, normalizedPurpose, config.otp.cooldownSeconds || 60),
+    ]);
 
-    // 5. Enforce 60-second resend cooldown
-    await redisOtpService.setCooldown(formattedIdentifier, normalizedPurpose, config.otp.cooldownSeconds || 60);
-
-    // 6. Dispatch through the chosen provider
+    // 4. Dispatch through the chosen provider
     let dispatchResult;
     try {
       if (cleanChannel === 'sms') {
