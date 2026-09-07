@@ -4,10 +4,11 @@ import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '../features/auth/authSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FiMenu, FiX, FiArrowRight, FiSearch, FiGlobe,
+  FiMenu, FiX, FiArrowRight, FiSearch, FiGlobe, FiCheck,
 } from 'react-icons/fi';
 import { useLanguage } from '../context/LanguageContext';
 import WelcomeModal from '../components/common/WelcomeModal';
+import { api } from '../lib/api';
 
 /* ─── Brand tokens (from design image) ───────────────────────── */
 const CREAM    = '#F2EDE4';
@@ -23,6 +24,37 @@ const PublicLayout = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled]     = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
+  const [newsletterMsg, setNewsletterMsg] = useState('');
+
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault();
+    if (!newsletterEmail || !newsletterEmail.includes('@')) {
+      setNewsletterStatus('error');
+      setNewsletterMsg('Please enter a valid email address.');
+      return;
+    }
+    setNewsletterStatus('loading');
+    setNewsletterMsg('');
+    try {
+      const res = await api.post('/newsletter/subscribe', { email: newsletterEmail });
+      setNewsletterStatus('success');
+      setNewsletterMsg(res.data?.message || 'Thanks for subscribing!');
+      setNewsletterEmail('');
+      setTimeout(() => {
+        setNewsletterStatus('idle');
+        setNewsletterMsg('');
+      }, 5000);
+    } catch (err) {
+      setNewsletterStatus('error');
+      setNewsletterMsg(err.response?.data?.message || 'Subscription failed. Please try again.');
+      setTimeout(() => {
+        setNewsletterStatus('idle');
+        setNewsletterMsg('');
+      }, 4000);
+    }
+  };
 
   useEffect(() => {
     const fn = () => {
@@ -482,8 +514,8 @@ const PublicLayout = () => {
               <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#d99a3d', marginBottom: 6 }}>Company</h4>
               {[
                 { label: 'About Us',   path: '/about' },
-                { label: 'Careers',    path: '/about' },
-                { label: 'Blog',       path: '/about' },
+                { label: 'Careers',    path: '/careers' },
+                { label: 'Blog',       path: '/blog' },
                 { label: 'Contact Us', path: '/contact' },
               ].map(({ label, path }) => (
                 <Link key={label} to={path} style={{ fontSize: 13, color: '#8a8578', textDecoration: 'none', transition: 'color .15s' }}
@@ -497,10 +529,10 @@ const PublicLayout = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#d99a3d', marginBottom: 6 }}>Resources</h4>
               {[
-                { label: 'Help Center',      path: '/about' },
-                { label: 'Success Stories',  path: '/about' },
-                { label: 'Business Guide',   path: '/about' },
-                { label: 'Terms of Service', path: '/about' },
+                { label: 'Help Center',      path: '/help-center' },
+                { label: 'Success Stories',  path: '/success-stories' },
+                { label: 'Business Guide',   path: '/business-guide' },
+                { label: 'Terms of Service', path: '/terms-of-service' },
                 { label: 'Privacy Policy',   path: '/privacy-policy' },
               ].map(({ label, path }) => (
                 <Link key={label} to={path} style={{ fontSize: 13, color: '#8a8578', textDecoration: 'none', transition: 'color .15s' }}
@@ -514,34 +546,67 @@ const PublicLayout = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#d99a3d', marginBottom: 6 }}>Stay in the Loop</h4>
               <p style={{ fontSize: 13, lineHeight: 1.55, color: '#8a8578' }}>
-                Get tips, trends and updates to grow your business.
+                Get tips, market trends, and growth updates for your local business.
               </p>
-              {/* Email input */}
-              <div style={{ display: 'flex', gap: 0, marginTop: 4 }}>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  style={{ flex: 1, padding: '10px 14px', fontSize: 13, backgroundColor: '#f2ede4', border: 'none', borderRadius: '6px 0 0 6px', outline: 'none', color: '#1a1a1a', fontFamily: 'inherit' }}
-                />
-                <button
-                  style={{ padding: '10px 14px', backgroundColor: '#d99a3d', border: 'none', borderRadius: '0 6px 6px 0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#c8872b'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#d99a3d'; }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
-                    <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
-                  </svg>
-                </button>
-              </div>
+              {/* Email Form */}
+              <form onSubmit={handleNewsletterSubmit} style={{ marginTop: 4 }}>
+                <div style={{ display: 'flex', gap: 0 }}>
+                  <input
+                    type="email"
+                    value={newsletterEmail}
+                    onChange={(e) => {
+                      setNewsletterEmail(e.target.value);
+                      if (newsletterStatus !== 'idle') setNewsletterStatus('idle');
+                    }}
+                    placeholder="Enter your email"
+                    disabled={newsletterStatus === 'loading'}
+                    required
+                    style={{ flex: 1, minWidth: 0, padding: '10px 14px', fontSize: 13, backgroundColor: '#f2ede4', border: 'none', borderRadius: '6px 0 0 6px', outline: 'none', color: '#1a1a1a', fontFamily: 'inherit' }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={newsletterStatus === 'loading'}
+                    aria-label="Subscribe to newsletter"
+                    style={{ padding: '10px 14px', backgroundColor: '#d99a3d', border: 'none', borderRadius: '0 6px 6px 0', cursor: newsletterStatus === 'loading' ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s', opacity: newsletterStatus === 'loading' ? 0.8 : 1 }}
+                    onMouseEnter={(e) => { if (newsletterStatus !== 'loading') e.currentTarget.style.backgroundColor = '#c8872b'; }}
+                    onMouseLeave={(e) => { if (newsletterStatus !== 'loading') e.currentTarget.style.backgroundColor = '#d99a3d'; }}
+                  >
+                    {newsletterStatus === 'loading' ? (
+                      <div style={{ width: 16, height: 16, border: '2px solid #1a1a1a', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    ) : newsletterStatus === 'success' ? (
+                      <FiCheck style={{ width: 16, height: 16, color: '#1a1a1a', strokeWidth: 3 }} />
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+                        <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                {newsletterMsg && (
+                  <p style={{ fontSize: 12, marginTop: 6, color: newsletterStatus === 'success' ? '#4ade80' : '#f87171' }}>
+                    {newsletterMsg}
+                  </p>
+                )}
+                <p style={{ fontSize: 11, color: '#6e6a62', marginTop: 8 }}>
+                  Zero spam. Unsubscribe anytime. View <Link to="/privacy-policy" style={{ color: '#d99a3d', textDecoration: 'underline' }}>Privacy Policy</Link>.
+                </p>
+              </form>
             </div>
 
           </div>
 
           {/* Bottom bar */}
-          <div style={{ marginTop: 40, padding: '18px 0', borderTop: '1px solid #3a3630', textAlign: 'center' }}>
-            <span style={{ fontSize: 12, color: '#5a5652' }}>
-              © {new Date().getFullYear()} BizReels. All rights reserved.
+          <div style={{ marginTop: 40, padding: '18px 0', borderTop: '1px solid #3a3630', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 12, color: '#6e6a62' }}>
+              © {new Date().getFullYear()} BizReels. All rights reserved. Built for businesses & creators across India.
             </span>
+            <div style={{ display: 'flex', gap: 16, fontSize: 12, flexWrap: 'wrap' }}>
+              <Link to="/terms-of-service" style={{ color: '#6e6a62', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#d99a3d'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#6e6a62'; }}>Terms of Service</Link>
+              <span style={{ color: '#3a3630' }}>•</span>
+              <Link to="/privacy-policy" style={{ color: '#6e6a62', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#d99a3d'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#6e6a62'; }}>Privacy Policy</Link>
+              <span style={{ color: '#3a3630' }}>•</span>
+              <Link to="/contact" style={{ color: '#6e6a62', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#d99a3d'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#6e6a62'; }}>Grievance Redressal</Link>
+            </div>
           </div>
         </div>
       </footer>

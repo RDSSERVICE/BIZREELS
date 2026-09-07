@@ -445,4 +445,56 @@ router.post('/contact', async (req, res) => {
   }
 });
 
+// ── Newsletter Subscription Endpoint ─────────────────────────────
+router.post('/newsletter/subscribe', async (req, res) => {
+  try {
+    const { email, source = 'footer' } = req.body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.',
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
+
+    const NewsletterSubscriber = require('../models/NewsletterSubscriber');
+
+    const existing = await NewsletterSubscriber.findOne({ email: cleanEmail });
+    if (existing) {
+      if (existing.status === 'unsubscribed') {
+        existing.status = 'active';
+        await existing.save();
+        return res.status(200).json({
+          success: true,
+          message: 'Welcome back! Your subscription has been reactivated.',
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        message: 'You are already subscribed to our newsletter! Stay tuned for updates.',
+      });
+    }
+
+    await NewsletterSubscriber.create({
+      email: cleanEmail,
+      status: 'active',
+      source: source.substring(0, 50),
+      ip_address: ip,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Thank you for subscribing to BizReels updates!',
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to process subscription right now. Please try again later.',
+    });
+  }
+});
+
 module.exports = router;
+

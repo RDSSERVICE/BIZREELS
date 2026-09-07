@@ -21,6 +21,12 @@ const PublicLocalReelsPage = React.lazy(() => import('../pages/reels/PublicLocal
 const PublicCreatorMarketplacePage = React.lazy(() => import('../pages/creator/PublicCreatorMarketplacePage'));
 const PrivacyPolicy = React.lazy(() => import('../pages/home/PrivacyPolicy'));
 const ContactUs = React.lazy(() => import('../pages/home/ContactUs'));
+const TermsOfService = React.lazy(() => import('../pages/home/TermsOfService'));
+const HelpCenter = React.lazy(() => import('../pages/home/HelpCenter'));
+const SuccessStories = React.lazy(() => import('../pages/home/SuccessStories'));
+const BusinessGuide = React.lazy(() => import('../pages/home/BusinessGuide'));
+const Blog = React.lazy(() => import('../pages/home/Blog'));
+const Careers = React.lazy(() => import('../pages/home/Careers'));
 const Login = React.lazy(() => import('../pages/auth/Login'));
 const CustomerLogin = React.lazy(() => import('../pages/auth/CustomerLogin'));
 const VendorLogin = React.lazy(() => import('../pages/auth/VendorLogin'));
@@ -128,6 +134,14 @@ const AppRoutes = () => {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/contact-us" element={<ContactUs />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/help-center" element={<HelpCenter />} />
+        <Route path="/help" element={<HelpCenter />} />
+        <Route path="/success-stories" element={<SuccessStories />} />
+        <Route path="/business-guide" element={<BusinessGuide />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/careers" element={<Careers />} />
       </Route>
 
       <Route path="/feed" element={<DashboardRouter />} />
