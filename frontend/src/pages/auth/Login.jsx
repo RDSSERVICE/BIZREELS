@@ -151,23 +151,50 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5 w-full font-sans">
+    <div className="flex flex-col gap-3.5 w-full font-sans">
       {/* Title Header */}
       <div className="text-center md:text-left">
-        <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl sm:text-3xl text-[#1a1a1a] uppercase tracking-tight">
-          WELCOME BACK
-        </h2>
-        <p className="text-xs text-slate-500 mt-1 font-medium">
+        <div className="flex items-center justify-between">
+          <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl sm:text-[26px] text-[#1a1a1a] uppercase tracking-tight">
+            WELCOME BACK
+          </h2>
+          <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#d99a3d]/15 text-[#9e6715] border border-[#d99a3d]/30">
+            SECURE ACCESS
+          </span>
+        </div>
+        <p className="text-xs text-slate-500 mt-0.5 font-medium">
           Access your marketplace dashboard and watch trending content.
         </p>
       </div>
 
+      {/* ── 1-Click Fast Google Sign-In (Top Placement — No Scrolling Required!) ── */}
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        className="w-full py-2.5 sm:py-3 px-4 bg-white hover:bg-[#faf7f2] border border-[#d5cbba] hover:border-[#d99a3d] text-slate-800 text-xs font-black rounded-full transition-all flex items-center justify-center gap-3 cursor-pointer shadow-2xs hover:shadow-xs group"
+      >
+        <FcGoogle className="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110" />
+        <span className="tracking-tight font-extrabold text-[13px]">Sign in with Google</span>
+        <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-[#d99a3d] bg-[#d99a3d]/10 px-2 py-0.5 rounded-full hidden sm:inline-block">
+          1-Click Fast
+        </span>
+      </button>
+
+      {/* Social login divider */}
+      <div className="relative flex items-center my-0.5">
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
+        <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+          Or continue with
+        </span>
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
+      </div>
+
       {/* Tabs Switcher */}
-      <div className="flex bg-[#f5efe4] p-1.5 rounded-xl border border-[#e3dccb]">
+      <div className="flex bg-[#f5efe4] p-1 rounded-xl border border-[#e3dccb]">
         <button
           type="button"
           onClick={() => { setLoginMode('email'); setOtpSent(false); }}
-          className={`flex-1 py-2.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer border-none ${
+          className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all cursor-pointer border-none ${
             loginMode === 'email' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-2xs' : 'text-slate-600 hover:text-[#1a1a1a] bg-transparent'
           }`}
         >
@@ -176,7 +203,7 @@ const Login = () => {
         <button
           type="button"
           onClick={() => setLoginMode('otp')}
-          className={`flex-1 py-2.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer border-none ${
+          className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all cursor-pointer border-none ${
             loginMode === 'otp' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-2xs' : 'text-slate-600 hover:text-[#1a1a1a] bg-transparent'
           }`}
         >
@@ -186,7 +213,7 @@ const Login = () => {
 
       {/* Forms based on mode */}
       {loginMode === 'email' ? (
-        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-4">
+        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-3">
           <Input
             label="Email Address"
             type="email"
@@ -218,14 +245,14 @@ const Login = () => {
           <button
             type="submit"
             disabled={isEmailLoading}
-            className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2b2621] text-[#d99a3d] text-xs font-black uppercase tracking-wider rounded-full shadow-2xs hover:shadow-xs transition-all border-none cursor-pointer mt-1 flex items-center justify-center gap-2 group"
+            className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2b2621] text-[#d99a3d] text-xs font-black uppercase tracking-wider rounded-full shadow-2xs hover:shadow-xs transition-all border-none cursor-pointer mt-0.5 flex items-center justify-center gap-2 group"
           >
             {isEmailLoading ? 'Signing in...' : 'SIGN IN'}
             <FiArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
         </form>
       ) : (
-        <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="flex flex-col gap-3.5">
+        <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="flex flex-col gap-3">
           {!otpSent ? (
             <>
               {/* Channel Selector */}
@@ -275,7 +302,7 @@ const Login = () => {
                 type="button"
                 onClick={() => handleSendOtp(otpChannel)}
                 disabled={isOtpRequestLoading || cooldown > 0}
-                className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-0.5 flex items-center justify-center gap-2"
               >
                 {isOtpRequestLoading
                   ? 'Sending OTP...'
@@ -285,7 +312,7 @@ const Login = () => {
             </>
           ) : (
             <>
-              <div className="bg-[#fdfaf3] p-3 rounded-lg border border-[#e3dccb] flex flex-col gap-2">
+              <div className="bg-[#fdfaf3] p-2.5 rounded-lg border border-[#e3dccb] flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-700">Sent to: </span>
                   <span className="text-xs font-bold text-[#d99a3d]">{otpIdentifier} ({otpChannel.toUpperCase()})</span>
@@ -330,7 +357,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={isOtpVerifyLoading}
-                className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-0.5 flex items-center justify-center gap-2"
               >
                 {isOtpVerifyLoading ? 'Verifying...' : 'VERIFY & LOGIN'}
                 <FiArrowRight className="w-4 h-4" />
@@ -340,38 +367,20 @@ const Login = () => {
         </form>
       )}
 
-      {/* Social login divider */}
-      <div className="relative flex py-1 items-center">
-        <div className="flex-grow border-t border-[#e3dccb]"></div>
-        <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-          Or continue with
-        </span>
-        <div className="flex-grow border-t border-[#e3dccb]"></div>
-      </div>
-
-      {/* Google Login Button */}
-      <button
-        type="button"
-        onClick={handleGoogleLogin}
-        className="w-full py-3.5 px-4 bg-white border border-[#e3dccb] hover:border-[#d99a3d]/50 hover:bg-[#fbf9f5] text-slate-800 text-xs font-extrabold rounded-full transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs hover:shadow-xs"
-      >
-        <FcGoogle className="w-4 h-4" />
-        <span>Sign in with Google</span>
-      </button>
-
       {/* Footer Nav */}
-      <div className="text-center text-xs font-medium text-slate-600 mt-2 space-y-3">
-        <p>
+      <div className="text-center text-xs font-medium text-slate-600 space-y-2 pt-0.5">
+        <p className="text-[11px]">
           New to BizReels?{' '}
           <Link to="/auth/register" className="font-extrabold text-[#d99a3d] hover:text-[#b87b24] hover:underline">
             Create Account
           </Link>
         </p>
-        
-      <RoleQuickSwitcher />
+
+        <RoleQuickSwitcher />
       </div>
     </div>
   );
 };
 
 export default Login;
+
