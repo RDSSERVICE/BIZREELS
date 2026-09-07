@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import {
   FiVideo, FiClock, FiStar, FiEye,
   FiActivity, FiXCircle, FiPlay, FiMessageSquare, FiShield,
-  FiSend, FiChevronLeft, FiChevronRight, FiAlertCircle, FiUploadCloud, FiTrash
+  FiSend, FiChevronLeft, FiChevronRight, FiAlertCircle, FiUploadCloud, FiTrash,
+  FiCheckCircle
 } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
 import { useSelector } from 'react-redux';
@@ -242,10 +243,10 @@ export default function CreatorDashboardPage() {
   };
 
   const stats = [
-    { label: bi('Total Earnings', 'कुल कमाई'), value: `₹${(statsData.totalEarnings || 0).toLocaleString('en-IN')}`, icon: TbCurrencyRupee, color: 'emerald' },
-    { label: bi('Active Shoots', 'सक्रिय शूट'), value: String(statsData.activeShoots || 0), icon: FiVideo, color: 'purple' },
+    { label: bi('Net Earnings', 'शुद्ध कमाई'), value: `₹${(statsData.totalEarnings || 0).toLocaleString('en-IN')}`, icon: TbCurrencyRupee, color: 'emerald' },
+    { label: bi('Escrow in Progress', 'एस्क्रो में सुरक्षित'), value: `₹${(statsData.escrowInReview || 0).toLocaleString('en-IN')}`, icon: FiShield, color: 'blue' },
+    { label: bi('Active Shoots', 'सक्रिय शूट'), value: String(campaigns.filter(c => c.status === 'accepted').length || statsData.activeShoots || 0), icon: FiVideo, color: 'purple' },
     { label: bi('Pending Invites', 'लंबित निमंत्रण'), value: String(statsData.pendingInvitations || campaigns.filter(c => c.status === 'pending').length || 0), icon: FiClock, color: 'amber' },
-    { label: bi('Portfolio Views', 'पोर्टफोलियो दृश्य'), value: (statsData.portfolioViews || 0).toLocaleString(), icon: FiEye, color: 'blue' },
     { label: bi('Client Rating', 'क्लाइंट रेटिंग'), value: `${statsData.rating || 5.0} ★`, icon: FiStar, color: 'rose' }
   ];
 
@@ -490,11 +491,37 @@ export default function CreatorDashboardPage() {
 
                         {/* Right Block: Budget details and Actions */}
                         <div className="w-full md:w-56 flex flex-col justify-between items-end border-t md:border-t-0 md:border-l border-border/40 pt-4 md:pt-0 md:pl-6 space-y-4">
-                          <div className="text-right w-full">
-                            <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-wider block">Hiring Offer Price</span>
-                            <p className="text-lg font-black text-emerald-600">₹{c.budget}</p>
+                          <div className="text-right w-full space-y-1">
+                            <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-wider block">Gross Budget</span>
+                            <p className="text-lg font-black text-emerald-600">₹{c.budget?.toLocaleString('en-IN')}</p>
+                            
+                            {/* Transparent Escrow / Take-home breakdown */}
+                            <div className="bg-surface-secondary/70 rounded-lg p-2 border border-border/40 text-left space-y-0.5">
+                              <div className="flex justify-between text-[10px] text-text-tertiary">
+                                <span>Fee ({((c.platformFeeRate || 0.05) * 100).toFixed(0)}%):</span>
+                                <span>-₹{(c.platformFee !== undefined ? c.platformFee : Math.round(c.budget * (c.platformFeeRate || 0.05))).toLocaleString('en-IN')}</span>
+                              </div>
+                              <div className="flex justify-between text-[11px] font-bold text-emerald-600 pt-0.5 border-t border-border/40">
+                                <span>Take-Home:</span>
+                                <span>₹{(c.netCreatorAmount !== undefined ? c.netCreatorAmount : Math.round(c.budget * (1 - (c.platformFeeRate || 0.05)))).toLocaleString('en-IN')}</span>
+                              </div>
+                            </div>
+
+                            {/* Escrow badge */}
+                            <div className="pt-1 flex justify-end">
+                              {c.escrowStatus === 'released' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-brand-purple text-[10px] font-bold border border-purple-500/20">
+                                  <FiCheckCircle size={10} /> Payout Released
+                                </span>
+                              ) : c.escrowStatus === 'held' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 text-[10px] font-bold border border-emerald-500/20">
+                                  <FiShield size={10} /> Escrow Secured
+                                </span>
+                              ) : null}
+                            </div>
+
                             {c.deadline && (
-                              <span className="text-[10px] text-text-tertiary block mt-1">
+                              <span className="text-[10px] text-text-tertiary block pt-1">
                                 Deadline: {new Date(c.deadline).toLocaleDateString()}
                               </span>
                             )}

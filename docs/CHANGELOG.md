@@ -4,6 +4,19 @@ All notable changes to the BizReels local social commerce platform will be docum
 
 ---
 
+## [1.3.0] - 2026-09-07
+
+### Added
+* **Production-Grade Creator Revenue & Escrow Architecture**:
+  * **True Escrow Holding**: Implemented immediate wallet debiting on vendor campaign proposal creation (`escrowStatus: 'held'`), eliminating default risk while creators work on deliverables.
+  * **Dynamic Platform Take-Rate & Commission Ledger**: Integrated platform fee calculation (5% default via `commissionService`) with automatic split into creator net payout (`netCreatorAmount`) and platform commission ledger (`Commission`).
+  * **Automated Escrow Lifecycle**: Built automatic escrow refunds on proposal cancellation or creator rejection (`escrowStatus: 'refunded'`), budget adjustments on proposal edit, and automated net release upon campaign completion or 100% milestone approval (`escrowStatus: 'released'`).
+  * **Role-Targeted Wallet Routing**: Enhanced `walletRepository.updateWalletBalance` to accept explicit `options.targetRole` (`'creator'`, `'vendor'`, `'customer'`), replacing fragile substring heuristics and synchronizing legacy `User.walletBalance` with `IsolatedWallet`.
+  * **Creator Dashboard Metrics & Escrow Tracking**: Added `escrowInReview` (funds secured in progress), `grossEarnings`, and isolated net earnings to `creatorController.js` and `analyticsController.js`.
+  * **Transparent Creator Dashboard UI**: Added "Escrow in Progress" stat card and per-campaign gross budget, platform fee deduction, and net take-home breakdown with `Escrow Secured` status pills.
+
+---
+
 ## [1.2.0] - 2026-08-26
 
 ### Added

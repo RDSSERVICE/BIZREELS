@@ -77,21 +77,31 @@ class AnalyticsController {
     const Analytics = require('../models/Analytics');
     const Order = require('../models/Order');
 
+    const IsolatedWallet = require('../models/IsolatedWallet.model');
+    const Campaign = require('../models/Campaign');
     const [
       profileViews,
       hireRequestsCount,
       completedCampaignsCount,
+      creatorWallet,
+      activeCampaigns,
     ] = await Promise.all([
       Analytics.countDocuments({ targetId: userId, type: 'view_creator_profile' }).catch(() => 0),
       Order.countDocuments({ creator: userId, status: 'pending' }).catch(() => 0),
       Order.countDocuments({ creator: userId, status: 'completed' }).catch(() => 0),
+      IsolatedWallet.findOne({ userId: userId.toString(), role: 'creator' }).lean().catch(() => null),
+      Campaign.find({ creator: userId, status: 'accepted' }).select('budget netCreatorAmount').lean().catch(() => []),
     ]);
+
+    const totalEarnings = creatorWallet?.lifetime_earned || creatorWallet?.balance || 0;
+    const escrowInReview = (activeCampaigns || []).reduce((acc, c) => acc + (c.netCreatorAmount || c.budget || 0), 0);
 
     return ApiResponse.ok(res, 'Creator analytics loaded.', {
       profileViews,
       hireRequestsCount,
       completedCampaignsCount,
-      totalEarnings: req.user.walletBalance || 0,
+      totalEarnings,
+      escrowInReview,
       rating: req.user.rating_avg || 5.0,
       reviewCount: req.user.rating_count || 0,
     });

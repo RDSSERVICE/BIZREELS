@@ -52,6 +52,24 @@ const hireRequestSchema = new Schema(
       enum: ['unpaid', 'paid'],
       default: 'unpaid',
     },
+    escrowStatus: {
+      type: String,
+      enum: ['not_held', 'held', 'released', 'refunded'],
+      default: 'not_held',
+      index: true,
+    },
+    platformFeeRate: {
+      type: Number,
+      default: 0.05,
+    },
+    platformFee: {
+      type: Number,
+      default: 0,
+    },
+    netCreatorAmount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

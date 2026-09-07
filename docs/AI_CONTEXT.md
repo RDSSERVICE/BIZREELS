@@ -82,6 +82,7 @@ All models map to lowercase, snake_case collection names inside MongoDB:
   )
   ```
 * **Deal Bargaining Rules**: Offer prices progress through `negotiating` -> `accepted` | `rejected` | `expired` | `cancelled` -> `completed`. Accepting locks listings. Deal completions utilize database locks to prevent race conditions during payout transfers.
+* **Creator Hire & Escrow Rules**: Vendor proposal submission immediately debits vendor wallet and places full budget in escrow hold (`escrowStatus: 'held'`). Proposal edits adjust escrow delta. Cancellations and rejections refund 100% of escrow back to the vendor. Completing campaigns splits the budget into creator net payout (transferred to `IsolatedWallet` with `targetRole: 'creator'`) and platform take-rate (transferred to `Commission` ledger). Refer to `docs/CREATOR_REVENUE_ESCROW_ARCHITECTURE.md`.
 
 ---
 

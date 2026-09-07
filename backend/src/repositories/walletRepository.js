@@ -12,10 +12,19 @@ const logger = require('../utils/logger');
 class WalletRepository {
 
   // ─── Update Balance (Transaction-Safe) ───────────────────
-  async updateWalletBalance(userId, amount, type, referenceId, description, externalSession = null) {
+  async updateWalletBalance(userId, amount, type, referenceId, description, externalSession = null, options = {}) {
     const uid = userId.toString();
-    const session = externalSession || await mongoose.startSession();
-    const isLocalSession = !externalSession;
+
+    // Gracefully handle options passed as 6th argument
+    let session = externalSession;
+    let opts = options || {};
+    if (externalSession && typeof externalSession === 'object' && !externalSession.startTransaction && !externalSession.id) {
+      opts = externalSession;
+      session = opts.session || null;
+    }
+
+    session = session || await mongoose.startSession();
+    const isLocalSession = !session.inTransaction?.();
 
     const performUpdate = async () => {
       // Idempotency check
@@ -35,12 +44,16 @@ class WalletRepository {
       // Get or create wallet
       let wallet = await Wallet.findOne({ user_id: uid }).session(session);
       if (!wallet) {
+        const initialBal = user.walletBalance || 0;
         const created = await Wallet.create([{
-          user_id: uid, credits: 0, balance_inr_paise: 0,
-          lifetime_earned_credits: 0, lifetime_spent_credits: 0,
-          lifetime_deposited_paise: 0, lifetime_spent_paise: 0, is_frozen: false,
+          user_id: uid, credits: initialBal, balance_inr_paise: initialBal * 100,
+          lifetime_earned_credits: initialBal, lifetime_spent_credits: 0,
+          lifetime_deposited_paise: initialBal * 100, lifetime_spent_paise: 0, is_frozen: false,
         }], { session });
         wallet = created[0];
+      } else if ((wallet.credits === undefined || wallet.credits === 0) && (user.walletBalance || 0) > 0) {
+        wallet.credits = user.walletBalance;
+        await Wallet.updateOne({ user_id: uid }, { $set: { credits: user.walletBalance } }).session(session);
       }
 
       if (wallet.is_frozen) throw new Error('Wallet is frozen.');
@@ -70,24 +83,26 @@ class WalletRepository {
       );
 
       // ─── Sync Isolated Wallet (New Architecture) ─────────────────
+      let targetRole = opts.targetRole || null;
       try {
         const IsolatedWallet = require('../models/IsolatedWallet.model');
         const IsolatedTransaction = require('../models/IsolatedTransaction.model');
 
-        const desc = (description || '').toLowerCase();
-        // Customer activities (e.g. order purchases, service bookings, customer refunds) belong to Customer wallet only
-        const isVendorEarning = desc.includes('escrow') || desc.includes('payout') || desc.includes('received payment');
-        const isCustomerActivity = !isVendorEarning && (type === 'refund' || desc.includes('cancelled') || desc.includes('ordered:') || desc.includes('order:'));
+        if (!targetRole) {
+          const desc = (description || '').toLowerCase();
+          // Customer activities (e.g. order purchases, service bookings, customer refunds) belong to Customer wallet only
+          const isVendorEarning = desc.includes('escrow') || desc.includes('payout') || desc.includes('received payment');
+          const isCustomerActivity = !isVendorEarning && (type === 'refund' || desc.includes('cancelled') || desc.includes('ordered:') || desc.includes('order:'));
 
-        let targetRole = null;
-        if (!isCustomerActivity) {
-          if (amount < 0) {
-            targetRole = 'vendor';
-          } else {
-            if (desc.includes('campaign') || desc.includes('creator') || desc.includes('shoot')) {
-              targetRole = 'creator';
-            } else {
+          if (!isCustomerActivity) {
+            if (amount < 0) {
               targetRole = 'vendor';
+            } else {
+              if (desc.includes('campaign') || desc.includes('creator') || desc.includes('shoot')) {
+                targetRole = 'creator';
+              } else {
+                targetRole = 'vendor';
+              }
             }
           }
         }
@@ -163,7 +178,7 @@ class WalletRepository {
       const txnArr = await WalletTransactionV2.create([{
         user_id: uid,
         user_name: user.name || 'Unknown',
-        user_role: user.current_role || user.roles?.[0] || 'customer',
+        user_role: targetRole || user.current_role || user.roles?.[0] || 'customer',
         transaction_type: txnType,
         credit_debit: creditDebit,
         amount: Math.abs(amount),

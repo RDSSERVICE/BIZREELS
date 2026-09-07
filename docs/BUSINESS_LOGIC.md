@@ -76,3 +76,40 @@ The platform maintains two transaction ledgers:
    * *Referral Code Signups*: +20 credits to referrer, +10 to referred.
    * *Contact Reveal Cost*: -5 credits.
    * *Listing Boost Cost*: -10 credits/day.
+
+---
+
+## 5. Creator Hire & Escrow Payout Lifecycle
+
+Creator campaign proposals, deliverables milestones, and monetary payouts are governed by an automated escrow lock engine in `hireService.js`:
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: Vendor proposes campaign (Wallet debited, Escrow: held)
+    pending --> cancelled: Vendor cancels (100% Escrow refunded to vendor)
+    pending --> rejected: Creator rejects (100% Escrow refunded to vendor)
+    pending --> accepted: Creator accepts (Chat activated, Escrow remains held)
+    accepted --> completed: Vendor marks complete / 100% milestones approved
+    
+    state completed {
+        [*] --> split: Platform takes fee (default 5%)
+        split --> credit: Net amount credited to Creator Isolated Wallet
+        credit --> commission: Platform fee accrued in Commission ledger
+        commission --> released: Escrow: released, Payment: paid
+    }
+```
+
+### Business Rules for Escrow & Hiring
+1. **Upfront Escrow Lock**: When a vendor submits a campaign offer (`createRequest`), the system verifies `vendor.walletBalance >= budget` and **immediately debits** the entire budget into escrow hold with `options: { targetRole: 'vendor' }`, setting `escrowStatus = 'held'`.
+2. **Budget Adjustment on Edit**: If the vendor edits the pending proposal budget, the difference is dynamically calculated:
+   - Increasing budget requires vendor balance verification and debits the additional delta.
+   - Decreasing budget immediately refunds the excess delta back to the vendor wallet.
+3. **Guaranteed Refunds**: If the vendor cancels or the creator rejects the proposal, 100% of the held escrow funds are immediately refunded back to the vendor's wallet (`type: 'refund'`).
+4. **Platform Take-Rate Split**:
+   - Commission rate is resolved dynamically via `commissionService.resolveRate(category)` (default: 5%).
+   - `platformFee = Math.round(budget * rate)`
+   - `netCreatorAmount = budget - platformFee`
+5. **Net Creator Settlement**:
+   - Upon completion (or when deliverables reach 100% milestone approval), `netCreatorAmount` is credited directly into the Creator Isolated Wallet (`targetRole: 'creator'`).
+   - The platform fee is recorded in the `Commission` ledger for corporate financial accounting and GST audits.
+   - `escrowStatus` transitions to `'released'` and `paymentStatus` is marked `'paid'`.

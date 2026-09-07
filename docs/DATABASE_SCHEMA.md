@@ -34,6 +34,8 @@ To maintain compatibility with legacy schemas, all Mongoose models in `backend/s
 | **ResponseEvent** | `response_events` | Chat reply speed monitoring entries. | `Misc.js` |
 | **WatcherNotification** | `watcher_notifications` | Stock notifications alerts registry. | `Misc.js` |
 | **PlatformSettings** | `platform_settings` | Custom system settings configurations. | `Misc.js` |
+| **HireRequest** | `hirerequests` | Vendor-creator hiring proposals and escrow contract status. | `HireRequest.js` |
+| **Campaign** | `campaigns` | Brand collaboration deliverables, progress, milestones, and escrow. | `Campaign.js` |
 
 ---
 
@@ -261,4 +263,46 @@ To maintain compatibility with legacy schemas, all Mongoose models in `backend/s
   * `gst_percentage`: Number (default 18), `gst_amount`: Number, `total_amount`: Number
   * `payment_status`: String (enum: `['paid', 'pending', 'failed', 'refunded']`, default `'paid'`, index)
 * **Timestamps**: `created_at`, `updated_at`
+
+### 12. HireRequest (`hirerequests`)
+* **Fields**:
+  * `vendor`: ObjectId (ref: `'User'`, required, indexed)
+  * `creator`: ObjectId (ref: `'User'`, required, indexed)
+  * `title`: String (required, maxlength: 120)
+  * `description`: String (required, maxlength: 1500)
+  * `budget`: Number (required, min: 1)
+  * `deliveryDays`: Number (required, min: 1)
+  * `status`: String (enum: `['pending', 'accepted', 'rejected', 'completed', 'cancelled']`, default `'pending'`, indexed)
+  * `paymentStatus`: String (enum: `['unpaid', 'paid']`, default `'unpaid'`)
+  * `escrowStatus`: String (enum: `['not_held', 'held', 'released', 'refunded']`, default `'not_held'`, indexed)
+  * `platformFeeRate`: Number (default 0.05)
+  * `platformFee`: Number (default 0)
+  * `netCreatorAmount`: Number (default 0)
+* **Timestamps**: `createdAt`, `updatedAt`
+
+### 13. Campaign (`campaigns`)
+* **Fields**:
+  * `vendor`: ObjectId (ref: `'User'`, required, indexed)
+  * `creator`: ObjectId (ref: `'User'`, required, indexed)
+  * `hireRequest`: ObjectId (ref: `'HireRequest'`, required, indexed)
+  * `title`: String (required, maxlength: 150)
+  * `description`: String (required, maxlength: 2000)
+  * `productService`: String (default `''`)
+  * `category`: String (default `'General'`)
+  * `deliverables`: Array of `{ id: String, title: String, status: String, submissionUrl: String, submittedAt: Date }`
+  * `numReels`: Number (default 0), `numPosts`: Number (default 0)
+  * `budget`: Number (required, min: 1)
+  * `startDate`: Date, `endDate`: Date, `deadline`: Date
+  * `attachments`: String Array
+  * `specialInstructions`: String
+  * `status`: String (enum: `['pending', 'accepted', 'rejected', 'negotiation', 'completed', 'cancelled']`, default `'pending'`, indexed)
+  * `progress`: Number (min: 0, max: 100, default 0)
+  * `escrowStatus`: String (enum: `['not_held', 'held', 'released', 'refunded']`, default `'not_held'`, indexed)
+  * `platformFeeRate`: Number (default 0.05)
+  * `platformFee`: Number (default 0)
+  * `netCreatorAmount`: Number (default 0)
+  * `submissionUrls`: Array of `{ url: String, type: String, uploadedAt: Date, caption: String }`
+  * `vendorReview`: ObjectId (ref: `'Review'`), `creatorReview`: ObjectId (ref: `'Review'`)
+* **Timestamps**: `createdAt`, `updatedAt`
+
 

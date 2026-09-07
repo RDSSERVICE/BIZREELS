@@ -37,8 +37,9 @@ class HireService {
       throw ApiError.badRequest('Target profile is not a registered creator.');
     }
 
+    const numBudget = parseFloat(budget);
     const vendor = await User.findById(vendorId);
-    if (vendor.walletBalance < budget) {
+    if (!vendor || vendor.walletBalance < numBudget) {
       throw ApiError.badRequest('Insufficient wallet balance to propose campaign budget.');
     }
 
@@ -66,15 +67,41 @@ class HireService {
       }
     }
 
+    // Calculate Platform Commission & Net Creator Amount
+    const commissionService = require('./commission.service');
+    let platformFeeRate = 0.05;
+    try {
+      platformFeeRate = await commissionService.resolveRate(category);
+    } catch {
+      platformFeeRate = 0.05;
+    }
+    const platformFee = Math.round(numBudget * platformFeeRate * 100) / 100;
+    const netCreatorAmount = Math.round((numBudget - platformFee) * 100) / 100;
+
+    // True Escrow Hold: debit vendor wallet immediately with role isolation
+    await walletRepository.updateWalletBalance(
+      vendorId,
+      -numBudget,
+      'payment',
+      `escrow_hold_${Date.now()}`,
+      `Escrow hold for campaign proposal: "${title}"`,
+      null,
+      { targetRole: 'vendor' }
+    );
+
     // Create HireRequest (Legacy compatibility)
     const request = await hireRepository.createRequest({
       vendor: vendorId,
       creator: creatorId,
       title,
       description,
-      budget: parseFloat(budget),
+      budget: numBudget,
       deliveryDays: parseInt(deliveryDays, 10),
       status: 'pending',
+      escrowStatus: 'held',
+      platformFeeRate,
+      platformFee,
+      netCreatorAmount,
     });
 
     // Create Campaign Record
@@ -96,7 +123,11 @@ class HireService {
       })),
       numReels: parseInt(numReels, 10) || 0,
       numPosts: parseInt(numPosts, 10) || 0,
-      budget: parseFloat(budget),
+      budget: numBudget,
+      escrowStatus: 'held',
+      platformFeeRate,
+      platformFee,
+      netCreatorAmount,
       startDate,
       endDate,
       deadline,
@@ -112,14 +143,105 @@ class HireService {
       sender: vendorId,
       type: 'hire',
       title: 'New Collaboration Proposed',
-      message: `${vendor.vendorProfile?.businessName || vendor.name || 'Vendor'} has offered you ₹${budget} for campaign: "${title}"`,
+      message: `${vendor.vendorProfile?.businessName || vendor.name || 'Vendor'} has offered you ₹${numBudget} (Net: ₹${netCreatorAmount}) for campaign: "${title}"`,
       data: { hireRequestId: request._id, campaignId: campaign._id },
     });
     emitToUser(creatorId.toString(), 'notification', notifyRecord);
     emitToUser(creatorId.toString(), 'hire_request:created', { hireRequestId: request._id, campaignId: campaign._id });
 
-    logger.info(`Hire request and Campaign created: ${request._id} / ${campaign._id}`, { service: 'hires' });
+    logger.info(`Hire request & Campaign created with Escrow held: ${request._id} / ${campaign._id} (₹${numBudget})`, { service: 'hires' });
     return campaign;
+  }
+
+  async _releaseEscrowPayout(campaign, request) {
+    if (!campaign || !request) return;
+    if (request.escrowStatus === 'released' && request.status === 'completed') return;
+
+    const budget = request.budget || campaign.budget || 0;
+    const rate = request.platformFeeRate || campaign.platformFeeRate || 0.05;
+    const fee = request.platformFee !== undefined ? request.platformFee : (campaign.platformFee !== undefined ? campaign.platformFee : Math.round(budget * rate * 100) / 100);
+    const netAmount = request.netCreatorAmount !== undefined ? request.netCreatorAmount : (campaign.netCreatorAmount !== undefined ? campaign.netCreatorAmount : Math.round((budget - fee) * 100) / 100);
+
+    // If this was a legacy campaign created before escrow holding ('not_held'), debit the vendor now
+    if (request.escrowStatus === 'not_held') {
+      try {
+        await walletRepository.updateWalletBalance(
+          request.vendor._id || request.vendor,
+          -budget,
+          'payment',
+          `legacy_payout_${request._id}`,
+          `Released payout to creator for campaign "${request.title}"`,
+          null,
+          { targetRole: 'vendor' }
+        );
+      } catch (err) {
+        logger.warn(`Legacy vendor debit failed during escrow release: ${err.message}`, { service: 'hires' });
+      }
+    }
+
+    // Credit Creator Isolated Wallet with net payout
+    await walletRepository.updateWalletBalance(
+      request.creator._id || request.creator,
+      netAmount,
+      'deposit',
+      `escrow_release_${campaign._id}`,
+      `Received net payout (₹${netAmount}, platform fee: ₹${fee}) for campaign "${request.title || campaign.title}"`,
+      null,
+      { targetRole: 'creator' }
+    );
+
+    // Record Platform Commission
+    try {
+      const Commission = require('../models/CommissionConfig.model').Commission || require('mongoose').model('Commission');
+      await Commission.create({
+        deal_id: campaign._id.toString(),
+        vendor_id: (request.vendor._id || request.vendor).toString(),
+        buyer_id: (request.creator._id || request.creator).toString(),
+        listing_id: null,
+        category_id: campaign.category || 'General',
+        deal_amount_inr: budget,
+        amount_paise: Math.round(fee * 100),
+        rate: rate * 100,
+        status: 'accrued',
+      });
+    } catch (commErr) {
+      logger.error('Failed to record platform commission on escrow release:', commErr);
+    }
+
+    request.escrowStatus = 'released';
+    request.paymentStatus = 'paid';
+    request.status = 'completed';
+    await request.save();
+
+    campaign.escrowStatus = 'released';
+    campaign.status = 'completed';
+    campaign.progress = 100;
+    await campaign.save();
+
+    logger.info(`Escrow released: Net ₹${netAmount} to Creator, Fee ₹${fee} to Platform for Campaign ${campaign._id}`, { service: 'hires' });
+  }
+
+  async _refundEscrow(campaign, request, reason = 'cancelled') {
+    if (!request) return;
+    if (request.escrowStatus === 'held') {
+      const budget = request.budget || campaign?.budget || 0;
+      await walletRepository.updateWalletBalance(
+        request.vendor._id || request.vendor,
+        budget,
+        'refund',
+        `escrow_refund_${request._id}_${Date.now()}`,
+        `Escrow refund for ${reason} campaign proposal: "${request.title}"`,
+        null,
+        { targetRole: 'vendor' }
+      );
+      request.escrowStatus = 'refunded';
+      await request.save();
+      if (campaign) {
+        campaign.escrowStatus = 'refunded';
+        await campaign.save();
+      }
+      logger.info(`Escrow refunded: ₹${budget} back to Vendor (${reason}) for Request ${request._id}`, { service: 'hires' });
+    }
   }
 
   async editRequest(id, data, userId) {
@@ -134,15 +256,56 @@ class HireService {
       throw ApiError.badRequest('Only pending requests can be modified.');
     }
 
+    const campaign = await Campaign.findOne({ hireRequest: id });
+
+    // Handle budget adjustment in escrow
+    if (data.budget !== undefined && parseFloat(data.budget) !== request.budget) {
+      const newBudget = parseFloat(data.budget);
+      const budgetDiff = newBudget - request.budget;
+      if (budgetDiff > 0) {
+        const vendor = await User.findById(userId);
+        if (!vendor || vendor.walletBalance < budgetDiff) {
+          throw ApiError.badRequest('Insufficient wallet balance to increase campaign budget.');
+        }
+        await walletRepository.updateWalletBalance(
+          userId,
+          -budgetDiff,
+          'payment',
+          `escrow_adjust_${Date.now()}`,
+          `Escrow hold adjustment for campaign proposal: "${request.title}"`,
+          null,
+          { targetRole: 'vendor' }
+        );
+      } else if (budgetDiff < 0) {
+        await walletRepository.updateWalletBalance(
+          userId,
+          Math.abs(budgetDiff),
+          'refund',
+          `escrow_refund_${Date.now()}`,
+          `Escrow hold adjustment refund for campaign proposal: "${request.title}"`,
+          null,
+          { targetRole: 'vendor' }
+        );
+      }
+      request.budget = newBudget;
+      const rate = request.platformFeeRate || 0.05;
+      request.platformFee = Math.round(newBudget * rate * 100) / 100;
+      request.netCreatorAmount = Math.round((newBudget - request.platformFee) * 100) / 100;
+      if (campaign) {
+        campaign.budget = newBudget;
+        campaign.platformFeeRate = rate;
+        campaign.platformFee = request.platformFee;
+        campaign.netCreatorAmount = request.netCreatorAmount;
+      }
+    }
+
     // Update HireRequest
     request.title = data.title || request.title;
     request.description = data.description || request.description;
-    request.budget = parseFloat(data.budget) || request.budget;
     request.deliveryDays = parseInt(data.deliveryDays, 10) || request.deliveryDays;
     await request.save();
 
     // Update Campaign
-    const campaign = await Campaign.findOne({ hireRequest: id });
     if (campaign) {
       // Validate updated dates
       const reqStartDate = data.startDate !== undefined ? data.startDate : campaign.startDate;
@@ -200,7 +363,6 @@ class HireService {
       }
       if (data.numReels !== undefined) campaign.numReels = parseInt(data.numReels, 10);
       if (data.numPosts !== undefined) campaign.numPosts = parseInt(data.numPosts, 10);
-      campaign.budget = parseFloat(data.budget) || campaign.budget;
       if (data.startDate !== undefined) campaign.startDate = data.startDate;
       if (data.endDate !== undefined) campaign.endDate = data.endDate;
       if (data.deadline !== undefined) campaign.deadline = data.deadline;
@@ -254,12 +416,16 @@ class HireService {
       throw ApiError.badRequest('Only pending requests can be cancelled.');
     }
 
+    const campaign = await Campaign.findOne({ hireRequest: id });
+
+    // Refund escrow if held
+    await this._refundEscrow(campaign, request, 'cancelled');
+
     const updatedRequest = await hireRepository.updateRequestStatus(id, 'cancelled');
-    const campaign = await Campaign.findOneAndUpdate(
-      { hireRequest: id },
-      { status: 'cancelled' },
-      { returnDocument: 'after' }
-    );
+    if (campaign) {
+      campaign.status = 'cancelled';
+      await campaign.save();
+    }
 
     // Notify creator
     const notifyRecord = await Notification.create({
@@ -287,14 +453,21 @@ class HireService {
 
     if (status === 'accepted' || status === 'rejected') {
       if (!isCreator) throw ApiError.forbidden('Only the creator can accept or reject.');
+
+      const campaign = await Campaign.findOne({ hireRequest: id });
+
+      if (status === 'rejected') {
+        // Refund escrow back to vendor
+        await this._refundEscrow(campaign, request, 'rejected');
+      }
+
       const updated = await hireRepository.updateRequestStatus(id, status);
 
       // Update Campaign
-      const campaign = await Campaign.findOneAndUpdate(
-        { hireRequest: id },
-        { status },
-        { returnDocument: 'after' }
-      );
+      if (campaign) {
+        campaign.status = status;
+        await campaign.save();
+      }
 
       // Notify vendor
       const notifyRecord = await Notification.create({
@@ -302,7 +475,9 @@ class HireService {
         sender: userId,
         type: 'hire',
         title: `Collaboration proposal ${status}`,
-        message: `Creator ${request.creator.name || 'Creator'} has ${status} your hire request proposal: "${request.title}"`,
+        message: status === 'rejected'
+          ? `Creator ${request.creator.name || 'Creator'} has rejected your proposal: "${request.title}". Held escrow funds have been refunded to your wallet.`
+          : `Creator ${request.creator.name || 'Creator'} has accepted your proposal: "${request.title}"`,
         data: { hireRequestId: id, campaignId: campaign?._id },
       });
       emitToUser(request.vendor._id.toString(), 'notification', notifyRecord);
@@ -339,36 +514,10 @@ class HireService {
         throw ApiError.badRequest('Request must be accepted first.');
       }
 
-      // Execute Escrow-like payment release
-      logger.info(`Releasing escrow payment ₹${request.budget} to Creator: ${request.creator._id}`, { service: 'wallet' });
-      
-      // Debit Vendor
-      await walletRepository.updateWalletBalance(
-        request.vendor._id,
-        -request.budget,
-        'payment',
-        id,
-        `Released payout to creator ${request.creator.name || 'Creator'} for campaign "${request.title}"`
-      );
+      const campaign = await Campaign.findOne({ hireRequest: id });
+      await this._releaseEscrowPayout(campaign, request);
 
-      // Credit Creator
-      await walletRepository.updateWalletBalance(
-        request.creator._id,
-        request.budget,
-        'deposit',
-        id,
-        `Received payout for campaign "${request.title}"`
-      );
-
-      await hireRepository.setPaymentStatus(id, 'paid');
-      const updated = await hireRepository.updateRequestStatus(id, 'completed');
-
-      // Update Campaign
-      const campaign = await Campaign.findOneAndUpdate(
-        { hireRequest: id },
-        { status: 'completed', progress: 100 },
-        { returnDocument: 'after' }
-      );
+      const netAmount = request.netCreatorAmount || request.budget;
 
       // Notify creator
       const notifyRecord = await Notification.create({
@@ -376,7 +525,7 @@ class HireService {
         sender: userId,
         type: 'payment',
         title: 'Payout Released',
-        message: `Vendor released campaign funds of ₹${request.budget} to your wallet balance for: "${request.title}"`,
+        message: `Vendor released campaign funds of ₹${netAmount} to your wallet balance for: "${request.title}"`,
         data: { hireRequestId: id, campaignId: campaign?._id },
       });
       emitToUser(request.creator._id.toString(), 'notification', notifyRecord);
@@ -487,25 +636,16 @@ class HireService {
 
     // If progress is 100%, transition the campaign to completed and release escrow!
     if (campaign.progress === 100) {
-      campaign.status = 'completed';
-      
       const request = await require('../models/HireRequest').findById(campaign.hireRequest);
-      if (request && request.paymentStatus === 'paid') {
-        // Credit the creator's wallet!
-        await walletRepository.updateWalletBalance(
-          campaign.creator,
-          campaign.budget,
-          'deposit',
-          `escrow_release_${campaign._id}`,
-          `Released escrow payout for campaign: "${campaign.title}"`
-        );
-        request.status = 'completed';
-        request.paymentStatus = 'paid';
-        await request.save();
+      if (request) {
+        await this._releaseEscrowPayout(campaign, request);
+      } else {
+        campaign.status = 'completed';
+        await campaign.save();
       }
+    } else {
+      await campaign.save();
     }
-
-    await campaign.save();
 
     // Notify creator
     const notifyRecord = await Notification.create({
@@ -514,7 +654,7 @@ class HireService {
       type: 'campaign',
       title: campaign.progress === 100 ? 'Campaign Completed & Payout Released' : 'Milestone Approved by Vendor',
       message: campaign.progress === 100
-        ? `Campaign "${campaign.title}" has been completed and ₹${campaign.budget} payout released to your wallet.`
+        ? `Campaign "${campaign.title}" has been completed and ₹${campaign.netCreatorAmount || campaign.budget} payout released to your wallet.`
         : `Milestone has been approved for campaign: "${campaign.title}"`,
       data: { campaignId },
     });

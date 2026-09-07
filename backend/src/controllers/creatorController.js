@@ -131,10 +131,31 @@ class CreatorController {
     const creatorWallet = await IsolatedWallet.findOne({ userId: userId.toString(), role: 'creator' }).lean();
     const totalEarningsVal = creatorWallet?.lifetime_earned || creatorWallet?.balance || 0;
 
+    // Calculate escrow funds currently held for active (in-progress) and pending proposals
+    const [activeCampaigns, pendingCampaigns, completedCampaigns] = await Promise.all([
+      Campaign.find({ creator: userId, status: 'accepted' }).select('budget netCreatorAmount escrowStatus').lean(),
+      Campaign.find({ creator: userId, status: 'pending' }).select('budget netCreatorAmount').lean(),
+      Campaign.find({ creator: userId, status: 'completed' }).select('budget netCreatorAmount').lean()
+    ]);
+
+    const escrowInReview = activeCampaigns.reduce((acc, c) => {
+      return acc + (c.netCreatorAmount !== undefined && c.netCreatorAmount > 0 ? c.netCreatorAmount : c.budget || 0);
+    }, 0);
+
+    const pendingEscrow = pendingCampaigns.reduce((acc, c) => {
+      return acc + (c.netCreatorAmount !== undefined && c.netCreatorAmount > 0 ? c.netCreatorAmount : c.budget || 0);
+    }, 0);
+
+    const grossEarnings = completedCampaigns.reduce((acc, c) => acc + (c.budget || 0), 0);
+
     return ApiResponse.ok(res, 'Creator dashboard metrics loaded.', {
       totalProjects: totalProjectsCount,
       pendingRequests: pendingRequests,
       totalEarnings: totalEarningsVal,
+      netEarnings: totalEarningsVal,
+      grossEarnings,
+      escrowInReview,
+      pendingEscrow,
       rating: req.user.rating_avg || 5.0,
       reviewCount: req.user.rating_count || 0,
       portfolioViews: totalViews,

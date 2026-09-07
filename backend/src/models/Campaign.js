@@ -100,6 +100,24 @@ const campaignSchema = new Schema(
       min: 0,
       max: 100,
     },
+    escrowStatus: {
+      type: String,
+      enum: ['not_held', 'held', 'released', 'refunded'],
+      default: 'not_held',
+      index: true,
+    },
+    platformFeeRate: {
+      type: Number,
+      default: 0.05,
+    },
+    platformFee: {
+      type: Number,
+      default: 0,
+    },
+    netCreatorAmount: {
+      type: Number,
+      default: 0,
+    },
     submissionUrls: [
       {
         url: { type: String, required: true },
