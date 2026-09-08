@@ -34,36 +34,50 @@ export default function AdminLogin() {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      // Authenticate using backend email/password login endpoint
-      const response = await api.post('/v1/auth/login', data);
+      // Authenticate using backend email/password login endpoint with role 'admin'
+      const response = await api.post('/v1/auth/login', {
+        email: data.email.trim(),
+        password: data.password,
+        role: 'admin',
+      });
       const res = response.data;
+      const payload = res?.data || res;
+      const user = payload?.user;
+      const accessToken = payload?.accessToken || payload?.access_token;
+      const refreshToken = payload?.refreshToken || payload?.refresh_token;
 
-      if (!res.data?.user?.roles?.includes('admin')) {
+      if (!user?.roles?.includes('admin')) {
         toast.error('Access denied. You do not have administrator privileges.');
         setIsLoading(false);
         return;
       }
 
-      // Map credentials to AuthContext format
-      const authData = {
-        access_token: res.data.accessToken || res.data.access_token,
-        refresh_token: res.data.refreshToken || res.data.refresh_token,
-        user: res.data.user,
+      const adminUser = {
+        ...user,
+        activeRole: 'admin',
+        current_role: 'admin',
       };
 
-      applyAuthResponse(authData);
+      // Map credentials to AuthContext format
+      applyAuthResponse({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        user: adminUser,
+      });
 
       // Synchronize Redux Auth State
       dispatch(
         setCredentials({
-          user: res.data.user,
-          accessToken: res.data.accessToken,
+          user: adminUser,
+          accessToken,
+          refreshToken,
         })
       );
 
       toast.success('Access granted. Welcome to Admin Control Center!');
-      navigate(from, { replace: true });
+      navigate(from || '/admin/dashboard', { replace: true });
     } catch (err) {
+      console.error('Admin login error:', err);
       toast.error(
         err?.response?.data?.message || 'Login failed. Please check admin credentials.'
       );
@@ -185,7 +199,7 @@ export default function AdminLogin() {
               <Input
                 label="Admin Email Address"
                 type="email"
-                placeholder="admin@bizreels.com"
+                placeholder="admin@bizreels.in"
                 error={errors.email}
                 {...register('email', {
                   required: 'Admin email is required',

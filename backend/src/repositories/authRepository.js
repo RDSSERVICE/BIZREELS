@@ -15,13 +15,19 @@ class AuthRepository {
 
   async findUserByEmail(email) {
     if (!email || typeof email !== 'string' || !email.trim()) return null;
-    const clean = email.trim();
+    const clean = email.trim().toLowerCase();
+    const query = [
+      { email: clean },
+      { email: email.trim() },
+      { email: { $regex: new RegExp(`^${clean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+    ];
+    if (clean === 'admin@bizreels.com') {
+      query.push({ email: 'admin@bizreels.in' });
+    } else if (clean === 'admin@bizreels.in') {
+      query.push({ email: 'admin@bizreels.com' });
+    }
     return User.findOne({
-      $or: [
-        { email: clean.toLowerCase() },
-        { email: clean },
-        { email: { $regex: new RegExp(`^${clean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
-      ],
+      $or: query,
     }).select('+password');
   }
 

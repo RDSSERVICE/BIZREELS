@@ -9,7 +9,7 @@ const initialState = {
   user: tokenStore.getUser(),
   accessToken: tokenStore.getAccess(),
   isAuthenticated: !!tokenStore.getAccess(),
-  isLoading: true, // True until initial auth check completes
+  isLoading: false,
   activeRole: tokenStore.getUser()?.activeRole || tokenStore.getUser()?.current_role || 'customer',
 };
 

@@ -99,6 +99,18 @@ api.interceptors.response.use(
     if (!response || response.status !== 401 || config?._retry) {
       return Promise.reject(error);
     }
+
+    // Do NOT intercept auth endpoints (login, register, refresh, otp verification)
+    const reqUrl = config?.url || '';
+    if (
+      reqUrl.includes('/auth/login') ||
+      reqUrl.includes('/auth/refresh') ||
+      reqUrl.includes('/auth/otp') ||
+      reqUrl.includes('/auth/register')
+    ) {
+      return Promise.reject(error);
+    }
+
     try {
       if (!refreshPromise) {
         refreshPromise = axios
@@ -127,7 +139,10 @@ api.interceptors.response.use(
       return api.request(config);
     } catch (e) {
       tokenStore.clear();
-      if (typeof window !== "undefined") window.location.assign("/login");
+      if (typeof window !== "undefined") {
+        const isAdmin = window.location.pathname.startsWith('/admin') || window.location.pathname === '/adminlogin';
+        window.location.assign(isAdmin ? "/admin" : "/auth/login");
+      }
       return Promise.reject(e);
     }
   }

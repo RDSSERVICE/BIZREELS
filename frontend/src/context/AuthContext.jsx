@@ -39,13 +39,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   const applyAuthResponse = (data) => {
+    const access = data.access_token || data.accessToken;
+    const refresh = data.refresh_token || data.refreshToken;
     tokenStore.set({
       user: data.user,
+      accessToken: access,
+      refreshToken: refresh,
     });
     setUser(data.user);
     dispatch(setCredentials({
       user: data.user,
-      accessToken: data.access_token,
+      accessToken: access,
+      refreshToken: refresh,
     }));
   };
 

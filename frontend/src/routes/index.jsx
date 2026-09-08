@@ -145,6 +145,7 @@ const AppRoutes = () => {
       </Route>
 
       <Route path="/feed" element={<DashboardRouter />} />
+      <Route path="/login" element={<Navigate to="/auth/login" replace />} />
 
       {/* ── Public Auth Routes ────────────────────────────────── */}
       <Route
