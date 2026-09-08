@@ -2381,8 +2381,10 @@ const getCreatorProfileDetails = async (userId) => {
   const User = require('../models/User');
   const Reel = require('../models/Reel');
   const HireRequest = require('../models/HireRequest');
-  const { Review, Wallet } = require('../models/Phase4');
-  const { AuditLog } = require('../models/Misc');
+  const Campaign = require('../models/Campaign');
+  const Review = require('../models/Review');
+  const { Wallet } = require('../models/Phase4');
+  const AuditLog = require('../models/AuditLog');
   const ApiError = require('../utils/ApiError');
 
   const u = await User.findById(userId);
@@ -2396,9 +2398,9 @@ const getCreatorProfileDetails = async (userId) => {
     const w = await Wallet.findOne({ user_id: userIdStr });
     if (w) {
       walletData = {
-        credits: w.credits,
-        balance_inr_paise: w.balance_inr_paise,
-        is_frozen: w.is_frozen,
+        credits: w.credits || 0,
+        balance_inr_paise: w.balance_inr_paise || 0,
+        is_frozen: !!w.is_frozen,
       };
     }
   } catch (e) {}
@@ -2407,55 +2409,139 @@ const getCreatorProfileDetails = async (userId) => {
   const reels = await Reel.find({ creator: userId, is_deleted: { $ne: true } })
     .sort({ createdAt: -1 });
 
-  // Hire Requests
-  const campaigns = await HireRequest.find({ creator: userId })
+  // Hire Requests & Brand Campaigns
+  const hireRequests = await HireRequest.find({
+    $or: [{ creator: userId }, { creator: userIdStr }]
+  })
     .populate('vendor', 'name businessName phone email')
     .sort({ createdAt: -1 });
 
-  // Reviews
-  const reviews = await Review.find({ target_type: 'creator', target_id: userIdStr })
-    .sort({ created_at: -1 });
+  const brandCampaigns = await Campaign.find({
+    $or: [{ creator: userId }, { creator: userIdStr }]
+  })
+    .populate('vendor', 'name businessName phone email')
+    .sort({ createdAt: -1 });
 
-  // Logs & timeline
-  const auditLogs = await AuditLog.find({ userId }).sort({ createdAt: -1 });
+  const campaigns = [
+    ...hireRequests.map(c => ({
+      id: c._id.toString(),
+      title: c.title || 'Brand Video Collaboration',
+      description: c.description || '',
+      budget: c.budget || 0,
+      deliveryDays: c.deliveryDays || 1,
+      status: c.status || 'pending',
+      payment_status: c.paymentStatus || 'unpaid',
+      escrowStatus: c.escrowStatus || 'not_held',
+      platformFee: c.platformFee || 0,
+      netCreatorAmount: c.netCreatorAmount || c.budget || 0,
+      vendor: c.vendor ? {
+        name: c.vendor.name || 'Vendor Partner',
+        businessName: c.vendor.businessName || c.vendor.name || 'Vendor Shop',
+        phone: c.vendor.phone || '',
+        email: c.vendor.email || ''
+      } : null,
+      created_at: c.createdAt
+    })),
+    ...brandCampaigns.map(c => ({
+      id: c._id.toString(),
+      title: c.title || 'Brand Sponsorship Campaign',
+      description: c.description || '',
+      budget: c.totalBudget || c.budget || 0,
+      deliveryDays: 1,
+      status: c.status || 'completed',
+      payment_status: c.paymentStatus || 'paid',
+      escrowStatus: 'held',
+      platformFee: 0,
+      netCreatorAmount: c.totalBudget || c.budget || 0,
+      vendor: c.vendor ? {
+        name: c.vendor.name || 'Vendor Partner',
+        businessName: c.vendor.businessName || c.vendor.name || 'Vendor Shop',
+        phone: c.vendor.phone || '',
+        email: c.vendor.email || ''
+      } : null,
+      created_at: c.createdAt
+    }))
+  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-  const timeline = auditLogs
-    .filter(log => [
-      'USER_REGISTER',
-      'USER_BAN',
-      'USER_UNBAN',
-      'USER_SUSPEND',
-      'KYC_APPROVE',
-      'KYC_REJECT',
-      'ADMIN_ACTION'
-    ].includes(log.action))
+  // Reviews Received
+  const reviews = await Review.find({
+    $or: [
+      { targetUser: userId },
+      { targetUser: userIdStr },
+      { target_id: userIdStr }
+    ]
+  })
+    .populate('author', 'name profile_pic email phone avatarUrl')
+    .sort({ createdAt: -1 });
+
+  // Logs & Timeline
+  const auditLogs = await AuditLog.find({
+    $or: [{ userId }, { userId: userIdStr }, { entityId: userId }]
+  }).sort({ createdAt: -1 });
+
+  const keyMilestones = [
+    'USER_REGISTER',
+    'CREATOR_PROFILE_CREATE',
+    'VENDOR_PROFILE_CREATE',
+    'ROLE_SWITCH',
+    'ROLE_ADD',
+    'KYC_APPROVE',
+    'KYC_REJECT',
+    'USER_BAN',
+    'USER_UNBAN',
+    'USER_SUSPEND',
+    'ADMIN_ACTION',
+    'LISTING_CREATE'
+  ];
+
+  let timeline = auditLogs
+    .filter(log => keyMilestones.includes(log.action))
+    .slice(0, 20)
     .map(log => ({
       id: log._id.toString(),
       action: log.action,
-      description: log.description || `Action ${log.action} performed`,
-      created_at: log.createdAt || log.created_at,
+      description: log.description || `Action ${log.action} recorded`,
+      created_at: log.createdAt || log.created_at || new Date(),
     }));
+
+  if (timeline.length === 0 && u.created_at) {
+    timeline.push({
+      id: 'reg-' + u._id,
+      action: 'USER_REGISTER',
+      description: 'Creator account registered and onboarded onto BizReels platform',
+      created_at: u.created_at,
+    });
+    if (u.creatorProfile) {
+      timeline.push({
+        id: 'creator-setup-' + u._id,
+        action: 'CREATOR_PROFILE_CREATE',
+        description: 'Creator workspace profile activated with rates and availability',
+        created_at: u.updated_at || u.created_at,
+      });
+    }
+  }
 
   const loginHistory = auditLogs
     .filter(log => ['USER_LOGIN', 'login', 'login_failed'].includes(log.action))
+    .slice(0, 25)
     .map(log => ({
       id: log._id.toString(),
       action: log.action,
       ip: log.ipAddress || log.ip || '127.0.0.1',
-      user_agent: log.userAgent || 'Unknown',
+      user_agent: log.userAgent || 'Web Browser',
       created_at: log.createdAt || log.created_at,
     }));
 
-  const activityLogs = auditLogs.map(log => ({
+  const activityLogs = auditLogs.slice(0, 40).map(log => ({
     id: log._id.toString(),
     action: log.action,
-    description: log.description || log.meta?.description || log.action,
+    description: log.description || log.metadata?.description || log.action,
     ip: log.ipAddress || log.ip || '127.0.0.1',
     created_at: log.createdAt || log.created_at,
   }));
 
   const total_earnings = campaigns
-    .filter(c => c.status === 'completed' && c.paymentStatus === 'paid')
+    .filter(c => c.status === 'completed' && c.payment_status === 'paid')
     .reduce((sum, c) => sum + (c.budget || 0), 0);
 
   return {
@@ -2472,33 +2558,35 @@ const getCreatorProfileDetails = async (userId) => {
       lastLoginAt: u.lastLoginAt,
       lastLoginIp: u.lastLoginIp,
       creatorProfile: u.creatorProfile,
-      city: u.city || '',
+      city: u.city || u.creatorProfile?.city || '',
+      state: u.state || u.creatorProfile?.state || '',
+      roles: u.roles || ['creator'],
     },
     wallet: walletData,
     reels: reels.map(r => ({
       id: r._id.toString(),
       videoUrl: r.videoUrl,
-      thumbnailUrl: r.thumbnailUrl,
-      caption: r.caption,
-      views: r.viewsCount || 0,
-      likes: r.likesCount || 0,
+      thumbnailUrl: r.thumbnailUrl || r.videoUrl,
+      caption: r.caption || '—',
+      category: r.category || 'General',
+      subcategory: r.subcategory || '',
+      views: r.viewsCount || r.views || 0,
+      likes: r.likesCount || r.likes || 0,
+      commentsCount: r.commentsCount || 0,
+      sharesCount: r.sharesCount || 0,
       created_at: r.createdAt
     })),
-    campaigns: campaigns.map(c => ({
-      id: c._id.toString(),
-      title: c.title,
-      description: c.description,
-      budget: c.budget,
-      status: c.status,
-      payment_status: c.paymentStatus,
-      vendor: c.vendor ? { name: c.vendor.name, businessName: c.vendor.businessName } : null,
-      created_at: c.createdAt
-    })),
+    campaigns,
     reviews: reviews.map(r => ({
       id: r._id.toString(),
-      rating: r.rating,
-      comment: r.comment,
-      created_at: r.created_at
+      rating: r.rating || 5,
+      comment: r.comment || '',
+      author: {
+        name: r.author?.name || 'Client',
+        profile_pic: r.author?.profile_pic || r.author?.avatarUrl || null,
+        email: r.author?.email || ''
+      },
+      created_at: r.createdAt || r.created_at || new Date()
     })),
     timeline,
     loginHistory,

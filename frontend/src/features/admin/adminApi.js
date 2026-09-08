@@ -99,39 +99,39 @@ const adminApi = apiSlice.injectEndpoints({
     }),
     banUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/ban`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
     }),
     unbanUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/unban`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, { type: 'AdminUsers', id: 'STATS' }],
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'LIST' }, { type: 'AdminUsers', id: 'STATS' }],
     }),
     suspendUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/suspend`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, { type: 'AdminUsers', id: 'STATS' }],
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'LIST' }, { type: 'AdminUsers', id: 'STATS' }],
     }),
     deleteUser: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}`, method: 'DELETE' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
     }),
     deleteCustomer: builder.mutation({
       query: (id) => ({ url: `/admin/customers/${id}`, method: 'DELETE' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
     }),
     deleteVendor: builder.mutation({
       query: (id) => ({ url: `/admin/vendors/${id}`, method: 'DELETE' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
     }),
     deleteCreator: builder.mutation({
       query: (id) => ({ url: `/admin/creators/${id}`, method: 'DELETE' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'LIST' }, 'AdminOverview', { type: 'AdminUsers', id: 'STATS' }],
     }),
     freezeWallet: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/freeze-wallet`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }],
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'LIST' }],
     }),
     unfreezeWallet: builder.mutation({
       query: (id) => ({ url: `/admin/users/${id}/unfreeze-wallet`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminUsers', id: 'LIST' }],
+      invalidatesTags: (result, error, id) => [{ type: 'AdminUsers', id }, { type: 'AdminUsers', id: 'LIST' }],
     }),
     addUserRole: builder.mutation({
       query: ({ id, role }) => ({ url: `/admin/users/${id}/add-role`, method: 'POST', body: { role } }),

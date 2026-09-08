@@ -3,7 +3,8 @@ import {
   FiFilm, FiEye, FiCheckCircle, FiLock, FiSlash, FiTrash2, FiClock, FiX,
   FiFilter, FiActivity, FiSearch, FiDollarSign, FiShoppingBag, FiStar,
   FiArrowUpRight, FiCalendar, FiRefreshCw, FiMapPin, FiUserCheck, FiGift, FiBell,
-  FiShield, FiFileText, FiDownload, FiPauseCircle
+  FiShield, FiFileText, FiDownload, FiPauseCircle, FiPlay, FiCopy, FiCheck,
+  FiExternalLink, FiVideo, FiKey, FiUnlock, FiAlertCircle
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
@@ -21,7 +22,9 @@ import {
   useUnbanUserMutation,
   useSuspendUserMutation,
   useDeleteCreatorMutation,
-  useRejectKycMutation
+  useRejectKycMutation,
+  useFreezeWalletMutation,
+  useUnfreezeWalletMutation
 } from '../../../features/admin/adminApi';
 
 export default function AdminCreators() {
@@ -37,7 +40,10 @@ export default function AdminCreators() {
   // Modal / Detail state
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [modalType, setModalType] = useState(null); // 'view' | 'reset-password' | 'reject-kyc'
-  const [activeTab, setActiveTab] = useState('overview'); // tabs in View modal
+  const [activeTab, setActiveTab] = useState('overview'); // tabs in View modal: overview | reels | campaigns | reviews | logs
+  const [logTab, setLogTab] = useState('activity'); // activity | login
+  const [previewReel, setPreviewReel] = useState(null); // video modal
+  const [copiedId, setCopiedId] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [rejectReason, setRejectReason] = useState('');
 
@@ -67,6 +73,8 @@ export default function AdminCreators() {
   const [unbanUser] = useUnbanUserMutation();
   const [suspendUser] = useSuspendUserMutation();
   const [deleteCreator] = useDeleteCreatorMutation();
+  const [freezeWallet] = useFreezeWalletMutation();
+  const [unfreezeWallet] = useUnfreezeWalletMutation();
 
   const creators = creatorData?.items || [];
   const totalPages = creatorData?.pages || 1;
@@ -93,6 +101,13 @@ export default function AdminCreators() {
         if (!window.confirm(`Verify and approve KYC for "${userName}"?`)) return;
         await verifyAccount(userId).unwrap();
         toast.success(`Creator "${userName}" KYC status is now verified`);
+      } else if (action === 'freeze') {
+        if (!window.confirm(`Freeze wallet for "${userName}"?`)) return;
+        await freezeWallet(userId).unwrap();
+        toast.success(`Creator "${userName}" wallet has been frozen`);
+      } else if (action === 'unfreeze') {
+        await unfreezeWallet(userId).unwrap();
+        toast.success(`Creator "${userName}" wallet has been unfrozen`);
       } else if (action === 'delete') {
         if (!window.confirm(`Delete Creator role and data for "${userName}"? This will not delete other roles.`)) return;
         await deleteCreator(userId).unwrap();
@@ -540,23 +555,33 @@ export default function AdminCreators() {
       >
         <form onSubmit={handleResetPassword} className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">New Password</label>
+            <label className="text-[10px] font-black text-[#8c827a] uppercase tracking-wider block mb-1">New Password *</label>
             <input
               type="password"
-              placeholder="Min 6 characters"
+              placeholder="Minimum 6 characters"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink focus:ring-1 focus:ring-brand-pink/20 transition-all"
+              className="w-full px-3 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a] transition-all"
               required
             />
           </div>
-          <button
-            type="submit"
-            disabled={resettingPw}
-            className="w-full py-2.5 rounded-xl gradient-brand text-white text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1.5"
-          >
-            {resettingPw ? 'Resetting...' : 'Confirm Reset Password'}
-          </button>
+          <div className="flex gap-2 justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => { setModalType(null); setSelectedUserId(null); }}
+              className="px-4 py-2 bg-[#f8f4ec] text-[#1a1a1a] border border-[#e3dccb] rounded-xl text-xs font-black hover:bg-white transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={resettingPw}
+              className="px-5 py-2 bg-[#1a1a1a] text-[#d99a3d] hover:bg-black rounded-xl text-xs font-black shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <FiKey className="w-3.5 h-3.5" />
+              {resettingPw ? 'Resetting...' : 'Confirm Reset Password'}
+            </button>
+          </div>
         </form>
       </AdminModal>
 
@@ -569,111 +594,239 @@ export default function AdminCreators() {
       >
         <form onSubmit={handleRejectKycSubmit} className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Reason for Rejection</label>
+            <label className="text-[10px] font-black text-[#8c827a] uppercase tracking-wider block mb-1">Reason for Rejection *</label>
             <textarea
-              placeholder="Specify mismatch or missing fields..."
+              placeholder="Specify discrepancy, illegible document, or missing verification fields..."
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-pink focus:ring-1 focus:ring-brand-pink/20 min-h-[100px] transition-all"
+              className="w-full px-3 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a] min-h-[110px] transition-all"
               required
             />
           </div>
-          <button
-            type="submit"
-            disabled={rejecting}
-            className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-          >
-            {rejecting ? 'Rejecting...' : 'Confirm KYC Rejection'}
-          </button>
+          <div className="flex gap-2 justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => { setModalType(null); setSelectedUserId(null); }}
+              className="px-4 py-2 bg-[#f8f4ec] text-[#1a1a1a] border border-[#e3dccb] rounded-xl text-xs font-black hover:bg-white transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={rejecting}
+              className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <FiSlash className="w-3.5 h-3.5" />
+              {rejecting ? 'Rejecting...' : 'Confirm KYC Rejection'}
+            </button>
+          </div>
         </form>
       </AdminModal>
 
-      {/* --- DETAILED VIEW MODAL --- */}
+      {/* --- DETAILED VIEW MODAL (CREATOR WORKSPACE DOSSIER) --- */}
       <AdminModal
         isOpen={modalType === 'view'}
         onClose={() => { setModalType(null); setSelectedUserId(null); }}
-        title="Creator Workspace dossiers"
+        title="Creator Workspace Dossier"
         maxWidth="max-w-5xl"
       >
         {loadingDetail || !creatorDetail ? (
-          <div className="py-24 text-center text-text-tertiary text-xs flex flex-col items-center justify-center gap-2">
-            <FiRefreshCw className="w-6 h-6 animate-spin text-brand-pink" />
-            Loading creator comprehensive profiles...
+          <div className="py-24 text-center text-[#8c827a] text-xs flex flex-col items-center justify-center gap-2">
+            <FiRefreshCw className="w-6 h-6 animate-spin text-[#1a1a1a]" />
+            <span className="font-bold">Retrieving creator workspace telemetry &amp; dossiers...</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
-            {/* Modal Header Profile */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-secondary/40 p-4 rounded-2xl border border-border">
-              <div className="flex items-center gap-3">
-                {creatorDetail.profile.profile_pic ? (
-                  <img src={creatorDetail.profile.profile_pic} alt={creatorDetail.profile.name} className="w-12 h-12 rounded-full object-cover border border-border" />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-brand-pink/10 text-brand-pink flex items-center justify-center text-base font-black">
-                    {(creatorDetail.profile.name || 'C')[0].toUpperCase()}
+          <div className="flex flex-col gap-5">
+            {/* Modal Header Profile Card */}
+            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] shadow-2xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  {creatorDetail.profile.profile_pic ? (
+                    <img
+                      src={creatorDetail.profile.profile_pic}
+                      alt={creatorDetail.profile.name}
+                      className="w-14 h-14 rounded-2xl object-cover border border-[#e3dccb] shadow-2xs"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl bg-[#1a1a1a] text-[#d99a3d] border border-[#e3dccb] flex items-center justify-center text-lg font-black shadow-2xs">
+                      {(creatorDetail.profile.name || 'C')[0].toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-base font-black text-[#1a1a1a] tracking-tight">
+                        {creatorDetail.profile.name}
+                      </h4>
+                      <AdminStatusBadge status={creatorDetail.profile.is_banned ? 'Suspended' : creatorDetail.profile.is_active ? 'Active' : 'Inactive'} />
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase border ${
+                        creatorDetail.profile.kyc_status === 'approved'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : creatorDetail.profile.kyc_status === 'rejected'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        KYC {creatorDetail.profile.kyc_status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-[#8c827a] mt-1 font-semibold flex-wrap">
+                      <span>ID:</span>
+                      <code className="font-mono text-[#1a1a1a] bg-white px-1.5 py-0.5 rounded border border-[#e3dccb]">
+                        {creatorDetail.profile.id}
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(creatorDetail.profile.id);
+                          setCopiedId(true);
+                          setTimeout(() => setCopiedId(false), 2000);
+                          toast.success('Creator ID copied');
+                        }}
+                        className="text-[#1a1a1a] hover:text-black transition"
+                        title="Copy ID"
+                      >
+                        {copiedId ? <FiCheck className="w-3.5 h-3.5 text-emerald-600" /> : <FiCopy className="w-3.5 h-3.5" />}
+                      </button>
+                      <span className="text-[#e3dccb]">•</span>
+                      <span>Roles:</span>
+                      {(creatorDetail.profile.roles || ['creator']).map(r => (
+                        <span key={r} className="bg-white text-[#1a1a1a] px-1.5 py-0.5 rounded text-[10px] font-black uppercase border border-[#e3dccb]">
+                          {r}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                )}
-                <div>
-                  <h4 className="text-sm font-bold text-text-primary flex items-center gap-2">
-                    {creatorDetail.profile.name}
-                    <AdminStatusBadge status={creatorDetail.profile.is_banned ? 'Suspended' : creatorDetail.profile.is_active ? 'Active' : 'Inactive'} />
-                  </h4>
-                  <p className="text-[10px] text-text-tertiary mt-1">
-                    ID: <span className="font-mono text-text-secondary select-all">{creatorDetail.profile.id}</span>
-                  </p>
+                </div>
+
+                {/* Quick KPI Counters */}
+                <div className="grid grid-cols-3 gap-2 shrink-0">
+                  <div className="bg-white px-3 py-2.5 rounded-xl border border-[#e3dccb] text-center shadow-2xs min-w-[90px]">
+                    <span className="text-[9px] font-black text-[#8c827a] uppercase tracking-wider block">EARNINGS</span>
+                    <span className="text-sm sm:text-base font-black text-[#1a1a1a] mt-0.5 block tracking-tight">
+                      ₹{(creatorDetail.stats.total_earnings || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="bg-white px-3 py-2.5 rounded-xl border border-[#e3dccb] text-center shadow-2xs min-w-[90px]">
+                    <span className="text-[9px] font-black text-[#8c827a] uppercase tracking-wider block">WALLET</span>
+                    <span className="text-sm sm:text-base font-black text-emerald-700 mt-0.5 block tracking-tight">
+                      ₹{((creatorDetail.wallet?.balance_inr_paise || 0) / 100).toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[8px] font-bold text-[#8c827a] block">
+                      {creatorDetail.wallet?.is_frozen ? '🔒 Frozen' : '✓ Active'}
+                    </span>
+                  </div>
+                  <div className="bg-white px-3 py-2.5 rounded-xl border border-[#e3dccb] text-center shadow-2xs min-w-[90px]">
+                    <span className="text-[9px] font-black text-[#8c827a] uppercase tracking-wider block">REELS</span>
+                    <span className="text-sm sm:text-base font-black text-[#d99a3d] mt-0.5 block tracking-tight">
+                      {creatorDetail.stats.total_reels || 0} clips
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Quick statistics */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-surface p-2 rounded-xl border border-border text-center min-w-[80px]">
-                  <span className="text-[9px] font-bold text-text-tertiary block">EARNINGS</span>
-                  <span className="text-xs font-black text-brand-pink mt-0.5 block">₹{creatorDetail.stats.total_earnings.toLocaleString()}</span>
+              {/* Dossier Quick Operational Actions */}
+              <div className="pt-3 border-t border-[#e3dccb] flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {creatorDetail.profile.kyc_status !== 'approved' && (
+                    <button
+                      onClick={() => handleAction('verify', creatorDetail.profile.id, creatorDetail.profile.name)}
+                      className="px-3 py-1.5 bg-[#1a1a1a] text-[#d99a3d] hover:bg-black rounded-lg text-xs font-black shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiCheckCircle className="w-3.5 h-3.5" /> Approve KYC
+                    </button>
+                  )}
+                  {creatorDetail.profile.kyc_status === 'pending' && (
+                    <button
+                      onClick={() => { setModalType('reject-kyc'); setSelectedUserId(creatorDetail.profile.id); }}
+                      className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-lg text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiSlash className="w-3.5 h-3.5" /> Reject KYC
+                    </button>
+                  )}
+                  {creatorDetail.wallet?.is_frozen ? (
+                    <button
+                      onClick={() => handleAction('unfreeze', creatorDetail.profile.id, creatorDetail.profile.name)}
+                      className="px-3 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 rounded-lg text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiUnlock className="w-3.5 h-3.5" /> Unfreeze Wallet
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleAction('freeze', creatorDetail.profile.id, creatorDetail.profile.name)}
+                      className="px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 rounded-lg text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiLock className="w-3.5 h-3.5" /> Freeze Wallet
+                    </button>
+                  )}
+                  {creatorDetail.profile.is_banned ? (
+                    <button
+                      onClick={() => handleAction('unban', creatorDetail.profile.id, creatorDetail.profile.name)}
+                      className="px-3 py-1.5 bg-emerald-700 text-white hover:bg-emerald-800 rounded-lg text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiUserCheck className="w-3.5 h-3.5" /> Unban Account
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleAction('ban', creatorDetail.profile.id, creatorDetail.profile.name)}
+                      className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-lg text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiSlash className="w-3.5 h-3.5" /> Block Login
+                    </button>
+                  )}
                 </div>
-                <div className="bg-surface p-2 rounded-xl border border-border text-center min-w-[80px]">
-                  <span className="text-[9px] font-bold text-text-tertiary block">WALLET</span>
-                  <span className="text-xs font-black text-emerald-500 mt-0.5 block">₹{(creatorDetail.wallet.balance_inr_paise / 100).toLocaleString()}</span>
-                </div>
-                <div className="bg-surface p-2 rounded-xl border border-border text-center min-w-[80px]">
-                  <span className="text-[9px] font-bold text-text-tertiary block">REELS</span>
-                  <span className="text-xs font-black text-purple-500 mt-0.5 block">{creatorDetail.stats.total_reels} clips</span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setModalType('reset-password'); setSelectedUserId(creatorDetail.profile.id); }}
+                    className="px-3 py-1.5 bg-white text-[#1a1a1a] border border-[#e3dccb] hover:bg-[#f8f4ec] rounded-lg text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FiKey className="w-3.5 h-3.5 text-[#d99a3d]" /> Reset Password
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Modal Tabs */}
-            <div className="flex border-b border-border overflow-x-auto gap-2">
+            {/* Modal Tabs Bar */}
+            <div className="flex border-b border-[#e3dccb] overflow-x-auto gap-2 pb-1.5">
               {[
                 { id: 'overview', label: 'Overview & Profile', icon: FiShield },
-                { id: 'reels', label: 'Reels & Video Portfolio', icon: FiFilm },
-                { id: 'campaigns', label: 'Campaigns & Earnings', icon: FiDollarSign },
-                { id: 'reviews', label: 'Reviews Received', icon: FiStar },
-                { id: 'logs', label: 'Activity & Security Logs', icon: FiFileText },
+                { id: 'reels', label: 'Reels & Video Portfolio', icon: FiFilm, count: creatorDetail.reels?.length || 0 },
+                { id: 'campaigns', label: 'Campaigns & Earnings', icon: FiDollarSign, count: creatorDetail.campaigns?.length || 0 },
+                { id: 'reviews', label: 'Reviews Received', icon: FiStar, count: creatorDetail.reviews?.length || 0 },
+                { id: 'logs', label: 'Activity & Security Logs', icon: FiFileText, count: (creatorDetail.activityLogs?.length || 0) + (creatorDetail.loginHistory?.length || 0) },
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs whitespace-nowrap transition-all cursor-pointer ${
                     activeTab === tab.id
-                      ? 'border-brand-pink text-brand-pink bg-brand-pink/5'
-                      : 'border-transparent text-text-tertiary hover:text-text-secondary'
+                      ? 'bg-[#1a1a1a] text-[#d99a3d] shadow-xs'
+                      : 'bg-[#f8f4ec] text-[#5c554e] border border-[#e3dccb] hover:bg-white hover:text-[#1a1a1a]'
                   }`}
                 >
-                  <tab.icon className="w-4.5 h-4.5" />
-                  {tab.label}
+                  <tab.icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                      activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-white text-[#8c827a] border border-[#e3dccb]'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
 
             {/* Tab content panel */}
-            <div className="min-h-[300px] overflow-y-auto max-h-[50vh] pr-2">
+            <div className="min-h-[360px] overflow-y-auto max-h-[55vh] pr-1.5">
               {/* TAB 1: OVERVIEW */}
               {activeTab === 'overview' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Account Data details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Account Data Details */}
                   <div className="space-y-3">
-                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Profile Details</h5>
+                    <h5 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider border-b border-[#e3dccb] pb-1.5">
+                      Profile Details
+                    </h5>
                     {creatorDetail.profile.creatorProfile?.bio && (
-                      <p className="text-xs text-text-secondary bg-surface-secondary p-3 rounded-xl italic border border-border">
+                      <p className="text-xs text-[#5c554e] bg-[#f8f4ec] p-3 rounded-xl italic border border-[#e3dccb] font-medium leading-relaxed">
                         "{creatorDetail.profile.creatorProfile.bio}"
                       </p>
                     )}
@@ -681,50 +834,76 @@ export default function AdminCreators() {
                       {[
                         ['Email', creatorDetail.profile.email],
                         ['Phone', creatorDetail.profile.phone],
-                        ['KYC verification', creatorDetail.profile.kyc_status.toUpperCase()],
-                        ['Wallet status', creatorDetail.wallet.is_frozen ? 'Frozen' : 'Active'],
+                        ['KYC verification', (creatorDetail.profile.kyc_status || 'unverified').toUpperCase()],
+                        ['Wallet status', creatorDetail.wallet?.is_frozen ? '🔒 Frozen' : '✓ Active'],
                         ['Availability', creatorDetail.profile.creatorProfile?.availabilityStatus || creatorDetail.profile.creatorProfile?.availability || 'Available'],
-                        ['Travel Status', creatorDetail.profile.creatorProfile?.travelAvailable ? 'Available' : 'Local Only'],
-                        ['Languages', Array.isArray(creatorDetail.profile.creatorProfile?.languages) ? creatorDetail.profile.creatorProfile.languages.join(', ') : creatorDetail.profile.creatorProfile?.languages || '—'],
-                        ['City', creatorDetail.profile.city || '—'],
-                        ['Registered on', new Date(creatorDetail.profile.created_at).toLocaleString()],
+                        ['Travel Status', creatorDetail.profile.creatorProfile?.travelAvailable ? 'Available for Travel' : 'Local Only'],
+                        ['Languages', Array.isArray(creatorDetail.profile.creatorProfile?.languages) ? creatorDetail.profile.creatorProfile.languages.join(', ') : creatorDetail.profile.creatorProfile?.languages || 'Hindi, English'],
+                        ['City / Location', creatorDetail.profile.city || creatorDetail.profile.state || '—'],
+                        ['Registered on', creatorDetail.profile.created_at ? new Date(creatorDetail.profile.created_at).toLocaleString() : '—'],
                         ['Last login', creatorDetail.profile.lastLoginAt ? new Date(creatorDetail.profile.lastLoginAt).toLocaleString() : 'Never'],
-                        ['Last login IP', creatorDetail.profile.lastLoginIp || '—']
+                        ['Last login IP', creatorDetail.profile.lastLoginIp || '127.0.0.1']
                       ].map(([label, val]) => (
-                        <div key={label} className="bg-surface-secondary p-2.5 rounded-xl border border-border/50">
-                          <span className="text-[9px] font-bold text-text-tertiary uppercase block">{label}</span>
-                          <span className="text-xs text-text-primary font-semibold mt-0.5 block">{val}</span>
+                        <div key={label} className="bg-[#f8f4ec] p-2.5 rounded-xl border border-[#e3dccb]">
+                          <span className="text-[9px] font-black text-[#8c827a] uppercase tracking-wider block">{label}</span>
+                          <span className="text-xs text-[#1a1a1a] font-bold mt-0.5 block truncate" title={val}>{val}</span>
                         </div>
                       ))}
                     </div>
 
-                    {/* Rates */}
-                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1 pt-2">Campaign Rates</h5>
-                    <div className="bg-surface-secondary p-3 rounded-xl border border-border text-xs text-text-secondary grid grid-cols-2 gap-2">
-                      <p><span className="font-bold text-text-primary">1 Reel:</span> ₹{(creatorDetail.profile.creatorProfile?.pricing?.oneReel || creatorDetail.profile.creatorProfile?.pricing?.reel1 || 0).toLocaleString()}</p>
-                      <p><span className="font-bold text-text-primary">3 Reels:</span> ₹{(creatorDetail.profile.creatorProfile?.pricing?.threeReels || creatorDetail.profile.creatorProfile?.pricing?.reel3 || 0).toLocaleString()}</p>
-                      <p><span className="font-bold text-text-primary">Hourly Rate:</span> ₹{(creatorDetail.profile.creatorProfile?.pricing?.hourlyRate || 0).toLocaleString()} / hr</p>
-                      <p><span className="font-bold text-text-primary">Day Rate:</span> ₹{(creatorDetail.profile.creatorProfile?.pricing?.dayRate || 0).toLocaleString()} / day</p>
+                    {/* Campaign Rates */}
+                    <h5 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider border-b border-[#e3dccb] pb-1.5 pt-2">
+                      Campaign Pricing Rates
+                    </h5>
+                    <div className="bg-[#f8f4ec] p-3.5 rounded-xl border border-[#e3dccb] text-xs grid grid-cols-2 gap-2.5">
+                      <div>
+                        <span className="text-[9px] font-black text-[#8c827a] uppercase block">1 Reel Price</span>
+                        <span className="text-xs font-black text-[#1a1a1a]">₹{(creatorDetail.profile.creatorProfile?.pricing?.oneReel || creatorDetail.profile.creatorProfile?.pricing?.reel1 || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-[#8c827a] uppercase block">3 Reels Bundle</span>
+                        <span className="text-xs font-black text-[#1a1a1a]">₹{(creatorDetail.profile.creatorProfile?.pricing?.threeReels || creatorDetail.profile.creatorProfile?.pricing?.reel3 || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-[#8c827a] uppercase block">Hourly Shoot</span>
+                        <span className="text-xs font-black text-[#1a1a1a]">₹{(creatorDetail.profile.creatorProfile?.pricing?.hourlyRate || 0).toLocaleString('en-IN')} / hr</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-[#8c827a] uppercase block">Full Day Rate</span>
+                        <span className="text-xs font-black text-[#1a1a1a]">₹{(creatorDetail.profile.creatorProfile?.pricing?.dayRate || 0).toLocaleString('en-IN')} / day</span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Status Timeline */}
                   <div className="space-y-3">
-                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Status Timeline</h5>
-                    <div className="space-y-2.5">
+                    <h5 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider border-b border-[#e3dccb] pb-1.5">
+                      Lifecycle &amp; Status Timeline ({creatorDetail?.timeline?.length || 0})
+                    </h5>
+                    <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
                       {(creatorDetail?.timeline || []).length === 0 ? (
-                        <p className="text-xs text-text-tertiary py-6 text-center">No timeline activity logged.</p>
+                        <div className="p-8 bg-[#f8f4ec] rounded-xl border border-[#e3dccb] text-center text-[#8c827a] text-xs font-medium">
+                          No timeline activity logged.
+                        </div>
                       ) : (
-                        (creatorDetail?.timeline || []).slice(0, 5).map((t, idx) => (
-                          <div key={t.id || idx} className="flex gap-2 text-xs">
+                        (creatorDetail?.timeline || []).map((t, idx) => (
+                          <div key={t.id || idx} className="flex gap-3 text-xs">
                             <div className="flex flex-col items-center">
-                              <div className="w-2.5 h-2.5 rounded-full bg-brand-pink mt-1 flex-shrink-0" />
-                              <div className="w-0.5 h-full bg-border" />
+                              <div className="w-3 h-3 rounded-full bg-[#1a1a1a] mt-1 border-2 border-[#d99a3d] shrink-0" />
+                              <div className="w-0.5 h-full bg-[#e3dccb]" />
                             </div>
-                            <div className="flex-1 bg-surface-secondary border border-border p-2.5 rounded-xl">
-                              <span className="text-[9px] font-bold text-text-tertiary block">{new Date(t.created_at).toLocaleString()}</span>
-                              <span className="font-bold text-text-primary block mt-0.5">{t.action.replace('USER_', '')}</span>
-                              <span className="text-text-secondary mt-0.5 block">{t.description}</span>
+                            <div className="flex-1 bg-[#f8f4ec] border border-[#e3dccb] p-2.5 rounded-xl shadow-2xs">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-black text-[#1a1a1a] block">
+                                  {t.action.replace('USER_', '').replace(/_/g, ' ')}
+                                </span>
+                                <span className="text-[9px] font-semibold text-[#8c827a]">
+                                  {new Date(t.created_at).toLocaleString()}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-[#5c554e] font-medium mt-0.5 block leading-normal">
+                                {t.description}
+                              </span>
                             </div>
                           </div>
                         ))
@@ -736,189 +915,407 @@ export default function AdminCreators() {
 
               {/* TAB 2: REELS & VIDEO PORTFOLIO */}
               {activeTab === 'reels' && (
-                <div className="space-y-2">
-                  <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Published Reels</h5>
-                  <div className="overflow-x-auto max-h-[400px] border border-border rounded-xl">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-surface-secondary font-bold text-[10px] text-text-tertiary uppercase">
-                        <tr className="border-b border-border">
-                          <th className="p-2.5">Date Published</th>
-                          <th className="p-2.5">Caption</th>
-                          <th className="p-2.5 text-right">Views</th>
-                          <th className="p-2.5 text-right">Likes</th>
-                          <th className="p-2.5 text-right">Video</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(creatorDetail?.reels || []).length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="p-8 text-center text-text-tertiary">No reels posted.</td>
-                          </tr>
-                        ) : (
-                          (creatorDetail?.reels || []).map(r => (
-                            <tr key={r.id} className="border-b border-border/40 hover:bg-surface-secondary/20">
-                              <td className="p-2">{new Date(r.created_at).toLocaleDateString()}</td>
-                              <td className="p-2 font-medium text-text-primary max-w-[200px] truncate" title={r.caption}>{r.caption || '—'}</td>
-                              <td className="p-2 text-right">{r.views.toLocaleString()}</td>
-                              <td className="p-2 text-right font-bold text-brand-pink">{r.likes.toLocaleString()}</td>
-                              <td className="p-2 text-right">
-                                <a href={r.videoUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-brand-pink hover:underline">
-                                  Play Video
-                                </a>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#e3dccb] pb-2">
+                    <div>
+                      <h5 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider">
+                        Published Reels Catalog
+                      </h5>
+                      <p className="text-[11px] text-[#8c827a] font-medium mt-0.5">
+                        Video clips created and shared by {creatorDetail.profile.name}.
+                      </p>
+                    </div>
+                    <span className="text-xs font-black text-[#1a1a1a] bg-[#f8f4ec] px-3 py-1 rounded-full border border-[#e3dccb]">
+                      {creatorDetail.reels?.length || 0} Total Videos
+                    </span>
                   </div>
+
+                  {(creatorDetail?.reels || []).length === 0 ? (
+                    <div className="p-12 text-center bg-[#f8f4ec] border border-[#e3dccb] rounded-2xl">
+                      <FiFilm className="w-8 h-8 text-[#8c827a] mx-auto mb-2" />
+                      <h4 className="text-sm font-black text-[#1a1a1a]">No Reels Published Yet</h4>
+                      <p className="text-xs text-[#8c827a] font-medium mt-1">This creator has not uploaded any portfolio clips.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                      {creatorDetail.reels.map(r => (
+                        <div
+                          key={r.id}
+                          className="bg-[#f8f4ec] border border-[#e3dccb] rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between group"
+                        >
+                          <div className="relative aspect-[9/12] bg-black overflow-hidden flex items-center justify-center">
+                            {r.videoUrl && (
+                              <video
+                                src={r.videoUrl}
+                                className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition"
+                                preload="metadata"
+                              />
+                            )}
+                            <button
+                              onClick={() => setPreviewReel(r)}
+                              className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-[#1a1a1a]/85 text-[#d99a3d] flex items-center justify-center hover:scale-110 transition shadow-lg cursor-pointer"
+                              title="Play Video"
+                            >
+                              <FiPlay className="w-5 h-5 ml-0.5" />
+                            </button>
+                            <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#1a1a1a]/80 text-[#d99a3d] text-[10px] font-black rounded-md uppercase backdrop-blur-xs">
+                              {r.category || 'General'}
+                            </span>
+                          </div>
+
+                          <div className="p-3.5 space-y-2">
+                            <p className="text-xs font-black text-[#1a1a1a] line-clamp-2" title={r.caption}>
+                              {r.caption || 'Untitled Clip'}
+                            </p>
+                            <div className="flex items-center justify-between text-[11px] text-[#8c827a] font-semibold pt-1 border-t border-[#e3dccb]/70">
+                              <span className="flex items-center gap-1">
+                                <FiEye className="w-3.5 h-3.5 text-[#1a1a1a]" /> {(r.views || 0).toLocaleString()} views
+                              </span>
+                              <span className="flex items-center gap-1 font-bold text-rose-700">
+                                <FiStar className="w-3.5 h-3.5" /> {(r.likes || 0).toLocaleString()} likes
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 pt-1">
+                              <span className="text-[10px] text-[#8c827a]">
+                                {new Date(r.created_at).toLocaleDateString()}
+                              </span>
+                              <button
+                                onClick={() => setPreviewReel(r)}
+                                className="px-3 py-1 bg-[#1a1a1a] text-[#d99a3d] hover:bg-black rounded-lg text-[11px] font-black transition flex items-center gap-1 cursor-pointer"
+                              >
+                                <FiPlay className="w-3 h-3" /> Watch Reel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* TAB 3: CAMPAIGNS & EARNINGS */}
               {activeTab === 'campaigns' && (
-                <div className="space-y-2">
-                  <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Campaign Contracts</h5>
-                  <div className="overflow-x-auto max-h-[400px] border border-border rounded-xl">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-surface-secondary font-bold text-[10px] text-text-tertiary uppercase">
-                        <tr className="border-b border-border">
-                          <th className="p-2.5">Date</th>
-                          <th className="p-2.5">Vendor</th>
-                          <th className="p-2.5">Project Title</th>
-                          <th className="p-2.5 text-right">Budget</th>
-                          <th className="p-2.5 text-right">Campaign Status</th>
-                          <th className="p-2.5 text-right">Payment</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(creatorDetail?.campaigns || []).length === 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#e3dccb] pb-2">
+                    <div>
+                      <h5 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider">
+                        Brand Collaboration Contracts &amp; Campaign Deals
+                      </h5>
+                      <p className="text-[11px] text-[#8c827a] font-medium mt-0.5">
+                        Track hiring proposals, contract status, escrow releases, and payments.
+                      </p>
+                    </div>
+                    <span className="text-xs font-black text-[#1a1a1a] bg-[#f8f4ec] px-3 py-1 rounded-full border border-[#e3dccb]">
+                      {creatorDetail.campaigns?.length || 0} Contracts
+                    </span>
+                  </div>
+
+                  {(creatorDetail?.campaigns || []).length === 0 ? (
+                    <div className="p-12 text-center bg-[#f8f4ec] border border-[#e3dccb] rounded-2xl">
+                      <FiDollarSign className="w-8 h-8 text-[#8c827a] mx-auto mb-2" />
+                      <h4 className="text-sm font-black text-[#1a1a1a]">No Campaign Contracts Recorded</h4>
+                      <p className="text-xs text-[#8c827a] font-medium mt-1">This creator has not participated in paid brand collaborations yet.</p>
+                    </div>
+                  ) : (
+                    <div className="border border-[#e3dccb] rounded-2xl overflow-hidden">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-[#f8f4ec] font-black text-[9px] text-[#8c827a] uppercase border-b border-[#e3dccb] tracking-wider">
                           <tr>
-                            <td colSpan={6} className="p-8 text-center text-text-tertiary">No contracts found.</td>
+                            <th className="p-3">Date</th>
+                            <th className="p-3">Vendor / Store</th>
+                            <th className="p-3">Project Title</th>
+                            <th className="p-3 text-right">Budget</th>
+                            <th className="p-3 text-center">Status</th>
+                            <th className="p-3 text-center">Payment</th>
+                            <th className="p-3 text-center">Escrow</th>
                           </tr>
-                        ) : (
-                          (creatorDetail?.campaigns || []).map(c => (
-                            <tr key={c.id} className="border-b border-border/40 hover:bg-surface-secondary/20">
-                              <td className="p-2">{new Date(c.created_at).toLocaleDateString()}</td>
-                              <td className="p-2 font-bold text-text-primary">{c.vendor?.businessName || c.vendor?.name || 'Vendor'}</td>
-                              <td className="p-2">{c.title}</td>
-                              <td className="p-2 text-right font-extrabold text-emerald-500">₹{c.budget.toLocaleString()}</td>
-                              <td className="p-2 text-right capitalize">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                  c.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                        </thead>
+                        <tbody className="divide-y divide-[#e3dccb]">
+                          {creatorDetail.campaigns.map(c => (
+                            <tr key={c.id} className="hover:bg-[#fbf9f4] transition">
+                              <td className="p-3 text-[#8c827a] font-semibold whitespace-nowrap">
+                                {new Date(c.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="p-3 font-bold text-[#1a1a1a]">
+                                <div>{c.vendor?.businessName || c.vendor?.name || 'Vendor Partner'}</div>
+                                {c.vendor?.phone && <div className="text-[10px] text-[#8c827a] font-normal">{c.vendor.phone}</div>}
+                              </td>
+                              <td className="p-3 text-[#1a1a1a] font-semibold max-w-[200px] truncate" title={c.description}>
+                                {c.title}
+                              </td>
+                              <td className="p-3 text-right font-black text-emerald-700 whitespace-nowrap">
+                                ₹{(c.budget || 0).toLocaleString('en-IN')}
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                                  c.status === 'completed'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : c.status === 'rejected' || c.status === 'cancelled'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200'
                                 }`}>
                                   {c.status}
                                 </span>
                               </td>
-                              <td className="p-2 text-right capitalize">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                  c.payment_status === 'paid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                              <td className="p-3 text-center">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                                  c.payment_status === 'paid'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200'
                                 }`}>
                                   {c.payment_status}
                                 </span>
                               </td>
+                              <td className="p-3 text-center">
+                                <span className="text-[10px] font-bold text-[#5c554e] bg-[#f8f4ec] px-2 py-0.5 rounded border border-[#e3dccb] uppercase">
+                                  {c.escrowStatus || 'held'}
+                                </span>
+                              </td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* TAB 4: REVIEWS RECEIVED */}
               {activeTab === 'reviews' && (
-                <div className="space-y-3">
-                  <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Reviews Received</h5>
-                  <div className="space-y-2">
-                    {(creatorDetail?.reviews || []).length === 0 ? (
-                      <p className="text-xs text-text-tertiary py-8 text-center">No reviews received yet.</p>
-                    ) : (
-                      (creatorDetail?.reviews || []).map(r => (
-                        <div key={r.id} className="bg-surface-secondary border border-border p-3 rounded-xl text-xs space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-amber-500">{'★'.repeat(r.rating)}</span>
-                            <span className="text-[9px] text-text-tertiary">{new Date(r.created_at).toLocaleDateString()}</span>
-                          </div>
-                          <p className="text-text-secondary italic">"{r.comment}"</p>
-                        </div>
-                      ))
-                    )}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#e3dccb] pb-2">
+                    <div>
+                      <h5 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider">
+                        Client Ratings &amp; Reviews
+                      </h5>
+                      <p className="text-[11px] text-[#8c827a] font-medium mt-0.5">
+                        Feedback left by vendors and buyers who collaborated with this creator.
+                      </p>
+                    </div>
+                    <span className="text-xs font-black text-[#1a1a1a] bg-[#f8f4ec] px-3 py-1 rounded-full border border-[#e3dccb]">
+                      {creatorDetail.reviews?.length || 0} Reviews
+                    </span>
                   </div>
+
+                  {(creatorDetail?.reviews || []).length === 0 ? (
+                    <div className="p-12 text-center bg-[#f8f4ec] border border-[#e3dccb] rounded-2xl">
+                      <FiStar className="w-8 h-8 text-[#8c827a] mx-auto mb-2" />
+                      <h4 className="text-sm font-black text-[#1a1a1a]">No Client Reviews Yet</h4>
+                      <p className="text-xs text-[#8c827a] font-medium mt-1">This creator has not received any public reviews from brands or clients.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {creatorDetail.reviews.map(r => (
+                        <div key={r.id} className="bg-[#f8f4ec] border border-[#e3dccb] p-4 rounded-2xl space-y-2 shadow-2xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              {r.author?.profile_pic ? (
+                                <img src={r.author.profile_pic} alt={r.author.name} className="w-8 h-8 rounded-full object-cover border border-[#e3dccb]" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-[#1a1a1a] text-[#d99a3d] font-bold text-xs flex items-center justify-center">
+                                  {(r.author?.name || 'C')[0]}
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-xs font-black text-[#1a1a1a] block">{r.author?.name || 'Client Reviewer'}</span>
+                                {r.author?.email && <span className="text-[10px] text-[#8c827a] block">{r.author.email}</span>}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-black text-[#d99a3d] block">
+                                {'★'.repeat(r.rating || 5)}
+                              </span>
+                              <span className="text-[9px] text-[#8c827a] block font-medium">
+                                {new Date(r.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-[#5c554e] italic font-medium bg-white p-3 rounded-xl border border-[#e3dccb]">
+                            "{r.comment}"
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* TAB 5: ACTIVITY & AUDIT LOGS */}
+              {/* TAB 5: ACTIVITY & SECURITY LOGS */}
               {activeTab === 'logs' && (
                 <div className="space-y-4">
-                  {/* Activity logs */}
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Activity Log</h5>
-                    <div className="overflow-x-auto max-h-[200px] border border-border rounded-xl">
-                      <table className="w-full text-xs text-left">
-                        <thead className="bg-surface-secondary font-bold text-[10px] text-text-tertiary uppercase">
-                          <tr className="border-b border-border">
-                            <th className="p-2.5">Date</th>
-                            <th className="p-2.5">Action</th>
-                            <th className="p-2.5">Description</th>
-                            <th className="p-2.5">IP</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(creatorDetail?.activityLogs || []).length === 0 ? (
-                            <tr>
-                              <td colSpan={4} className="p-6 text-center text-text-tertiary">No activity logged.</td>
-                            </tr>
-                          ) : (
-                            (creatorDetail?.activityLogs || []).map(l => (
-                              <tr key={l.id} className="border-b border-border/40 hover:bg-surface-secondary/20">
-                                <td className="p-2 whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
-                                <td className="p-2 font-bold text-text-primary">{l.action}</td>
-                                <td className="p-2">{l.description}</td>
-                                <td className="p-2 font-mono text-[10px] text-text-tertiary">{l.ip}</td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                  {/* Sub-tabs switcher */}
+                  <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-2">
+                    <button
+                      onClick={() => setLogTab('activity')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                        logTab === 'activity'
+                          ? 'bg-[#1a1a1a] text-white shadow-xs'
+                          : 'bg-[#f8f4ec] text-[#8c827a] border border-[#e3dccb] hover:bg-white hover:text-[#1a1a1a]'
+                      }`}
+                    >
+                      Activity Logs ({creatorDetail.activityLogs?.length || 0})
+                    </button>
+                    <button
+                      onClick={() => setLogTab('login')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                        logTab === 'login'
+                          ? 'bg-[#1a1a1a] text-white shadow-xs'
+                          : 'bg-[#f8f4ec] text-[#8c827a] border border-[#e3dccb] hover:bg-white hover:text-[#1a1a1a]'
+                      }`}
+                    >
+                      Login Security History ({creatorDetail.loginHistory?.length || 0})
+                    </button>
                   </div>
 
-                  {/* Login history */}
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-extrabold text-text-primary uppercase tracking-wider border-b border-border pb-1">Login History</h5>
-                    <div className="overflow-x-auto max-h-[200px] border border-border rounded-xl">
-                      <table className="w-full text-xs text-left">
-                        <thead className="bg-surface-secondary font-bold text-[10px] text-text-tertiary uppercase">
-                          <tr className="border-b border-border">
-                            <th className="p-2.5">Date</th>
-                            <th className="p-2.5">Type</th>
-                            <th className="p-2.5">IP Address</th>
-                            <th className="p-2.5">User Agent</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(creatorDetail?.loginHistory || []).length === 0 ? (
+                  {logTab === 'activity' ? (
+                    <div className="space-y-2">
+                      <div className="border border-[#e3dccb] rounded-2xl overflow-hidden max-h-[380px] overflow-y-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-[#f8f4ec] font-black text-[9px] text-[#8c827a] uppercase border-b border-[#e3dccb] tracking-wider">
                             <tr>
-                              <td colSpan={4} className="p-6 text-center text-text-tertiary">No login history recorded.</td>
+                              <th className="p-3">Timestamp</th>
+                              <th className="p-3">Action Type</th>
+                              <th className="p-3">Event Description</th>
+                              <th className="p-3 text-right">IP Address</th>
                             </tr>
-                          ) : (
-                            (creatorDetail?.loginHistory || []).map(l => (
-                              <tr key={l.id} className="border-b border-border/40 hover:bg-surface-secondary/20">
-                                <td className="p-2 whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
-                                <td className="p-2 font-bold text-text-primary">{l.action.replace('USER_', '')}</td>
-                                <td className="p-2 font-mono text-[10px] text-text-tertiary">{l.ip}</td>
-                                <td className="p-2 text-[10px] text-text-tertiary truncate max-w-[200px]" title={l.user_agent}>{l.user_agent}</td>
+                          </thead>
+                          <tbody className="divide-y divide-[#e3dccb]">
+                            {(creatorDetail?.activityLogs || []).length === 0 ? (
+                              <tr>
+                                <td colSpan={4} className="p-8 text-center text-[#8c827a] font-medium">
+                                  No activity logs recorded.
+                                </td>
                               </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
+                            ) : (
+                              creatorDetail.activityLogs.map(l => (
+                                <tr key={l.id} className="hover:bg-[#fbf9f4] transition">
+                                  <td className="p-3 text-[#8c827a] font-medium whitespace-nowrap">
+                                    {new Date(l.created_at).toLocaleString()}
+                                  </td>
+                                  <td className="p-3 font-bold text-[#1a1a1a] whitespace-nowrap">
+                                    <span className="bg-[#f8f4ec] px-2 py-0.5 rounded border border-[#e3dccb] text-[10px] font-black">
+                                      {l.action}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-[#5c554e] font-medium">
+                                    {l.description}
+                                  </td>
+                                  <td className="p-3 text-right font-mono text-[10px] text-[#8c827a] whitespace-nowrap">
+                                    {l.ip}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="border border-[#e3dccb] rounded-2xl overflow-hidden max-h-[380px] overflow-y-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-[#f8f4ec] font-black text-[9px] text-[#8c827a] uppercase border-b border-[#e3dccb] tracking-wider">
+                            <tr>
+                              <th className="p-3">Date &amp; Time</th>
+                              <th className="p-3">Auth Event</th>
+                              <th className="p-3">IP Address</th>
+                              <th className="p-3">Client User Agent</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#e3dccb]">
+                            {(creatorDetail?.loginHistory || []).length === 0 ? (
+                              <tr>
+                                <td colSpan={4} className="p-8 text-center text-[#8c827a] font-medium">
+                                  No login history recorded.
+                                </td>
+                              </tr>
+                            ) : (
+                              creatorDetail.loginHistory.map(l => (
+                                <tr key={l.id} className="hover:bg-[#fbf9f4] transition">
+                                  <td className="p-3 text-[#8c827a] font-medium whitespace-nowrap">
+                                    {new Date(l.created_at).toLocaleString()}
+                                  </td>
+                                  <td className="p-3 font-black text-[#1a1a1a] whitespace-nowrap">
+                                    <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10px]">
+                                      {l.action.replace('USER_', '')}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 font-mono text-[10px] text-[#8c827a] whitespace-nowrap">
+                                    {l.ip}
+                                  </td>
+                                  <td className="p-3 text-[11px] text-[#8c827a] truncate max-w-[260px]" title={l.user_agent}>
+                                    {l.user_agent}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
+
+            {/* Footer Close Button */}
+            <div className="pt-3 border-t border-[#e3dccb] flex justify-end">
+              <button
+                onClick={() => { setModalType(null); setSelectedUserId(null); }}
+                className="px-5 py-2.5 bg-[#1a1a1a] text-white hover:bg-black rounded-xl text-xs font-black shadow-xs transition cursor-pointer"
+              >
+                Close Dossier
+              </button>
+            </div>
+          </div>
+        )}
+      </AdminModal>
+
+      {/* --- INLINE VIDEO PLAYER MODAL --- */}
+      <AdminModal
+        isOpen={!!previewReel}
+        onClose={() => setPreviewReel(null)}
+        title={previewReel?.caption || 'Reel Video Preview'}
+        maxWidth="max-w-lg"
+      >
+        {previewReel && (
+          <div className="space-y-4">
+            <div className="rounded-2xl overflow-hidden bg-black border border-[#e3dccb] shadow-lg flex items-center justify-center">
+              <video
+                src={previewReel.videoUrl}
+                controls
+                autoPlay
+                className="w-full max-h-[62vh] object-contain rounded-2xl"
+              />
+            </div>
+
+            <div className="bg-[#f8f4ec] p-3.5 rounded-xl border border-[#e3dccb] space-y-2">
+              <p className="text-xs font-black text-[#1a1a1a] leading-relaxed">
+                {previewReel.caption || 'No caption provided'}
+              </p>
+              <div className="flex items-center justify-between text-[11px] text-[#8c827a] pt-2 border-t border-[#e3dccb]">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-[#1a1a1a]">{(previewReel.views || 0).toLocaleString()} Views</span>
+                  <span className="font-bold text-rose-700">{(previewReel.likes || 0).toLocaleString()} Likes</span>
+                </div>
+                <a
+                  href={previewReel.videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-bold text-[#1a1a1a] hover:underline"
+                >
+                  <FiExternalLink className="w-3.5 h-3.5" /> Source Link
+                </a>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setPreviewReel(null)}
+              className="w-full py-2.5 bg-[#1a1a1a] text-white hover:bg-black font-black rounded-xl text-xs transition"
+            >
+              Close Video Player
+            </button>
           </div>
         )}
       </AdminModal>
