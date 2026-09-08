@@ -116,11 +116,15 @@ const ensureDevAdminToken = async () => {
 const sanitizeAdminUsers = async () => {
   try {
     const adminDocs = await User.find({
-      $or: [{ roles: 'admin' }, { email: 'admin@bidzord.com' }, { name: 'Super Admin' }]
+      $or: [{ roles: 'admin' }, { email: 'admin@bidzord.com' }, { email: 'admin@bizreels.in' }, { name: 'Super Admin' }]
     });
 
     for (const doc of adminDocs) {
       let changed = false;
+      if (doc.email === 'admin@bidzord.com') {
+        doc.email = 'admin@bizreels.in';
+        changed = true;
+      }
       if (!Array.isArray(doc.roles) || doc.roles.length !== 1 || doc.roles[0] !== 'admin') {
         doc.roles = ['admin'];
         changed = true;
@@ -135,7 +139,7 @@ const sanitizeAdminUsers = async () => {
       }
       if (changed) {
         await doc.save();
-        logger.info(`Sanitized admin user ${doc._id} (${doc.email || doc.phone}): roles reset to ['admin'] strictly.`);
+        logger.info(`Sanitized admin user ${doc._id} (${doc.email || doc.phone}): roles and branding updated.`);
       }
     }
   } catch (err) {

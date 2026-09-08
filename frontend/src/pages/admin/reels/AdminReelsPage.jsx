@@ -211,9 +211,9 @@ export default function AdminReelsPage() {
                 <div className="text-white text-xs text-center p-4">Video URL missing or invalid format</div>
               )}
             </div>
-            <div className="bg-surface-secondary p-3 rounded-xl text-xs space-y-1">
-              <span className="font-bold text-text-primary block">{playReel.caption || 'No caption'}</span>
-              <span className="text-text-tertiary block">Creator: {playReel.creator_name}</span>
+            <div className="bg-[#f8f4ec] p-3.5 rounded-2xl border border-[#e3dccb] text-xs space-y-1 shadow-2xs">
+              <span className="font-bold text-[#1a1a1a] block">{playReel.caption || 'No caption'}</span>
+              <span className="text-slate-400 block font-medium">Creator: <strong className="text-[#1a1a1a]">{playReel.creator_name}</strong></span>
             </div>
           </div>
         )}

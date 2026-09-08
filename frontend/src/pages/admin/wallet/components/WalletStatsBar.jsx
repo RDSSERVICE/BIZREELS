@@ -49,19 +49,19 @@ export default function WalletStatsBar() {
       {cards.map((card) => (
         <div
           key={card.label}
-          className="glass rounded-2xl p-5 border border-white/50 hover:border-brand-purple/30 transition-all group"
+          className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs hover:shadow-xs transition-all group"
         >
           <div className="flex items-start justify-between">
             <div>
-              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                 {card.label}
               </span>
               <span className={`text-2xl font-black mt-1 font-display block ${card.color}`}>
                 {isLoading ? '...' : card.value}
               </span>
-              <span className="text-[10px] text-text-tertiary">{card.sub}</span>
+              <span className="text-[10px] text-slate-400">{card.sub}</span>
             </div>
-            <div className={`p-2.5 rounded-xl ${card.bg} group-hover:scale-110 transition-transform`}>
+            <div className={`p-2.5 rounded-xl ${card.bg} group-hover:scale-105 transition-transform`}>
               <card.icon className={`w-5 h-5 ${card.color}`} />
             </div>
           </div>

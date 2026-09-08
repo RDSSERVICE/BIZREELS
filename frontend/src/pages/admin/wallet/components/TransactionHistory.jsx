@@ -129,40 +129,40 @@ export default function TransactionHistory() {
   return (
     <div className="space-y-4">
       {/* Search & Filters Bar */}
-      <div className="glass rounded-2xl p-4 border border-white/50 space-y-3">
+      <div className="bg-white rounded-2xl p-4 border border-[#e3dccb] shadow-2xs space-y-3">
         <div className="flex flex-wrap gap-2 items-center">
           <div className="flex-1 min-w-[250px] relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary w-4 h-4" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search by User ID, Transaction ID, Reference ID, or Name..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a] transition-all"
             />
           </div>
           <button
             onClick={handleSearch}
-            className="px-4 py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold hover:bg-brand-purple/90 transition-all"
+            className="px-4 py-2.5 bg-[#1a1a1a] text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-xs cursor-pointer"
           >
             Search
           </button>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${showFilters ? 'bg-brand-purple text-white' : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'}`}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${showFilters ? 'bg-[#1a1a1a] text-white' : 'bg-[#f8f4ec] text-[#1a1a1a] border border-[#e3dccb] hover:bg-white'}`}
           >
             <FiFilter className="w-3.5 h-3.5" /> Filters
           </button>
           <button
             onClick={handleExportCSV}
-            className="px-3 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all flex items-center gap-1"
+            className="px-3 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
           >
             <FiDownload className="w-3.5 h-3.5" /> CSV
           </button>
           <button
             onClick={handleExportExcel}
-            className="px-3 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all flex items-center gap-1"
+            className="px-3 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
           >
             <FiDownload className="w-3.5 h-3.5" /> Excel
           </button>
@@ -170,32 +170,32 @@ export default function TransactionHistory() {
 
         {/* Expandable Filters */}
         {showFilters && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-2 border-t border-border animate-fade-in">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-2 border-t border-[#e3dccb] animate-fade-in">
             <select
               value={filters.user_role}
               onChange={(e) => handleFilterChange('user_role', e.target.value)}
-              className="px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+              className="px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
             >
               {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+              className="px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
             >
               {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
             <select
               value={filters.transaction_type}
               onChange={(e) => handleFilterChange('transaction_type', e.target.value)}
-              className="px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+              className="px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
             >
               {TRANSACTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
             <select
               value={filters.credit_debit}
               onChange={(e) => handleFilterChange('credit_debit', e.target.value)}
-              className="px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+              className="px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
             >
               <option value="">Credit & Debit</option>
               <option value="credit">Credit Only</option>
@@ -205,14 +205,14 @@ export default function TransactionHistory() {
               type="date"
               value={filters.from_date}
               onChange={(e) => handleFilterChange('from_date', e.target.value)}
-              className="px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+              className="px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
               placeholder="From Date"
             />
             <input
               type="date"
               value={filters.to_date}
               onChange={(e) => handleFilterChange('to_date', e.target.value)}
-              className="px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+              className="px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
               placeholder="To Date"
             />
           </div>
@@ -220,82 +220,82 @@ export default function TransactionHistory() {
       </div>
 
       {/* Table */}
-      <div className="glass rounded-2xl border border-white/50 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#e3dccb] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border bg-surface-secondary/50">
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Transaction</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">User</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Type</th>
-                <th className="text-right px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Amount</th>
-                <th className="text-right px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Balance</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Date</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Remarks</th>
+              <tr className="border-b border-[#e3dccb] bg-[#f8f4ec]">
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Transaction</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">User</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Type</th>
+                <th className="text-right px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Amount</th>
+                <th className="text-right px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Balance</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Status</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Date</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Remarks</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-[#e3dccb]">
               {isFetching && items.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-text-tertiary">
+                  <td colSpan={8} className="text-center py-12 text-slate-400">
                     <div className="animate-pulse">Loading transactions...</div>
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-text-tertiary">
+                  <td colSpan={8} className="text-center py-12 text-slate-400">
                     No transactions found.
                   </td>
                 </tr>
               ) : (
                 items.map((txn) => (
-                  <tr key={txn.id} className="hover:bg-surface-secondary/30 transition-colors">
+                  <tr key={txn.id} className="hover:bg-[#fbf9f4] transition-colors">
                     <td className="px-4 py-3">
                       <div>
-                        <span className="font-mono text-[10px] text-brand-purple block">{txn.transaction_id?.slice(-12)}</span>
+                        <span className="font-mono text-[10px] font-bold text-[#1a1a1a] block">{txn.transaction_id?.slice(-12)}</span>
                         {txn.reference_id && (
-                          <span className="text-[9px] text-text-tertiary">Ref: {txn.reference_id?.slice(-10)}</span>
+                          <span className="text-[9px] text-slate-400">Ref: {txn.reference_id?.slice(-10)}</span>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        <span className="font-bold text-text-primary block">{txn.user_name || 'Unknown'}</span>
-                        <span className="text-[9px] text-text-tertiary">
+                        <span className="font-bold text-[#1a1a1a] block">{txn.user_name || 'Unknown'}</span>
+                        <span className="text-[9px] text-slate-400">
                           {txn.user_id?.slice(-8)} • <span className="capitalize">{txn.user_role}</span>
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${txn.credit_debit === 'credit' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'}`}>
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border ${txn.credit_debit === 'credit' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                         {formatType(txn.transaction_type)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={`font-bold ${txn.credit_debit === 'credit' ? 'text-emerald-600' : 'text-red-500'}`}>
+                      <span className={`font-black ${txn.credit_debit === 'credit' ? 'text-emerald-600' : 'text-red-500'}`}>
                         {txn.credit_debit === 'credit' ? '+' : '-'}{txn.amount?.toLocaleString('en-IN')}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div>
-                        <span className="font-bold text-text-primary block">{txn.updated_balance?.toLocaleString('en-IN')}</span>
-                        <span className="text-[9px] text-text-tertiary">was {txn.previous_balance?.toLocaleString('en-IN')}</span>
+                        <span className="font-bold text-[#1a1a1a] block">{txn.updated_balance?.toLocaleString('en-IN')}</span>
+                        <span className="text-[9px] text-slate-400">was {txn.previous_balance?.toLocaleString('en-IN')}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <AdminStatusBadge status={txn.status} />
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-text-tertiary text-[10px]">
+                      <span className="text-slate-600 text-[10px] font-medium">
                         {txn.created_at ? new Date(txn.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}
                       </span>
-                      <span className="text-[9px] text-text-tertiary block">
+                      <span className="text-[9px] text-slate-400 block">
                         {txn.created_at ? new Date(txn.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                     </td>
                     <td className="px-4 py-3 max-w-[150px]">
-                      <span className="text-text-tertiary text-[10px] truncate block" title={txn.admin_remarks}>
+                      <span className="text-slate-500 text-[10px] truncate block" title={txn.admin_remarks}>
                         {txn.admin_remarks || txn.notes || '—'}
                       </span>
                     </td>
@@ -308,27 +308,27 @@ export default function TransactionHistory() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-surface-secondary/30">
-            <span className="text-[10px] text-text-tertiary">
-              Showing {((page - 1) * 25) + 1}–{Math.min(page * 25, total)} of {total} transactions
+          <div className="flex items-center justify-between px-4 py-3 border-t border-[#e3dccb] bg-[#f8f4ec]">
+            <span className="text-[10px] text-slate-500 font-bold">
+              Showing {((page - 1) * limit) + 1}–{Math.min(page * limit, total)} of {total} transactions
             </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1.5 rounded-lg hover:bg-surface-tertiary disabled:opacity-30 transition-all"
+                className="p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#e3dccb] disabled:opacity-30 transition-all cursor-pointer"
               >
-                <FiChevronLeft className="w-4 h-4" />
+                <FiChevronLeft className="w-4 h-4 text-[#1a1a1a]" />
               </button>
-              <span className="text-xs font-bold text-text-secondary px-2">
+              <span className="text-xs font-bold text-[#1a1a1a] px-2">
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-1.5 rounded-lg hover:bg-surface-tertiary disabled:opacity-30 transition-all"
+                className="p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#e3dccb] disabled:opacity-30 transition-all cursor-pointer"
               >
-                <FiChevronRight className="w-4 h-4" />
+                <FiChevronRight className="w-4 h-4 text-[#1a1a1a]" />
               </button>
             </div>
           </div>

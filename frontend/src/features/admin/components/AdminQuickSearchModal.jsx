@@ -1,17 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiX, FiUsers, FiUserCheck, FiFilm, FiLayers, FiShield, FiSettings, FiGrid, FiArrowRight } from 'react-icons/fi';
+import {
+  FiSearch, FiX, FiUsers, FiUserCheck, FiFilm, FiLayers, FiShield,
+  FiSettings, FiGrid, FiArrowRight, FiZap, FiFolder, FiMapPin,
+  FiInbox, FiMail, FiMessageSquare, FiShoppingBag, FiCreditCard,
+  FiStar, FiBarChart2, FiCpu, FiBell, FiGift, FiAlertTriangle,
+  FiFileText, FiLock, FiList, FiPieChart, FiTerminal
+} from 'react-icons/fi';
+import { FaRupeeSign } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_TARGETS = [
-  { name: 'Dashboard Overview', path: '/admin/dashboard', icon: FiGrid, category: 'Navigation' },
-  { name: 'Customer Directory', path: '/admin/customers', icon: FiUsers, category: 'Users' },
-  { name: 'Vendor Directory', path: '/admin/vendors', icon: FiUserCheck, category: 'Users' },
-  { name: 'Creator Directory', path: '/admin/creators', icon: FiFilm, category: 'Users' },
+  { name: 'Dashboard Overview', path: '/admin/dashboard', icon: FiGrid, category: 'Overview' },
+  { name: 'System Console', path: '/admin/console', icon: FiTerminal, category: 'Overview' },
+  { name: 'Customer Directory', path: '/admin/customers', icon: FiUsers, category: 'User Management' },
+  { name: 'Vendor Directory', path: '/admin/vendors', icon: FiUserCheck, category: 'User Management' },
+  { name: 'Creator Directory', path: '/admin/creators', icon: FiFilm, category: 'User Management' },
   { name: 'KYC Verifications Queue', path: '/admin/kyc', icon: FiShield, category: 'Verification' },
-  { name: 'Content Listings', path: '/admin/listings', icon: FiLayers, category: 'Content' },
-  { name: 'Reels Moderation', path: '/admin/reels', icon: FiFilm, category: 'Content' },
-  { name: 'App Settings & Features', path: '/admin/app-settings', icon: FiSettings, category: 'System' },
+  { name: 'Catalog Listings', path: '/admin/listings', icon: FiLayers, category: 'Content' },
+  { name: 'Reels Videos & Moderation', path: '/admin/reels', icon: FiFilm, category: 'Content' },
+  { name: 'Boost Plans & Ads', path: '/admin/boost', icon: FiZap, category: 'Content' },
+  { name: 'Categories Hierarchy', path: '/admin/categories', icon: FiFolder, category: 'Content' },
+  { name: 'Geo Location & Radius', path: '/admin/locations', icon: FiMapPin, category: 'Operations' },
+  { name: 'Requirements & Inquiries', path: '/admin/requirements', icon: FiInbox, category: 'Operations' },
+  { name: 'Contact Inquiries', path: '/admin/contact-inquiries', icon: FiMail, category: 'Operations' },
+  { name: 'Live Chat Monitor', path: '/admin/chat', icon: FiMessageSquare, category: 'Operations' },
+  { name: 'Orders & Closed Deals', path: '/admin/orders', icon: FiShoppingBag, category: 'Operations' },
+  { name: 'Wallet & Ledger Management', path: '/admin/wallet', icon: FiCreditCard, category: 'Finance' },
+  { name: 'Subscription Plans & Users', path: '/admin/subscriptions', icon: FiCreditCard, category: 'Finance' },
+  { name: 'Commission Rates & GST', path: '/admin/commission', icon: FaRupeeSign, category: 'Finance' },
+  { name: 'Reviews & Feedback', path: '/admin/reviews', icon: FiStar, category: 'Engagement' },
+  { name: 'Platform Analytics', path: '/admin/analytics', icon: FiBarChart2, category: 'Engagement' },
+  { name: 'AI Features & Prompt Config', path: '/admin/ai', icon: FiCpu, category: 'Engagement' },
+  { name: 'Broadcast Notifications', path: '/admin/notifications', icon: FiBell, category: 'Engagement' },
+  { name: 'Coupons & Promotional Offers', path: '/admin/offers', icon: FiGift, category: 'Engagement' },
+  { name: 'Reports & Content Moderation', path: '/admin/moderation', icon: FiAlertTriangle, category: 'Moderation' },
+  { name: 'CMS & Legal Pages', path: '/admin/cms', icon: FiFileText, category: 'System' },
+  { name: 'Application Settings', path: '/admin/app-settings', icon: FiSettings, category: 'System' },
+  { name: 'Credit Purchasing Rates', path: '/admin/credit-rates', icon: FiZap, category: 'System' },
+  { name: 'Admin Security & Password', path: '/admin/security', icon: FiLock, category: 'System' },
+  { name: 'System Audit Logs', path: '/admin/audit', icon: FiList, category: 'System' },
+  { name: 'Financial Tax Reports', path: '/admin/financial-reports', icon: FiPieChart, category: 'System' },
 ];
 
 /**
@@ -38,7 +67,6 @@ export default function AdminQuickSearchModal({ isOpen, onClose }) {
         if (isOpen) {
           onClose();
         } else {
-          // Trigger open via parent
           document.dispatchEvent(new CustomEvent('open-admin-search'));
         }
       }
@@ -63,25 +91,27 @@ export default function AdminQuickSearchModal({ isOpen, onClose }) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 font-sans">
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
           />
 
+          {/* Modal Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             className="relative w-full max-w-lg bg-white rounded-2xl border border-[#e3dccb] shadow-2xl overflow-hidden z-50 flex flex-col"
           >
             {/* Search Header Input */}
             <div className="flex items-center px-4 py-3.5 border-b border-[#e3dccb] bg-[#f8f4ec] gap-3">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1D4ED8]">
+              <div className="w-8 h-8 rounded-xl bg-white border border-[#e3dccb] flex items-center justify-center text-[#d99a3d] shadow-2xs">
                 <FiSearch className="w-4 h-4" />
               </div>
               <input
@@ -89,20 +119,21 @@ export default function AdminQuickSearchModal({ isOpen, onClose }) {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Type a command or search sections... (e.g. Customers, KYC, Reels)"
+                placeholder="Search 28 admin modules... (e.g. KYC, Orders, Wallet)"
                 className="w-full bg-transparent text-xs font-black text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none"
               />
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-all cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-[#ede5d8] text-slate-500 hover:text-[#1a1a1a] transition-all cursor-pointer"
+                title="Close"
               >
                 <FiX className="w-4 h-4" />
               </button>
             </div>
 
             {/* Results List */}
-            <div className="max-h-72 overflow-y-auto p-2 space-y-1 bg-white">
+            <div className="max-h-80 overflow-y-auto p-2 space-y-1 bg-white">
               {filteredItems.length === 0 ? (
                 <div className="p-8 text-center text-xs font-semibold text-slate-400">
                   No matching admin modules found for "{query}".
@@ -118,11 +149,11 @@ export default function AdminQuickSearchModal({ isOpen, onClose }) {
                       className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#f8f4ec] text-left group transition-all cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-[#f8f4ec] text-[#1D4ED8] group-hover:bg-[#0F172A] group-hover:text-[#EAB308] border border-[#e3dccb] transition-all">
+                        <div className="p-2 rounded-xl bg-[#f8f4ec] text-[#1a1a1a] group-hover:bg-[#1a1a1a] group-hover:text-[#d99a3d] border border-[#e3dccb] transition-all shrink-0 shadow-2xs">
                           <Icon className="w-4 h-4" />
                         </div>
-                        <div>
-                          <span className="text-xs font-black text-[#1a1a1a] group-hover:text-[#1D4ED8] block leading-tight">
+                        <div className="min-w-0">
+                          <span className="text-xs font-black text-[#1a1a1a] group-hover:text-[#1a1a1a] block leading-tight truncate">
                             {item.name}
                           </span>
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mt-0.5">
@@ -130,7 +161,7 @@ export default function AdminQuickSearchModal({ isOpen, onClose }) {
                           </span>
                         </div>
                       </div>
-                      <FiArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#1D4ED8] group-hover:translate-x-1 transition-all" />
+                      <FiArrowRight className="w-4 h-4 text-slate-300 group-hover:text-[#1a1a1a] group-hover:translate-x-1 transition-all shrink-0" />
                     </button>
                   );
                 })
@@ -139,9 +170,9 @@ export default function AdminQuickSearchModal({ isOpen, onClose }) {
 
             {/* Footer with Hint */}
             <div className="px-4 py-2 border-t border-[#e3dccb] bg-[#f8f4ec] flex items-center justify-between text-[10px] text-slate-500 font-bold">
-              <span>Quick Search Palette</span>
-              <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-white border border-[#e3dccb] text-[9px] text-slate-700 shadow-2xs">ESC</kbd>
+              <span>Navigate with arrow keys or click</span>
+              <div className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 rounded bg-white border border-[#e3dccb] text-[9px] font-mono text-slate-500 shadow-2xs">ESC</kbd>
                 <span>to close</span>
               </div>
             </div>

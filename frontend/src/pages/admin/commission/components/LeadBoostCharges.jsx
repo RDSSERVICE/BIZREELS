@@ -64,9 +64,9 @@ export default function LeadBoostCharges() {
   ];
 
   return (
-    <div className="max-w-3xl glass rounded-2xl p-5 border border-white/50 space-y-4 text-xs animate-fade-in">
-      <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Lead Acquisition & Ad Boost Configurations</h3>
-      <p className="text-[10px] text-text-tertiary">
+    <div className="max-w-3xl bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs space-y-4 text-xs animate-fade-in">
+      <h3 className="text-sm font-bold text-[#1a1a1a] uppercase tracking-wider">Lead Acquisition & Ad Boost Configurations</h3>
+      <p className="text-[10px] text-slate-500">
         Configure the value of digital wallet credits charged for business actions and outreach boosts across the portal.
       </p>
 
@@ -74,39 +74,39 @@ export default function LeadBoostCharges() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {fields.map((f) => (
             <div key={f.key} className="space-y-1">
-              <label className="block text-text-secondary font-bold uppercase tracking-wider text-[10px]">
+              <label className="block text-[#1a1a1a] font-bold uppercase tracking-wider text-[10px]">
                 {f.label}
               </label>
-              <p className="text-[9px] text-text-tertiary leading-normal">{f.desc}</p>
+              <p className="text-[9px] text-slate-400 leading-normal">{f.desc}</p>
               <div className="relative pt-1">
                 <input
                   type="number"
                   placeholder="e.g. 10"
                   value={form[f.key]}
                   onChange={(e) => handleChange(f.key, e.target.value)}
-                  className="w-full pl-3 pr-14 py-2 bg-surface border border-border rounded-xl font-bold focus:outline-none focus:border-brand-purple"
+                  className="w-full pl-3 pr-14 py-2 bg-white border border-[#e3dccb] rounded-xl font-bold text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-[10px] font-bold text-text-tertiary">credits</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-[10px] font-bold text-slate-400">credits</span>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="border-t border-border pt-4">
-          <label className="block mb-1 text-text-tertiary font-bold uppercase tracking-wider text-[10px]">Reason for updates *</label>
+        <div className="border-t border-[#e3dccb] pt-4">
+          <label className="block mb-1 text-slate-500 font-bold uppercase tracking-wider text-[10px]">Reason for updates *</label>
           <textarea
             rows={2}
             placeholder="Audit trail logs require explanation for changing billing rules..."
             value={form.reason}
             onChange={(e) => handleChange('reason', e.target.value)}
-            className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none resize-none"
+            className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a] resize-none"
           />
         </div>
 
         <button
           type="submit"
           disabled={updating || loading}
-          className="w-full md:w-auto px-6 py-2.5 bg-brand-purple text-white font-bold rounded-xl hover:bg-brand-purple/90 transition-all flex items-center justify-center gap-1.5 shadow-premium"
+          className="w-full md:w-auto px-6 py-2.5 bg-[#1a1a1a] text-white font-bold rounded-xl hover:bg-black transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
         >
           <FiCheck className="w-4 h-4" /> Save Boosting Configurations
         </button>

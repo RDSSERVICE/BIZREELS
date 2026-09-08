@@ -237,6 +237,9 @@ router.use('/subscriptions', lazyLoad('./subscription.routes'));
 router.use('/referrals', lazyLoad('./referral.routes'));
 
 // Admin module routes
+router.use('/admin', lazyLoad('./admin.routes'));
+router.use('/', lazyLoad('./report.routes'));
+router.use('/', lazyLoad('./kyc.routes'));
 // Web Landing & OpenGraph Share Preview for Shared Reels
 router.get(['/reels/:id', '/reels/share/:id'], async (req, res) => {
   try {

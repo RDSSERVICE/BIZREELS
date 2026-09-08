@@ -66,38 +66,38 @@ export default function PlansList({ onEdit, onCreateNew }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-sm font-bold text-text-primary">All Pricing Plans ({plans.length})</h2>
+        <h2 className="text-sm font-bold text-[#1a1a1a]">All Pricing Plans ({plans.length})</h2>
         <button
           onClick={onCreateNew}
-          className="px-3 py-1.5 bg-brand-purple text-white rounded-xl text-xs font-bold hover:bg-brand-purple/90"
+          className="px-3 py-1.5 bg-[#1a1a1a] text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-xs cursor-pointer"
         >
           + Create New Plan
         </button>
       </div>
 
-      <div className="glass rounded-2xl border border-white/50 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#e3dccb] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border bg-surface-secondary/50">
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Plan Title</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Target</th>
-                <th className="text-right px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Price (INR)</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Duration</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Limits (Listing / Lead / Reel)</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Features</th>
-                <th className="text-left px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Status</th>
-                <th className="text-center px-4 py-3 font-bold text-text-tertiary uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-[#e3dccb] bg-[#f8f4ec]">
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Plan Title</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Target</th>
+                <th className="text-right px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Price (INR)</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Duration</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Limits (Listing / Lead / Reel)</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Features</th>
+                <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Status</th>
+                <th className="text-center px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-[#e3dccb]">
               {isFetching && plans.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-text-tertiary animate-pulse">Loading plans...</td></tr>
+                <tr><td colSpan={8} className="text-center py-12 text-slate-400 animate-pulse">Loading plans...</td></tr>
               ) : plans.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-text-tertiary">No subscription plans found.</td></tr>
+                <tr><td colSpan={8} className="text-center py-12 text-slate-400">No subscription plans found.</td></tr>
               ) : (
                 plans.map((plan) => (
-                  <tr key={plan.id} className="hover:bg-surface-secondary/30 transition-colors">
+                  <tr key={plan.id} className="hover:bg-[#fbf9f4] transition-colors">
                     <td className="px-4 py-3">
                       <div>
                         <span className="font-bold text-text-primary block">{plan.title}</span>

@@ -188,33 +188,33 @@ export default function AdminCreators() {
 
       {/* --- DASHBOARD STATISTICS --- */}
       {loadingStats ? (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="glass rounded-2xl p-4 border border-white/50 h-24 skeleton" />
+            <div key={i} className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e3dccb] h-24 animate-pulse shadow-2xs" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           {[
-            { label: 'Total Creators', val: stats?.totalCreators, trend: stats?.growthTrend, icon: FiFilm, color: 'text-brand-pink' },
-            { label: 'Active Creators', val: stats?.activeCreators, sub: 'Not banned/suspended', icon: FiUserCheck, color: 'text-emerald-500' },
-            { label: 'Verified Creators', val: stats?.verifiedCreators, sub: 'KYC Approved', icon: FiShield, color: 'text-blue-500' },
-            { label: 'Total Earnings', val: `₹${(stats?.totalEarnings || 0).toLocaleString('en-IN')}`, sub: 'Settled campaign budgets', icon: FiDollarSign, color: 'text-amber-500' },
-            { label: 'Reels / Campaigns', val: `${stats?.totalReels || 0} / ${stats?.totalCampaigns || 0}`, sub: 'Published clips', icon: FiShoppingBag, color: 'text-purple-500' }
+            { label: 'Total Creators', val: stats?.totalCreators, trend: stats?.growthTrend, icon: FiFilm },
+            { label: 'Active Creators', val: stats?.activeCreators, sub: 'Not banned/suspended', icon: FiUserCheck },
+            { label: 'Verified Creators', val: stats?.verifiedCreators, sub: 'KYC Approved', icon: FiShield },
+            { label: 'Total Earnings', val: `₹${(stats?.totalEarnings || 0).toLocaleString('en-IN')}`, sub: 'Settled campaign budgets', icon: FiDollarSign },
+            { label: 'Reels / Campaigns', val: `${stats?.totalReels || 0} / ${stats?.totalCampaigns || 0}`, sub: 'Published clips', icon: FiShoppingBag }
           ].map((card, idx) => (
-            <div key={idx} className="glass rounded-2xl p-4 border border-white/50 shadow-glass flex items-center justify-between transition-all hover:scale-[1.02]">
-              <div>
-                <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">{card.label}</span>
-                <span className="text-xl font-black text-text-primary mt-1 block truncate max-w-[140px]">{card.val ?? 0}</span>
+            <div key={idx} className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e3dccb] shadow-2xs hover:shadow-xs flex items-center justify-between transition-all">
+              <div className="min-w-0 flex-1 pr-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block truncate">{card.label}</span>
+                <span className="text-xl sm:text-2xl font-black text-[#1a1a1a] mt-1 block truncate tracking-tight">{card.val ?? 0}</span>
                 {card.trend !== undefined ? (
-                  <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-0.5 mt-0.5">
-                    <FiArrowUpRight className="w-3.5 h-3.5" /> +{card.trend}% growth (30d)
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-extrabold inline-flex items-center gap-0.5 mt-1">
+                    <FiArrowUpRight className="w-3.5 h-3.5" /> +{card.trend}% (30d)
                   </span>
                 ) : (
-                  <span className="text-[9px] text-text-tertiary mt-0.5 block">{card.sub}</span>
+                  <span className="text-[10px] text-slate-400 mt-1 block font-medium truncate">{card.sub}</span>
                 )}
               </div>
-              <div className={`p-2.5 rounded-xl bg-surface-secondary flex-shrink-0 ${card.color}`}>
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[#f8f4ec] text-[#1a1a1a] border border-[#e3dccb] flex items-center justify-center shrink-0 shadow-2xs">
                 <card.icon className="w-5 h-5" />
               </div>
             </div>
@@ -327,29 +327,29 @@ export default function AdminCreators() {
       </div>
 
       {/* --- CREATORS TABLE --- */}
-      <div className="glass rounded-2xl border border-white/50 shadow-glass overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#e3dccb] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-border bg-surface-secondary/40">
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Creator</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Creator ID</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">KYC Verification</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Account Status</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Reels Published</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Joined / Last Login</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-text-tertiary uppercase tracking-wider text-right">Earnings</th>
-                <th className="px-4 py-3 text-right text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-[#e3dccb] bg-[#f8f4ec]">
+                <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Creator</th>
+                <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Creator ID</th>
+                <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">KYC Verification</th>
+                <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Account Status</th>
+                <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Reels Published</th>
+                <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Joined / Last Login</th>
+                <th className="px-4 py-3.5 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Earnings</th>
+                <th className="px-4 py-3.5 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#e3dccb]/50">
               {loadingCreators ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="border-b border-border/50 h-16 skeleton" />
+                  <tr key={i} className="animate-pulse h-16 bg-[#f8f4ec]/30" />
                 ))
               ) : creators.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-xs text-text-tertiary">
+                  <td colSpan={8} className="px-4 py-16 text-center text-xs text-slate-400">
                     No creators found matching the criteria. Try refining filters.
                   </td>
                 </tr>
@@ -357,27 +357,27 @@ export default function AdminCreators() {
                 creators.map((c) => {
                   const accountStatus = c.is_banned ? 'Suspended' : c.is_active ? 'Active' : 'Inactive';
                   return (
-                    <tr key={c.id} className="border-b border-border/40 hover:bg-brand-pink/5 transition-colors">
+                    <tr key={c.id} className="transition-colors hover:bg-[#fbf9f4]">
                       {/* Name / Contact */}
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2.5">
                           {c.profile_pic ? (
-                            <img src={c.profile_pic} alt={c.name} className="w-8 h-8 rounded-full object-cover border border-border" />
+                            <img src={c.profile_pic} alt={c.name} className="w-8 h-8 rounded-full object-cover border border-[#e3dccb]" />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-brand-pink/10 text-brand-pink flex items-center justify-center text-[11px] font-black">
+                            <div className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center text-[#d99a3d] text-[11px] font-black border border-[#1a1a1a]">
                               {(c.name || 'C')[0].toUpperCase()}
                             </div>
                           )}
                           <div>
-                            <span className="font-bold text-text-primary block text-xs leading-tight">{c.name || 'Unknown'}</span>
-                            <span className="text-[10px] text-text-tertiary mt-0.5 block">{c.phone || c.email || '—'}</span>
+                            <span className="font-bold text-[#1a1a1a] block text-xs leading-tight">{c.name || 'Unknown'}</span>
+                            <span className="text-[10px] text-slate-400 mt-0.5 block">{c.phone || c.email || '—'}</span>
                           </div>
                         </div>
                       </td>
 
                       {/* ID */}
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-[10px] text-text-secondary select-all">{c.id}</span>
+                      <td className="px-4 py-3.5">
+                        <span className="font-mono text-[10px] text-slate-500 select-all">{c.id}</span>
                       </td>
 
                       {/* KYC status badge */}
@@ -412,7 +412,7 @@ export default function AdminCreators() {
 
                       {/* Spendings */}
                       <td className="px-4 py-3 text-right">
-                        <span className="text-xs font-black text-brand-pink">₹{(c.total_earnings || 0).toLocaleString('en-IN')}</span>
+                        <span className="text-xs font-black text-emerald-600">₹{(c.total_earnings || 0).toLocaleString('en-IN')}</span>
                       </td>
 
                       {/* Actions */}

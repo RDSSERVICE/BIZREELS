@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
-import { FiLock, FiMail, FiEye, FiEyeOff, FiShield, FiArrowRight, FiRefreshCw } from 'react-icons/fi';
+import { FiLock, FiShield, FiArrowRight, FiArrowLeft, FiZap } from 'react-icons/fi';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { setCredentials } from '../../features/auth/authSlice';
+import Input from '../../components/common/Input';
+import SEO from '../../components/common/SEO';
 
 /**
- * Clean, Centered Admin Login Page (Dark Blue & Gold Yellow Theme)
- * Standalone without extra hero components
+ * Admin Login Page styled according to the Warm Editorial Bento-Brutalism system,
+ * fully matching the /auth/login and AuthLayout aesthetic.
  */
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -18,16 +20,15 @@ export default function AdminLogin() {
   const dispatch = useDispatch();
   const { applyAuthResponse } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const from = location.state?.from?.pathname || '/admin/dashboard';
 
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
   } = useForm({
-    defaultValues: { email: '', password: '' }
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = async (data) => {
@@ -47,140 +48,200 @@ export default function AdminLogin() {
       const authData = {
         access_token: res.data.accessToken || res.data.access_token,
         refresh_token: res.data.refreshToken || res.data.refresh_token,
-        user: res.data.user
+        user: res.data.user,
       };
 
       applyAuthResponse(authData);
 
       // Synchronize Redux Auth State
-      dispatch(setCredentials({
-        user: res.data.user,
-        accessToken: res.data.accessToken
-      }));
+      dispatch(
+        setCredentials({
+          user: res.data.user,
+          accessToken: res.data.accessToken,
+        })
+      );
 
       toast.success('Access granted. Welcome to Admin Control Center!');
       navigate(from, { replace: true });
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Login failed. Please check admin credentials.');
+      toast.error(
+        err?.response?.data?.message || 'Login failed. Please check admin credentials.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0F172A] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1E293B] via-[#0F172A] to-[#090D16] flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden">
-      {/* Decorative ambient background glows */}
-      <div className="bg-[#EAB308]/10 blur-3xl rounded-full w-96 h-96 absolute -top-20 -left-20 pointer-events-none" />
-      <div className="bg-[#1D4ED8]/15 blur-3xl rounded-full w-96 h-96 absolute -bottom-20 -right-20 pointer-events-none" />
+    <div
+      className="relative min-h-screen overflow-x-hidden flex flex-col justify-between font-sans px-4 py-4 sm:py-6 sm:px-6 lg:px-8"
+      style={{ backgroundColor: '#f2ede4' }}
+    >
+      <SEO title="Admin Control Center — BizReels" robots="noindex, nofollow" />
 
-      {/* Centered Admin Login Card */}
-      <div className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-2xl border-2 border-[#EAB308]/40 text-[#0F172A] relative z-10 overflow-hidden animate-scale-in">
-        {/* Top Accent Gradient Line */}
-        <div className="h-2.5 bg-gradient-to-r from-[#0F172A] via-[#EAB308] to-[#1D4ED8] w-full absolute top-0 left-0" />
+      {/* Subtle ambient warm background glow */}
+      <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-[#d99a3d]/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-[#1c1a17]/5 blur-3xl pointer-events-none" />
 
-        {/* Brand Badge & Header */}
-        <div className="flex flex-col items-center text-center mb-7">
-          <div className="w-16 h-16 rounded-2xl bg-[#0F172A] p-2.5 flex items-center justify-center shadow-xl border border-[#EAB308]/40 mb-3 ring-4 ring-[#EAB308]/10 transition-transform hover:scale-105">
-            <img src="/logo.png" alt="BizReels Logo" className="w-full h-full object-contain" />
-          </div>
-          <div className="flex items-center gap-1 mb-1">
-            <span className="text-2xl font-black tracking-tight text-[#0F172A]">Biz<span className="text-[#EAB308]">Reels</span></span>
-          </div>
-          <h2 className="text-lg font-extrabold text-slate-800 tracking-tight">
-            Admin Control Center
-          </h2>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            Authorized personnel only. Sign in to proceed.
+      {/* Top Bar with Back to Website Navigation */}
+      <div className="w-full max-w-5xl mx-auto mb-3 sm:mb-4 lg:mb-5 flex items-center justify-between z-20">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-700 hover:text-[#1a1a1a] transition-all group px-4 py-1.5 sm:py-2 rounded-full bg-white/85 hover:bg-white border border-[#e3dccb] shadow-2xs hover:shadow-xs cursor-pointer"
+        >
+          <FiArrowLeft className="w-4 h-4 text-[#d99a3d] transition-transform group-hover:-translate-x-1" />
+          <span>Back to Website</span>
+        </Link>
+        <Link to="/" className="flex items-center gap-2 lg:hidden">
+          <img src="/logo.png" alt="BizReels Logo" className="h-8 w-auto" />
+          <span className="text-xl font-heading font-extrabold text-[#1a1a1a]">
+            Biz<span className="text-[#d99a3d] font-black">Reels</span>
+          </span>
+        </Link>
+      </div>
+
+      {/* Main Grid: Left Brand Visual + Right Admin Auth Card */}
+      <div className="w-full max-w-5xl mx-auto grid lg:grid-cols-12 gap-6 lg:gap-10 items-start z-10 my-auto">
+        {/* Left Side: Brand Visual (Desktop only) */}
+        <div className="hidden lg:flex lg:col-span-6 flex-col justify-start text-left space-y-4 pt-1">
+          <Link to="/" className="flex items-center gap-3 group w-fit">
+            <img
+              src="/logo.png"
+              alt="BizReels Logo"
+              className="h-11 w-auto transition-transform group-hover:scale-105"
+            />
+            <span className="text-3xl font-heading font-extrabold tracking-tight text-[#1a1a1a]">
+              Biz<span className="text-[#d99a3d] font-black">Reels</span>
+            </span>
+          </Link>
+
+          <h1
+            style={{ fontFamily: "'Archivo Black', sans-serif" }}
+            className="text-4xl xl:text-5xl text-[#1a1a1a] uppercase leading-[1.08] tracking-tight"
+          >
+            ADMIN.<br />
+            CONTROL.<br />
+            <span style={{ color: '#d99a3d' }}>CONSOLE.</span>
+          </h1>
+
+          <p className="text-sm text-[#4a4a4a] leading-relaxed max-w-md font-medium">
+            Master administrative terminal. Oversee platform telemetry, verify merchant KYC, audit escrow contracts, and orchestrate automated marketplace operations.
           </p>
+
+          <div className="grid grid-cols-2 gap-3 pt-1 max-w-md">
+            <div className="p-3.5 bg-[#1c1a17] text-white rounded-2xl border border-[#3a3630] shadow-2xs hover:border-[#d99a3d]/40 transition">
+              <div className="flex items-center gap-2 text-[#d99a3d] font-bold text-xs uppercase tracking-wider mb-1">
+                <FiShield className="w-4 h-4" />
+                System Telemetry
+              </div>
+              <p className="text-xs text-[#c9c4bb] leading-relaxed">
+                User moderation, vendor KYC approval &amp; real-time immutable audit logs.
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-[#d99a3d] text-[#1a1a1a] rounded-2xl border border-[#b87f28] shadow-2xs hover:bg-[#cf8f31] transition">
+              <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider mb-1 text-[#1a1a1a]">
+                <FiZap className="w-4 h-4" />
+                Financial Escrow
+              </div>
+              <p className="text-xs text-[#2b2217] font-medium leading-relaxed">
+                Payment gateways, commission ledgers, milestone releases &amp; disputes.
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Authentication Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Email Field */}
-          <div>
-            <label className="text-[10.5px] font-black text-slate-600 uppercase tracking-widest block mb-1.5">
-              Admin Email Address
-            </label>
-            <div className="relative">
-              <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <input
+        {/* Right Side: Admin Auth Card */}
+        <div className="col-span-12 lg:col-span-6 flex justify-center lg:justify-end">
+          <div className="w-full max-w-md p-5 sm:p-7 bg-white rounded-3xl border border-[#e3dccb] shadow-2xs flex flex-col gap-4 sm:gap-5 transition-all">
+            {/* Header */}
+            <div className="text-center md:text-left">
+              <div className="flex items-center justify-between">
+                <h2
+                  style={{ fontFamily: "'Archivo Black', sans-serif" }}
+                  className="text-2xl sm:text-[26px] text-[#1a1a1a] uppercase tracking-tight"
+                >
+                  ADMIN SIGN IN
+                </h2>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#d99a3d]/15 text-[#9e6715] border border-[#d99a3d]/30">
+                  <FiShield className="w-3 h-3 text-[#d99a3d]" /> RESTRICTED
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                Authorized personnel only. Sign in with administrative credentials.
+              </p>
+            </div>
+
+            {/* Security Notice Banner */}
+            <div className="p-3 rounded-xl bg-[#fdfaf3] border border-[#e3dccb] text-slate-700 text-xs flex items-center gap-2.5">
+              <FiLock className="w-4 h-4 text-[#d99a3d] flex-shrink-0" />
+              <span className="text-[11px] font-medium leading-tight">
+                Secure terminal with 256-bit TLS encryption. All administrative actions and IP addresses are audited.
+              </span>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
+              <Input
+                label="Admin Email Address"
                 type="email"
                 placeholder="admin@bizreels.com"
-                className={`w-full pl-11 pr-4 py-3 bg-[#F8FAFC] border ${
-                  errors.email ? 'border-rose-500' : 'border-slate-300'
-                } rounded-xl text-xs font-bold text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 transition-all shadow-2xs`}
+                error={errors.email}
                 {...register('email', {
                   required: 'Admin email is required',
-                  pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email format' }
+                  pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email format' },
                 })}
               />
-            </div>
-            {errors.email && (
-              <span className="text-[10px] font-bold text-rose-500 mt-1 block">
-                {errors.email.message}
-              </span>
-            )}
-          </div>
 
-          {/* Password Field */}
-          <div>
-            <label className="text-[10.5px] font-black text-slate-600 uppercase tracking-widest block mb-1.5">
-              Password
-            </label>
-            <div className="relative">
-              <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <input
-                type={showPassword ? 'text' : 'password'}
+              <Input
+                label="Security Password"
+                type="password"
                 placeholder="••••••••"
-                className={`w-full pl-11 pr-11 py-3 bg-[#F8FAFC] border ${
-                  errors.password ? 'border-rose-500' : 'border-slate-300'
-                } rounded-xl text-xs font-bold text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20 transition-all shadow-2xs`}
+                error={errors.password}
                 {...register('password', {
-                  required: 'Password is required'
+                  required: 'Password is required',
                 })}
               />
+
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
-                aria-label="Toggle password visibility"
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2b2621] text-[#d99a3d] text-xs font-black uppercase tracking-wider rounded-full shadow-2xs hover:shadow-xs transition-all border-none cursor-pointer mt-1 flex items-center justify-center gap-2 group disabled:opacity-50"
               >
-                {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-[#d99a3d] border-t-transparent rounded-full animate-spin" />
+                    <span>AUTHENTICATING...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>AUTHENTICATE &amp; ENTER</span>
+                    <FiArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </button>
+            </form>
+
+            {/* Security Footer Note */}
+            <div className="pt-2 border-t border-[#e3dccb]/60 flex flex-col items-center gap-2 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500">
+                <FiShield className="w-3.5 h-3.5 text-[#d99a3d]" />
+                <span>256-Bit Encrypted Admin Session</span>
+              </div>
+              <Link
+                to="/auth/login"
+                className="text-[11px] font-extrabold text-[#d99a3d] hover:text-[#b87b24] hover:underline"
+              >
+                Return to Member Login
+              </Link>
             </div>
-            {errors.password && (
-              <span className="text-[10px] font-bold text-rose-500 mt-1 block">
-                {errors.password.message}
-              </span>
-            )}
           </div>
-
-          {/* CTA Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3.5 px-6 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] active:bg-[#090D16] text-[#EAB308] font-black text-xs uppercase tracking-wider shadow-xl hover:shadow-2xl transition-all duration-200 flex items-center justify-center gap-2 border border-[#EAB308]/40 cursor-pointer disabled:opacity-50 mt-2 hover:scale-[1.01] active:scale-[0.99]"
-          >
-            {isLoading ? (
-              <>
-                <FiRefreshCw className="animate-spin w-4 h-4 text-[#EAB308]" />
-                <span>Authenticating...</span>
-              </>
-            ) : (
-              <>
-                <FiShield className="w-4 h-4 text-[#EAB308]" />
-                <span>Authenticate & Enter</span>
-                <FiArrowRight className="w-4 h-4 text-[#EAB308]" />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Security Footer Note */}
-        <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[10.5px] font-bold text-slate-400">
-          <FiShield className="w-3.5 h-3.5 text-[#EAB308]" />
-          <span>256-Bit Encrypted Admin Session</span>
         </div>
+      </div>
+
+      {/* Subtle bottom footer copyright */}
+      <div className="w-full max-w-5xl mx-auto pt-3 pb-2 text-center text-xs text-slate-500 font-medium">
+        © {new Date().getFullYear()} BizReels Administrative Console. All rights reserved.
       </div>
     </div>
   );

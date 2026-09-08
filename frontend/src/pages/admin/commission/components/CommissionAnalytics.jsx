@@ -49,13 +49,13 @@ export default function CommissionAnalytics() {
   const trendData = data?.trend || [];
 
   return (
-    <div className="space-y-6 text-xs animate-fade-in">
+    <div className="space-y-6 text-xs animate-fade-in font-sans">
       <div className="flex justify-between items-center">
-        <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider">Commission Overview</h2>
+        <h2 className="text-xs font-black uppercase tracking-wider text-[#1a1a1a]">Commission Overview</h2>
         <select
           value={periodDays}
           onChange={(e) => setPeriodDays(parseInt(e.target.value))}
-          className="px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none"
+          className="px-3 py-2 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
         >
           <option value={7}>Last 7 Days</option>
           <option value={30}>Last 30 Days</option>
@@ -69,20 +69,20 @@ export default function CommissionAnalytics() {
         {cards.map((card) => (
           <div
             key={card.label}
-            className="glass rounded-2xl p-5 border border-white/50 transition-all hover:border-brand-purple/30 group"
+            className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs transition-all hover:border-[#1a1a1a] group"
           >
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
                   {card.label}
                 </span>
-                <span className={`text-2xl font-black mt-1 font-display block ${card.color}`}>
+                <span className={`text-2xl font-black mt-1.5 block ${card.color === 'text-brand-purple' ? 'text-[#1a1a1a]' : card.color}`}>
                   {isLoading ? '...' : card.value}
                 </span>
-                <span className="text-[10px] text-text-tertiary">{card.sub}</span>
+                <span className="text-[10px] text-slate-500 font-medium">{card.sub}</span>
               </div>
-              <div className={`p-2.5 rounded-xl ${card.bg} group-hover:scale-110 transition-transform`}>
-                <card.icon className={`w-5 h-5 ${card.color}`} />
+              <div className="p-3 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] text-[#d99a3d] group-hover:scale-105 transition-transform">
+                <card.icon className="w-5 h-5" />
               </div>
             </div>
           </div>
@@ -90,23 +90,23 @@ export default function CommissionAnalytics() {
       </div>
 
       {/* Chart */}
-      <div className="glass rounded-2xl p-5 border border-white/50 space-y-4">
-        <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">Commission Revenue Trend</h3>
+      <div className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs space-y-4">
+        <h3 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider">Commission Revenue Trend</h3>
         <div className="h-72 w-full">
           {trendData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="#9CA3AF" />
-                <YAxis tick={{ fontSize: 9 }} stroke="#9CA3AF" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e3dccb" />
+                <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#94a3b8' }} stroke="#e3dccb" />
+                <YAxis tick={{ fontSize: 9, fill: '#94a3b8' }} stroke="#e3dccb" />
                 <Tooltip
-                  contentStyle={{ background: '#1F2937', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '10px' }}
+                  contentStyle={{ background: '#1a1a1a', borderRadius: '12px', border: '1px solid #e3dccb', color: '#fff', fontSize: '10px', fontWeight: 'bold' }}
                 />
-                <Line type="monotone" dataKey="commission" name="Fee Revenue (₹)" stroke="#8B5CF6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="commission" name="Fee Revenue (₹)" stroke="#d99a3d" strokeWidth={3} dot={{ r: 4, fill: '#d99a3d' }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-xs text-text-tertiary">No trend data available</div>
+            <div className="flex items-center justify-center h-full text-xs text-slate-400 font-bold">No trend data available</div>
           )}
         </div>
       </div>

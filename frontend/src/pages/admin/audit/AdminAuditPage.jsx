@@ -23,7 +23,7 @@ export default function AdminAuditPage() {
       key: 'action',
       label: 'Admin Action',
       render: (val) => (
-        <span className="font-bold text-xs uppercase px-2 py-0.5 rounded bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
+        <span className="font-black text-[10px] uppercase px-2 py-0.5 rounded-md bg-[#f8f4ec] text-[#1a1a1a] border border-[#e3dccb]">
           {val}
         </span>
       ),
@@ -31,17 +31,17 @@ export default function AdminAuditPage() {
     {
       key: 'user_id',
       label: 'Admin',
-      render: (val) => <span className="font-bold text-xs text-text-primary">{val}</span>,
+      render: (val) => <span className="font-bold text-xs text-[#1a1a1a]">{val}</span>,
     },
     {
       key: 'target_user',
       label: 'Target User / Resource',
-      render: (val, row) => <span className="font-mono text-xs text-text-secondary">{val || row.meta?.target || '—'}</span>,
+      render: (val, row) => <span className="font-mono text-xs text-slate-600">{val || row.meta?.target || '—'}</span>,
     },
     {
       key: 'created_at',
       label: 'Timestamp',
-      render: (val) => <span className="text-text-tertiary text-xs">{formatDate(val)}</span>,
+      render: (val) => <span className="text-slate-400 text-xs font-medium">{formatDate(val)}</span>,
     },
   ];
 
@@ -50,7 +50,7 @@ export default function AdminAuditPage() {
       <AdminPageHeader
         icon={FiList}
         title="Audit Logs"
-        subtitle="Har important action ka record: Kis admin ne kya change kiya, kab change kiya, kis user par action hua, aur purani/nayi value"
+        subtitle="Immutable ledger of administrator actions: Who changed what, when, target resource, and before/after diffs"
       />
 
       <AdminDataTable
@@ -65,7 +65,7 @@ export default function AdminAuditPage() {
         actions={(row) => (
           <button
             onClick={() => setViewAudit(row)}
-            className="px-2.5 py-1 bg-brand-purple/10 text-brand-purple rounded-lg text-xs font-bold hover:bg-brand-purple/20 transition-all"
+            className="px-3 py-1.5 bg-[#1a1a1a] text-white hover:bg-black rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer"
           >
             View Change Diff
           </button>
@@ -75,26 +75,26 @@ export default function AdminAuditPage() {
       {/* Audit Diff Modal */}
       <AdminModal isOpen={!!viewAudit} onClose={() => setViewAudit(null)} title="Audit Log Action Detail">
         {viewAudit && (
-          <div className="space-y-4 text-xs">
-            <div className="bg-surface-secondary p-3 rounded-xl space-y-1">
-              <div><span className="text-text-tertiary">Admin:</span> <strong className="text-text-primary">{viewAudit.user_id}</strong></div>
-              <div><span className="text-text-tertiary">Action:</span> <strong className="uppercase text-brand-purple">{viewAudit.action}</strong></div>
-              <div><span className="text-text-tertiary">Target:</span> <strong className="font-mono text-text-primary">{viewAudit.target_user || '—'}</strong></div>
-              <div><span className="text-text-tertiary">IP Address:</span> <strong className="font-mono text-text-secondary">{viewAudit.ip || '127.0.0.1'}</strong></div>
-              <div><span className="text-text-tertiary">Timestamp:</span> <span className="text-text-secondary">{formatDate(viewAudit.created_at)}</span></div>
+          <div className="space-y-4 text-xs font-sans">
+            <div className="bg-[#f8f4ec] p-4 rounded-xl border border-[#e3dccb] space-y-1.5">
+              <div className="flex justify-between items-center"><span className="text-slate-500 font-bold">Admin:</span> <strong className="text-[#1a1a1a] font-mono">{viewAudit.user_id}</strong></div>
+              <div className="flex justify-between items-center"><span className="text-slate-500 font-bold">Action:</span> <strong className="uppercase text-[#d99a3d] font-black">{viewAudit.action}</strong></div>
+              <div className="flex justify-between items-center"><span className="text-slate-500 font-bold">Target:</span> <strong className="font-mono text-[#1a1a1a]">{viewAudit.target_user || '—'}</strong></div>
+              <div className="flex justify-between items-center"><span className="text-slate-500 font-bold">IP Address:</span> <strong className="font-mono text-slate-600">{viewAudit.ip || '127.0.0.1'}</strong></div>
+              <div className="flex justify-between items-center"><span className="text-slate-500 font-bold">Timestamp:</span> <span className="text-slate-600 font-medium">{formatDate(viewAudit.created_at)}</span></div>
             </div>
 
             {/* Old vs New Value Diff */}
             <div className="space-y-2">
-              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">Purani vs Nayi Value</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">State Diff (Before vs After)</span>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
-                  <span className="text-[9px] font-bold text-red-500 uppercase block mb-1">Purani Value (Before)</span>
-                  <pre className="font-mono text-[10px] text-red-600 whitespace-pre-wrap">{viewAudit.old_value || 'N/A'}</pre>
+                <div className="bg-rose-50 border border-rose-200 p-3.5 rounded-xl">
+                  <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider block mb-1">Previous Value (Before)</span>
+                  <pre className="font-mono text-[10px] text-rose-800 whitespace-pre-wrap">{viewAudit.old_value || 'N/A'}</pre>
                 </div>
-                <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl">
-                  <span className="text-[9px] font-bold text-emerald-500 uppercase block mb-1">Nayi Value (After)</span>
-                  <pre className="font-mono text-[10px] text-emerald-600 whitespace-pre-wrap">{viewAudit.new_value || 'N/A'}</pre>
+                <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl">
+                  <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider block mb-1">Updated Value (After)</span>
+                  <pre className="font-mono text-[10px] text-emerald-800 whitespace-pre-wrap">{viewAudit.new_value || 'N/A'}</pre>
                 </div>
               </div>
             </div>

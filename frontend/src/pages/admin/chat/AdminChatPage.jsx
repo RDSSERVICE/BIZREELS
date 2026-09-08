@@ -46,7 +46,7 @@ export default function AdminChatPage() {
     {
       key: 'target_id',
       label: 'Chat Thread ID',
-      render: (val) => <span className="font-mono text-xs text-brand-purple">{val ? val.slice(-8) : '—'}</span>,
+      render: (val) => <span className="font-mono text-xs text-[#1a1a1a] font-bold">{val ? val.slice(-8) : '—'}</span>,
     },
     {
       key: 'status',
@@ -56,7 +56,7 @@ export default function AdminChatPage() {
     {
       key: 'created_at',
       label: 'Date Reported',
-      render: (val) => <span className="text-text-tertiary text-xs">{val ? new Date(val).toLocaleDateString() : '—'}</span>,
+      render: (val) => <span className="text-slate-400 text-xs font-medium">{val ? new Date(val).toLocaleDateString() : '—'}</span>,
     },
   ];
 
@@ -82,7 +82,7 @@ export default function AdminChatPage() {
         actions={(row) => (
           <button
             onClick={() => setViewLog(row)}
-            className="px-2.5 py-1 bg-brand-purple/10 text-brand-purple rounded-lg text-xs font-bold hover:bg-brand-purple/20 transition-all flex items-center gap-1"
+            className="px-3 py-1.5 bg-[#1a1a1a] text-white hover:bg-black rounded-xl text-xs font-black transition-all shadow-xs flex items-center gap-1.5 cursor-pointer border-none"
           >
             <FiFileText className="w-3.5 h-3.5" /> View Log
           </button>
@@ -91,24 +91,24 @@ export default function AdminChatPage() {
 
       <AdminModal isOpen={!!viewLog} onClose={() => setViewLog(null)} title="Reported Chat Log Transcript" maxWidth="max-w-xl">
         {viewLog && (
-          <div className="space-y-4 text-xs">
-            <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-800 font-semibold">
+          <div className="space-y-4 text-xs font-sans">
+            <div className="bg-amber-50 border border-amber-300 p-3.5 rounded-xl text-amber-900 font-bold">
               ⚠️ Note: Chat logs are accessible to administrators strictly for reported safety violations and dispute reviews.
             </div>
 
-            <div className="bg-surface-secondary p-3 rounded-xl space-y-1">
-              <div><span className="text-text-tertiary">Reason:</span> <strong className="text-text-primary">{viewLog.reason}</strong></div>
-              <div><span className="text-text-tertiary">Description:</span> <p className="text-text-secondary mt-1">{viewLog.description}</p></div>
+            <div className="bg-[#f8f4ec] p-4 rounded-xl border border-[#e3dccb] space-y-1.5">
+              <div><span className="text-slate-500 font-bold">Reason:</span> <strong className="text-[#1a1a1a] ml-1">{viewLog.reason}</strong></div>
+              <div><span className="text-slate-500 font-bold">Description:</span> <p className="text-slate-600 mt-1 font-medium">{viewLog.description}</p></div>
             </div>
 
-            <div className="border border-border rounded-xl p-4 bg-black/5 space-y-3 font-mono text-[11px]">
-              <div className="p-2 bg-surface rounded-lg border border-border">
-                <span className="text-brand-purple font-bold block">User A (Seller):</span>
-                <span>"Hi! Is this available for delivery?"</span>
+            <div className="border border-[#e3dccb] rounded-xl p-4 bg-white space-y-3 font-mono text-[11px] shadow-2xs">
+              <div className="p-3 bg-[#f8f4ec] rounded-xl border border-[#e3dccb]">
+                <span className="text-[#1a1a1a] font-black block mb-0.5">User A (Seller):</span>
+                <span className="text-slate-700">"Hi! Is this available for delivery?"</span>
               </div>
-              <div className="p-2 bg-brand-purple/10 rounded-lg border border-brand-purple/20 ml-4">
-                <span className="text-brand-pink font-bold block">User B (Reported):</span>
-                <span>"{viewLog.description || 'Sample chat message content'}"</span>
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 ml-4">
+                <span className="text-amber-800 font-black block mb-0.5">User B (Reported):</span>
+                <span className="text-slate-700">"{viewLog.description || 'Sample chat message content'}"</span>
               </div>
             </div>
           </div>

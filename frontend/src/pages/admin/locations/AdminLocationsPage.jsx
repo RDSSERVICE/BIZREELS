@@ -110,7 +110,7 @@ export default function AdminLocationsPage() {
       >
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-premium"
+          className="px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-xs font-bold hover:bg-black transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
         >
           <FiPlus className="w-4 h-4" /> Add Location
         </button>
@@ -119,19 +119,19 @@ export default function AdminLocationsPage() {
       <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === 'radius' ? (
-        <div className="glass p-6 rounded-2xl border border-white/50 space-y-6 max-w-xl">
+        <div className="bg-white p-6 rounded-2xl border border-[#e3dccb] shadow-2xs space-y-6 max-w-xl">
           <div>
-            <h3 className="text-sm font-bold text-text-primary font-display mb-1 flex items-center gap-2">
-              <FiSliders className="text-brand-purple" /> Distance Radius Settings
+            <h3 className="text-sm font-bold text-[#1a1a1a] font-display mb-1 flex items-center gap-2">
+              <FiSliders className="text-[#1a1a1a]" /> Distance Radius Settings
             </h3>
-            <p className="text-xs text-text-tertiary">Set default search radius for nearby listings and vendor discovery.</p>
+            <p className="text-xs text-slate-500">Set default search radius for nearby listings and vendor discovery.</p>
           </div>
 
-          <div className="space-y-4 bg-surface-secondary p-4 rounded-xl">
+          <div className="space-y-4 bg-[#f8f4ec] border border-[#e3dccb] p-4 rounded-xl">
             <div>
               <div className="flex justify-between text-xs font-bold mb-2">
-                <span>Default Radius:</span>
-                <span className="text-brand-purple">{radiusKm} KM</span>
+                <span className="text-[#1a1a1a]">Default Radius:</span>
+                <span className="text-[#1a1a1a] font-black">{radiusKm} KM</span>
               </div>
               <input
                 type="range"
@@ -140,9 +140,9 @@ export default function AdminLocationsPage() {
                 step="5"
                 value={radiusKm}
                 onChange={(e) => setRadiusKm(parseInt(e.target.value))}
-                className="w-full accent-brand-purple"
+                className="w-full accent-[#1a1a1a]"
               />
-              <div className="flex justify-between text-[10px] text-text-tertiary mt-1">
+              <div className="flex justify-between text-[10px] text-slate-500 mt-1">
                 <span>5 KM</span>
                 <span>25 KM</span>
                 <span>50 KM</span>
@@ -152,7 +152,7 @@ export default function AdminLocationsPage() {
 
             <button
               onClick={handleSaveRadius}
-              className="w-full py-2 bg-brand-purple text-white text-xs font-bold rounded-xl hover:bg-brand-purple-800 transition-all"
+              className="w-full py-2.5 bg-[#1a1a1a] text-white text-xs font-bold rounded-xl hover:bg-black transition-all shadow-xs cursor-pointer"
             >
               Save Radius Setting
             </button>
@@ -175,11 +175,11 @@ export default function AdminLocationsPage() {
       <AdminModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add Location Entry">
         <div className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Hierarchy Level</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Hierarchy Level</label>
             <select
               value={form.type}
               onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
-              className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+              className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
             >
               <option value="country">Country</option>
               <option value="state">State</option>
@@ -191,13 +191,13 @@ export default function AdminLocationsPage() {
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Location Name / Code</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Location Name / Code</label>
             <input
               type="text"
               placeholder="e.g. Mumbai or 400001"
               value={form.name}
               onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-brand-purple"
+              className="w-full px-3 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
             />
           </div>
 
@@ -207,16 +207,16 @@ export default function AdminLocationsPage() {
               id="popCheck"
               checked={form.is_popular}
               onChange={(e) => setForm((prev) => ({ ...prev, is_popular: e.target.checked }))}
-              className="rounded border-border text-brand-purple"
+              className="rounded border-[#e3dccb] text-[#1a1a1a] accent-[#1a1a1a]"
             />
-            <label htmlFor="popCheck" className="text-xs text-text-secondary cursor-pointer font-semibold">
+            <label htmlFor="popCheck" className="text-xs text-[#1a1a1a] cursor-pointer font-semibold">
               Mark as Popular Location
             </label>
           </div>
 
           <button
             onClick={handleAddLocation}
-            className="w-full py-2.5 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1"
+            className="w-full py-2.5 bg-[#1a1a1a] text-white rounded-xl text-xs font-bold hover:bg-black transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"
           >
             <FiPlus /> Add Location
           </button>

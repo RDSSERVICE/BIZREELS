@@ -206,18 +206,18 @@ export default function AdminListingsPage() {
                 <img src={viewItem.images[0]} alt={viewItem.title} className="w-24 h-24 rounded-xl object-cover border border-border" />
               )}
               <div>
-                <h4 className="text-sm font-bold text-text-primary">{viewItem.title}</h4>
-                <p className="text-xs text-brand-purple font-bold mt-1">₹{(viewItem.price || 0).toLocaleString('en-IN')}</p>
+                <h4 className="text-sm font-black text-[#1a1a1a]">{viewItem.title}</h4>
+                <p className="text-xs text-emerald-600 font-black mt-1">₹{(viewItem.price || 0).toLocaleString('en-IN')}</p>
                 <AdminStatusBadge status={viewItem.status} className="mt-2" />
               </div>
             </div>
 
-            <div className="bg-surface-secondary p-3 rounded-xl text-xs space-y-1">
-              <div><span className="text-text-tertiary">Vendor / Seller:</span> <strong className="text-brand-purple font-bold">{viewItem.vendor_name || viewItem.vendor?.name || viewItem.vendor_id || 'Registered Vendor'}</strong></div>
-              <div><span className="text-text-tertiary">Category:</span> <strong className="text-text-primary">{viewItem.category}</strong></div>
-              <div><span className="text-text-tertiary">Type:</span> <strong className="text-text-primary capitalize">{viewItem.type}</strong></div>
-              <div><span className="text-text-tertiary">Condition:</span> <strong className="text-text-primary capitalize">{viewItem.condition || 'New'}</strong></div>
-              <div><span className="text-text-tertiary">Description:</span> <p className="text-text-secondary mt-1">{viewItem.description || 'No description provided.'}</p></div>
+            <div className="bg-[#f8f4ec] p-4 rounded-2xl border border-[#e3dccb] text-xs space-y-1.5 shadow-2xs">
+              <div><span className="text-slate-400">Vendor / Seller:</span> <strong className="text-[#1a1a1a] font-bold ml-1">{viewItem.vendor_name || viewItem.vendor?.name || viewItem.vendor_id || 'Registered Vendor'}</strong></div>
+              <div><span className="text-slate-400">Category:</span> <strong className="text-[#1a1a1a] ml-1">{viewItem.category}</strong></div>
+              <div><span className="text-slate-400">Type:</span> <strong className="text-[#1a1a1a] capitalize ml-1">{viewItem.type}</strong></div>
+              <div><span className="text-slate-400">Condition:</span> <strong className="text-[#1a1a1a] capitalize ml-1">{viewItem.condition || 'New'}</strong></div>
+              <div className="pt-1"><span className="text-slate-400 block mb-0.5">Description:</span> <p className="text-slate-700 leading-relaxed font-medium">{viewItem.description || 'No description provided.'}</p></div>
             </div>
           </div>
         )}

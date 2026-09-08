@@ -62,17 +62,17 @@ export default function AdminReviewsPage() {
     {
       key: 'target_type',
       label: 'Target Type',
-      render: (val) => <span className="font-bold text-xs uppercase text-brand-purple bg-brand-purple/10 px-2 py-0.5 rounded">{val}</span>,
+      render: (val) => <span className="font-black text-[10px] uppercase text-[#1a1a1a] bg-[#f8f4ec] border border-[#e3dccb] px-2 py-0.5 rounded-md">{val}</span>,
     },
     {
       key: 'reviewer_id',
       label: 'Reviewer ID',
-      render: (val) => <span className="font-mono text-xs text-text-tertiary">{val ? val.slice(-8) : '—'}</span>,
+      render: (val) => <span className="font-mono text-xs text-slate-500">{val ? val.slice(-8) : '—'}</span>,
     },
     {
       key: 'created_at',
       label: 'Date',
-      render: (val) => <span className="text-text-tertiary text-xs">{val ? new Date(val).toLocaleDateString() : '—'}</span>,
+      render: (val) => <span className="text-slate-400 text-xs font-medium">{val ? new Date(val).toLocaleDateString() : '—'}</span>,
     },
   ];
 
@@ -98,10 +98,10 @@ export default function AdminReviewsPage() {
         actions={(row) => (
           <button
             onClick={() => handleDelete(row.id)}
-            className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition-all"
+            className="p-1.5 rounded-xl hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all cursor-pointer border-none bg-transparent"
             title="Delete Review"
           >
-            <FiTrash2 className="w-3.5 h-3.5" />
+            <FiTrash2 className="w-4 h-4" />
           </button>
         )}
       />

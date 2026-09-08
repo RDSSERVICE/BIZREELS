@@ -145,11 +145,11 @@ export default function AdminRequirementsPage() {
       label: 'Approval Status',
       render: (val) => {
         if (val === 'pending_approval') {
-          return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Pending Approval</span>;
+          return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Pending Approval</span>;
         } else if (val === 'rejected') {
-          return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">Rejected</span>;
+          return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-800 border border-red-200">Rejected</span>;
         } else {
-          return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Approved</span>;
+          return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">Approved</span>;
         }
       },
     },
@@ -183,7 +183,7 @@ export default function AdminRequirementsPage() {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setViewReq(row)}
-              className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition-all"
+              className="p-1.5 rounded-lg hover:bg-[#f8f4ec] text-slate-500 hover:text-[#1a1a1a] transition-all cursor-pointer"
               title="View Details"
             >
               <FiEye className="w-3.5 h-3.5" />
@@ -193,14 +193,14 @@ export default function AdminRequirementsPage() {
                 <button
                   onClick={() => handleApprove(row.id)}
                   disabled={isApproving}
-                  className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 transition-all"
+                  className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all cursor-pointer"
                   title="Approve"
                 >
                   <FiCheck className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setRejectingReqId(row.id)}
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-all"
+                  className="p-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-all cursor-pointer"
                   title="Reject"
                 >
                   <FiX className="w-3.5 h-3.5" />
@@ -215,13 +215,13 @@ export default function AdminRequirementsPage() {
       <AdminModal isOpen={!!viewReq} onClose={() => setViewReq(null)} title="Requirement Detail">
         {viewReq && (
           <div className="space-y-4 text-xs">
-            <div className="bg-surface-secondary p-4 rounded-xl space-y-2.5">
-              <h4 className="font-bold text-sm text-text-primary">{viewReq.title}</h4>
-              <div><span className="text-text-tertiary">Customer:</span> <strong className="text-text-primary">{viewReq.customer_name}</strong></div>
-              <div><span className="text-text-tertiary">Type & Category:</span> <strong className="text-text-primary capitalize">{viewReq.type} — {viewReq.category}</strong></div>
+            <div className="bg-[#f8f4ec] border border-[#e3dccb] p-4 rounded-xl space-y-2.5">
+              <h4 className="font-bold text-sm text-[#1a1a1a]">{viewReq.title}</h4>
+              <div><span className="text-slate-500">Customer:</span> <strong className="text-[#1a1a1a] ml-1">{viewReq.customer_name}</strong></div>
+              <div><span className="text-slate-500">Type & Category:</span> <strong className="text-[#1a1a1a] capitalize ml-1">{viewReq.type} — {viewReq.category}</strong></div>
               <div>
-                <span className="text-text-tertiary">Budget:</span>{' '}
-                <strong className="text-brand-purple">
+                <span className="text-slate-500">Budget:</span>{' '}
+                <strong className="text-[#d99a3d] font-bold ml-1">
                   {viewReq.budget_min || viewReq.budget_max ? (
                     `₹${(viewReq.budget_min || 0).toLocaleString('en-IN')} - ₹${(viewReq.budget_max || 0).toLocaleString('en-IN')}`
                   ) : (
@@ -229,15 +229,15 @@ export default function AdminRequirementsPage() {
                   )}
                 </strong>
               </div>
-              <div><span className="text-text-tertiary">Proposals Submitted:</span> <strong className="text-emerald-600">{viewReq.matches_count} proposals</strong></div>
+              <div><span className="text-slate-500">Proposals Submitted:</span> <strong className="text-emerald-600 font-bold ml-1">{viewReq.matches_count} proposals</strong></div>
               <div>
-                <span className="text-text-tertiary">Approval:</span>{' '}
-                <strong className="capitalize text-text-primary">{viewReq.approvalStatus}</strong>
+                <span className="text-slate-500">Approval:</span>{' '}
+                <strong className="capitalize text-[#1a1a1a] ml-1">{viewReq.approvalStatus}</strong>
                 {viewReq.adminRejectionReason && (
-                  <p className="text-red-500 font-semibold mt-1">Rejection Reason: {viewReq.adminRejectionReason}</p>
+                  <p className="text-red-600 font-semibold mt-1">Rejection Reason: {viewReq.adminRejectionReason}</p>
                 )}
               </div>
-              <div><span className="text-text-tertiary">Status:</span> <AdminStatusBadge status={viewReq.status} className="ml-2" /></div>
+              <div><span className="text-slate-500">Status:</span> <AdminStatusBadge status={viewReq.status} className="ml-2" /></div>
             </div>
 
             {viewReq.approvalStatus === 'pending_approval' && (
@@ -245,13 +245,13 @@ export default function AdminRequirementsPage() {
                 <button
                   onClick={() => handleApprove(viewReq.id)}
                   disabled={isApproving}
-                  className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <FiCheck /> Approve & Assign
                 </button>
                 <button
                   onClick={() => setRejectingReqId(viewReq.id)}
-                  className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <FiX /> Reject Request
                 </button>
@@ -265,28 +265,28 @@ export default function AdminRequirementsPage() {
       <AdminModal isOpen={!!rejectingReqId} onClose={() => setRejectingReqId(null)} title="Reject Requirement">
         <form onSubmit={handleRejectSubmit} className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Reason for Rejection</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Reason for Rejection</label>
             <textarea
               required
               rows={4}
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="Explain why this requirement is being rejected (this will be sent to the customer)..."
-              className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand-purple"
+              className="w-full px-4 py-2.5 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] placeholder:text-slate-400 focus:outline-none focus:border-[#1a1a1a]"
             />
           </div>
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setRejectingReqId(null)}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#f8f4ec] text-[#1a1a1a] border border-[#e3dccb] hover:bg-[#fbf9f4] transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isRejecting}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition"
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition shadow-xs cursor-pointer disabled:opacity-50"
             >
               Confirm Rejection
             </button>

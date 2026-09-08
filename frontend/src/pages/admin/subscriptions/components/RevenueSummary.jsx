@@ -64,19 +64,19 @@ export default function RevenueSummary() {
         {cards.map((card) => (
           <div
             key={card.label}
-            className="glass rounded-2xl p-5 border border-white/50 transition-all hover:border-brand-purple/30 group"
+            className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs transition-all hover:shadow-xs group"
           >
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                   {card.label}
                 </span>
                 <span className={`text-2xl font-black mt-1 font-display block ${card.color}`}>
                   {isLoading ? '...' : card.value}
                 </span>
-                <span className="text-[10px] text-text-tertiary">{card.sub}</span>
+                <span className="text-[10px] text-slate-400">{card.sub}</span>
               </div>
-              <div className={`p-2.5 rounded-xl ${card.bg} group-hover:scale-110 transition-transform`}>
+              <div className={`p-2.5 rounded-xl ${card.bg} group-hover:scale-105 transition-transform`}>
                 <card.icon className={`w-5 h-5 ${card.color}`} />
               </div>
             </div>
@@ -87,8 +87,8 @@ export default function RevenueSummary() {
       {/* Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Trend line chart */}
-        <div className="lg:col-span-2 glass rounded-2xl p-5 border border-white/50 space-y-4">
-          <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">Revenue Trend (Last 6 Months)</h3>
+        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs space-y-4">
+          <h3 className="text-xs font-bold text-[#1a1a1a] uppercase tracking-wider">Revenue Trend (Last 6 Months)</h3>
           <div className="h-64 w-full">
             {trendData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -97,21 +97,21 @@ export default function RevenueSummary() {
                   <XAxis dataKey="month" tick={{ fontSize: 9 }} stroke="#9CA3AF" />
                   <YAxis tick={{ fontSize: 9 }} stroke="#9CA3AF" />
                   <Tooltip
-                    contentStyle={{ background: '#1F2937', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '10px' }}
+                    contentStyle={{ background: '#1a1a1a', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '10px' }}
                     labelStyle={{ fontWeight: 'bold' }}
                   />
-                  <Line type="monotone" dataKey="revenue" name="Revenue (₹)" stroke="#8B5CF6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="revenue" name="Revenue (₹)" stroke="#1a1a1a" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full text-xs text-text-tertiary">No trend data available</div>
+              <div className="flex items-center justify-center h-full text-xs text-slate-400">No trend data available</div>
             )}
           </div>
         </div>
 
         {/* Plan distribution bar chart */}
-        <div className="glass rounded-2xl p-5 border border-white/50 space-y-4">
-          <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">Popular Plans Distribution</h3>
+        <div className="bg-white rounded-2xl p-5 border border-[#e3dccb] shadow-2xs space-y-4">
+          <h3 className="text-xs font-bold text-[#1a1a1a] uppercase tracking-wider">Popular Plans Distribution</h3>
           <div className="h-64 w-full">
             {planData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -120,7 +120,7 @@ export default function RevenueSummary() {
                   <XAxis dataKey="name" tick={{ fontSize: 9 }} stroke="#9CA3AF" />
                   <YAxis tick={{ fontSize: 9 }} stroke="#9CA3AF" />
                   <Tooltip
-                    contentStyle={{ background: '#1F2937', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '10px' }}
+                    contentStyle={{ background: '#1a1a1a', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '10px' }}
                   />
                   <Bar dataKey="count" name="Active Members" radius={[8, 8, 0, 0]}>
                     {planData.map((entry, index) => (
@@ -130,7 +130,7 @@ export default function RevenueSummary() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full text-xs text-text-tertiary">No plan distribution data available</div>
+              <div className="flex items-center justify-center h-full text-xs text-slate-400">No plan distribution data available</div>
             )}
           </div>
         </div>

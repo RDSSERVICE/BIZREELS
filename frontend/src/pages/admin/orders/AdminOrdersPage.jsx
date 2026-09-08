@@ -101,13 +101,13 @@ export default function AdminOrdersPage() {
       <AdminModal isOpen={!!viewOrder} onClose={() => setViewOrder(null)} title="Order Details">
         {viewOrder && (
           <div className="space-y-4 text-xs">
-            <div className="bg-surface-secondary p-4 rounded-xl space-y-2">
-              <div><span className="text-text-tertiary">Order ID:</span> <strong className="font-mono text-text-primary">{viewOrder.id}</strong></div>
-              <div><span className="text-text-tertiary">Listing:</span> <strong className="text-text-primary">{viewOrder.listing_title}</strong></div>
-              <div><span className="text-text-tertiary">Buyer ID:</span> <strong className="font-mono text-text-primary">{viewOrder.buyer_id}</strong></div>
-              <div><span className="text-text-tertiary">Seller ID:</span> <strong className="font-mono text-text-primary">{viewOrder.seller_id}</strong></div>
-              <div><span className="text-text-tertiary">Amount:</span> <strong className="text-emerald-600 text-sm">₹{(viewOrder.final_amount || viewOrder.current_offer || 0).toLocaleString('en-IN')}</strong></div>
-              <div><span className="text-text-tertiary">Status:</span> <AdminStatusBadge status={viewOrder.status} className="ml-2" /></div>
+            <div className="bg-[#f8f4ec] border border-[#e3dccb] p-4 rounded-xl space-y-2">
+              <div><span className="text-slate-500">Order ID:</span> <strong className="font-mono text-[#1a1a1a] ml-1">{viewOrder.id}</strong></div>
+              <div><span className="text-slate-500">Listing:</span> <strong className="text-[#1a1a1a] ml-1">{viewOrder.listing_title}</strong></div>
+              <div><span className="text-slate-500">Buyer ID:</span> <strong className="font-mono text-[#1a1a1a] ml-1">{viewOrder.buyer_id}</strong></div>
+              <div><span className="text-slate-500">Seller ID:</span> <strong className="font-mono text-[#1a1a1a] ml-1">{viewOrder.seller_id}</strong></div>
+              <div><span className="text-slate-500">Amount:</span> <strong className="text-emerald-600 font-black text-sm ml-1">₹{(viewOrder.final_amount || viewOrder.current_offer || 0).toLocaleString('en-IN')}</strong></div>
+              <div><span className="text-slate-500">Status:</span> <AdminStatusBadge status={viewOrder.status} className="ml-2" /></div>
             </div>
           </div>
         )}

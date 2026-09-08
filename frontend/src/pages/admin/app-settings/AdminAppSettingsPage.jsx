@@ -37,26 +37,26 @@ export default function AdminAppSettingsPage() {
         subtitle="Manage App Logo, Splash screen, Theme, Languages, Currency, Timezone, Maintenance mode, Minimum app version, and OTP settings"
       />
 
-      <div className="glass p-6 rounded-2xl border border-white/50 shadow-glass space-y-6">
+      <div className="bg-white p-6 rounded-2xl border border-[#e3dccb] shadow-2xs space-y-6">
         {/* Branding & Assets */}
         <div>
-          <h3 className="text-xs font-bold text-brand-purple uppercase tracking-wider mb-4 border-b border-border pb-2 flex items-center gap-1.5">
-            <FiImage /> App Branding & Splash Assets
+          <h3 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider mb-4 border-b border-[#e3dccb] pb-2 flex items-center gap-2">
+            <FiImage className="text-[#d99a3d]" /> App Branding & Splash Assets
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-surface-secondary p-4 rounded-xl border border-border">
-              <span className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">App Main Logo</span>
+            <div className="bg-[#f8f4ec] p-4.5 rounded-xl border border-[#e3dccb]">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">App Main Logo</span>
               <img src="/logo.png" alt="App Logo" className="h-10 w-auto my-2" />
-              <button onClick={() => toast.success('Logo upload modal triggered')} className="text-xs text-brand-purple font-bold hover:underline">
+              <button onClick={() => toast.success('Logo upload modal triggered')} className="text-xs text-[#1a1a1a] font-black hover:underline cursor-pointer">
                 Change Logo Image
               </button>
             </div>
-            <div className="bg-surface-secondary p-4 rounded-xl border border-border">
-              <span className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Mobile Splash Screen</span>
-              <div className="h-10 w-full bg-brand-purple/10 rounded-lg flex items-center justify-center text-[10px] font-bold text-brand-purple my-2">
+            <div className="bg-[#f8f4ec] p-4.5 rounded-xl border border-[#e3dccb]">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Mobile Splash Screen</span>
+              <div className="h-10 w-full bg-white border border-[#e3dccb] rounded-lg flex items-center justify-center text-[10px] font-black text-[#1a1a1a] my-2">
                 Splash Screen Ready
               </div>
-              <button onClick={() => toast.success('Splash screen upload modal triggered')} className="text-xs text-brand-purple font-bold hover:underline">
+              <button onClick={() => toast.success('Splash screen upload modal triggered')} className="text-xs text-[#1a1a1a] font-black hover:underline cursor-pointer">
                 Change Splash Background
               </button>
             </div>
@@ -65,16 +65,16 @@ export default function AdminAppSettingsPage() {
 
         {/* Region & Localization */}
         <div>
-          <h3 className="text-xs font-bold text-brand-purple uppercase tracking-wider mb-4 border-b border-border pb-2 flex items-center gap-1.5">
-            <FiGlobe /> Localization & Currency Settings
+          <h3 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider mb-4 border-b border-[#e3dccb] pb-2 flex items-center gap-2">
+            <FiGlobe className="text-[#d99a3d]" /> Localization & Currency Settings
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Default Theme</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Default Theme</label>
               <select
                 value={form.theme}
                 onChange={(e) => setForm((prev) => ({ ...prev, theme: e.target.value }))}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold focus:outline-none focus:border-brand-purple"
+                className="w-full px-3 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
               >
                 <option value="dark">Dark Theme (Default)</option>
                 <option value="light">Light Theme</option>
@@ -83,11 +83,11 @@ export default function AdminAppSettingsPage() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Currency Symbol</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Currency Symbol</label>
               <select
                 value={form.currency}
                 onChange={(e) => setForm((prev) => ({ ...prev, currency: e.target.value }))}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold focus:outline-none focus:border-brand-purple"
+                className="w-full px-3 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
               >
                 <option value="INR (₹)">INR (₹) — Indian Rupee</option>
                 <option value="USD ($)">USD ($) — US Dollar</option>
@@ -95,11 +95,11 @@ export default function AdminAppSettingsPage() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Time Zone</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Time Zone</label>
               <select
                 value={form.timezone}
                 onChange={(e) => setForm((prev) => ({ ...prev, timezone: e.target.value }))}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold focus:outline-none focus:border-brand-purple"
+                className="w-full px-3 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
               >
                 <option value="Asia/Kolkata (IST)">Asia/Kolkata (IST)</option>
                 <option value="UTC">UTC</option>
@@ -110,31 +110,31 @@ export default function AdminAppSettingsPage() {
 
         {/* Maintenance & Versions */}
         <div>
-          <h3 className="text-xs font-bold text-brand-purple uppercase tracking-wider mb-4 border-b border-border pb-2 flex items-center gap-1.5">
-            <FiAlertOctagon /> Maintenance & Mobile App Version Gate
+          <h3 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider mb-4 border-b border-[#e3dccb] pb-2 flex items-center gap-2">
+            <FiAlertOctagon className="text-[#d99a3d]" /> Maintenance & Mobile App Version Gate
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-surface-secondary p-4 rounded-xl flex items-center justify-between">
+            <div className="bg-[#f8f4ec] p-4.5 rounded-xl border border-[#e3dccb] flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-text-primary block">Maintenance Mode</span>
-                <span className="text-[10px] text-text-tertiary">Disable non-admin access during upgrades</span>
+                <span className="text-xs font-black text-[#1a1a1a] block">Maintenance Mode</span>
+                <span className="text-[10px] text-slate-500 font-bold">Disable non-admin access during upgrades</span>
               </div>
               <input
                 type="checkbox"
                 checked={form.maintenance_mode}
                 onChange={(e) => setForm((prev) => ({ ...prev, maintenance_mode: e.target.checked }))}
-                className="w-5 h-5 accent-brand-purple rounded"
+                className="w-5 h-5 accent-[#1a1a1a] rounded cursor-pointer"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Minimum Mobile App Version</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Minimum Mobile App Version</label>
               <input
                 type="text"
                 placeholder="1.0.0"
                 value={form.min_app_version}
                 onChange={(e) => setForm((prev) => ({ ...prev, min_app_version: e.target.value }))}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold focus:outline-none focus:border-brand-purple"
+                className="w-full px-3 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
               />
             </div>
           </div>
@@ -142,16 +142,16 @@ export default function AdminAppSettingsPage() {
 
         {/* OTP Provider Settings */}
         <div>
-          <h3 className="text-xs font-bold text-brand-purple uppercase tracking-wider mb-4 border-b border-border pb-2 flex items-center gap-1.5">
-            <FiKey /> OTP Gateway Provider
+          <h3 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider mb-4 border-b border-[#e3dccb] pb-2 flex items-center gap-2">
+            <FiKey className="text-[#d99a3d]" /> OTP Gateway Provider
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-text-tertiary uppercase block mb-1">Primary Gateway</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Primary Gateway</label>
               <select
                 value={form.otp_provider}
                 onChange={(e) => setForm((prev) => ({ ...prev, otp_provider: e.target.value }))}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs font-bold focus:outline-none focus:border-brand-purple"
+                className="w-full px-3 py-2.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
               >
                 <option value="msg91">MSG91 (Production SMS)</option>
                 <option value="firebase">Firebase Phone Auth</option>
@@ -163,9 +163,9 @@ export default function AdminAppSettingsPage() {
 
         <button
           onClick={handleSave}
-          className="w-full py-3 gradient-brand text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-premium"
+          className="w-full py-3 bg-[#1a1a1a] text-[#d99a3d] hover:bg-black rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
         >
-          <FiCheck /> Save App Settings
+          <FiCheck className="w-4 h-4" /> Save App Settings
         </button>
       </div>
     </div>

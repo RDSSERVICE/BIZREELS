@@ -65,7 +65,7 @@ export default function AdminModerationPage() {
       key: 'target_type',
       label: 'Target Type',
       render: (val) => (
-        <span className="font-bold text-xs uppercase px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 border border-rose-500/20">
+        <span className="font-bold text-xs uppercase px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">
           {val}
         </span>
       ),
@@ -75,15 +75,15 @@ export default function AdminModerationPage() {
       label: 'Report Reason',
       render: (val, row) => (
         <div>
-          <span className="font-bold text-text-primary block">{val}</span>
-          <span className="text-[10px] text-text-tertiary">{row.description || 'No extra notes'}</span>
+          <span className="font-bold text-[#1a1a1a] block">{val}</span>
+          <span className="text-[10px] text-slate-500">{row.description || 'No extra notes'}</span>
         </div>
       ),
     },
     {
       key: 'target_id',
       label: 'Target ID',
-      render: (val) => <span className="font-mono text-xs text-text-secondary">{val ? val.slice(-8) : '—'}</span>,
+      render: (val) => <span className="font-mono text-xs text-slate-500">{val ? val.slice(-8) : '—'}</span>,
     },
     {
       key: 'status',
@@ -93,7 +93,7 @@ export default function AdminModerationPage() {
     {
       key: 'created_at',
       label: 'Reported Date',
-      render: (val) => <span className="text-text-tertiary text-xs">{val ? new Date(val).toLocaleDateString() : '—'}</span>,
+      render: (val) => <span className="text-slate-500 text-xs">{val ? new Date(val).toLocaleDateString() : '—'}</span>,
     },
   ];
 

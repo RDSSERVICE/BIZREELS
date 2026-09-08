@@ -3,10 +3,7 @@ import { FiMoreVertical } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
- * AdminActionMenu — Reusable popover menu for table row actions
- * Prevents horizontal layout overflow by grouping actions into a dropdown menu.
- * 
- * @param {Array<{ label: string, icon?: React.ElementType, onClick: Function, danger?: boolean, disabled?: boolean, hidden?: boolean }>} actions
+ * AdminActionMenu — Warm Bento-Brutalism popover action menu
  */
 export default function AdminActionMenu({ actions = [] }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,13 +28,14 @@ export default function AdminActionMenu({ actions = [] }) {
   if (visibleActions.length === 0) return null;
 
   return (
-    <div className="relative inline-block text-left" ref={menuRef}>
+    <div className="relative inline-block text-left font-sans" ref={menuRef}>
       <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="p-1.5 rounded-lg hover:bg-surface-tertiary text-text-secondary hover:text-text-primary transition-all focus:outline-none"
+        className="p-1.5 rounded-lg border border-[#e3dccb] bg-[#f8f4ec] text-[#1a1a1a] hover:bg-[#ede5d8] transition-all focus:outline-none cursor-pointer shadow-2xs"
         title="Actions"
         aria-label="Actions Menu"
       >
@@ -51,13 +49,14 @@ export default function AdminActionMenu({ actions = [] }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -5 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-1 w-44 rounded-xl glass border border-white/60 shadow-modal bg-surface/95 backdrop-blur-md z-50 py-1 overflow-hidden"
+            className="absolute right-0 mt-1.5 w-48 rounded-xl bg-white border border-[#e3dccb] shadow-xl z-50 py-1 overflow-hidden divide-y divide-[#e3dccb]/40"
           >
             {visibleActions.map((action, idx) => {
               const Icon = action.icon;
               return (
                 <button
                   key={idx}
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsOpen(false);
@@ -66,12 +65,12 @@ export default function AdminActionMenu({ actions = [] }) {
                     }
                   }}
                   disabled={action.disabled}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold transition-all ${
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold transition-all text-left cursor-pointer ${
                     action.disabled
-                      ? 'opacity-40 cursor-not-allowed text-text-tertiary'
+                      ? 'opacity-35 cursor-not-allowed text-slate-400'
                       : action.danger
-                      ? 'text-error hover:bg-error/10 text-error'
-                      : 'text-text-primary hover:bg-brand-purple/10 hover:text-brand-purple'
+                      ? 'text-rose-600 hover:bg-rose-50'
+                      : 'text-[#1a1a1a] hover:bg-[#f8f4ec] hover:text-[#d99a3d]'
                   }`}
                 >
                   {Icon && <Icon className="w-3.5 h-3.5 flex-shrink-0" />}

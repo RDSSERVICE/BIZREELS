@@ -253,16 +253,16 @@ export default function AdminKycPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
             {/* Left Column: Vendor/Creator Details */}
             <div className="space-y-4 border-b md:border-b-0 md:border-r border-border/60 pb-6 md:pb-0 md:pr-6">
-              <div className="flex items-center gap-3 bg-surface-secondary p-3 rounded-xl">
+              <div className="flex items-center gap-3 bg-[#f8f4ec] p-3.5 rounded-2xl border border-[#e3dccb] shadow-2xs">
                 {activeGroup.user?.avatarUrl || activeGroup.user?.profile_pic ? (
-                  <img src={activeGroup.user?.avatarUrl || activeGroup.user?.profile_pic} alt="" className="w-12 h-12 rounded-full object-cover border border-border" />
+                  <img src={activeGroup.user?.avatarUrl || activeGroup.user?.profile_pic} alt="" className="w-12 h-12 rounded-full object-cover border border-[#e3dccb]" />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-brand-purple/15 flex items-center justify-center text-brand-purple text-lg font-bold font-sans">
+                  <div className="w-12 h-12 rounded-full bg-[#1a1a1a] border border-[#1a1a1a] flex items-center justify-center text-[#d99a3d] text-lg font-black font-sans">
                     {activeGroup.user?.name ? activeGroup.user.name[0].toUpperCase() : '?'}
                   </div>
                 )}
                 <div>
-                  <h4 className="font-bold text-sm text-text-primary">{activeGroup.user?.name || 'Unknown User'}</h4>
+                  <h4 className="font-black text-sm text-[#1a1a1a]">{activeGroup.user?.name || 'Unknown User'}</h4>
                   <p className="text-[10px] text-text-tertiary font-mono">{activeGroup.user?.email || 'No email'}</p>
                   <p className="text-[10px] text-text-tertiary font-mono">{activeGroup.user?.phone || 'No phone'}</p>
                 </div>

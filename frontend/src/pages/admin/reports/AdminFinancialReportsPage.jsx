@@ -66,13 +66,13 @@ export default function AdminFinancialReportsPage() {
         <div className="flex gap-2">
           <button
             onClick={handleExportCsv}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all flex items-center gap-1.5 shadow-premium"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center gap-1.5 cursor-pointer border-none"
           >
             <FiDownload className="w-4 h-4" /> Export CSV / Excel
           </button>
           <button
             onClick={handleExportPdf}
-            className="px-4 py-2 bg-brand-purple text-white rounded-xl text-xs font-bold hover:bg-brand-purple-800 transition-all flex items-center gap-1.5 shadow-premium"
+            className="px-4 py-2 bg-[#1a1a1a] hover:bg-black text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center gap-1.5 cursor-pointer border-none"
           >
             <FiDownload className="w-4 h-4" /> Export PDF
           </button>
@@ -80,17 +80,17 @@ export default function AdminFinancialReportsPage() {
       </AdminPageHeader>
 
       {/* Period Selection */}
-      <div className="flex items-center justify-between glass p-4 rounded-2xl border border-white/50">
-        <span className="text-xs font-bold text-text-primary flex items-center gap-2">
-          <FiCalendar className="text-brand-purple" /> Report Granularity:
+      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-[#e3dccb] shadow-2xs">
+        <span className="text-xs font-black text-[#1a1a1a] flex items-center gap-2">
+          <FiCalendar className="text-[#d99a3d]" /> Report Granularity:
         </span>
-        <div className="flex gap-1">
+        <div className="flex gap-1.5 bg-[#f8f4ec] p-1 rounded-xl border border-[#e3dccb]">
           {['daily', 'monthly', 'yearly'].map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
-                period === p ? 'bg-brand-purple text-white shadow-premium' : 'hover:bg-surface-tertiary text-text-secondary'
+              className={`px-3 py-1.5 rounded-lg text-xs font-black capitalize transition-all cursor-pointer ${
+                period === p ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-slate-500 hover:text-[#1a1a1a]'
               }`}
             >
               {p} Report
@@ -105,7 +105,7 @@ export default function AdminFinancialReportsPage() {
       {isFetching && !reportData ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 skeleton rounded-2xl" />
+            <div key={i} className="h-28 bg-white rounded-2xl border border-[#e3dccb] animate-pulse shadow-2xs" />
           ))}
         </div>
       ) : (
@@ -160,55 +160,55 @@ export default function AdminFinancialReportsPage() {
       </div>
 
       {/* Recent Transactions Table */}
-      <div className="glass p-6 rounded-2xl border border-white/50 space-y-4">
-        <h4 className="text-sm font-bold text-text-primary font-display capitalize">
+      <div className="bg-white p-6 rounded-2xl border border-[#e3dccb] shadow-2xs space-y-4">
+        <h4 className="text-xs font-black uppercase tracking-wider text-[#1a1a1a]">
           Recent {activeTab.toUpperCase()} Transactions ({period})
         </h4>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border text-[10px] font-bold text-text-tertiary uppercase">
-                <th className="py-2 text-left">Date</th>
-                <th className="py-2 text-left">Type</th>
-                <th className="py-2 text-left">User</th>
-                <th className="py-2 text-right">Amount</th>
-                <th className="py-2 text-left">Status</th>
-                <th className="py-2 text-left">Provider</th>
+              <tr className="border-b border-[#e3dccb] bg-[#f8f4ec] text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                <th className="py-2.5 px-3 text-left">Date</th>
+                <th className="py-2.5 px-3 text-left">Type</th>
+                <th className="py-2.5 px-3 text-left">User</th>
+                <th className="py-2.5 px-3 text-right">Amount</th>
+                <th className="py-2.5 px-3 text-left">Status</th>
+                <th className="py-2.5 px-3 text-left">Provider</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
+            <tbody className="divide-y divide-[#e3dccb]/50">
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-text-tertiary">
+                  <td colSpan={6} className="py-8 text-center text-slate-400 font-bold">
                     No transactions found for this period.
                   </td>
                 </tr>
               ) : (
                 transactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-brand-purple/5">
-                    <td className="py-3 font-bold text-text-primary">
+                  <tr key={tx.id} className="hover:bg-[#fbf9f4] transition-colors">
+                    <td className="py-3 px-3 font-bold text-[#1a1a1a]">
                       {tx.created_at ? new Date(tx.created_at).toLocaleDateString('en-IN') : '—'}
                     </td>
-                    <td className="py-3">
-                      <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${
-                        tx.kind === 'payment' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-brand-purple/10 text-brand-purple'
+                    <td className="py-3 px-3">
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                        tx.kind === 'payment' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-[#f8f4ec] text-[#1a1a1a] border-[#e3dccb]'
                       }`}>
                         {tx.kind}
                       </span>
                     </td>
-                    <td className="py-3 text-text-secondary font-mono text-[10px]">{tx.user_id?.slice(0, 8)}...</td>
-                    <td className="py-3 text-right font-black text-text-primary">
+                    <td className="py-3 px-3 text-slate-500 font-mono text-[10px]">{tx.user_id?.slice(0, 8)}...</td>
+                    <td className="py-3 px-3 text-right font-black text-[#1a1a1a]">
                       {tx.currency === 'CREDITS' ? `${(tx.amount_paise / 100).toFixed(0)} CR` : `₹${(tx.amount_paise / 100).toFixed(0)}`}
                     </td>
-                    <td className="py-3">
-                      <span className={`text-xs font-bold ${
-                        tx.status === 'captured' || tx.status === 'posted' ? 'text-emerald-500' :
-                        tx.status === 'failed' ? 'text-red-500' : 'text-amber-500'
+                    <td className="py-3 px-3">
+                      <span className={`text-[11px] font-bold ${
+                        tx.status === 'captured' || tx.status === 'posted' ? 'text-emerald-600' :
+                        tx.status === 'failed' ? 'text-rose-600' : 'text-amber-600'
                       }`}>
                         {tx.status}
                       </span>
                     </td>
-                    <td className="py-3 text-text-tertiary">{tx.provider || '—'}</td>
+                    <td className="py-3 px-3 text-slate-400">{tx.provider || '—'}</td>
                   </tr>
                 ))
               )}
