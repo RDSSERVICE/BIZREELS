@@ -15,6 +15,10 @@ const cache = require('../utils/cache');
 class WalletService {
 
   // ─── Get or Create Wallet ────────────────────────────────
+  async getOrCreate(userId, session = null) {
+    return this.getOrCreateWallet(userId, session);
+  }
+
   async getOrCreateWallet(userId, session = null) {
     const uid = userId.toString();
     const opts = session ? { session } : {};
