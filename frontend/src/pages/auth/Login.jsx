@@ -167,6 +167,9 @@ const Login = () => {
         </p>
       </div>
 
+      {/* Role Selection Tabs */}
+      <RoleQuickSwitcher label="Log In As" />
+
       {/* ── 1-Click Fast Google Sign-In (Top Placement — No Scrolling Required!) ── */}
       <button
         type="button"
@@ -368,15 +371,13 @@ const Login = () => {
       )}
 
       {/* Footer Nav */}
-      <div className="text-center text-xs font-medium text-slate-600 space-y-2 pt-0.5">
+      <div className="text-center text-xs font-medium text-slate-600 pt-1">
         <p className="text-[11px]">
           New to BizReels?{' '}
           <Link to="/auth/register" className="font-extrabold text-[#d99a3d] hover:text-[#b87b24] hover:underline">
             Create Account
           </Link>
         </p>
-
-        <RoleQuickSwitcher />
       </div>
     </div>
   );

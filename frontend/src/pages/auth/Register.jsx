@@ -22,9 +22,11 @@ const Register = () => {
   const [registerUser, { isLoading }] = useRegisterMutation();
 
   const refCodeFromUrl = searchParams.get('ref') || '';
+  const rawRoleParam = (searchParams.get('role') || '').toLowerCase().trim();
+  const initialRole = ['customer', 'vendor', 'creator'].includes(rawRoleParam) ? rawRoleParam : 'customer';
 
   const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm({
-    defaultValues: { name: '', email: '', phone: '', password: '', confirmPassword: '', role: 'customer', referralCode: refCodeFromUrl }
+    defaultValues: { name: '', email: '', phone: '', password: '', confirmPassword: '', role: initialRole, referralCode: refCodeFromUrl }
   });
 
   useEffect(() => {
@@ -32,6 +34,12 @@ const Register = () => {
       setValue('referralCode', refCodeFromUrl);
     }
   }, [refCodeFromUrl, setValue]);
+
+  useEffect(() => {
+    if (rawRoleParam && ['customer', 'vendor', 'creator'].includes(rawRoleParam)) {
+      setValue('role', rawRoleParam, { shouldValidate: true });
+    }
+  }, [rawRoleParam, setValue]);
 
   const password = watch('password');
   const selectedRole = watch('role') || 'customer';
@@ -117,7 +125,12 @@ const Register = () => {
               <button
                 key={value}
                 type="button"
-                onClick={() => setValue('role', value, { shouldValidate: true })}
+                onClick={() => {
+                  setValue('role', value, { shouldValidate: true });
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.set('role', value);
+                  navigate(`?${newParams.toString()}`, { replace: true });
+                }}
                 className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
                   isSelected
                     ? 'bg-[#1c1a17] text-[#d99a3d] border-[#1c1a17] shadow-2xs'

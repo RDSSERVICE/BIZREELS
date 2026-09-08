@@ -145,27 +145,54 @@ const CreatorLogin = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5 w-full font-sans text-left">
+    <div className="flex flex-col gap-3.5 w-full font-sans">
+      {/* Title Header */}
       <div className="text-center md:text-left">
-        <div className="inline-flex items-center gap-2 px-3 py-1 mb-2 bg-[#d99a3d]/15 text-[#1a1a1a] rounded-full border border-[#d99a3d]/30">
-          <FiVideo className="text-[#d99a3d]" size={13} />
-          <span className="text-[11px] font-bold uppercase tracking-wider">Creator Portal</span>
+        <div className="flex items-center justify-between">
+          <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl sm:text-[26px] text-[#1a1a1a] uppercase tracking-tight">
+            CREATOR SIGN IN
+          </h2>
+          <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#d99a3d]/15 text-[#9e6715] border border-[#d99a3d]/30">
+            CREATOR PORTAL
+          </span>
         </div>
-        <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-2xl text-[#1a1a1a] uppercase tracking-tight">
-          CREATOR LOGIN
-        </h2>
-        <p className="text-xs text-slate-500 mt-1 font-medium">
+        <p className="text-xs text-slate-500 mt-0.5 font-medium">
           Manage your portfolio, content orders, reels, and marketplace earnings.
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex bg-[#f8f4ec] p-1 rounded-md border border-[#e3dccb]">
+      {/* Role Selection Tabs */}
+      <RoleQuickSwitcher label="Log In As" />
+
+      {/* ── 1-Click Fast Google Sign-In (Top Placement — No Scrolling Required!) ── */}
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        className="w-full py-2.5 sm:py-3 px-4 bg-white hover:bg-[#faf7f2] border border-[#d5cbba] hover:border-[#d99a3d] text-slate-800 text-xs font-black rounded-full transition-all flex items-center justify-center gap-3 cursor-pointer shadow-2xs hover:shadow-xs group"
+      >
+        <FcGoogle className="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110" />
+        <span className="tracking-tight font-extrabold text-[13px]">Sign in with Google</span>
+        <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-[#d99a3d] bg-[#d99a3d]/10 px-2 py-0.5 rounded-full hidden sm:inline-block">
+          1-Click Fast
+        </span>
+      </button>
+
+      {/* Social login divider */}
+      <div className="relative flex items-center my-0.5">
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
+        <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+          Or continue with
+        </span>
+        <div className="flex-grow border-t border-[#e3dccb]"></div>
+      </div>
+
+      {/* Tabs Switcher */}
+      <div className="flex bg-[#f5efe4] p-1 rounded-xl border border-[#e3dccb]">
         <button
           type="button"
           onClick={() => { setLoginMode('email'); setOtpSent(false); }}
-          className={`flex-1 py-2 text-xs font-bold rounded transition-all cursor-pointer border-none ${
-            loginMode === 'email' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
+          className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all cursor-pointer border-none ${
+            loginMode === 'email' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-2xs' : 'text-slate-600 hover:text-[#1a1a1a] bg-transparent'
           }`}
         >
           Email &amp; Password
@@ -173,21 +200,26 @@ const CreatorLogin = () => {
         <button
           type="button"
           onClick={() => setLoginMode('otp')}
-          className={`flex-1 py-2 text-xs font-bold rounded transition-all cursor-pointer border-none ${
-            loginMode === 'otp' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs' : 'text-slate-600 bg-transparent'
+          className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all cursor-pointer border-none ${
+            loginMode === 'otp' ? 'bg-[#1c1a17] text-[#d99a3d] shadow-2xs' : 'text-slate-600 hover:text-[#1a1a1a] bg-transparent'
           }`}
         >
           Instant OTP Login
         </button>
       </div>
 
+      {/* Forms based on mode */}
       {loginMode === 'email' ? (
-        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-3.5">
+        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="flex flex-col gap-3">
           <Input
             label="Email Address"
+            type="email"
             placeholder="creator@example.com"
             error={emailForm.formState.errors.email}
-            {...emailForm.register('email', { required: 'Email is required' })}
+            {...emailForm.register('email', {
+              required: 'Email is required',
+              pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address' },
+            })}
           />
 
           <div className="flex flex-col gap-1">
@@ -199,7 +231,7 @@ const CreatorLogin = () => {
               {...emailForm.register('password', { required: 'Password is required' })}
             />
             <div className="text-right">
-              <Link to="/auth/forgot-password" className="text-[11px] font-bold text-[#d99a3d] hover:underline">
+              <Link to="/auth/forgot-password" className="text-[11px] font-extrabold text-[#d99a3d] hover:text-[#b87b24] hover:underline">
                 Forgot password?
               </Link>
             </div>
@@ -208,16 +240,17 @@ const CreatorLogin = () => {
           <button
             type="submit"
             disabled={isEmailLoading}
-            className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2b2621] text-[#d99a3d] text-xs font-black uppercase tracking-wider rounded-full shadow-2xs hover:shadow-xs transition-all border-none cursor-pointer mt-0.5 flex items-center justify-center gap-2 group"
           >
-            {isEmailLoading ? 'Signing In...' : 'SIGN IN AS CREATOR'}
-            <FiArrowRight className="w-4 h-4" />
+            {isEmailLoading ? 'Signing in...' : 'SIGN IN AS CREATOR'}
+            <FiArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
         </form>
       ) : (
-        <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="flex flex-col gap-3.5">
+        <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="flex flex-col gap-3">
           {!otpSent ? (
             <>
+              {/* Channel Selector */}
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
                   Select OTP Channel
@@ -262,10 +295,10 @@ const CreatorLogin = () => {
                 type="button"
                 onClick={() => handleSendOtp(otpChannel)}
                 disabled={isOtpRequestLoading || cooldown > 0}
-                className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2b2621] text-[#d99a3d] text-xs font-black uppercase tracking-wider rounded-full shadow-2xs hover:shadow-xs transition-all border-none cursor-pointer mt-0.5 flex items-center justify-center gap-2 group"
               >
                 {isOtpRequestLoading ? 'Sending OTP...' : `SEND OTP VIA ${otpChannel.toUpperCase()}`}
-                <FiArrowRight className="w-4 h-4" />
+                <FiArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
             </>
           ) : (
@@ -315,41 +348,24 @@ const CreatorLogin = () => {
               <button
                 type="submit"
                 disabled={isOtpVerifyLoading}
-                className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2c2824] text-[#d99a3d] text-xs font-extrabold uppercase tracking-wider rounded-full shadow-xs transition-colors border-none cursor-pointer mt-1 flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-[#1c1a17] hover:bg-[#2b2621] text-[#d99a3d] text-xs font-black uppercase tracking-wider rounded-full shadow-2xs hover:shadow-xs transition-all border-none cursor-pointer mt-0.5 flex items-center justify-center gap-2 group"
               >
                 {isOtpVerifyLoading ? 'Verifying...' : 'VERIFY & LOGIN'}
-                <FiArrowRight className="w-4 h-4" />
+                <FiArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
             </>
           )}
         </form>
       )}
 
-      <div className="relative flex py-1 items-center">
-        <div className="flex-grow border-t border-[#e3dccb]"></div>
-        <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-          Or continue with
-        </span>
-        <div className="flex-grow border-t border-[#e3dccb]"></div>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleGoogleLogin}
-        className="w-full py-3 px-4 bg-white border border-[#e3dccb] hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full transition-colors flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs"
-      >
-        <FcGoogle className="w-4 h-4" />
-        <span>Sign in with Google</span>
-      </button>
-
-      <div className="text-center text-xs font-medium text-slate-600 mt-2 space-y-3">
-        <p>
+      {/* Footer Nav */}
+      <div className="text-center text-xs font-medium text-slate-600 pt-1">
+        <p className="text-[11px]">
           New creator or influencer?{' '}
-          <Link to="/auth/register?role=creator" className="font-bold text-[#d99a3d] hover:underline">
+          <Link to="/auth/register?role=creator" className="font-extrabold text-[#d99a3d] hover:text-[#b87b24] hover:underline">
             Create Creator Account
           </Link>
         </p>
-        <RoleQuickSwitcher />
       </div>
     </div>
   );
