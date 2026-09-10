@@ -18,21 +18,27 @@ const activateOfferAndNotify = async (offer) => {
 
     logger.info(`Activating offer "${offer.title}" (${offer._id}). Notifying ${targetUsers.length} target users.`, { service: 'scheduler' });
 
-    // 2. Bulk create database notifications and emit real-time socket events for each user
-    for (const user of targetUsers) {
-      await notificationService.create(
-        user._id.toString(),
-        'offer',
-        offer.title,
-        offer.description,
-        {
-          offerId: offer._id.toString(),
-          code: offer.code || '',
-          discountType: offer.discountType,
-          discountValue: offer.discountValue,
-          endTime: offer.endTime.toISOString(),
-        },
-        '/customer/home'
+    // 2. Chunked batch creation of notifications to prevent event-loop starvation
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < targetUsers.length; i += BATCH_SIZE) {
+      const batch = targetUsers.slice(i, i + BATCH_SIZE);
+      await Promise.allSettled(
+        batch.map(user =>
+          notificationService.create(
+            user._id.toString(),
+            'offer',
+            offer.title,
+            offer.description,
+            {
+              offerId: offer._id.toString(),
+              code: offer.code || '',
+              discountType: offer.discountType,
+              discountValue: offer.discountValue,
+              endTime: offer.endTime ? offer.endTime.toISOString() : ''
+            },
+            '/customer/home'
+          )
+        )
       );
     }
 

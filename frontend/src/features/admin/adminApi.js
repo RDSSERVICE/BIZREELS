@@ -315,6 +315,10 @@ const adminApi = apiSlice.injectEndpoints({
     // Legacy coupon endpoints removed (moved to subscription-based Coupon Management)
 
     // ---- New Offers Management System ----
+    getOfferStats: builder.query({
+      query: () => '/offers/admin/stats',
+      providesTags: ['Offers'],
+    }),
     listOffers: builder.query({
       query: (params = {}) => ({ url: '/offers/admin', params }),
       providesTags: ['Offers'],
@@ -329,6 +333,14 @@ const adminApi = apiSlice.injectEndpoints({
     }),
     deleteOffer: builder.mutation({
       query: (id) => ({ url: `/offers/admin/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Offers'],
+    }),
+    bulkUpdateOfferStatus: builder.mutation({
+      query: ({ offerIds, status }) => ({ url: '/offers/admin/bulk-status', method: 'POST', body: { offerIds, status } }),
+      invalidatesTags: ['Offers'],
+    }),
+    bulkDeleteOffers: builder.mutation({
+      query: ({ offerIds }) => ({ url: '/offers/admin/bulk-delete', method: 'POST', body: { offerIds } }),
       invalidatesTags: ['Offers'],
     }),
     activateOffer: builder.mutation({
@@ -347,6 +359,7 @@ const adminApi = apiSlice.injectEndpoints({
       query: (id) => `/offers/admin/${id}/analytics`,
       providesTags: (result, error, id) => [{ type: 'Offers', id }],
     }),
+
 
     // ---- Chat Monitoring ----
     listReportedChats: builder.query({
@@ -678,10 +691,13 @@ export const {
   useGetAdminSecurityLogsQuery,
   useSendBroadcastNotificationMutation,
 
+  useGetOfferStatsQuery,
   useListOffersQuery,
   useCreateOfferMutation,
   useUpdateOfferMutation,
   useDeleteOfferMutation,
+  useBulkUpdateOfferStatusMutation,
+  useBulkDeleteOffersMutation,
   useActivateOfferMutation,
   useDeactivateOfferMutation,
   useDuplicateOfferMutation,
