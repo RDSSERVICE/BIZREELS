@@ -117,9 +117,9 @@ function AdminSidebarContent({
           <img src="/logo.png" alt="BizReels Logo" className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" />
           <div>
             <span style={{ fontFamily: "'Outfit', 'Manrope', sans-serif" }} className="text-sm font-black text-[#1a1a1a] block leading-tight tracking-tight">
-              BIZ<span className="text-[#1D4ED8]">REELS</span>
+              BIZ<span className="text-[#d99a3d]">REELS</span>
             </span>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">ADMIN CONTROL</span>
+            <span className="text-[9px] font-black text-[#8c827a] uppercase tracking-widest block">ADMIN CONTROL</span>
           </div>
         </Link>
       </div>
@@ -134,13 +134,13 @@ function AdminSidebarContent({
               <button
                 type="button"
                 onClick={() => toggleSection(section.title)}
-                className="w-full flex items-center justify-between px-2 py-1 text-[9.5px] font-black text-slate-400 uppercase tracking-widest hover:text-[#0F172A] transition-all cursor-pointer border-none bg-transparent"
+                className="w-full flex items-center justify-between px-2 py-1 text-[9.5px] font-black text-[#8c827a] uppercase tracking-widest hover:text-[#1a1a1a] transition-all cursor-pointer border-none bg-transparent"
               >
                 <span>{section.title}</span>
                 {isCollapsed ? (
-                  <FiChevronRight className="w-3 h-3 text-slate-400" />
+                  <FiChevronRight className="w-3 h-3 text-[#8c827a]" />
                 ) : (
-                  <FiChevronDown className="w-3 h-3 text-slate-400" />
+                  <FiChevronDown className="w-3 h-3 text-[#8c827a]" />
                 )}
               </button>
 
@@ -165,13 +165,13 @@ function AdminSidebarContent({
                           onClick={onItemClick}
                           className={`relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all duration-150 group ${
                             isActive
-                              ? 'bg-[#0F172A] text-[#EAB308] shadow-xs'
-                              : 'text-slate-700 hover:bg-white hover:text-[#0F172A] hover:shadow-2xs'
+                              ? 'bg-[#1a1a1a] text-[#d99a3d] shadow-xs'
+                              : 'text-[#4a423b] hover:bg-white hover:text-[#1a1a1a] hover:shadow-2xs'
                           }`}
                         >
                           {/* Active Gold Left Indicator */}
                           {isActive && (
-                            <span className="w-1 h-5 bg-[#EAB308] rounded-r-full absolute left-0" />
+                            <span className="w-1 h-5 bg-[#d99a3d] rounded-r-full absolute left-0" />
                           )}
 
                           <div className="flex items-center gap-2.5 min-w-0">
@@ -179,8 +179,8 @@ function AdminSidebarContent({
                             <div
                               className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                                 isActive
-                                  ? 'bg-[#EAB308] text-[#0F172A] shadow-xs'
-                                  : 'bg-white text-slate-600 border border-[#e3dccb] group-hover:border-[#0F172A] group-hover:text-[#0F172A]'
+                                  ? 'bg-[#d99a3d] text-[#1a1a1a] shadow-xs'
+                                  : 'bg-white text-[#8c827a] border border-[#e3dccb] group-hover:border-[#1a1a1a] group-hover:text-[#1a1a1a]'
                               }`}
                             >
                               <Icon size={14} />
@@ -189,7 +189,7 @@ function AdminSidebarContent({
                           </div>
 
                           {badgeCount && (
-                            <span className="bg-[#EAB308] text-[#0F172A] text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                            <span className="bg-[#d99a3d] text-[#1a1a1a] text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0">
                               {badgeCount}
                             </span>
                           )}
@@ -214,7 +214,7 @@ function AdminSidebarContent({
           />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-black text-[#1a1a1a] truncate">{user?.name || 'Super Admin'}</p>
-            <p className="text-[10px] font-medium text-slate-400 truncate">
+            <p className="text-[10px] font-medium text-[#8c827a] truncate">
               {user?.email ? user.email.replace('admin@bidzord.com', 'admin@bizreels.in') : (user?.phone || 'admin@bizreels.in')}
             </p>
           </div>
